@@ -95,7 +95,6 @@ Return a JSON object with: house_number, resident, category, is_continuation."""
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
                     response_schema=PageClassification,
-                    thinking_config=types.ThinkingConfig(thinking_budget=0),
                     temperature=0
                 )
             )
