@@ -3,3 +3,4 @@ tenacity
 google-generativeai
 python-dotenv
 pydantic
+pytest
