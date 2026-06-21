@@ -17,11 +17,14 @@ class Pipeline:
         print(f"Starting processing for {pdf_path}...")
 
         current_group_start: int = 0
+        current_end_page: int = 0
         current_classification: PageClassification = None
         previous_summary: str = ""
         documents: list[DocumentGroup] = []
 
         for page_index, image_bytes in self.ingestor.extract_pages_as_images(pdf_path):
+            # If we have a pending group, check if we need to emit it
+            # before classifying the new page (so previous_summary is available)
             result = self.client.classify_page(
                 image_bytes=image_bytes,
                 previous_summary=previous_summary
@@ -30,37 +33,35 @@ class Pipeline:
             if current_classification is None:
                 # First page — start a new group
                 current_group_start = page_index
+                current_end_page = page_index
                 current_classification = result
             elif result.is_continuation:
-                # Continuation of current group — just track the end page
-                pass
+                # Continuation of current group — extend end page
+                current_end_page = page_index
             else:
                 # New topic — emit the current group and start a new one
                 documents.append(DocumentGroup(
                     start_page=current_group_start,
-                    end_page=page_index - 1,
+                    end_page=current_end_page,
                     house_number=current_classification.house_number,
                     resident=current_classification.resident,
                     category=current_classification.category
                 ))
                 previous_summary = (
-                    f"Pages {current_group_start}-{page_index - 1}: "
+                    f"Pages {current_group_start}-{current_end_page}: "
                     f"{current_classification.category.value} for house "
                     f"{current_classification.house_number}, "
                     f"resident {current_classification.resident}"
                 )
                 current_group_start = page_index
+                current_end_page = page_index
                 current_classification = result
 
         # Emit the final group
         if current_classification is not None:
-            # Find the last page index from the ingestor
-            last_page = current_group_start
-            for page_index, _ in []:  # already consumed
-                last_page = page_index
             documents.append(DocumentGroup(
                 start_page=current_group_start,
-                end_page=page_index,  # page_index is the last value from the loop
+                end_page=current_end_page,
                 house_number=current_classification.house_number,
                 resident=current_classification.resident,
                 category=current_classification.category
