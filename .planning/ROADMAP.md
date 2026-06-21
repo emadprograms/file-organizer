@@ -7,7 +7,7 @@
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
 | 1 | OCR & PDF Pipeline | Build the ingestion, OCR extraction, and PDF manipulation logic | OCR-01, OCR-02, OCR-03 | 3 |
-| 2 | LLM Integration | 2/3 | In Progress|  |
+| 2 | LLM Integration | 3/3 | Complete   | 2026-06-21 |
 | 3 | Filesystem Generator | Orchestrate the entire flow into structured folders and save PDFs | SYS-01, SYS-02, SYS-03, SYS-04, SYS-05, SYS-06 | 3 |
 
 ### Phase Details
