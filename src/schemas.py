@@ -1,4 +1,5 @@
 from enum import Enum
+from dataclasses import dataclass
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -33,3 +34,13 @@ class PageClassification(BaseModel):
         if isinstance(v, str):
             return v.strip().upper()
         return v
+
+
+@dataclass
+class DocumentGroup:
+    """A group of consecutive pages belonging to the same document segment."""
+    start_page: int
+    end_page: int
+    house_number: str
+    resident: str
+    category: Category
