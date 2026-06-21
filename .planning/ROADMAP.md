@@ -1,6 +1,6 @@
 # Roadmap
 
-## Proposed Roadmap
+## Active Roadmap
 
 **3 phases** | **15 requirements mapped** | All v1 requirements covered ✓
 
