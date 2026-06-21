@@ -1,7 +1,7 @@
 ---
 phase: 02
 reviewers: [codex]
-reviewed_at: 2026-06-21T16:38:00Z
+reviewed_at: 2026-06-21T16:50:00Z
 plans_reviewed: [02-01-PLAN.md, 02-02-PLAN.md, 02-03-PLAN.md]
 ---
 
@@ -10,27 +10,23 @@ plans_reviewed: [02-01-PLAN.md, 02-02-PLAN.md, 02-03-PLAN.md]
 ## Codex Review
 
 **Summary**
-The plans provide a clear and well-structured approach to replacing the previous image-based pipeline with a text-based sequential pipeline using the `gemma-4-31b-it` model. The transition to `PageClassification` with Pydantic ensures structured schema validation, and the sliding window correctly tackles the page continuation requirement (LLM-05). 
+The updated plans successfully address the previous review's concerns by adding a `MAX_CONTEXT_PAGES` limit, a `NoTextLayerError` check, and a Pydantic validator for the "NONE" sentinel. However, the *implementation* of the sliding window limit introduces a new critical flaw that breaks document grouping, and the text layer check is insufficient.
 
 **Strengths**
-- Replacing parallel execution with sequential accumulation correctly implements the context window requirement.
-- Robust retry logic with exponential backoff and key rotation (LLM-01).
-- Clear definitions for the 13 categories using Pydantic schemas.
-- Excellent testing strategy with mocked fixtures and progressive verification of the sliding window.
+- Migration to Pydantic schemas and native JSON output is excellent.
+- The field validator in `02-01-01` elegantly solves the sentinel string matching issue.
+- The overall sequential architecture is much safer for stateful document processing.
 
 **Concerns**
-- **HIGH**: Unbounded Sliding Window. The `accumulated_pages` list grows infinitely if `is_continuation` remains `True`. For large documents (e.g., 200 pages), sending 200 pages in a single API call will likely exceed the context window or token limits of `gemma-4-31b-it`. 
-- **HIGH**: OCR Dependency in PyMuPDF. In Plan 03, `extract_pages_as_text` uses PyMuPDF's `page.get_text()`. If Phase 1 did not embed a searchable text layer into the PDF and only output images, `get_text()` will return an empty string.
-- **MEDIUM**: Sentinel String Matching. The sentinel value `"NONE"` for Amar Takhsees residents (D-08) is fragile if the LLM returns `"None"`, `"none"`, or `" NONE "`. The pipeline should use case-insensitive matching or a Pydantic validator.
-- **LOW**: The `delay_between_pages` is a fixed 1.0 seconds. A configurable base delay depending on the API's actual rate limit tiers could be more flexible.
+- **HIGH**: Document Fragmentation via MAX_CONTEXT_PAGES. In `02-03-02`, when `len(current_group_pages) >= self.max_context_pages`, the pipeline resets `current_group_start` and emits a `DocumentGroup`. If a document is 20 pages long and the limit is 10, this will emit two separate `DocumentGroup` objects. This directly violates requirement SYS-06 (Pages identified as continuations are merged into a single PDF file) because Phase 3 will save them as separate PDFs. The context window limit should bound the *text* sent to the LLM (e.g. by dropping the oldest pages from `accumulated_pages`), but it MUST NOT prematurely emit the `DocumentGroup` or reset `current_group_start` as long as `is_continuation` remains True.
+- **HIGH**: Incomplete Empty Page Detection. In `02-03-01`, `extract_pages_as_text` only checks if the *first* page (`doc[0]`) has text. If a subsequent page is a scanned image with no OCR text, `page.get_text()` will silently return an empty string. Passing an empty string to the LLM may cause hallucinations or schema violations. The pipeline must validate the text layer per-page (e.g., skip empty pages, fallback to image, or raise an error).
 
 **Suggestions**
-- Introduce a `MAX_CONTEXT_PAGES` limit in `Pipeline.process_pdf()` to force a group emission if `len(current_group_pages) > MAX_CONTEXT_PAGES`, preventing token overflow.
-- Add a Pydantic `@field_validator('resident')` in `PageClassification` to strip whitespace and convert to uppercase, ensuring `"NONE"` matches robustly.
-- Verify that the PDF ingested in Phase 2 has an OCR text layer (e.g. via Tesseract/pdfsandwiched) rather than just being a scanned image, or use `page.get_text()` with an OCR plugin.
+- Update `02-03-02` step (c): Do not emit the document if `is_continuation` is True, even if `len(current_group_pages) > max_context_pages`. Instead, slice `current_group_pages` (e.g., `current_group_pages = current_group_pages[-max_context_pages:]`) to keep the payload small, but preserve `current_group_start`.
+- Update `02-03-01` to check for empty strings on *every* page extracted, and define behavior (e.g., raising an error or logging a warning) if an empty page is encountered mid-document.
 
 **Risk Assessment**
-MEDIUM. The sequential logic is sound, but the risk of unbound context accumulation and potential fragility with exact string matching for the `"NONE"` sentinel need mitigation before proceeding.
+HIGH. The current pipeline design will fragment long documents and potentially fail on mixed OCR/image PDFs.
 
 ---
 
@@ -39,12 +35,12 @@ MEDIUM. The sequential logic is sound, but the risk of unbound context accumulat
 Since only Codex was invoked, the consensus summary aligns with the Codex review.
 
 ### Agreed Strengths
-- Sequential sliding window elegantly solves the continuation requirement.
-- Strong retry logic and validation via Pydantic.
+- Strong schema definitions and robust retry logic.
+- Addressed previous review findings (Pydantic validator, basic text layer check).
 
 ### Agreed Concerns
-- Unbounded context accumulation leading to token limit exhaustion.
-- OCR text extraction dependency and string matching fragility.
+- Document Fragmentation: The sliding window logic splits logical documents into multiple `DocumentGroup` outputs when the page count exceeds `max_context_pages`.
+- Empty Page Handling: The pipeline only checks the first page for text layer presence.
 
 ### Divergent Views
 - None.
