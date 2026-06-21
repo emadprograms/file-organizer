@@ -20,10 +20,10 @@ def main():
     print(f"Identified {len(documents)} documents.")
     
     for doc in documents:
-        start = doc["start_page"]
-        end = doc["end_page"]
-        category = doc["data"].get("category", "Unknown")
-        name = doc["data"].get("resident_name", "Unknown")
+        start = doc.start_page
+        end = doc.end_page
+        category = doc.category.value
+        name = doc.resident
         
         out_filename = f"out_{start}-{end}_{category}_{name}.pdf".replace("/", "_").replace(" ", "_")
         print(f"Extracting pages {start}-{end} to {out_filename}")
