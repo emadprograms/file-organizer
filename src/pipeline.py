@@ -47,11 +47,14 @@ class Pipeline:
                     resident=current_classification.resident,
                     category=current_classification.category
                 ))
+                # Build previous_summary using only validated/constrained values
+                # to prevent prompt injection via LLM-generated free text.
+                # category.value is constrained to the Category enum (safe).
+                # Page numbers are integers (safe).
+                # house_number and resident are LLM output — excluded from prompt context.
                 previous_summary = (
-                    f"Pages {current_group_start}-{current_end_page}: "
-                    f"{current_classification.category.value} for house "
-                    f"{current_classification.house_number}, "
-                    f"resident {current_classification.resident}"
+                    f"Previous group: pages {current_group_start}-{current_end_page}, "
+                    f"category: {current_classification.category.value}"
                 )
                 current_group_start = page_index
                 current_end_page = page_index

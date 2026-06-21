@@ -142,7 +142,6 @@ def test_sliding_window(monkeypatch):
     # so now previous_summary should contain info from the first group
     assert summaries_received[3] != ""
     assert "contract" in summaries_received[3].lower()
-    assert "683" in summaries_received[3]
 
     # Verify document grouping
     assert len(documents) == 2

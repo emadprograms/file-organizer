@@ -110,7 +110,7 @@ Return a JSON object with: house_number, resident, category, is_continuation."""
                     result = PageClassification(**data)
                 except (json.JSONDecodeError, Exception) as parse_err:
                     raise InvalidResponseError(
-                        f"Failed to parse response: {parse_err}. Raw: {response.text[:200]}"
+                        f"Failed to parse LLM response as PageClassification: {type(parse_err).__name__}"
                     )
 
             time.sleep(self.delay_between_pages)
