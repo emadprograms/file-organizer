@@ -2,3 +2,4 @@ PyMuPDF
 tenacity
 google-generativeai
 python-dotenv
+pydantic
