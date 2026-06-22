@@ -11,6 +11,12 @@ def main():
         sys.stdout.reconfigure(encoding='utf-8')
     load_dotenv()
     
+    # If no arguments are passed, launch the GUI
+    if len(sys.argv) == 1:
+        from src.gui import launch_gui
+        launch_gui()
+        return
+
     parser = argparse.ArgumentParser(description="Process and categorize housing documents.")
     parser.add_argument("pdf_path", help="Path to the input PDF file")
     parser.add_argument("-o", "--output", default="./output", help="Base output directory")

@@ -22,6 +22,10 @@
 - [ ] **SYS-05**: System saves the sliced PDF documents into their corresponding category folders.
 - [ ] **SYS-06**: Pages identified as continuations are merged into a single PDF file rather than saved separately.
 
+### GUI Application
+- [ ] **GUI-01**: Provide a local GUI application (Tkinter) to allow the user to select the input PDF and output directory.
+- [ ] **GUI-02**: Display a progress bar or text log to show current processing state (e.g., which pages are being processed, which files are being generated).
+
 ## v2 Requirements (Deferred)
 - [ ] **UI-01**: Web dashboard for uploading files instead of CLI.
 - [ ] **DB-01**: Database tracking of processed documents and extracted metadata.
