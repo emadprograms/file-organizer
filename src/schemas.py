@@ -23,16 +23,18 @@ class Category(str, Enum):
 class PageClassification(BaseModel):
     """Structured output schema for per-page document classification."""
     house_number: str = Field(description="The house number mentioned in the document")
-    resident: str = Field(description="The resident name in Arabic, or 'NONE' for general house letters and Amar Takhsees")
+    residents: list[str] = Field(description="List of resident names in Arabic, with relationship in parentheses if known (e.g. 'Name (Wife)'). Return ['NONE'] if no names.")
     category: Category = Field(description="The document category from the 13 defined types")
     date: str = Field(description="The date of the document (Gregorian or Hijri) if visible, otherwise 'NONE'")
 
-    @field_validator('resident', mode='before')
+    @field_validator('residents', mode='before')
     @classmethod
-    def normalize_resident(cls, v: str) -> str:
+    def normalize_resident(cls, v):
         """Strip whitespace and uppercase so ' none ' becomes 'NONE'."""
         if isinstance(v, str):
-            return v.strip().upper()
+            v = [v]
+        if isinstance(v, list):
+            return [name.strip().upper() for name in v if isinstance(name, str)]
         return v
 
 
@@ -47,6 +49,10 @@ class DocumentGroup:
     dates: list[str]
 
 
+class NameMapping(BaseModel):
+    raw_name: str = Field(description="The raw name as it appears in the log")
+    canonical_name: str = Field(description="The canonical Arabic Primary Tenant name it resolves to")
+
 class EntityResolutionMapping(BaseModel):
     """Schema for mapping raw extracted names to a Canonical Primary Tenant."""
-    mapping: dict[str, str] = Field(description="Map of raw extracted name to canonical Arabic Primary Tenant Name")
+    mapping_list: list[NameMapping] = Field(description="List of raw extracted name to canonical name mappings")

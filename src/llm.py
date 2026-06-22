@@ -17,7 +17,7 @@ class InvalidResponseError(Exception):
 
 
 class GemmaClient:
-    def __init__(self, api_keys: list[str] = None, delay_between_pages: float = 1.0):
+    def __init__(self, api_keys: list[str] = None, delay_between_pages: float = 5.0):
         if not api_keys:
             key = os.getenv("GEMINI_API_KEY")
             if not key:
@@ -26,17 +26,20 @@ class GemmaClient:
         else:
             self.api_keys = api_keys
 
+        self.clients = [genai.Client(api_key=key) for key in self.api_keys]
         self.current_key_idx = 0
         self.delay_between_pages = delay_between_pages
-        self._configure_client()
+        import threading
+        self.lock = threading.Lock()
 
-    def _configure_client(self):
-        self.client = genai.Client(api_key=self.api_keys[self.current_key_idx])
+    def _get_client(self):
+        with self.lock:
+            client = self.clients[self.current_key_idx]
+            self.current_key_idx = (self.current_key_idx + 1) % len(self.clients)
+            return client
 
     def switch_key(self):
-        if len(self.api_keys) > 1:
-            self.current_key_idx = (self.current_key_idx + 1) % len(self.api_keys)
-            self._configure_client()
+        pass  # Handled automatically by round-robin client rotation
 
     # Categories where NONE is a valid/expected resident value
     NONE_EXPECTED_CATEGORIES = {'amar_takhsees', 'pictures', 'other_letters'}
@@ -51,24 +54,24 @@ Classify this page into exactly ONE of the following 13 categories:
 
 1. basic_details — البيانات الأساسية (Basic resident information, ID cards, civil records)
 2. personal_details — البيانات الشخصية (Personal information forms, family details)
-3. amar_takhsees — أمر تخصيص (Allocation orders for people assigned but not residing)
+3. amar_takhsees — أمر تخصيص (Allocation orders for people assigned but not residing. CRITICAL: If the document contains the exact words 'أمر تخصيص' prominently, it MUST be classified as amar_takhsees, even if it looks like a notification.)
 4. key_handover_form — نموذج تسليم المفتاح (Key handover/receipt forms)
 5. contract — العقد (Rental or housing contracts)
 6. ewa_related_letters — رسائل الكهرباء والماء (EWA electricity/water letters)
 7. rent_deduction — خصم الإيجار (Rent deduction notices or records)
 8. allowance_deduction — خصم العلاوة (Allowance deduction notices)
-9. notifications — الإشعارات (General notifications, warnings)
+9. notifications — الإشعارات (General notifications, warnings. Do NOT use this for allocation orders / amar_takhsees.)
 10. maintenance — الصيانة (Maintenance requests, reports, work orders)
 11. pictures — الصور (Photographs of the property)
 12. modifications — التعديلات (Modification requests or approvals)
 13. other_letters — رسائل أخرى (Any letters that don't fit the above)
 
 NAME EXTRACTION RULES (CRITICAL):
-- Arabic names typically have 4 to 5 parts (e.g., محمد السيد ابراهيم جمعه محمد). Extract ALL parts of the name, not just 2 or 3.
-- Names may appear in Arabic OR English on the document. Always prefer the longest/most complete version you can find.
-- Look for names in ALL areas of the page: headers, footers, address blocks, body text, stamps, and signatures.
-- Do NOT return "NONE" for the resident unless you are absolutely certain there is no name anywhere on the page. Most documents DO contain a name.
-- Only return "NONE" for categories where no resident is expected: amar_takhsees (general allocation), pictures, or other_letters with no addressee.
+- Arabic names typically have 4 to 5 parts. Extract ALL parts of the name.
+- If a document states a person's relationship (e.g., Wife - زوجة, Son - ابن), append it to their name in parentheses, e.g., "آمنة (زوجة)".
+- If a document is addressed to MULTIPLE people, extract ALL of their names as a list of strings.
+- Do NOT return an empty list or ["NONE"] unless you are absolutely certain there is no name anywhere on the page. Most documents DO contain a name.
+- Only return ["NONE"] for categories where no resident is expected: amar_takhsees, pictures, or other_letters with no addressee.
 
 DATE EXTRACTION RULES:
 - Find any visible date on the document (e.g., 14-May-2008, 2015/06/12, or Hijri dates like 1429-05-14).
@@ -81,7 +84,7 @@ SPECIAL RULES:
 - Normalize Arabic names intelligently: group variations like "محمد" and "المحمد" as the same person.
 - Tolerate OCR noise and imperfect text in scanned documents.
 
-Return a JSON object with: house_number, resident, category, date."""
+Return a JSON object with: house_number, residents (list of strings), category, date."""
 
     @retry(
         wait=wait_exponential(multiplier=2, min=4, max=60) + wait_random(0, 2),
@@ -96,9 +99,10 @@ Return a JSON object with: house_number, resident, category, date."""
         """
         system_prompt = self._build_system_prompt()
         user_prompt = "Classify this scanned document page."
+        client = self._get_client()
 
         try:
-            response = self.client.models.generate_content(
+            response = client.models.generate_content(
                 model='gemma-4-31b-it',
                 contents=[
                     system_prompt,
@@ -125,8 +129,8 @@ Return a JSON object with: house_number, resident, category, date."""
                         f"Failed to parse LLM response as PageClassification: {type(parse_err).__name__}"
                     )
 
-            # Name retry: if resident is NONE but category expects a name, retry once
-            if (result.resident == "NONE"
+            # Name retry: if residents is NONE but category expects a name, retry once
+            if ((not result.residents or result.residents == ["NONE"])
                     and result.category.value not in self.NONE_EXPECTED_CATEGORIES):
                 try:
                     retry_prompt = (
@@ -139,8 +143,7 @@ Return a JSON object with: house_number, resident, category, date."""
                         "all 4-5 parts if possible."
                     )
 
-                    time.sleep(self.delay_between_pages)
-                    retry_response = self.client.models.generate_content(
+                    retry_response = client.models.generate_content(
                         model='gemma-4-31b-it',
                         contents=[
                             system_prompt,
@@ -160,7 +163,7 @@ Return a JSON object with: house_number, resident, category, date."""
                         retry_result = PageClassification(**retry_data)
 
                     # Use the retry result only if it found a name
-                    if retry_result.resident != "NONE":
+                    if retry_result.residents and retry_result.residents != ["NONE"]:
                         result = retry_result
                 except Exception:
                     pass  # Keep original result if retry fails
@@ -171,7 +174,6 @@ Return a JSON object with: house_number, resident, category, date."""
         except Exception as e:
             error_str = str(e)
             if "429" in error_str or "Too Many Requests" in error_str or "quota" in error_str.lower() or "Resource exhausted" in error_str:
-                self.switch_key()
                 raise RateLimitError(f"Rate limited: {error_str}")
             if isinstance(e, (RateLimitError, InvalidResponseError)):
                 raise
@@ -192,13 +194,18 @@ Return a JSON object with: house_number, resident, category, date."""
             "1. Identify the Primary Tenants (Head of Household).\n"
             "2. Map all English/Arabic/abbreviated variations into one Canonical Name.\n"
             "3. Identify family members (wives, children) who appear in the log, and map them to their respective Primary Tenant.\n"
+            "CRITICAL RULES:\n"
+            "- You MUST return a mapping for EVERY SINGLE exact raw string found in the log, character-for-character.\n"
+            "- Even OCR errors like 'آمنة الله ببة بببض' or 'زوبة' must be explicitly mapped to the Primary Tenant's canonical name if they are family.\n"
+            "- ALL English transliterations (like 'MOHD SAYED IBRAHIM' or 'MOHAMMED') MUST be mapped to the primary Arabic name!\n"
             "Return the JSON mapping using the EntityResolutionMapping schema."
         )
         
         user_prompt = f"Here is the document log:\n{raw_pages_log}\n\nPlease resolve the entities."
+        client = self._get_client()
 
         try:
-            response = self.client.models.generate_content(
+            response = client.models.generate_content(
                 model='gemma-4-31b-it',
                 contents=[system_prompt, user_prompt],
                 config=types.GenerateContentConfig(
@@ -220,12 +227,11 @@ Return a JSON object with: house_number, resident, category, date."""
                     )
 
             time.sleep(self.delay_between_pages)
-            return result.mapping
+            return {item.raw_name: item.canonical_name for item in result.mapping_list}
 
         except Exception as e:
             error_str = str(e)
             if "429" in error_str or "Too Many Requests" in error_str or "quota" in error_str.lower() or "Resource exhausted" in error_str:
-                self.switch_key()
                 raise RateLimitError(f"Rate limited: {error_str}")
             if isinstance(e, (RateLimitError, InvalidResponseError)):
                 raise

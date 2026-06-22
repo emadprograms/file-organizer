@@ -1,4 +1,8 @@
 from typing import List
+import json
+import os
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.ingest import PdfIngestor
 from src.llm import GemmaClient
 from src.schemas import PageClassification, DocumentGroup, Category
@@ -19,19 +23,72 @@ class Pipeline:
         """
         print(f"Starting Pass 1 (Vision Extraction) for {pdf_path}...")
         
+        cache_file = f"{pdf_path}.cache.json"
+        cached_pages = {}
+        if os.path.exists(cache_file):
+            with open(cache_file, "r", encoding="utf-8") as f:
+                cached_pages = json.load(f)
+                print(f"Loaded {len(cached_pages)} pages from cache.")
+
         raw_pages = []
+        pages_to_process = []
+        
         for page_index, image_bytes in self.ingestor.extract_pages_as_images(pdf_path):
-            result = self.client.classify_page(image_bytes=image_bytes)
-            raw_pages.append((page_index, result))
-            print(f" Extracted Page {page_index}: {result.category.value} | {result.resident} | {result.date}")
+            str_index = str(page_index)
+            if str_index in cached_pages:
+                cache_data = cached_pages[str_index]
+                if 'resident' in cache_data and 'residents' not in cache_data:
+                    cache_data['residents'] = [cache_data.pop('resident')]
+                result = PageClassification(**cache_data)
+                print(f" Cached Page {page_index}: {result.category.value} | {result.residents} | {result.date}")
+                raw_pages.append((page_index, result))
+            else:
+                pages_to_process.append((page_index, image_bytes))
+                
+        cache_lock = threading.Lock()
+        
+        def process_single_page(page_info):
+            p_idx, i_bytes = page_info
+            import time
+            import random
+            # Staggered start to prevent hitting burst rate limits
+            time.sleep(random.uniform(0.1, 1.0) + (p_idx * 0.3))
+            try:
+                res = self.client.classify_page(image_bytes=i_bytes)
+                print(f" Extracted Page {p_idx}: {res.category.value} | {res.residents} | {res.date}")
+                with cache_lock:
+                    cached_pages[str(p_idx)] = res.model_dump()
+                    # Saving cache progressively can be slow, but it's safe. We do it inside lock.
+                    with open(cache_file, "w", encoding="utf-8") as f:
+                        json.dump(cached_pages, f, ensure_ascii=False, indent=2)
+                return (p_idx, res)
+            except Exception as e:
+                print(f"Error processing page {p_idx}: {e}")
+                return None
+                
+        if pages_to_process:
+            num_workers = 30
+            print(f"Processing {len(pages_to_process)} pages concurrently with {num_workers} workers...")
+            with ThreadPoolExecutor(max_workers=num_workers) as executor:
+                futures = [executor.submit(process_single_page, p) for p in pages_to_process]
+                for future in as_completed(futures):
+                    res = future.result()
+                    if res:
+                        raw_pages.append(res)
+                        
+        raw_pages.sort(key=lambda x: x[0])
 
         print(f"Starting Pass 1.5 (Entity Resolution) for {pdf_path}...")
         log_lines = []
         for page_index, page in raw_pages:
-            log_lines.append(f"Page {page_index}: {page.category.value} | {page.resident} | {page.date}")
+            res_str = ", ".join(page.residents) if page.residents else "NONE"
+            log_lines.append(f"Page {page_index}: {page.category.value} | {res_str} | {page.date}")
         raw_pages_log = "\n".join(log_lines)
         
         canonical_mapping = self.client.resolve_entities(raw_pages_log)
+        if not canonical_mapping:
+            canonical_mapping = {}
+        canonical_mapping_clean = {k.upper().strip(): v for k, v in canonical_mapping.items()}
 
         print(f"Starting Pass 2 (Tenant Grouping) for {pdf_path}...")
         
@@ -40,20 +97,35 @@ class Pipeline:
 
         for page_index, page in raw_pages:
             # 1. Determine the Primary Tenant for this page based on Timeline Rules
-            mapped_resident = canonical_mapping.get(page.resident, page.resident)
+            mapped_residents = [canonical_mapping_clean.get(r.upper().strip(), r) for r in page.residents]
+            valid_mapped = [r for r in mapped_residents if r not in ("NONE", "UNKNOWN", "")]
+
+            ANCHOR_CATEGORIES = {Category.BASIC_DETAILS, Category.KEY_HANDOVER, Category.CONTRACT}
 
             if page.category == Category.AMAR_TAKHSEES:
                 # Independent, does not change the house's current tenant timeline
-                page_primary_tenant = mapped_resident
+                page_primary_tenant = valid_mapped[0] if valid_mapped else current_primary_tenant
             elif page.category == Category.PERSONAL_DETAILS:
                 # Inherits the timeline's active tenant (e.g. wife inherits husband's folder)
                 page_primary_tenant = current_primary_tenant
-            elif mapped_resident not in ("NONE", "UNKNOWN", ""):
-                # Document has a valid name — evaluate if timeline changes
-                if current_primary_tenant != mapped_resident:
-                    # Tenant has changed! Update the timeline.
-                    current_primary_tenant = mapped_resident
-                page_primary_tenant = current_primary_tenant
+            elif valid_mapped:
+                # Document has valid names — evaluate if timeline changes
+                if current_primary_tenant in valid_mapped:
+                    # The current tenant is among the recipients, so the timeline is unbroken
+                    page_primary_tenant = current_primary_tenant
+                else:
+                    # Is this a definitive anchor document for a new tenant?
+                    # Only change the timeline if it's an anchor and not a massive list of names
+                    if page.category in ANCHOR_CATEGORIES and len(valid_mapped) <= 3:
+                        candidate = valid_mapped[0]
+                        # Check word overlap to prevent children from hijacking the timeline
+                        words_current = set(current_primary_tenant.replace("ال", "").split())
+                        words_candidate = set(candidate.replace("ال", "").split())
+                        
+                        # If they share at least 2 words, they are family. Don't split timeline.
+                        if len(words_current.intersection(words_candidate)) < 2:
+                            current_primary_tenant = candidate
+                    page_primary_tenant = current_primary_tenant
             else:
                 # Document has NO name (e.g. pictures, generic notifications)
                 page_primary_tenant = current_primary_tenant
