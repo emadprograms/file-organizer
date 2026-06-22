@@ -9,6 +9,7 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.pytest_cache/
 
 # IDE
 .vscode/
@@ -17,3 +18,9 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Output
+output/
+test_output/
+out_*.pdf
+*.cache.json
