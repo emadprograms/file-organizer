@@ -9,16 +9,7 @@ class Pipeline:
         self.ingestor = PdfIngestor()
         self.client = GemmaClient(api_keys, delay_between_pages)
 
-    def _is_same_person(self, name1: str, name2: str) -> bool:
-        """Fuzzy match to handle OCR noise or name variations like 'ال'."""
-        if name1 in ("UNKNOWN", "NONE", "") or name2 in ("UNKNOWN", "NONE", ""):
-            return False
-        # Remove spaces and common prefixes
-        def normalize(n: str) -> str:
-            return n.replace(" ", "").replace("ال", "").replace("أ", "ا").replace("إ", "ا").replace("ة", "ه")
-        n1 = normalize(name1)
-        n2 = normalize(name2)
-        return n1 in n2 or n2 in n1 or name1 == name2
+
 
     def process_pdf(self, pdf_path: str) -> list[DocumentGroup]:
         """
@@ -31,29 +22,37 @@ class Pipeline:
         raw_pages = []
         for page_index, image_bytes in self.ingestor.extract_pages_as_images(pdf_path):
             result = self.client.classify_page(image_bytes=image_bytes)
-            # Add page_index to the result temporarily for pass 2
-            setattr(result, 'page_index', page_index)
-            raw_pages.append(result)
+            raw_pages.append((page_index, result))
             print(f" Extracted Page {page_index}: {result.category.value} | {result.resident} | {result.date}")
+
+        print(f"Starting Pass 1.5 (Entity Resolution) for {pdf_path}...")
+        log_lines = []
+        for page_index, page in raw_pages:
+            log_lines.append(f"Page {page_index}: {page.category.value} | {page.resident} | {page.date}")
+        raw_pages_log = "\n".join(log_lines)
+        
+        canonical_mapping = self.client.resolve_entities(raw_pages_log)
 
         print(f"Starting Pass 2 (Tenant Grouping) for {pdf_path}...")
         
         documents: list[DocumentGroup] = []
         current_primary_tenant = "UNKNOWN"
 
-        for page in raw_pages:
+        for page_index, page in raw_pages:
             # 1. Determine the Primary Tenant for this page based on Timeline Rules
+            mapped_resident = canonical_mapping.get(page.resident, page.resident)
+
             if page.category == Category.AMAR_TAKHSEES:
                 # Independent, does not change the house's current tenant timeline
-                page_primary_tenant = page.resident
+                page_primary_tenant = mapped_resident
             elif page.category == Category.PERSONAL_DETAILS:
                 # Inherits the timeline's active tenant (e.g. wife inherits husband's folder)
                 page_primary_tenant = current_primary_tenant
-            elif page.resident not in ("NONE", "UNKNOWN", ""):
+            elif mapped_resident not in ("NONE", "UNKNOWN", ""):
                 # Document has a valid name — evaluate if timeline changes
-                if not self._is_same_person(current_primary_tenant, page.resident):
+                if current_primary_tenant != mapped_resident:
                     # Tenant has changed! Update the timeline.
-                    current_primary_tenant = page.resident
+                    current_primary_tenant = mapped_resident
                 page_primary_tenant = current_primary_tenant
             else:
                 # Document has NO name (e.g. pictures, generic notifications)
@@ -65,14 +64,14 @@ class Pipeline:
                 documents[-1].category == page.category and 
                 documents[-1].primary_tenant == page_primary_tenant):
                 
-                documents[-1].end_page = page.page_index
+                documents[-1].end_page = page_index
                 if page.date != "NONE":
                     documents[-1].dates.append(page.date)
             else:
                 # Start a new group
                 documents.append(DocumentGroup(
-                    start_page=page.page_index,
-                    end_page=page.page_index,
+                    start_page=page_index,
+                    end_page=page_index,
                     house_number=page.house_number,
                     primary_tenant=page_primary_tenant,
                     category=page.category,
