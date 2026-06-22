@@ -25,7 +25,7 @@ class PageClassification(BaseModel):
     house_number: str = Field(description="The house number mentioned in the document")
     resident: str = Field(description="The resident name in Arabic, or 'NONE' for general house letters and Amar Takhsees")
     category: Category = Field(description="The document category from the 13 defined types")
-    is_continuation: bool = Field(description="True if this page continues the same topic as the previous page")
+    date: str = Field(description="The date of the document (Gregorian or Hijri) if visible, otherwise 'NONE'")
 
     @field_validator('resident', mode='before')
     @classmethod
@@ -42,5 +42,6 @@ class DocumentGroup:
     start_page: int
     end_page: int
     house_number: str
-    resident: str
+    primary_tenant: str
     category: Category
+    dates: list[str]

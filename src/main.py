@@ -3,7 +3,11 @@ from dotenv import load_dotenv
 from src.pipeline import Pipeline
 from src.split import extract_pdf_segment
 
+import sys
+
 def main():
+    if sys.stdout.encoding.lower() != 'utf-8':
+        sys.stdout.reconfigure(encoding='utf-8')
     load_dotenv()
     
     api_keys_str = os.getenv("GEMINI_API_KEYS")
@@ -23,7 +27,7 @@ def main():
         start = doc.start_page
         end = doc.end_page
         category = doc.category.value
-        name = doc.resident
+        name = doc.primary_tenant
         
         out_filename = f"out_{start}-{end}_{category}_{name}.pdf".replace("/", "_").replace(" ", "_")
         print(f"Extracting pages {start}-{end} to {out_filename}")

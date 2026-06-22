@@ -70,37 +70,32 @@ NAME EXTRACTION RULES (CRITICAL):
 - Do NOT return "NONE" for the resident unless you are absolutely certain there is no name anywhere on the page. Most documents DO contain a name.
 - Only return "NONE" for categories where no resident is expected: amar_takhsees (general allocation), pictures, or other_letters with no addressee.
 
-CONTINUATION GROUPING RULES (CRITICAL):
-- If you are told there is a currently active document group with a specific category, and this page has the SAME category AND appears to be part of the same topic/letter/form, set is_continuation to true.
-- Multiple consecutive pages of the same category (e.g., several "basic_details" pages in a row) are very likely continuations of the same document group.
-- Only set is_continuation to false when you are confident this page starts an entirely NEW and unrelated document or letter, even if it shares the same category.
+DATE EXTRACTION RULES:
+- Find any visible date on the document (e.g., 14-May-2008, 2015/06/12, or Hijri dates like 1429-05-14).
+- Extract the date exactly as written. If no date is visible anywhere, return "NONE".
 
 SPECIAL RULES:
+- "basic_details" is ALWAYS just a single-page form filling out the main tenant's details.
+- "personal_details" contains ID cards, civil records, passports, and family member details. Do NOT confuse basic_details with personal_details.
 - For general house letters and "Amar Takhsees" documents that are NOT tied to a specific resident, set resident to "NONE".
 - Normalize Arabic names intelligently: group variations like "محمد" and "المحمد" as the same person.
 - Tolerate OCR noise and imperfect text in scanned documents.
 
-Return a JSON object with: house_number, resident, category, is_continuation."""
+Return a JSON object with: house_number, resident, category, date."""
 
     @retry(
         wait=wait_exponential(multiplier=2, min=4, max=60) + wait_random(0, 2),
         stop=stop_after_attempt(7),
         retry=retry_if_exception_type((RateLimitError, InvalidResponseError))
     )
-    def classify_page(self, image_bytes: bytes, previous_summary: str = "", active_summary: str = "") -> PageClassification:
+    def classify_page(self, image_bytes: bytes) -> PageClassification:
         """
         Classifies a scanned page image using Gemma 4 31b multimodal vision.
-        Returns a PageClassification with house_number, resident, category, is_continuation.
-        Includes active group context for better continuation detection
-        and retries once if resident is NONE for categories that should have a name.
+        Returns a PageClassification with house_number, resident, category, date.
+        Includes a retry once if resident is NONE for categories that should have a name.
         """
         system_prompt = self._build_system_prompt()
-
         user_prompt = "Classify this scanned document page."
-        if active_summary:
-            user_prompt += f"\n\nCurrently active document group: {active_summary}\nIs this page a continuation of the active group? If same category and related content, set is_continuation to true."
-        if previous_summary:
-            user_prompt += f"\n\nPrevious closed group: {previous_summary}"
 
         try:
             response = self.client.models.generate_content(
@@ -143,10 +138,6 @@ Return a JSON object with: house_number, resident, category, is_continuation."""
                         "for any Arabic or English name. Extract the FULL name with "
                         "all 4-5 parts if possible."
                     )
-                    if active_summary:
-                        retry_prompt += f"\n\nCurrently active document group: {active_summary}"
-                    if previous_summary:
-                        retry_prompt += f"\n\nPrevious closed group: {previous_summary}"
 
                     time.sleep(self.delay_between_pages)
                     retry_response = self.client.models.generate_content(
