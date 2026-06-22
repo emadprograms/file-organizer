@@ -29,7 +29,7 @@ def main():
         category = doc.category.value
         name = doc.primary_tenant
         
-        out_filename = f"out_{start}-{end}_{category}_{name}.pdf".replace("/", "_").replace(" ", "_")
+        out_filename = f"out_{start}-{end}_{category}_{name}.pdf".replace("/", "_").replace("\\", "_").replace(" ", "_")
         print(f"Extracting pages {start}-{end} to {out_filename}")
         extract_pdf_segment(sample_pdf, start, end, out_filename)
 
