@@ -45,3 +45,8 @@ class DocumentGroup:
     primary_tenant: str
     category: Category
     dates: list[str]
+
+
+class EntityResolutionMapping(BaseModel):
+    """Schema for mapping raw extracted names to a Canonical Primary Tenant."""
+    mapping: dict[str, str] = Field(description="Map of raw extracted name to canonical Arabic Primary Tenant Name")
