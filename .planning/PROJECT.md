@@ -2,7 +2,7 @@
 
 ## What This Is
 
-An automated document processing application that takes scanned Arabic housing files (often up to 200 pages long), extracts their text via OCR, and processes them using the Gemma 4 31b model. It organizes the disorganized input into a deeply structured directory hierarchy, categorizing pages into smaller PDF files by house number, chronological residents, and 13 specific document types, while intelligently keeping multi-page letters intact.
+An automated document processing application that takes scanned Arabic housing files (often up to 200 pages long), extracts their text via multimodal vision, and processes them using the Gemma 4 31b model. It organizes the disorganized input into a deeply structured directory hierarchy, categorizing pages into smaller PDF files by house number, chronological residents, and 13 specific document types, while intelligently keeping multi-page letters intact.
 
 ## Core Value
 
@@ -12,18 +12,17 @@ Accurately parsing, splitting, and categorizing large, disorganized scanned Arab
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ Implement robust Arabic OCR pipeline for scanned PDFs and images (replaced by direct LLM vision) — Phase 01
+- ✓ Integrate with the Gemma 4 31b model via the user's specific API/hosting setup for document understanding — Phase 01
+- ✓ Detect page continuations so multi-page letters on the same topic stay in a single combined PDF — Phase 01
+- ✓ Implement PDF splitting logic to extract specific pages into smaller PDF files — Phase 01
 
 ### Active
 
-- [ ] Implement robust Arabic OCR pipeline for scanned PDFs and images.
-- [ ] Integrate with the Gemma 4 31b model via the user's specific API/hosting setup for document understanding.
-- [ ] Implement PDF splitting logic to extract specific pages into smaller categorized PDF files.
 - [ ] Extract the House Number to create the root directory (e.g., `683`).
-- [ ] Extract Resident information, double-sort them, and organize chronologically (e.g., `1_Mohammad`, `2_Ahmed`, `3_Zain`).
-- [ ] Handle structural edge cases: "Amar Takhsees" (people who got orders but didn't live there) and generic house-related letters.
+- [ ] Extract Resident information, double-sort them, and organize chronologically.
+- [ ] Handle structural edge cases: "Amar Takhsees" and generic house-related letters.
 - [ ] Generate 13 distinct subfolders per person: `1_basic details`, `2_personal details`, `3_amar takhsees`, `4_key handover form`, `5_contract`, `6_ewa related letters`, `7_rent deduction`, `8_allowance deduction`, `9_notifications`, `10_maintenance`, `11_pictures`, `12_modifications`, `13_other letters`.
-- [ ] Detect page continuations so multi-page letters on the same topic stay in a single combined PDF.
 
 ### Out of Scope
 
@@ -48,9 +47,9 @@ Accurately parsing, splitting, and categorizing large, disorganized scanned Arab
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Use Gemma 4 31b | User explicitly requested this specific model over alternatives | — Pending |
-| Split PDFs | Extracting smaller PDFs retains the original visual integrity of the documents rather than just raw text | — Pending |
-| Arabic OCR integration | The input documents are scanned PDFs/images and require text extraction before the LLM can process them | — Pending |
+| Use Gemma 4 31b | User explicitly requested this specific model over alternatives | Verified in Phase 01 |
+| Split PDFs | Extracting smaller PDFs retains the original visual integrity of the documents rather than just raw text | Verified in Phase 01 |
+| Multimodal Vision over traditional OCR | Gemma-4-31b handles Arabic scans natively, skipping a fragile secondary OCR step | Verified in Phase 01 |
 
 ## Evolution
 
@@ -70,4 +69,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-21 after initialization*
+*Last updated: 2026-06-22 after Phase 01*
