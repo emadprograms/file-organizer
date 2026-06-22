@@ -76,7 +76,7 @@ def test_continuation_detection(monkeypatch):
     ]
     call_idx = [0]
 
-    def mock_classify_page(image_bytes, previous_summary=""):
+    def mock_classify_page(image_bytes, previous_summary="", active_summary=""):
         idx = call_idx[0]
         call_idx[0] += 1
         return responses[idx]
@@ -106,6 +106,7 @@ def test_continuation_detection(monkeypatch):
 def test_sliding_window(monkeypatch):
     """Test that previous_summary context is passed correctly between groups."""
     summaries_received = []
+    active_summaries_received = []
 
     responses = [
         PageClassification(house_number="683", resident="محمد", category=Category.CONTRACT, is_continuation=False),
@@ -115,8 +116,9 @@ def test_sliding_window(monkeypatch):
     ]
     call_idx = [0]
 
-    def mock_classify_page(image_bytes, previous_summary=""):
+    def mock_classify_page(image_bytes, previous_summary="", active_summary=""):
         summaries_received.append(previous_summary)
+        active_summaries_received.append(active_summary)
         idx = call_idx[0]
         call_idx[0] += 1
         return responses[idx]
@@ -134,14 +136,20 @@ def test_sliding_window(monkeypatch):
 
     # Page 0: no prior context (first page)
     assert summaries_received[0] == ""
-    # Page 1: continuation, still in same group
+    assert active_summaries_received[0] == ""
+    # Page 1: continuation — active_summary should describe current group
     assert summaries_received[1] == ""
-    # Page 2: new topic — but classify runs before emit, so still ""
-    assert summaries_received[2] == ""
-    # Page 3: continuation — previous group was emitted when page 2 started new topic,
-    # so now previous_summary should contain info from the first group
+    assert active_summaries_received[1] != ""
+    assert "contract" in active_summaries_received[1].lower()
+    # Page 2: new topic — active_summary still describes the contract group
+    assert active_summaries_received[2] != ""
+    assert "contract" in active_summaries_received[2].lower()
+    # Page 3: continuation of new group — previous_summary should have contract info,
+    # active_summary should describe the new basic_details group
     assert summaries_received[3] != ""
     assert "contract" in summaries_received[3].lower()
+    assert active_summaries_received[3] != ""
+    assert "basic_details" in active_summaries_received[3].lower()
 
     # Verify document grouping
     assert len(documents) == 2

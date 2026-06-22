@@ -20,14 +20,14 @@ class Pipeline:
         current_end_page: int = 0
         current_classification: PageClassification = None
         previous_summary: str = ""
+        active_summary: str = ""
         documents: list[DocumentGroup] = []
 
         for page_index, image_bytes in self.ingestor.extract_pages_as_images(pdf_path):
-            # If we have a pending group, check if we need to emit it
-            # before classifying the new page (so previous_summary is available)
             result = self.client.classify_page(
                 image_bytes=image_bytes,
-                previous_summary=previous_summary
+                previous_summary=previous_summary,
+                active_summary=active_summary
             )
 
             if current_classification is None:
@@ -35,9 +35,19 @@ class Pipeline:
                 current_group_start = page_index
                 current_end_page = page_index
                 current_classification = result
+                active_summary = (
+                    f"pages {current_group_start}-{current_end_page}, "
+                    f"category: {current_classification.category.value}, "
+                    f"resident: {current_classification.resident}"
+                )
             elif result.is_continuation:
                 # Continuation of current group — extend end page
                 current_end_page = page_index
+                active_summary = (
+                    f"pages {current_group_start}-{current_end_page}, "
+                    f"category: {current_classification.category.value}, "
+                    f"resident: {current_classification.resident}"
+                )
             else:
                 # New topic — emit the current group and start a new one
                 documents.append(DocumentGroup(
@@ -59,6 +69,11 @@ class Pipeline:
                 current_group_start = page_index
                 current_end_page = page_index
                 current_classification = result
+                active_summary = (
+                    f"pages {current_group_start}-{current_end_page}, "
+                    f"category: {current_classification.category.value}, "
+                    f"resident: {current_classification.resident}"
+                )
 
         # Emit the final group
         if current_classification is not None:
