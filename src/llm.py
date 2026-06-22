@@ -5,7 +5,7 @@ from google import genai
 from google.genai import types
 from tenacity import retry, wait_exponential, wait_random, stop_after_attempt, retry_if_exception_type
 
-from src.schemas import PageClassification
+from src.schemas import PageClassification, EntityResolutionMapping
 
 
 class RateLimitError(Exception):
@@ -176,3 +176,58 @@ Return a JSON object with: house_number, resident, category, date."""
             if isinstance(e, (RateLimitError, InvalidResponseError)):
                 raise
             raise InvalidResponseError(f"Unexpected error: {error_str}")
+
+    @retry(
+        wait=wait_exponential(multiplier=2, min=4, max=60) + wait_random(0, 2),
+        stop=stop_after_attempt(7),
+        retry=retry_if_exception_type((RateLimitError, InvalidResponseError))
+    )
+    def resolve_entities(self, raw_pages_log: str) -> dict[str, str]:
+        """
+        Resolves raw extracted names to Canonical Primary Tenant names using LLM.
+        """
+        system_prompt = (
+            "You are an Arabic document classification expert analyzing a chronological log of documents "
+            "[Category, Name, Date] for a single house.\n\n"
+            "1. Identify the Primary Tenants (Head of Household).\n"
+            "2. Map all English/Arabic/abbreviated variations into one Canonical Name.\n"
+            "3. Identify family members (wives, children) who appear in the log, and map them to their respective Primary Tenant.\n"
+            "Return the JSON mapping using the EntityResolutionMapping schema."
+        )
+        
+        user_prompt = f"Here is the document log:\n{raw_pages_log}\n\nPlease resolve the entities."
+
+        try:
+            response = self.client.models.generate_content(
+                model='gemma-4-31b-it',
+                contents=[system_prompt, user_prompt],
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema=EntityResolutionMapping,
+                    temperature=0
+                )
+            )
+
+            if response.parsed is not None:
+                result = response.parsed
+            else:
+                try:
+                    data = json.loads(response.text)
+                    result = EntityResolutionMapping(**data)
+                except (json.JSONDecodeError, Exception) as parse_err:
+                    raise InvalidResponseError(
+                        f"Failed to parse LLM response as EntityResolutionMapping: {type(parse_err).__name__}"
+                    )
+
+            time.sleep(self.delay_between_pages)
+            return result.mapping
+
+        except Exception as e:
+            error_str = str(e)
+            if "429" in error_str or "Too Many Requests" in error_str or "quota" in error_str.lower() or "Resource exhausted" in error_str:
+                self.switch_key()
+                raise RateLimitError(f"Rate limited: {error_str}")
+            if isinstance(e, (RateLimitError, InvalidResponseError)):
+                raise
+            raise InvalidResponseError(f"Unexpected error: {error_str}")
+
