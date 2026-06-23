@@ -105,6 +105,13 @@ class GemmaClient:
                         del self.cooldown_keys[k]
 
                     available_keys = []
+                    time_since_last_global = now - getattr(self, 'last_global_request_time', 0.0)
+                    if time_since_last_global < 4.0:
+                        sleep_time = 4.0 - time_since_last_global
+                        print(f"[Rate Limit Guard] Staggering... Thread sleeping for {sleep_time:.1f}s to respect global IP limits...")
+                        time.sleep(sleep_time)
+                        now = time.time()
+                        
                     for key in self.api_keys:
                         if key not in self.cooldown_keys:
                             self._prune_trackers(key, now)
@@ -131,7 +138,8 @@ class GemmaClient:
                             self.current_key_idx = (self.current_key_idx + 1) % len(self.api_keys)
                             key = self.api_keys[self.current_key_idx]
                             if key in available_keys:
-                                self.last_request_time[key] = time.time()
+                                self.last_global_request_time = time.time()
+                                self.last_request_time[key] = self.last_global_request_time
                                 self.tpm_trackers[key].append([self.last_request_time[key], estimated_tokens])
                                 self.rpm_trackers[key].append(self.last_request_time[key])
                                 self.total_requests[key] += 1
