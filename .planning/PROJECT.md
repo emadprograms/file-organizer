@@ -40,14 +40,14 @@ Accurately parsing, splitting, and categorizing large, disorganized scanned Arab
 
 Shipped **v1.0 MVP**. The core pipeline now correctly processes Arabic documents via Gemma 4 31b, resolves primary tenants across continuous pages, and generates the required chronological 13-category folder structure. A `Tkinter` desktop GUI was built to make it easy to select PDFs and output directories.
 
-## Current Milestone: v1.1 Hardening & Reliability
+## Current Milestone: v1.2 Core Stabilization & Logic Overhaul
 
-**Goal:** Harden the application to handle API rate limits and errors gracefully, and improve the accuracy of AI-generated output files.
+**Goal:** Fix the 19 critical structural, OS, and logic bugs identified in the deep dives to ensure absolute stability, correct Arabic timeline sorting, and prevent data corruption.
 
 **Target features:**
-- Implement robust retry logic to handle 429 and 500 API errors.
-- Optimize the speed vs. accuracy tradeoff for processing long documents (90+ pages).
-- Improve the accuracy of the final generated house files.
+- OS, File I/O, and GUI Issues: Compress PDFs before processing, fix cache IO bottlenecks, atomic saves, rmtree wipes, PyMuPDF locks, OS path crashes, and GUI freezing.
+- LLM, Schema, and Prompt Issues: Remove house_number from prompts, prevent Entity Resolver from erasing family members, and fix silent LLM retries.
+- Timeline, Arabic Logic, and Output Structure: Fix date-mismatch fusing, non-anchor routing, empty folders, zero-pad sorting, the `.replace` Arabic string mutilation, orphaned prefix documents, and large family/array-order timeline hijacking.
 
 ## Context
 
@@ -70,6 +70,8 @@ Shipped **v1.0 MVP**. The core pipeline now correctly processes Arabic documents
 | Use Gemma 4 31b | User explicitly requested this specific model over alternatives | Verified in Phase 01 |
 | Split PDFs | Extracting smaller PDFs retains the original visual integrity of the documents rather than just raw text | Verified in Phase 01 |
 | Multimodal Vision over traditional OCR | Gemma-4-31b handles Arabic scans natively, skipping a fragile secondary OCR step | Verified in Phase 01 |
+| Exact Arabic Name Matching | User requested strict exact Arabic name intersection without smart normalization | Stops name mutilation (Phase 05) |
+| Image-based Blank Page Heuristics | Use file size (<15KB) instead of PDF text extraction | Prevent LLM token waste on blank scans (Phase 05) |
 
 ## Evolution
 
@@ -89,4 +91,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-23 after starting v1.1 milestone*
+*Last updated: 2026-06-23 after Phase 05*

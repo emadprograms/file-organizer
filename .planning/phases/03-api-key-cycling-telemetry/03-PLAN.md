@@ -310,3 +310,4 @@ In `src/llm.py`, refactor `_report_failure`:
   - **Concurrency Race Conditions & UI Freezes:** Thread starvation or deadlocks when updating tracking structures or writing logs; UI micro-stutters from lock contention. (Mitigation: Use existing threading locks properly for internal state updates, keep lock critical sections short, and strictly enforce a lock-free mechanism like `queue.Queue` for the GUI dashboard updates to prevent cross-thread blocking).
   - **Rate Limit Cascade (NEW):** Untracked retries and concurrent workers bypassing the rate limiter cause cascading 429s that snowball into 500s. (Mitigation: All API calls routed through `_get_client_and_key()`. Global RPM cap of 15. Exponential backoff with jitter on failures).
 </threat_model>
+
