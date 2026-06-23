@@ -25,6 +25,8 @@
   6. **Identity Preservation:** The `resolve_entities` LLM prompt correctly retains non-primary family member identities instead of mapping wives/children to the primary tenant and erasing them.
   7. **Reliable LLM Retries:** Silent failures on LLM retries (bare `except Exception: pass`) are fixed so errors are handled/logged properly. The `other_letters` category is removed from `NONE_EXPECTED_CATEGORIES` to ensure lazy extractions are retried instead of accepted blindly.
   8. **Precise Document Grouping:** The pipeline correctly separates distinct documents by enforcing strict date-matching during grouping, stopping pages with different dates from fusing. Non-anchor documents properly respect the extracted recipient's name instead of being forced into the primary tenant's timeline.
+  9. **Arabic String Safety:** The destructive `.replace("ال", "")` logic is removed or refactored so it does not carve letters out of the middle of Arabic names (e.g., destroying "خالد" into "خاد"), preventing random timeline splits.
+  10. **Prefix Document Rescue:** The timeline initialization logic is fixed so that `PERSONAL_DETAILS` (ID cards) and other perfectly valid documents appearing at the front of a scanned dossier can initialize a timeline or be properly assigned, instead of being permanently orphaned to "UNKNOWN".
 
 ## Phase 5: Generation Accuracy Refinement
 
