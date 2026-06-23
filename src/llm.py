@@ -77,7 +77,10 @@ class GemmaClient:
                 rpm = sum(1 for t in self.rpm_trackers[key] if now - t <= 60)
                 status = "Active"
                 if key in self.cooldown_keys and self.cooldown_keys[key] > now:
-                    status = f"Cooldown ({int(self.cooldown_keys[key] - now)}s)"
+                    if self.cooldown_keys[key] == float('inf'):
+                        status = "Exhausted"
+                    else:
+                        status = f"Cooldown ({int(self.cooldown_keys[key] - now)}s)"
                 state["keys"].append({
                     "id": f"Key_{i}",
                     "total_reqs": self.total_requests[key],
