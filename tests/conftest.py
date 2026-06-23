@@ -18,9 +18,9 @@ MINIMAL_PNG = (
 def mock_api_response():
     return PageClassification(
         house_number="683",
-        resident="محمد",
+        residents=["محمد"],
         category=Category.BASIC_DETAILS,
-        is_continuation=False
+        date="NONE"
     )
 
 
@@ -28,9 +28,9 @@ def mock_api_response():
 def mock_continuation_response():
     return PageClassification(
         house_number="683",
-        resident="محمد",
+        residents=["محمد"],
         category=Category.BASIC_DETAILS,
-        is_continuation=True
+        date="NONE"
     )
 
 
@@ -38,9 +38,9 @@ def mock_continuation_response():
 def mock_none_resident_response():
     return PageClassification(
         house_number="683",
-        resident="NONE",
+        residents=["NONE"],
         category=Category.AMAR_TAKHSEES,
-        is_continuation=False
+        date="NONE"
     )
 
 

@@ -21,8 +21,8 @@ def test_basic_structure(mock_extract, organizer, tmp_path):
     assert house_dir.exists()
     
     # 2 residents
-    res_a_dir = house_dir / "1_Resident_A"
-    res_b_dir = house_dir / "2_Resident_B"
+    res_a_dir = house_dir / "1_Resident A"
+    res_b_dir = house_dir / "2_Resident B"
     assert res_a_dir.exists()
     assert res_b_dir.exists()
     
@@ -31,8 +31,8 @@ def test_basic_structure(mock_extract, organizer, tmp_path):
     assert len(list(res_b_dir.iterdir())) == 13
     
     # root level folders
-    assert (house_dir / "amar_takhsees").exists()
-    assert (house_dir / "house_letters").exists()
+    assert (house_dir / "أمر التخصيص لغير المقيمين").exists()
+    assert (house_dir / "رسائل عامة").exists()
     
     assert len(summary) == 3
 
@@ -45,8 +45,8 @@ def test_resident_ordering(mock_extract, organizer, tmp_path):
     organizer.organize(docs, "dummy.pdf", tmp_path)
     
     house_dir = tmp_path / "123"
-    assert (house_dir / "1_Resident_B").exists()
-    assert (house_dir / "2_Resident_A").exists()
+    assert (house_dir / "1_Resident B").exists()
+    assert (house_dir / "2_Resident A").exists()
 
 @patch('src.organizer.extract_pdf_segment')
 def test_amar_takhsees_routing(mock_extract, organizer, tmp_path):
@@ -58,13 +58,13 @@ def test_amar_takhsees_routing(mock_extract, organizer, tmp_path):
     
     # Resident A ONLY has amar takhsees, so should not have a resident folder
     house_dir = tmp_path / "123"
-    assert not (house_dir / "1_Resident_A").exists()
+    assert not (house_dir / "1_Resident A").exists()
     
     # Resident B is the first valid resident
-    assert (house_dir / "1_Resident_B").exists()
+    assert (house_dir / "1_Resident B").exists()
     
     # AMAR_TAKHSEES should be in amar_takhsees folder
-    mock_extract.assert_any_call("dummy.pdf", 0, 1, str(house_dir / "amar_takhsees" / "amar_takhsees_1.pdf"))
+    mock_extract.assert_any_call("dummy.pdf", 0, 1, str(house_dir / "أمر التخصيص لغير المقيمين" / "amar_takhsees_1.pdf"))
 
 @patch('src.organizer.extract_pdf_segment')
 def test_house_letters_routing(mock_extract, organizer, tmp_path):
@@ -74,7 +74,7 @@ def test_house_letters_routing(mock_extract, organizer, tmp_path):
     organizer.organize(docs, "dummy.pdf", tmp_path)
     
     house_dir = tmp_path / "123"
-    mock_extract.assert_any_call("dummy.pdf", 0, 1, str(house_dir / "house_letters" / "other_letters_1.pdf"))
+    mock_extract.assert_any_call("dummy.pdf", 0, 1, str(house_dir / "رسائل عامة" / "other_letters_1.pdf"))
 
 @patch('src.organizer.extract_pdf_segment')
 def test_continuation_pages_merged(mock_extract, organizer, tmp_path):
@@ -83,7 +83,7 @@ def test_continuation_pages_merged(mock_extract, organizer, tmp_path):
     ]
     organizer.organize(docs, "dummy.pdf", tmp_path)
     house_dir = tmp_path / "123"
-    target_path = house_dir / "1_Resident_A" / "1_basic_details" / "basic_details_1.pdf"
+    target_path = house_dir / "1_Resident A" / "1_البيانات الاساسية" / "basic_details_1.pdf"
     mock_extract.assert_called_once_with("dummy.pdf", 5, 8, str(target_path))
 
 @patch('src.organizer.extract_pdf_segment')
@@ -93,7 +93,7 @@ def test_date_based_naming(mock_extract, organizer, tmp_path):
     ]
     organizer.organize(docs, "dummy.pdf", tmp_path)
     house_dir = tmp_path / "123"
-    target_path = house_dir / "1_Resident_A" / "9_notifications" / "2023-05-20_notifications.pdf"
+    target_path = house_dir / "1_Resident A" / "9_الاشعارات" / "2023-05-20_notifications.pdf"
     mock_extract.assert_called_once_with("dummy.pdf", 0, 1, str(target_path))
 
 @patch('src.organizer.extract_pdf_segment')
@@ -104,8 +104,8 @@ def test_counter_fallback_naming(mock_extract, organizer, tmp_path):
     ]
     organizer.organize(docs, "dummy.pdf", tmp_path)
     house_dir = tmp_path / "123"
-    target_path_1 = house_dir / "1_Resident_A" / "9_notifications" / "notifications_1.pdf"
-    target_path_2 = house_dir / "1_Resident_A" / "9_notifications" / "notifications_2.pdf"
+    target_path_1 = house_dir / "1_Resident A" / "9_الاشعارات" / "notifications_1.pdf"
+    target_path_2 = house_dir / "1_Resident A" / "9_الاشعارات" / "notifications_2.pdf"
     mock_extract.assert_any_call("dummy.pdf", 0, 1, str(target_path_1))
     mock_extract.assert_any_call("dummy.pdf", 2, 3, str(target_path_2))
 

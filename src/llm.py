@@ -23,7 +23,7 @@ if not telemetry_logger.handlers:
     fh.setFormatter(JsonFormatter())
     telemetry_logger.addHandler(fh)
 
-class RateLimitError(Exception):
+class LLMFailureError(Exception):
     pass
 
 class InvalidResponseError(Exception):
@@ -54,7 +54,7 @@ class GemmaClient:
         self.delay_between_pages = delay_between_pages
         self.lock = threading.Lock()
         self.global_cooldown_until = 0.0
-        self.last_request_time = 0.0
+        self.last_request_time = {key: 0.0 for key in self.api_keys}
         
         # Trackers
         self.tpm_trackers = {key: deque() for key in self.api_keys}
@@ -100,44 +100,43 @@ class GemmaClient:
                 if now < self.global_cooldown_until:
                     sleep_time = self.global_cooldown_until - now
                 else:
-                    time_since_last = now - self.last_request_time
-                    if time_since_last < 2.0:
-                        sleep_time = 2.0 - time_since_last
-                    else:
-                        released = [k for k, t in self.cooldown_keys.items() if now >= t]
-                        for k in released:
-                            del self.cooldown_keys[k]
+                    released = [k for k, t in self.cooldown_keys.items() if now >= t]
+                    for k in released:
+                        del self.cooldown_keys[k]
 
-                        available_keys = []
-                        for key in self.api_keys:
-                            if key not in self.cooldown_keys:
-                                self._prune_trackers(key, now)
-                                current_tpm = sum(cost for t, cost in self.tpm_trackers[key])
-                                current_rpm = len(self.rpm_trackers[key])
-                                
-                                if current_tpm + estimated_tokens >= self.TPM_LIMIT or current_rpm + 1 >= self.RPM_LIMIT:
-                                    # Need cooldown. Calculate when oldest token falls off
-                                    if self.tpm_trackers[key] and current_tpm + estimated_tokens >= self.TPM_LIMIT:
-                                        oldest_time = self.tpm_trackers[key][0][0]
-                                        self.cooldown_keys[key] = oldest_time + 60
-                                    elif self.rpm_trackers[key]:
-                                        oldest_time = self.rpm_trackers[key][0]
-                                        self.cooldown_keys[key] = oldest_time + 60
-                                else:
-                                    available_keys.append(key)
+                    available_keys = []
+                    for key in self.api_keys:
+                        if key not in self.cooldown_keys:
+                            self._prune_trackers(key, now)
+                            current_tpm = sum(cost for t, cost in self.tpm_trackers[key])
+                            current_rpm = len(self.rpm_trackers[key])
+                            
+                            if current_tpm + estimated_tokens >= self.TPM_LIMIT or current_rpm + 1 >= self.RPM_LIMIT:
+                                # Need cooldown. Calculate when oldest token falls off
+                                if self.tpm_trackers[key] and current_tpm + estimated_tokens >= self.TPM_LIMIT:
+                                    oldest_time = self.tpm_trackers[key][0][0]
+                                    self.cooldown_keys[key] = oldest_time + 60
+                                elif self.rpm_trackers[key]:
+                                    oldest_time = self.rpm_trackers[key][0]
+                                    self.cooldown_keys[key] = oldest_time + 60
+                            elif now - self.last_request_time[key] < 1.0:
+                                # Per-key stagger to prevent API bursting
+                                pass
+                            else:
+                                available_keys.append(key)
 
-                        if available_keys:
-                            # Pick next available via round-robin
-                            for _ in range(len(self.api_keys)):
-                                self.current_key_idx = (self.current_key_idx + 1) % len(self.api_keys)
-                                key = self.api_keys[self.current_key_idx]
-                                if key in available_keys:
-                                    self.last_request_time = time.time()
-                                    self.tpm_trackers[key].append([self.last_request_time, estimated_tokens])
-                                    self.rpm_trackers[key].append(self.last_request_time)
-                                    self.total_requests[key] += 1
-                                    self._push_telemetry()
-                                    return self.clients[key], key, self.last_request_time
+                    if available_keys:
+                        # Pick next available via round-robin
+                        for _ in range(len(self.api_keys)):
+                            self.current_key_idx = (self.current_key_idx + 1) % len(self.api_keys)
+                            key = self.api_keys[self.current_key_idx]
+                            if key in available_keys:
+                                self.last_request_time[key] = time.time()
+                                self.tpm_trackers[key].append([self.last_request_time[key], estimated_tokens])
+                                self.rpm_trackers[key].append(self.last_request_time[key])
+                                self.total_requests[key] += 1
+                                self._push_telemetry()
+                                return self.clients[key], key, self.last_request_time[key]
                         
                         # If ALL keys are in cooldown
                         if self.cooldown_keys:
@@ -279,6 +278,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                         data = json.loads(response.text)
                         result = PageClassification(**data)
                     except (json.JSONDecodeError, Exception) as parse_err:
+                        print(f"JSON PARSE ERROR (classify). Raw text was: {response.text}")
                         raise InvalidResponseError(f"Failed to parse LLM response: {type(parse_err).__name__}")
 
                 if ((not result.residents or result.residents == ["NONE"])
@@ -373,7 +373,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 if is_429 or is_5xx or is_invalid:
                     self._report_failure(key, is_429=is_429, is_token_limit=is_token_limit)
                     if attempts == max_attempts:
-                        raise RateLimitError(f"Max retries reached. Last error: {error_str}")
+                        raise LLMFailureError(f"Max retries reached. Last error: {error_str}")
                     continue
                 else:
                     if attempts == max_attempts:
@@ -389,7 +389,8 @@ Return a JSON object with: house_number, residents (list of strings), category, 
             "2. Map all English/Arabic/abbreviated variations into one Canonical Name.\n"
             "3. Identify family members (wives, children) who appear in the log, and map them to their respective Primary Tenant.\n"
             "CRITICAL RULES:\n"
-            "- You MUST return a mapping for EVERY SINGLE exact raw string found in the log, character-for-character.\n"
+            "- You MUST return a mapping for EVERY UNIQUE exact raw string found in the log, character-for-character.\n"
+            "- Do NOT output duplicate mappings for the same raw string. Output the JSON mapping once per UNIQUE raw name.\n"
             "- Even OCR errors like 'آمنة الله ببة بببض' or 'زوبة' must be explicitly mapped to the Primary Tenant's canonical name if they are family.\n"
             "- ALL English transliterations (like 'MOHD SAYED IBRAHIM' or 'MOHAMMED') MUST be mapped to the primary Arabic name!\n"
             "Return the JSON mapping using the EntityResolutionMapping schema."
@@ -438,6 +439,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                         data = json.loads(response.text)
                         result = EntityResolutionMapping(**data)
                     except (json.JSONDecodeError, Exception) as parse_err:
+                        print(f"JSON PARSE ERROR (resolve_entities). Raw text was: {response.text}")
                         raise InvalidResponseError(f"Failed to parse LLM response: {type(parse_err).__name__}")
 
                 self._report_success(key)
@@ -475,7 +477,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 if is_429 or is_5xx or is_invalid:
                     self._report_failure(key, is_429=is_429, is_token_limit=is_token_limit)
                     if attempts == max_attempts:
-                        raise RateLimitError(f"Max retries reached. Last error: {error_str}")
+                        raise LLMFailureError(f"Max retries reached. Last error: {error_str}")
                     continue
                 else:
                     if attempts == max_attempts:

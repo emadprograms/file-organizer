@@ -9,6 +9,7 @@
 | TR-04 | Tampering | mitigate | Sanitize LLM-generated output filenames against path traversal |
 | TR-05 | Tampering | mitigate | Use thread locks when writing to the concurrent JSON cache |
 | TR-06 | Information Disclosure | accept | Sending PII (resident names/docs) to external Google Gemma API |
+| TR-07 | Information Disclosure | mitigate | Mask API keys in GUI telemetry display |
 
 ## Accepted Risks Log
 (None)

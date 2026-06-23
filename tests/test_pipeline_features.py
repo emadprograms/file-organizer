@@ -38,11 +38,11 @@ def test_pipeline_retry_logic(mock_generate_content, dummy_5_page_pdf):
         def __init__(self):
             self.parsed = PageClassification(
                 house_number="123",
-                resident="Test",
+                residents=["Test"],
                 category=Category.BASIC_DETAILS,
-                is_continuation=False
+                date="NONE"
             )
-            self.text = '{"house_number": "123", "resident": "Test", "category": "basic_details", "is_continuation": false}'
+            self.text = '{"house_number": "123", "residents": ["Test"], "category": "basic_details", "date": "NONE"}'
             
     def mock_generate(*args, **kwargs):
         if not failure_state["failed"]:
@@ -54,27 +54,29 @@ def test_pipeline_retry_logic(mock_generate_content, dummy_5_page_pdf):
     
     pipeline = Pipeline(api_keys=["dummy-key"])
     # The rate limiter is hit once, retries, and then succeeds for the 5 pages
-    documents = pipeline.process_pdf(dummy_5_page_pdf)
+    with patch("src.llm.GemmaClient.resolve_entities", return_value={}):
+        documents = pipeline.process_pdf(dummy_5_page_pdf)
     
     assert len(documents) > 0
     # 5 pages + 1 retry = 6 calls
     assert mock_generate_content.call_count == 6
 
-def test_pipeline_concurrency_memory(dummy_5_page_pdf):
+def test_pipeline_concurrency_memory(dummy_5_page_pdf, tmp_path):
     """Requirement: Monitor memory usage on a large dummy PDF to ensure concurrency constraints hold"""
     # Create a 50 page PDF to simulate a larger file
     pdf = fitz.open()
     for _ in range(50):
         pdf.new_page(width=595, height=842)
-    pdf_path = "large_dummy.pdf"
+    pdf_path = str(tmp_path / "large_dummy_isolated.pdf")
     pdf.save(pdf_path)
     pdf.close()
     
     pipeline = Pipeline(api_keys=["dummy-key"])
     
-    with patch("src.llm.GemmaClient.classify_page") as mock_classify:
+    with patch("src.llm.GemmaClient.classify_page") as mock_classify, \
+         patch("src.llm.GemmaClient.resolve_entities", return_value={}):
         mock_classify.return_value = PageClassification(
-            house_number="123", resident="Test", category=Category.BASIC_DETAILS, is_continuation=False
+            house_number="123", residents=["Test"], category=Category.BASIC_DETAILS, date="NONE"
         )
         
         # This will process 50 pages using max_workers=5
@@ -83,5 +85,3 @@ def test_pipeline_concurrency_memory(dummy_5_page_pdf):
         # Validate that it processed all 50 pages without throwing out-of-memory or thread exhaustion
         assert mock_classify.call_count == 50
         assert len(documents) > 0
-        
-    os.remove(pdf_path)

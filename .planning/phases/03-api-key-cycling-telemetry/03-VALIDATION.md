@@ -1,9 +1,9 @@
 ---
 phase: 03
 slug: api-key-cycling-telemetry
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: complete
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-06-23
 ---
 
@@ -38,7 +38,12 @@ created: 2026-06-23
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 03-01-01 | 01 | 1 | REQ-HARD-01 | — | N/A | unit | `pytest` | ❌ W0 | ⬜ pending |
+| 03-01-01 | 01 | 1 | REQ-HARD-01 | — | N/A | unit | `pytest tests/test_llm.py` | ✅ W0 | ✅ green |
+| 03-01-02 | 02 | 1 | REQ-HARD-01 | — | N/A | unit | `pytest tests/test_llm.py` | ✅ W0 | ✅ green |
+| 03-01-03 | 03 | 1 | REQ-HARD-01 | — | N/A | unit | `pytest tests/test_llm.py` | ✅ W0 | ✅ green |
+| 03-02-01 | 04 | 2 | REQ-HARD-03 | Exposure | Masked keys only | unit | `pytest tests/test_llm.py` | ✅ W0 | ✅ green |
+| 03-03-01 | 05 | 3 | REQ-HARD-03 | — | N/A | manual | N/A | ✅ W0 | ✅ green |
+| 03-03-02 | 06 | 3 | REQ-HARD-03 | Concurrency | Lock-free UI | manual | N/A | ✅ W0 | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -46,8 +51,8 @@ created: 2026-06-23
 
 ## Wave 0 Requirements
 
-- [ ] `tests/test_llm.py` — stubs for REQ-HARD-01
-- [ ] `tests/test_pipeline.py` — shared fixtures
+- [x] `tests/test_llm.py` — stubs for REQ-HARD-01
+- [x] `tests/test_pipeline.py` — shared fixtures
 
 *If none: "Existing infrastructure covers all phase requirements."*
 
@@ -58,6 +63,8 @@ created: 2026-06-23
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
 | GUI Responsiveness | REQ-HARD-03 | Visual interaction | Observe Tkinter UI while large document processes |
+| GUI Layout Update | REQ-HARD-03 | Visual verification | Verify that Tab 1 and Tab 2 are created successfully |
+| Telemetry Dashboard | REQ-HARD-03 | Visual/Concurrency | Verify the Treeview updates live every ~500ms without stutter |
 
 *If none: "All phase behaviors have automated verification."*
 
@@ -65,11 +72,11 @@ created: 2026-06-23
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 10s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 10s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved

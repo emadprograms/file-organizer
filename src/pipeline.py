@@ -8,6 +8,14 @@ from src.llm import GemmaClient
 from src.schemas import PageClassification, DocumentGroup, Category
 
 
+import sys
+
+if sys.stdout is not None and hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
 class Pipeline:
     def __init__(self, api_keys: list[str] = None, delay_between_pages: float = 1.0, telemetry_queue=None):
         self.ingestor = PdfIngestor()
@@ -40,10 +48,17 @@ class Pipeline:
                 if 'resident' in cache_data and 'residents' not in cache_data:
                     cache_data['residents'] = [cache_data.pop('resident')]
                 result = PageClassification(**cache_data)
-                print(f" Cached Page {page_index}: {result.category.value} | {result.residents} | {result.date}")
+                msg = f" Cached Page {page_index}: {result.category.value} | {result.residents} | {result.date}"
+                try:
+                    print(msg)
+                except UnicodeEncodeError:
+                    fallback = getattr(sys.stdout, 'encoding', 'utf-8') or 'utf-8'
+                    print(msg.encode(fallback, errors='replace').decode(fallback))
                 raw_pages.append((page_index, result))
             else:
                 pages_to_process.append((page_index, image_bytes))
+                
+        total_expected_pages = len(raw_pages) + len(pages_to_process)
                 
         cache_lock = threading.Lock()
         cancel_event = threading.Event()
@@ -59,7 +74,12 @@ class Pipeline:
                 res = self.client.classify_page(image_bytes=i_bytes)
                 if res is None:
                     return None
-                print(f" Extracted Page {p_idx}: {res.category.value} | {res.residents} | {res.date}")
+                msg = f" Extracted Page {p_idx}: {res.category.value} | {res.residents} | {res.date}"
+                try:
+                    print(msg)
+                except UnicodeEncodeError:
+                    fallback = getattr(sys.stdout, 'encoding', 'utf-8') or 'utf-8'
+                    print(msg.encode(fallback, errors='replace').decode(fallback))
                 with cache_lock:
                     cached_pages[str(p_idx)] = res.model_dump()
                     # Saving cache progressively can be slow, but it's safe. We do it inside lock.
@@ -90,8 +110,7 @@ class Pipeline:
                         raise RuntimeError(f"Processing aborted due to failure on a page: {e}")
                         
         raw_pages.sort(key=lambda x: x[0])
-
-        total_expected_pages = len(cached_pages) + len(pages_to_process)
+    
         if len(raw_pages) != total_expected_pages:
             raise RuntimeError(f"CRITICAL: Expected {total_expected_pages} pages, but only recovered {len(raw_pages)}. Aborting Pass 1.5 to prevent data loss.")
 

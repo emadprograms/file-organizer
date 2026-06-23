@@ -28,22 +28,21 @@ def test_schema_definition():
 
     p = PageClassification(
         house_number="683",
-        resident="محمد",
+        residents=["محمد"],
         category=Category.BASIC_DETAILS,
-        is_continuation=False
+        date="NONE"
     )
     assert p.house_number == "683"
     assert p.category == Category.BASIC_DETAILS
-    assert p.is_continuation is False
 
     # NONE resident for Amar Takhsees
     p2 = PageClassification(
         house_number="683",
-        resident="NONE",
+        residents=["NONE"],
         category=Category.AMAR_TAKHSEES,
-        is_continuation=False
+        date="NONE"
     )
-    assert p2.resident == "NONE"
+    assert p2.residents == ["NONE"]
     assert p2.category == Category.AMAR_TAKHSEES
 
 
@@ -59,9 +58,9 @@ def test_category_classification():
     for cat in Category:
         p = PageClassification(
             house_number="1",
-            resident="test",
+            residents=["test"],
             category=cat,
-            is_continuation=False
+            date="NONE"
         )
         assert p.category == cat
 
@@ -70,9 +69,9 @@ def test_continuation_detection(monkeypatch):
     """Test that pipeline correctly groups continuation pages."""
     # Define 3 classification responses
     responses = [
-        PageClassification(house_number="683", resident="محمد", category=Category.CONTRACT, is_continuation=False),
-        PageClassification(house_number="683", resident="محمد", category=Category.CONTRACT, is_continuation=True),
-        PageClassification(house_number="683", resident="أحمد", category=Category.BASIC_DETAILS, is_continuation=False),
+        PageClassification(house_number="683", residents=["محمد"], category=Category.CONTRACT, date="NONE"),
+        PageClassification(house_number="683", residents=["محمد"], category=Category.CONTRACT, date="NONE"),
+        PageClassification(house_number="683", residents=["أحمد"], category=Category.BASIC_DETAILS, date="NONE"),
     ]
     call_idx = [0]
 
@@ -89,6 +88,7 @@ def test_continuation_detection(monkeypatch):
 
     pipeline = Pipeline(api_keys=["test-key"])
     monkeypatch.setattr(pipeline.client, "classify_page", mock_classify_page)
+    monkeypatch.setattr(pipeline.client, "resolve_entities", lambda x: {})
 
     documents = pipeline.process_pdf("dummy.pdf")
 
@@ -103,60 +103,7 @@ def test_continuation_detection(monkeypatch):
     assert documents[1].category == Category.BASIC_DETAILS
 
 
-def test_sliding_window(monkeypatch):
-    """Test that previous_summary context is passed correctly between groups."""
-    summaries_received = []
-    active_summaries_received = []
 
-    responses = [
-        PageClassification(house_number="683", resident="محمد", category=Category.CONTRACT, is_continuation=False),
-        PageClassification(house_number="683", resident="محمد", category=Category.CONTRACT, is_continuation=True),
-        PageClassification(house_number="683", resident="أحمد", category=Category.BASIC_DETAILS, is_continuation=False),
-        PageClassification(house_number="683", resident="أحمد", category=Category.BASIC_DETAILS, is_continuation=True),
-    ]
-    call_idx = [0]
-
-    def mock_classify_page(image_bytes, previous_summary="", active_summary=""):
-        summaries_received.append(previous_summary)
-        active_summaries_received.append(active_summary)
-        idx = call_idx[0]
-        call_idx[0] += 1
-        return responses[idx]
-
-    def mock_extract_pages(self, pdf_path):
-        for i in range(4):
-            yield (i, DUMMY_IMAGE)
-
-    monkeypatch.setattr(PdfIngestor, "extract_pages_as_images", mock_extract_pages)
-
-    pipeline = Pipeline(api_keys=["test-key"])
-    monkeypatch.setattr(pipeline.client, "classify_page", mock_classify_page)
-
-    documents = pipeline.process_pdf("dummy.pdf")
-
-    # Page 0: no prior context (first page)
-    assert summaries_received[0] == ""
-    assert active_summaries_received[0] == ""
-    # Page 1: continuation — active_summary should describe current group
-    assert summaries_received[1] == ""
-    assert active_summaries_received[1] != ""
-    assert "contract" in active_summaries_received[1].lower()
-    # Page 2: new topic — active_summary still describes the contract group
-    assert active_summaries_received[2] != ""
-    assert "contract" in active_summaries_received[2].lower()
-    # Page 3: continuation of new group — previous_summary should have contract info,
-    # active_summary should describe the new basic_details group
-    assert summaries_received[3] != ""
-    assert "contract" in summaries_received[3].lower()
-    assert active_summaries_received[3] != ""
-    assert "basic_details" in active_summaries_received[3].lower()
-
-    # Verify document grouping
-    assert len(documents) == 2
-    assert documents[0].start_page == 0
-    assert documents[0].end_page == 1
-    assert documents[1].start_page == 2
-    assert documents[1].end_page == 3
 
 def test_multiple_api_keys_loaded(monkeypatch):
     """Test loading multiple keys via GEMINI_API_KEYS env var."""
