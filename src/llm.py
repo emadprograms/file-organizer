@@ -295,19 +295,20 @@ Return a JSON object with: house_number, residents (list of strings), category, 
 
                 if ((not result.residents or result.residents == ["NONE"])
                         and result.category.value not in self.NONE_EXPECTED_CATEGORIES):
+                    retry_prompt = (
+                        "Classify this scanned document page.\n\n"
+                        "WARNING: You previously returned NONE for the resident name, "
+                        "but this document category usually has a named person. "
+                        "Look VERY carefully at every part of the page — headers, "
+                        "footers, address blocks, body text, stamps, and signatures — "
+                        "for any Arabic or English name. Extract the FULL name with "
+                        "all 4-5 parts if possible."
+                    )
+                    
+                    retry_client, retry_key, retry_reserve_time = self._get_client_and_key(estimated_tokens=3000)
+                    retry_start = time.time()
                     try:
-                        retry_prompt = (
-                            "Classify this scanned document page.\n\n"
-                            "WARNING: You previously returned NONE for the resident name, "
-                            "but this document category usually has a named person. "
-                            "Look VERY carefully at every part of the page — headers, "
-                            "footers, address blocks, body text, stamps, and signatures — "
-                            "for any Arabic or English name. Extract the FULL name with "
-                            "all 4-5 parts if possible."
-                        )
-
-                        retry_start = time.time()
-                        retry_response = client.models.generate_content(
+                        retry_response = retry_client.models.generate_content(
                             model='gemma-4-26b-a4b-it',
                             contents=[
                                 system_prompt,
@@ -324,15 +325,11 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                         if hasattr(retry_response, "usage_metadata") and retry_response.usage_metadata:
                             retry_used_tokens = retry_response.usage_metadata.total_token_count
                             
-                        # Here we just add another entry for the retry usage
-                        with self.lock:
-                            self.tpm_trackers[key].append([time.time(), retry_used_tokens])
-                            self.rpm_trackers[key].append(time.time())
-                            self.total_requests[key] += 1
+                        self._reconcile_usage(retry_key, retry_reserve_time, retry_used_tokens)
                         
                         telemetry_logger.info({
                             "timestamp": time.time(),
-                            "key_index": self.api_keys.index(key),
+                            "key_index": self.api_keys.index(retry_key),
                             "latency_ms": int((time.time() - retry_start) * 1000),
                             "tokens_used": retry_used_tokens,
                             "status_code": 200,
@@ -347,8 +344,36 @@ Return a JSON object with: house_number, residents (list of strings), category, 
 
                         if retry_result.residents and retry_result.residents != ["NONE"]:
                             result = retry_result
-                    except Exception:
-                        pass
+                            
+                        self._report_success(retry_key)
+                    except Exception as e:
+                        error_str = str(e).lower()
+                        is_429 = "429" in error_str or "too many requests" in error_str or "quota" in error_str or "resource exhausted" in error_str
+                        is_token_limit = "token" in error_str and is_429
+                        is_5xx = "500" in error_str or "503" in error_str or "internal error" in error_str
+                        is_invalid = "invalidresponseerror" in error_str or isinstance(e, InvalidResponseError)
+                        
+                        error_type = "unknown"
+                        if is_429:
+                            error_type = "token_limit" if is_token_limit else "request_limit"
+                        elif is_5xx:
+                            error_type = "server_error"
+                        elif is_invalid:
+                            error_type = "invalid_response"
+                        
+                        telemetry_logger.error({
+                            "timestamp": time.time(),
+                            "key_index": self.api_keys.index(retry_key),
+                            "latency_ms": int((time.time() - retry_start) * 1000),
+                            "tokens_used": 0,
+                            "status_code": 429 if is_429 else (500 if is_5xx else 400),
+                            "error_type": error_type
+                        })
+                        
+                        if is_429 or is_5xx or is_invalid:
+                            self._report_failure(retry_key, is_429=is_429, is_token_limit=is_token_limit)
+                        else:
+                            self._report_failure(retry_key, is_429=False)
 
                 self._report_success(key)
                 time.sleep(self.delay_between_pages)
