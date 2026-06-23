@@ -152,8 +152,8 @@ class Pipeline:
                     if page.category in ANCHOR_CATEGORIES and len(valid_mapped) <= 3:
                         candidate = valid_mapped[0]
                         # Check word overlap to prevent children from hijacking the timeline
-                        words_current = set(current_primary_tenant.replace("ال", "").split())
-                        words_candidate = set(candidate.replace("ال", "").split())
+                        words_current = set(current_primary_tenant.split())
+                        words_candidate = set(candidate.split())
                         
                         # If they share at least 2 words, they are family. Don't split timeline.
                         if len(words_current.intersection(words_candidate)) < 2:
