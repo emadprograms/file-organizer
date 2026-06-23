@@ -1,20 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-current_phase: 0
-status: Awaiting next milestone
-stopped_at: Phase 1 complete, milestone finished
-last_updated: "2026-06-23T10:32:54.188Z"
+milestone: v1.1
+milestone_name: Hardening & Reliability
+status: planning
+last_updated: "2026-06-23T10:39:33.852Z"
 last_activity: 2026-06-23
-last_activity_desc: Milestone v1.0 completed and archived
 progress:
-  total_phases: 2
-  completed_phases: 1
-  total_plans: 9
-  completed_plans: 7
-  percent: 50
-current_plan: null
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -47,10 +43,10 @@ See: .planning/PROJECT.md (updated 2026-06-22)
 
 ## Current Position
 
-Phase: Milestone v1.0 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-06-23 — Milestone v1.0 completed and archived
+Status: Defining requirements
+Last activity: 2026-06-23 — Milestone v1.1 started
 
 ## Operator Next Steps
 

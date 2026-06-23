@@ -27,7 +27,9 @@ Accurately parsing, splitting, and categorizing large, disorganized scanned Arab
 
 ### Active
 
-*(None — planning next milestone)*
+- [ ] Implement robust retry logic to handle 429 and 500 API errors — v1.1
+- [ ] Optimize the speed vs. accuracy tradeoff for processing long documents — v1.1
+- [ ] Improve the accuracy of the final generated house files — v1.1
 
 ### Out of Scope
 
@@ -38,11 +40,14 @@ Accurately parsing, splitting, and categorizing large, disorganized scanned Arab
 
 Shipped **v1.0 MVP**. The core pipeline now correctly processes Arabic documents via Gemma 4 31b, resolves primary tenants across continuous pages, and generates the required chronological 13-category folder structure. A `Tkinter` desktop GUI was built to make it easy to select PDFs and output directories.
 
-## Next Milestone Goals
+## Current Milestone: v1.1 Hardening & Reliability
 
-- Collect user feedback from the v1.0 deployment.
-- Address any edge cases in Arabic name normalization or OCR vision gaps.
-- Consider moving towards v2.0 requirements (e.g., Web dashboard or DB tracking) if prioritized.
+**Goal:** Harden the application to handle API rate limits and errors gracefully, and improve the accuracy of AI-generated output files.
+
+**Target features:**
+- Implement robust retry logic to handle 429 and 500 API errors.
+- Optimize the speed vs. accuracy tradeoff for processing long documents (90+ pages).
+- Improve the accuracy of the final generated house files.
 
 ## Context
 
@@ -84,4 +89,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-23 after v1.0 milestone*
+*Last updated: 2026-06-23 after starting v1.1 milestone*
