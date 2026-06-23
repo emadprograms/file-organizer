@@ -16,4 +16,7 @@
 *(None)*
 
 ## Traceability
-*(To be filled by roadmap)*
+
+- **Phase 3**: HARD-01, HARD-03
+- **Phase 4**: HARD-02, HARD-04
+- **Phase 5**: ACC-01
