@@ -8,7 +8,7 @@ from collections import deque
 from google import genai
 from google.genai import types
 
-from src.schemas import PageClassification, EntityResolutionMapping
+from src.schemas import PageClassification, EntityResolutionMapping, Category
 
 log = logging.getLogger(__name__)
 
