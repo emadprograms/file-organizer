@@ -204,7 +204,6 @@ class GemmaClient:
             else:
                 print(f"[Rate Limit Guard] Key penalized for {penalty:.1f}s due to Server Error (Strike {strikes}).")
                 
-            self.global_cooldown_until = max(self.global_cooldown_until, now + penalty)
             self.cooldown_keys[key] = now + penalty
             self._push_telemetry()
 
