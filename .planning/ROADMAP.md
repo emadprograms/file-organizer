@@ -1,43 +1,63 @@
-# Milestone v1.1 Roadmap
+# Milestone v1.2 Roadmap
 
-## Phase 3: API Key Cycling & Telemetry
+This roadmap breaks down the stabilization and refactoring goals into safe, testable phases, continuing the phase numbering from the previous milestone.
 
-- **Goal:** Implement robust key cycling across 45 keys, diagnostic telemetry, and IP-level rate limit hardening.
-- **Requirements:** HARD-01, HARD-03
-- **Success Criteria:**
-  1. System can cycle through all 45 API keys without dropping requests.
-  2. Capacity per key is tracked and preemptively managed.
-  3. Diagnostic logs clearly distinguish between token exhaustion and request limits.
-  4. Global IP-level RPM cap of 15 is enforced across all keys.
-  5. All API calls (including retries) route through the rate limiter.
-  6. Invalid responses fail gracefully after 2 attempts with a fallback classification.
+## Phase 5: Arabic Formatting & LLM Accuracy
 
-## Phase 4: Precise Timing, Output Refinement & Concurrency Tuning
+**Goal:** Stop the pipeline from actively mutilating Arabic names, ensure output folders sort correctly, and force the LLM to preserve family identities instead of swallowing errors.
 
-- **Goal:** Safely process long documents without bottlenecks, and ensure 100% accurate, clutter-free directory outputs.
-- **Requirements:** HARD-02, HARD-04, OUT-01
-- **Success Criteria:**
-  1. **Concurrency & Timing:** System natively avoids rate limits through spaced timing. Progressive caching I/O bottleneck is resolved so threads aren't locked rewriting the cache file on every page.
-  2. **Empty Folders:** Folders are generated dynamically on-write. Zero empty directories are created.
-  3. **Fallback Folder:** Uncategorized/Unknown pages are explicitly dumped into a `Manual_Review` fallback folder instead of being forced into "General Letters" or dropped.
-  4. **Schema Optimization:** The `house_number` field is removed from the AI prompt and Pydantic schema to save tokens, as the pipeline relies strictly on filename extraction.
-  5. **Safe Data Handling:** `shutil.rmtree` destructive wipes of entire house directories are removed to prevent data loss. `shutil.copy2` duplicating massive original PDFs is removed to save disk space.
-  6. **Identity Preservation:** The `resolve_entities` LLM prompt correctly retains non-primary family member identities instead of mapping wives/children to the primary tenant and erasing them.
-  7. **Reliable LLM Retries:** Silent failures on LLM retries (bare `except Exception: pass`) are fixed so errors are handled/logged properly. The `other_letters` category is removed from `NONE_EXPECTED_CATEGORIES` to ensure lazy extractions are retried instead of accepted blindly.
-  8. **Precise Document Grouping:** The pipeline correctly separates distinct documents by enforcing strict date-matching during grouping, stopping pages with different dates from fusing. Non-anchor documents properly respect the extracted recipient's name instead of being forced into the primary tenant's timeline.
-  9. **Arabic String Safety:** The destructive `.replace("ال", "")` logic is removed or refactored so it does not carve letters out of the middle of Arabic names (e.g., destroying "خالد" into "خاد"), preventing random timeline splits.
-  10. **Prefix Document Rescue:** The timeline initialization logic is fixed so that `PERSONAL_DETAILS` (ID cards) and other perfectly valid documents appearing at the front of a scanned dossier can initialize a timeline or be properly assigned, instead of being permanently orphaned to "UNKNOWN".
-  11. **Family Size Resilience:** The timeline logic is fixed to allow Anchor documents (Contracts/Basic Details) containing more than 3 names to establish a timeline, preventing large families from being orphaned.
-  12. **Accurate Name Matching:** The `< 2` word intersection threshold is adjusted to handle perfectly valid single-word Arabic names (e.g., "محمد") so they aren't forcibly split into duplicate resident folders.
-  13. **Array Order Independence:** Anchor documents with multiple names (e.g., Husband and Wife) will correctly map to the timeline regardless of which name the AI output first in the array, preventing immediate timeline hijacking.
-  14. **Atomic Cache Saving:** The cache file is written atomically (write to temp file, then rename) to prevent total data corruption and truncation if the program crashes or is stopped midway.
-  15. **GUI Performance:** The `poll_telemetry` UI update loop is optimized to only render the latest state rather than re-rendering every intermediate state, preventing complete UI freezing.
-  16. **Folder Sorting:** Numbered output folders (`1.`, `2.`, etc.) are zero-padded (e.g., `01.`) so Windows Explorer sorts them correctly instead of `1, 10, 11, 2...`, preserving the chronological flow.
+**Requirements Mapped:**
+- `ARABIC-01`: Arabic String Safety
+- `ARABIC-02`: Zero-Padded Folder Sorting
+- `ARABIC-03`: Dynamic Folder Generation
+- `LLM-01`: Identity Preservation
+- `LLM-02`: Reliable Retries
+- `LLM-03`: Other Letters Catch-All Fix
 
-## Phase 5: Generation Accuracy Refinement
+**Success Criteria:**
+1. Names like "خالد" are preserved perfectly and not mutilated by the `.replace("ال", "")` logic.
+2. The 13 category folders are generated dynamically (no empty folders) and prefixed with zero-padding (e.g., `01. `) so they sort correctly in Windows Explorer.
+3. Wives and children retain their distinct identities during Entity Resolution instead of being mapped to the primary tenant.
+4. Any Python exception thrown during LLM parsing triggers the formal retry loop instead of being silently swallowed.
+5. `other_letters` classifications missing a resident name trigger a retry instead of being accepted blindly.
 
-- **Goal:** Improve the accuracy of AI-generated categorization for house files.
-- **Requirements:** ACC-01
-- **Success Criteria:**
-  1. AI accurately extracts and categorizes output into the exact 13-category folder structure with zero Hallucinations.
-  2. Categorization logic is tuned to better handle complex Arabic resident edge cases.
+## Phase 6: Core Grouping & Timeline Logic
+
+**Goal:** Overhaul the logic that groups pages into documents and assigns them to resident timelines, ensuring families stay together and documents aren't orphaned or hijacked.
+
+**Requirements Mapped:**
+- `LOGIC-01`: Family Size Resilience
+- `LOGIC-02`: Array Order Independence
+- `LOGIC-03`: Accurate Name Matching
+- `LOGIC-04`: Precise Date Grouping
+- `LOGIC-05`: Prefix Document Rescue
+- `LOGIC-06`: Non-Anchor Recipient Routing
+
+**Success Criteria:**
+1. Anchor documents listing more than 3 names successfully establish a timeline instead of being dropped.
+2. Anchor documents listing multiple names do not hijack the timeline just because a spouse was listed first in the array.
+3. Single-word Arabic names match correctly without failing the 2-word intersection threshold.
+4. Consecutive pages of the same category but different dates are safely split into separate PDFs.
+5. ID cards (`PERSONAL_DETAILS`) at the front of a file properly initialize a timeline instead of being permanently orphaned to the fallback folder.
+6. Non-anchor documents (e.g., Notifications) are placed in the specific recipient's folder rather than being forced into the primary tenant's folder.
+
+## Phase 7: OS, File I/O, and UI Stabilization
+
+**Goal:** Prevent data corruption, crashes, and OS locks by fixing how the system handles files, directories, and background telemetry.
+
+**Requirements Mapped:**
+- `IO-01`: Atomic Cache Saving
+- `IO-02`: PDF Compression & Preservation
+- `IO-03`: File Lock Release
+- `IO-04`: OS Path Sanitization
+- `IO-05`: GUI Telemetry Optimization
+- `IO-06`: Safe Directory Overwrites
+- `IO-07`: Cache Validation Safety
+
+**Success Criteria:**
+1. Aborting the process midway does not corrupt or zero out the `.cache.json` file.
+2. The UI treeview updates smoothly without freezing during heavy PDF processing.
+3. The original PDF is compressed and copied to the house folder instead of duplicating the massive original.
+4. Users can successfully delete or move the input PDF immediately after processing (no PyMuPDF file locks).
+5. Running the pipeline multiple times on the same house safely merges files instead of `rmtree` wiping the folder.
+6. Hallucinated line breaks in resident names are stripped and do not crash the OS `makedirs` call.
