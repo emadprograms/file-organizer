@@ -16,9 +16,11 @@ class PrintLogger:
         self.textbox = textbox
 
     def write(self, text):
+        self.textbox.after(0, self._write_safe, text)
+        
+    def _write_safe(self, text):
         self.textbox.insert(tk.END, text)
         self.textbox.see(tk.END)
-        self.textbox.update_idletasks()
 
     def flush(self):
         pass
@@ -114,29 +116,38 @@ class FileCategorizerApp:
 
     def _execute(self, pdf_paths_str, output_dir):
         import time
+        import traceback
+        with open("gui_debug.log", "a") as f: f.write(f"\n[DEBUG] _execute started with {pdf_paths_str}\n")
         try:
             from dotenv import load_dotenv
             from src.pipeline import Pipeline
             from src.organizer import FileOrganizer
 
+            with open("gui_debug.log", "a") as f: f.write("[DEBUG] imports successful\n")
+            
             load_dotenv()
             
             api_keys_str = os.getenv("GEMINI_API_KEYS")
             api_keys = [k.strip() for k in api_keys_str.split(",")] if api_keys_str else None
 
             pipeline = Pipeline(api_keys=api_keys, telemetry_queue=self.telemetry_queue)
+            with open("gui_debug.log", "a") as f: f.write("[DEBUG] Pipeline initialized\n")
             
             pdf_paths = [p.strip() for p in pdf_paths_str.split(";") if p.strip()]
             
             for pdf_path in pdf_paths:
+                with open("gui_debug.log", "a") as f: f.write(f"[DEBUG] Processing path: {pdf_path}\n")
                 try:
                     if not os.path.exists(pdf_path):
+                        with open("gui_debug.log", "a") as f: f.write(f"[DEBUG] File not found: {pdf_path}\n")
                         print(f"File not found: {pdf_path}, skipping.")
                         continue
 
                     print(f"\n{'='*50}")
                     print(f"Loading PDF from: {pdf_path}")
+                    with open("gui_debug.log", "a") as f: f.write(f"[DEBUG] Calling pipeline.process_pdf\n")
                     documents = pipeline.process_pdf(pdf_path)
+                    with open("gui_debug.log", "a") as f: f.write(f"[DEBUG] pipeline.process_pdf returned {len(documents)} docs\n")
                     print(f"Identified {len(documents)} documents.")
 
                     organizer = FileOrganizer()
@@ -155,23 +166,23 @@ class FileCategorizerApp:
                         print(f"{'='*50}")
                 except Exception as e:
                     error_msg = str(e).lower()
+                    with open("gui_debug.log", "a") as f: f.write(f"[DEBUG] Inner exception: {e}\n{traceback.format_exc()}\n")
                     print(f"\nFailed to process {pdf_path}: {e}")
                     print("Progress has been saved to cache.")
-                    if "rate limit" in error_msg or "429" in error_msg or "too many requests" in error_msg or "retryerror" in error_msg or "aborted" in error_msg:
-                        print("Pausing for 3 minutes before proceeding to the next file...")
-                        time.sleep(180)
-                    else:
-                        print("Pausing for 3 minutes before proceeding to the next file...")
-                        time.sleep(180)
+                    if "rate limit" in error_msg or "429" in error_msg or "resource_exhausted" in error_msg:
+                        print("Suggestion: Wait a few minutes before trying this file again.")
                     continue
-
+                    
             print("\nProcessing Complete!")
-            messagebox.showinfo("Success", "File categorization complete!")
+            with open("gui_debug.log", "a") as f: f.write("[DEBUG] Success\n")
+            self.root.after(0, lambda: messagebox.showinfo("Success", "File categorization complete!"))
             
         except Exception as e:
+            with open("gui_debug.log", "a") as f: f.write(f"[DEBUG] Outer exception: {e}\n{traceback.format_exc()}\n")
             print(f"\nError occurred: {str(e)}")
-            messagebox.showerror("Error", f"An error occurred:\n{str(e)}")
+            self.root.after(0, lambda e=e: messagebox.showerror("Error", f"An error occurred:\n{str(e)}"))
         finally:
+            with open("gui_debug.log", "a") as f: f.write("[DEBUG] Finally block\n")
             self.root.after(0, lambda: self.run_button.config(state=tk.NORMAL, text="Run Categorizer"))
 
     def poll_telemetry(self):

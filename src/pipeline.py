@@ -59,6 +59,8 @@ class Pipeline:
                 pages_to_process.append((page_index, image_bytes))
                 
         total_expected_pages = len(raw_pages) + len(pages_to_process)
+        if total_expected_pages == 0:
+            raise ValueError(f"The file {pdf_path} could not be read or contains 0 extractable pages.")
                 
         cache_lock = threading.Lock()
         

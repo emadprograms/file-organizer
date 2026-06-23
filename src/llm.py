@@ -35,6 +35,9 @@ class GemmaClient:
     GLOBAL_RPM_LIMIT = 12
     TPM_LIMIT = 30000
     RPM_LIMIT = 30
+    
+    global_rpm_tracker = deque()
+    global_cooldown_until = 0.0
 
     def __init__(self, api_keys: list[str] = None, delay_between_pages: float = 5.0, telemetry_queue=None):
         if not api_keys:
@@ -55,11 +58,9 @@ class GemmaClient:
         
         self.delay_between_pages = delay_between_pages
         self.lock = threading.Lock()
-        self.global_cooldown_until = 0.0
         self.last_request_time = {key: 0.0 for key in self.api_keys}
         
         # Trackers
-        self.global_rpm_tracker = deque()
         self.tpm_trackers = {key: deque() for key in self.api_keys}
         self.rpm_trackers = {key: deque() for key in self.api_keys}
         
@@ -106,14 +107,14 @@ class GemmaClient:
             with self.lock:
                 now = time.time()
                 
-                while self.global_rpm_tracker and now - self.global_rpm_tracker[0] > 65.0:
-                    self.global_rpm_tracker.popleft()
+                while GemmaClient.global_rpm_tracker and now - GemmaClient.global_rpm_tracker[0] > 65.0:
+                    GemmaClient.global_rpm_tracker.popleft()
                 
                 # Global IP Throttle
-                if now < self.global_cooldown_until:
-                    sleep_time = self.global_cooldown_until - now
-                elif len(self.global_rpm_tracker) >= self.GLOBAL_RPM_LIMIT:
-                    sleep_time = self.global_rpm_tracker[0] + 65.0 - now
+                if now < GemmaClient.global_cooldown_until:
+                    sleep_time = GemmaClient.global_cooldown_until - now
+                elif len(GemmaClient.global_rpm_tracker) >= self.GLOBAL_RPM_LIMIT:
+                    sleep_time = GemmaClient.global_rpm_tracker[0] + 65.0 - now
                 else:
                     released = [k for k, t in self.cooldown_keys.items() if now >= t]
                     for k in released:
@@ -150,7 +151,7 @@ class GemmaClient:
                                 self.last_request_time[key] = self.last_global_request_time
                                 self.tpm_trackers[key].append([self.last_request_time[key], estimated_tokens])
                                 self.rpm_trackers[key].append(self.last_request_time[key])
-                                self.global_rpm_tracker.append(self.last_request_time[key])
+                                GemmaClient.global_rpm_tracker.append(self.last_request_time[key])
                                 self.total_requests[key] += 1
                                 self._push_telemetry()
                                 return self.clients[key], key, self.last_request_time[key]
@@ -204,6 +205,9 @@ class GemmaClient:
                     print(f"[Rate Limit Guard] Key penalized for {penalty:.1f}s due to Token Limit (Strike {strikes}).")
                 else:
                     print(f"[Rate Limit Guard] Key penalized for {penalty:.1f}s due to 429/RequestLimit (Strike {strikes}).")
+                    # CRITICAL FIX: Google's IP sliding window tracks ALL requests (even 429s).
+                    # We must fully stop ALL keys from firing to let the window flush.
+                    GemmaClient.global_cooldown_until = max(GemmaClient.global_cooldown_until, now + 65.0)
             else:
                 print(f"[Rate Limit Guard] Key penalized for {penalty:.1f}s due to Server Error (Strike {strikes}).")
                 
