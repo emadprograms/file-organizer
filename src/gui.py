@@ -5,6 +5,11 @@ import sys
 import os
 from pathlib import Path
 
+# Add project root to sys.path to allow 'src' module imports
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 # Redirect stdout to Tkinter text widget
 class PrintLogger:
     def __init__(self, textbox):
@@ -25,7 +30,7 @@ class FileCategorizerApp:
         self.root.geometry("600x500")
 
         # PDF Path Selection
-        tk.Label(root, text="PDF File:").grid(row=0, column=0, sticky="w", padx=10, pady=5)
+        tk.Label(root, text="PDF File(s):").grid(row=0, column=0, sticky="w", padx=10, pady=5)
         self.pdf_entry = tk.Entry(root, width=50)
         self.pdf_entry.grid(row=0, column=1, padx=5, pady=5)
         tk.Button(root, text="Browse", command=self.browse_pdf).grid(row=0, column=2, padx=5, pady=5)
@@ -33,7 +38,6 @@ class FileCategorizerApp:
         # Output Path Selection
         tk.Label(root, text="Output Directory:").grid(row=1, column=0, sticky="w", padx=10, pady=5)
         self.output_entry = tk.Entry(root, width=50)
-        self.output_entry.insert(0, "./output")
         self.output_entry.grid(row=1, column=1, padx=5, pady=5)
         tk.Button(root, text="Browse", command=self.browse_output).grid(row=1, column=2, padx=5, pady=5)
 
@@ -52,10 +56,15 @@ class FileCategorizerApp:
         sys.stdout = self.logger
 
     def browse_pdf(self):
-        filename = filedialog.askopenfilename(title="Select PDF", filetypes=[("PDF Files", "*.pdf")])
-        if filename:
+        filenames = filedialog.askopenfilenames(title="Select PDFs", filetypes=[("PDF Files", "*.pdf")])
+        if filenames:
             self.pdf_entry.delete(0, tk.END)
-            self.pdf_entry.insert(0, filename)
+            self.pdf_entry.insert(0, ";".join(filenames))
+            
+            # Auto-set the output directory to match the first selected file's directory
+            first_file_dir = os.path.dirname(filenames[0])
+            self.output_entry.delete(0, tk.END)
+            self.output_entry.insert(0, first_file_dir)
 
     def browse_output(self):
         dirname = filedialog.askdirectory(title="Select Output Directory")
@@ -67,9 +76,14 @@ class FileCategorizerApp:
         pdf_path = self.pdf_entry.get().strip()
         output_dir = self.output_entry.get().strip()
 
-        if not pdf_path or not os.path.exists(pdf_path):
-            messagebox.showerror("Error", "Please select a valid input PDF file.")
+        if not pdf_path:
+            messagebox.showerror("Error", "Please select valid input PDF file(s).")
             return
+            
+        if not output_dir:
+            # Default to the directory of the first input file
+            output_dir = os.path.dirname(pdf_path.split(";")[0])
+            self.output_entry.insert(0, output_dir)
 
         self.run_button.config(state=tk.DISABLED, text="Running...")
         self.log_area.delete(1.0, tk.END)
@@ -78,7 +92,8 @@ class FileCategorizerApp:
         thread = threading.Thread(target=self._execute, args=(pdf_path, output_dir), daemon=True)
         thread.start()
 
-    def _execute(self, pdf_path, output_dir):
+    def _execute(self, pdf_paths_str, output_dir):
+        import time
         try:
             from dotenv import load_dotenv
             from src.pipeline import Pipeline
@@ -91,24 +106,45 @@ class FileCategorizerApp:
 
             pipeline = Pipeline(api_keys=api_keys)
             
-            print(f"Loading PDF from: {pdf_path}")
-            documents = pipeline.process_pdf(pdf_path)
-            print(f"Identified {len(documents)} documents.")
+            pdf_paths = [p.strip() for p in pdf_paths_str.split(";") if p.strip()]
+            
+            for pdf_path in pdf_paths:
+                try:
+                    if not os.path.exists(pdf_path):
+                        print(f"File not found: {pdf_path}, skipping.")
+                        continue
 
-            organizer = FileOrganizer()
-            summary = organizer.organize(documents, pdf_path, Path(output_dir))
+                    print(f"\n{'='*50}")
+                    print(f"Loading PDF from: {pdf_path}")
+                    documents = pipeline.process_pdf(pdf_path)
+                    print(f"Identified {len(documents)} documents.")
 
-            if summary:
-                house_number = organizer._resolve_house_number(documents)
-                num_residents = len(organizer._build_resident_order(documents))
-                out_dir = Path(output_dir) / house_number
-                
-                print(f"\n{'='*50}")
-                print(f"  House: {house_number}")
-                print(f"  Residents: {num_residents}")
-                print(f"  PDFs generated: {len(summary)}")
-                print(f"  Output: {out_dir}")
-                print(f"{'='*50}")
+                    organizer = FileOrganizer()
+                    summary = organizer.organize(documents, pdf_path, Path(output_dir))
+
+                    if summary:
+                        house_number = organizer._resolve_house_number(documents)
+                        num_residents = len(organizer._build_resident_order(documents))
+                        out_dir = Path(output_dir) / house_number
+                        
+                        print(f"\n{'='*50}")
+                        print(f"  House: {house_number}")
+                        print(f"  Residents: {num_residents}")
+                        print(f"  PDFs generated: {len(summary)}")
+                        print(f"  Output: {out_dir}")
+                        print(f"{'='*50}")
+                except Exception as e:
+                    error_msg = str(e).lower()
+                    print(f"\nFailed to process {pdf_path}: {e}")
+                    print("Progress has been saved to cache.")
+                    if "rate limit" in error_msg or "429" in error_msg or "too many requests" in error_msg or "retryerror" in error_msg or "aborted" in error_msg:
+                        print("Pausing for 3 minutes before proceeding to the next file...")
+                        time.sleep(180)
+                    else:
+                        print("Pausing for 3 minutes before proceeding to the next file...")
+                        time.sleep(180)
+                    continue
+
             print("\nProcessing Complete!")
             messagebox.showinfo("Success", "File categorization complete!")
             

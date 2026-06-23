@@ -1,5 +1,8 @@
 import fitz
 
+# Suppress harmless mupdf C-level syntax warnings
+fitz.TOOLS.mupdf_display_errors(False)
+
 def extract_pdf_segment(source_pdf: str, start_page: int, end_page: int, output_path: str):
     """
     Extracts a segment of pages from source_pdf and saves it to output_path.

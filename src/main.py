@@ -2,9 +2,15 @@ import os
 import argparse
 from pathlib import Path
 from dotenv import load_dotenv
+import sys
+
+# Add project root to sys.path to allow 'src' module imports
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 from src.pipeline import Pipeline
 from src.organizer import FileOrganizer
-import sys
 
 def main():
     if sys.stdout.encoding.lower() != 'utf-8':

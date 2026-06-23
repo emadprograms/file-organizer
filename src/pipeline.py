@@ -46,15 +46,19 @@ class Pipeline:
                 pages_to_process.append((page_index, image_bytes))
                 
         cache_lock = threading.Lock()
+        cancel_event = threading.Event()
         
         def process_single_page(page_info):
             p_idx, i_bytes = page_info
+            if cancel_event.is_set():
+                return None
             import time
-            import random
-            # Staggered start to prevent hitting burst rate limits
-            time.sleep(random.uniform(0.1, 1.0) + (p_idx * 0.3))
             try:
+                if cancel_event.is_set():
+                    return None
                 res = self.client.classify_page(image_bytes=i_bytes)
+                if res is None:
+                    return None
                 print(f" Extracted Page {p_idx}: {res.category.value} | {res.residents} | {res.date}")
                 with cache_lock:
                     cached_pages[str(p_idx)] = res.model_dump()
@@ -63,20 +67,33 @@ class Pipeline:
                         json.dump(cached_pages, f, ensure_ascii=False, indent=2)
                 return (p_idx, res)
             except Exception as e:
-                print(f"Error processing page {p_idx}: {e}")
-                return None
+                print(f"Critical failure on page {p_idx}: {e}")
+                cancel_event.set()
+                raise e
                 
         if pages_to_process:
-            num_workers = 30
+            num_workers = 5
             print(f"Processing {len(pages_to_process)} pages concurrently with {num_workers} workers...")
             with ThreadPoolExecutor(max_workers=num_workers) as executor:
                 futures = [executor.submit(process_single_page, p) for p in pages_to_process]
                 for future in as_completed(futures):
-                    res = future.result()
-                    if res:
-                        raw_pages.append(res)
+                    try:
+                        res = future.result()
+                        if res:
+                            raw_pages.append(res)
+                    except Exception as e:
+                        cancel_event.set()
+                        try:
+                            executor.shutdown(wait=False, cancel_futures=True)
+                        except TypeError:
+                            executor.shutdown(wait=False)
+                        raise RuntimeError(f"Processing aborted due to failure on a page: {e}")
                         
         raw_pages.sort(key=lambda x: x[0])
+
+        total_expected_pages = len(cached_pages) + len(pages_to_process)
+        if len(raw_pages) != total_expected_pages:
+            raise RuntimeError(f"CRITICAL: Expected {total_expected_pages} pages, but only recovered {len(raw_pages)}. Aborting Pass 1.5 to prevent data loss.")
 
         print(f"Starting Pass 1.5 (Entity Resolution) for {pdf_path}...")
         log_lines = []
