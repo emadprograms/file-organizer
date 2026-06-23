@@ -67,6 +67,8 @@ def test_category_classification():
 
 def test_continuation_detection(monkeypatch):
     """Test that pipeline correctly groups continuation pages."""
+    import os
+    monkeypatch.setattr(os.path, "exists", lambda x: False)
     # Define 3 classification responses
     responses = [
         PageClassification(house_number="683", residents=["محمد"], category=Category.CONTRACT, date="NONE"),
@@ -127,3 +129,96 @@ def test_telemetry_logger():
     from src.llm import GemmaClient
     client = GemmaClient(api_keys=["key1"])
     assert hasattr(client, "telemetry_logger") or True
+
+def test_global_rpm_enforcement(monkeypatch):
+    """03-04-01: Enforce Global 15 RPM IP-Level Cap."""
+    import time
+    from src.llm import GemmaClient
+    
+    client = GemmaClient(api_keys=["key1", "key2"])
+    now_ref = [1000.0]
+    
+    for _ in range(15):
+        client.global_rpm_tracker.append(now_ref[0])
+        
+    sleeps = []
+    def mock_sleep(secs):
+        sleeps.append(secs)
+        now_ref[0] += secs + 0.1
+        
+    monkeypatch.setattr(time, "time", lambda: now_ref[0])
+    monkeypatch.setattr(time, "sleep", mock_sleep)
+    
+    client._get_client_and_key()
+    assert sum(sleeps) >= 60
+
+def test_retry_route_rate_limiter(monkeypatch):
+    """03-04-02: Route NONE-Resident Retry Through Rate Limiter."""
+    from src.llm import GemmaClient, PageClassification
+    from src.schemas import Category
+    from unittest.mock import MagicMock
+    
+    client = GemmaClient(api_keys=["key1"])
+    
+    get_client_calls = []
+    original_get = client._get_client_and_key
+    def mock_get(*args, **kwargs):
+        get_client_calls.append(1)
+        return original_get(*args, **kwargs)
+    monkeypatch.setattr(client, "_get_client_and_key", mock_get)
+    
+    mock_genai_client = MagicMock()
+    mock_resp1 = MagicMock()
+    mock_resp1.parsed = PageClassification(category=Category.CONTRACT, residents=["NONE"], date="NONE", house_number="123")
+    mock_resp1.usage_metadata.total_token_count = 100
+    mock_resp2 = MagicMock()
+    mock_resp2.parsed = PageClassification(category=Category.CONTRACT, residents=["John"], date="NONE", house_number="123")
+    mock_resp2.usage_metadata.total_token_count = 100
+    mock_genai_client.models.generate_content.side_effect = [mock_resp1, mock_resp2]
+    client.clients["key1"] = mock_genai_client
+    
+    client.classify_page(b"image")
+    
+    assert len(get_client_calls) == 2, "Should call rate limiter twice"
+
+def test_invalid_response_graceful_fallback(monkeypatch):
+    """03-04-04: Handle Invalid Responses Gracefully."""
+    from src.llm import GemmaClient
+    from src.schemas import Category
+    from unittest.mock import MagicMock
+    
+    client = GemmaClient(api_keys=["key1"])
+    
+    mock_genai_client = MagicMock()
+    mock_resp = MagicMock()
+    mock_resp.parsed = None
+    mock_resp.text = "This is not valid json"
+    mock_resp.usage_metadata.total_token_count = 100
+    mock_genai_client.models.generate_content.return_value = mock_resp
+    
+    client.clients["key1"] = mock_genai_client
+    
+    result = client.classify_page(b"dummy")
+    
+    assert result.category == Category.OTHER_LETTERS
+    assert result.residents == ["NONE"]
+
+def test_exponential_backoff_on_429(monkeypatch):
+    """03-04-05: Add Exponential Backoff With Jitter on 429s."""
+    from src.llm import GemmaClient
+    import time
+    
+    client = GemmaClient(api_keys=["key1"])
+    
+    current_time = [1000.0]
+    monkeypatch.setattr(time, "time", lambda: current_time[0])
+    
+    client._report_failure("key1", is_429=True)
+    assert client.key_strikes["key1"] == 1
+    cooldown1 = client.cooldown_keys["key1"] - current_time[0]
+    assert 7.5 <= cooldown1 <= 22.5
+    
+    client._report_failure("key1", is_429=True)
+    assert client.key_strikes["key1"] == 2
+    cooldown2 = client.cooldown_keys["key1"] - current_time[0]
+    assert 15.0 <= cooldown2 <= 45.0
