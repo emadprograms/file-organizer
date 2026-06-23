@@ -250,7 +250,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
             
             try:
                 response = client.models.generate_content(
-                    model='gemma-4-26b-a4b-it',
+                    model='gemini-1.5-flash',
                     contents=[
                         system_prompt,
                         user_prompt,
@@ -304,7 +304,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
 
                         retry_start = time.time()
                         retry_response = client.models.generate_content(
-                            model='gemma-4-26b-a4b-it',
+                            model='gemini-1.5-flash',
                             contents=[
                                 system_prompt,
                                 retry_prompt,
@@ -415,7 +415,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
 
             try:
                 response = client.models.generate_content(
-                    model='gemma-4-31b-it',
+                    model='gemini-1.5-pro',
                     contents=[system_prompt, user_prompt],
                     config=types.GenerateContentConfig(
                         response_mime_type="application/json",
