@@ -89,7 +89,10 @@ class GemmaClient:
                     "strikes": self.key_strikes[key],
                     "status": status
                 })
-            self.telemetry_queue.put(state)
+            try:
+                self.telemetry_queue.put(state, block=False)
+            except Exception:
+                pass
 
     def _prune_trackers(self, key: str, now: float):
         while self.tpm_trackers[key] and now - self.tpm_trackers[key][0][0] > 60:
