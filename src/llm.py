@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import random
 import threading
 import logging
 from collections import deque
@@ -152,6 +153,8 @@ class GemmaClient:
                     if not sleep_time:
                         if self.cooldown_keys:
                             earliest_release = min(self.cooldown_keys.values())
+                            if earliest_release == float('inf'):
+                                raise RuntimeError("All API keys exhausted permanently")
                             sleep_time = earliest_release - now
                         else:
                             sleep_time = 1.0 # Should not happen if everything is calculated right
@@ -175,19 +178,30 @@ class GemmaClient:
             strikes = self.key_strikes[key]
             now = time.time()
             
-            if is_429:
-                cooldown_periods = {1: 15, 2: 30, 3: 60, 4: 120}
-                penalty = cooldown_periods.get(strikes, 180)
-                if is_token_limit:
-                    print(f"[Rate Limit Guard] Key penalized for {penalty}s due to Token Limit (Strike {strikes}).")
-                else:
-                    print(f"[Rate Limit Guard] Key penalized for {penalty}s due to 429/RequestLimit (Strike {strikes}).")
-                self.global_cooldown_until = max(self.global_cooldown_until, now + 15.0)
-            else:
-                penalty = min(5 * strikes, 30)
-                print(f"[Rate Limit Guard] Key penalized for {penalty}s due to Server Error (Strike {strikes}).")
-                self.global_cooldown_until = max(self.global_cooldown_until, now + 5.0)
+            if strikes >= 10:
+                telemetry_logger.critical({
+                    "timestamp": now,
+                    "key_index": self.api_keys.index(key),
+                    "status_code": 429 if is_429 else 500,
+                    "error_type": "key_exhausted"
+                })
+                print(f"[Rate Limit Guard] Key permanently exhausted (Strike {strikes}).")
+                self.cooldown_keys[key] = float('inf')
+                self._push_telemetry()
+                return
+
+            base_penalty = min(15 * (2 ** (strikes - 1)), 300)
+            penalty = base_penalty * (0.5 + random.random())
             
+            if is_429:
+                if is_token_limit:
+                    print(f"[Rate Limit Guard] Key penalized for {penalty:.1f}s due to Token Limit (Strike {strikes}).")
+                else:
+                    print(f"[Rate Limit Guard] Key penalized for {penalty:.1f}s due to 429/RequestLimit (Strike {strikes}).")
+            else:
+                print(f"[Rate Limit Guard] Key penalized for {penalty:.1f}s due to Server Error (Strike {strikes}).")
+                
+            self.global_cooldown_until = max(self.global_cooldown_until, now + penalty)
             self.cooldown_keys[key] = now + penalty
             self._push_telemetry()
 
