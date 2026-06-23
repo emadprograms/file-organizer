@@ -3,12 +3,25 @@ import time
 import json
 import threading
 import logging
+from collections import deque
 from google import genai
 from google.genai import types
 
 from src.schemas import PageClassification, EntityResolutionMapping
 
 log = logging.getLogger(__name__)
+
+# Telemetry Logger setup
+telemetry_logger = logging.getLogger("telemetry")
+telemetry_logger.setLevel(logging.INFO)
+# Ensure we don't duplicate handlers
+if not telemetry_logger.handlers:
+    fh = logging.FileHandler("telemetry.log", encoding="utf-8")
+    class JsonFormatter(logging.Formatter):
+        def format(self, record):
+            return json.dumps(record.msg)
+    fh.setFormatter(JsonFormatter())
+    telemetry_logger.addHandler(fh)
 
 class RateLimitError(Exception):
     pass
@@ -18,8 +31,10 @@ class InvalidResponseError(Exception):
 
 class GemmaClient:
     NONE_EXPECTED_CATEGORIES = {'amar_takhsees', 'pictures', 'other_letters'}
+    TPM_LIMIT = 30000
+    RPM_LIMIT = 15
 
-    def __init__(self, api_keys: list[str] = None, delay_between_pages: float = 5.0):
+    def __init__(self, api_keys: list[str] = None, delay_between_pages: float = 5.0, telemetry_queue=None):
         if not api_keys:
             keys_str = os.getenv("GEMINI_API_KEYS")
             if not keys_str:
@@ -40,73 +55,136 @@ class GemmaClient:
         self.lock = threading.Lock()
         self.global_cooldown_until = 0.0
         self.last_request_time = 0.0
+        
+        # Trackers
+        self.tpm_trackers = {key: deque() for key in self.api_keys}
+        self.rpm_trackers = {key: deque() for key in self.api_keys}
+        
+        self.telemetry_queue = telemetry_queue
+        self.total_requests = {key: 0 for key in self.api_keys}
 
-    def _get_client_and_key(self):
+    def _push_telemetry(self):
+        if self.telemetry_queue:
+            state = {
+                "keys": []
+            }
+            now = time.time()
+            for i, key in enumerate(self.api_keys):
+                tpm = sum(cost for t, cost in self.tpm_trackers[key] if now - t <= 60)
+                rpm = sum(1 for t in self.rpm_trackers[key] if now - t <= 60)
+                status = "Active"
+                if key in self.cooldown_keys and self.cooldown_keys[key] > now:
+                    status = f"Cooldown ({int(self.cooldown_keys[key] - now)}s)"
+                state["keys"].append({
+                    "id": f"Key_{i}",
+                    "total_reqs": self.total_requests[key],
+                    "rpm": rpm,
+                    "tpm": tpm,
+                    "strikes": self.key_strikes[key],
+                    "status": status
+                })
+            self.telemetry_queue.put(state)
+
+    def _prune_trackers(self, key: str, now: float):
+        while self.tpm_trackers[key] and now - self.tpm_trackers[key][0][0] > 60:
+            self.tpm_trackers[key].popleft()
+        while self.rpm_trackers[key] and now - self.rpm_trackers[key][0] > 60:
+            self.rpm_trackers[key].popleft()
+
+    def _get_client_and_key(self, estimated_tokens: int = 3000):
         while True:
             with self.lock:
                 now = time.time()
                 
-                # Global IP Throttle: Protects against IP bans by freezing ALL threads
+                # Global IP Throttle
                 if now < self.global_cooldown_until:
                     sleep_time = self.global_cooldown_until - now
                 else:
-                    # STRICT 2.0 SECOND GAP BETWEEN ALL API REQUESTS
-                    # This prevents the "Thundering Herd" post-cooldown.
                     time_since_last = now - self.last_request_time
                     if time_since_last < 2.0:
                         sleep_time = 2.0 - time_since_last
                     else:
-                        # We are allowed to proceed!
-                        
-                        # Reclaim keys from penalty box
                         released = [k for k, t in self.cooldown_keys.items() if now >= t]
                         for k in released:
                             del self.cooldown_keys[k]
 
-                        # Find an available key via round-robin
-                        if len(self.cooldown_keys) < len(self.api_keys):
+                        available_keys = []
+                        for key in self.api_keys:
+                            if key not in self.cooldown_keys:
+                                self._prune_trackers(key, now)
+                                current_tpm = sum(cost for t, cost in self.tpm_trackers[key])
+                                current_rpm = len(self.rpm_trackers[key])
+                                
+                                if current_tpm + estimated_tokens >= self.TPM_LIMIT or current_rpm + 1 >= self.RPM_LIMIT:
+                                    # Need cooldown. Calculate when oldest token falls off
+                                    if self.tpm_trackers[key] and current_tpm + estimated_tokens >= self.TPM_LIMIT:
+                                        oldest_time = self.tpm_trackers[key][0][0]
+                                        self.cooldown_keys[key] = oldest_time + 60
+                                    elif self.rpm_trackers[key]:
+                                        oldest_time = self.rpm_trackers[key][0]
+                                        self.cooldown_keys[key] = oldest_time + 60
+                                else:
+                                    available_keys.append(key)
+
+                        if available_keys:
+                            # Pick next available via round-robin
                             for _ in range(len(self.api_keys)):
                                 self.current_key_idx = (self.current_key_idx + 1) % len(self.api_keys)
                                 key = self.api_keys[self.current_key_idx]
-                                if key not in self.cooldown_keys:
-                                    self.last_request_time = time.time() # Update lock time
-                                    return self.clients[key], key
+                                if key in available_keys:
+                                    self.last_request_time = time.time()
+                                    self.tpm_trackers[key].append([self.last_request_time, estimated_tokens])
+                                    self.rpm_trackers[key].append(self.last_request_time)
+                                    self.total_requests[key] += 1
+                                    self._push_telemetry()
+                                    return self.clients[key], key, self.last_request_time
                         
-                        # If ALL keys are in cooldown, find the shortest wait time
-                        earliest_release = min(self.cooldown_keys.values())
-                        sleep_time = earliest_release - now
+                        # If ALL keys are in cooldown
+                        if self.cooldown_keys:
+                            earliest_release = min(self.cooldown_keys.values())
+                            sleep_time = earliest_release - now
+                        else:
+                            sleep_time = 1.0 # Should not happen if everything is calculated right
                         if sleep_time < 0.1: sleep_time = 0.5
             
-            # Sleep outside the lock so other threads can do work or queue up
             print(f"[Rate Limit Guard] Staggering... Thread sleeping for {sleep_time:.1f}s...")
             time.sleep(sleep_time)
 
-    def _report_failure(self, key: str, is_429: bool):
+    def _reconcile_usage(self, key: str, reserve_time: float, actual_tokens: int):
+        with self.lock:
+            for item in self.tpm_trackers[key]:
+                if item[0] == reserve_time:
+                    item[1] = actual_tokens
+                    break
+            self._push_telemetry()
+
+    def _report_failure(self, key: str, is_429: bool, is_token_limit: bool = False):
         with self.lock:
             self.key_strikes[key] += 1
             strikes = self.key_strikes[key]
             now = time.time()
             
             if is_429:
-                # Progressive backoff for Rate Limits / Resource Exhausted
                 cooldown_periods = {1: 15, 2: 30, 3: 60, 4: 120}
                 penalty = cooldown_periods.get(strikes, 180)
-                print(f"[Rate Limit Guard] Key penalized for {penalty}s due to 429/RateLimit (Strike {strikes}).")
-                # Trigger Global IP Throttle to protect other keys and stop the thundering herd
+                if is_token_limit:
+                    print(f"[Rate Limit Guard] Key penalized for {penalty}s due to Token Limit (Strike {strikes}).")
+                else:
+                    print(f"[Rate Limit Guard] Key penalized for {penalty}s due to 429/RequestLimit (Strike {strikes}).")
                 self.global_cooldown_until = max(self.global_cooldown_until, now + 15.0)
             else:
-                # Shorter backoff for 5xx server errors to prevent thundering herds
                 penalty = min(5 * strikes, 30)
                 print(f"[Rate Limit Guard] Key penalized for {penalty}s due to Server Error (Strike {strikes}).")
-                # Trigger Minor Global Throttle
                 self.global_cooldown_until = max(self.global_cooldown_until, now + 5.0)
             
             self.cooldown_keys[key] = now + penalty
+            self._push_telemetry()
 
     def _report_success(self, key: str):
         with self.lock:
             if self.key_strikes[key] > 0:
                 self.key_strikes[key] = 0
+            self._push_telemetry()
 
     def _build_system_prompt(self) -> str:
         return """You are an Arabic document classification expert analyzing scanned housing files from the Bahrain/Gulf region.
@@ -160,7 +238,8 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         
         while attempts < max_attempts:
             attempts += 1
-            client, key = self._get_client_and_key()
+            client, key, reserve_time = self._get_client_and_key(estimated_tokens=3000)
+            start_time = time.time()
             
             try:
                 response = client.models.generate_content(
@@ -176,6 +255,22 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                         temperature=0
                     )
                 )
+
+                latency_ms = int((time.time() - start_time) * 1000)
+                used_tokens = 3000
+                if hasattr(response, "usage_metadata") and response.usage_metadata:
+                    used_tokens = response.usage_metadata.total_token_count
+                
+                self._reconcile_usage(key, reserve_time, used_tokens)
+                
+                telemetry_logger.info({
+                    "timestamp": time.time(),
+                    "key_index": self.api_keys.index(key),
+                    "latency_ms": latency_ms,
+                    "tokens_used": used_tokens,
+                    "status_code": 200,
+                    "error_type": "none"
+                })
 
                 if response.parsed is not None:
                     result = response.parsed
@@ -199,6 +294,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                             "all 4-5 parts if possible."
                         )
 
+                        retry_start = time.time()
                         retry_response = client.models.generate_content(
                             model='gemma-4-26b-a4b-it',
                             contents=[
@@ -212,6 +308,25 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                                 temperature=0
                             )
                         )
+                        retry_used_tokens = 3000
+                        if hasattr(retry_response, "usage_metadata") and retry_response.usage_metadata:
+                            retry_used_tokens = retry_response.usage_metadata.total_token_count
+                            
+                        # Here we just add another entry for the retry usage
+                        with self.lock:
+                            self.tpm_trackers[key].append([time.time(), retry_used_tokens])
+                            self.rpm_trackers[key].append(time.time())
+                            self.total_requests[key] += 1
+                        
+                        telemetry_logger.info({
+                            "timestamp": time.time(),
+                            "key_index": self.api_keys.index(key),
+                            "latency_ms": int((time.time() - retry_start) * 1000),
+                            "tokens_used": retry_used_tokens,
+                            "status_code": 200,
+                            "error_type": "none"
+                        })
+
                         if retry_response.parsed is not None:
                             retry_result = retry_response.parsed
                         else:
@@ -230,13 +345,33 @@ Return a JSON object with: house_number, residents (list of strings), category, 
             except Exception as e:
                 error_str = str(e).lower()
                 is_429 = "429" in error_str or "too many requests" in error_str or "quota" in error_str or "resource exhausted" in error_str
+                is_token_limit = "token" in error_str and is_429
                 is_5xx = "500" in error_str or "503" in error_str or "internal error" in error_str
                 is_invalid = "invalidresponseerror" in error_str or isinstance(e, InvalidResponseError)
+                
+                latency_ms = int((time.time() - start_time) * 1000)
+                
+                error_type = "unknown"
+                if is_429:
+                    error_type = "token_limit" if is_token_limit else "request_limit"
+                elif is_5xx:
+                    error_type = "server_error"
+                elif is_invalid:
+                    error_type = "invalid_response"
+                
+                telemetry_logger.error({
+                    "timestamp": time.time(),
+                    "key_index": self.api_keys.index(key),
+                    "latency_ms": latency_ms,
+                    "tokens_used": 0,
+                    "status_code": 429 if is_429 else (500 if is_5xx else 400),
+                    "error_type": error_type
+                })
                 
                 print(f"[Retry {attempts}/{max_attempts}] LLM call failed: {e}")
                 
                 if is_429 or is_5xx or is_invalid:
-                    self._report_failure(key, is_429=is_429)
+                    self._report_failure(key, is_429=is_429, is_token_limit=is_token_limit)
                     if attempts == max_attempts:
                         raise RateLimitError(f"Max retries reached. Last error: {error_str}")
                     continue
@@ -266,7 +401,8 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         
         while attempts < max_attempts:
             attempts += 1
-            client, key = self._get_client_and_key()
+            client, key, reserve_time = self._get_client_and_key(estimated_tokens=5000)
+            start_time = time.time()
 
             try:
                 response = client.models.generate_content(
@@ -278,6 +414,22 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                         temperature=0
                     )
                 )
+                
+                latency_ms = int((time.time() - start_time) * 1000)
+                used_tokens = 5000
+                if hasattr(response, "usage_metadata") and response.usage_metadata:
+                    used_tokens = response.usage_metadata.total_token_count
+                
+                self._reconcile_usage(key, reserve_time, used_tokens)
+                
+                telemetry_logger.info({
+                    "timestamp": time.time(),
+                    "key_index": self.api_keys.index(key),
+                    "latency_ms": latency_ms,
+                    "tokens_used": used_tokens,
+                    "status_code": 200,
+                    "error_type": "none"
+                })
 
                 if response.parsed is not None:
                     result = response.parsed
@@ -295,13 +447,33 @@ Return a JSON object with: house_number, residents (list of strings), category, 
             except Exception as e:
                 error_str = str(e).lower()
                 is_429 = "429" in error_str or "too many requests" in error_str or "quota" in error_str or "resource exhausted" in error_str
+                is_token_limit = "token" in error_str and is_429
                 is_5xx = "500" in error_str or "503" in error_str or "internal error" in error_str
                 is_invalid = "invalidresponseerror" in error_str or isinstance(e, InvalidResponseError)
+                
+                latency_ms = int((time.time() - start_time) * 1000)
+                
+                error_type = "unknown"
+                if is_429:
+                    error_type = "token_limit" if is_token_limit else "request_limit"
+                elif is_5xx:
+                    error_type = "server_error"
+                elif is_invalid:
+                    error_type = "invalid_response"
+                
+                telemetry_logger.error({
+                    "timestamp": time.time(),
+                    "key_index": self.api_keys.index(key),
+                    "latency_ms": latency_ms,
+                    "tokens_used": 0,
+                    "status_code": 429 if is_429 else (500 if is_5xx else 400),
+                    "error_type": error_type
+                })
                 
                 print(f"[Retry {attempts}/{max_attempts}] LLM resolution call failed: {e}")
                 
                 if is_429 or is_5xx or is_invalid:
-                    self._report_failure(key, is_429=is_429)
+                    self._report_failure(key, is_429=is_429, is_token_limit=is_token_limit)
                     if attempts == max_attempts:
                         raise RateLimitError(f"Max retries reached. Last error: {error_str}")
                     continue
