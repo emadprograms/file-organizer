@@ -2,13 +2,12 @@
 
 ## Active Roadmap
 
-**3 phases** | **17 requirements mapped** | All v1 requirements covered ✓
+**2 phases** | **17 requirements mapped** | All v1 requirements covered ✓
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
 | 1 | Data Pipeline & LLM Integration | 6/8 | Complete    | 2026-06-22 |
-| 2 | Filesystem Generator | 1/1 | Complete   | 2026-06-22 |
-| 3 | Graphical User Interface | 1/1 | Complete   | 2026-06-22 |
+| 2 | Filesystem Generator & GUI | 2/2 | Complete   | 2026-06-22 |
 
 ### Phase Details
 
@@ -22,22 +21,15 @@
 2. Returns a structured JSON response identifying house, person, category, and maps families correctly.
 3. Groups documents logically, correctly preserving timeline and merging wives/children into the head of household.
 
-### Phase 2: Filesystem Generator
+### Phase 2: Filesystem Generator & GUI
 
-**Goal:** Orchestrate the entire flow into structured folders and save PDFs
-**Requirements:** SYS-01, SYS-02, SYS-03, SYS-04, SYS-05, SYS-06
+**Goal:** Orchestrate the entire flow into structured folders, save PDFs, and build a Tkinter GUI to wrap the CLI.
+**Requirements:** SYS-01, SYS-02, SYS-03, SYS-04, SYS-05, SYS-06, GUI-01, GUI-02
 **Success criteria:**
 
 1. Creates the correct double-sorted folder hierarchy (House -> Person -> 13 Categories).
 2. "Amar Takhsees" and house-generic letters are successfully routed to root-level subfolders.
 3. Combines continuous pages and saves them as a single sliced PDF in the correct category folder.
-
-### Phase 3: Graphical User Interface
-
-**Goal:** Build a Tkinter GUI to wrap the CLI
-**Requirements:** GUI-01, GUI-02
-**Success criteria:**
-
-1. Application launches a window with input for selecting the PDF file and output folder.
-2. Contains a "Run" button to execute the pipeline.
-3. Displays console output or a progress bar reflecting execution state.
+4. Application launches a window with input for selecting the PDF file and output folder.
+5. Contains a "Run" button to execute the pipeline.
+6. Displays console output or a progress bar reflecting execution state.
