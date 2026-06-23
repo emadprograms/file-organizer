@@ -246,11 +246,13 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         
         attempts = 0
         max_attempts = max(7, len(self.api_keys) * 2)
+        invalid_retries = 0
         
         while attempts < max_attempts:
             attempts += 1
             client, key, reserve_time = self._get_client_and_key(estimated_tokens=3000)
             start_time = time.time()
+            used_tokens = 0
             
             try:
                 response = client.models.generate_content(
@@ -274,6 +276,25 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 
                 self._reconcile_usage(key, reserve_time, used_tokens)
                 
+                if response.parsed is not None:
+                    result = response.parsed
+                else:
+                    try:
+                        data = json.loads(response.text)
+                        result = PageClassification(**data)
+                    except (json.JSONDecodeError, Exception) as parse_err:
+                        raw_preview = ""
+                        try:
+                            if hasattr(response, "text") and response.text:
+                                raw_preview = response.text[:200]
+                            elif hasattr(response, "candidates") and response.candidates and response.candidates[0].finish_reason:
+                                raw_preview = f"<Finish reason: {response.candidates[0].finish_reason}>"
+                        except ValueError:
+                            raw_preview = "<ValueError reading response.text>"
+                        
+                        print(f"JSON PARSE ERROR (classify). Raw text preview: {raw_preview}")
+                        raise InvalidResponseError(raw_preview)
+
                 telemetry_logger.info({
                     "timestamp": time.time(),
                     "key_index": self.api_keys.index(key),
@@ -282,16 +303,6 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                     "status_code": 200,
                     "error_type": "none"
                 })
-
-                if response.parsed is not None:
-                    result = response.parsed
-                else:
-                    try:
-                        data = json.loads(response.text)
-                        result = PageClassification(**data)
-                    except (json.JSONDecodeError, Exception) as parse_err:
-                        print(f"JSON PARSE ERROR (classify). Raw text was: {response.text}")
-                        raise InvalidResponseError(f"Failed to parse LLM response: {type(parse_err).__name__}")
 
                 if ((not result.residents or result.residents == ["NONE"])
                         and result.category.value not in self.NONE_EXPECTED_CATEGORIES):
@@ -393,18 +404,42 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 elif is_5xx:
                     error_type = "server_error"
                 elif is_invalid:
-                    error_type = "invalid_response"
+                    error_type = "model_refusal"
                 
-                telemetry_logger.error({
+                raw_preview = str(e) if is_invalid else ""
+                
+                log_payload = {
                     "timestamp": time.time(),
                     "key_index": self.api_keys.index(key),
                     "latency_ms": latency_ms,
-                    "tokens_used": 0,
+                    "tokens_used": used_tokens if is_invalid else 0,
                     "status_code": 429 if is_429 else (500 if is_5xx else 400),
                     "error_type": error_type
-                })
+                }
+                if is_invalid:
+                    log_payload["raw_preview"] = raw_preview
+                    
+                telemetry_logger.error(log_payload)
                 
                 print(f"[Retry {attempts}/{max_attempts}] LLM call failed: {e}")
+                
+                if is_invalid:
+                    invalid_retries += 1
+                    if invalid_retries >= 2:
+                        telemetry_logger.info({
+                            "timestamp": time.time(),
+                            "key_index": self.api_keys.index(key),
+                            "latency_ms": latency_ms,
+                            "tokens_used": 0,
+                            "status_code": 200,
+                            "error_type": "fallback_classification"
+                        })
+                        return PageClassification(
+                            category=Category.OTHER_LETTERS,
+                            residents=["NONE"],
+                            date="NONE",
+                            house_number="UNKNOWN"
+                        )
                 
                 if is_429 or is_5xx or is_invalid:
                     self._report_failure(key, is_429=is_429, is_token_limit=is_token_limit)

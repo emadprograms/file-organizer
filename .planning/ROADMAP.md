@@ -19,6 +19,10 @@
   2. **Empty Folders:** Folders are generated dynamically on-write. Zero empty directories are created.
   3. **Fallback Folder:** Uncategorized/Unknown pages are explicitly dumped into a `Manual_Review` fallback folder instead of being forced into "General Letters" or dropped.
   4. **Schema Optimization:** The `house_number` field is removed from the AI prompt and Pydantic schema to save tokens, as the pipeline relies strictly on filename extraction.
+  5. **Safe Data Handling:** `shutil.rmtree` destructive wipes of entire house directories are removed to prevent data loss. `shutil.copy2` duplicating massive original PDFs is removed to save disk space.
+  6. **Identity Preservation:** The `resolve_entities` LLM prompt correctly retains non-primary family member identities instead of mapping wives/children to the primary tenant and erasing them.
+  7. **Reliable LLM Retries:** Silent failures on LLM retries (bare `except Exception: pass`) are fixed so errors are handled/logged properly. The `other_letters` category is removed from `NONE_EXPECTED_CATEGORIES` to ensure lazy extractions are retried instead of accepted blindly.
+  8. **Precise Document Grouping:** The pipeline correctly separates distinct documents by enforcing strict date-matching during grouping, stopping pages with different dates from fusing. Non-anchor documents properly respect the extracted recipient's name instead of being forced into the primary tenant's timeline.
 
 ## Phase 5: Generation Accuracy Refinement
 - **Goal:** Improve the accuracy of AI-generated categorization for house files.
