@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import re
 import random
 import threading
 import logging
@@ -32,7 +33,7 @@ class InvalidResponseError(Exception):
 
 class GemmaClient:
     NONE_EXPECTED_CATEGORIES = {'amar_takhsees', 'pictures'}
-    GLOBAL_RPM_LIMIT = 12
+    GLOBAL_RPM_LIMIT = 10
     TPM_LIMIT = 30000
     RPM_LIMIT = 30
     
@@ -66,6 +67,27 @@ class GemmaClient:
         
         self.telemetry_queue = telemetry_queue
         self.total_requests = {key: 0 for key in self.api_keys}
+
+        state_file = ".rate_limit_state.json"
+        if os.path.exists(state_file):
+            try:
+                with open(state_file, "r") as f:
+                    state = json.load(f)
+                    GemmaClient.global_rpm_tracker = deque(state.get("global_rpm_tracker", []))
+                    GemmaClient.global_cooldown_until = state.get("global_cooldown_until", 0.0)
+            except Exception:
+                pass
+
+    def _save_state(self):
+        state = {
+            "global_rpm_tracker": list(GemmaClient.global_rpm_tracker),
+            "global_cooldown_until": GemmaClient.global_cooldown_until
+        }
+        try:
+            with open(".rate_limit_state.json", "w") as f:
+                json.dump(state, f)
+        except Exception:
+            pass
 
     def _push_telemetry(self):
         if self.telemetry_queue:
@@ -152,6 +174,7 @@ class GemmaClient:
                                 self.tpm_trackers[key].append([self.last_request_time[key], estimated_tokens])
                                 self.rpm_trackers[key].append(self.last_request_time[key])
                                 GemmaClient.global_rpm_tracker.append(self.last_request_time[key])
+                                self._save_state()
                                 self.total_requests[key] += 1
                                 self._push_telemetry()
                                 return self.clients[key], key, self.last_request_time[key]
@@ -208,6 +231,7 @@ class GemmaClient:
                     # CRITICAL FIX: Google's IP sliding window tracks ALL requests (even 429s).
                     # We must fully stop ALL keys from firing to let the window flush.
                     GemmaClient.global_cooldown_until = max(GemmaClient.global_cooldown_until, now + 65.0)
+                    self._save_state()
             else:
                 print(f"[Rate Limit Guard] Key penalized for {penalty:.1f}s due to Server Error (Strike {strikes}).")
                 
@@ -303,7 +327,11 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                     result = response.parsed
                 else:
                     try:
-                        data = json.loads(response.text)
+                        text = response.text.strip()
+                        if text.startswith("```"):
+                            text = re.sub(r"^```(?:json)?\s*", "", text)
+                            text = re.sub(r"\s*```$", "", text)
+                        data = json.loads(text)
                         result = PageClassification(**data)
                     except (json.JSONDecodeError, Exception) as parse_err:
                         raw_preview = ""
@@ -373,7 +401,11 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                         if retry_response.parsed is not None:
                             retry_result = retry_response.parsed
                         else:
-                            retry_data = json.loads(retry_response.text)
+                            text = retry_response.text.strip()
+                            if text.startswith("```"):
+                                text = re.sub(r"^```(?:json)?\s*", "", text)
+                                text = re.sub(r"\s*```$", "", text)
+                            retry_data = json.loads(text)
                             retry_result = PageClassification(**retry_data)
 
                         if retry_result.residents and retry_result.residents != ["NONE"]:
@@ -448,6 +480,8 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 
                 if is_invalid:
                     invalid_retries += 1
+                    if invalid_retries >= 2:
+                        raise InvalidResponseError(raw_preview)
                 
                 if is_429 or is_5xx or is_invalid:
                     self._report_failure(key, is_429=is_429, is_token_limit=is_token_limit)
@@ -515,7 +549,11 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                     result = response.parsed
                 else:
                     try:
-                        data = json.loads(response.text)
+                        text = response.text.strip()
+                        if text.startswith("```"):
+                            text = re.sub(r"^```(?:json)?\s*", "", text)
+                            text = re.sub(r"\s*```$", "", text)
+                        data = json.loads(text)
                         result = EntityResolutionMapping(**data)
                     except (json.JSONDecodeError, Exception) as parse_err:
                         print(f"JSON PARSE ERROR (resolve_entities). Raw text was: {response.text}")
