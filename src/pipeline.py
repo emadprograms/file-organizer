@@ -9,9 +9,9 @@ from src.schemas import PageClassification, DocumentGroup, Category
 
 
 class Pipeline:
-    def __init__(self, api_keys: list[str] = None, delay_between_pages: float = 1.0):
+    def __init__(self, api_keys: list[str] = None, delay_between_pages: float = 1.0, telemetry_queue=None):
         self.ingestor = PdfIngestor()
-        self.client = GemmaClient(api_keys, delay_between_pages)
+        self.client = GemmaClient(api_keys, delay_between_pages, telemetry_queue=telemetry_queue)
 
 
 
