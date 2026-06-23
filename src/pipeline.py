@@ -61,16 +61,11 @@ class Pipeline:
         total_expected_pages = len(raw_pages) + len(pages_to_process)
                 
         cache_lock = threading.Lock()
-        cancel_event = threading.Event()
         
         def process_single_page(page_info):
             p_idx, i_bytes = page_info
-            if cancel_event.is_set():
-                return None
             import time
             try:
-                if cancel_event.is_set():
-                    return None
                 res = self.client.classify_page(image_bytes=i_bytes)
                 if res is None:
                     return None
@@ -88,12 +83,11 @@ class Pipeline:
                 return (p_idx, res)
             except Exception as e:
                 print(f"Critical failure on page {p_idx}: {e}")
-                cancel_event.set()
                 raise e
                 
         if pages_to_process:
-            num_workers = 5
-            print(f"Processing {len(pages_to_process)} pages concurrently with {num_workers} workers...")
+            num_workers = 1
+            print(f"Processing {len(pages_to_process)} pages sequentially (15 RPM global cap)...")
             with ThreadPoolExecutor(max_workers=num_workers) as executor:
                 futures = [executor.submit(process_single_page, p) for p in pages_to_process]
                 for future in as_completed(futures):
@@ -102,7 +96,6 @@ class Pipeline:
                         if res:
                             raw_pages.append(res)
                     except Exception as e:
-                        cancel_event.set()
                         try:
                             executor.shutdown(wait=False, cancel_futures=True)
                         except TypeError:

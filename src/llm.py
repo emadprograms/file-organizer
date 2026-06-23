@@ -376,7 +376,6 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                             self._report_failure(retry_key, is_429=False)
 
                 self._report_success(key)
-                time.sleep(self.delay_between_pages)
                 return result
 
             except Exception as e:
@@ -480,7 +479,6 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                         raise InvalidResponseError(f"Failed to parse LLM response: {type(parse_err).__name__}")
 
                 self._report_success(key)
-                time.sleep(self.delay_between_pages)
                 return {item.raw_name: item.canonical_name for item in result.mapping_list}
 
             except Exception as e:
