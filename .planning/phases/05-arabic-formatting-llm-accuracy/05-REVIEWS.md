@@ -1,7 +1,7 @@
 ---
 phase: 05
 reviewers: [codex]
-reviewed_at: 2026-06-23T18:55:01Z
+reviewed_at: 2026-06-23T22:05:00Z
 plans_reviewed: [05-PLAN.md]
 ---
 
@@ -10,40 +10,40 @@ plans_reviewed: [05-PLAN.md]
 ## Codex Review
 
 **Summary**
-The Phase 05 plan effectively targets critical formatting and data integrity issues. It appropriately shifts directory creation to just-in-time generation to eliminate empty folders, ensures lexicographical sorting of Arabic categories, and introduces stricter exception handling to prevent silent pipeline failures. However, there are significant risks regarding the broadness of the exception handling and the destructive nature of the fallback mechanism when validation fails.
+The updated Phase 05 plan effectively incorporates fixes for the previous concerns regarding error swallowing, hardcoded fallback values, and sorting criteria. The plan ensures robustness by passing context properly during fallback and updating the roadmap. However, two new critical risks have been introduced regarding how Arabic names are matched and how blank pages are detected in a vision-based pipeline. Additionally, the previous HIGH concerns remain partially resolved until the planned code is actually verified.
 
 **Strengths**
-- Just-in-time (JIT) directory creation correctly prevents filesystem clutter.
-- Switching to zero-padded prefixes with underscores solves the OS lexicographical sorting issues while maintaining clean code.
-- Explicitly instructing the LLM to retain non-primary identities is a robust approach to preventing data loss during entity resolution.
-- Ensuring exceptions are not silently swallowed prevents insidious silent data corruption or loss.
+- JIT directory creation correctly prevents filesystem clutter.
+- Explicit instructions for the LLM to retain non-primary identities (Task 4) prevent entity loss.
+- Fallback logic now successfully plans to inherit `house_number` from the batch context, protecting document routing (Task 5).
+- Catching specific `LLMFailureError` instead of broad exceptions ensures structural code bugs won't be silently masked (Task 5).
 
 **Concerns**
-- **HIGH:** Catching a broad `Exception` in `process_single_page` (Task 5) is dangerous because it will swallow structural code bugs (e.g., `AttributeError`, `KeyError`, `SyntaxError`) and silently convert them to `UNKNOWN` document categories, masking real code defects. It should specifically catch `LLMFailureError` or known extraction exceptions.
-- **HIGH:** The fallback classification returned upon an exception (Task 5) hardcodes `house_number="UNKNOWN"`. If an `other_letters` page lacks a resident name, it triggers retries (Task 6), eventually throwing an `LLMFailureError`. This means a valid page with a known house number but no resident will completely lose its house routing and be orphaned to `UNKNOWN/UNKNOWN/other_letters`. The fallback must attempt to preserve the house number if it was already known or extracted.
-- **MEDIUM:** Task 2 (ARABIC-02) uses an underscore separator (`01_`), which contradicts the Roadmap's success criteria (`01. `). While the Context explicitly decides on the underscore, the discrepancy should be updated in the Roadmap to prevent QA validation failures.
-- **LOW:** Removing the `other_letters` exemption from `NONE_EXPECTED_CATEGORIES` (Task 6) will cause purely blank pages to unnecessarily exhaust the `max_attempts` circuit breaker, wasting API calls and time.
+- **HIGH:** (NEW) Task 6 suggests a pre-check for completely blank pages before the LLM. Since the pipeline uses direct LLM vision for scanned documents (no prior OCR, as stated in `PROJECT.md`), any pre-check based on PDF text extraction (like PyMuPDF's `get_text()`) will falsely identify all scanned pages as blank, completely breaking the pipeline by skipping valid documents.
+- **HIGH:** (NEW) Task 1 completely removes `.replace("ال", "")` and relies solely on exact word intersection. In Arabic, "ال" (the) is frequently added or omitted in informal writing. If a 2-word name like "محمد السالم" is written as "محمد سالم", exact intersection yields only 1 matched word, which will fail a typical 2-word threshold, causing the pipeline to miss the resident entirely. A more robust normalizer is needed rather than pure exact matching.
+- **HIGH:** (PARTIALLY RESOLVED) Catching a broad `Exception` in `process_single_page` (Task 5). The fix is planned but not yet implemented/verified.
+- **HIGH:** (PARTIALLY RESOLVED) The fallback classification drops the `house_number` and hardcodes `"UNKNOWN"` (Task 5). The fix is planned but not yet implemented/verified.
 
 **Suggestions**
-- Update Task 5 to catch only `LLMFailureError` (or a specific subclass of exceptions related to LLM/validation) in `process_single_page` rather than a bare `Exception`.
-- Update Task 5 to ensure that the fallback mechanism can inherit the `house_number` from the current batch/context if available, rather than hardcoding `"UNKNOWN"`.
-- Update the `ROADMAP.md` ARABIC-02 success criteria to reflect the `01_` separator decision made in `05-CONTEXT.md`.
-- Consider a pre-check for completely blank pages before sending them to the LLM to avoid wasting `max_attempts` due to the strict name requirements of Task 6.
+- **For Task 6:** If a blank page pre-check is implemented, it must use image analysis (e.g., checking for high variance/non-white pixels or file size thresholds) rather than text extraction, since the PDFs are scans.
+- **For Task 1:** Instead of just exact string intersection, implement an Arabic-aware comparison that safely normalizes the "ال" prefix (e.g., stripping it only if it's at the start of the word) to allow "السالم" to match "سالم".
+- **For Previous HIGHs:** Proceed with executing Task 5 as planned to fully resolve the exception swallowing and fallback logic.
 
 **Risk Assessment**
-HIGH. While the formatting changes are safe, the combination of enforcing retries on `other_letters` (Task 6) and a destructive fallback mechanism (Task 5) that drops the house number guarantees that generic letters will be permanently orphaned. Additionally, the broad `Exception` catch risks hiding unrelated pipeline failures.
+HIGH. While previous pipeline failures are addressed in the plan, the new "blank page" pre-check poses a severe risk of dropping all scanned documents if implemented via standard text extraction. Additionally, the strict Arabic name intersection will result in a high rate of missed residents.
 
 ---
 
 ## Consensus Summary
 
 ### Agreed Strengths
-- JIT folder generation reduces visual clutter.
-- Zero-padding fixes Windows sorting issues.
+- Improved fallback routing logic protects document assignments.
+- Specific exception handling prevents masked bugs.
 
 ### Agreed Concerns
-- Broad exception catching in `process_single_page` hides actual code bugs. (HIGH)
-- The fallback mechanism drops the `house_number`, orphaning documents that fail validation (e.g. valid `other_letters` missing a resident name). (HIGH)
+- Blank page pre-check risks dropping all scanned images if using text extraction (HIGH).
+- Exact word intersection for Arabic names will fail on common "ال" variations (HIGH).
+- Previous exception swallowing and fallback bugs remain a risk until Task 5 code is verified (HIGH).
 
 ### Divergent Views
 - None (single reviewer).
