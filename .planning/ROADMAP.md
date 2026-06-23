@@ -1,6 +1,7 @@
 # Milestone v1.1 Roadmap
 
 ## Phase 3: API Key Cycling & Telemetry
+
 - **Goal:** Implement robust key cycling across 45 keys, diagnostic telemetry, and IP-level rate limit hardening.
 - **Requirements:** HARD-01, HARD-03
 - **Success Criteria:**
@@ -12,6 +13,7 @@
   6. Invalid responses fail gracefully after 2 attempts with a fallback classification.
 
 ## Phase 4: Precise Timing, Output Refinement & Concurrency Tuning
+
 - **Goal:** Safely process long documents without bottlenecks, and ensure 100% accurate, clutter-free directory outputs.
 - **Requirements:** HARD-02, HARD-04, OUT-01
 - **Success Criteria:**
@@ -25,6 +27,7 @@
   8. **Precise Document Grouping:** The pipeline correctly separates distinct documents by enforcing strict date-matching during grouping, stopping pages with different dates from fusing. Non-anchor documents properly respect the extracted recipient's name instead of being forced into the primary tenant's timeline.
 
 ## Phase 5: Generation Accuracy Refinement
+
 - **Goal:** Improve the accuracy of AI-generated categorization for house files.
 - **Requirements:** ACC-01
 - **Success Criteria:**
