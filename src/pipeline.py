@@ -4,7 +4,7 @@ import os
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.ingest import PdfIngestor
-from src.llm import GemmaClient
+from src.llm import GemmaClient, LLMFailureError, InvalidResponseError
 from src.schemas import PageClassification, DocumentGroup, Category
 
 
@@ -85,6 +85,27 @@ class Pipeline:
                         json.dump(cached_pages, f, ensure_ascii=False, indent=2)
                     os.replace(temp_cache_file, cache_file)
                 return (p_idx, res)
+            except (LLMFailureError, InvalidResponseError) as e:
+                print(f"Extraction fallback on page {p_idx}: {e}")
+                house_number = "UNKNOWN"
+                with cache_lock:
+                    for v in cached_pages.values():
+                        if v.get("house_number") and v.get("house_number") != "UNKNOWN":
+                            house_number = v.get("house_number")
+                            break
+                fallback_res = PageClassification(
+                    category=Category.OTHER_LETTERS,
+                    residents=["UNKNOWN"],
+                    date="NONE",
+                    house_number=house_number
+                )
+                with cache_lock:
+                    cached_pages[str(p_idx)] = fallback_res.model_dump()
+                    temp_cache_file = f"{cache_file}.tmp"
+                    with open(temp_cache_file, "w", encoding="utf-8") as f:
+                        json.dump(cached_pages, f, ensure_ascii=False, indent=2)
+                    os.replace(temp_cache_file, cache_file)
+                return (p_idx, fallback_res)
             except Exception as e:
                 print(f"Critical failure on page {p_idx}: {e}")
                 raise e

@@ -448,21 +448,6 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 
                 if is_invalid:
                     invalid_retries += 1
-                    if invalid_retries >= 2:
-                        telemetry_logger.info({
-                            "timestamp": time.time(),
-                            "key_index": self.api_keys.index(key),
-                            "latency_ms": latency_ms,
-                            "tokens_used": 0,
-                            "status_code": 200,
-                            "error_type": "fallback_classification"
-                        })
-                        return PageClassification(
-                            category=Category.OTHER_LETTERS,
-                            residents=["NONE"],
-                            date="NONE",
-                            house_number="UNKNOWN"
-                        )
                 
                 if is_429 or is_5xx or is_invalid:
                     self._report_failure(key, is_429=is_429, is_token_limit=is_token_limit)
