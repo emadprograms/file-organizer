@@ -223,13 +223,10 @@ class FileOrganizer:
             resident_folder_map[name] = resident_dir
             
             for folder_name in CATEGORY_FOLDERS.values():
-                os.makedirs(resident_dir / folder_name, exist_ok=True)
+                pass # removed eager folder creation
                 
         amar_takhsees_dir = house_dir / "أمر التخصيص لغير المقيمين"
-        os.makedirs(amar_takhsees_dir, exist_ok=True)
-        
         house_letters_dir = house_dir / "رسائل عامة"
-        os.makedirs(house_letters_dir, exist_ok=True)
 
         # Phase C - Write PDFs
         summary = {}
@@ -256,7 +253,10 @@ class FileOrganizer:
                     target_dir = amar_takhsees_dir
             elif not resident_dir:
                 # No valid tenant found or tenant didn't qualify for a folder
-                target_dir = house_letters_dir
+                if tenant and tenant.upper() == "UNKNOWN":
+                    target_dir = house_dir / "UNKNOWN"
+                else:
+                    target_dir = house_letters_dir
             else:
                 target_dir = resident_dir / CATEGORY_FOLDERS[doc.category]
 
@@ -267,6 +267,7 @@ class FileOrganizer:
             used_names_per_dir[str(target_dir)].add(filename)
             
             target_path = target_dir / filename
+            os.makedirs(target_dir, exist_ok=True)
             extract_pdf_segment(str(source_pdf), doc.start_page, doc.end_page, str(target_path))
             print(f"  → {filename} (pages {doc.start_page}-{doc.end_page})")
             
