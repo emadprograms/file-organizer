@@ -31,7 +31,7 @@ class InvalidResponseError(Exception):
     pass
 
 class GemmaClient:
-    NONE_EXPECTED_CATEGORIES = {'amar_takhsees', 'pictures', 'other_letters'}
+    NONE_EXPECTED_CATEGORIES = {'amar_takhsees', 'pictures'}
     GLOBAL_RPM_LIMIT = 12
     TPM_LIMIT = 30000
     RPM_LIMIT = 30

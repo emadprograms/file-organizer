@@ -68,6 +68,23 @@ class Pipeline:
             p_idx, i_bytes = page_info
             import time
             try:
+                # Pre-check for completely blank pages using file size threshold (15KB for 150 DPI)
+                if len(i_bytes) < 15000:
+                    print(f" Page {p_idx} is blank (size {len(i_bytes)} bytes). Skipping LLM.")
+                    res = PageClassification(
+                        category=Category.OTHER_LETTERS,
+                        residents=["NONE"],
+                        date="NONE",
+                        house_number="UNKNOWN"
+                    )
+                    with cache_lock:
+                        cached_pages[str(p_idx)] = res.model_dump()
+                        temp_cache_file = f"{cache_file}.tmp"
+                        with open(temp_cache_file, "w", encoding="utf-8") as f:
+                            json.dump(cached_pages, f, ensure_ascii=False, indent=2)
+                        os.replace(temp_cache_file, cache_file)
+                    return (p_idx, res)
+
                 res = self.client.classify_page(image_bytes=i_bytes)
                 if res is None:
                     return None
