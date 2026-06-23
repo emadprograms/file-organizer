@@ -21,10 +21,12 @@ class GemmaClient:
 
     def __init__(self, api_keys: list[str] = None, delay_between_pages: float = 5.0):
         if not api_keys:
-            key = os.getenv("GEMINI_API_KEY")
-            if not key:
-                raise ValueError("No API keys provided and GEMINI_API_KEY not found in environment.")
-            self.api_keys = [key]
+            keys_str = os.getenv("GEMINI_API_KEYS")
+            if not keys_str:
+                raise ValueError("No API keys provided and GEMINI_API_KEYS not found in environment.")
+            self.api_keys = [k.strip() for k in keys_str.split(',') if k.strip()]
+            if not self.api_keys:
+                raise ValueError("GEMINI_API_KEYS environment variable is empty or invalid.")
         else:
             self.api_keys = api_keys
 
