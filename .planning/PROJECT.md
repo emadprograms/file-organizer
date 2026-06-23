@@ -19,15 +19,30 @@ Accurately parsing, splitting, and categorizing large, disorganized scanned Arab
 
 ### Active
 
-- [ ] Extract the House Number to create the root directory (e.g., `683`).
-- [ ] Extract Resident information, double-sort them, and organize chronologically.
-- [ ] Handle structural edge cases: "Amar Takhsees" and generic house-related letters.
-- [ ] Generate 13 distinct subfolders per person: `1_basic details`, `2_personal details`, `3_amar takhsees`, `4_key handover form`, `5_contract`, `6_ewa related letters`, `7_rent deduction`, `8_allowance deduction`, `9_notifications`, `10_maintenance`, `11_pictures`, `12_modifications`, `13_other letters`.
+- ✓ Extract the House Number to create the root directory (e.g., `683`) — v1.0
+- ✓ Extract Resident information, double-sort them, and organize chronologically — v1.0
+- ✓ Handle structural edge cases: "Amar Takhsees" and generic house-related letters — v1.0
+- ✓ Generate 13 distinct subfolders per person — v1.0
+- ✓ Build a desktop GUI to wrap the CLI logic — v1.0
+
+### Active
+
+*(None — planning next milestone)*
 
 ### Out of Scope
 
 - [Saving text only] — We must split the original file into smaller PDF files to retain visual integrity, not just save text.
 - [Using default large context models like Gemini 1.5 Pro natively] — User explicitly requested to route processing through Gemma 4 31b.
+
+## Current State
+
+Shipped **v1.0 MVP**. The core pipeline now correctly processes Arabic documents via Gemma 4 31b, resolves primary tenants across continuous pages, and generates the required chronological 13-category folder structure. A `Tkinter` desktop GUI was built to make it easy to select PDFs and output directories.
+
+## Next Milestone Goals
+
+- Collect user feedback from the v1.0 deployment.
+- Address any edge cases in Arabic name normalization or OCR vision gaps.
+- Consider moving towards v2.0 requirements (e.g., Web dashboard or DB tracking) if prioritized.
 
 ## Context
 
@@ -69,4 +84,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-22 after Phase 01*
+*Last updated: 2026-06-23 after v1.0 milestone*
