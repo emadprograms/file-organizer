@@ -31,8 +31,9 @@ class InvalidResponseError(Exception):
 
 class GemmaClient:
     NONE_EXPECTED_CATEGORIES = {'amar_takhsees', 'pictures', 'other_letters'}
+    GLOBAL_RPM_LIMIT = 15
     TPM_LIMIT = 30000
-    RPM_LIMIT = 15
+    RPM_LIMIT = 30
 
     def __init__(self, api_keys: list[str] = None, delay_between_pages: float = 5.0, telemetry_queue=None):
         if not api_keys:
@@ -57,6 +58,7 @@ class GemmaClient:
         self.last_request_time = {key: 0.0 for key in self.api_keys}
         
         # Trackers
+        self.global_rpm_tracker = deque()
         self.tpm_trackers = {key: deque() for key in self.api_keys}
         self.rpm_trackers = {key: deque() for key in self.api_keys}
         
@@ -93,25 +95,24 @@ class GemmaClient:
 
     def _get_client_and_key(self, estimated_tokens: int = 3000):
         while True:
+            sleep_time = 0.0
             with self.lock:
                 now = time.time()
+                
+                while self.global_rpm_tracker and now - self.global_rpm_tracker[0] > 60:
+                    self.global_rpm_tracker.popleft()
                 
                 # Global IP Throttle
                 if now < self.global_cooldown_until:
                     sleep_time = self.global_cooldown_until - now
+                elif len(self.global_rpm_tracker) >= self.GLOBAL_RPM_LIMIT:
+                    sleep_time = self.global_rpm_tracker[0] + 60 - now
                 else:
                     released = [k for k, t in self.cooldown_keys.items() if now >= t]
                     for k in released:
                         del self.cooldown_keys[k]
 
                     available_keys = []
-                    time_since_last_global = now - getattr(self, 'last_global_request_time', 0.0)
-                    if time_since_last_global < 4.0:
-                        sleep_time = 4.0 - time_since_last_global
-                        print(f"[Rate Limit Guard] Staggering... Thread sleeping for {sleep_time:.1f}s to respect global IP limits...")
-                        time.sleep(sleep_time)
-                        now = time.time()
-                        
                     for key in self.api_keys:
                         if key not in self.cooldown_keys:
                             self._prune_trackers(key, now)
@@ -142,20 +143,23 @@ class GemmaClient:
                                 self.last_request_time[key] = self.last_global_request_time
                                 self.tpm_trackers[key].append([self.last_request_time[key], estimated_tokens])
                                 self.rpm_trackers[key].append(self.last_request_time[key])
+                                self.global_rpm_tracker.append(self.last_request_time[key])
                                 self.total_requests[key] += 1
                                 self._push_telemetry()
                                 return self.clients[key], key, self.last_request_time[key]
                         
-                        # If ALL keys are in cooldown
+                    # If ALL keys are in cooldown
+                    if not sleep_time:
                         if self.cooldown_keys:
                             earliest_release = min(self.cooldown_keys.values())
                             sleep_time = earliest_release - now
                         else:
                             sleep_time = 1.0 # Should not happen if everything is calculated right
-                        if sleep_time < 0.1: sleep_time = 0.5
-            
-            print(f"[Rate Limit Guard] Staggering... Thread sleeping for {sleep_time:.1f}s...")
-            time.sleep(sleep_time)
+
+            if sleep_time > 0:
+                if sleep_time < 0.1: sleep_time = 0.5
+                print(f"[Rate Limit Guard] Staggering... Thread sleeping for {sleep_time:.1f}s...")
+                time.sleep(sleep_time)
 
     def _reconcile_usage(self, key: str, reserve_time: float, actual_tokens: int):
         with self.lock:
