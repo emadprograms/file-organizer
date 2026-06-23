@@ -25,19 +25,14 @@ CATEGORY_FOLDERS = {
 }
 
 class FileOrganizer:
-    def _resolve_house_number(self, documents: list[DocumentGroup]) -> str:
-        house_numbers = [doc.house_number for doc in documents if doc.house_number]
-        if not house_numbers:
-            return "unknown_house"
-        
-        counter = Counter(house_numbers)
-        most_common = counter.most_common(1)[0][0]
-        
-        unique_numbers = set(house_numbers)
-        if len(unique_numbers) > 1:
-            print(f"⚠ Inconsistent house numbers detected: {list(unique_numbers)}. Using majority: {most_common}")
-            
-        return most_common
+    def _resolve_house_number(self, source_pdf: str | Path) -> str:
+        import re
+        from pathlib import Path
+        filename = Path(source_pdf).name
+        match = re.search(r'\d+', filename)
+        if match:
+            return match.group(0)
+        return "unknown_house"
 
     def _build_resident_order(self, documents: list[DocumentGroup]) -> list[tuple[int, str]]:
         seen_tenants = set()
@@ -201,7 +196,7 @@ class FileOrganizer:
             print("⚠ No documents to organize. Exiting.")
             return {}
 
-        house_number = self._resolve_house_number(documents)
+        house_number = self._resolve_house_number(source_pdf)
         house_dir = output_base_dir / house_number
         
         if house_dir.exists():

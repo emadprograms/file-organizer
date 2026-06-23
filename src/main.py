@@ -44,7 +44,7 @@ def main():
     summary = organizer.organize(documents, args.pdf_path, Path(args.output))
     
     if summary:
-        house_number = organizer._resolve_house_number(documents)
+        house_number = organizer._resolve_house_number(args.pdf_path)
         num_residents = len(organizer._build_resident_order(documents))
         output_dir = Path(args.output) / house_number
         

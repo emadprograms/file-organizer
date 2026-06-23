@@ -143,7 +143,7 @@ class FileCategorizerApp:
                     summary = organizer.organize(documents, pdf_path, Path(output_dir))
 
                     if summary:
-                        house_number = organizer._resolve_house_number(documents)
+                        house_number = organizer._resolve_house_number(pdf_path)
                         num_residents = len(organizer._build_resident_order(documents))
                         out_dir = Path(output_dir) / house_number
                         
