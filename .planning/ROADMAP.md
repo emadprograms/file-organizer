@@ -16,7 +16,7 @@ This roadmap breaks down the stabilization and refactoring goals into safe, test
 
 **Success Criteria:**
 1. Names like "خالد" are preserved perfectly and not mutilated by the `.replace("ال", "")` logic.
-2. The 13 category folders are generated dynamically (no empty folders) and prefixed with zero-padding (e.g., `01. `) so they sort correctly in Windows Explorer.
+2. The 13 category folders are generated dynamically (no empty folders) and prefixed with zero-padding (e.g., `01_`) so they sort correctly in Windows Explorer.
 3. Wives and children retain their distinct identities during Entity Resolution instead of being mapped to the primary tenant.
 4. Any Python exception thrown during LLM parsing triggers the formal retry loop instead of being silently swallowed.
 5. `other_letters` classifications missing a resident name trigger a retry instead of being accepted blindly.
