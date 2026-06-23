@@ -32,7 +32,7 @@ class InvalidResponseError(Exception):
 
 class GemmaClient:
     NONE_EXPECTED_CATEGORIES = {'amar_takhsees', 'pictures', 'other_letters'}
-    GLOBAL_RPM_LIMIT = 15
+    GLOBAL_RPM_LIMIT = 12
     TPM_LIMIT = 30000
     RPM_LIMIT = 30
 
@@ -106,14 +106,14 @@ class GemmaClient:
             with self.lock:
                 now = time.time()
                 
-                while self.global_rpm_tracker and now - self.global_rpm_tracker[0] > 60:
+                while self.global_rpm_tracker and now - self.global_rpm_tracker[0] > 65.0:
                     self.global_rpm_tracker.popleft()
                 
                 # Global IP Throttle
                 if now < self.global_cooldown_until:
                     sleep_time = self.global_cooldown_until - now
                 elif len(self.global_rpm_tracker) >= self.GLOBAL_RPM_LIMIT:
-                    sleep_time = self.global_rpm_tracker[0] + 60 - now
+                    sleep_time = self.global_rpm_tracker[0] + 65.0 - now
                 else:
                     released = [k for k, t in self.cooldown_keys.items() if now >= t]
                     for k in released:
