@@ -78,8 +78,10 @@ class Pipeline:
                 with cache_lock:
                     cached_pages[str(p_idx)] = res.model_dump()
                     # Saving cache progressively can be slow, but it's safe. We do it inside lock.
-                    with open(cache_file, "w", encoding="utf-8") as f:
+                    temp_cache_file = f"{cache_file}.tmp"
+                    with open(temp_cache_file, "w", encoding="utf-8") as f:
                         json.dump(cached_pages, f, ensure_ascii=False, indent=2)
+                    os.replace(temp_cache_file, cache_file)
                 return (p_idx, res)
             except Exception as e:
                 print(f"Critical failure on page {p_idx}: {e}")
