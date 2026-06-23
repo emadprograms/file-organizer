@@ -27,6 +27,12 @@
   8. **Precise Document Grouping:** The pipeline correctly separates distinct documents by enforcing strict date-matching during grouping, stopping pages with different dates from fusing. Non-anchor documents properly respect the extracted recipient's name instead of being forced into the primary tenant's timeline.
   9. **Arabic String Safety:** The destructive `.replace("ال", "")` logic is removed or refactored so it does not carve letters out of the middle of Arabic names (e.g., destroying "خالد" into "خاد"), preventing random timeline splits.
   10. **Prefix Document Rescue:** The timeline initialization logic is fixed so that `PERSONAL_DETAILS` (ID cards) and other perfectly valid documents appearing at the front of a scanned dossier can initialize a timeline or be properly assigned, instead of being permanently orphaned to "UNKNOWN".
+  11. **Family Size Resilience:** The timeline logic is fixed to allow Anchor documents (Contracts/Basic Details) containing more than 3 names to establish a timeline, preventing large families from being orphaned.
+  12. **Accurate Name Matching:** The `< 2` word intersection threshold is adjusted to handle perfectly valid single-word Arabic names (e.g., "محمد") so they aren't forcibly split into duplicate resident folders.
+  13. **Array Order Independence:** Anchor documents with multiple names (e.g., Husband and Wife) will correctly map to the timeline regardless of which name the AI output first in the array, preventing immediate timeline hijacking.
+  14. **Atomic Cache Saving:** The cache file is written atomically (write to temp file, then rename) to prevent total data corruption and truncation if the program crashes or is stopped midway.
+  15. **GUI Performance:** The `poll_telemetry` UI update loop is optimized to only render the latest state rather than re-rendering every intermediate state, preventing complete UI freezing.
+  16. **Folder Sorting:** Numbered output folders (`1.`, `2.`, etc.) are zero-padded (e.g., `01.`) so Windows Explorer sorts them correctly instead of `1, 10, 11, 2...`, preserving the chronological flow.
 
 ## Phase 5: Generation Accuracy Refinement
 
