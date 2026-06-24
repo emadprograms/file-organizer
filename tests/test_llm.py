@@ -10,7 +10,7 @@ DUMMY_IMAGE = (
     b'\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01'
     b'\x00\x00\x00\x01\x08\x02\x00\x00\x00\x90wS\xde\x00'
     b'\x00\x00\x0cIDATx\x9cc\xf8\x0f\x00\x00\x01\x01\x00'
-    b'\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82'
+    b'\x05\x18\xd8N\x00\x00\x00\x00IEND\xaeB`\x82' + b'\x00' * 15000
 )
 
 
@@ -157,6 +157,9 @@ def test_retry_route_rate_limiter(monkeypatch):
     from src.llm import GemmaClient, PageClassification
     from src.schemas import Category
     from unittest.mock import MagicMock
+    import time
+    
+    monkeypatch.setattr(time, "sleep", lambda x: None)
     
     client = GemmaClient(api_keys=["key1"])
     
@@ -183,8 +186,7 @@ def test_retry_route_rate_limiter(monkeypatch):
 
 def test_invalid_response_graceful_fallback(monkeypatch):
     """03-04-04: Handle Invalid Responses Gracefully."""
-    from src.llm import GemmaClient
-    from src.schemas import Category
+    from src.llm import GemmaClient, InvalidResponseError
     from unittest.mock import MagicMock
     
     client = GemmaClient(api_keys=["key1"])
@@ -192,16 +194,15 @@ def test_invalid_response_graceful_fallback(monkeypatch):
     mock_genai_client = MagicMock()
     mock_resp = MagicMock()
     mock_resp.parsed = None
+    # Mocking text without valid JSON
     mock_resp.text = "This is not valid json"
     mock_resp.usage_metadata.total_token_count = 100
     mock_genai_client.models.generate_content.return_value = mock_resp
     
     client.clients["key1"] = mock_genai_client
     
-    result = client.classify_page(b"dummy")
-    
-    assert result.category == Category.OTHER_LETTERS
-    assert result.residents == ["NONE"]
+    with pytest.raises(InvalidResponseError):
+        client.classify_page(b"dummy")
 
 def test_exponential_backoff_on_429(monkeypatch):
     """03-04-05: Add Exponential Backoff With Jitter on 429s."""

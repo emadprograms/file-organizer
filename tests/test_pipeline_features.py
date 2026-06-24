@@ -11,7 +11,7 @@ def dummy_5_page_pdf(tmp_path):
     pdf = fitz.open()
     for _ in range(5):
         page = pdf.new_page(width=595, height=842)
-        page.insert_text((50, 50), "Test Page")
+        page.insert_text((50, 50), "Test Page " * 1000)
     file_path = str(tmp_path / "dummy_5_page.pdf")
     pdf.save(file_path)
     pdf.close()
@@ -66,7 +66,8 @@ def test_pipeline_concurrency_memory(dummy_5_page_pdf, tmp_path):
     # Create a 50 page PDF to simulate a larger file
     pdf = fitz.open()
     for _ in range(50):
-        pdf.new_page(width=595, height=842)
+        page = pdf.new_page(width=595, height=842)
+        page.insert_text((50, 50), "Memory Test " * 1000)
     pdf_path = str(tmp_path / "large_dummy_isolated.pdf")
     pdf.save(pdf_path)
     pdf.close()
