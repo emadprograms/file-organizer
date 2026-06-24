@@ -172,11 +172,13 @@ Plans:
 - Update tests to verify the two-pass architecture.
 
 **Depends on:** Phase 07.4
-**Plans:** 0 plans
+**Plans:** 1/1 plans complete
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 07.5 to break down)
+- [x] 07.5-01-PLAN.md
+
+- [x] TBD (run /gsd-plan-phase 07.5 to break down) (completed 2026-06-24)
 
 ## Phase 8: Output Quality Review & Refinement
 
