@@ -6,6 +6,10 @@ import re
 import random
 import threading
 import logging
+import base64
+import openai
+import requests
+import pydantic
 from collections import deque
 from google import genai
 from google.genai import types
@@ -68,6 +72,8 @@ class GemmaClient:
         
         self.telemetry_queue = telemetry_queue
         self.total_requests = {key: 0 for key in self.api_keys}
+
+        self.local_client = openai.OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
 
         state_file = ".rate_limit_state.json"
         if os.path.exists(state_file):
@@ -417,91 +423,47 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         system_prompt = self._build_system_prompt()
         user_prompt = "Classify this scanned document page."
         
-        contents = [
-            system_prompt,
-            user_prompt,
-            types.Part.from_bytes(data=image_bytes, mime_type='image/png')
-        ]
-        
-        result = self._route_llm_call(
-            model='gemma-4-26b-a4b-it',
-            contents=contents,
-            response_schema=PageClassification,
-            log_prefix="Retry"
-        )
-        
-        if ((not result.residents or result.residents == ["NONE"])
-                and result.category.value not in self.NONE_EXPECTED_CATEGORIES):
-            retry_prompt = (
-                "Classify this scanned document page.\n\n"
-                "WARNING: You previously returned NONE for the resident name, "
-                "but this document category usually has a named person. "
-                "Look VERY carefully at every part of the page — headers, "
-                "footers, address blocks, body text, stamps, and signatures — "
-                "for any Arabic or English name. Extract the FULL name with "
-                "all 4-5 parts if possible."
+        try:
+            base64_image = base64.b64encode(image_bytes).decode('utf-8')
+            response = self.local_client.beta.chat.completions.parse(
+                model="qwen2.5-vl-7b-instruct",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": user_prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/png;base64,{base64_image}"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                response_format=PageClassification,
+                temperature=0.0
             )
-            retry_contents = [
+            if response.choices[0].message.parsed:
+                return response.choices[0].message.parsed
+            else:
+                raise openai.OpenAIError("Parsed response is None")
+        except (openai.OpenAIError, requests.exceptions.RequestException, pydantic.ValidationError) as e:
+            print(f"[Local Inference Failed] Falling back to gemini-4-26b. Error: {e}")
+            contents = [
                 system_prompt,
-                retry_prompt,
+                user_prompt,
                 types.Part.from_bytes(data=image_bytes, mime_type='image/png')
             ]
             
-            try:
-                retry_result = self._route_llm_call(
-                    model='gemini-2.5-flash',
-                    contents=retry_contents,
-                    response_schema=PageClassification,
-                    log_prefix="'Look Harder' Retry",
-                    max_attempts=3
-                )
-                
-                if retry_result.residents and retry_result.residents != ["NONE"]:
-                    result = retry_result
-            except LLMFailureError as e:
-                print(f"['Look Harder' Failed] Falling back to original result. Error: {e}")
-
-        ANCHOR_CATEGORIES = ["basic_details", "key_handover_form", "contract", "amar_takhsees"]
-        if result.category.value in ANCHOR_CATEGORIES:
-            verify_prompt = (
-                "Classify this scanned document page.\n\n"
-                f"WARNING: You previously classified this as '{result.category.value}'. "
-                "This is an 'Anchor Document' that creates a new resident folder. "
-                "Are you absolutely certain? House inspection checklists and photos MUST be 'pictures'. "
-                "General letters MUST be 'other_letters'. "
-                "Re-evaluate the image carefully. Return the true category and ensure the resident name is perfect."
+            result = self._route_llm_call(
+                model='gemini-4-26b',
+                contents=contents,
+                response_schema=PageClassification,
+                log_prefix="Fallback"
             )
-            v_contents = [
-                system_prompt,
-                verify_prompt,
-                types.Part.from_bytes(data=image_bytes, mime_type='image/png')
-            ]
-            
-            try:
-                v_result = self._route_llm_call(
-                    model='gemini-2.5-flash',
-                    contents=v_contents,
-                    response_schema=PageClassification,
-                    log_prefix="Anchor Verification Retry (gemini-2.5-flash)",
-                    max_attempts=2
-                )
-                
-                result = v_result
-            except LLMFailureError as e:
-                print(f"[Anchor Verification Failed] Falling back for verification...")
-                try:
-                    v_result = self._route_llm_call(
-                        model='gemini-2.5-flash',
-                        contents=v_contents,
-                        response_schema=PageClassification,
-                        log_prefix="Anchor Verification Fallback (gemini-2.5-flash)",
-                        max_attempts=2
-                    )
-                    result = v_result
-                except LLMFailureError as e2:
-                    print(f"[Anchor Verification Failed] Falling back to original result. Error: {e2}")
-
-        return result
+            return result
 
     def resolve_entities(self, raw_pages_log: str) -> dict[str, str]:
         system_prompt = (
