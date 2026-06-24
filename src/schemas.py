@@ -26,6 +26,7 @@ class PageClassification(BaseModel):
     residents: list[str] = Field(description="List of resident names in Arabic, with relationship in parentheses if known (e.g. 'Name (Wife)'). Return ['NONE'] if no names.")
     category: Category = Field(description="The document category from the 13 defined types")
     date: str = Field(description="The date of the document (Gregorian or Hijri) if visible, otherwise 'NONE'")
+    is_continuation: bool = Field(default=False, description="True if this page is a continuation of the previous page, False otherwise")
 
     @field_validator('residents', mode='before')
     @classmethod

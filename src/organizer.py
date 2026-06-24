@@ -170,13 +170,19 @@ class FileOrganizer:
         # Fallback sanitize
         return re.sub(r'[/\\:*?"<>|\s]', '-', date_str).strip('-')
 
-    def _generate_pdf_name(self, doc: DocumentGroup, category_counter: int, used_names: set) -> str:
+    def _generate_pdf_name(self, doc: DocumentGroup, category_counter: int, used_names: set, is_global_amar: bool = False) -> str:
         category_value = doc.category.value
+        
+        tenant_str = ""
+        if is_global_amar and doc.primary_tenant and doc.primary_tenant not in ("UNKNOWN", "NONE"):
+            sanitized_tenant = self._sanitize_filename(doc.primary_tenant)
+            tenant_str = f"_{sanitized_tenant}"
+
         if doc.dates:
             normalized_date = self._normalize_date(doc.dates[0])
-            base_name = f"{normalized_date}_{category_value}.pdf"
+            base_name = f"{normalized_date}_{category_value}{tenant_str}.pdf"
         else:
-            base_name = f"{category_value}_{category_counter}.pdf"
+            base_name = f"{category_value}{tenant_str}_{category_counter}.pdf"
             
         base_name = self._sanitize_filename(base_name)
         
@@ -238,6 +244,7 @@ class FileOrganizer:
         for doc in documents:
             tenant = doc.primary_tenant
             target_dir = None
+            is_global_amar = False
             
             # Check if this tenant is a verified resident (i.e. has a folder)
             resident_dir = None
@@ -251,6 +258,7 @@ class FileOrganizer:
                 else:
                     # Tenant never moved in (no other docs) or no tenant found, route to global amar takhsees folder
                     target_dir = amar_takhsees_dir
+                    is_global_amar = True
             elif not resident_dir:
                 # No valid tenant found or tenant didn't qualify for a folder
                 if tenant and tenant.upper() == "UNKNOWN":
@@ -263,7 +271,7 @@ class FileOrganizer:
             tenant_category_counters[tenant][doc.category] += 1
             counter = tenant_category_counters[tenant][doc.category]
             
-            filename = self._generate_pdf_name(doc, counter, used_names_per_dir[str(target_dir)])
+            filename = self._generate_pdf_name(doc, counter, used_names_per_dir[str(target_dir)], is_global_amar)
             used_names_per_dir[str(target_dir)].add(filename)
             
             target_path = target_dir / filename

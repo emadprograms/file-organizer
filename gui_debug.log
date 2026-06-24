@@ -1,0 +1,42 @@
+
+[DEBUG] _execute started with C:/Users/Emad/Documents/Safra C/1284.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: C:/Users/Emad/Documents/Safra C/1284.pdf
+[DEBUG] Calling pipeline.process_pdf
+[DEBUG] pipeline.process_pdf returned 0 docs
+[DEBUG] Success
+[DEBUG] Finally block
+
+[DEBUG] _execute started with C:/Users/Emad/Documents/Safra C/1273.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: C:/Users/Emad/Documents/Safra C/1273.pdf
+[DEBUG] Calling pipeline.process_pdf
+[DEBUG] pipeline.process_pdf returned 20 docs
+[DEBUG] Success
+[DEBUG] Finally block
+
+[DEBUG] _execute started with C:/Users/Emad/Documents/Safra C/1271.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: C:/Users/Emad/Documents/Safra C/1271.pdf
+[DEBUG] Calling pipeline.process_pdf
+[DEBUG] pipeline.process_pdf returned 21 docs
+[DEBUG] Success
+[DEBUG] Finally block
+
+[DEBUG] _execute started with C:/Users/Emad/Documents/Safra C/1245.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: C:/Users/Emad/Documents/Safra C/1245.pdf
+[DEBUG] Calling pipeline.process_pdf
+[DEBUG] pipeline.process_pdf returned 32 docs
+[DEBUG] Success
+[DEBUG] Finally block
+
+[DEBUG] _execute started with C:/Users/Emad/Documents/Safra C/1245.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: C:/Users/Emad/Documents/Safra C/1245.pdf
+[DEBUG] Calling pipeline.process_pdf

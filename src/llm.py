@@ -367,79 +367,87 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                         "all 4-5 parts if possible."
                     )
                     
-                    retry_client, retry_key, retry_reserve_time = self._get_client_and_key(estimated_tokens=3000)
-                    retry_start = time.time()
-                    try:
-                        retry_response = retry_client.models.generate_content(
-                            model='gemma-4-26b-a4b-it',
-                            contents=[
-                                system_prompt,
-                                retry_prompt,
-                                types.Part.from_bytes(data=image_bytes, mime_type='image/png')
-                            ],
-                            config=types.GenerateContentConfig(
-                                response_mime_type="application/json",
-                                response_schema=PageClassification,
-                                temperature=0
+                    look_harder_attempts = 0
+                    while look_harder_attempts < 3:
+                        look_harder_attempts += 1
+                        retry_client, retry_key, retry_reserve_time = self._get_client_and_key(estimated_tokens=3000)
+                        retry_start = time.time()
+                        try:
+                            retry_response = retry_client.models.generate_content(
+                                model='gemma-4-26b-a4b-it',
+                                contents=[
+                                    system_prompt,
+                                    retry_prompt,
+                                    types.Part.from_bytes(data=image_bytes, mime_type='image/png')
+                                ],
+                                config=types.GenerateContentConfig(
+                                    response_mime_type="application/json",
+                                    response_schema=PageClassification,
+                                    temperature=0
+                                )
                             )
-                        )
-                        retry_used_tokens = 3000
-                        if hasattr(retry_response, "usage_metadata") and retry_response.usage_metadata:
-                            retry_used_tokens = retry_response.usage_metadata.total_token_count
+                            retry_used_tokens = 3000
+                            if hasattr(retry_response, "usage_metadata") and retry_response.usage_metadata:
+                                retry_used_tokens = retry_response.usage_metadata.total_token_count
+                                
+                            self._reconcile_usage(retry_key, retry_reserve_time, retry_used_tokens)
                             
-                        self._reconcile_usage(retry_key, retry_reserve_time, retry_used_tokens)
-                        
-                        telemetry_logger.info({
-                            "timestamp": time.time(),
-                            "key_index": self.api_keys.index(retry_key),
-                            "latency_ms": int((time.time() - retry_start) * 1000),
-                            "tokens_used": retry_used_tokens,
-                            "status_code": 200,
-                            "error_type": "none"
-                        })
+                            telemetry_logger.info({
+                                "timestamp": time.time(),
+                                "key_index": self.api_keys.index(retry_key),
+                                "latency_ms": int((time.time() - retry_start) * 1000),
+                                "tokens_used": retry_used_tokens,
+                                "status_code": 200,
+                                "error_type": "none"
+                            })
 
-                        if retry_response.parsed is not None:
-                            retry_result = retry_response.parsed
-                        else:
-                            text = retry_response.text.strip()
-                            if text.startswith("```"):
-                                text = re.sub(r"^```(?:json)?\s*", "", text)
-                                text = re.sub(r"\s*```$", "", text)
-                            retry_data = json.loads(text)
-                            retry_result = PageClassification(**retry_data)
+                            if retry_response.parsed is not None:
+                                retry_result = retry_response.parsed
+                            else:
+                                text = retry_response.text.strip()
+                                if text.startswith("```"):
+                                    text = re.sub(r"^```(?:json)?\s*", "", text)
+                                    text = re.sub(r"\s*```$", "", text)
+                                retry_data = json.loads(text)
+                                retry_result = PageClassification(**retry_data)
 
-                        if retry_result.residents and retry_result.residents != ["NONE"]:
-                            result = retry_result
+                            if retry_result.residents and retry_result.residents != ["NONE"]:
+                                result = retry_result
+                                
+                            self._report_success(retry_key)
+                            break
+                        except Exception as e:
+                            error_str = str(e).lower()
+                            is_429 = "429" in error_str or "too many requests" in error_str or "quota" in error_str or "resource exhausted" in error_str
+                            is_token_limit = "token" in error_str and is_429
+                            is_5xx = "500" in error_str or "503" in error_str or "internal error" in error_str
+                            is_invalid = "invalidresponseerror" in error_str or isinstance(e, InvalidResponseError)
                             
-                        self._report_success(retry_key)
-                    except Exception as e:
-                        error_str = str(e).lower()
-                        is_429 = "429" in error_str or "too many requests" in error_str or "quota" in error_str or "resource exhausted" in error_str
-                        is_token_limit = "token" in error_str and is_429
-                        is_5xx = "500" in error_str or "503" in error_str or "internal error" in error_str
-                        is_invalid = "invalidresponseerror" in error_str or isinstance(e, InvalidResponseError)
-                        
-                        error_type = "unknown"
-                        if is_429:
-                            error_type = "token_limit" if is_token_limit else "request_limit"
-                        elif is_5xx:
-                            error_type = "server_error"
-                        elif is_invalid:
-                            error_type = "invalid_response"
-                        
-                        telemetry_logger.error({
-                            "timestamp": time.time(),
-                            "key_index": self.api_keys.index(retry_key),
-                            "latency_ms": int((time.time() - retry_start) * 1000),
-                            "tokens_used": 0,
-                            "status_code": 429 if is_429 else (500 if is_5xx else 400),
-                            "error_type": error_type
-                        })
-                        
-                        if is_429 or is_5xx or is_invalid:
-                            self._report_failure(retry_key, is_429=is_429, is_token_limit=is_token_limit)
-                        else:
-                            self._report_failure(retry_key, is_429=False)
+                            error_type = "unknown"
+                            if is_429:
+                                error_type = "token_limit" if is_token_limit else "request_limit"
+                            elif is_5xx:
+                                error_type = "server_error"
+                            elif is_invalid:
+                                error_type = "invalid_response"
+                            
+                            telemetry_logger.error({
+                                "timestamp": time.time(),
+                                "key_index": self.api_keys.index(retry_key),
+                                "latency_ms": int((time.time() - retry_start) * 1000),
+                                "tokens_used": 0,
+                                "status_code": 429 if is_429 else (500 if is_5xx else 400),
+                                "error_type": error_type
+                            })
+                            
+                            print(f"['Look Harder' Retry {look_harder_attempts}/3] call failed: {e}")
+                            
+                            if is_429 or is_5xx or is_invalid:
+                                self._report_failure(retry_key, is_429=is_429, is_token_limit=is_token_limit)
+                                continue
+                            else:
+                                self._report_failure(retry_key, is_429=False)
+                                break
 
                 self._report_success(key)
                 return result
