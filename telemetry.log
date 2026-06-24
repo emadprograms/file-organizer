@@ -2090,3 +2090,8 @@
 {"timestamp": 1782323820.533711, "key_index": 18, "latency_ms": 4046, "tokens_used": 1063, "status_code": 200, "error_type": "none"}
 {"timestamp": 1782323825.9560816, "key_index": 19, "latency_ms": 5406, "tokens_used": 1082, "status_code": 200, "error_type": "none"}
 {"timestamp": 1782323830.1881242, "key_index": 20, "latency_ms": 4227, "tokens_used": 1080, "status_code": 200, "error_type": "none"}
+{"timestamp": 1782333389.2954628, "key_index": 0, "latency_ms": 3, "tokens_used": 100, "status_code": 200, "error_type": "none"}
+{"timestamp": 1782333390.54492, "key_index": 0, "latency_ms": 1, "tokens_used": 100, "status_code": 400, "error_type": "model_refusal", "raw_preview": "This is not valid json"}
+{"timestamp": 1782333405.198434, "key_index": 0, "latency_ms": 0, "tokens_used": 100, "status_code": 400, "error_type": "model_refusal", "raw_preview": "This is not valid json"}
+{"timestamp": 1782333476.8024771, "key_index": 0, "latency_ms": 5, "tokens_used": 100, "status_code": 400, "error_type": "model_refusal", "raw_preview": "This is not valid json"}
+{"timestamp": 1782333492.1712, "key_index": 0, "latency_ms": 0, "tokens_used": 100, "status_code": 400, "error_type": "model_refusal", "raw_preview": "This is not valid json"}

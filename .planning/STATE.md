@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Core Stabilization & Logic Overhaul
-current_phase: 06
-current_phase_name: core-grouping-timeline-logic
+current_phase: 07
+current_phase_name: local-pass-1-inference-via-mac-mini-m4
 status: executing
 stopped_at: Phase 7 context gathered
-last_updated: "2026-06-24T19:32:25.426Z"
+last_updated: "2026-06-24T20:36:20.114Z"
 last_activity: 2026-06-24
-last_activity_desc: Phase 06 execution started
+last_activity_desc: Phase 07 execution started
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 2
-  total_plans: 2
+  total_plans: 3
   completed_plans: 2
-  percent: 40
+  percent: 33
 ---
 
 # Project State
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-23)
 
 **Core value:** Accurately parsing, splitting, and categorizing large, disorganized scanned Arabic documents into an exact 13-category chronological folder structure without losing the context of multi-page topics.
-**Current focus:** Phase 06 — core-grouping-timeline-logic
+**Current focus:** Phase 07 — local-pass-1-inference-via-mac-mini-m4
 
 ## Session
 
@@ -38,6 +38,10 @@ See: .planning/PROJECT.md (updated 2026-06-23)
 
 - ⚠️ [Phase 03] 429/500 error storm: 24% success rate across 44 API keys. Root causes identified and gap-closure tasks created. (Scheduled for Phase 03 execution)
 
+### Roadmap Evolution
+
+- Phase 07.1 inserted after Phase 7: Compress output PDFs to ~35MB (80% quality) post-AI processing (URGENT)
+
 ## Performance Metrics
 
 | Phase | Plan | Duration | Notes |
@@ -48,10 +52,10 @@ See: .planning/PROJECT.md (updated 2026-06-23)
 
 ## Current Position
 
-Phase: 06 (core-grouping-timeline-logic) — EXECUTING
+Phase: 07 (local-pass-1-inference-via-mac-mini-m4) — EXECUTING
 Plan: 1 of 1
-Status: Ready to execute
-Last activity: 2026-06-24 — Phase 06 execution started
+Status: Executing Phase 07
+Last activity: 2026-06-24 — Phase 07 execution started
 
 ## Operator Next Steps
 
