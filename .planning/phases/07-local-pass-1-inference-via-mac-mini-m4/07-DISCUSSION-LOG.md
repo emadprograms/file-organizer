@@ -17,8 +17,8 @@
 | Ollama | CLI-based, runs as a background service | |
 | Direct llama.cpp | Maximum performance, but requires manual setup | |
 
-**User's choice:** Let's use lm studio but is qwen2-vl-7b-instruct the best for our use case?
-**Notes:** Clarified that Qwen2-VL-7B-Instruct is best. User confirmed: "Stick with Qwen2-VL-7B-Instruct (Best for our use case)".
+**User's choice:** Let's use lm studio but is qwen2.5-vl-7b-instruct the best for our use case?
+**Notes:** Clarified that Qwen2.5-VL-7B-Instruct is best. User confirmed: "Stick with Qwen2.5-VL-7B-Instruct (Best for our use case)".
 
 ---
 

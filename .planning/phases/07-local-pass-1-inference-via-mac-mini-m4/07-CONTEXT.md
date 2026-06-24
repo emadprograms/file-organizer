@@ -6,7 +6,7 @@
 <domain>
 ## Phase Boundary
 
-Drastically speed up Pass 1 Vision Extraction by moving it locally using Qwen2-VL-7B-Instruct and an OpenAI-compatible API endpoint, bypassing Google API rate limits.
+Drastically speed up Pass 1 Vision Extraction by moving it locally using Qwen2.5-VL-7B-Instruct and an OpenAI-compatible API endpoint, bypassing Google API rate limits.
 
 </domain>
 
@@ -14,11 +14,11 @@ Drastically speed up Pass 1 Vision Extraction by moving it locally using Qwen2-V
 ## Implementation Decisions
 
 ### Local Server Stack
-- **D-01:** Use LM Studio to run Qwen2-VL-7B-Instruct on the Mac Mini. The built-in OpenAI API server will be utilized.
-- **D-02:** Stick with Qwen2-VL-7B-Instruct as it is best suited for the Arabic document OCR use case.
+- **D-01:** Use LM Studio to run Qwen2.5-VL-7B-Instruct on the Mac Mini. The built-in OpenAI API server will be utilized.
+- **D-02:** Stick with Qwen2.5-VL-7B-Instruct as it is best suited for the Arabic document OCR use case.
 
 ### Fallback Strategy
-- **D-03:** Hybrid fallback strategy. If the local Qwen2-VL model fails or hangs, the system will fall back to Gemini 4 26b. (Note: Gemini 4 31b and Gemini 2.5 Flash are being retired).
+- **D-03:** Hybrid fallback strategy. If the local Qwen2.5-VL model fails or hangs, the system will fall back to Gemini 4 26b. (Note: Gemini 4 31b and Gemini 2.5 Flash are being retired).
 
 ### Client Integration Approach
 - **D-04:** Use the official `openai` Python package to connect the pipeline to the local LM Studio endpoint, ensuring robust handling of schemas and retries.
@@ -54,7 +54,7 @@ No external specs — requirements fully captured in decisions above.
 ## Specific Ideas
 
 - The user specifically requested to retire `gemini 4 31b` and `gemini 2.5 flash` from the fallback mechanism, using exclusively `gemini 4 26b` for cloud fallbacks.
-- **Model Storage Constraint:** The Qwen2-VL-7B-Instruct model MUST be installed/stored on the `micron-e0256a` external drive connected to the Mac, NOT on the main drive.
+- **Model Storage Constraint:** The Qwen2.5-VL-7B-Instruct model MUST be installed/stored on the `micron-e0256a` external drive connected to the Mac, NOT on the main drive.
 
 </specifics>
 
