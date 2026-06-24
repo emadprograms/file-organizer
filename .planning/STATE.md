@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Core Stabilization & Logic Overhaul
-current_phase: 07
-current_phase_name: local-pass-1-inference-via-mac-mini-m4
-status: executing
-stopped_at: Phase 7 context gathered
-last_updated: "2026-06-24T20:36:20.114Z"
+current_phase: 07.2
+status: completed
+stopped_at: Phase 07.3 context gathered
+last_updated: "2026-06-24T21:31:22.916Z"
 last_activity: 2026-06-24
-last_activity_desc: Phase 07 execution started
+last_activity_desc: Phase 07.2 marked complete
 progress:
-  total_phases: 6
-  completed_phases: 2
-  total_plans: 3
-  completed_plans: 2
-  percent: 33
+  total_phases: 8
+  completed_phases: 4
+  total_plans: 5
+  completed_plans: 4
+  percent: 50
+current_phase_name: improve-multi-page-correspondence-processing-via-arabic-foot
 ---
 
 # Project State
@@ -24,13 +24,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-23)
 
 **Core value:** Accurately parsing, splitting, and categorizing large, disorganized scanned Arabic documents into an exact 13-category chronological folder structure without losing the context of multi-page topics.
-**Current focus:** Phase 07 — local-pass-1-inference-via-mac-mini-m4
+**Current focus:** Phase 07.2 — improve-name-grouping-logic-using-local-llm
 
 ## Session
 
-**Last session:** 2026-06-24T19:03:32.939Z
-**Stopped at:** Phase 7 context gathered
-**Resume file:** .planning/phases/07-local-pass-1-inference-via-mac-mini-m4/07-CONTEXT.md
+**Last session:** 2026-06-24T21:31:22.905Z
+**Stopped at:** Phase 07.3 context gathered
+**Resume file:** .planning/phases/07.3-improve-multi-page-correspondence-processing-via-arabic-foot/07.3-CONTEXT.md
 
 ## Accumulated Context
 
@@ -41,6 +41,8 @@ See: .planning/PROJECT.md (updated 2026-06-23)
 ### Roadmap Evolution
 
 - Phase 07.1 inserted after Phase 7: Compress output PDFs to ~35MB (80% quality) post-AI processing (URGENT)
+- Phase 07.2 inserted after Phase 07.1: Improve name grouping logic using local LLM (URGENT)
+- Phase 07.3 inserted after Phase 7: Improve multi-page correspondence processing via Arabic footer pattern detection (URGENT)
 
 ## Performance Metrics
 
@@ -52,10 +54,10 @@ See: .planning/PROJECT.md (updated 2026-06-23)
 
 ## Current Position
 
-Phase: 07 (local-pass-1-inference-via-mac-mini-m4) — EXECUTING
+Phase: 07.2 — COMPLETE
 Plan: 1 of 1
-Status: Executing Phase 07
-Last activity: 2026-06-24 — Phase 07 execution started
+Status: Phase 07.2 complete
+Last activity: 2026-06-24 — Phase 07.2 marked complete
 
 ## Operator Next Steps
 
