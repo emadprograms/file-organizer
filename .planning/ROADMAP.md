@@ -80,6 +80,22 @@ Plans:
 
 - [ ] TBD (run /gsd-plan-phase 07.3 to break down)
 
+### Phase 07.3.1: Provide LLM with OCR footer hints instead of skipping pages (INSERTED)
+
+**Goal:** Modify Pass 1 to still call the LLM on every page, but pass any detected OCR pagination (e.g. "1 من 10") into the prompt so the LLM can make an informed decision on whether the page is a continuation, rather than blindly skipping pages.
+**Requirements:**
+- Do not skip the LLM execution for pages with footers.
+- Use local Mac OCR to detect the footer.
+- Pass the detected footer string to the LLM prompt.
+- Allow the local LLM to output `is_continuation` based on this context.
+
+**Depends on:** Phase 07.3
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 07.3.1 to break down)
+
 ### Phase 07.4: Harden Prompt for Document Detection (INSERTED)
 
 **Goal:** Improve document detection by hardening the prompt with specific letter subject patterns, enabling the local LLM to accurately deduce the document type from the subject, and falling back to a larger model (e.g. Gemma 4 26b) when no subject is present.
@@ -142,6 +158,23 @@ Plans:
 
 - [x] 07-02-PLAN.md (completed 2026-06-24)
 
+### Phase 07.5: Two-Pass Local Pipeline (INSERTED)
+
+**Goal:** Completely eliminate local vision model reasoning failures by decoupling OCR and categorization. Use `qwen2.5vl:7b` strictly to extract raw Arabic text from the PDF pages, and use a reasoning text model (e.g. `llama3.1:8b` or DeepSeek) to process the raw text and return the strict JSON categorization.
+**Requirements:**
+
+- Implement a two-pass architecture in `src/llm.py` `classify_page()`.
+- Pass 1 (Vision): Prompt `qwen2.5vl:7b` to simply transcribe all Arabic text from the image verbatim without attempting to classify it.
+- Pass 2 (Reasoning): Prompt a text-only reasoning model (`llama3.1:8b`) with the transcribed text + the strict classification prompt, and return the 13-category JSON schema.
+- Update tests to verify the two-pass architecture.
+
+**Depends on:** Phase 07.4
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 07.5 to break down)
+
 ## Phase 8: Output Quality Review & Refinement
 
 **Goal:** Analyze the output of the newly localized/optimized pipeline to identify classification mistakes, extraction anomalies, and grouping errors, and systematically implement fixes to improve overall accuracy.
@@ -182,3 +215,5 @@ Plans:
 4. Users can successfully delete or move the input PDF immediately after processing (no PyMuPDF file locks).
 5. Running the pipeline multiple times on the same house safely merges files instead of `rmtree` wiping the folder.
 6. Hallucinated line breaks in resident names are stripped and do not crash the OS `makedirs` call.
+
+
