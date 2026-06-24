@@ -67,10 +67,12 @@ This roadmap breaks down the stabilization and refactoring goals into safe, test
 
 **Goal:** Drastically speed up processing by detecting multi-page correspondences and skipping page-by-page LLM extraction for the subsequent pages of the same document.
 **Requirements**: 
+
 - Detect Arabic pagination footers (e.g., "1 من 10 الصفحة" or "2 من 10 الصفحة") using pattern detection.
 - Group the subsequent pages as part of the same section based on the total page count parsed from the footer.
 - The main topic and category should be derived from the first page of the correspondence.
 - Automatically skip LLM extraction for pages 2 to N of the same correspondence document, placing them in the same folder category as page 1.
+
 **Depends on:** Phase 7
 **Plans:** 0 plans
 
@@ -82,6 +84,7 @@ Plans:
 
 **Goal:** Improve document detection by hardening the prompt with specific letter subject patterns, enabling the local LLM to accurately deduce the document type from the subject, and falling back to a larger model (e.g. Gemma 4 26b) when no subject is present.
 **Requirements:**
+
 - Always analyze the subject of the letter first.
 - Allow the local LLM to guess the document type utilizing these specific patterns:
   - Subject is exactly "الموضوع : الوحدات السكنية" or mentions an "extension of stay" (e.g., تمديد الإقامة / السكن) -> `amar takhsees`. (STRICT DEFINITION: Must be an order from a higher authority to give the primary tenant a place to stay. Penalize false positives.)
@@ -91,10 +94,11 @@ Plans:
   - Looks like "الموضوع: الوحدة السكنية رقم ( 508 ) طريق 4411 مجمع 944 سافرة" or "حاب ( 13/19239) قم الحس" (e.g., has a meter number) -> EWA.
   - Subject is "الموضوع: وقف استقطاع بدل الانتفاع" -> allowance. (Does NOT contain "30 bd" or "60 bd").
   - Contains text for "rent deduction" (e.g., استقطاع الإيجار) -> rent deduction. (MUST contain "30 bd" or "60 bd" to disambiguate from allowance).
-  - Contains "إشعار" or "اشعار" (notification) -> notifications.
+  - Contains "إشعار" or "اشعار" (notification) OR is a home eviction notice -> notifications (do NOT put eviction notices in "other letters").
   - Basic vs Personal Details: `basic details` are strictly forms about a person. `personal details` refers to pictures of identity cards, passports, and other non-form documents related to the person and his family. If it is related to a person and his family but NOT a form, it is `personal details`. Allow the local LLM to handle this detection directly based on these definitions.
 - If there is NO subject and it doesn't fit the strong patterns above, do NOT use the local LLM to guess blindly. Instead, fall back to a larger model (e.g., Gemma 4 26b) to detect the document, as it performs significantly better on nuanced text.
 - Conduct stress testing to harden the prompts and validate detection logic.
+
 **Depends on:** Phase 07.3
 **Plans:** 1/1 plans complete
 
