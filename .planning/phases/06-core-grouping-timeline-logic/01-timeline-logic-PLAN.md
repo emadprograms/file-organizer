@@ -36,7 +36,7 @@ must_haves:
     - D-03: The LLM extraction and retry logic for is_continuation MUST respect rate limits, and fallback MUST log a warning.
     - D-04: Implement Verified Residents Pre-scan.
     - D-06: ID cards at the front of a file are buffered and retroactively assigned to the first anchor's tenant. If no anchor is found, they flush to the start of the final array to preserve chronology.
-    - D-05: Non-anchor letters only assign to named residents if they are Verified Residents (falling back to UNKNOWN if first document).
+    - D-05: Non-anchor letters assigned to family members (via word intersection) collapse under the primary tenant's folder. Letters assigned to strangers (no word intersection) route to their own distinct folders.
 
 ## Tasks
 
@@ -94,7 +94,7 @@ must_haves:
     Update `_group_pages_into_documents` matching logic (LOGIC-01, 02, 03, 04, 06):
     1. Change the limit `len(valid_mapped) <= 3` to `len(valid_mapped) <= 10`.
     2. Iterate `candidate in valid_mapped`. If `len(words_current.intersection(words_candidate)) >= min(2, len(words_current), len(words_candidate))` is True, retain `current_primary_tenant` and `break` to prevent hijacking. If no candidate matches, set `current_primary_tenant = valid_mapped[0]`.
-    3. If document is NOT an anchor, use `page_primary_tenant = valid_mapped[0]` ONLY IF `valid_mapped[0] in verified_residents`. Otherwise fallback to `current_primary_tenant` (if this is the first document, `current_primary_tenant` is UNKNOWN and it correctly goes into `prefix_buffer`).
+    3. If document is NOT an anchor and has valid names, check if `valid_mapped[0]` is family (shares >= 2 words with `current_primary_tenant`). If family, `page_primary_tenant = current_primary_tenant` (collapse). If NOT family (stranger), `page_primary_tenant = valid_mapped[0]` (separate folder).
     4. Modify the group merge condition with null-safety: `(page.date and documents[-1].dates and documents[-1].dates[-1] == page.date) or page.is_continuation`.
   </action>
   <acceptance_criteria>
