@@ -33,9 +33,15 @@ This document tracks the active requirements and goals for Milestone v1.2: Core 
 - [ ] **LLM-02 (Reliable Retries):** The pipeline must stop silently swallowing LLM extraction errors with bare `except Exception: pass` blocks. All exceptions must be caught, logged, and trigger the robust 429/500 retry logic instead of falling back to default/missing data.
 - [ ] **LLM-03 (Other Letters Catch-All Fix):** The `other_letters` category must be removed from `NONE_EXPECTED_CATEGORIES`. This forces the pipeline to actively retry when the AI lazily dumps documents into `other_letters` without extracting any names, rather than blindly accepting the incomplete extraction.
 
+## Category 5: Performance and Architecture (PERF/ARCH)
+
+- [ ] **PERF-01 (Speed up extraction):** Drastically speed up Pass 1 Vision Extraction by moving it locally.
+- [ ] **PERF-02 (Bypass rate limits):** Bypass Google API rate limits (global cooldown and 503 errors).
+- [ ] **ARCH-01 (Local inference via LM Studio):** Implement local inference using Qwen2.5-VL-7B-Instruct via LM Studio.
+- [ ] **ARCH-02 (Hybrid fallback):** Implement robust fallback logic to default to cloud models (e.g., gemini-4-26b) when local inference fails or times out.
+
 ## Future Requirements
 None yet defined.
 
 ## Out of Scope
 - **Saving Text Only:** The user requires the original visual format of the PDFs to be retained (via extraction and compression), rather than simply outputting raw OCR text.
-- **Switching Models:** Gemma 4 31b remains the core model; no migration to Gemini 1.5 Pro natively.
