@@ -85,10 +85,44 @@ class Pipeline:
                         os.replace(temp_cache_file, cache_file)
                     return (p_idx, res)
 
+                # Add Vision OCR integration after blank check
+                extracted_footer = None
+                try:
+                    import Vision
+                    import Quartz
+                    from Foundation import NSData
+                    import re
+                    
+                    ns_data = NSData.dataWithBytes_length_(i_bytes, len(i_bytes))
+                    cg_data_provider = Quartz.CGDataProviderCreateWithCFData(ns_data)
+                    cg_image = Quartz.CGImageCreateWithPNGDataProvider(cg_data_provider, None, False, Quartz.kCGRenderingIntentDefault)
+                    
+                    if cg_image:
+                        request_handler = Vision.VNImageRequestHandler.alloc().initWithCGImage_options_(cg_image, None)
+                        request = Vision.VNRecognizeTextRequest.alloc().init()
+                        request.setRecognitionLanguages_(["ar"])
+                        request.setRegionOfInterest_(Vision.CGRectMake(0.0, 0.0, 1.0, 0.1)) # Bottom 10%
+                        
+                        success, error = request_handler.performRequests_error_([request], None)
+                        if success:
+                            for observation in request.results():
+                                top_candidate = observation.topCandidates_(1)
+                                if top_candidate:
+                                    text = top_candidate[0].string()
+                                    match = re.search(r'(\d+\s*من\s*\d+|الصفحة\s*\d+|صفحة\s*\d+)', text, re.IGNORECASE)
+                                    if match:
+                                        extracted_footer = match.group(1)
+                                        break
+                                        
+                            if extracted_footer:
+                                print(f" Page {p_idx} has Arabic footer '{extracted_footer}'. Passing to LLM.")
+                except Exception as e:
+                    print(f"Vision OCR Error on page {p_idx}: {e}")
+
                 res = None
                 for attempt in range(3):
                     try:
-                        res = self.client.classify_page(image_bytes=i_bytes)
+                        res = self.client.classify_page(image_bytes=i_bytes, footer_text=extracted_footer)
                         break
                     except (LLMFailureError, InvalidResponseError) as e:
                         if attempt < 2:
@@ -191,52 +225,20 @@ class Pipeline:
                     if m not in ("NONE", "UNKNOWN", ""):
                         verified_residents.add(m)
 
-        for page_index, page in raw_pages:
+        for i, (page_index, page) in enumerate(raw_pages):
+            effective_continuation = getattr(page, 'is_continuation', False)
+
             mapped_residents = [canonical_mapping_clean.get(r.upper().strip(), r) for r in page.residents]
             valid_mapped = [r for r in mapped_residents if r not in ("NONE", "UNKNOWN", "")]
 
-            if page.category == Category.AMAR_TAKHSEES:
-                if valid_mapped:
-                    candidate = valid_mapped[0]
-                    words_current = set(current_primary_tenant.split())
-                    words_candidate = set(candidate.split())
-                    if len(words_current.intersection(words_candidate)) >= min(2, len(words_current), len(words_candidate)):
-                        page_primary_tenant = current_primary_tenant
-                    elif self.client.check_name_match(current_primary_tenant, candidate, page.category.value):
-                        page_primary_tenant = current_primary_tenant
-                    else:
-                        page_primary_tenant = candidate
-                else:
-                    page_primary_tenant = current_primary_tenant
-            elif page.category == Category.PERSONAL_DETAILS:
-                page_primary_tenant = current_primary_tenant
-            elif valid_mapped:
-                if current_primary_tenant in valid_mapped:
-                    page_primary_tenant = current_primary_tenant
-                else:
-                    if page.category in ANCHOR_CATEGORIES and len(valid_mapped) <= 10:
-                        matched = False
-                        for candidate in valid_mapped:
-                            words_current = set(current_primary_tenant.split())
-                            words_candidate = set(candidate.split())
-                            if len(words_current.intersection(words_candidate)) >= min(2, len(words_current), len(words_candidate)):
-                                matched = True
-                                break
-                            elif self.client.check_name_match(current_primary_tenant, candidate, page.category.value):
-                                matched = True
-                                break
-                        if matched:
-                            page_primary_tenant = current_primary_tenant
-                        else:
-                            current_primary_tenant = valid_mapped[0]
-                            page_primary_tenant = current_primary_tenant
-                            
-                            if prefix_buffer:
-                                for doc in prefix_buffer:
-                                    doc.primary_tenant = current_primary_tenant
-                                documents.extend(prefix_buffer)
-                                prefix_buffer.clear()
-                    else:
+            group_list_temp = prefix_buffer if current_primary_tenant == "UNKNOWN" else documents
+            
+            if effective_continuation and group_list_temp:
+                page_primary_tenant = group_list_temp[-1].primary_tenant
+                page.category = group_list_temp[-1].category
+            else:
+                if page.category == Category.AMAR_TAKHSEES:
+                    if valid_mapped:
                         candidate = valid_mapped[0]
                         words_current = set(current_primary_tenant.split())
                         words_candidate = set(candidate.split())
@@ -245,18 +247,58 @@ class Pipeline:
                         elif self.client.check_name_match(current_primary_tenant, candidate, page.category.value):
                             page_primary_tenant = current_primary_tenant
                         else:
-                            if candidate in verified_residents:
-                                page_primary_tenant = candidate
-                            else:
+                            page_primary_tenant = candidate
+                    else:
+                        page_primary_tenant = current_primary_tenant
+                elif page.category == Category.PERSONAL_DETAILS:
+                    page_primary_tenant = current_primary_tenant
+                elif valid_mapped:
+                    if current_primary_tenant in valid_mapped:
+                        page_primary_tenant = current_primary_tenant
+                    else:
+                        if page.category in ANCHOR_CATEGORIES and len(valid_mapped) <= 10:
+                            matched = False
+                            for candidate in valid_mapped:
+                                words_current = set(current_primary_tenant.split())
+                                words_candidate = set(candidate.split())
+                                if len(words_current.intersection(words_candidate)) >= min(2, len(words_current), len(words_candidate)):
+                                    matched = True
+                                    break
+                                elif self.client.check_name_match(current_primary_tenant, candidate, page.category.value):
+                                    matched = True
+                                    break
+                            if matched:
                                 page_primary_tenant = current_primary_tenant
-            else:
-                page_primary_tenant = current_primary_tenant
+                            else:
+                                current_primary_tenant = valid_mapped[0]
+                                page_primary_tenant = current_primary_tenant
+                                
+                                if prefix_buffer:
+                                    for doc in prefix_buffer:
+                                        doc.primary_tenant = current_primary_tenant
+                                    documents.extend(prefix_buffer)
+                                    prefix_buffer.clear()
+                        else:
+                            candidate = valid_mapped[0]
+                            words_current = set(current_primary_tenant.split())
+                            words_candidate = set(candidate.split())
+                            if len(words_current.intersection(words_candidate)) >= min(2, len(words_current), len(words_candidate)):
+                                page_primary_tenant = current_primary_tenant
+                            elif self.client.check_name_match(current_primary_tenant, candidate, page.category.value):
+                                page_primary_tenant = current_primary_tenant
+                            else:
+                                if candidate in verified_residents:
+                                    page_primary_tenant = candidate
+                                else:
+                                    page_primary_tenant = current_primary_tenant
+                else:
+                    page_primary_tenant = current_primary_tenant
 
             group_list = prefix_buffer if current_primary_tenant == "UNKNOWN" else documents
 
             merge_condition = False
             if group_list and group_list[-1].category == page.category and group_list[-1].primary_tenant == page_primary_tenant:
-                if getattr(page, 'is_continuation', False):
+                if effective_continuation:
                     merge_condition = True
                 elif page.date != "NONE" and group_list[-1].dates and group_list[-1].dates[-1] == page.date:
                     merge_condition = True

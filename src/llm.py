@@ -421,11 +421,13 @@ SPECIAL RULES:
 FALLBACK INSTRUCTION (CRITICAL):
 - If NO subject (الموضوع) is found AND none of the strong patterns above match, set `needs_gemma_fallback = true` and do NOT guess blindly. However, if you are the fallback model doing a retry, do your absolute best to categorize.
 
-Return a JSON object with: house_number, residents (list of strings), category, date, and needs_gemma_fallback."""
+Return a JSON object with: house_number, residents (list of strings), category, date, is_continuation (boolean), is_form (boolean), and needs_gemma_fallback (boolean)."""
 
-    def classify_page(self, image_bytes: bytes) -> PageClassification:
+    def classify_page(self, image_bytes: bytes, footer_text: str = None) -> PageClassification:
         system_prompt = self._build_system_prompt()
         user_prompt = "Classify this scanned document page."
+        if footer_text:
+            user_prompt += f"\n\nHINT: The OCR system detected a page footer: '{footer_text}'. If this indicates it's the first page (like '1 من X'), it is NOT a continuation. If it indicates a subsequent page (like '2 من X' or 'الصفحة 2'), set is_continuation = true."
         
         local_model = os.getenv("LOCAL_MODEL_NAME", "qwen2.5vl:7b")
         try:
