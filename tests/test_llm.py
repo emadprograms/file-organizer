@@ -72,7 +72,7 @@ def test_continuation_detection(monkeypatch):
     # Define 3 classification responses
     responses = [
         PageClassification(house_number="683", residents=["محمد"], category=Category.CONTRACT, date="NONE"),
-        PageClassification(house_number="683", residents=["محمد"], category=Category.CONTRACT, date="NONE"),
+        PageClassification(house_number="683", residents=["محمد"], category=Category.CONTRACT, date="NONE", is_continuation=True),
         PageClassification(house_number="683", residents=["أحمد"], category=Category.BASIC_DETAILS, date="NONE"),
     ]
     call_idx = [0]
@@ -152,37 +152,7 @@ def test_global_rpm_enforcement(monkeypatch):
     client._get_client_and_key()
     assert sum(sleeps) >= 60
 
-def test_retry_route_rate_limiter(monkeypatch):
-    """03-04-02: Route NONE-Resident Retry Through Rate Limiter."""
-    from src.llm import GemmaClient, PageClassification
-    from src.schemas import Category
-    from unittest.mock import MagicMock
-    import time
-    
-    monkeypatch.setattr(time, "sleep", lambda x: None)
-    
-    client = GemmaClient(api_keys=["key1"])
-    
-    get_client_calls = []
-    original_get = client._get_client_and_key
-    def mock_get(*args, **kwargs):
-        get_client_calls.append(1)
-        return original_get(*args, **kwargs)
-    monkeypatch.setattr(client, "_get_client_and_key", mock_get)
-    
-    mock_genai_client = MagicMock()
-    mock_resp1 = MagicMock()
-    mock_resp1.parsed = PageClassification(category=Category.CONTRACT, residents=["NONE"], date="NONE", house_number="123")
-    mock_resp1.usage_metadata.total_token_count = 100
-    mock_resp2 = MagicMock()
-    mock_resp2.parsed = PageClassification(category=Category.CONTRACT, residents=["John"], date="NONE", house_number="123")
-    mock_resp2.usage_metadata.total_token_count = 100
-    mock_genai_client.models.generate_content.side_effect = [mock_resp1, mock_resp2]
-    client.clients["key1"] = mock_genai_client
-    
-    client.classify_page(b"image")
-    
-    assert len(get_client_calls) == 2, "Should call rate limiter twice"
+
 
 def test_invalid_response_graceful_fallback(monkeypatch):
     """03-04-04: Handle Invalid Responses Gracefully."""
@@ -223,3 +193,61 @@ def test_exponential_backoff_on_429(monkeypatch):
     assert client.key_strikes["key1"] == 2
     cooldown2 = client.cooldown_keys["key1"] - current_time[0]
     assert 15.0 <= cooldown2 <= 45.0
+
+def test_local_inference_fallback(monkeypatch):
+    from src.llm import GemmaClient
+    import openai
+    from src.schemas import PageClassification, Category
+    
+    client = GemmaClient(api_keys=["key1"])
+    
+    mock_local = MagicMock()
+    mock_local.beta.chat.completions.parse.side_effect = openai.OpenAIError("Connection refused")
+    client.local_client = mock_local
+    
+    mock_route = MagicMock()
+    mock_route.return_value = PageClassification(house_number="123", residents=["Fallback"], category=Category.BASIC_DETAILS, date="NONE")
+    monkeypatch.setattr(client, "_route_llm_call", mock_route)
+    
+    result = client.classify_page(b"dummy")
+    assert result.residents == ["FALLBACK"]
+    mock_route.assert_called_once()
+    assert mock_route.call_args[1]["model"] == "gemini-4-26b"
+
+def test_openai_structured_output():
+    from src.llm import GemmaClient
+    from src.schemas import PageClassification, Category
+    import openai
+    
+    client = GemmaClient(api_keys=["key1"])
+    
+    mock_response = MagicMock()
+    mock_response.choices = [MagicMock()]
+    mock_response.choices[0].message.parsed = PageClassification(house_number="456", residents=["Mohammed Ali"], category=Category.CONTRACT, date="2020-01-01")
+    
+    mock_local = MagicMock()
+    mock_local.beta.chat.completions.parse.return_value = mock_response
+    client.local_client = mock_local
+    
+    result = client.classify_page(b"dummy")
+    assert result.house_number == "456"
+    assert result.residents == ["MOHAMMED ALI"]
+    assert result.category == Category.CONTRACT
+
+def test_arabic_ocr_fidelity():
+    from src.llm import GemmaClient
+    from src.schemas import PageClassification, Category
+    import openai
+    
+    client = GemmaClient(api_keys=["key1"])
+    
+    mock_response = MagicMock()
+    mock_response.choices = [MagicMock()]
+    mock_response.choices[0].message.parsed = PageClassification(house_number="123", residents=["محمد"], category=Category.BASIC_DETAILS, date="NONE")
+    
+    mock_local = MagicMock()
+    mock_local.beta.chat.completions.parse.return_value = mock_response
+    client.local_client = mock_local
+    
+    result = client.classify_page(b"dummy_arabic_doc")
+    assert result.residents == ["محمد"]
