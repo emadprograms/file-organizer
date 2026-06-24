@@ -451,11 +451,15 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 temperature=0.0
             )
             if response.choices[0].message.parsed:
-                return response.choices[0].message.parsed
+                parsed_result = response.choices[0].message.parsed
+                if getattr(parsed_result, "needs_gemma_fallback", False):
+                    print("[Local Inference Refused] No subject/strong pattern found. Falling back to gemini-4-26b.")
+                    raise ValueError("Local Inference Refused via needs_gemma_fallback flag")
+                return parsed_result
             else:
                 raise openai.OpenAIError("Parsed response is None")
-        except (openai.OpenAIError, requests.exceptions.RequestException, pydantic.ValidationError) as e:
-            print(f"[Local Inference Failed] Falling back to gemini-4-26b. Error: {e}")
+        except (openai.OpenAIError, requests.exceptions.RequestException, pydantic.ValidationError, ValueError) as e:
+            print(f"[Local Inference Failed/Refused] Falling back to gemini-4-26b. Error: {e}")
             contents = [
                 system_prompt,
                 user_prompt,
