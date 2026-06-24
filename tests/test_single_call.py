@@ -11,7 +11,7 @@ if "GEMINI_API_KEYS" not in os.environ:
 else:
     # Use real PDF from repo
     ingestor = PdfIngestor()
-    pages = list(ingestor.extract_pages_as_images("1273.pdf"))
+    pages = [next(ingestor.extract_pages_as_images("510.pdf"))]
     if not pages:
         print("No pages found in 1273.pdf")
         exit(1)
@@ -26,6 +26,7 @@ else:
         print(f"Category: {res.category}")
         print(f"Residents: {res.residents}")
         print(f"is_continuation: {res.is_continuation}")
+        print(f"is_form: {getattr(res, 'is_form', False)}")
         print("Test passed: is_continuation is part of the single unified LLM call!")
     except Exception as e:
         print(f"Test failed or rate limited: {e}")

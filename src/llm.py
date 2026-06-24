@@ -387,9 +387,9 @@ CRITICAL FIRST STEP: ALWAYS analyze the subject (الموضوع) of the letter o
 
 Classify this page into exactly ONE of the following 13 categories:
 
-1. basic_details — البيانات الأساسية (Strictly forms about the person. If it is not a form, it cannot be classified as basic details.)
+1. basic_details — البيانات الأساسية (Strictly forms about the person. If the page is a FORM with boxes, tables, or fill-in-the-blanks for a person's name/ID/details, you MUST choose basic_details. FORMS ARE NEVER amar_takhsees.)
 2. personal_details — البيانات الشخصية (Pictures of identity cards, passports, and other non-form documents related to the person and his family. Anything related to the person and his family that is NOT a form goes into personal details.)
-3. amar_takhsees — أمر تخصيص (Allocation orders. STRICT DEFINITION: An allocation order (amar takhsees) is STRICTLY an order from a higher authority or someone important claiming or telling to give the person (primary tenant) a place to stay. Do NOT classify random documents as allocation orders. Strong pattern: Exact subject 'الموضوع : الوحدات السكنية' or mentions 'تمديد الإقامة / السكن'.)
+3. amar_takhsees — أمر تخصيص (Allocation orders. STRICT DEFINITION: A letter from a higher authority ordering to give a place to stay. FORMS OR TABLES ARE NEVER AMAR TAKHSEES. It MUST be a letter paragraph format. Strong pattern: Exact subject 'الموضوع : الوحدات السكنية' AND format is a letter.)
 4. key_handover_form — نموذج تسليم المفتاح (Key handover/receipt forms. Strong pattern: Contains 'استمارة تسليم الوحدات السكنية التابعة لوزارة الداخلية'.)
 5. contract — العقد (Rental or housing contracts)
 6. ewa_related_letters — رسائل الكهرباء والماء (EWA electricity/water letters. Strong pattern: Contains a meter number, such as 'الوحدة السكنية رقم' or similar.)
@@ -455,6 +455,13 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 if getattr(parsed_result, "needs_gemma_fallback", False):
                     print("[Local Inference Refused] No subject/strong pattern found. Falling back to gemini-4-26b.")
                     raise ValueError("Local Inference Refused via needs_gemma_fallback flag")
+                
+                # Heuristic Override: Local models struggle with complex negative constraints.
+                # If it correctly sees a form, force it to basic_details.
+                if getattr(parsed_result, "is_form", False) and parsed_result.category.value == "amar_takhsees":
+                    print("[Heuristic Override] Local model selected amar_takhsees for a FORM. Forcing basic_details.")
+                    parsed_result.category = "basic_details"
+                    
                 return parsed_result
             else:
                 raise openai.OpenAIError("Parsed response is None")

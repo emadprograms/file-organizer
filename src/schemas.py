@@ -27,6 +27,7 @@ class PageClassification(BaseModel):
     category: Category = Field(description="The document category from the 13 defined types")
     date: str = Field(description="The date of the document (Gregorian or Hijri) if visible, otherwise 'NONE'")
     is_continuation: bool = Field(default=False, description="True if this page is a continuation of the previous page, False otherwise")
+    is_form: bool = Field(default=False, description="True if the document is a fill-in-the-blank form or contains a structured data table, False if it is a paragraph letter or picture")
     needs_gemma_fallback: bool = Field(default=False, description="Set to true if there is no Subject and no strong pattern match")
 
     @field_validator('residents', mode='before')
