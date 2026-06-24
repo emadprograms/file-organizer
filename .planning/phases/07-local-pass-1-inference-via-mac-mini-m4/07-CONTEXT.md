@@ -54,6 +54,7 @@ No external specs — requirements fully captured in decisions above.
 ## Specific Ideas
 
 - The user specifically requested to retire `gemini 4 31b` and `gemini 2.5 flash` from the fallback mechanism, using exclusively `gemini 4 26b` for cloud fallbacks.
+- **Model Storage Constraint:** The Qwen2-VL-7B-Instruct model MUST be installed/stored on the `micron-e0256a` external drive connected to the Mac, NOT on the main drive.
 
 </specifics>
 
