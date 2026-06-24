@@ -63,6 +63,45 @@ This roadmap breaks down the stabilization and refactoring goals into safe, test
 3. Verify that the local model accurately reads Arabic from scanned PDFs without throwing out-of-memory (OOM) errors.
 4. Measure and confirm that the local execution drastically reduces total processing time for the batch since there is no `global_cooldown` or `503 UNAVAILABLE` network throttling on Pass 1.
 
+### Phase 07.3: Improve multi-page correspondence processing via Arabic footer pattern detection (INSERTED)
+
+**Goal:** Drastically speed up processing by detecting multi-page correspondences and skipping page-by-page LLM extraction for the subsequent pages of the same document.
+**Requirements**: 
+- Detect Arabic pagination footers (e.g., "1 من 10 الصفحة" or "2 من 10 الصفحة") using pattern detection.
+- Group the subsequent pages as part of the same section based on the total page count parsed from the footer.
+- The main topic and category should be derived from the first page of the correspondence.
+- Automatically skip LLM extraction for pages 2 to N of the same correspondence document, placing them in the same folder category as page 1.
+**Depends on:** Phase 7
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 07.3 to break down)
+
+### Phase 07.4: Harden Prompt for Document Detection (INSERTED)
+
+**Goal:** Improve document detection by hardening the prompt with specific letter subject patterns, enabling the local LLM to accurately deduce the document type from the subject, and falling back to a larger model (e.g. Gemma 4 26b) when no subject is present.
+**Requirements:**
+- Always analyze the subject of the letter first.
+- Allow the local LLM to guess the document type utilizing these specific patterns:
+  - Subject is exactly "الموضوع : الوحدات السكنية" or mentions an "extension of stay" (e.g., تمديد الإقامة / السكن) -> `amar takhsees`. (STRICT DEFINITION: Must be an order from a higher authority to give the primary tenant a place to stay. Penalize false positives.)
+  - Sender or receiver is "إدارة الأشغال" (Maintenance Department) OR the document is a yellow paper with inspection details -> maintenance.
+  - Subject contains "طلب" (request) and mentions modifying the house -> house modifications.
+  - Contains "استمارة تسليم الوحدات السكنية التابعة لوزارة الداخلية" -> key handover form.
+  - Looks like "الموضوع: الوحدة السكنية رقم ( 508 ) طريق 4411 مجمع 944 سافرة" or "حاب ( 13/19239) قم الحس" (e.g., has a meter number) -> EWA.
+  - Subject is "الموضوع: وقف استقطاع بدل الانتفاع" -> allowance.
+  - Contains text for "rent deduction" (e.g., استقطاع الإيجار) -> rent deduction.
+  - Contains "إشعار" or "اشعار" (notification) -> notifications.
+  - The local LLM accurately detects personal details, so it should be allowed to handle `personal details` detection directly.
+- If there is NO subject and it doesn't fit the strong patterns above, do NOT use the local LLM to guess blindly. Instead, fall back to a larger model (e.g., Gemma 4 26b) to detect the document, as it performs significantly better on nuanced text.
+- Conduct stress testing to harden the prompts and validate detection logic.
+**Depends on:** Phase 07.3
+**Plans:** 1/1 plans complete
+
+Plans:
+
+- [x] 07.4-01-PLAN.md
+
 ### Phase 07.1: Compress output PDFs to ~35MB (80% quality) post-AI processing (INSERTED)
 
 **Goal:** Compress the output PDFs after AI detection and file placement are done. We avoid compressing the PDF initially to retain 100% quality for AI extraction, but compress the final outputs down to ~35MB (retaining 80% quality) since human users don't need raw 400MB sizes.
@@ -82,6 +121,22 @@ Plans:
 - [ ] 07-01-PLAN.md
 
 - [x] TBD (run /gsd-plan-phase 07.1 to break down) (completed 2026-06-24)
+
+### Phase 07.2: Improve name grouping logic using local LLM (INSERTED)
+
+**Goal:** Refactor name grouping logic to utilize the local LLM for semantic matching instead of relying strictly on exact string matching. This should be done carefully to ensure we don't break any existing program logic, maintaining exact matches as a fast-path fallback.
+**Requirements**: 
+
+- Implement semantic name matching via local Qwen2-VL / LLM
+- Retain existing exact string matching as a fast path to ensure zero breakage
+- Ensure family members group together correctly even with typos or slight name variations
+
+**Depends on:** Phase 07.1
+**Plans:** 1/1 plans complete
+
+Plans:
+
+- [x] 07-02-PLAN.md (completed 2026-06-24)
 
 ## Phase 8: Output Quality Review & Refinement
 
