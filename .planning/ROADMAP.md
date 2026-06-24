@@ -85,12 +85,12 @@ Plans:
 - Always analyze the subject of the letter first.
 - Allow the local LLM to guess the document type utilizing these specific patterns:
   - Subject is exactly "الموضوع : الوحدات السكنية" or mentions an "extension of stay" (e.g., تمديد الإقامة / السكن) -> `amar takhsees`. (STRICT DEFINITION: Must be an order from a higher authority to give the primary tenant a place to stay. Penalize false positives.)
-  - Sender or receiver is "إدارة الأشغال" (Maintenance Department) OR the document is a yellow paper with inspection details -> maintenance.
+  - Sender or receiver is "إدارة الأشغال" (Maintenance Department) OR the document is a yellow paper with inspection details OR mentions "inspection" anywhere -> maintenance.
   - Subject contains "طلب" (request) and mentions modifying the house -> house modifications.
   - Contains "استمارة تسليم الوحدات السكنية التابعة لوزارة الداخلية" -> key handover form.
   - Looks like "الموضوع: الوحدة السكنية رقم ( 508 ) طريق 4411 مجمع 944 سافرة" or "حاب ( 13/19239) قم الحس" (e.g., has a meter number) -> EWA.
-  - Subject is "الموضوع: وقف استقطاع بدل الانتفاع" -> allowance.
-  - Contains text for "rent deduction" (e.g., استقطاع الإيجار) -> rent deduction.
+  - Subject is "الموضوع: وقف استقطاع بدل الانتفاع" -> allowance. (Does NOT contain "30 bd" or "60 bd").
+  - Contains text for "rent deduction" (e.g., استقطاع الإيجار) -> rent deduction. (MUST contain "30 bd" or "60 bd" to disambiguate from allowance).
   - Contains "إشعار" or "اشعار" (notification) -> notifications.
   - The local LLM accurately detects personal details, so it should be allowed to handle `personal details` detection directly.
 - If there is NO subject and it doesn't fit the strong patterns above, do NOT use the local LLM to guess blindly. Instead, fall back to a larger model (e.g., Gemma 4 26b) to detect the document, as it performs significantly better on nuanced text.
