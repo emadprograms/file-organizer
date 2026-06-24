@@ -92,7 +92,7 @@ Plans:
   - Subject is "الموضوع: وقف استقطاع بدل الانتفاع" -> allowance. (Does NOT contain "30 bd" or "60 bd").
   - Contains text for "rent deduction" (e.g., استقطاع الإيجار) -> rent deduction. (MUST contain "30 bd" or "60 bd" to disambiguate from allowance).
   - Contains "إشعار" or "اشعار" (notification) -> notifications.
-  - The local LLM accurately detects personal details, so it should be allowed to handle `personal details` detection directly.
+  - Basic vs Personal Details: `basic details` are strictly forms about a person. `personal details` are pictures of identity cards, etc. If it is related to a person but NOT a form, it is `personal details`. Allow the local LLM to handle this detection directly based on these definitions.
 - If there is NO subject and it doesn't fit the strong patterns above, do NOT use the local LLM to guess blindly. Instead, fall back to a larger model (e.g., Gemma 4 26b) to detect the document, as it performs significantly better on nuanced text.
 - Conduct stress testing to harden the prompts and validate detection logic.
 **Depends on:** Phase 07.3
