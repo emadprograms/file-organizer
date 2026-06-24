@@ -423,51 +423,93 @@ FALLBACK INSTRUCTION (CRITICAL):
 
 Return a JSON object with: house_number, residents (list of strings), category, date, is_continuation (boolean), is_form (boolean), and needs_gemma_fallback (boolean)."""
 
+    def _extract_text_with_qwen(self, image_bytes: bytes) -> str:
+        base64_image = base64.b64encode(image_bytes).decode('utf-8')
+        local_model = os.getenv("LOCAL_MODEL_NAME", "qwen2.5vl:7b")
+        response = self.local_client.chat.completions.create(
+            model=local_model,
+            messages=[
+                {"role": "system", "content": "Transcribe all Arabic text from the image verbatim, explicitly maintaining the spatial layout and line breaks. Do not attempt to classify or summarize."},
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/png;base64,{base64_image}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            temperature=0.0
+        )
+        return response.choices[0].message.content
+
+    def _classify_text_with_local_model(self, text: str, footer_text: str = None) -> PageClassification:
+        system_prompt = self._build_system_prompt()
+        user_prompt = "Classify this scanned document page based on the following extracted text."
+        if footer_text:
+            user_prompt += f"\n\nHINT: The OCR system detected a page footer: '{footer_text}'. If this indicates it's the first page (like '1 من X'), it is NOT a continuation. If it indicates a subsequent page (like '2 من X' or 'الصفحة 2'), set is_continuation = true."
+            
+        user_prompt += f"\n\nExtracted Text:\n{text}"
+        
+        local_model = os.getenv("LOCAL_TEXT_MODEL_NAME", "qwen2.5:7b")
+        response = self.local_client.beta.chat.completions.parse(
+            model=local_model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format=PageClassification,
+            temperature=0.0
+        )
+        if response.choices[0].message.parsed:
+            return response.choices[0].message.parsed
+        else:
+            raise openai.OpenAIError("Parsed response is None")
+
     def classify_page(self, image_bytes: bytes, footer_text: str = None) -> PageClassification:
         system_prompt = self._build_system_prompt()
         user_prompt = "Classify this scanned document page."
         if footer_text:
             user_prompt += f"\n\nHINT: The OCR system detected a page footer: '{footer_text}'. If this indicates it's the first page (like '1 من X'), it is NOT a continuation. If it indicates a subsequent page (like '2 من X' or 'الصفحة 2'), set is_continuation = true."
-        
-        local_model = os.getenv("LOCAL_MODEL_NAME", "qwen2.5vl:7b")
+
         try:
-            base64_image = base64.b64encode(image_bytes).decode('utf-8')
-            response = self.local_client.beta.chat.completions.parse(
-                model=local_model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": user_prompt},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:image/png;base64,{base64_image}"
-                                }
-                            }
-                        ]
-                    }
-                ],
-                response_format=PageClassification,
-                temperature=0.0
-            )
-            if response.choices[0].message.parsed:
-                parsed_result = response.choices[0].message.parsed
-                if getattr(parsed_result, "needs_gemma_fallback", False):
-                    print("[Local Inference Refused] No subject/strong pattern found. Falling back to gemini-4-26b.")
-                    raise ValueError("Local Inference Refused via needs_gemma_fallback flag")
+            last_error = None
+            for qwen_attempt in range(2):
+                try:
+                    text = self._extract_text_with_qwen(image_bytes)
+                except Exception as e:
+                    last_error = e
+                    continue
                 
-                # Heuristic Override: Local models struggle with complex negative constraints.
-                # If it correctly sees a form, force it to basic_details.
-                if getattr(parsed_result, "is_form", False) and parsed_result.category.value == "amar_takhsees":
-                    print("[Heuristic Override] Local model selected amar_takhsees for a FORM. Forcing basic_details.")
-                    parsed_result.category = "basic_details"
-                    
-                return parsed_result
+                for text_attempt in range(3):
+                    try:
+                        parsed_result = self._classify_text_with_local_model(text, footer_text)
+                        
+                        if getattr(parsed_result, "needs_gemma_fallback", False):
+                            print("[Local Inference Refused] No subject/strong pattern found. Falling back to gemini-4-26b.")
+                            raise ValueError("Local Inference Refused via needs_gemma_fallback flag")
+                        
+                        if getattr(parsed_result, "is_form", False) and parsed_result.category.value == "amar_takhsees":
+                            print("[Heuristic Override] Local model selected amar_takhsees for a FORM. Forcing basic_details.")
+                            parsed_result.category = "basic_details"
+                            
+                        return parsed_result
+                    except ValueError as e:
+                        if "Local Inference Refused via needs_gemma_fallback flag" in str(e):
+                            raise e
+                        last_error = e
+                    except Exception as e:
+                        last_error = e
+            
+            if last_error:
+                raise last_error
             else:
-                raise openai.OpenAIError("Parsed response is None")
-        except (openai.OpenAIError, requests.exceptions.RequestException, pydantic.ValidationError, ValueError) as e:
+                raise RuntimeError("Failed after 2 Qwen attempts and 3 text classification attempts")
+                
+        except Exception as e:
             print(f"[Local Inference Failed/Refused] Falling back to gemini-4-26b. Error: {e}")
             contents = [
                 system_prompt,
