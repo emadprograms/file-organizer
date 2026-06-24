@@ -383,20 +383,22 @@ class GemmaClient:
 
 You are receiving a scanned page IMAGE. Read the page directly using your vision capabilities and classify it.
 
+CRITICAL FIRST STEP: ALWAYS analyze the subject (الموضوع) of the letter or document first before looking at the body text.
+
 Classify this page into exactly ONE of the following 13 categories:
 
-1. basic_details — البيانات الأساسية (Basic resident information, ID cards, civil records)
-2. personal_details — البيانات الشخصية (Personal information forms, family details)
-3. amar_takhsees — أمر تخصيص (Allocation orders for people assigned but not residing. CRITICAL: If the document contains the exact words 'أمر تخصيص' prominently, it MUST be classified as amar_takhsees, even if it looks like a notification.)
-4. key_handover_form — نموذج تسليم المفتاح (Key handover/receipt forms)
+1. basic_details — البيانات الأساسية (Strictly forms about the person. If it is not a form, it cannot be classified as basic details.)
+2. personal_details — البيانات الشخصية (Pictures of identity cards, passports, and other non-form documents related to the person and his family. Anything related to the person and his family that is NOT a form goes into personal details.)
+3. amar_takhsees — أمر تخصيص (Allocation orders. STRICT DEFINITION: An allocation order (amar takhsees) is STRICTLY an order from a higher authority or someone important claiming or telling to give the person (primary tenant) a place to stay. Do NOT classify random documents as allocation orders. Strong pattern: Exact subject 'الموضوع : الوحدات السكنية' or mentions 'تمديد الإقامة / السكن'.)
+4. key_handover_form — نموذج تسليم المفتاح (Key handover/receipt forms. Strong pattern: Contains 'استمارة تسليم الوحدات السكنية التابعة لوزارة الداخلية'.)
 5. contract — العقد (Rental or housing contracts)
-6. ewa_related_letters — رسائل الكهرباء والماء (EWA electricity/water letters)
-7. rent_deduction — خصم الإيجار (Rent deduction notices or records)
-8. allowance_deduction — خصم العلاوة (Allowance deduction notices)
-9. notifications — الإشعارات (General notifications, warnings. Do NOT use this for allocation orders / amar_takhsees.)
-10. maintenance — الصيانة (Maintenance requests, reports, work orders)
+6. ewa_related_letters — رسائل الكهرباء والماء (EWA electricity/water letters. Strong pattern: Contains a meter number, such as 'الوحدة السكنية رقم' or similar.)
+7. rent_deduction — خصم الإيجار (Rent deduction notices or records. STRICT DEFINITION: Rent deduction letters will ALWAYS contain "30 bd" or "60 bd". Use this presence/absence to strictly disambiguate from Allowance Deduction.)
+8. allowance_deduction — خصم العلاوة (Allowance deduction notices. Strong pattern: Subject is 'الموضوع: وقف استقطاع بدل الانتفاع'. Will NOT have "30 bd" or "60 bd" written on it.)
+9. notifications — الإشعارات (General notifications, warnings. Strong pattern: Contains the word 'إشعار' or 'اشعار'. Do NOT use this for allocation orders.)
+10. maintenance — الصيانة (Maintenance requests, reports, work orders. Strong pattern: Sender or receiver is 'إدارة الأشغال' (idara ashgal), or it is a yellow paper with inspection details, or ANY mention of "inspection" goes to maintenance.)
 11. pictures — الصور (Photographs of the property)
-12. modifications — التعديلات (Modification requests or approvals)
+12. modifications — التعديلات (Modification requests or approvals. Strong pattern: Subject contains 'طلب' (talab) and mentions modifying the house.)
 13. other_letters — رسائل أخرى (Any letters that don't fit the above)
 
 NAME EXTRACTION RULES (CRITICAL):
@@ -413,13 +415,13 @@ DATE EXTRACTION RULES:
 - If no date is visible anywhere, return "NONE".
 
 SPECIAL RULES:
-- "basic_details" is ALWAYS just a single-page form filling out the main tenant's details.
-- "personal_details" contains ID cards, civil records, passports, and family member details. Do NOT confuse basic_details with personal_details.
-- For general house letters and "Amar Takhsees" documents that are NOT tied to a specific resident, set resident to "NONE".
 - Normalize Arabic names intelligently: group variations like "محمد" and "المحمد" as the same person.
 - Tolerate OCR noise and imperfect text in scanned documents.
 
-Return a JSON object with: house_number, residents (list of strings), category, date."""
+FALLBACK INSTRUCTION (CRITICAL):
+- If NO subject (الموضوع) is found AND none of the strong patterns above match, set `needs_gemma_fallback = true` and do NOT guess blindly. However, if you are the fallback model doing a retry, do your absolute best to categorize.
+
+Return a JSON object with: house_number, residents (list of strings), category, date, and needs_gemma_fallback."""
 
     def classify_page(self, image_bytes: bytes) -> PageClassification:
         system_prompt = self._build_system_prompt()
