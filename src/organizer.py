@@ -214,8 +214,9 @@ class FileOrganizer:
         # Copy the original full PDF file for reference
         try:
             full_file_dest = house_dir / f"{house_number}.pdf"
-            shutil.copy2(source_pdf, full_file_dest)
-            print(f"  → Copied full original file to: {full_file_dest.name}")
+            from src.split import compress_pdf
+            compress_pdf(str(source_pdf), str(full_file_dest))
+            print(f"  → Copied and compressed full original file to: {full_file_dest.name}")
         except Exception as e:
             print(f"⚠ Could not copy original PDF: {e}")
         
