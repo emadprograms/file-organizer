@@ -77,7 +77,7 @@ def test_continuation_detection(monkeypatch):
     ]
     call_idx = [0]
 
-    def mock_classify_page(image_bytes, previous_summary="", active_summary=""):
+    def mock_classify_page(image_bytes, footer_text=None, previous_summary="", active_summary=""):
         idx = call_idx[0]
         call_idx[0] += 1
         return responses[idx]
@@ -201,9 +201,12 @@ def test_local_inference_fallback(monkeypatch):
     
     client = GemmaClient(api_keys=["key1"])
     
-    mock_local = MagicMock()
-    mock_local.beta.chat.completions.parse.side_effect = openai.OpenAIError("Connection refused")
-    client.local_client = mock_local
+    # Mock text extraction to succeed
+    monkeypatch.setattr(client, "_extract_text_with_qwen", lambda x: "dummy text")
+    
+    # Mock classification to fail
+    mock_classify = MagicMock(side_effect=openai.OpenAIError("Connection refused"))
+    monkeypatch.setattr(client, "_classify_text_with_local_model", mock_classify)
     
     mock_route = MagicMock()
     mock_route.return_value = PageClassification(house_number="123", residents=["Fallback"], category=Category.BASIC_DETAILS, date="NONE")
@@ -214,40 +217,59 @@ def test_local_inference_fallback(monkeypatch):
     mock_route.assert_called_once()
     assert mock_route.call_args[1]["model"] == "gemini-4-26b"
 
-def test_openai_structured_output():
+def test_openai_structured_output(monkeypatch):
     from src.llm import GemmaClient
     from src.schemas import PageClassification, Category
     import openai
     
     client = GemmaClient(api_keys=["key1"])
     
-    mock_response = MagicMock()
-    mock_response.choices = [MagicMock()]
-    mock_response.choices[0].message.parsed = PageClassification(house_number="456", residents=["Mohammed Ali"], category=Category.CONTRACT, date="2020-01-01")
+    monkeypatch.setattr(client, "_extract_text_with_qwen", lambda x: "Mohammed Ali")
     
-    mock_local = MagicMock()
-    mock_local.beta.chat.completions.parse.return_value = mock_response
-    client.local_client = mock_local
+    mock_classify = MagicMock()
+    mock_classify.return_value = PageClassification(house_number="456", residents=["Mohammed Ali"], category=Category.CONTRACT, date="2020-01-01")
+    monkeypatch.setattr(client, "_classify_text_with_local_model", mock_classify)
     
     result = client.classify_page(b"dummy")
     assert result.house_number == "456"
     assert result.residents == ["MOHAMMED ALI"]
     assert result.category == Category.CONTRACT
 
-def test_arabic_ocr_fidelity():
+def test_arabic_ocr_fidelity(monkeypatch):
     from src.llm import GemmaClient
     from src.schemas import PageClassification, Category
     import openai
     
     client = GemmaClient(api_keys=["key1"])
     
-    mock_response = MagicMock()
-    mock_response.choices = [MagicMock()]
-    mock_response.choices[0].message.parsed = PageClassification(house_number="123", residents=["محمد"], category=Category.BASIC_DETAILS, date="NONE")
+    monkeypatch.setattr(client, "_extract_text_with_qwen", lambda x: "محمد")
     
-    mock_local = MagicMock()
-    mock_local.beta.chat.completions.parse.return_value = mock_response
-    client.local_client = mock_local
+    mock_classify = MagicMock()
+    mock_classify.return_value = PageClassification(house_number="123", residents=["محمد"], category=Category.BASIC_DETAILS, date="NONE")
+    monkeypatch.setattr(client, "_classify_text_with_local_model", mock_classify)
     
     result = client.classify_page(b"dummy_arabic_doc")
     assert result.residents == ["محمد"]
+
+def test_tiered_retry_logic(monkeypatch):
+    from src.llm import GemmaClient
+    from src.schemas import PageClassification, Category
+    import openai
+    
+    client = GemmaClient(api_keys=["key1"])
+    
+    mock_extract = MagicMock(return_value="extracted text")
+    monkeypatch.setattr(client, "_extract_text_with_qwen", mock_extract)
+    
+    mock_classify = MagicMock(side_effect=[
+        openai.OpenAIError("Fail 1"),
+        openai.OpenAIError("Fail 2"),
+        openai.OpenAIError("Fail 3"),
+        PageClassification(house_number="999", residents=["Test"], category=Category.BASIC_DETAILS, date="NONE")
+    ])
+    monkeypatch.setattr(client, "_classify_text_with_local_model", mock_classify)
+    
+    result = client.classify_page(b"dummy")
+    assert result.house_number == "999"
+    assert mock_extract.call_count == 2
+    assert mock_classify.call_count == 4

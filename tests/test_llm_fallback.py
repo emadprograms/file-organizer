@@ -7,8 +7,7 @@ def test_fallback_when_needs_gemma_fallback_is_true():
     client = GemmaClient(api_keys=["dummy_key"])
     
     # Mock the local LLM response to return needs_gemma_fallback = True
-    mock_local_response = MagicMock()
-    mock_local_response.choices[0].message.parsed = PageClassification(
+    mock_local_response = PageClassification(
         house_number="UNKNOWN",
         residents=["NONE"],
         category=Category.OTHER_LETTERS,
@@ -25,12 +24,13 @@ def test_fallback_when_needs_gemma_fallback_is_true():
         needs_gemma_fallback=False
     )
     
-    with patch.object(client.local_client.beta.chat.completions, 'parse', return_value=mock_local_response) as mock_local:
-        with patch.object(client, '_route_llm_call', return_value=mock_gemini_response) as mock_route:
-            result = client.classify_page(b"dummy_image_bytes")
-            
-            # Assert local LLM was called
-            mock_local.assert_called_once()
+    with patch.object(client, '_extract_text_with_qwen', return_value="dummy") as mock_extract:
+        with patch.object(client, '_classify_text_with_local_model', return_value=mock_local_response) as mock_local:
+            with patch.object(client, '_route_llm_call', return_value=mock_gemini_response) as mock_route:
+                result = client.classify_page(b"dummy_image_bytes")
+                
+                # Assert local LLM was called
+                mock_local.assert_called_once()
             
             # Assert _route_llm_call was called because needs_gemma_fallback was True
             mock_route.assert_called_once()
@@ -44,8 +44,7 @@ def test_no_fallback_when_needs_gemma_fallback_is_false():
     client = GemmaClient(api_keys=["dummy_key"])
     
     # Mock the local LLM response to return needs_gemma_fallback = False
-    mock_local_response = MagicMock()
-    mock_local_response.choices[0].message.parsed = PageClassification(
+    mock_local_response = PageClassification(
         house_number="456",
         residents=["علي"],
         category=Category.MAINTENANCE,
@@ -53,12 +52,13 @@ def test_no_fallback_when_needs_gemma_fallback_is_false():
         needs_gemma_fallback=False
     )
     
-    with patch.object(client.local_client.beta.chat.completions, 'parse', return_value=mock_local_response) as mock_local:
-        with patch.object(client, '_route_llm_call') as mock_route:
-            result = client.classify_page(b"dummy_image_bytes")
-            
-            # Assert local LLM was called
-            mock_local.assert_called_once()
+    with patch.object(client, '_extract_text_with_qwen', return_value="dummy") as mock_extract:
+        with patch.object(client, '_classify_text_with_local_model', return_value=mock_local_response) as mock_local:
+            with patch.object(client, '_route_llm_call') as mock_route:
+                result = client.classify_page(b"dummy_image_bytes")
+                
+                # Assert local LLM was called
+                mock_local.assert_called_once()
             
             # Assert fallback was NOT called
             mock_route.assert_not_called()
