@@ -5,16 +5,16 @@ milestone_name: Core Stabilization & Logic Overhaul
 current_phase: 07.4
 current_phase_name: harden-prompt-for-document-detection-inserted
 status: executing
-stopped_at: Phase 07.5 context gathered
-last_updated: "2026-06-24T23:10:28.330Z"
+stopped_at: Phase 07.3.1 planned
+last_updated: "2026-06-24T23:12:23.602Z"
 last_activity: 2026-06-24
 last_activity_desc: Phase 07.4 execution started
 progress:
-  total_phases: 10
+  total_phases: 11
   completed_phases: 6
-  total_plans: 7
+  total_plans: 9
   completed_plans: 6
-  percent: 60
+  percent: 55
 ---
 
 # Project State
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-06-23)
 
 ## Session
 
-**Last session:** 2026-06-24T23:04:49.196Z
-**Stopped at:** Phase 07.5 context gathered
-**Resume file:** .planning/phases/07.5-two-pass-local-pipeline-inserted/07.5-CONTEXT.md
+**Last session:** 2026-06-24T23:12:23.598Z
+**Stopped at:** Phase 07.3.1 planned
+**Resume file:** .planning/phases/07.3.1-provide-llm-with-ocr-footer-hints-instead-of-skipping-pages-/07.3.1-PLAN.md
 
 ## Accumulated Context
 
