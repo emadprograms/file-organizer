@@ -492,9 +492,11 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                             print("[Local Inference Refused] No subject/strong pattern found. Falling back to gemini-4-26b.")
                             raise ValueError("Local Inference Refused via needs_gemma_fallback flag")
                         
+                        # Heuristic Override: Local models struggle with complex negative constraints.
+                        # If it correctly sees a form, force it to basic_details.
                         if getattr(parsed_result, "is_form", False) and parsed_result.category.value == "amar_takhsees":
                             print("[Heuristic Override] Local model selected amar_takhsees for a FORM. Forcing basic_details.")
-                            parsed_result.category = "basic_details"
+                            parsed_result.category = Category.BASIC_DETAILS
                             
                         return parsed_result
                     except ValueError as e:

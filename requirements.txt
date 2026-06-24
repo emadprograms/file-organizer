@@ -1,6 +1,6 @@
 PyMuPDF
 tenacity
-google-generativeai
+google-genai
 python-dotenv
 pydantic
 pytest

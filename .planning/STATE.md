@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Core Stabilization & Logic Overhaul
-current_phase: 07.4
-current_phase_name: harden-prompt-for-document-detection-inserted
-status: verifying
+current_phase: 07.5
+current_phase_name: two-pass-local-pipeline-inserted
+status: executing
 stopped_at: Phase 07.3.1 planned
-last_updated: "2026-06-24T23:17:07.667Z"
+last_updated: "2026-06-24T23:46:19.616Z"
 last_activity: 2026-06-24
-last_activity_desc: Phase 07.4 execution started
+last_activity_desc: Phase 07.5 execution started
 progress:
   total_phases: 11
   completed_phases: 7
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-23)
 
 **Core value:** Accurately parsing, splitting, and categorizing large, disorganized scanned Arabic documents into an exact 13-category chronological folder structure without losing the context of multi-page topics.
-**Current focus:** Phase 07.4 — harden-prompt-for-document-detection-inserted
+**Current focus:** Phase 07.5 — two-pass-local-pipeline-inserted
 
 ## Session
 
@@ -55,10 +55,10 @@ See: .planning/PROJECT.md (updated 2026-06-23)
 
 ## Current Position
 
-Phase: 07.4 (harden-prompt-for-document-detection-inserted) — EXECUTING
+Phase: 07.5 (two-pass-local-pipeline-inserted) — EXECUTING
 Plan: 1 of 1
-Status: Phase complete — ready for verification
-Last activity: 2026-06-24 — Phase 07.4 execution started
+Status: Executing Phase 07.5
+Last activity: 2026-06-24 — Phase 07.5 execution started
 
 ## Operator Next Steps
 

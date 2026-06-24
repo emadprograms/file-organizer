@@ -100,22 +100,23 @@ class Pipeline:
                     if cg_image:
                         request_handler = Vision.VNImageRequestHandler.alloc().initWithCGImage_options_(cg_image, None)
                         request = Vision.VNRecognizeTextRequest.alloc().init()
-                        request.setRecognitionLanguages_(["ar"])
+                        request.setRecognitionLanguages_(["ar", "en"])
                         request.setRegionOfInterest_(Vision.CGRectMake(0.0, 0.0, 1.0, 0.1)) # Bottom 10%
                         
                         success, error = request_handler.performRequests_error_([request], None)
                         if success:
-                            for observation in request.results():
-                                top_candidate = observation.topCandidates_(1)
-                                if top_candidate:
-                                    text = top_candidate[0].string()
-                                    match = re.search(r'(\d+\s*من\s*\d+|الصفحة\s*\d+|صفحة\s*\d+)', text, re.IGNORECASE)
-                                    if match:
-                                        extracted_footer = match.group(1)
-                                        break
+                            full_text = " ".join([obs.topCandidates_(1)[0].string() for obs in request.results() if obs.topCandidates_(1)])
+                            print(f"[DEBUG OCR Page {p_idx}] FULL TEXT: {full_text}")
+                            match = re.search(r'(\d+)\s*من', full_text)
+                            if match:
+                                extracted_footer = match.group(0)
+                            else:
+                                match = re.search(r'(الصفحة|صفحة|page)[\s:]*(\d+)', full_text, re.IGNORECASE)
+                                if match:
+                                    extracted_footer = match.group(0)
                                         
                             if extracted_footer:
-                                print(f" Page {p_idx} has Arabic footer '{extracted_footer}'. Passing to LLM.")
+                                print(f" Page {p_idx} has footer '{extracted_footer}'. Passing to LLM.")
                 except Exception as e:
                     print(f"Vision OCR Error on page {p_idx}: {e}")
 

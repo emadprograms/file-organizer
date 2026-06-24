@@ -144,3 +144,55 @@ AttributeError: 'EntityResolutionMapping' object has no attribute 'mapping'
 [DEBUG] Pipeline initialized
 [DEBUG] Processing path: C:/Users/Emad/Documents/Safra C/1265.pdf
 [DEBUG] Calling pipeline.process_pdf
+
+[DEBUG] _execute started with /Volumes/Micron-E 0256 A/From Office/Safra C/508.pdf
+[DEBUG] imports successful
+[DEBUG] Outer exception: No API keys provided and GEMINI_API_KEYS not found in environment.
+Traceback (most recent call last):
+  File "/Users/emadarshadalam/Documents/GitHub/File-Categorizer/src/gui.py", line 138, in _execute
+    pipeline = Pipeline(api_keys=api_keys, telemetry_queue=self.telemetry_queue)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/emadarshadalam/Documents/GitHub/File-Categorizer/src/pipeline.py", line 22, in __init__
+    self.client = GemmaClient(api_keys, delay_between_pages, telemetry_queue=telemetry_queue)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/emadarshadalam/Documents/GitHub/File-Categorizer/src/llm.py", line 52, in __init__
+    raise ValueError("No API keys provided and GEMINI_API_KEYS not found in environment.")
+ValueError: No API keys provided and GEMINI_API_KEYS not found in environment.
+
+[DEBUG] Finally block
+
+[DEBUG] _execute started with /Volumes/Micron-E 0256 A/From Office/Safra C/508.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: /Volumes/Micron-E 0256 A/From Office/Safra C/508.pdf
+[DEBUG] Calling pipeline.process_pdf
+
+[DEBUG] _execute started with /Volumes/Micron-E 0256 A/From Office/Safra C/510.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: /Volumes/Micron-E 0256 A/From Office/Safra C/510.pdf
+[DEBUG] Calling pipeline.process_pdf
+
+[DEBUG] _execute started with /Volumes/Micron-E 0256 A/From Office/Safra C/508.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: /Volumes/Micron-E 0256 A/From Office/Safra C/508.pdf
+[DEBUG] Calling pipeline.process_pdf
+
+[DEBUG] _execute started with /Users/emadarshadalam/Documents/GitHub/File-Categorizer/510.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: /Users/emadarshadalam/Documents/GitHub/File-Categorizer/510.pdf
+[DEBUG] Calling pipeline.process_pdf
+
+[DEBUG] _execute started with /Users/emadarshadalam/Documents/GitHub/File-Categorizer/510.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: /Users/emadarshadalam/Documents/GitHub/File-Categorizer/510.pdf
+[DEBUG] Calling pipeline.process_pdf
+
+[DEBUG] _execute started with /Volumes/Micron-E 0256 A/From Office/Safra C/510.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: /Volumes/Micron-E 0256 A/From Office/Safra C/510.pdf
+[DEBUG] Calling pipeline.process_pdf
