@@ -4,16 +4,16 @@ milestone: v1.2
 milestone_name: Core Stabilization & Logic Overhaul
 current_phase: 07.2
 status: completed
-stopped_at: Phase 07.3 planned
-last_updated: "2026-06-24T21:40:48.956Z"
+stopped_at: Phase 7.4 context gathered
+last_updated: "2026-06-24T22:04:39.382Z"
 last_activity: 2026-06-24
 last_activity_desc: Phase 07.2 marked complete
 progress:
-  total_phases: 8
+  total_phases: 9
   completed_phases: 4
   total_plans: 6
   completed_plans: 4
-  percent: 50
+  percent: 44
 current_phase_name: improve-multi-page-correspondence-processing-via-arabic-foot
 ---
 
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-06-23)
 
 ## Session
 
-**Last session:** 2026-06-24T21:40:48.946Z
-**Stopped at:** Phase 07.3 planned
-**Resume file:** .planning/phases/07.3-improve-multi-page-correspondence-processing-via-arabic-foot/07.3-PLAN.md
+**Last session:** 2026-06-24T22:04:39.373Z
+**Stopped at:** Phase 7.4 context gathered
+**Resume file:** .planning/phases/07.4-harden-prompt-for-document-detection-inserted/07.4-CONTEXT.md
 
 ## Accumulated Context
 
