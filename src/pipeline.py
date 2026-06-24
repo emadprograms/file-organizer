@@ -202,6 +202,8 @@ class Pipeline:
                     words_candidate = set(candidate.split())
                     if len(words_current.intersection(words_candidate)) >= min(2, len(words_current), len(words_candidate)):
                         page_primary_tenant = current_primary_tenant
+                    elif self.client.check_name_match(current_primary_tenant, candidate, page.category.value):
+                        page_primary_tenant = current_primary_tenant
                     else:
                         page_primary_tenant = candidate
                 else:
@@ -220,6 +222,9 @@ class Pipeline:
                             if len(words_current.intersection(words_candidate)) >= min(2, len(words_current), len(words_candidate)):
                                 matched = True
                                 break
+                            elif self.client.check_name_match(current_primary_tenant, candidate, page.category.value):
+                                matched = True
+                                break
                         if matched:
                             page_primary_tenant = current_primary_tenant
                         else:
@@ -236,6 +241,8 @@ class Pipeline:
                         words_current = set(current_primary_tenant.split())
                         words_candidate = set(candidate.split())
                         if len(words_current.intersection(words_candidate)) >= min(2, len(words_current), len(words_candidate)):
+                            page_primary_tenant = current_primary_tenant
+                        elif self.client.check_name_match(current_primary_tenant, candidate, page.category.value):
                             page_primary_tenant = current_primary_tenant
                         else:
                             if candidate in verified_residents:

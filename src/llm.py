@@ -10,11 +10,12 @@ import base64
 import openai
 import requests
 import pydantic
+import functools
 from collections import deque
 from google import genai
 from google.genai import types
 
-from src.schemas import PageClassification, EntityResolutionMapping, Category
+from src.schemas import PageClassification, EntityResolutionMapping, Category, NameMatchResult
 
 log = logging.getLogger(__name__)
 
@@ -73,7 +74,8 @@ class GemmaClient:
         self.telemetry_queue = telemetry_queue
         self.total_requests = {key: 0 for key in self.api_keys}
 
-        self.local_client = openai.OpenAI(base_url="http://localhost:1234/v1", api_key="lm-studio")
+        local_base_url = os.getenv("LOCAL_BASE_URL", "http://localhost:11434/v1")
+        self.local_client = openai.OpenAI(base_url=local_base_url, api_key="ollama")
 
         state_file = ".rate_limit_state.json"
         if os.path.exists(state_file):
@@ -423,10 +425,11 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         system_prompt = self._build_system_prompt()
         user_prompt = "Classify this scanned document page."
         
+        local_model = os.getenv("LOCAL_MODEL_NAME", "qwen2.5vl:7b")
         try:
             base64_image = base64.b64encode(image_bytes).decode('utf-8')
             response = self.local_client.beta.chat.completions.parse(
-                model="qwen2.5-vl-7b-instruct",
+                model=local_model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {
@@ -464,6 +467,56 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 log_prefix="Fallback"
             )
             return result
+
+    @functools.lru_cache(maxsize=1024)
+    def check_name_match(self, name_current: str, name_candidate: str, category: str) -> bool:
+        """Semantically compare two names to determine if they refer to the same primary tenant."""
+        if not name_current or not name_candidate:
+            return False
+            
+        system_prompt = (
+            f"You are an Arabic name matching expert analyzing names from a '{category}' housing document.\n\n"
+            "CRITICAL RULES:\n"
+            "1. Ignore common Arabic prefixes like 'ال' (Al-) and titles like 'السيد' (Mr.), 'المرحوم' (The late), 'ورثة' (Heirs).\n"
+            "2. Tolerate slight spelling variations or missing middle names (e.g., 'محمد علي أحمد' and 'محمد أحمد' might be the same person).\n"
+            "3. If one name is clearly a completely different person, return false.\n"
+            "4. Provide a structured JSON response with 'is_match' (boolean) and 'reason' (string explaining why).\n"
+        )
+        user_prompt = f"Name 1: {name_current}\nName 2: {name_candidate}\n\nDo these names semantically refer to the same person?"
+        
+        local_model = os.getenv("LOCAL_MODEL_NAME", "qwen2.5vl:7b")
+        try:
+            response = self.local_client.beta.chat.completions.parse(
+                model=local_model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                response_format=NameMatchResult,
+                temperature=0.0
+            )
+            if response.choices[0].message.parsed:
+                return response.choices[0].message.parsed.is_match
+            else:
+                raise openai.OpenAIError("Parsed response is None")
+        except (openai.OpenAIError, requests.exceptions.RequestException, pydantic.ValidationError, ConnectionError, TimeoutError) as e:
+            print(f"[Local Inference Failed] Falling back to gemini-4-26b for name match. Error: {e}")
+            contents = [
+                system_prompt,
+                user_prompt
+            ]
+            try:
+                result = self._route_llm_call(
+                    model='gemini-4-26b',
+                    contents=contents,
+                    response_schema=NameMatchResult,
+                    log_prefix="NameMatch Fallback",
+                    max_attempts=3
+                )
+                return result.is_match
+            except Exception as gemini_err:
+                print(f"[Gemini Fallback Failed] {gemini_err}")
+                return False
 
     def resolve_entities(self, raw_pages_log: str) -> dict[str, str]:
         system_prompt = (

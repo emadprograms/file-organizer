@@ -57,3 +57,8 @@ class NameMapping(BaseModel):
 class EntityResolutionMapping(BaseModel):
     """Schema for mapping raw extracted names to a Canonical Primary Tenant."""
     mapping_list: list[NameMapping] = Field(description="List of raw extracted name to canonical name mappings")
+
+class NameMatchResult(BaseModel):
+    """Structured output for semantic name matching."""
+    is_match: bool = Field(description="True if the names semantically refer to the same person, False otherwise")
+    reason: str = Field(description="The reasoning for the decision")
