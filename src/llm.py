@@ -395,7 +395,7 @@ Classify this page into exactly ONE of the following 13 categories:
 6. ewa_related_letters — رسائل الكهرباء والماء (EWA electricity/water letters. Strong pattern: Contains a meter number, such as 'الوحدة السكنية رقم' or similar.)
 7. rent_deduction — خصم الإيجار (Rent deduction notices or records. STRICT DEFINITION: Rent deduction letters will ALWAYS contain "30 bd" or "60 bd". Use this presence/absence to strictly disambiguate from Allowance Deduction.)
 8. allowance_deduction — خصم العلاوة (Allowance deduction notices. Strong pattern: Subject is 'الموضوع: وقف استقطاع بدل الانتفاع'. Will NOT have "30 bd" or "60 bd" written on it.)
-9. notifications — الإشعارات (General notifications, warnings. Strong pattern: Contains the word 'إشعار' or 'اشعار'. Do NOT use this for allocation orders.)
+9. notifications — الإشعارات (General notifications, warnings, home eviction notices. Strong pattern: Contains the word 'إشعار' or 'اشعار', or mentions home eviction. Do NOT use this for allocation orders.)
 10. maintenance — الصيانة (Maintenance requests, reports, work orders. Strong pattern: Sender or receiver is 'إدارة الأشغال' (idara ashgal), or it is a yellow paper with inspection details, or ANY mention of "inspection" goes to maintenance.)
 11. pictures — الصور (Photographs of the property)
 12. modifications — التعديلات (Modification requests or approvals. Strong pattern: Subject contains 'طلب' (talab) and mentions modifying the house.)
