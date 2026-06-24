@@ -4,9 +4,9 @@ milestone: v1.2
 milestone_name: Core Stabilization & Logic Overhaul
 current_phase: 6
 current_phase_name: Core Grouping & Timeline Logic
-status: ready to plan
+status: executing
 stopped_at: Phase 6 context gathered
-last_updated: "2026-06-23T20:15:52.827Z"
+last_updated: "2026-06-24T04:02:33.809Z"
 last_activity: 2026-06-23
 last_activity_desc: Phase 05-arabic-formatting-llm-accuracy complete, transitioned to Phase 6
 progress:
@@ -50,7 +50,7 @@ See: .planning/PROJECT.md (updated 2026-06-23)
 
 Phase: 6 — Core Grouping & Timeline Logic
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-06-23 — Phase 05-arabic-formatting-llm-accuracy complete, transitioned to Phase 6
 
 ## Operator Next Steps
