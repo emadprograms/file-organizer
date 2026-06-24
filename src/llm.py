@@ -1,3 +1,4 @@
+import concurrent.futures
 import os
 import time
 import json
@@ -228,14 +229,14 @@ class GemmaClient:
                     print(f"[Rate Limit Guard] Key penalized for {penalty:.1f}s due to Token Limit (Strike {strikes}).")
                 else:
                     print(f"[Rate Limit Guard] Key penalized for {penalty:.1f}s due to 429/RequestLimit (Strike {strikes}).")
-                    # CRITICAL FIX: Google's IP sliding window tracks ALL requests (even 429s).
-                    # We must fully stop ALL keys from firing to let the window flush.
-                    GemmaClient.global_cooldown_until = max(GemmaClient.global_cooldown_until, now + 65.0)
-                    self._save_state()
             else:
                 print(f"[Rate Limit Guard] Key penalized for {penalty:.1f}s due to Server Error (Strike {strikes}).")
                 
             self.cooldown_keys[key] = now + penalty
+            # CRITICAL FIX: Google tracks the IP for all errors (429s, 503s, Timeouts).
+            # We must enforce the penalty globally to let the IP flush before picking the next key.
+            GemmaClient.global_cooldown_until = max(GemmaClient.global_cooldown_until, now + penalty)
+            self._save_state()
             self._push_telemetry()
 
     def _report_success(self, key: str):
@@ -243,6 +244,131 @@ class GemmaClient:
             if self.key_strikes[key] > 0:
                 self.key_strikes[key] = 0
             self._push_telemetry()
+
+    def _route_llm_call(self, model: str, contents: list, response_schema: type, log_prefix: str = "Retry", max_attempts: int = None) -> any:
+        attempts = 0
+        if max_attempts is None:
+            max_attempts = max(7, len(self.api_keys) * 2)
+        invalid_retries = 0
+        
+        while attempts < max_attempts:
+            attempts += 1
+            client, key, reserve_time = self._get_client_and_key(estimated_tokens=3000)
+            start_time = time.time()
+            used_tokens = 0
+            
+            try:
+                executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+                future = executor.submit(
+                    client.models.generate_content,
+                    model=model,
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=response_schema,
+                        temperature=0
+                    )
+                )
+                try:
+                    response = future.result(timeout=90)
+                except concurrent.futures.TimeoutError:
+                    raise TimeoutError("LLM API call hung and timed out after 90 seconds.")
+                finally:
+                    # Do not wait for the hung thread
+                    executor.shutdown(wait=False)
+
+                latency_ms = int((time.time() - start_time) * 1000)
+                used_tokens = 3000
+                if hasattr(response, "usage_metadata") and response.usage_metadata:
+                    used_tokens = response.usage_metadata.total_token_count
+                
+                self._reconcile_usage(key, reserve_time, used_tokens)
+                
+                if response.parsed is not None:
+                    result = response.parsed
+                else:
+                    try:
+                        text = response.text.strip()
+                        json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
+                        if json_match:
+                            text = json_match.group(1)
+                        data = json.loads(text)
+                        result = response_schema(**data)
+                    except (json.JSONDecodeError, Exception) as parse_err:
+                        raw_preview = ""
+                        try:
+                            if hasattr(response, "text") and response.text:
+                                raw_preview = response.text[:200]
+                            elif hasattr(response, "candidates") and response.candidates and response.candidates[0].finish_reason:
+                                raw_preview = f"<Finish reason: {response.candidates[0].finish_reason}>"
+                        except ValueError:
+                            raw_preview = "<ValueError reading response.text>"
+                        
+                        print(f"JSON PARSE ERROR. Raw text preview: {raw_preview}")
+                        raise InvalidResponseError(raw_preview)
+
+                telemetry_logger.info({
+                    "timestamp": time.time(),
+                    "key_index": self.api_keys.index(key),
+                    "latency_ms": latency_ms,
+                    "tokens_used": used_tokens,
+                    "status_code": 200,
+                    "error_type": "none"
+                })
+
+                self._report_success(key)
+                return result
+
+            except Exception as e:
+                error_str = str(e).lower()
+                is_429 = "429" in error_str or "too many requests" in error_str or "quota" in error_str or "resource exhausted" in error_str
+                is_token_limit = "token" in error_str and is_429
+                is_5xx = "500" in error_str or "503" in error_str or "internal error" in error_str
+                is_invalid = "invalidresponseerror" in error_str or isinstance(e, InvalidResponseError)
+                
+                latency_ms = int((time.time() - start_time) * 1000)
+                
+                error_type = "unknown"
+                if is_429:
+                    error_type = "token_limit" if is_token_limit else "request_limit"
+                elif is_5xx:
+                    error_type = "server_error"
+                elif is_invalid:
+                    error_type = "model_refusal"
+                
+                raw_preview = str(e) if is_invalid else ""
+                
+                log_payload = {
+                    "timestamp": time.time(),
+                    "key_index": self.api_keys.index(key),
+                    "latency_ms": latency_ms,
+                    "tokens_used": used_tokens if is_invalid else 0,
+                    "status_code": 429 if is_429 else (500 if is_5xx else 400),
+                    "error_type": error_type
+                }
+                if is_invalid:
+                    log_payload["raw_preview"] = raw_preview
+                    
+                telemetry_logger.error(log_payload)
+                
+                print(f"[{log_prefix} {attempts}/{max_attempts}] LLM call failed: {e}")
+                
+                if is_invalid:
+                    invalid_retries += 1
+                    if invalid_retries >= 2:
+                        raise InvalidResponseError(raw_preview)
+                
+                if is_429 or is_5xx or is_invalid:
+                    self._report_failure(key, is_429=is_429, is_token_limit=is_token_limit)
+                    if attempts == max_attempts:
+                        raise LLMFailureError(f"Max retries reached. Last error: {error_str}")
+                    time.sleep(7.5)
+                    continue
+                else:
+                    if attempts == max_attempts:
+                        raise e
+                    self._report_failure(key, is_429=False)
+                    continue
 
     def _build_system_prompt(self) -> str:
         return """You are an Arabic document classification expert analyzing scanned housing files from the Bahrain/Gulf region.
@@ -291,320 +417,151 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         system_prompt = self._build_system_prompt()
         user_prompt = "Classify this scanned document page."
         
-        attempts = 0
-        max_attempts = max(7, len(self.api_keys) * 2)
-        invalid_retries = 0
+        contents = [
+            system_prompt,
+            user_prompt,
+            types.Part.from_bytes(data=image_bytes, mime_type='image/png')
+        ]
         
-        while attempts < max_attempts:
-            attempts += 1
-            client, key, reserve_time = self._get_client_and_key(estimated_tokens=3000)
-            start_time = time.time()
-            used_tokens = 0
+        result = self._route_llm_call(
+            model='gemma-4-26b-a4b-it',
+            contents=contents,
+            response_schema=PageClassification,
+            log_prefix="Retry"
+        )
+        
+        if ((not result.residents or result.residents == ["NONE"])
+                and result.category.value not in self.NONE_EXPECTED_CATEGORIES):
+            retry_prompt = (
+                "Classify this scanned document page.\n\n"
+                "WARNING: You previously returned NONE for the resident name, "
+                "but this document category usually has a named person. "
+                "Look VERY carefully at every part of the page — headers, "
+                "footers, address blocks, body text, stamps, and signatures — "
+                "for any Arabic or English name. Extract the FULL name with "
+                "all 4-5 parts if possible."
+            )
+            retry_contents = [
+                system_prompt,
+                retry_prompt,
+                types.Part.from_bytes(data=image_bytes, mime_type='image/png')
+            ]
             
             try:
-                response = client.models.generate_content(
-                    model='gemma-4-26b-a4b-it',
-                    contents=[
-                        system_prompt,
-                        user_prompt,
-                        types.Part.from_bytes(data=image_bytes, mime_type='image/png')
-                    ],
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        response_schema=PageClassification,
-                        temperature=0
-                    )
+                retry_result = self._route_llm_call(
+                    model='gemini-2.5-flash',
+                    contents=retry_contents,
+                    response_schema=PageClassification,
+                    log_prefix="'Look Harder' Retry",
+                    max_attempts=3
                 )
-
-                latency_ms = int((time.time() - start_time) * 1000)
-                used_tokens = 3000
-                if hasattr(response, "usage_metadata") and response.usage_metadata:
-                    used_tokens = response.usage_metadata.total_token_count
                 
-                self._reconcile_usage(key, reserve_time, used_tokens)
+                if retry_result.residents and retry_result.residents != ["NONE"]:
+                    result = retry_result
+            except LLMFailureError as e:
+                print(f"['Look Harder' Failed] Falling back to original result. Error: {e}")
+
+        ANCHOR_CATEGORIES = ["basic_details", "key_handover_form", "contract", "amar_takhsees"]
+        if result.category.value in ANCHOR_CATEGORIES:
+            verify_prompt = (
+                "Classify this scanned document page.\n\n"
+                f"WARNING: You previously classified this as '{result.category.value}'. "
+                "This is an 'Anchor Document' that creates a new resident folder. "
+                "Are you absolutely certain? House inspection checklists and photos MUST be 'pictures'. "
+                "General letters MUST be 'other_letters'. "
+                "Re-evaluate the image carefully. Return the true category and ensure the resident name is perfect."
+            )
+            v_contents = [
+                system_prompt,
+                verify_prompt,
+                types.Part.from_bytes(data=image_bytes, mime_type='image/png')
+            ]
+            
+            try:
+                v_result = self._route_llm_call(
+                    model='gemini-2.5-flash',
+                    contents=v_contents,
+                    response_schema=PageClassification,
+                    log_prefix="Anchor Verification Retry (gemini-2.5-flash)",
+                    max_attempts=2
+                )
                 
-                if response.parsed is not None:
-                    result = response.parsed
-                else:
-                    try:
-                        text = response.text.strip()
-                        if text.startswith("```"):
-                            text = re.sub(r"^```(?:json)?\s*", "", text)
-                            text = re.sub(r"\s*```$", "", text)
-                        data = json.loads(text)
-                        result = PageClassification(**data)
-                    except (json.JSONDecodeError, Exception) as parse_err:
-                        raw_preview = ""
-                        try:
-                            if hasattr(response, "text") and response.text:
-                                raw_preview = response.text[:200]
-                            elif hasattr(response, "candidates") and response.candidates and response.candidates[0].finish_reason:
-                                raw_preview = f"<Finish reason: {response.candidates[0].finish_reason}>"
-                        except ValueError:
-                            raw_preview = "<ValueError reading response.text>"
-                        
-                        print(f"JSON PARSE ERROR (classify). Raw text preview: {raw_preview}")
-                        raise InvalidResponseError(raw_preview)
-
-                telemetry_logger.info({
-                    "timestamp": time.time(),
-                    "key_index": self.api_keys.index(key),
-                    "latency_ms": latency_ms,
-                    "tokens_used": used_tokens,
-                    "status_code": 200,
-                    "error_type": "none"
-                })
-
-                if ((not result.residents or result.residents == ["NONE"])
-                        and result.category.value not in self.NONE_EXPECTED_CATEGORIES):
-                    retry_prompt = (
-                        "Classify this scanned document page.\n\n"
-                        "WARNING: You previously returned NONE for the resident name, "
-                        "but this document category usually has a named person. "
-                        "Look VERY carefully at every part of the page — headers, "
-                        "footers, address blocks, body text, stamps, and signatures — "
-                        "for any Arabic or English name. Extract the FULL name with "
-                        "all 4-5 parts if possible."
+                result = v_result
+            except LLMFailureError as e:
+                print(f"[Anchor Verification Failed] Falling back for verification...")
+                try:
+                    v_result = self._route_llm_call(
+                        model='gemini-2.5-flash',
+                        contents=v_contents,
+                        response_schema=PageClassification,
+                        log_prefix="Anchor Verification Fallback (gemini-2.5-flash)",
+                        max_attempts=2
                     )
-                    
-                    look_harder_attempts = 0
-                    while look_harder_attempts < 3:
-                        look_harder_attempts += 1
-                        retry_client, retry_key, retry_reserve_time = self._get_client_and_key(estimated_tokens=3000)
-                        retry_start = time.time()
-                        try:
-                            retry_response = retry_client.models.generate_content(
-                                model='gemma-4-26b-a4b-it',
-                                contents=[
-                                    system_prompt,
-                                    retry_prompt,
-                                    types.Part.from_bytes(data=image_bytes, mime_type='image/png')
-                                ],
-                                config=types.GenerateContentConfig(
-                                    response_mime_type="application/json",
-                                    response_schema=PageClassification,
-                                    temperature=0
-                                )
-                            )
-                            retry_used_tokens = 3000
-                            if hasattr(retry_response, "usage_metadata") and retry_response.usage_metadata:
-                                retry_used_tokens = retry_response.usage_metadata.total_token_count
-                                
-                            self._reconcile_usage(retry_key, retry_reserve_time, retry_used_tokens)
-                            
-                            telemetry_logger.info({
-                                "timestamp": time.time(),
-                                "key_index": self.api_keys.index(retry_key),
-                                "latency_ms": int((time.time() - retry_start) * 1000),
-                                "tokens_used": retry_used_tokens,
-                                "status_code": 200,
-                                "error_type": "none"
-                            })
+                    result = v_result
+                except LLMFailureError as e2:
+                    print(f"[Anchor Verification Failed] Falling back to original result. Error: {e2}")
 
-                            if retry_response.parsed is not None:
-                                retry_result = retry_response.parsed
-                            else:
-                                text = retry_response.text.strip()
-                                if text.startswith("```"):
-                                    text = re.sub(r"^```(?:json)?\s*", "", text)
-                                    text = re.sub(r"\s*```$", "", text)
-                                retry_data = json.loads(text)
-                                retry_result = PageClassification(**retry_data)
-
-                            if retry_result.residents and retry_result.residents != ["NONE"]:
-                                result = retry_result
-                                
-                            self._report_success(retry_key)
-                            break
-                        except Exception as e:
-                            error_str = str(e).lower()
-                            is_429 = "429" in error_str or "too many requests" in error_str or "quota" in error_str or "resource exhausted" in error_str
-                            is_token_limit = "token" in error_str and is_429
-                            is_5xx = "500" in error_str or "503" in error_str or "internal error" in error_str
-                            is_invalid = "invalidresponseerror" in error_str or isinstance(e, InvalidResponseError)
-                            
-                            error_type = "unknown"
-                            if is_429:
-                                error_type = "token_limit" if is_token_limit else "request_limit"
-                            elif is_5xx:
-                                error_type = "server_error"
-                            elif is_invalid:
-                                error_type = "invalid_response"
-                            
-                            telemetry_logger.error({
-                                "timestamp": time.time(),
-                                "key_index": self.api_keys.index(retry_key),
-                                "latency_ms": int((time.time() - retry_start) * 1000),
-                                "tokens_used": 0,
-                                "status_code": 429 if is_429 else (500 if is_5xx else 400),
-                                "error_type": error_type
-                            })
-                            
-                            print(f"['Look Harder' Retry {look_harder_attempts}/3] call failed: {e}")
-                            
-                            if is_429 or is_5xx or is_invalid:
-                                self._report_failure(retry_key, is_429=is_429, is_token_limit=is_token_limit)
-                                continue
-                            else:
-                                self._report_failure(retry_key, is_429=False)
-                                break
-
-                self._report_success(key)
-                return result
-
-            except Exception as e:
-                error_str = str(e).lower()
-                is_429 = "429" in error_str or "too many requests" in error_str or "quota" in error_str or "resource exhausted" in error_str
-                is_token_limit = "token" in error_str and is_429
-                is_5xx = "500" in error_str or "503" in error_str or "internal error" in error_str
-                is_invalid = "invalidresponseerror" in error_str or isinstance(e, InvalidResponseError)
-                
-                latency_ms = int((time.time() - start_time) * 1000)
-                
-                error_type = "unknown"
-                if is_429:
-                    error_type = "token_limit" if is_token_limit else "request_limit"
-                elif is_5xx:
-                    error_type = "server_error"
-                elif is_invalid:
-                    error_type = "model_refusal"
-                
-                raw_preview = str(e) if is_invalid else ""
-                
-                log_payload = {
-                    "timestamp": time.time(),
-                    "key_index": self.api_keys.index(key),
-                    "latency_ms": latency_ms,
-                    "tokens_used": used_tokens if is_invalid else 0,
-                    "status_code": 429 if is_429 else (500 if is_5xx else 400),
-                    "error_type": error_type
-                }
-                if is_invalid:
-                    log_payload["raw_preview"] = raw_preview
-                    
-                telemetry_logger.error(log_payload)
-                
-                print(f"[Retry {attempts}/{max_attempts}] LLM call failed: {e}")
-                
-                if is_invalid:
-                    invalid_retries += 1
-                    if invalid_retries >= 2:
-                        raise InvalidResponseError(raw_preview)
-                
-                if is_429 or is_5xx or is_invalid:
-                    self._report_failure(key, is_429=is_429, is_token_limit=is_token_limit)
-                    if attempts == max_attempts:
-                        raise LLMFailureError(f"Max retries reached. Last error: {error_str}")
-                    continue
-                else:
-                    if attempts == max_attempts:
-                        raise e
-                    self._report_failure(key, is_429=False)
-                    continue
+        return result
 
     def resolve_entities(self, raw_pages_log: str) -> dict[str, str]:
         system_prompt = (
             "You are an Arabic document classification expert analyzing a chronological log of documents "
             "[Category, Name, Date] for a single house.\n\n"
-            "1. Identify the Primary Tenants (Head of Household).\n"
-            "2. Map all English/Arabic/abbreviated variations into one Canonical Name.\n"
-            "3. Identify family members (wives, children) who appear in the log, but retain their distinct identities instead of merging them to the Primary Tenant's name.\n"
+            "Your task is to resolve ALL unique tenant/resident names mentioned across the files into canonical 'Primary Resident' names.\n"
+            "There may be multiple generations (father, then son inherits) or multiple separate rentals over time.\n\n"
             "CRITICAL RULES:\n"
-            "- You MUST return a mapping for EVERY UNIQUE exact raw string found in the log, character-for-character.\n"
-            "- Do NOT output duplicate mappings for the same raw string. Output the JSON mapping once per UNIQUE raw name.\n"
-            "- Normalize spelling errors for family members, but map them to their OWN canonical name, NOT the Primary Tenant's name.\n"
-            "- ALL English transliterations MUST be mapped to their respective primary Arabic name!\n"
-            "Return the JSON mapping using the EntityResolutionMapping schema."
+            "1. Identify the 'Primary Tenants' who signed the contracts or handover forms.\n"
+            "2. Group all variations of a name (e.g., 'محمد علي' and 'المرحوم محمد علي') under the most complete canonical name.\n"
+            "3. Spouses and children (e.g., 'آمنة (زوجة)') MUST be mapped to the Primary Tenant of their era! Do NOT make them their own separate entity.\n"
+            "4. Return a JSON object mapping EVERY EXACT RAW NAME to its canonical Primary Tenant name.\n\n"
+            "Example Output:\n"
+            "{\n"
+            "  \"محمد علي أحمد\": \"محمد علي أحمد\",\n"
+            "  \"محمد علي\": \"محمد علي أحمد\",\n"
+            "  \"آمنة (زوجة)\": \"محمد علي أحمد\",\n"
+            "  \"أحمد محمد علي\": \"أحمد محمد علي\"\n"
+            "}"
         )
-        user_prompt = f"Here is the document log:\n{raw_pages_log}\n\nPlease resolve the entities."
+        user_prompt = f"Resolve the following document log:\n\n{raw_pages_log}"
+        system_prompt += "\n\nCRITICAL: Output valid JSON exactly in this structure: {\"mapping_list\": [{\"raw_name\": \"...\", \"canonical_name\": \"...\"}]}"
         
-        attempts = 0
-        max_attempts = max(7, len(self.api_keys) * 2)
+        api_key = os.getenv("DEEPSEEK_API_KEY")
+        if not api_key:
+            raise Exception("DEEPSEEK_API_KEY not found in environment!")
+            
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
         
-        while attempts < max_attempts:
-            attempts += 1
-            client, key, reserve_time = self._get_client_and_key(estimated_tokens=5000)
-            start_time = time.time()
-
+        payload = {
+            "model": "deepseek-chat",
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            "response_format": {"type": "json_object"},
+            "temperature": 0.0
+        }
+        
+        import requests
+        import json
+        
+        for attempt in range(1, 10):
             try:
-                response = client.models.generate_content(
-                    model='gemma-4-31b-it',
-                    contents=[system_prompt, user_prompt],
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        response_schema=EntityResolutionMapping,
-                        temperature=0
-                    )
-                )
+                response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=payload, timeout=60)
+                response.raise_for_status()
+                data = response.json()
+                content = data["choices"][0]["message"]["content"]
+                parsed = json.loads(content)
                 
-                latency_ms = int((time.time() - start_time) * 1000)
-                used_tokens = 5000
-                if hasattr(response, "usage_metadata") and response.usage_metadata:
-                    used_tokens = response.usage_metadata.total_token_count
-                
-                self._reconcile_usage(key, reserve_time, used_tokens)
-                
-                telemetry_logger.info({
-                    "timestamp": time.time(),
-                    "key_index": self.api_keys.index(key),
-                    "latency_ms": latency_ms,
-                    "tokens_used": used_tokens,
-                    "status_code": 200,
-                    "error_type": "none"
-                })
-
-                if response.parsed is not None:
-                    result = response.parsed
-                else:
-                    try:
-                        text = response.text.strip()
-                        if text.startswith("```"):
-                            text = re.sub(r"^```(?:json)?\s*", "", text)
-                            text = re.sub(r"\s*```$", "", text)
-                        data = json.loads(text)
-                        result = EntityResolutionMapping(**data)
-                    except (json.JSONDecodeError, Exception) as parse_err:
-                        print(f"JSON PARSE ERROR (resolve_entities). Raw text was: {response.text}")
-                        raise InvalidResponseError(f"Failed to parse LLM response: {type(parse_err).__name__}")
-
-                self._report_success(key)
-                return {item.raw_name: item.canonical_name for item in result.mapping_list}
-
+                mapping_dict = {}
+                for item in parsed.get("mapping_list", []):
+                    mapping_dict[item["raw_name"]] = item["canonical_name"]
+                return mapping_dict
             except Exception as e:
-                error_str = str(e).lower()
-                is_429 = "429" in error_str or "too many requests" in error_str or "quota" in error_str or "resource exhausted" in error_str
-                is_token_limit = "token" in error_str and is_429
-                is_5xx = "500" in error_str or "503" in error_str or "internal error" in error_str
-                is_invalid = "invalidresponseerror" in error_str or isinstance(e, InvalidResponseError)
+                print(f"[DeepSeek Retry {attempt}/10] Failed: {e}")
+                time.sleep(5)
                 
-                latency_ms = int((time.time() - start_time) * 1000)
-                
-                error_type = "unknown"
-                if is_429:
-                    error_type = "token_limit" if is_token_limit else "request_limit"
-                elif is_5xx:
-                    error_type = "server_error"
-                elif is_invalid:
-                    error_type = "invalid_response"
-                
-                telemetry_logger.error({
-                    "timestamp": time.time(),
-                    "key_index": self.api_keys.index(key),
-                    "latency_ms": latency_ms,
-                    "tokens_used": 0,
-                    "status_code": 429 if is_429 else (500 if is_5xx else 400),
-                    "error_type": error_type
-                })
-                
-                print(f"[Retry {attempts}/{max_attempts}] LLM resolution call failed: {e}")
-                
-                if is_429 or is_5xx or is_invalid:
-                    self._report_failure(key, is_429=is_429, is_token_limit=is_token_limit)
-                    if attempts == max_attempts:
-                        raise LLMFailureError(f"Max retries reached. Last error: {error_str}")
-                    continue
-                else:
-                    if attempts == max_attempts:
-                        raise e
-                    self._report_failure(key, is_429=False)
-                    continue
+        raise Exception("DeepSeek failed after 10 attempts.")
+

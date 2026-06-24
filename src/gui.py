@@ -26,7 +26,7 @@ class PrintLogger:
         pass
 
 class FileCategorizerApp:
-    def __init__(self, root):
+    def __init__(self, root, auto_run_file=None):
         self.root = root
         self.root.title("File Categorizer")
         self.root.geometry("600x500")
@@ -51,6 +51,11 @@ class FileCategorizerApp:
         sys.stdout = self.logger
 
         self.poll_telemetry()
+
+        if auto_run_file:
+            self.pdf_entry.insert(0, auto_run_file)
+            self.output_entry.insert(0, os.path.dirname(os.path.abspath(auto_run_file)) or os.getcwd())
+            self.root.after(500, self.run_pipeline)
 
     def setup_tab1(self):
         root = self.tab1
@@ -211,7 +216,8 @@ class FileCategorizerApp:
 
 def launch_gui():
     root = tk.Tk()
-    app = FileCategorizerApp(root)
+    auto_file = sys.argv[1] if len(sys.argv) > 1 else None
+    app = FileCategorizerApp(root, auto_run_file=auto_file)
     root.protocol("WM_DELETE_WINDOW", app.on_closing)
     root.mainloop()
 

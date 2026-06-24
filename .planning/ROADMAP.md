@@ -45,7 +45,39 @@ This roadmap breaks down the stabilization and refactoring goals into safe, test
 5. ID cards (`PERSONAL_DETAILS`) at the front of a file properly initialize a timeline instead of being permanently orphaned to the fallback folder.
 6. Non-anchor documents (e.g., Notifications) are placed in the specific recipient's folder rather than being forced into the primary tenant's folder.
 
-## Phase 7: OS, File I/O, and UI Stabilization
+## Phase 7: Local Pass 1 Inference via Mac Mini M4
+
+**Goal:** Drastically speed up the slowest bottleneck (Pass 1 Vision Extraction) and completely bypass Google API rate limits by moving the operation locally onto the Mac Mini M4 (16GB) using Qwen2-VL-7B-Instruct.
+
+**Requirements Mapped:**
+- `PERF-01`: Bypassing Cloud Rate Limits
+- `PERF-02`: Zero-Cost Inference
+- `ARCH-01`: Local MLX / llama.cpp Server Integration
+- `ARCH-02`: Hardware-Accelerated Metal Processing
+
+**Success Criteria:**
+1. Setup a local server (via LM Studio, Ollama, or llama.cpp) running the quantized `Qwen2-VL-7B-Instruct` model on the Mac Mini.
+2. Update the `src/llm.py` API router to point base Pass 1 extraction requests to the `http://localhost:.../v1` endpoint mimicking OpenAI's API.
+3. Verify that the local model accurately reads Arabic from scanned PDFs without throwing out-of-memory (OOM) errors.
+4. Measure and confirm that the local execution drastically reduces total processing time for the batch since there is no `global_cooldown` or `503 UNAVAILABLE` network throttling on Pass 1.
+
+## Phase 8: Output Quality Review & Refinement
+
+**Goal:** Analyze the output of the newly localized/optimized pipeline to identify classification mistakes, extraction anomalies, and grouping errors, and systematically implement fixes to improve overall accuracy.
+
+**Requirements Mapped:**
+- `QUAL-01`: Manual Output Audit & Error Logging
+- `QUAL-02`: Edge-Case Discussion & Triage
+- `QUAL-03`: Iterative Logic Refinement
+- `QUAL-04`: Regression Testing
+
+**Success Criteria:**
+1. Review generated folders and identify specific instances where the LLM or Timeline grouping made a mistake.
+2. Discuss the root cause of these mistakes with the User to determine the optimal fix (e.g., Prompt engineering, Python logic tweak, or OCR preprocessing).
+3. Implement the fixes without breaking previously working edge cases.
+4. Achieve a visually flawless output structure on the test batch.
+
+## Phase 9: OS, File I/O, and UI Stabilization
 
 **Goal:** Prevent data corruption, crashes, and OS locks by fixing how the system handles files, directories, and background telemetry.
 
