@@ -84,6 +84,7 @@ Plans:
 
 **Goal:** Modify Pass 1 to still call the LLM on every page, but pass any detected OCR pagination (e.g. "1 من 10") into the prompt so the LLM can make an informed decision on whether the page is a continuation, rather than blindly skipping pages.
 **Requirements:**
+
 - Do not skip the LLM execution for pages with footers.
 - Use local Mac OCR to detect the footer.
 - Pass the detected footer string to the LLM prompt.
@@ -215,5 +216,3 @@ Plans:
 4. Users can successfully delete or move the input PDF immediately after processing (no PyMuPDF file locks).
 5. Running the pipeline multiple times on the same house safely merges files instead of `rmtree` wiping the folder.
 6. Hallucinated line breaks in resident names are stripped and do not crash the OS `makedirs` call.
-
-
