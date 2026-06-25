@@ -21,9 +21,9 @@ def test_prompt_contains_conflict_resolution_rules():
     assert "higher authority" in prompt.lower() or "someone important" in prompt.lower(), "Missing Amar Takhsees strict definition."
     assert "do not classify random documents" in prompt.lower(), "Missing false positive penalty for Amar Takhsees."
 
-    # 3. Eviction Notices Conflict
-    assert "home eviction" in prompt.lower() or "eviction" in prompt.lower(), "Missing eviction notice classification rule."
-    assert "not in other_letters" in prompt.lower() or "not in other letters" in prompt.lower(), "Missing exclusion of eviction from other_letters."
+    # 3. Notifications / Eviction / Vacating Conflict
+    assert "eviction" in prompt.lower() or "vacating" in prompt.lower(), "Missing eviction/vacating classification rule."
+    assert "not in other_letters" in prompt.lower() or "not put eviction" in prompt.lower(), "Missing exclusion of vacating notices from other_letters."
 
     # 4. Basic Details vs Personal Details vs Rent Deduction Form
     assert "form" in prompt.lower(), "Missing form dependency for basic_details."
