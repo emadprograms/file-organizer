@@ -193,6 +193,23 @@ Plans:
 
 - [x] TBD (run /gsd-plan-phase 07.5.1 to break down) (completed 2026-06-25)
 
+### Phase 07.5.2: Pass 1a Cloud-First Vision Extraction with Local Fallback (INSERTED)
+
+**Goal:** Modify Pass 1a vision extraction to run cloud-first via Gemma with robust key rotation, falling back to local `qwen2.5vl:7b` only on Pass 1a rate limits without blocking other pipeline operations.
+**Requirements**:
+
+- Implement key-cycling retry loop in `extract_page` to handle transient failures/429s across multiple keys.
+- Prevent page-by-page snapping oscillation between cloud and local modes during active cooldowns.
+- Avoid class-wide/global rate-limiting cooldown blocks that freeze non-OCR tasks like name matching or entity resolution.
+- Verify pipeline speed and accuracy on `508.pdf` (first 30 pages).
+
+**Depends on:** Phase 07.5.1
+**Plans:** 1/1 plans complete
+
+Plans:
+
+- [x] TBD (run /gsd-plan-phase 07.5.2 to break down) (completed 2026-06-25)
+
 ## Phase 8: Output Quality Review & Refinement
 
 **Goal:** Analyze the output of the newly localized/optimized pipeline to identify classification mistakes, extraction anomalies, and grouping errors, and systematically implement fixes to improve overall accuracy.
