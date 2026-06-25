@@ -6,15 +6,15 @@ current_phase: 07.5
 current_phase_name: two-pass-local-pipeline-inserted
 status: executing
 stopped_at: Phase 07.3.1 planned
-last_updated: "2026-06-24T23:46:19.616Z"
+last_updated: "2026-06-25T00:50:06.357Z"
 last_activity: 2026-06-24
 last_activity_desc: Phase 07.5 execution started
 progress:
-  total_phases: 11
-  completed_phases: 7
+  total_phases: 12
+  completed_phases: 8
   total_plans: 9
-  completed_plans: 7
-  percent: 64
+  completed_plans: 8
+  percent: 67
 ---
 
 # Project State
@@ -43,6 +43,7 @@ See: .planning/PROJECT.md (updated 2026-06-23)
 - Phase 07.1 inserted after Phase 7: Compress output PDFs to ~35MB (80% quality) post-AI processing (URGENT)
 - Phase 07.2 inserted after Phase 07.1: Improve name grouping logic using local LLM (URGENT)
 - Phase 07.3 inserted after Phase 7: Improve multi-page correspondence processing via Arabic footer pattern detection (URGENT)
+- Phase 07.5.1 inserted after Phase 07.5: Hybrid Cloud-First Vision Extraction with Local Overflow (URGENT)
 
 ## Performance Metrics
 

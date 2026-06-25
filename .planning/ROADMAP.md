@@ -180,6 +180,17 @@ Plans:
 
 - [x] TBD (run /gsd-plan-phase 07.5 to break down) (completed 2026-06-24)
 
+### Phase 07.5.1: Hybrid Cloud-First Vision Extraction with Local Overflow (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 7.5
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 07.5.1 to break down)
+
 ## Phase 8: Output Quality Review & Refinement
 
 **Goal:** Analyze the output of the newly localized/optimized pipeline to identify classification mistakes, extraction anomalies, and grouping errors, and systematically implement fixes to improve overall accuracy.
