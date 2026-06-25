@@ -89,7 +89,9 @@ def test_continuation_detection(monkeypatch):
     monkeypatch.setattr(PdfIngestor, "extract_pages_as_images", mock_extract_pages)
 
     pipeline = Pipeline(api_keys=["test-key"])
+    monkeypatch.setattr(pipeline.client, "classify_extracted_page", mock_classify_page)
     monkeypatch.setattr(pipeline.client, "classify_page", mock_classify_page)
+    monkeypatch.setattr(pipeline.client, "extract_page", lambda x: "dummy text")
     monkeypatch.setattr(pipeline.client, "resolve_entities", lambda x: {})
 
     documents = pipeline.process_pdf("dummy.pdf")
@@ -215,13 +217,14 @@ def test_local_inference_fallback(monkeypatch):
     result = client.classify_page(b"dummy")
     assert result.residents == ["FALLBACK"]
     mock_route.assert_called_once()
-    assert mock_route.call_args[1]["model"] == "gemini-4-26b"
+    assert mock_route.call_args[1]["model"] == "gemini-1.5-flash"
 
 def test_openai_structured_output(monkeypatch):
     from src.llm import GemmaClient
     from src.schemas import PageClassification, Category
     import openai
-    
+    from unittest.mock import MagicMock
+
     client = GemmaClient(api_keys=["key1"])
     
     monkeypatch.setattr(client, "_extract_text_with_qwen", lambda x: "Mohammed Ali")
@@ -273,3 +276,107 @@ def test_tiered_retry_logic(monkeypatch):
     assert result.house_number == "999"
     assert mock_extract.call_count == 2
     assert mock_classify.call_count == 4
+
+
+def test_state_management_purging(monkeypatch):
+    from src.llm import GemmaClient
+    import time
+    
+    client = GemmaClient(api_keys=["key1"])
+    GemmaClient.global_cooldown_until = 0.0
+    GemmaClient.global_rpm_tracker.clear()
+
+    current_time = [1000.0]
+    monkeypatch.setattr(time, "time", lambda: current_time[0])
+    monkeypatch.setattr(time, "sleep", lambda x: None)
+    
+    GemmaClient.global_rpm_tracker.append(900.0) # Older than 65s
+    GemmaClient.global_rpm_tracker.append(990.0) # Not older than 65s
+    
+    # Simulate a call to _get_client_and_key which should purge
+    client._get_client_and_key(estimated_tokens=50)
+    
+    assert len(GemmaClient.global_rpm_tracker) == 2 # 990.0 and the newly added 1000.0
+    assert 900.0 not in GemmaClient.global_rpm_tracker
+
+def test_extract_page_normal_flow(monkeypatch):
+    from src.llm import GemmaClient
+    
+    client = GemmaClient(api_keys=["key1"])
+    GemmaClient.global_rpm_tracker.clear()
+    GemmaClient.global_cooldown_until = 0.0
+    
+    mock_cloud = MagicMock(return_value="cloud text")
+    mock_local = MagicMock(return_value="local text")
+    
+    monkeypatch.setattr(client, "_extract_text_with_gemini", mock_cloud)
+    monkeypatch.setattr(client, "_extract_text_with_qwen", mock_local)
+    
+    res = client.extract_page(b"dummy")
+    assert res == "cloud text"
+    mock_cloud.assert_called_once()
+    mock_local.assert_not_called()
+
+def test_extract_page_overflow_flow(monkeypatch):
+    from src.llm import GemmaClient
+    import time
+    
+    client = GemmaClient(api_keys=["key1"])
+    GemmaClient.global_rpm_tracker.clear()
+    GemmaClient.global_cooldown_until = 0.0
+    
+    mock_cloud = MagicMock(side_effect=Exception("429 Too Many Requests"))
+    mock_local = MagicMock(return_value="local text")
+    
+    monkeypatch.setattr(client, "_extract_text_with_gemini", mock_cloud)
+    monkeypatch.setattr(client, "_extract_text_with_qwen", mock_local)
+    
+    res = client.extract_page(b"dummy")
+    assert res == "local text"
+    mock_cloud.assert_called_once()
+    mock_local.assert_called_once()
+    # It should set a penalty
+    assert GemmaClient.global_cooldown_until > time.time()
+
+def test_extract_page_cooldown_flow(monkeypatch):
+    from src.llm import GemmaClient
+    import time
+    
+    client = GemmaClient(api_keys=["key1"])
+    GemmaClient.global_rpm_tracker.clear()
+    GemmaClient.global_cooldown_until = time.time() + 60.0
+    
+    mock_cloud = MagicMock(return_value="cloud text")
+    mock_local = MagicMock(return_value="local text")
+    
+    monkeypatch.setattr(client, "_extract_text_with_gemini", mock_cloud)
+    monkeypatch.setattr(client, "_extract_text_with_qwen", mock_local)
+    
+    res = client.extract_page(b"dummy")
+    assert res == "local text"
+    mock_cloud.assert_not_called()
+    mock_local.assert_called_once()
+
+def test_extract_page_resumption_flow(monkeypatch):
+    from src.llm import GemmaClient
+    import time
+    
+    client = GemmaClient(api_keys=["key1"])
+    
+    current_time = [1000.0]
+    monkeypatch.setattr(time, "time", lambda: current_time[0])
+    
+    # Fast-forward past cooldown
+    GemmaClient.global_cooldown_until = 900.0 
+    GemmaClient.global_rpm_tracker.clear()
+    
+    mock_cloud = MagicMock(return_value="cloud text")
+    mock_local = MagicMock(return_value="local text")
+    
+    monkeypatch.setattr(client, "_extract_text_with_gemini", mock_cloud)
+    monkeypatch.setattr(client, "_extract_text_with_qwen", mock_local)
+    
+    res = client.extract_page(b"dummy")
+    assert res == "cloud text"
+    mock_cloud.assert_called_once()
+    mock_local.assert_not_called()
