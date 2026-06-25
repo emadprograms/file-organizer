@@ -29,8 +29,10 @@ def test_prompt_contains_conflict_resolution_rules():
     assert "form" in prompt.lower(), "Missing form dependency for basic_details."
     assert "family" in prompt.lower(), "Missing family inclusion for personal_details."
     
-    # 5. Maintenance / Inspection Conflict
+    # 5. Maintenance / Inspection / Ashgal Conflict
     assert "inspection" in prompt.lower(), "Missing 'inspection' keyword routing for maintenance."
+    assert "الأشغال" in prompt, "Missing Ashgal keyword routing for maintenance."
+    assert "temporary key handovers" in prompt.lower() or "never key_handover_form" in prompt.lower(), "Missing Ashgal exclusion from key handover."
 
 
 @patch("src.llm.GemmaClient._route_llm_call")

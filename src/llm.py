@@ -56,7 +56,7 @@ class GemmaClient:
         else:
             self.api_keys = api_keys
 
-        self.global_rpm_limit = 15 * len(self.api_keys)
+        self.global_rpm_limit = 15
         self.clients = {key: genai.Client(api_key=key) for key in self.api_keys}
         
         self.cooldown_keys = {}  # key -> release_time
@@ -86,6 +86,25 @@ class GemmaClient:
                     GemmaClient.global_cooldown_until = state.get("global_cooldown_until", 0.0)
             except Exception:
                 pass
+
+    def should_use_local_fallback(self) -> bool:
+        with self.lock:
+            now = time.time()
+            while GemmaClient.global_rpm_tracker and now - GemmaClient.global_rpm_tracker[0] > 65.0:
+                GemmaClient.global_rpm_tracker.popleft()
+            
+            if now < GemmaClient.global_cooldown_until:
+                return True
+            if len(GemmaClient.global_rpm_tracker) >= self.global_rpm_limit:
+                return True
+            return False
+
+    def activate_cooldown(self):
+        with self.lock:
+            now = time.time()
+            GemmaClient.global_cooldown_until = max(GemmaClient.global_cooldown_until, now + 65.0)
+            self._save_state()
+            self._push_telemetry()
 
     def _save_state(self):
         state = {
@@ -396,13 +415,13 @@ Classify this page into exactly ONE of the following 13 categories:
 1. basic_details — البيانات الأساسية (Strictly forms about the person. If the page is a FORM with boxes, tables, or fill-in-the-blanks for a person's name/ID/details, you MUST choose basic_details. FORMS ARE NEVER amar_takhsees.)
 2. personal_details — البيانات الشخصية (Pictures of identity cards, passports, and other non-form documents related to the person and his family. Anything related to the person and his family that is NOT a form goes into personal details.)
 3. amar_takhsees — أمر تخصيص (Allocation orders. STRICT DEFINITION: A letter from a higher authority ordering to give a place to stay. FORMS OR TABLES ARE NEVER AMAR TAKHSEES. It MUST be a letter paragraph format. Strong pattern: Exact subject 'الموضوع : الوحدات السكنية' AND format is a letter.)
-4. key_handover_form — نموذج تسليم المفتاح (Key handover/receipt forms. Strong pattern: Contains 'استمارة تسليم الوحدات السكنية التابعة لوزارة الداخلية'.)
+4. key_handover_form — نموذج تسليم المفتاح (ONLY use this for the INITIAL key handover after making the contract. Do NOT use this for temporary key handovers related to maintenance. If the word 'الأشغال' (Ashgal) is present anywhere, it is NEVER key_handover_form. Strong pattern: Contains 'استمارة تسليم الوحدات السكنية التابعة لوزارة الداخلية'.)
 5. contract — العقد (Rental or housing contracts)
 6. ewa_related_letters — رسائل الكهرباء والماء (EWA electricity/water letters. Strong pattern: Contains a meter number, such as 'الوحدة السكنية رقم' or similar.)
 7. rent_deduction — خصم الإيجار (Rent deduction notices or records. STRICT DEFINITION: Rent deduction letters will ALWAYS contain "30 bd" or "60 bd". Use this presence/absence to strictly disambiguate from Allowance Deduction.)
 8. allowance_deduction — خصم العلاوة (Allowance deduction notices. Strong pattern: Subject is 'الموضوع: وقف استقطاع بدل الانتفاع'. Will NOT have "30 bd" or "60 bd" written on it.)
 9. notifications — الإشعارات (General notifications, warnings, and home eviction notices. Strong pattern: Contains the word 'إشعار' or 'اشعار'. Home eviction notices MUST go here and NOT in other_letters. Do NOT use this for allocation orders.)
-10. maintenance — الصيانة (Maintenance requests, reports, work orders. Strong pattern: Sender or receiver is 'إدارة الأشغال' (idara ashgal), or it is a yellow paper with inspection details, or ANY mention of "inspection" goes to maintenance.)
+10. maintenance — الصيانة (Maintenance requests, reports, work orders. STRICT RULE: If the word 'الأشغال' (Ashgal) is written ANYWHERE on the document, it MUST be maintenance. Even if it looks like a key handover form, if 'الأشغال' is present, it goes to maintenance. Also covers yellow papers with inspection details or ANY mention of "inspection".)
 11. pictures — الصور (Photographs of the property)
 12. modifications — التعديلات (Modification requests or approvals. Strong pattern: Subject contains 'طلب' (talab) and mentions modifying the house.)
 13. other_letters — رسائل أخرى (Any letters that don't fit the above)
@@ -469,7 +488,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         system_prompt = self._build_system_prompt()
         user_prompt = "Classify this scanned document page based on the following extracted text."
         if footer_text:
-            user_prompt += f"\n\nHINT: The OCR system detected a page footer: '{footer_text}'. If this indicates it's the first page (like '1 من X'), it is NOT a continuation. If it indicates a subsequent page (like '2 من X' or 'الصفحة 2'), set is_continuation = true."
+            user_prompt += f"\n\nHINT: The OCR system detected the following text at the bottom of the page: '{footer_text}'. First, evaluate if this text actually represents a page number (ignore it if it's a date, year, or form ID). If it IS a page number and indicates this page is a continuation of the previous page (like '2 من 5' or 'الصفحة 2'), set is_continuation = true. If it indicates this is the first page (like '1 من 5' or 'الصفحة 1'), set is_continuation = false."
             
         user_prompt += f"\n\nExtracted Text:\n{text}"
         
@@ -481,7 +500,8 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 {"role": "user", "content": user_prompt}
             ],
             response_format=PageClassification,
-            temperature=0.0
+            temperature=0.0,
+            extra_body={"options": {"num_ctx": 8192}}
         )
         if response.choices[0].message.parsed:
             return response.choices[0].message.parsed
@@ -556,7 +576,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         system_prompt = self._build_system_prompt()
         user_prompt = "Classify this scanned document page."
         if footer_text:
-            user_prompt += f"\n\nHINT: The OCR system detected a page footer: '{footer_text}'. If this indicates it's the first page (like '1 من X'), it is NOT a continuation. If it indicates a subsequent page (like '2 من X' or 'الصفحة 2'), set is_continuation = true."
+            user_prompt += f"\n\nHINT: The OCR system detected the following text at the bottom of the page: '{footer_text}'. First, evaluate if this text actually represents a page number (ignore it if it's a date, year, or form ID). If it IS a page number and indicates this page is a continuation of the previous page (like '2 من 5' or 'الصفحة 2'), set is_continuation = true. If it indicates this is the first page (like '1 من 5' or 'الصفحة 1'), set is_continuation = false."
 
         try:
             last_error = None
@@ -610,6 +630,26 @@ Return a JSON object with: house_number, residents (list of strings), category, 
             )
             return result
 
+    def classify_page_direct(self, image_bytes: bytes, footer_text: str = None) -> PageClassification:
+        system_prompt = self._build_system_prompt()
+        user_prompt = "Classify this scanned document page."
+        if footer_text:
+            user_prompt += f"\n\nHINT: The OCR system detected the following text at the bottom of the page: '{footer_text}'. First, evaluate if this text actually represents a page number (ignore it if it's a date, year, or form ID). If it IS a page number and indicates this page is a continuation of the previous page (like '2 من 5' or 'الصفحة 2'), set is_continuation = true. If it indicates this is the first page (like '1 من 5' or 'الصفحة 1'), set is_continuation = false."
+            
+        contents = [
+            system_prompt,
+            user_prompt,
+            types.Part.from_bytes(data=image_bytes, mime_type='image/png')
+        ]
+        
+        result = self._route_llm_call(
+            model='gemma-4-26b-a4b-it',
+            contents=contents,
+            response_schema=PageClassification,
+            log_prefix="DirectCloud"
+        )
+        return result
+
     @functools.lru_cache(maxsize=1024)
     def check_name_match(self, name_current: str, name_candidate: str, category: str) -> bool:
         """Semantically compare two names to determine if they refer to the same primary tenant."""
@@ -635,7 +675,8 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                     {"role": "user", "content": user_prompt}
                 ],
                 response_format=NameMatchResult,
-                temperature=0.0
+                temperature=0.0,
+                extra_body={"options": {"num_ctx": 8192}}
             )
             if response.choices[0].message.parsed:
                 return response.choices[0].message.parsed.is_match
