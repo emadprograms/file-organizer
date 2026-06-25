@@ -39,7 +39,6 @@ class InvalidResponseError(Exception):
 
 class GemmaClient:
     NONE_EXPECTED_CATEGORIES = {'amar_takhsees', 'pictures'}
-    GLOBAL_RPM_LIMIT = 15
     TPM_LIMIT = 30000
     RPM_LIMIT = 30
     
@@ -57,6 +56,7 @@ class GemmaClient:
         else:
             self.api_keys = api_keys
 
+        self.global_rpm_limit = 15 * len(self.api_keys)
         self.clients = {key: genai.Client(api_key=key) for key in self.api_keys}
         
         self.cooldown_keys = {}  # key -> release_time
@@ -144,7 +144,7 @@ class GemmaClient:
                 # Global IP Throttle
                 if now < GemmaClient.global_cooldown_until:
                     sleep_time = GemmaClient.global_cooldown_until - now
-                elif len(GemmaClient.global_rpm_tracker) >= self.GLOBAL_RPM_LIMIT:
+                elif len(GemmaClient.global_rpm_tracker) >= self.global_rpm_limit:
                     sleep_time = GemmaClient.global_rpm_tracker[0] + 65.0 - now
                 else:
                     released = [k for k, t in self.cooldown_keys.items() if now >= t]
@@ -242,6 +242,10 @@ class GemmaClient:
             else:
                 print(f"[Rate Limit Guard] Key penalized for {penalty:.1f}s due to Server Error (Strike {strikes}).")
                 
+            if is_429:
+                # Task 3: explicit cooldown state tracking
+                penalty = max(penalty, 65.0) 
+            
             self.cooldown_keys[key] = now + penalty
             # CRITICAL FIX: Google tracks the IP for all errors (429s, 503s, Timeouts).
             # We must enforce the penalty globally to let the IP flush before picking the next key.
@@ -490,6 +494,9 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         # Cloud-First OCR with Local Overflow
         client_info = self._get_client_and_key(estimated_tokens=500, no_wait=True)
         if client_info:
+            if getattr(self, '_in_local_overflow', False):
+                print("  [Transition] Cooldown expired. Snapping back to Cloud OCR (gemma-4-26b-a4b-it).")
+                self._in_local_overflow = False
             client, key, reserve_time = client_info
             try:
                 import time
@@ -499,10 +506,15 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 self._reconcile_usage(key, reserve_time, 500) # approximate
                 return text
             except Exception as e:
-                print(f"  [Cloud OCR Failed] Falling back to local Qwen-VL: {e}")
+                print(f"  [Transition] Cloud OCR Failed (429). Falling back to local Qwen-VL: {e}")
                 self._report_failure(key, is_429=("429" in str(e)))
+                self._in_local_overflow = True
         else:
-            print("  [Rate Limit Overflow] Gemini bucket empty. Offloading to local Qwen-VL...")
+            if not getattr(self, '_in_local_overflow', False):
+                print("  [Transition] Rate Limit Overflow. Offloading to local Qwen-VL...")
+                self._in_local_overflow = True
+            else:
+                print("  [Local OCR] Still in overflow cooldown. Using Qwen-VL...")
             
         for qwen_attempt in range(2):
             try:

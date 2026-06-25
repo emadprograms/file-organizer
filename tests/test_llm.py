@@ -140,7 +140,7 @@ def test_global_rpm_enforcement(monkeypatch):
     client = GemmaClient(api_keys=["key1", "key2"])
     now_ref = [1000.0]
     
-    for _ in range(15):
+    for _ in range(client.global_rpm_limit):
         client.global_rpm_tracker.append(now_ref[0])
         
     sleeps = []
@@ -189,12 +189,12 @@ def test_exponential_backoff_on_429(monkeypatch):
     client._report_failure("key1", is_429=True)
     assert client.key_strikes["key1"] == 1
     cooldown1 = client.cooldown_keys["key1"] - current_time[0]
-    assert 7.5 <= cooldown1 <= 22.5
+    assert cooldown1 >= 65.0
     
     client._report_failure("key1", is_429=True)
     assert client.key_strikes["key1"] == 2
     cooldown2 = client.cooldown_keys["key1"] - current_time[0]
-    assert 15.0 <= cooldown2 <= 45.0
+    assert cooldown2 >= 65.0
 
 def test_local_inference_fallback(monkeypatch):
     from src.llm import GemmaClient
