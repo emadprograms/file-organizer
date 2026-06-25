@@ -38,6 +38,10 @@ def test_prompt_contains_conflict_resolution_rules():
     assert "inspection" in prompt.lower(), "Missing 'inspection' keyword routing."
     assert "not to maintenance" in prompt.lower() or "not in maintenance" in prompt.lower(), "Missing exclusion of inspection from maintenance."
 
+    # 7. Contract Clauses Conflict
+    assert "مادة" in prompt or "مادة (1)" in prompt, "Missing 'مادة' keyword routing for contracts."
+    assert "never as rent_deduction" in prompt.lower() or "never rent_deduction" in prompt.lower(), "Missing exclusion of rent deduction inside contracts."
+    assert "الطرف الأول" in prompt, "Missing 'الطرف الأول' keyword routing for contracts."
 
 @patch("src.llm.GemmaClient._route_llm_call")
 def test_fallback_routing_on_conflict(mock_route):
