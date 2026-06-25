@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Core Stabilization & Logic Overhaul
-current_phase: 07.5
-current_phase_name: two-pass-local-pipeline-inserted
+current_phase: 07.5.1
+current_phase_name: hybrid-cloud-first-vision-extraction-with-local-overflow
 status: executing
 stopped_at: Phase 07.5.1 planned
-last_updated: "2026-06-25T01:04:25.391Z"
-last_activity: 2026-06-24
-last_activity_desc: Phase 07.5 execution started
+last_updated: "2026-06-25T01:08:18.017Z"
+last_activity: 2026-06-25
+last_activity_desc: Phase 07.5.1 execution started
 progress:
   total_phases: 12
   completed_phases: 8
@@ -24,7 +24,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-23)
 
 **Core value:** Accurately parsing, splitting, and categorizing large, disorganized scanned Arabic documents into an exact 13-category chronological folder structure without losing the context of multi-page topics.
-**Current focus:** Phase 07.5 — two-pass-local-pipeline-inserted
+**Current focus:** Phase 07.5.1 — hybrid-cloud-first-vision-extraction-with-local-overflow
 
 ## Session
 
@@ -56,10 +56,10 @@ See: .planning/PROJECT.md (updated 2026-06-23)
 
 ## Current Position
 
-Phase: 07.5 (two-pass-local-pipeline-inserted) — EXECUTING
+Phase: 07.5.1 (hybrid-cloud-first-vision-extraction-with-local-overflow) — EXECUTING
 Plan: 1 of 1
-Status: Executing Phase 07.5
-Last activity: 2026-06-24 — Phase 07.5 execution started
+Status: Executing Phase 07.5.1
+Last activity: 2026-06-25 — Phase 07.5.1 execution started
 
 ## Operator Next Steps
 
