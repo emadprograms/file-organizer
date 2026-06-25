@@ -25,8 +25,9 @@ def test_prompt_contains_conflict_resolution_rules():
     assert "home eviction" in prompt.lower() or "eviction" in prompt.lower(), "Missing eviction notice classification rule."
     assert "not in other_letters" in prompt.lower() or "not in other letters" in prompt.lower(), "Missing exclusion of eviction from other_letters."
 
-    # 4. Basic vs Personal Details Conflict
+    # 4. Basic Details vs Personal Details vs Rent Deduction Form
     assert "form" in prompt.lower(), "Missing form dependency for basic_details."
+    assert "never basic_details" in prompt.lower() and ("30" in prompt or "60" in prompt), "Missing 30/60 financial amount exclusion from basic_details."
     assert "family" in prompt.lower(), "Missing family inclusion for personal_details."
     
     # 5. Maintenance / Inspection / Ashgal Conflict
