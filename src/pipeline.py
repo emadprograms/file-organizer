@@ -54,6 +54,8 @@ class Pipeline:
                 cache_data = cached_pages[str_index]
                 if 'resident' in cache_data and 'residents' not in cache_data:
                     cache_data['residents'] = [cache_data.pop('resident')]
+                if cache_data.get('category') == 'pictures':
+                    cache_data['category'] = 'inspection_pictures'
                 result = PageClassification(**cache_data)
                 msg = f" Cached Page {page_index}: {result.category.value} | {result.residents} | {result.date}"
                 try:
@@ -72,9 +74,11 @@ class Pipeline:
         cache_lock = threading.Lock()
         
         if pages_to_process:
-            print(f"Pass 1a: Extracting text for {len(pages_to_process)} pages...")
-            extracted_pages = []
+            deferred_local_pages = []
+            
+            # Phase 1: Loop through each page, checking cache first, then cloud direct, then local OCR fallback
             for p_idx, i_bytes in pages_to_process:
+                # 1. Blank Page check
                 if len(i_bytes) < 15000:
                     print(f" Page {p_idx} is blank (size {len(i_bytes)} bytes). Skipping LLM.")
                     res = PageClassification(category=Category.OTHER_LETTERS, residents=["NONE"], date="NONE", house_number="UNKNOWN")
@@ -86,7 +90,8 @@ class Pipeline:
                         os.replace(temp_cache_file, cache_file)
                     raw_pages.append((p_idx, res))
                     continue
-                    
+
+                # 2. Extract footer using Vision framework (macOS local utility)
                 extracted_footer = None
                 try:
                     import Vision, Quartz, re
@@ -111,86 +116,105 @@ class Pipeline:
                                 if match: extracted_footer = match.group(0)
                 except Exception as e:
                     print(f"Vision OCR Error on page {p_idx}: {e}")
-                    
+
+                # 3. Check if we already have the OCR text cached
                 if str(p_idx) in extracted_text_cache:
-                    print(f" Loaded Arabic text for Page {p_idx} from cache.")
+                    print(f" Loaded Arabic text for Page {p_idx} from cache. Deferring local classification.")
                     text = extracted_text_cache[str(p_idx)]
-                    extracted_pages.append((p_idx, text, extracted_footer))
+                    deferred_local_pages.append((p_idx, text, extracted_footer))
                     continue
 
-                try:
-                    print(f" Extracting Arabic text from Page {p_idx} using Vision Model...")
-                    text = self.client.extract_page(i_bytes)
-                    with cache_lock:
-                        extracted_text_cache[str(p_idx)] = text
-                        temp_text_cache_file = f"{text_cache_file}.tmp"
-                        with open(temp_text_cache_file, "w", encoding="utf-8") as f:
-                            json.dump(extracted_text_cache, f, ensure_ascii=False, indent=2)
-                        os.replace(temp_text_cache_file, text_cache_file)
-                    extracted_pages.append((p_idx, text, extracted_footer))
-                except Exception as e:
-                    print(f"WARNING: Extraction fallback on page {p_idx} after retries: {e}")
-                    house_number = "UNKNOWN"
-                    with cache_lock:
-                        for v in cached_pages.values():
-                            if v.get("house_number") and v.get("house_number") != "UNKNOWN":
-                                house_number = v.get("house_number")
-                                break
-                    fallback_res = PageClassification(category=Category.OTHER_LETTERS, residents=["UNKNOWN"], date="NONE", house_number=house_number)
-                    with cache_lock:
-                        cached_pages[str(p_idx)] = fallback_res.model_dump()
-                        temp_cache_file = f"{cache_file}.tmp"
-                        with open(temp_cache_file, "w", encoding="utf-8") as f:
-                            json.dump(cached_pages, f, ensure_ascii=False, indent=2)
-                        os.replace(temp_cache_file, cache_file)
-                    raw_pages.append((p_idx, fallback_res))
-            
-            print(f"Pass 1b: Classifying text for {len(extracted_pages)} pages...")
-            for p_idx, text, extracted_footer in extracted_pages:
-                try:
-                    print(f" Classifying text for Page {p_idx} using 14B Text Model...")
-                    res = self.client.classify_extracted_page(text, extracted_footer)
-                    if extracted_footer:
-                        import re
-                        page_match = re.search(r'(\d+)\s*من', extracted_footer)
-                        if not page_match:
-                            page_match = re.search(r'(?:الصفحة|صفحة|page)[\s:]*(\d+)', extracted_footer, re.IGNORECASE)
-                        if page_match:
-                            try:
-                                extracted_page_num = int(page_match.group(1))
-                                if extracted_page_num > 1:
-                                    res.is_continuation = True
-                                    print(f" [Heuristic] Footer '{extracted_footer}' implies page {extracted_page_num}. Forcing is_continuation=True.")
-                            except ValueError:
-                                pass
-                    msg = f" Extracted Page {p_idx}: {res.category.value} | {res.residents} | {res.date}"
-                    try: print(msg)
-                    except UnicodeEncodeError: print(msg.encode('utf-8', errors='replace').decode('utf-8'))
-                    with cache_lock:
-                        cached_pages[str(p_idx)] = res.model_dump()
-                        temp_cache_file = f"{cache_file}.tmp"
-                        with open(temp_cache_file, "w", encoding="utf-8") as f:
-                            json.dump(cached_pages, f, ensure_ascii=False, indent=2)
-                        os.replace(temp_cache_file, cache_file)
-                    raw_pages.append((p_idx, res))
-                except Exception as e:
-                    print(f"WARNING: Classification fallback on page {p_idx} after retries: {e}")
-                    house_number = "UNKNOWN"
-                    with cache_lock:
-                        for v in cached_pages.values():
-                            if v.get("house_number") and v.get("house_number") != "UNKNOWN":
-                                house_number = v.get("house_number")
-                                break
-                    fallback_res = PageClassification(category=Category.OTHER_LETTERS, residents=["UNKNOWN"], date="NONE", house_number=house_number)
-                    with cache_lock:
-                        cached_pages[str(p_idx)] = fallback_res.model_dump()
-                        temp_cache_file = f"{cache_file}.tmp"
-                        with open(temp_cache_file, "w", encoding="utf-8") as f:
-                            json.dump(cached_pages, f, ensure_ascii=False, indent=2)
-                        os.replace(temp_cache_file, cache_file)
-                    raw_pages.append((p_idx, fallback_res))
+                # 4. Check fallback status or try cloud
+                use_local = self.client.should_use_local_fallback()
+                
+                if not use_local:
+                    try:
+                        print(f" Classifying Page {p_idx} directly using Cloud Model...")
+                        res = self.client.classify_page_direct(i_bytes, extracted_footer)
+                        
+                        msg = f" Cloud Extracted Page {p_idx}: {res.category.value} | {res.residents} | {res.date}"
+                        try: print(msg)
+                        except UnicodeEncodeError: print(msg.encode('utf-8', errors='replace').decode('utf-8'))
+                        
+                        with cache_lock:
+                            cached_pages[str(p_idx)] = res.model_dump()
+                            temp_cache_file = f"{cache_file}.tmp"
+                            with open(temp_cache_file, "w", encoding="utf-8") as f:
+                                json.dump(cached_pages, f, ensure_ascii=False, indent=2)
+                            os.replace(temp_cache_file, cache_file)
+                        raw_pages.append((p_idx, res))
+                        continue
+                    except Exception as e:
+                        print(f"WARNING: Direct Cloud classification failed for page {p_idx}: {e}")
+                        print("  [Transition] Triggering Rate Limit Cooldown. Falling back to local OCR...")
+                        self.client.activate_cooldown()
+                        use_local = True
 
-                raw_pages.sort(key=lambda x: x[0])
+                if use_local:
+                    try:
+                        print(f" Extracting Arabic text from Page {p_idx} using Local Vision Model (Qwen-VL)...")
+                        text = self.client.extract_page(i_bytes)
+                        with cache_lock:
+                            extracted_text_cache[str(p_idx)] = text
+                            temp_text_cache_file = f"{text_cache_file}.tmp"
+                            with open(temp_text_cache_file, "w", encoding="utf-8") as f:
+                                json.dump(extracted_text_cache, f, ensure_ascii=False, indent=2)
+                            os.replace(temp_text_cache_file, text_cache_file)
+                        deferred_local_pages.append((p_idx, text, extracted_footer))
+                    except Exception as e:
+                        print(f"WARNING: Local OCR extraction failed on page {p_idx}: {e}")
+                        house_number = "UNKNOWN"
+                        with cache_lock:
+                            for v in cached_pages.values():
+                                if v.get("house_number") and v.get("house_number") != "UNKNOWN":
+                                    house_number = v.get("house_number")
+                                    break
+                        fallback_res = PageClassification(category=Category.OTHER_LETTERS, residents=["UNKNOWN"], date="NONE", house_number=house_number)
+                        with cache_lock:
+                            cached_pages[str(p_idx)] = fallback_res.model_dump()
+                            temp_cache_file = f"{cache_file}.tmp"
+                            with open(temp_cache_file, "w", encoding="utf-8") as f:
+                                json.dump(cached_pages, f, ensure_ascii=False, indent=2)
+                            os.replace(temp_cache_file, cache_file)
+                        raw_pages.append((p_idx, fallback_res))
+
+            # Phase 2: Run deferred local classification (Pass 1b) at the very end
+            if deferred_local_pages:
+                print(f"Pass 1b: Running local text classification (Qwen-14B) for {len(deferred_local_pages)} deferred pages...")
+                for p_idx, text, extracted_footer in deferred_local_pages:
+                    try:
+                        print(f" Classifying text for Page {p_idx} using 14B Text Model...")
+                        res = self.client.classify_extracted_page(text, extracted_footer)
+                        
+                        msg = f" Local Classified Page {p_idx}: {res.category.value} | {res.residents} | {res.date}"
+                        try: print(msg)
+                        except UnicodeEncodeError: print(msg.encode('utf-8', errors='replace').decode('utf-8'))
+                        
+                        with cache_lock:
+                            cached_pages[str(p_idx)] = res.model_dump()
+                            temp_cache_file = f"{cache_file}.tmp"
+                            with open(temp_cache_file, "w", encoding="utf-8") as f:
+                                json.dump(cached_pages, f, ensure_ascii=False, indent=2)
+                            os.replace(temp_cache_file, cache_file)
+                        raw_pages.append((p_idx, res))
+                    except Exception as e:
+                        print(f"WARNING: Local classification failed on page {p_idx}: {e}")
+                        house_number = "UNKNOWN"
+                        with cache_lock:
+                            for v in cached_pages.values():
+                                if v.get("house_number") and v.get("house_number") != "UNKNOWN":
+                                    house_number = v.get("house_number")
+                                    break
+                        fallback_res = PageClassification(category=Category.OTHER_LETTERS, residents=["UNKNOWN"], date="NONE", house_number=house_number)
+                        with cache_lock:
+                            cached_pages[str(p_idx)] = fallback_res.model_dump()
+                            temp_cache_file = f"{cache_file}.tmp"
+                            with open(temp_cache_file, "w", encoding="utf-8") as f:
+                                json.dump(cached_pages, f, ensure_ascii=False, indent=2)
+                            os.replace(temp_cache_file, cache_file)
+                        raw_pages.append((p_idx, fallback_res))
+            
+            raw_pages.sort(key=lambda x: x[0])
     
         if len(raw_pages) != total_expected_pages:
             raise RuntimeError(f"CRITICAL: Expected {total_expected_pages} pages, but only recovered {len(raw_pages)}. Aborting Pass 1.5 to prevent data loss.")
