@@ -26,10 +26,10 @@ def test_prompt_contains_conflict_resolution_rules():
     assert "not in other_letters" in prompt.lower() or "not put eviction" in prompt.lower(), "Missing exclusion of vacating notices from other_letters."
 
     # 4. Basic Details vs Personal Details vs Rent Deduction Form
-    assert "form" in prompt.lower() or "boxes" in prompt.lower(), "Missing form dependency for basic_details."
-    assert "never basic_details" in prompt.lower() and ("30" in prompt or "60" in prompt), "Missing 30/60 financial amount exclusion from basic_details."
+    assert "single-person forms only" in prompt.lower(), "Missing single person rule for basic_details."
+    assert "allotment date" in prompt.lower() or "تاريخ التخصيص" in prompt, "Missing specific form fields for basic_details."
     assert "many different people" in prompt.lower() or "roster" in prompt.lower(), "Missing exclusion of multiple names/rosters from basic_details."
-    assert "family" in prompt.lower(), "Missing family inclusion for personal_details."
+    assert "exempt" in prompt.lower(), "Missing exemption for basic_details/contracts in rent_deduction."
     
     # 5. Maintenance / Ashgal Conflict
     assert "الأشغال" in prompt, "Missing Ashgal keyword routing for maintenance."
