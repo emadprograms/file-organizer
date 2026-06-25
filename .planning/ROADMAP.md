@@ -116,7 +116,7 @@ Plans:
   - Subject is "الموضوع: وقف استقطاع بدل الانتفاع" -> allowance. (Does NOT contain "30 bd" or "60 bd").
   - Contains text for "rent deduction" (e.g., استقطاع الإيجار) or mentions deducting amounts like "30 bd" or "60 bd". If a tabular form mentions these amounts, it MUST be rent deduction and NEVER basic details -> rent deduction. (MUST contain the amount to disambiguate from allowance).
   - Contains "إشعار" or "اشعار" (notification) OR mentions the tenant vacating the house (إخلاء), refusing to vacate, extensions for vacating, or eviction -> notifications (do NOT put vacating/eviction notices in "other letters").
-  - Basic vs Personal Details: `basic details` are strictly forms about a person. `personal details` refers to pictures of identity cards, passports, and other non-form documents related to the person and his family. If it is related to a person and his family but NOT a form, it is `personal details`. Allow the local LLM to handle this detection directly based on these definitions.
+  - Basic vs Personal Details: `basic details` are strictly forms about a SINGLE person. If the table is a roster/list containing MANY DIFFERENT people's names, it is NEVER basic_details. `personal details` refers to pictures of identity cards, passports, and other non-form documents related to the person and his family.
 - If there is NO subject and it doesn't fit the strong patterns above, do NOT use the local LLM to guess blindly. Instead, fall back to a larger model (e.g., Gemma 4 26b) to detect the document, as it performs significantly better on nuanced text.
 - Conduct stress testing to harden the prompts and validate detection logic.
 
