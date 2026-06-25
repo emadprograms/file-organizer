@@ -559,10 +559,6 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                     print("[Heuristic Override] Local model selected amar_takhsees for a FORM. Forcing basic_details.")
                     parsed_result.category = Category.BASIC_DETAILS
                     
-                if parsed_result.category == Category.BASIC_DETAILS and len(parsed_result.residents) > 2:
-                    print(f"    [Heuristic Override] basic_details selected but found {len(parsed_result.residents)} residents. Roster detected. Overriding to other_letters.")
-                    parsed_result.category = Category.OTHER_LETTERS
-                    
                 return parsed_result
             except ValueError as e:
                 if "Local Inference Refused via needs_gemma_fallback flag" in str(e):
@@ -602,12 +598,8 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                         # Heuristic Override: Local models struggle with complex negative constraints.
                         # If it correctly sees a form, force it to basic_details.
                         if getattr(parsed_result, "is_form", False) and parsed_result.category.value == "amar_takhsees":
-                            print("    [Heuristic Override] 'is_form' is True but category is amar_takhsees. Overriding to basic_details.")
+                            print("[Heuristic Override] Local model selected amar_takhsees for a FORM. Forcing basic_details.")
                             parsed_result.category = Category.BASIC_DETAILS
-                            
-                        if parsed_result.category == Category.BASIC_DETAILS and len(parsed_result.residents) > 2:
-                            print(f"    [Heuristic Override] basic_details selected but found {len(parsed_result.residents)} residents. Roster detected. Overriding to other_letters.")
-                            parsed_result.category = Category.OTHER_LETTERS
                             
                         return parsed_result
                     except ValueError as e:
