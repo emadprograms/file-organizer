@@ -454,7 +454,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
             
         user_prompt += f"\n\nExtracted Text:\n{text}"
         
-        local_model = os.getenv("LOCAL_TEXT_MODEL_NAME", "qwen2.5:7b")
+        local_model = os.getenv("LOCAL_TEXT_MODEL_NAME", "qwen2.5:14b")
         response = self.local_client.beta.chat.completions.parse(
             model=local_model,
             messages=[
