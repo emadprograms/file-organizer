@@ -15,7 +15,7 @@ class Category(str, Enum):
     ALLOWANCE_DEDUCTION = "allowance_deduction"
     NOTIFICATIONS = "notifications"
     MAINTENANCE = "maintenance"
-    PICTURES = "pictures"
+    INSPECTION_PICTURES = "inspection_pictures"
     MODIFICATIONS = "modifications"
     OTHER_LETTERS = "other_letters"
 

@@ -19,7 +19,7 @@ CATEGORY_FOLDERS = {
     Category.ALLOWANCE_DEDUCTION: "08_وقف علاوة السكن",
     Category.NOTIFICATIONS: "09_الاشعارات",
     Category.MAINTENANCE: "10_طلبات وتقارير الصيانه",
-    Category.PICTURES: "11_تقارير التفتيش",
+    Category.INSPECTION_PICTURES: "11_تقارير التفتيش والصور",
     Category.MODIFICATIONS: "12_طلب الاضافة",
     Category.OTHER_LETTERS: "13_أخرى",
 }

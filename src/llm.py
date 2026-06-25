@@ -38,7 +38,7 @@ class InvalidResponseError(Exception):
     pass
 
 class GemmaClient:
-    NONE_EXPECTED_CATEGORIES = {'amar_takhsees', 'pictures'}
+    NONE_EXPECTED_CATEGORIES = {'amar_takhsees', 'inspection_pictures'}
     TPM_LIMIT = 30000
     RPM_LIMIT = 30
     
@@ -421,8 +421,8 @@ Classify this page into exactly ONE of the following 13 categories:
 7. rent_deduction — خصم الإيجار (Rent deduction notices or records. STRICT DEFINITION: Rent deduction letters or forms will ALWAYS contain "30" or "60" (bd). If a document or tabular form mentions these amounts being deducted, it MUST be rent_deduction. Do NOT classify tabular rent deduction forms as basic_details. Use the presence of 30 or 60 to STRICTLY disambiguate from Allowance Deduction and basic_details.)
 8. allowance_deduction — خصم العلاوة (Allowance deduction notices. Strong pattern: Subject is 'الموضوع: وقف استقطاع بدل الانتفاع'. Will NOT have "30 bd" or "60 bd" written on it.)
 9. notifications — الإشعارات (General notifications, warnings, and ANY documents regarding vacating the house/eviction. STRICT DEFINITION: If the document mentions the tenant vacating the house (إخلاء), refusing to vacate, extensions for vacating, or any similar eviction terms, it MUST be notifications. Also includes 'إشعار' or 'اشعار'. Do NOT put eviction/vacating notices in other_letters. Do NOT use this for allocation orders.)
-10. maintenance — الصيانة (Maintenance requests, reports, work orders. STRICT RULE: If the word 'الأشغال' (Ashgal) is written ANYWHERE on the document, it MUST be maintenance. Even if it looks like a key handover form, if 'الأشغال' is present, it goes to maintenance. Also covers yellow papers with inspection details or ANY mention of "inspection".)
-11. pictures — الصور (Photographs of the property)
+10. maintenance — الصيانة (Maintenance requests, reports, work orders. STRICT RULE: If the word 'الأشغال' (Ashgal) is written ANYWHERE on the document, it MUST be maintenance. Even if it looks like a key handover form, if 'الأشغال' is present, it goes to maintenance. Do NOT put inspection notices or reports here.)
+11. inspection_pictures — التفتيش والصور (Notices of inspection, inspection reports, house visits, yellow papers with inspection details, and photographs of the property. ANY letters or reports regarding inspection MUST go here, NOT to maintenance.)
 12. modifications — التعديلات (Modification requests or approvals. Strong pattern: Subject contains 'طلب' (talab) and mentions modifying the house.)
 13. other_letters — رسائل أخرى (Any letters that don't fit the above)
 
@@ -431,7 +431,7 @@ NAME EXTRACTION RULES (CRITICAL):
 - If a document states a person's relationship (e.g., Wife - زوجة, Son - ابن), append it to their name in parentheses, e.g., "آمنة (زوجة)".
 - If a document is addressed to MULTIPLE people, extract ALL of their names as a list of strings.
 - Do NOT return an empty list or ["NONE"] unless you are absolutely certain there is no name anywhere on the page. Most documents DO contain a name.
-- Only return ["NONE"] for categories where no resident is expected: amar_takhsees, pictures, or other_letters with no addressee.
+- Only return ["NONE"] for categories where no resident is expected: amar_takhsees, inspection_pictures, or other_letters with no addressee.
 
 DATE EXTRACTION RULES:
 - Find any visible date on the document.

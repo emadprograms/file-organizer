@@ -30,10 +30,13 @@ def test_prompt_contains_conflict_resolution_rules():
     assert "never basic_details" in prompt.lower() and ("30" in prompt or "60" in prompt), "Missing 30/60 financial amount exclusion from basic_details."
     assert "family" in prompt.lower(), "Missing family inclusion for personal_details."
     
-    # 5. Maintenance / Inspection / Ashgal Conflict
-    assert "inspection" in prompt.lower(), "Missing 'inspection' keyword routing for maintenance."
+    # 5. Maintenance / Ashgal Conflict
     assert "الأشغال" in prompt, "Missing Ashgal keyword routing for maintenance."
     assert "temporary key handovers" in prompt.lower() or "never key_handover_form" in prompt.lower(), "Missing Ashgal exclusion from key handover."
+
+    # 6. Inspection Conflict
+    assert "inspection" in prompt.lower(), "Missing 'inspection' keyword routing."
+    assert "not to maintenance" in prompt.lower() or "not in maintenance" in prompt.lower(), "Missing exclusion of inspection from maintenance."
 
 
 @patch("src.llm.GemmaClient._route_llm_call")

@@ -107,7 +107,8 @@ Plans:
 - Always analyze the subject of the letter first.
 - Allow the local LLM to guess the document type utilizing these specific patterns:
   - Subject is exactly "الموضوع : الوحدات السكنية" or mentions an "extension of stay" (e.g., تمديد الإقامة / السكن) -> `amar takhsees`. (STRICT DEFINITION: Must be an order from a higher authority to give the primary tenant a place to stay. Penalize false positives.)
-  - If the word "الأشغال" (Ashgal) is present ANYWHERE, it MUST be maintenance. This includes temporary key handover forms for maintenance (do NOT put these in key_handover_form). Also covers yellow papers with inspection details OR mentions "inspection" anywhere -> maintenance.
+  - If the word "الأشغال" (Ashgal) is present ANYWHERE, it MUST be maintenance. This includes temporary key handover forms for maintenance (do NOT put these in key_handover_form). Do NOT put inspection notices or reports here -> maintenance.
+  - Notices of inspection, inspection reports, house visits, yellow papers with inspection details, and photographs -> inspection_pictures.
   - Subject contains "طلب" (request) and mentions modifying the house -> house modifications.
   - Contains "استمارة تسليم الوحدات السكنية التابعة لوزارة الداخلية" -> key handover form.
   - Looks like "الموضوع: الوحدة السكنية رقم ( 508 ) طريق 4411 مجمع 944 سافرة" or "حاب ( 13/19239) قم الحس" (e.g., has a meter number) -> EWA.
