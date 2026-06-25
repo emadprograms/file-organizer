@@ -57,7 +57,7 @@ class Pipeline:
                 if cache_data.get('category') == 'pictures':
                     cache_data['category'] = 'inspection_pictures'
                 result = PageClassification(**cache_data)
-                msg = f" Cached Page {page_index}: {result.category.value} | {result.residents} | {result.date}"
+                msg = f" Cached Page {page_index}: {result.category.value} | {result.residents} | {result.date} | Sum: {str(result.summary)}"
                 try:
                     print(msg)
                 except UnicodeEncodeError:
@@ -81,7 +81,7 @@ class Pipeline:
                 # 1. Blank Page check
                 if len(i_bytes) < 15000:
                     print(f" Page {p_idx} is blank (size {len(i_bytes)} bytes). Skipping LLM.")
-                    res = PageClassification(category=Category.OTHER_LETTERS, residents=["NONE"], date="NONE", house_number="UNKNOWN")
+                    res = PageClassification(category=Category.OTHER_LETTERS, residents=["NONE"], date="NONE", house_number="UNKNOWN", summary="Blank page.")
                     with cache_lock:
                         cached_pages[str(p_idx)] = res.model_dump()
                         temp_cache_file = f"{cache_file}.tmp"
@@ -103,7 +103,7 @@ class Pipeline:
                         request_handler = Vision.VNImageRequestHandler.alloc().initWithCGImage_options_(cg_image, None)
                         request = Vision.VNRecognizeTextRequest.alloc().init()
                         request.setRecognitionLanguages_(["ar", "en"])
-                        request.setRegionOfInterest_(Vision.CGRectMake(0.0, 0.0, 1.0, 0.1))
+                        request.setRegionOfInterest_(Vision.CGRectMake(0.0, 0.0, 1.0, 0.15))
                         success, error = request_handler.performRequests_error_([request], None)
                         if success:
                             full_text = " ".join([obs.topCandidates_(1)[0].string() for obs in request.results() if obs.topCandidates_(1)])
@@ -111,9 +111,6 @@ class Pipeline:
                             if not match: match = re.search(r'(\d+)\s+(\d+)\s*من', full_text)
                             if not match: match = re.search(r'(\d+)\s*من', full_text)
                             if match: extracted_footer = match.group(0)
-                            else:
-                                match = re.search(r'(الصفحة|صفحة|page)[\s:]*(\d+)', full_text, re.IGNORECASE)
-                                if match: extracted_footer = match.group(0)
                 except Exception as e:
                     print(f"Vision OCR Error on page {p_idx}: {e}")
 
@@ -121,7 +118,7 @@ class Pipeline:
                 if str(p_idx) in extracted_text_cache:
                     print(f" Loaded Arabic text for Page {p_idx} from cache. Deferring local classification.")
                     text = extracted_text_cache[str(p_idx)]
-                    deferred_local_pages.append((p_idx, text, extracted_footer))
+                    deferred_local_pages.append((p_idx, text))
                     continue
 
                 # 4. Check fallback status or try cloud
@@ -132,7 +129,7 @@ class Pipeline:
                         print(f" Classifying Page {p_idx} directly using Cloud Model...")
                         res = self.client.classify_page_direct(i_bytes, extracted_footer)
                         
-                        msg = f" Cloud Extracted Page {p_idx}: {res.category.value} | {res.residents} | {res.date}"
+                        msg = f" Cloud Extracted Page {p_idx}: {res.category.value} | {res.residents} | {res.date} | Sum: {str(res.summary)}"
                         try: print(msg)
                         except UnicodeEncodeError: print(msg.encode('utf-8', errors='replace').decode('utf-8'))
                         
@@ -169,7 +166,7 @@ class Pipeline:
                                 if v.get("house_number") and v.get("house_number") != "UNKNOWN":
                                     house_number = v.get("house_number")
                                     break
-                        fallback_res = PageClassification(category=Category.OTHER_LETTERS, residents=["UNKNOWN"], date="NONE", house_number=house_number)
+                        fallback_res = PageClassification(category=Category.OTHER_LETTERS, residents=["UNKNOWN"], date="NONE", house_number=house_number, summary="OCR extraction failed.")
                         with cache_lock:
                             cached_pages[str(p_idx)] = fallback_res.model_dump()
                             temp_cache_file = f"{cache_file}.tmp"
@@ -186,7 +183,7 @@ class Pipeline:
                         print(f" Classifying text for Page {p_idx} using 14B Text Model...")
                         res = self.client.classify_extracted_page(text, extracted_footer)
                         
-                        msg = f" Local Classified Page {p_idx}: {res.category.value} | {res.residents} | {res.date}"
+                        msg = f" Local Classified Page {p_idx}: {res.category.value} | {res.residents} | {res.date} | Sum: {str(res.summary)}"
                         try: print(msg)
                         except UnicodeEncodeError: print(msg.encode('utf-8', errors='replace').decode('utf-8'))
                         
@@ -205,7 +202,7 @@ class Pipeline:
                                 if v.get("house_number") and v.get("house_number") != "UNKNOWN":
                                     house_number = v.get("house_number")
                                     break
-                        fallback_res = PageClassification(category=Category.OTHER_LETTERS, residents=["UNKNOWN"], date="NONE", house_number=house_number)
+                        fallback_res = PageClassification(category=Category.OTHER_LETTERS, residents=["UNKNOWN"], date="NONE", house_number=house_number, summary="Local classification failed.")
                         with cache_lock:
                             cached_pages[str(p_idx)] = fallback_res.model_dump()
                             temp_cache_file = f"{cache_file}.tmp"
@@ -219,17 +216,11 @@ class Pipeline:
         if len(raw_pages) != total_expected_pages:
             raise RuntimeError(f"CRITICAL: Expected {total_expected_pages} pages, but only recovered {len(raw_pages)}. Aborting Pass 1.5 to prevent data loss.")
 
-        print(f"Starting Pass 1.5 (Entity Resolution) for {pdf_path}...")
-        log_lines = []
-        for page_index, page in raw_pages:
-            res_str = ", ".join(page.residents) if page.residents else "NONE"
-            log_lines.append(f"Page {page_index}: {page.category.value} | {res_str} | {page.date}")
-        raw_pages_log = "\n".join(log_lines)
-        
-        canonical_mapping = self.client.resolve_entities(raw_pages_log)
-        if not canonical_mapping:
-            canonical_mapping = {}
-        canonical_mapping_clean = {k.upper().strip(): v for k, v in canonical_mapping.items()}
+        print(f"Starting Pass 1.5 (Date Cleaning & Interpolation) for {pdf_path}...")
+        self._interpolate_dates(raw_pages)
+
+        print(f"Starting Pass 1.5 (Dependent Alias Mapping) for {pdf_path}...")
+        canonical_mapping_clean = self._map_aliases(raw_pages)
 
         print(f"Starting Pass 2 (Tenant Grouping) for {pdf_path}...")
         
@@ -238,114 +229,160 @@ class Pipeline:
         print(f"Identified {len(documents)} document groups based on timeline logic.")
         return documents
 
-    def _group_pages_into_documents(self, raw_pages: list[tuple[int, PageClassification]], canonical_mapping_clean: dict[str, str]) -> list[DocumentGroup]:
-        documents: list[DocumentGroup] = []
-        current_primary_tenant = "UNKNOWN"
-        prefix_buffer: list[DocumentGroup] = []
-        verified_residents = set()
+    def _interpolate_dates(self, raw_pages: list[tuple[int, PageClassification]]):
+        from datetime import datetime
+        
+        for i in range(len(raw_pages)):
+            d = raw_pages[i][1].date
+            if d and d != "NONE":
+                try:
+                    dt = datetime.strptime(d, "%Y-%m-%d")
+                    if dt.year < 1970 or dt.year > datetime.now().year:
+                        raw_pages[i][1].date = "NONE"
+                except ValueError:
+                    raw_pages[i][1].date = "NONE"
+                    
+        for i in range(len(raw_pages)):
+            if raw_pages[i][1].date == "NONE":
+                last_valid = None
+                for j in range(i-1, -1, -1):
+                    if raw_pages[j][1].date != "NONE":
+                        last_valid = raw_pages[j][1].date
+                        break
+                next_valid = None
+                for j in range(i+1, len(raw_pages)):
+                    if raw_pages[j][1].date != "NONE":
+                        next_valid = raw_pages[j][1].date
+                        break
+                        
+                if last_valid and next_valid:
+                    raw_pages[i][1].date = last_valid
+                elif last_valid:
+                    raw_pages[i][1].date = last_valid
+                elif next_valid:
+                    raw_pages[i][1].date = next_valid
 
+    def _map_aliases(self, raw_pages: list[tuple[int, PageClassification]]) -> dict[str, str]:
+        canonical_mapping = {}
+        active_primary_tenant = "UNKNOWN"
         ANCHOR_CATEGORIES = {Category.BASIC_DETAILS, Category.KEY_HANDOVER, Category.CONTRACT}
+        
+        from collections import Counter
+        name_counts = Counter()
+        for _, page in raw_pages:
+            for r in page.residents:
+                if r and r not in ("NONE", "UNKNOWN"):
+                    name_counts[r.upper().strip()] += 1
 
         for _, page in raw_pages:
-            if page.category in ANCHOR_CATEGORIES:
-                mapped = [canonical_mapping_clean.get(r.upper().strip(), r) for r in page.residents]
-                for m in mapped:
-                    if m not in ("NONE", "UNKNOWN", ""):
-                        verified_residents.add(m)
-
-        for i, (page_index, page) in enumerate(raw_pages):
-            effective_continuation = getattr(page, 'is_continuation', False)
-
-            mapped_residents = [canonical_mapping_clean.get(r.upper().strip(), r) for r in page.residents]
-            valid_mapped = [r for r in mapped_residents if r not in ("NONE", "UNKNOWN", "")]
-
-            group_list_temp = prefix_buffer if current_primary_tenant == "UNKNOWN" else documents
+            mapped_residents = [r.upper().strip() for r in page.residents if r not in ("NONE", "UNKNOWN", "")]
             
-            if effective_continuation and group_list_temp:
-                page_primary_tenant = group_list_temp[-1].primary_tenant
-                page.category = group_list_temp[-1].category
+            if page.category in ANCHOR_CATEGORIES:
+                if mapped_residents:
+                    active_primary_tenant = mapped_residents[0]
             else:
-                if page.category == Category.AMAR_TAKHSEES:
-                    if valid_mapped:
-                        candidate = valid_mapped[0]
-                        words_current = set(current_primary_tenant.split())
-                        words_candidate = set(candidate.split())
-                        if len(words_current.intersection(words_candidate)) >= min(2, len(words_current), len(words_candidate)):
-                            page_primary_tenant = current_primary_tenant
-                        elif self.client.check_name_match(current_primary_tenant, candidate, page.category.value):
-                            page_primary_tenant = current_primary_tenant
-                        else:
-                            page_primary_tenant = candidate
-                    else:
-                        page_primary_tenant = current_primary_tenant
-                elif page.category == Category.PERSONAL_DETAILS:
-                    page_primary_tenant = current_primary_tenant
-                elif valid_mapped:
-                    if current_primary_tenant in valid_mapped:
-                        page_primary_tenant = current_primary_tenant
-                    else:
-                        if page.category in ANCHOR_CATEGORIES and len(valid_mapped) <= 10:
-                            matched = False
-                            for candidate in valid_mapped:
-                                words_current = set(current_primary_tenant.split())
-                                words_candidate = set(candidate.split())
-                                if len(words_current.intersection(words_candidate)) >= min(2, len(words_current), len(words_candidate)):
-                                    matched = True
-                                    break
-                                elif self.client.check_name_match(current_primary_tenant, candidate, page.category.value):
-                                    matched = True
-                                    break
-                            if matched:
-                                page_primary_tenant = current_primary_tenant
-                            else:
-                                current_primary_tenant = valid_mapped[0]
-                                page_primary_tenant = current_primary_tenant
-                                
-                                if prefix_buffer:
-                                    for doc in prefix_buffer:
-                                        doc.primary_tenant = current_primary_tenant
-                                    documents.extend(prefix_buffer)
-                                    prefix_buffer.clear()
-                        else:
-                            candidate = valid_mapped[0]
-                            words_current = set(current_primary_tenant.split())
-                            words_candidate = set(candidate.split())
-                            if len(words_current.intersection(words_candidate)) >= min(2, len(words_current), len(words_candidate)):
-                                page_primary_tenant = current_primary_tenant
-                            elif self.client.check_name_match(current_primary_tenant, candidate, page.category.value):
-                                page_primary_tenant = current_primary_tenant
-                            else:
-                                if candidate in verified_residents:
-                                    page_primary_tenant = candidate
-                                else:
-                                    page_primary_tenant = current_primary_tenant
+                for r in mapped_residents:
+                    if name_counts[r] > 3:
+                        active_primary_tenant = r
+                        break
+                        
+            if page.category == Category.PERSONAL_DETAILS and active_primary_tenant != "UNKNOWN":
+                for r in mapped_residents:
+                    if r != active_primary_tenant:
+                        canonical_mapping[r] = active_primary_tenant
+                        
+        return canonical_mapping
+
+    def _group_pages_into_documents(self, raw_pages: list[tuple[int, PageClassification]], canonical_mapping_clean: dict[str, str]) -> list[DocumentGroup]:
+        documents: list[DocumentGroup] = []
+        
+        # 1. Pre-group by Category (The "Category Wall")
+        category_blocks = []
+        if raw_pages:
+            current_block = [raw_pages[0]]
+            current_category = raw_pages[0][1].category
+            for p_idx, p in raw_pages[1:]:
+                if p.category == current_category:
+                    current_block.append((p_idx, p))
                 else:
-                    page_primary_tenant = current_primary_tenant
+                    category_blocks.append(current_block)
+                    current_block = [(p_idx, p)]
+                    current_category = p.category
+            if current_block:
+                category_blocks.append(current_block)
 
-            group_list = prefix_buffer if current_primary_tenant == "UNKNOWN" else documents
-
-            merge_condition = False
-            if group_list and group_list[-1].category == page.category and group_list[-1].primary_tenant == page_primary_tenant:
-                if effective_continuation:
-                    merge_condition = True
-                elif page.date != "NONE" and group_list[-1].dates and group_list[-1].dates[-1] == page.date:
-                    merge_condition = True
-
-            if merge_condition:
-                group_list[-1].end_page = page_index
-                if page.date != "NONE":
-                    group_list[-1].dates.append(page.date)
-            else:
-                group_list.append(DocumentGroup(
-                    start_page=page_index,
-                    end_page=page_index,
-                    house_number=page.house_number,
-                    primary_tenant=page_primary_tenant,
-                    category=page.category,
-                    dates=[page.date] if page.date != "NONE" else []
-                ))
-
-        if current_primary_tenant == "UNKNOWN" and prefix_buffer:
-            documents = prefix_buffer + documents
-
+        all_groups = []
+        chunk_size = 25
+        
+        for block in category_blocks:
+            if len(block) == 1:
+                all_groups.append([block[0][0]])
+                continue
+                
+            block_groups = []
+            for i in range(0, len(block), chunk_size):
+                # Overlapping sliding window (overlap by 2 pages)
+                start_idx = max(0, i - 2) if i > 0 else 0
+                chunk = block[start_idx:i+chunk_size]
+                
+                pages_data = []
+                for p_idx, p in chunk:
+                    names_str = ", ".join([canonical_mapping_clean.get(r.upper().strip(), r) for r in p.residents])
+                    summary_str = p.summary
+                    pages_data.append([p_idx, names_str, summary_str])
+                
+                result = self.client.check_bulk_semantic_grouping(pages_data)
+                
+                # Merge overlapping groups using set intersection
+                for new_g in result.groups:
+                    if not new_g: continue
+                    shared = False
+                    for existing_g in block_groups:
+                        if set(existing_g).intersection(set(new_g)):
+                            for x in new_g:
+                                if x not in existing_g:
+                                    existing_g.append(x)
+                            existing_g.sort()
+                            shared = True
+                            break
+                    if not shared:
+                        # Ensure we don't accidentally pull in pages from outside this block's actual chunk scope
+                        # (Though the LLM should only return what we gave it)
+                        block_groups.append(new_g)
+                        
+            all_groups.extend(block_groups)
+            
+        page_map = {idx: p for idx, p in raw_pages}
+        for group in all_groups:
+            if not group: continue
+            group.sort()
+            start_page = group[0]
+            end_page = group[-1]
+            
+            group_names = []
+            for p_idx in group:
+                p = page_map[p_idx]
+                for r in p.residents:
+                    mapped = canonical_mapping_clean.get(r.upper().strip(), r)
+                    if mapped not in ("NONE", "UNKNOWN", ""):
+                        group_names.append(mapped)
+            
+            primary_tenant = "UNKNOWN"
+            if group_names:
+                from collections import Counter
+                primary_tenant = Counter(group_names).most_common(1)[0][0]
+                
+            category = page_map[start_page].category
+            house_number = page_map[start_page].house_number
+            dates = [page_map[p_idx].date for p_idx in group if page_map[p_idx].date != "NONE"]
+            
+            documents.append(DocumentGroup(
+                start_page=start_page,
+                end_page=end_page,
+                house_number=house_number,
+                primary_tenant=primary_tenant,
+                category=category,
+                dates=dates
+            ))
+            
         return documents

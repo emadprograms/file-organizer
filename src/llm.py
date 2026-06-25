@@ -15,7 +15,7 @@ from collections import deque
 from google import genai
 from google.genai import types
 
-from src.schemas import PageClassification, EntityResolutionMapping, Category, NameMatchResult
+from src.schemas import PageClassification, EntityResolutionMapping, Category, NameMatchResult, BulkSemanticMatchResult
 
 log = logging.getLogger(__name__)
 
@@ -415,41 +415,38 @@ CRITICAL FIRST STEP: ALWAYS analyze the subject (الموضوع) of the letter o
 
 Classify this page into exactly ONE of the following 13 categories:
 
-1. basic_details — البيانات الأساسية (SINGLE-PERSON FORMS ONLY. Forms with fields like Name, Rank, Allotment Date (تاريخ التخصيص), and Vacation Date (تاريخ الإخلاء) for ONE person are basic_details. CRITICAL FATAL ERROR: You are STRICTLY FORBIDDEN from selecting this if the page is a roster, schedule, or table listing MULTIPLE different people's names (e.g., 'كشف بأسماء', 3+ distinct people). Multi-person rosters are NEVER basic_details. WARNING: basic_details forms may mention rent amounts; do NOT misclassify them as rent_deduction just because of a rent amount. ONLY choose this for a form containing boxes/blanks dedicated to ONE specific person.)
-2. personal_details — البيانات الشخصية (Pictures of identity cards, passports, and other non-form documents related to the person and his family. Anything related to the person and his family that is NOT a form goes into personal details.)
-3. amar_takhsees — أمر تخصيص (Allocation orders. STRICT DEFINITION: A letter from a higher authority ordering to give a place to stay. FORMS OR TABLES ARE NEVER AMAR TAKHSEES. It MUST be a letter paragraph format. Strong pattern: Exact subject 'الموضوع : الوحدات السكنية' AND format is a letter.)
-4. key_handover_form — نموذج تسليم المفتاح (ONLY use this for the INITIAL key handover after making the contract. Do NOT use this for temporary key handovers related to maintenance. If the word 'الأشغال' (Ashgal) is present anywhere, it is NEVER key_handover_form. Strong pattern: Contains 'استمارة تسليم الوحدات السكنية التابعة لوزارة الداخلية'.)
-5. contract — العقد (Rental or housing contracts. STRICT DEFINITION: If the page contains contract articles like "مادة (1)", "مادة (2)", "الطرف الأول" (First Party), "الطرف الثاني" (Second Party), or "التمهيد" (Preamble), it MUST be a contract. WARNING: Contract pages often discuss rent deduction, allowances, or eviction inside their clauses. If these topics appear as part of a contract's "مادة" or terms, you MUST classify it as a contract and NEVER as rent_deduction, allowance_deduction, or notifications.)
-6. ewa_related_letters — رسائل الكهرباء والماء (EWA electricity/water letters. Strong pattern: Contains a meter number, such as 'الوحدة السكنية رقم' or similar.)
-7. rent_deduction — خصم الإيجار (Rent deduction notices or rosters. Usually formatted as letters addressed to someone to deduct rent. STRICT DEFINITION: They ALWAYS mention deducting amounts like "30" or "60" (bd). WARNING: Contracts and basic_details forms are EXEMPT and can mention rent amounts without being rent_deduction. Do NOT classify a single-person profile form (with rank, allotment date) or a contract clause as rent_deduction just because it mentions an amount. Use the amount presence ONLY to disambiguate from allowance_deduction.)
-8. allowance_deduction — خصم العلاوة (Allowance deduction notices. Strong pattern: Subject is 'الموضوع: وقف استقطاع بدل الانتفاع'. Will NOT have "30 bd" or "60 bd" written on it.)
-9. notifications — الإشعارات (General notifications, warnings, and ANY documents regarding vacating the house/eviction. STRICT DEFINITION: If the document mentions the tenant vacating the house (إخلاء), refusing to vacate, extensions for vacating, or any similar eviction terms, it MUST be notifications. Also includes 'إشعار' or 'اشعار'. Do NOT put eviction/vacating notices in other_letters. Do NOT use this for allocation orders.)
-10. maintenance — الصيانة (Maintenance requests, reports, work orders. STRICT RULE: If the word 'الأشغال' (Ashgal) is written ANYWHERE on the document, it MUST be maintenance. Even if it looks like a key handover form, if 'الأشغال' is present, it goes to maintenance. Do NOT put inspection notices or reports here.)
-11. inspection_pictures — التفتيش والصور (Notices of inspection, inspection reports, house visits, yellow papers with inspection details, and photographs of the property. ANY letters or reports regarding inspection MUST go here, NOT to maintenance.)
-12. modifications — التعديلات (Modification requests or approvals. Strong pattern: Subject contains 'طلب' (talab) and mentions modifying the house.)
-13. other_letters — رسائل أخرى (Any letters that don't fit the above. Also use this for generic multi-person rosters like 'كشف بأسماء' that do not clearly belong to another category.)
+1. Basic Details Form — البيانات الأساسية (SINGLE-PERSON FORMS ONLY. Forms with fields like Name, Rank, Allotment Date (تاريخ التخصيص), and Vacation Date (تاريخ الإخلاء) for ONE person are basic_details. CRITICAL FATAL ERROR: You are STRICTLY FORBIDDEN from selecting this if the page is a roster, schedule, or table listing MULTIPLE different people's names (e.g., 'كشف بأسماء', 3+ distinct people). Multi-person rosters are NEVER basic_details. WARNING: basic_details forms may mention rent amounts; do NOT misclassify them as rent_deduction just because of a rent amount. ONLY choose this for a form containing boxes/blanks dedicated to ONE specific person.)
+2. Personal Identification — البيانات الشخصية (Pictures of identity cards, passports, and other non-form documents related to the person and his family. Anything related to the person and his family that is NOT a form goes into personal details.)
+3. Allocation Order — أمر تخصيص (Allocation orders. STRICT DEFINITION: A letter from a higher authority ordering to give a place to stay. FORMS OR TABLES ARE NEVER AMAR TAKHSEES. It MUST be a letter paragraph format. Strong pattern: Exact subject 'الموضوع : الوحدات السكنية' AND format is a letter.)
+4. Key Handover Certificate — نموذج تسليم المفتاح (ONLY use this for the INITIAL key handover after making the contract. Do NOT use this for temporary key handovers related to maintenance. If the word 'الأشغال' (Ashgal) is present anywhere, it is NEVER key_handover_form. Strong pattern: Contains 'استمارة تسليم الوحدات السكنية التابعة لوزارة الداخلية'.)
+5. Housing Contract — العقد (Rental or housing contracts. STRICT DEFINITION: If the page contains contract articles like "مادة (1)", "مادة (2)", "الطرف الأول" (First Party), "الطرف الثاني" (Second Party), or "التمهيد" (Preamble), it MUST be a contract. WARNING: Contract pages often discuss rent deduction, allowances, or eviction inside their clauses. If these topics appear as part of a contract's "مادة" or terms, you MUST classify it as a contract and NEVER as rent_deduction, allowance_deduction, or notifications.)
+6. Electricity and Water — رسائل الكهرباء والماء (EWA electricity/water letters. Strong pattern: Contains a meter number, such as 'الوحدة السكنية رقم' or similar.)
+7. Rent Deduction Notice — خصم الإيجار (Rent deduction notices or rosters. Usually formatted as letters addressed to someone to deduct rent. STRICT DEFINITION: They ALWAYS mention deducting amounts like "30" or "60" (bd). WARNING: Contracts and basic_details forms are EXEMPT and can mention rent amounts without being rent_deduction. Do NOT classify a single-person profile form (with rank, allotment date) or a contract clause as rent_deduction just because it mentions an amount. Use the amount presence ONLY to disambiguate from allowance_deduction.)
+8. Allowance Deduction Notice — خصم العلاوة (Allowance deduction notices. Strong pattern: Subject is 'الموضوع: وقف استقطاع بدل الانتفاع'. Will NOT have "30 bd" or "60 bd" written on it.)
+9. General Notifications — الإشعارات (General notifications, warnings, and ANY documents regarding vacating the house/eviction. STRICT DEFINITION: If the document mentions the tenant vacating the house (إخلاء), refusing to vacate, extensions for vacating, or any similar eviction terms, it MUST be notifications. Also includes 'إشعار' or 'اشعار'. Do NOT put eviction/vacating notices in other_letters. Do NOT use this for allocation orders.)
+10. Maintenance Records — الصيانة (Maintenance requests, reports, work orders. STRICT RULE: If the word 'الأشغال' (Ashgal) is written ANYWHERE on the document, it MUST be maintenance. Even if it looks like a key handover form, if 'الأشغال' is present, it goes to maintenance. Do NOT put inspection notices or reports here.)
+11. Inspection and Pictures — التفتيش والصور (Notices of inspection, inspection reports, house visits, yellow papers with inspection details, and photographs of the property. ANY letters or reports regarding inspection MUST go here, NOT to maintenance.)
+12. Property Modifications — التعديلات (Modification requests or approvals. Strong pattern: Subject contains 'طلب' (talab) and mentions modifying the house.)
+13. Miscellaneous Letters — رسائل أخرى (Any letters that don't fit the above. Also use this for generic multi-person rosters like 'كشف بأسماء' that do not clearly belong to another category.)
 
 NAME EXTRACTION RULES (CRITICAL):
 - Arabic names typically have 4 to 5 parts. Extract ALL parts of the name.
 - If a document states a person's relationship (e.g., Wife - زوجة, Son - ابن), append it to their name in parentheses, e.g., "آمنة (زوجة)".
 - If a document is addressed to MULTIPLE people, extract ALL of their names as a list of strings.
 - Do NOT return an empty list or ["NONE"] unless you are absolutely certain there is no name anywhere on the page. Most documents DO contain a name.
-- Only return ["NONE"] for categories where no resident is expected: amar_takhsees, inspection_pictures, or other_letters with no addressee.
+- Only return ["NONE"] for categories where no resident is expected: Allocation Order, Inspection and Pictures, or Miscellaneous Letters with no addressee.
 
 DATE EXTRACTION RULES:
 - Find any visible date on the document.
 - Normalize the date to YYYY-MM-DD format (e.g., 2008-05-14).
-- If it's a Hijri date, format as YYYY-MM-DD using the Hijri year (e.g., 1429-05-14).
-- If no date is visible anywhere, return "NONE".
+- FATAL RULE: You are STRICTLY FORBIDDEN from extracting Hijri dates (e.g., 1445 AH). ONLY extract Gregorian dates. Ignore Hijri dates even if both exist.
+- If no Gregorian date is visible anywhere, return "NONE".
 
 SPECIAL RULES:
 - Normalize Arabic names intelligently: group variations like "محمد" and "المحمد" as the same person.
 - Tolerate OCR noise and imperfect text in scanned documents.
 
-FALLBACK INSTRUCTION (CRITICAL):
-- If NO subject (الموضوع) is found AND none of the strong patterns above match, set `needs_gemma_fallback = true` and do NOT guess blindly. However, if you are the fallback model doing a retry, do your absolute best to categorize.
-
-Return a JSON object with: house_number, residents (list of strings), category, date, is_continuation (boolean), is_form (boolean), and needs_gemma_fallback (boolean)."""
+Return a JSON object with: house_number, residents (list of strings), category, date, summary (string), and is_form (boolean)."""
 
 
 
@@ -476,13 +473,11 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         )
         return response.choices[0].message.content
 
-    def _classify_text_with_local_model(self, text: str, footer_text: str = None) -> PageClassification:
+    def _classify_text_with_local_model(self, text: str, extracted_footer: str = None) -> PageClassification:
         system_prompt = self._build_system_prompt()
-        user_prompt = "Classify this scanned document page based on the following extracted text."
-        if footer_text:
-            user_prompt += f"\n\nHINT: The OCR system detected the following text at the bottom of the page: '{footer_text}'. First, evaluate if this text actually represents a page number (ignore it if it's a date, year, or form ID). If it IS a page number and indicates this page is a continuation of the previous page (like '2 من 5' or 'الصفحة 2'), set is_continuation = true. If it indicates this is the first page (like '1 من 5' or 'الصفحة 1'), set is_continuation = false."
-            
-        user_prompt += f"\n\nExtracted Text:\n{text}"
+        user_prompt = f"Classify this scanned document page based on the following extracted text.\n\nExtracted Text:\n{text}"
+        if extracted_footer:
+            user_prompt += f"\n\nExtracted Footer Text: {extracted_footer}"
         
         local_model = os.getenv("LOCAL_TEXT_MODEL_NAME", "qwen2.5:14b")
         response = self.local_client.beta.chat.completions.parse(
@@ -509,27 +504,19 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 last_error = e
         raise Exception(f"Failed to extract text after 2 attempts. Last error: {last_error}")
 
-    def classify_extracted_page(self, text: str, footer_text: str = None) -> PageClassification:
+    def classify_extracted_page(self, text: str, extracted_footer: str = None) -> PageClassification:
         last_error = None
         for text_attempt in range(3):
             try:
-                parsed_result = self._classify_text_with_local_model(text, footer_text)
-                
-                if getattr(parsed_result, "needs_gemma_fallback", False):
-                    print("[Local Inference Refused] No subject/strong pattern found. Falling back to gemma-4-26b-a4b-it.")
-                    raise ValueError("Local Inference Refused via needs_gemma_fallback flag")
+                parsed_result = self._classify_text_with_local_model(text, extracted_footer)
                 
                 # Heuristic Override: Local models struggle with complex negative constraints.
                 # If it correctly sees a form, force it to basic_details.
-                if getattr(parsed_result, "is_form", False) and parsed_result.category.value == "amar_takhsees":
-                    print("[Heuristic Override] Local model selected amar_takhsees for a FORM. Forcing basic_details.")
+                if getattr(parsed_result, "is_form", False) and parsed_result.category.value == "Allocation Order":
+                    print("[Heuristic Override] Local model selected Allocation Order for a FORM. Forcing Basic Details Form.")
                     parsed_result.category = Category.BASIC_DETAILS
                     
                 return parsed_result
-            except ValueError as e:
-                if "Local Inference Refused via needs_gemma_fallback flag" in str(e):
-                    raise e
-                last_error = e
             except Exception as e:
                 last_error = e
         
@@ -538,11 +525,9 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         else:
             raise RuntimeError("Failed after 3 text classification attempts")
 
-    def classify_page(self, image_bytes: bytes, footer_text: str = None) -> PageClassification:
+    def classify_page(self, image_bytes: bytes) -> PageClassification:
         system_prompt = self._build_system_prompt()
         user_prompt = "Classify this scanned document page."
-        if footer_text:
-            user_prompt += f"\n\nHINT: The OCR system detected the following text at the bottom of the page: '{footer_text}'. First, evaluate if this text actually represents a page number (ignore it if it's a date, year, or form ID). If it IS a page number and indicates this page is a continuation of the previous page (like '2 من 5' or 'الصفحة 2'), set is_continuation = true. If it indicates this is the first page (like '1 من 5' or 'الصفحة 1'), set is_continuation = false."
 
         try:
             last_error = None
@@ -555,23 +540,15 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 
                 for text_attempt in range(3):
                     try:
-                        parsed_result = self._classify_text_with_local_model(text, footer_text)
-                        
-                        if getattr(parsed_result, "needs_gemma_fallback", False):
-                            print("[Local Inference Refused] No subject/strong pattern found. Falling back to gemma-4-26b-a4b-it.")
-                            raise ValueError("Local Inference Refused via needs_gemma_fallback flag")
+                        parsed_result = self._classify_text_with_local_model(text)
                         
                         # Heuristic Override: Local models struggle with complex negative constraints.
                         # If it correctly sees a form, force it to basic_details.
-                        if getattr(parsed_result, "is_form", False) and parsed_result.category.value == "amar_takhsees":
-                            print("[Heuristic Override] Local model selected amar_takhsees for a FORM. Forcing basic_details.")
+                        if getattr(parsed_result, "is_form", False) and parsed_result.category.value == "Allocation Order":
+                            print("[Heuristic Override] Local model selected Allocation Order for a FORM. Forcing Basic Details Form.")
                             parsed_result.category = Category.BASIC_DETAILS
                             
                         return parsed_result
-                    except ValueError as e:
-                        if "Local Inference Refused via needs_gemma_fallback flag" in str(e):
-                            raise e
-                        last_error = e
                     except Exception as e:
                         last_error = e
             
@@ -596,11 +573,11 @@ Return a JSON object with: house_number, residents (list of strings), category, 
             )
             return result
 
-    def classify_page_direct(self, image_bytes: bytes, footer_text: str = None) -> PageClassification:
+    def classify_page_direct(self, image_bytes: bytes, extracted_footer: str = None) -> PageClassification:
         system_prompt = self._build_system_prompt()
         user_prompt = "Classify this scanned document page."
-        if footer_text:
-            user_prompt += f"\n\nHINT: The OCR system detected the following text at the bottom of the page: '{footer_text}'. First, evaluate if this text actually represents a page number (ignore it if it's a date, year, or form ID). If it IS a page number and indicates this page is a continuation of the previous page (like '2 من 5' or 'الصفحة 2'), set is_continuation = true. If it indicates this is the first page (like '1 من 5' or 'الصفحة 1'), set is_continuation = false."
+        if extracted_footer:
+            user_prompt += f"\n\nExtracted Footer Text: {extracted_footer}"
             
         contents = [
             system_prompt,
@@ -669,65 +646,67 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 print(f"[Gemini Fallback Failed] {gemini_err}")
                 return False
 
-    def resolve_entities(self, raw_pages_log: str) -> dict[str, str]:
+    def check_bulk_semantic_grouping(self, pages_data: list[list]) -> BulkSemanticMatchResult:
+        """
+        Takes a list of pages data: [[page_num, names_str, summary_str], ...]
+        Returns a BulkSemanticMatchResult containing groups of page numbers.
+        """
         system_prompt = (
-            "You are an Arabic document classification expert analyzing a chronological log of documents "
-            "[Category, Name, Date] for a single house.\n\n"
-            "Your task is to resolve ALL unique tenant/resident names mentioned across the files into canonical 'Primary Resident' names.\n"
-            "There may be multiple generations (father, then son inherits) or multiple separate rentals over time.\n\n"
+            "You are an expert document organizer analyzing a sequence of pages from a single property file.\n\n"
             "CRITICAL RULES:\n"
-            "1. Identify the 'Primary Tenants' who signed the contracts or handover forms.\n"
-            "2. Group all variations of a name (e.g., 'محمد علي' and 'المرحوم محمد علي') under the most complete canonical name.\n"
-            "3. Spouses and children (e.g., 'آمنة (زوجة)') MUST be mapped to the Primary Tenant of their era! Do NOT make them their own separate entity.\n"
-            "4. Return a JSON object mapping EVERY EXACT RAW NAME to its canonical Primary Tenant name.\n\n"
-            "Example Output:\n"
-            "{\n"
-            "  \"محمد علي أحمد\": \"محمد علي أحمد\",\n"
-            "  \"محمد علي\": \"محمد علي أحمد\",\n"
-            "  \"آمنة (زوجة)\": \"محمد علي أحمد\",\n"
-            "  \"أحمد محمد علي\": \"أحمد محمد علي\"\n"
-            "}"
+            "1. You will be provided with an array of pages. Each page has [page_number, extracted_names, page_summary].\n"
+            "2. Group consecutive pages together ONLY if they semantically belong to the exact same document/event.\n"
+            "3. If a page starts a new document or a completely different topic, it belongs in a new group.\n"
+            "4. A document can span multiple consecutive pages (e.g., a 5-page contract).\n"
+            "5. Return a JSON object with a 'groups' field containing a list of lists of page numbers.\n"
         )
-        user_prompt = f"Resolve the following document log:\n\n{raw_pages_log}"
-        system_prompt += "\n\nCRITICAL: Output valid JSON exactly in this structure: {\"mapping_list\": [{\"raw_name\": \"...\", \"canonical_name\": \"...\"}]}"
+        user_prompt = f"Group these pages logically:\n{json.dumps(pages_data, ensure_ascii=False, indent=2)}"
         
-        api_key = os.getenv("DEEPSEEK_API_KEY")
-        if not api_key:
-            raise Exception("DEEPSEEK_API_KEY not found in environment!")
-            
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
+        use_local = self.should_use_local_fallback()
         
-        payload = {
-            "model": "deepseek-chat",
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            "response_format": {"type": "json_object"},
-            "temperature": 0.0
-        }
-        
-        import requests
-        import json
-        
-        for attempt in range(1, 10):
+        if not use_local:
             try:
-                response = requests.post("https://api.deepseek.com/chat/completions", headers=headers, json=payload, timeout=60)
-                response.raise_for_status()
-                data = response.json()
-                content = data["choices"][0]["message"]["content"]
-                parsed = json.loads(content)
-                
-                mapping_dict = {}
-                for item in parsed.get("mapping_list", []):
-                    mapping_dict[item["raw_name"]] = item["canonical_name"]
-                return mapping_dict
+                print(" Running bulk semantic grouping using Cloud Model...")
+                contents = [
+                    system_prompt,
+                    user_prompt
+                ]
+                attempts = 1 if self.use_local_llm else 100
+                result = self._route_llm_call(
+                    model='gemma-4-26b-a4b-it',
+                    contents=contents,
+                    response_schema=BulkSemanticMatchResult,
+                    log_prefix="BulkSemanticCloud",
+                    max_attempts=attempts
+                )
+                return result
             except Exception as e:
-                print(f"[DeepSeek Retry {attempt}/10] Failed: {e}")
-                time.sleep(5)
-                
-        raise Exception("DeepSeek failed after 10 attempts.")
+                print(f"WARNING: Direct Cloud bulk grouping failed: {e}")
+                print("  [Transition] Triggering Rate Limit Cooldown. Falling back to local model...")
+                self.activate_cooldown()
+                use_local = True
+
+        if use_local:
+            local_model = os.getenv("LOCAL_TEXT_MODEL_NAME", "qwen2.5:14b")
+            try:
+                print(f" Running bulk semantic grouping using Local Model ({local_model})...")
+                response = self.local_client.beta.chat.completions.parse(
+                    model=local_model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    response_format=BulkSemanticMatchResult,
+                    temperature=0.0,
+                    extra_body={"options": {"num_ctx": 32768}}
+                )
+                if response.choices[0].message.parsed:
+                    return response.choices[0].message.parsed
+                else:
+                    raise openai.OpenAIError("Parsed response is None")
+            except Exception as e:
+                print(f"[Local Inference Failed] bulk semantic grouping failed. Error: {e}")
+                raise
+
+
 

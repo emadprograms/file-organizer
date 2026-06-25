@@ -5,19 +5,19 @@ from pydantic import BaseModel, Field, field_validator
 
 class Category(str, Enum):
     """13-category classification for Bahrain housing documents."""
-    BASIC_DETAILS = "basic_details"
-    PERSONAL_DETAILS = "personal_details"
-    AMAR_TAKHSEES = "amar_takhsees"
-    KEY_HANDOVER = "key_handover_form"
-    CONTRACT = "contract"
-    EWA_LETTERS = "ewa_related_letters"
-    RENT_DEDUCTION = "rent_deduction"
-    ALLOWANCE_DEDUCTION = "allowance_deduction"
-    NOTIFICATIONS = "notifications"
-    MAINTENANCE = "maintenance"
-    INSPECTION_PICTURES = "inspection_pictures"
-    MODIFICATIONS = "modifications"
-    OTHER_LETTERS = "other_letters"
+    BASIC_DETAILS = "Basic Details Form"
+    PERSONAL_DETAILS = "Personal Identification"
+    AMAR_TAKHSEES = "Allocation Order"
+    KEY_HANDOVER = "Key Handover Certificate"
+    CONTRACT = "Housing Contract"
+    EWA_LETTERS = "Electricity and Water"
+    RENT_DEDUCTION = "Rent Deduction Notice"
+    ALLOWANCE_DEDUCTION = "Allowance Deduction Notice"
+    NOTIFICATIONS = "General Notifications"
+    MAINTENANCE = "Maintenance Records"
+    INSPECTION_PICTURES = "Inspection and Pictures"
+    MODIFICATIONS = "Property Modifications"
+    OTHER_LETTERS = "Miscellaneous Letters"
 
 
 class PageClassification(BaseModel):
@@ -26,9 +26,7 @@ class PageClassification(BaseModel):
     residents: list[str] = Field(description="List of resident names in Arabic, with relationship in parentheses if known (e.g. 'Name (Wife)'). Return ['NONE'] if no names.")
     category: Category = Field(description="The document category from the 13 defined types")
     date: str = Field(description="The date of the document (Gregorian or Hijri) if visible, otherwise 'NONE'")
-    is_continuation: bool = Field(default=False, description="True if this page is a continuation of the previous page, False otherwise")
-    is_form: bool = Field(default=False, description="True if the document is a fill-in-the-blank form or contains a structured data table, False if it is a paragraph letter or picture")
-    needs_gemma_fallback: bool = Field(default=False, description="Set to true if there is no Subject and no strong pattern match")
+    summary: str = Field(description="A verbose, one-line 'full story' of the page content, e.g., 'This letter from Ministry of Housing is for Mohamed Ali regarding a request to build an additional room.' Do not be lazy; extract all key context.")
 
     @field_validator('residents', mode='before')
     @classmethod
@@ -64,3 +62,7 @@ class NameMatchResult(BaseModel):
     """Structured output for semantic name matching."""
     is_match: bool = Field(description="True if the names semantically refer to the same person, False otherwise")
     reason: str = Field(description="The reasoning for the decision")
+
+class BulkSemanticMatchResult(BaseModel):
+    """Structured output for bulk semantic grouping."""
+    groups: list[list[int]] = Field(description="List of groups, where each group is a list of page numbers that belong to the same document")

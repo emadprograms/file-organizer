@@ -4,6 +4,7 @@ from pathlib import Path
 from collections import Counter
 from collections import defaultdict
 import re
+from typing import Union
 
 from src.schemas import Category, DocumentGroup
 from src.split import extract_pdf_segment
@@ -25,7 +26,7 @@ CATEGORY_FOLDERS = {
 }
 
 class FileOrganizer:
-    def _resolve_house_number(self, source_pdf: str | Path) -> str:
+    def _resolve_house_number(self, source_pdf: Union[str, Path]) -> str:
         import re
         from pathlib import Path
         filename = Path(source_pdf).name
