@@ -26,3 +26,5 @@ test_output/
 out_*.pdf
 *.cache.json
 *.pdf
+.venv/
+*.log

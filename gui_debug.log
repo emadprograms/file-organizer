@@ -196,3 +196,51 @@ ValueError: No API keys provided and GEMINI_API_KEYS not found in environment.
 [DEBUG] Pipeline initialized
 [DEBUG] Processing path: /Volumes/Micron-E 0256 A/From Office/Safra C/510.pdf
 [DEBUG] Calling pipeline.process_pdf
+
+[DEBUG] _execute started with /Volumes/Micron-E 0256 A/From Office/Safra C/508.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: /Volumes/Micron-E 0256 A/From Office/Safra C/508.pdf
+[DEBUG] Calling pipeline.process_pdf
+
+[DEBUG] _execute started with /Volumes/Micron-E 0256 A/From Office/Safra C/508.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: /Volumes/Micron-E 0256 A/From Office/Safra C/508.pdf
+[DEBUG] Calling pipeline.process_pdf
+
+[DEBUG] _execute started with /Volumes/Micron-E 0256 A/From Office/Safra C/508.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: /Volumes/Micron-E 0256 A/From Office/Safra C/508.pdf
+[DEBUG] Calling pipeline.process_pdf
+
+[DEBUG] _execute started with /Volumes/Micron-E 0256 A/From Office/Safra C/559.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: /Volumes/Micron-E 0256 A/From Office/Safra C/559.pdf
+[DEBUG] Calling pipeline.process_pdf
+
+[DEBUG] _execute started with /Volumes/Micron-E 0256 A/From Office/Safra C/559.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: /Volumes/Micron-E 0256 A/From Office/Safra C/559.pdf
+[DEBUG] Calling pipeline.process_pdf
+
+[DEBUG] _execute started with /Volumes/Micron-E 0256 A/From Office/Safra C/559.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: /Volumes/Micron-E 0256 A/From Office/Safra C/559.pdf
+[DEBUG] Calling pipeline.process_pdf
+
+[DEBUG] _execute started with /Volumes/Micron-E 0256 A/From Office/Safra C/559.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: /Volumes/Micron-E 0256 A/From Office/Safra C/559.pdf
+[DEBUG] Calling pipeline.process_pdf
+
+[DEBUG] _execute started with /Volumes/Micron-E 0256 A/From Office/Safra C/559.pdf
+[DEBUG] imports successful
+[DEBUG] Pipeline initialized
+[DEBUG] Processing path: /Volumes/Micron-E 0256 A/From Office/Safra C/559.pdf
+[DEBUG] Calling pipeline.process_pdf
