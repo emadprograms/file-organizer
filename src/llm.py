@@ -469,6 +469,44 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         else:
             raise openai.OpenAIError("Parsed response is None")
 
+    def extract_page(self, image_bytes: bytes) -> str:
+        last_error = None
+        for qwen_attempt in range(2):
+            try:
+                return self._extract_text_with_qwen(image_bytes)
+            except Exception as e:
+                last_error = e
+        raise Exception(f"Failed to extract text after 2 attempts. Last error: {last_error}")
+
+    def classify_extracted_page(self, text: str, footer_text: str = None) -> PageClassification:
+        last_error = None
+        for text_attempt in range(3):
+            try:
+                parsed_result = self._classify_text_with_local_model(text, footer_text)
+                
+                if getattr(parsed_result, "needs_gemma_fallback", False):
+                    print("[Local Inference Refused] No subject/strong pattern found. Falling back to gemini-4-26b.")
+                    raise ValueError("Local Inference Refused via needs_gemma_fallback flag")
+                
+                # Heuristic Override: Local models struggle with complex negative constraints.
+                # If it correctly sees a form, force it to basic_details.
+                if getattr(parsed_result, "is_form", False) and parsed_result.category.value == "amar_takhsees":
+                    print("[Heuristic Override] Local model selected amar_takhsees for a FORM. Forcing basic_details.")
+                    parsed_result.category = Category.BASIC_DETAILS
+                    
+                return parsed_result
+            except ValueError as e:
+                if "Local Inference Refused via needs_gemma_fallback flag" in str(e):
+                    raise e
+                last_error = e
+            except Exception as e:
+                last_error = e
+        
+        if last_error:
+            raise last_error
+        else:
+            raise RuntimeError("Failed after 3 text classification attempts")
+
     def classify_page(self, image_bytes: bytes, footer_text: str = None) -> PageClassification:
         system_prompt = self._build_system_prompt()
         user_prompt = "Classify this scanned document page."

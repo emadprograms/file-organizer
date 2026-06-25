@@ -64,130 +64,112 @@ class Pipeline:
                 
         cache_lock = threading.Lock()
         
-        def process_single_page(page_info):
-            p_idx, i_bytes = page_info
-            import time
-            try:
-                # Pre-check for completely blank pages using file size threshold (15KB for 150 DPI)
+        if pages_to_process:
+            print(f"Pass 1a: Extracting text for {len(pages_to_process)} pages...")
+            extracted_pages = []
+            for p_idx, i_bytes in pages_to_process:
                 if len(i_bytes) < 15000:
                     print(f" Page {p_idx} is blank (size {len(i_bytes)} bytes). Skipping LLM.")
-                    res = PageClassification(
-                        category=Category.OTHER_LETTERS,
-                        residents=["NONE"],
-                        date="NONE",
-                        house_number="UNKNOWN"
-                    )
+                    res = PageClassification(category=Category.OTHER_LETTERS, residents=["NONE"], date="NONE", house_number="UNKNOWN")
                     with cache_lock:
                         cached_pages[str(p_idx)] = res.model_dump()
                         temp_cache_file = f"{cache_file}.tmp"
                         with open(temp_cache_file, "w", encoding="utf-8") as f:
                             json.dump(cached_pages, f, ensure_ascii=False, indent=2)
                         os.replace(temp_cache_file, cache_file)
-                    return (p_idx, res)
-
-                # Add Vision OCR integration after blank check
+                    raw_pages.append((p_idx, res))
+                    continue
+                    
                 extracted_footer = None
                 try:
-                    import Vision
-                    import Quartz
+                    import Vision, Quartz, re
                     from Foundation import NSData
-                    import re
-                    
                     ns_data = NSData.dataWithBytes_length_(i_bytes, len(i_bytes))
                     cg_data_provider = Quartz.CGDataProviderCreateWithCFData(ns_data)
                     cg_image = Quartz.CGImageCreateWithPNGDataProvider(cg_data_provider, None, False, Quartz.kCGRenderingIntentDefault)
-                    
                     if cg_image:
                         request_handler = Vision.VNImageRequestHandler.alloc().initWithCGImage_options_(cg_image, None)
                         request = Vision.VNRecognizeTextRequest.alloc().init()
                         request.setRecognitionLanguages_(["ar", "en"])
-                        request.setRegionOfInterest_(Vision.CGRectMake(0.0, 0.0, 1.0, 0.1)) # Bottom 10%
-                        
+                        request.setRegionOfInterest_(Vision.CGRectMake(0.0, 0.0, 1.0, 0.1))
                         success, error = request_handler.performRequests_error_([request], None)
                         if success:
                             full_text = " ".join([obs.topCandidates_(1)[0].string() for obs in request.results() if obs.topCandidates_(1)])
-                            print(f"[DEBUG OCR Page {p_idx}] FULL TEXT: {full_text}")
-                            match = re.search(r'(\d+)\s*من', full_text)
-                            if match:
-                                extracted_footer = match.group(0)
+                            match = re.search(r'(\d+)\s*من\s*(\d+)', full_text)
+                            if not match: match = re.search(r'(\d+)\s+(\d+)\s*من', full_text)
+                            if not match: match = re.search(r'(\d+)\s*من', full_text)
+                            if match: extracted_footer = match.group(0)
                             else:
                                 match = re.search(r'(الصفحة|صفحة|page)[\s:]*(\d+)', full_text, re.IGNORECASE)
-                                if match:
-                                    extracted_footer = match.group(0)
-                                        
-                            if extracted_footer:
-                                print(f" Page {p_idx} has footer '{extracted_footer}'. Passing to LLM.")
+                                if match: extracted_footer = match.group(0)
                 except Exception as e:
                     print(f"Vision OCR Error on page {p_idx}: {e}")
-
-                res = None
-                for attempt in range(3):
-                    try:
-                        res = self.client.classify_page(image_bytes=i_bytes, footer_text=extracted_footer)
-                        break
-                    except (LLMFailureError, InvalidResponseError) as e:
-                        if attempt < 2:
-                            time.sleep(2 ** attempt)
-                        else:
-                            print(f"WARNING: Extraction fallback on page {p_idx} after 3 retries: {e}")
-                            house_number = "UNKNOWN"
-                            with cache_lock:
-                                for v in cached_pages.values():
-                                    if v.get("house_number") and v.get("house_number") != "UNKNOWN":
-                                        house_number = v.get("house_number")
-                                        break
-                            fallback_res = PageClassification(
-                                category=Category.OTHER_LETTERS,
-                                residents=["UNKNOWN"],
-                                date="NONE",
-                                house_number=house_number
-                            )
-                            with cache_lock:
-                                cached_pages[str(p_idx)] = fallback_res.model_dump()
-                                temp_cache_file = f"{cache_file}.tmp"
-                                with open(temp_cache_file, "w", encoding="utf-8") as f:
-                                    json.dump(cached_pages, f, ensure_ascii=False, indent=2)
-                                os.replace(temp_cache_file, cache_file)
-                            return (p_idx, fallback_res)
-
-                if res is None:
-                    return None
-                msg = f" Extracted Page {p_idx}: {res.category.value} | {res.residents} | {res.date}"
+                    
                 try:
-                    print(msg)
-                except UnicodeEncodeError:
-                    fallback = getattr(sys.stdout, 'encoding', 'utf-8') or 'utf-8'
-                    print(msg.encode(fallback, errors='replace').decode(fallback))
-                with cache_lock:
-                    cached_pages[str(p_idx)] = res.model_dump()
-                    # Saving cache progressively can be slow, but it's safe. We do it inside lock.
-                    temp_cache_file = f"{cache_file}.tmp"
-                    with open(temp_cache_file, "w", encoding="utf-8") as f:
-                        json.dump(cached_pages, f, ensure_ascii=False, indent=2)
-                    os.replace(temp_cache_file, cache_file)
-                return (p_idx, res)
-            except Exception as e:
-                print(f"Critical failure on page {p_idx}: {e}")
-                raise e
-                
-        if pages_to_process:
-            num_workers = 1
-            print(f"Processing {len(pages_to_process)} pages sequentially (15 RPM global cap)...")
-            with ThreadPoolExecutor(max_workers=num_workers) as executor:
-                futures = [executor.submit(process_single_page, p) for p in pages_to_process]
-                for future in as_completed(futures):
-                    try:
-                        res = future.result()
-                        if res:
-                            raw_pages.append(res)
-                    except Exception as e:
-                        try:
-                            executor.shutdown(wait=False, cancel_futures=True)
-                        except TypeError:
-                            executor.shutdown(wait=False)
-                        raise RuntimeError(f"Processing aborted due to failure on a page: {e}")
-                        
-        raw_pages.sort(key=lambda x: x[0])
+                    text = self.client.extract_page(i_bytes)
+                    extracted_pages.append((p_idx, text, extracted_footer))
+                except Exception as e:
+                    print(f"WARNING: Extraction fallback on page {p_idx} after retries: {e}")
+                    house_number = "UNKNOWN"
+                    with cache_lock:
+                        for v in cached_pages.values():
+                            if v.get("house_number") and v.get("house_number") != "UNKNOWN":
+                                house_number = v.get("house_number")
+                                break
+                    fallback_res = PageClassification(category=Category.OTHER_LETTERS, residents=["UNKNOWN"], date="NONE", house_number=house_number)
+                    with cache_lock:
+                        cached_pages[str(p_idx)] = fallback_res.model_dump()
+                        temp_cache_file = f"{cache_file}.tmp"
+                        with open(temp_cache_file, "w", encoding="utf-8") as f:
+                            json.dump(cached_pages, f, ensure_ascii=False, indent=2)
+                        os.replace(temp_cache_file, cache_file)
+                    raw_pages.append((p_idx, fallback_res))
+            
+            print(f"Pass 1b: Classifying text for {len(extracted_pages)} pages...")
+            for p_idx, text, extracted_footer in extracted_pages:
+                try:
+                    res = self.client.classify_extracted_page(text, extracted_footer)
+                    if extracted_footer:
+                        import re
+                        page_match = re.search(r'(\d+)\s*من', extracted_footer)
+                        if not page_match:
+                            page_match = re.search(r'(?:الصفحة|صفحة|page)[\s:]*(\d+)', extracted_footer, re.IGNORECASE)
+                        if page_match:
+                            try:
+                                extracted_page_num = int(page_match.group(1))
+                                if extracted_page_num > 1:
+                                    res.is_continuation = True
+                                    print(f" [Heuristic] Footer '{extracted_footer}' implies page {extracted_page_num}. Forcing is_continuation=True.")
+                            except ValueError:
+                                pass
+                    msg = f" Extracted Page {p_idx}: {res.category.value} | {res.residents} | {res.date}"
+                    try: print(msg)
+                    except UnicodeEncodeError: print(msg.encode('utf-8', errors='replace').decode('utf-8'))
+                    with cache_lock:
+                        cached_pages[str(p_idx)] = res.model_dump()
+                        temp_cache_file = f"{cache_file}.tmp"
+                        with open(temp_cache_file, "w", encoding="utf-8") as f:
+                            json.dump(cached_pages, f, ensure_ascii=False, indent=2)
+                        os.replace(temp_cache_file, cache_file)
+                    raw_pages.append((p_idx, res))
+                except Exception as e:
+                    print(f"WARNING: Classification fallback on page {p_idx} after retries: {e}")
+                    house_number = "UNKNOWN"
+                    with cache_lock:
+                        for v in cached_pages.values():
+                            if v.get("house_number") and v.get("house_number") != "UNKNOWN":
+                                house_number = v.get("house_number")
+                                break
+                    fallback_res = PageClassification(category=Category.OTHER_LETTERS, residents=["UNKNOWN"], date="NONE", house_number=house_number)
+                    with cache_lock:
+                        cached_pages[str(p_idx)] = fallback_res.model_dump()
+                        temp_cache_file = f"{cache_file}.tmp"
+                        with open(temp_cache_file, "w", encoding="utf-8") as f:
+                            json.dump(cached_pages, f, ensure_ascii=False, indent=2)
+                        os.replace(temp_cache_file, cache_file)
+                    raw_pages.append((p_idx, fallback_res))
+
+                raw_pages.sort(key=lambda x: x[0])
     
         if len(raw_pages) != total_expected_pages:
             raise RuntimeError(f"CRITICAL: Expected {total_expected_pages} pages, but only recovered {len(raw_pages)}. Aborting Pass 1.5 to prevent data loss.")
