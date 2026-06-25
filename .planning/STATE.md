@@ -5,8 +5,8 @@ milestone_name: Core Stabilization & Logic Overhaul
 current_phase: 07.5
 current_phase_name: two-pass-local-pipeline-inserted
 status: executing
-stopped_at: Phase 07.3.1 planned
-last_updated: "2026-06-25T00:50:06.357Z"
+stopped_at: Phase 07.5.1 context gathered
+last_updated: "2026-06-25T00:53:42.151Z"
 last_activity: 2026-06-24
 last_activity_desc: Phase 07.5 execution started
 progress:
@@ -28,9 +28,9 @@ See: .planning/PROJECT.md (updated 2026-06-23)
 
 ## Session
 
-**Last session:** 2026-06-24T23:12:23.598Z
-**Stopped at:** Phase 07.3.1 planned
-**Resume file:** .planning/phases/07.3.1-provide-llm-with-ocr-footer-hints-instead-of-skipping-pages-/07.3.1-PLAN.md
+**Last session:** 2026-06-25T00:53:42.147Z
+**Stopped at:** Phase 07.5.1 context gathered
+**Resume file:** .planning/phases/07.5.1-hybrid-cloud-first-vision-extraction-with-local-overflow/07.5.1-CONTEXT.md
 
 ## Accumulated Context
 
