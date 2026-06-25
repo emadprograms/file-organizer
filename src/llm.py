@@ -57,7 +57,6 @@ class GemmaClient:
         else:
             self.api_keys = api_keys
 
-        self.GLOBAL_RPM_LIMIT = 15 * len(self.api_keys)
         self.clients = {key: genai.Client(api_key=key) for key in self.api_keys}
         
         self.cooldown_keys = {}  # key -> release_time
