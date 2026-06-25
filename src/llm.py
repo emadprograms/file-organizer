@@ -412,7 +412,7 @@ CRITICAL FIRST STEP: ALWAYS analyze the subject (الموضوع) of the letter o
 
 Classify this page into exactly ONE of the following 13 categories:
 
-1. basic_details — البيانات الأساسية (Strictly forms about the person. If the page is a FORM with boxes, tables, or fill-in-the-blanks for a SINGLE person's details, you MUST choose basic_details. FORMS ARE NEVER amar_takhsees. WARNING 1: If the form/table mentions financial amounts like "30" or "60", it is NEVER basic_details, it MUST be rent_deduction. WARNING 2: If the table is a roster/list containing MANY DIFFERENT people's names, it is NEVER basic_details.)
+1. basic_details — البيانات الأساسية (SINGLE-PERSON FORMS ONLY. CRITICAL FATAL ERROR: You are STRICTLY FORBIDDEN from selecting this if the page is a roster, schedule, or table listing MULTIPLE different people's names (e.g., 'كشف بأسماء', 3+ distinct people). Multi-person rosters are NEVER basic_details. Also, if the form mentions amounts like "30" or "60", it is NEVER basic_details, it MUST be rent_deduction. ONLY choose this for a form containing boxes/blanks dedicated to ONE specific person.)
 2. personal_details — البيانات الشخصية (Pictures of identity cards, passports, and other non-form documents related to the person and his family. Anything related to the person and his family that is NOT a form goes into personal details.)
 3. amar_takhsees — أمر تخصيص (Allocation orders. STRICT DEFINITION: A letter from a higher authority ordering to give a place to stay. FORMS OR TABLES ARE NEVER AMAR TAKHSEES. It MUST be a letter paragraph format. Strong pattern: Exact subject 'الموضوع : الوحدات السكنية' AND format is a letter.)
 4. key_handover_form — نموذج تسليم المفتاح (ONLY use this for the INITIAL key handover after making the contract. Do NOT use this for temporary key handovers related to maintenance. If the word 'الأشغال' (Ashgal) is present anywhere, it is NEVER key_handover_form. Strong pattern: Contains 'استمارة تسليم الوحدات السكنية التابعة لوزارة الداخلية'.)
@@ -424,7 +424,7 @@ Classify this page into exactly ONE of the following 13 categories:
 10. maintenance — الصيانة (Maintenance requests, reports, work orders. STRICT RULE: If the word 'الأشغال' (Ashgal) is written ANYWHERE on the document, it MUST be maintenance. Even if it looks like a key handover form, if 'الأشغال' is present, it goes to maintenance. Do NOT put inspection notices or reports here.)
 11. inspection_pictures — التفتيش والصور (Notices of inspection, inspection reports, house visits, yellow papers with inspection details, and photographs of the property. ANY letters or reports regarding inspection MUST go here, NOT to maintenance.)
 12. modifications — التعديلات (Modification requests or approvals. Strong pattern: Subject contains 'طلب' (talab) and mentions modifying the house.)
-13. other_letters — رسائل أخرى (Any letters that don't fit the above)
+13. other_letters — رسائل أخرى (Any letters that don't fit the above. Also use this for generic multi-person rosters like 'كشف بأسماء' that do not clearly belong to another category.)
 
 NAME EXTRACTION RULES (CRITICAL):
 - Arabic names typically have 4 to 5 parts. Extract ALL parts of the name.
