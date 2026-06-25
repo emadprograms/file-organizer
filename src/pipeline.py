@@ -37,6 +37,13 @@ class Pipeline:
             with open(cache_file, "r", encoding="utf-8") as f:
                 cached_pages = json.load(f)
                 print(f"Loaded {len(cached_pages)} pages from cache.")
+                
+        text_cache_file = f"{pdf_path}.extracted.cache.json"
+        extracted_text_cache = {}
+        if os.path.exists(text_cache_file):
+            with open(text_cache_file, "r", encoding="utf-8") as f:
+                extracted_text_cache = json.load(f)
+                print(f"Loaded {len(extracted_text_cache)} extracted text pages from cache.")
 
         raw_pages = []
         pages_to_process = []
@@ -105,8 +112,21 @@ class Pipeline:
                 except Exception as e:
                     print(f"Vision OCR Error on page {p_idx}: {e}")
                     
+                if str(p_idx) in extracted_text_cache:
+                    print(f" Loaded Arabic text for Page {p_idx} from cache.")
+                    text = extracted_text_cache[str(p_idx)]
+                    extracted_pages.append((p_idx, text, extracted_footer))
+                    continue
+
                 try:
+                    print(f" Extracting Arabic text from Page {p_idx} using Vision Model...")
                     text = self.client.extract_page(i_bytes)
+                    with cache_lock:
+                        extracted_text_cache[str(p_idx)] = text
+                        temp_text_cache_file = f"{text_cache_file}.tmp"
+                        with open(temp_text_cache_file, "w", encoding="utf-8") as f:
+                            json.dump(extracted_text_cache, f, ensure_ascii=False, indent=2)
+                        os.replace(temp_text_cache_file, text_cache_file)
                     extracted_pages.append((p_idx, text, extracted_footer))
                 except Exception as e:
                     print(f"WARNING: Extraction fallback on page {p_idx} after retries: {e}")
@@ -128,6 +148,7 @@ class Pipeline:
             print(f"Pass 1b: Classifying text for {len(extracted_pages)} pages...")
             for p_idx, text, extracted_footer in extracted_pages:
                 try:
+                    print(f" Classifying text for Page {p_idx} using 14B Text Model...")
                     res = self.client.classify_extracted_page(text, extracted_footer)
                     if extracted_footer:
                         import re
