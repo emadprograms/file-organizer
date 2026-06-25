@@ -217,7 +217,7 @@ def test_local_inference_fallback(monkeypatch):
     result = client.classify_page(b"dummy")
     assert result.residents == ["FALLBACK"]
     mock_route.assert_called_once()
-    assert mock_route.call_args[1]["model"] == "gemini-1.5-flash"
+    assert mock_route.call_args[1]["model"] == "gemma-4-26b-a4b-it"
 
 def test_openai_structured_output(monkeypatch):
     from src.llm import GemmaClient

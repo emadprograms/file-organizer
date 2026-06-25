@@ -432,7 +432,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         ]
         # Always use a fast flash model for pure OCR
         response = client.models.generate_content(
-            model='gemini-1.5-flash',
+            model='gemma-4-26b-a4b-it',
             contents=contents,
             config=types.GenerateContentConfig(temperature=0.0)
         )
@@ -494,7 +494,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
             try:
                 import time
                 start_time = time.time()
-                print("  [Cloud OCR] Gemini bucket available. Extracting via gemini-1.5-flash...")
+                print("  [Cloud OCR] Gemini bucket available. Extracting via gemma-4-26b-a4b-it...")
                 text = self._extract_text_with_gemini(client, image_bytes)
                 self._reconcile_usage(key, reserve_time, 500) # approximate
                 return text
@@ -518,7 +518,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 parsed_result = self._classify_text_with_local_model(text, footer_text)
                 
                 if getattr(parsed_result, "needs_gemma_fallback", False):
-                    print("[Local Inference Refused] No subject/strong pattern found. Falling back to gemini-1.5-flash.")
+                    print("[Local Inference Refused] No subject/strong pattern found. Falling back to gemma-4-26b-a4b-it.")
                     raise ValueError("Local Inference Refused via needs_gemma_fallback flag")
                 
                 # Heuristic Override: Local models struggle with complex negative constraints.
@@ -560,7 +560,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                         parsed_result = self._classify_text_with_local_model(text, footer_text)
                         
                         if getattr(parsed_result, "needs_gemma_fallback", False):
-                            print("[Local Inference Refused] No subject/strong pattern found. Falling back to gemini-1.5-flash.")
+                            print("[Local Inference Refused] No subject/strong pattern found. Falling back to gemma-4-26b-a4b-it.")
                             raise ValueError("Local Inference Refused via needs_gemma_fallback flag")
                         
                         # Heuristic Override: Local models struggle with complex negative constraints.
@@ -583,7 +583,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 raise RuntimeError("Failed after 2 Qwen attempts and 3 text classification attempts")
                 
         except Exception as e:
-            print(f"[Local Inference Failed/Refused] Falling back to gemini-1.5-flash. Error: {e}")
+            print(f"[Local Inference Failed/Refused] Falling back to gemma-4-26b-a4b-it. Error: {e}")
             contents = [
                 system_prompt,
                 user_prompt,
@@ -591,7 +591,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
             ]
             
             result = self._route_llm_call(
-                model='gemini-1.5-flash',
+                model='gemma-4-26b-a4b-it',
                 contents=contents,
                 response_schema=PageClassification,
                 log_prefix="Fallback"
@@ -630,14 +630,14 @@ Return a JSON object with: house_number, residents (list of strings), category, 
             else:
                 raise openai.OpenAIError("Parsed response is None")
         except (openai.OpenAIError, requests.exceptions.RequestException, pydantic.ValidationError, ConnectionError, TimeoutError) as e:
-            print(f"[Local Inference Failed] Falling back to gemini-1.5-flash for name match. Error: {e}")
+            print(f"[Local Inference Failed] Falling back to gemma-4-26b-a4b-it for name match. Error: {e}")
             contents = [
                 system_prompt,
                 user_prompt
             ]
             try:
                 result = self._route_llm_call(
-                    model='gemini-1.5-flash',
+                    model='gemma-4-26b-a4b-it',
                     contents=contents,
                     response_schema=NameMatchResult,
                     log_prefix="NameMatch Fallback",
