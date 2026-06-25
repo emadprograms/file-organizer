@@ -17,9 +17,9 @@ if sys.stdout is not None and hasattr(sys.stdout, 'reconfigure'):
         pass
 
 class Pipeline:
-    def __init__(self, api_keys: list[str] = None, delay_between_pages: float = 1.0, telemetry_queue=None):
+    def __init__(self, api_keys: list[str] = None, delay_between_pages: float = 1.0, telemetry_queue=None, use_local_llm: bool = True):
         self.ingestor = PdfIngestor()
-        self.client = GemmaClient(api_keys, delay_between_pages, telemetry_queue=telemetry_queue)
+        self.client = GemmaClient(api_keys, delay_between_pages, telemetry_queue=telemetry_queue, use_local_llm=use_local_llm)
 
 
 

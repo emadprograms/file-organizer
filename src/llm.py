@@ -45,7 +45,8 @@ class GemmaClient:
     global_rpm_tracker = deque()
     global_cooldown_until = 0.0
 
-    def __init__(self, api_keys: list[str] = None, delay_between_pages: float = 5.0, telemetry_queue=None):
+    def __init__(self, api_keys: list[str] = None, delay_between_pages: float = 5.0, telemetry_queue=None, use_local_llm: bool = True):
+        self.use_local_llm = use_local_llm
         if not api_keys:
             keys_str = os.getenv("GEMINI_API_KEYS")
             if not keys_str:
@@ -88,6 +89,8 @@ class GemmaClient:
                 pass
 
     def should_use_local_fallback(self) -> bool:
+        if not self.use_local_llm:
+            return False
         with self.lock:
             now = time.time()
             while GemmaClient.global_rpm_tracker and now - GemmaClient.global_rpm_tracker[0] > 65.0:
@@ -448,18 +451,7 @@ FALLBACK INSTRUCTION (CRITICAL):
 
 Return a JSON object with: house_number, residents (list of strings), category, date, is_continuation (boolean), is_form (boolean), and needs_gemma_fallback (boolean)."""
 
-    def _extract_text_with_gemini(self, client, image_bytes: bytes) -> str:
-        contents = [
-            types.Part.from_bytes(data=image_bytes, mime_type="image/jpeg"),
-            "Transcribe all Arabic text from the image verbatim, explicitly maintaining the spatial layout and line breaks. Do not attempt to classify or summarize."
-        ]
-        # Always use a fast flash model for pure OCR
-        response = client.models.generate_content(
-            model='gemma-4-26b-a4b-it',
-            contents=contents,
-            config=types.GenerateContentConfig(temperature=0.0)
-        )
-        return response.text
+
 
     def _extract_text_with_qwen(self, image_bytes: bytes) -> str:
         base64_image = base64.b64encode(image_bytes).decode('utf-8')
@@ -467,7 +459,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         response = self.local_client.chat.completions.create(
             model=local_model,
             messages=[
-                {"role": "system", "content": "Transcribe all Arabic text from the image verbatim, explicitly maintaining the spatial layout and line breaks. Do not attempt to classify or summarize."},
+                {"role": "system", "content": "Transcribe all Arabic text from the image verbatim. If the main content of the image is a photograph of a property, room, or inspection site, explicitly write '[PHOTOGRAPH OF PROPERTY]' at the beginning of your response, even if there are watermarks, disclaimers, or minor text visible. Do not attempt to classify or summarize otherwise."},
                 {
                     "role": "user",
                     "content": [
@@ -510,32 +502,6 @@ Return a JSON object with: house_number, residents (list of strings), category, 
 
     def extract_page(self, image_bytes: bytes) -> str:
         last_error = None
-        
-        # Cloud-First OCR with Local Overflow
-        client_info = self._get_client_and_key(estimated_tokens=500, no_wait=True)
-        if client_info:
-            if getattr(self, '_in_local_overflow', False):
-                print("  [Transition] Cooldown expired. Snapping back to Cloud OCR (gemma-4-26b-a4b-it).")
-                self._in_local_overflow = False
-            client, key, reserve_time = client_info
-            try:
-                import time
-                start_time = time.time()
-                print("  [Cloud OCR] Gemini bucket available. Extracting via gemma-4-26b-a4b-it...")
-                text = self._extract_text_with_gemini(client, image_bytes)
-                self._reconcile_usage(key, reserve_time, 500) # approximate
-                return text
-            except Exception as e:
-                print(f"  [Transition] Cloud OCR Failed (429). Falling back to local Qwen-VL: {e}")
-                self._report_failure(key, is_429=("429" in str(e)))
-                self._in_local_overflow = True
-        else:
-            if not getattr(self, '_in_local_overflow', False):
-                print("  [Transition] Rate Limit Overflow. Offloading to local Qwen-VL...")
-                self._in_local_overflow = True
-            else:
-                print("  [Local OCR] Still in overflow cooldown. Using Qwen-VL...")
-            
         for qwen_attempt in range(2):
             try:
                 return self._extract_text_with_qwen(image_bytes)
@@ -642,11 +608,13 @@ Return a JSON object with: house_number, residents (list of strings), category, 
             types.Part.from_bytes(data=image_bytes, mime_type='image/png')
         ]
         
+        attempts = 1 if self.use_local_llm else 100
         result = self._route_llm_call(
             model='gemma-4-26b-a4b-it',
             contents=contents,
             response_schema=PageClassification,
-            log_prefix="DirectCloud"
+            log_prefix="DirectCloud",
+            max_attempts=attempts
         )
         return result
 
