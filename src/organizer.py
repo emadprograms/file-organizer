@@ -204,7 +204,7 @@ class FileOrganizer:
         return re.sub(r'[/\\:*?"<>|\s]', '-', date_str).strip('-')
 
     def _generate_pdf_name(self, doc: DocumentGroup, category_counter: int, used_names: Set[str], is_global_amar: bool = False) -> str:
-        category_value = doc.category.value
+        category_name = doc.category.name.lower()
         
         tenant_str = ""
         if is_global_amar and doc.primary_tenant and doc.primary_tenant not in ("UNKNOWN", "NONE"):
@@ -213,9 +213,9 @@ class FileOrganizer:
 
         if doc.dates:
             normalized_date = self._normalize_date(doc.dates[0])
-            base_name = f"{normalized_date}_{category_value}{tenant_str}.pdf"
+            base_name = f"{normalized_date}_{category_name}{tenant_str}.pdf"
         else:
-            base_name = f"{category_value}{tenant_str}_{category_counter}.pdf"
+            base_name = f"{category_name}{tenant_str}_{category_counter}.pdf"
             
         base_name = self._sanitize_filename(base_name)
         
