@@ -28,7 +28,7 @@ def test_pipeline_sequential_concurrency(monkeypatch):
     
     def mock_classify(image_bytes):
         from src.schemas import PageClassification, Category
-        return PageClassification(category=Category.CONTRACT, residents=["John"], date="NONE", house_number="1")
+        return PageClassification(category=Category.CONTRACT, residents=["John"], date="NONE", house_number="1", summary="test")
     monkeypatch.setattr(pipeline.client, "classify_page", mock_classify)
     monkeypatch.setattr(pipeline.client, "resolve_entities", lambda x: {})
     

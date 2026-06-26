@@ -21,7 +21,7 @@ def mock_api_response():
         residents=["محمد"],
         category=Category.BASIC_DETAILS,
         date="NONE"
-    )
+    , summary="test")
 
 
 @pytest.fixture
@@ -31,7 +31,7 @@ def mock_continuation_response():
         residents=["محمد"],
         category=Category.BASIC_DETAILS,
         date="NONE"
-    )
+    , summary="test")
 
 
 @pytest.fixture
@@ -41,7 +41,7 @@ def mock_none_resident_response():
         residents=["NONE"],
         category=Category.AMAR_TAKHSEES,
         date="NONE"
-    )
+    , summary="test")
 
 
 @pytest.fixture

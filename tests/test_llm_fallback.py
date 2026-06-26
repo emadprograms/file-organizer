@@ -13,7 +13,7 @@ def test_fallback_when_needs_gemma_fallback_is_true():
         category=Category.OTHER_LETTERS,
         date="NONE",
         needs_gemma_fallback=True
-    )
+    , summary="test")
     
     # Mock the gemini fallback route to return a successful classification
     mock_gemini_response = PageClassification(
@@ -22,7 +22,7 @@ def test_fallback_when_needs_gemma_fallback_is_true():
         category=Category.AMAR_TAKHSEES,
         date="2024-01-01",
         needs_gemma_fallback=False
-    )
+    , summary="test")
     
     with patch.object(client, '_extract_text_with_qwen', return_value="dummy") as mock_extract:
         with patch.object(client, '_classify_text_with_local_model', return_value=mock_local_response) as mock_local:
@@ -50,7 +50,7 @@ def test_no_fallback_when_needs_gemma_fallback_is_false():
         category=Category.MAINTENANCE,
         date="NONE",
         needs_gemma_fallback=False
-    )
+    , summary="test")
     
     with patch.object(client, '_extract_text_with_qwen', return_value="dummy") as mock_extract:
         with patch.object(client, '_classify_text_with_local_model', return_value=mock_local_response) as mock_local:

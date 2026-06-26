@@ -67,7 +67,7 @@ def test_fallback_routing_on_conflict(mock_route):
         category="amar_takhsees",
         date="2020-01-01",
         needs_gemma_fallback=False
-    )
+    , summary="test")
     mock_route.return_value = expected_fallback_result
 
     with patch.object(client.local_client.beta.chat.completions, 'parse', return_value=mock_local_response):

@@ -41,7 +41,7 @@ def test_pipeline_retry_logic(mock_generate_content, dummy_5_page_pdf):
                 residents=["Test"],
                 category=Category.BASIC_DETAILS,
                 date="NONE"
-            )
+            , summary="test")
             self.text = '{"house_number": "123", "residents": ["Test"], "category": "basic_details", "date": "NONE"}'
             
     def mock_generate(*args, **kwargs):
@@ -78,7 +78,7 @@ def test_pipeline_concurrency_memory(dummy_5_page_pdf, tmp_path):
          patch("src.llm.GemmaClient.resolve_entities", return_value={}):
         mock_classify.return_value = PageClassification(
             house_number="123", residents=["Test"], category=Category.BASIC_DETAILS, date="NONE"
-        )
+        , summary="test")
         
         # This will process 50 pages using max_workers=5
         documents = pipeline.process_pdf(pdf_path)

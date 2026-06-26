@@ -31,7 +31,7 @@ def test_schema_definition():
         residents=["محمد"],
         category=Category.BASIC_DETAILS,
         date="NONE"
-    )
+    , summary="test")
     assert p.house_number == "683"
     assert p.category == Category.BASIC_DETAILS
 
@@ -41,7 +41,7 @@ def test_schema_definition():
         residents=["NONE"],
         category=Category.AMAR_TAKHSEES,
         date="NONE"
-    )
+    , summary="test")
     assert p2.residents == ["NONE"]
     assert p2.category == Category.AMAR_TAKHSEES
 
@@ -61,7 +61,7 @@ def test_category_classification():
             residents=["test"],
             category=cat,
             date="NONE"
-        )
+        , summary="test")
         assert p.category == cat
 
 
@@ -71,9 +71,9 @@ def test_continuation_detection(monkeypatch):
     monkeypatch.setattr(os.path, "exists", lambda x: False)
     # Define 3 classification responses
     responses = [
-        PageClassification(house_number="683", residents=["محمد"], category=Category.CONTRACT, date="NONE"),
-        PageClassification(house_number="683", residents=["محمد"], category=Category.CONTRACT, date="NONE", is_continuation=True),
-        PageClassification(house_number="683", residents=["أحمد"], category=Category.BASIC_DETAILS, date="NONE"),
+        PageClassification(house_number="683", residents=["محمد"], category=Category.CONTRACT, date="NONE", summary="test"),
+        PageClassification(house_number="683", residents=["محمد"], category=Category.CONTRACT, date="NONE", is_continuation=True, summary="test"),
+        PageClassification(house_number="683", residents=["أحمد"], category=Category.BASIC_DETAILS, date="NONE", summary="test"),
     ]
     call_idx = [0]
 
@@ -211,7 +211,7 @@ def test_local_inference_fallback(monkeypatch):
     monkeypatch.setattr(client, "_classify_text_with_local_model", mock_classify)
     
     mock_route = MagicMock()
-    mock_route.return_value = PageClassification(house_number="123", residents=["Fallback"], category=Category.BASIC_DETAILS, date="NONE")
+    mock_route.return_value = PageClassification(house_number="123", residents=["Fallback"], category=Category.BASIC_DETAILS, date="NONE", summary="test")
     monkeypatch.setattr(client, "_route_llm_call", mock_route)
     
     result = client.classify_page(b"dummy")
@@ -230,7 +230,7 @@ def test_openai_structured_output(monkeypatch):
     monkeypatch.setattr(client, "_extract_text_with_qwen", lambda x: "Mohammed Ali")
     
     mock_classify = MagicMock()
-    mock_classify.return_value = PageClassification(house_number="456", residents=["Mohammed Ali"], category=Category.CONTRACT, date="2020-01-01")
+    mock_classify.return_value = PageClassification(house_number="456", residents=["Mohammed Ali"], category=Category.CONTRACT, date="2020-01-01", summary="test")
     monkeypatch.setattr(client, "_classify_text_with_local_model", mock_classify)
     
     result = client.classify_page(b"dummy")
@@ -248,7 +248,7 @@ def test_arabic_ocr_fidelity(monkeypatch):
     monkeypatch.setattr(client, "_extract_text_with_qwen", lambda x: "محمد")
     
     mock_classify = MagicMock()
-    mock_classify.return_value = PageClassification(house_number="123", residents=["محمد"], category=Category.BASIC_DETAILS, date="NONE")
+    mock_classify.return_value = PageClassification(house_number="123", residents=["محمد"], category=Category.BASIC_DETAILS, date="NONE", summary="test")
     monkeypatch.setattr(client, "_classify_text_with_local_model", mock_classify)
     
     result = client.classify_page(b"dummy_arabic_doc")
@@ -268,7 +268,7 @@ def test_tiered_retry_logic(monkeypatch):
         openai.OpenAIError("Fail 1"),
         openai.OpenAIError("Fail 2"),
         openai.OpenAIError("Fail 3"),
-        PageClassification(house_number="999", residents=["Test"], category=Category.BASIC_DETAILS, date="NONE")
+        PageClassification(house_number="999", residents=["Test"], category=Category.BASIC_DETAILS, date="NONE", summary="test")
     ])
     monkeypatch.setattr(client, "_classify_text_with_local_model", mock_classify)
     

@@ -34,14 +34,14 @@ def test_logic_02_array_order(pipeline):
             house_number="123",
             date="2023-01-01",
             is_continuation=False
-        )),
+        , summary="test")),
         (2, PageClassification(
             category=Category.KEY_HANDOVER,
             residents=["NEW SPOUSE", "CURRENT TENANT NAME"],
             house_number="123",
             date="2023-01-02",
             is_continuation=False
-        ))
+        , summary="test"))
     ]
     canonical_mapping = {}
     docs = pipeline._group_pages_into_documents(raw_pages, canonical_mapping)
@@ -57,14 +57,14 @@ def test_logic_03_single_word_names(pipeline):
             house_number="123",
             date="2023-01-01",
             is_continuation=False
-        )),
+        , summary="test")),
         (2, PageClassification(
             category=Category.KEY_HANDOVER,
             residents=["MOHAMMED"],
             house_number="123",
             date="2023-01-02",
             is_continuation=False
-        ))
+        , summary="test"))
     ]
     canonical_mapping = {}
     docs = pipeline._group_pages_into_documents(raw_pages, canonical_mapping)
@@ -75,16 +75,16 @@ def test_logic_03_single_word_names(pipeline):
 def test_logic_04_date_grouping(pipeline):
     # Subtest A: is_continuation=False -> 2 groups
     raw_pages_a = [
-        (1, PageClassification(category=Category.NOTIFICATIONS, residents=["NONE"], house_number="123", date="2023-01-01", is_continuation=False)),
-        (2, PageClassification(category=Category.NOTIFICATIONS, residents=["NONE"], house_number="123", date="2023-01-02", is_continuation=False))
+        (1, PageClassification(category=Category.NOTIFICATIONS, residents=["NONE"], house_number="123", date="2023-01-01", is_continuation=False, summary="test")),
+        (2, PageClassification(category=Category.NOTIFICATIONS, residents=["NONE"], house_number="123", date="2023-01-02", is_continuation=False, summary="test"))
     ]
     docs_a = pipeline._group_pages_into_documents(raw_pages_a, {})
     assert len(docs_a) == 2
 
     # Subtest B: is_continuation=True -> 1 group
     raw_pages_b = [
-        (1, PageClassification(category=Category.NOTIFICATIONS, residents=["NONE"], house_number="123", date="2023-01-01", is_continuation=False)),
-        (2, PageClassification(category=Category.NOTIFICATIONS, residents=["NONE"], house_number="123", date="2023-01-02", is_continuation=True))
+        (1, PageClassification(category=Category.NOTIFICATIONS, residents=["NONE"], house_number="123", date="2023-01-01", is_continuation=False, summary="test")),
+        (2, PageClassification(category=Category.NOTIFICATIONS, residents=["NONE"], house_number="123", date="2023-01-02", is_continuation=True, summary="test"))
     ]
     docs_b = pipeline._group_pages_into_documents(raw_pages_b, {})
     assert len(docs_b) == 1
@@ -92,8 +92,8 @@ def test_logic_04_date_grouping(pipeline):
 
 def test_logic_05_prefix_rescue(pipeline):
     raw_pages = [
-        (1, PageClassification(category=Category.PERSONAL_DETAILS, residents=["NONE"], house_number="123", date="2023-01-01", is_continuation=False)),
-        (2, PageClassification(category=Category.BASIC_DETAILS, residents=["ANCHOR NAME"], house_number="123", date="2023-01-02", is_continuation=False))
+        (1, PageClassification(category=Category.PERSONAL_DETAILS, residents=["NONE"], house_number="123", date="2023-01-01", is_continuation=False, summary="test")),
+        (2, PageClassification(category=Category.BASIC_DETAILS, residents=["ANCHOR NAME"], house_number="123", date="2023-01-02", is_continuation=False, summary="test"))
     ]
     docs = pipeline._group_pages_into_documents(raw_pages, {})
     assert len(docs) == 2
@@ -101,7 +101,7 @@ def test_logic_05_prefix_rescue(pipeline):
     assert docs[1].primary_tenant == "ANCHOR NAME"
 
     raw_pages_no_anchor = [
-        (1, PageClassification(category=Category.PERSONAL_DETAILS, residents=["NONE"], house_number="123", date="2023-01-01", is_continuation=False))
+        (1, PageClassification(category=Category.PERSONAL_DETAILS, residents=["NONE"], house_number="123", date="2023-01-01", is_continuation=False, summary="test"))
     ]
     docs_no_anchor = pipeline._group_pages_into_documents(raw_pages_no_anchor, {})
     assert len(docs_no_anchor) == 1
@@ -110,12 +110,12 @@ def test_logic_05_prefix_rescue(pipeline):
 def test_logic_06_non_anchor_routing(pipeline):
     # Ahmad and Khalid are verified residents via Anchor docs.
     raw_pages = [
-        (1, PageClassification(category=Category.BASIC_DETAILS, residents=["AHMAD"], house_number="123", date="2023-01-01", is_continuation=False)),
-        (2, PageClassification(category=Category.BASIC_DETAILS, residents=["KHALID"], house_number="123", date="2023-01-02", is_continuation=False)),
+        (1, PageClassification(category=Category.BASIC_DETAILS, residents=["AHMAD"], house_number="123", date="2023-01-01", is_continuation=False, summary="test")),
+        (2, PageClassification(category=Category.BASIC_DETAILS, residents=["KHALID"], house_number="123", date="2023-01-02", is_continuation=False, summary="test")),
         # Notification for Khalid -> should route to Khalid
-        (3, PageClassification(category=Category.NOTIFICATIONS, residents=["KHALID"], house_number="123", date="2023-01-03", is_continuation=False)),
+        (3, PageClassification(category=Category.NOTIFICATIONS, residents=["KHALID"], house_number="123", date="2023-01-03", is_continuation=False, summary="test")),
         # Notification for RandomName -> ignores and defaults to current_primary_tenant (KHALID)
-        (4, PageClassification(category=Category.NOTIFICATIONS, residents=["RANDOM NAME"], house_number="123", date="2023-01-04", is_continuation=False))
+        (4, PageClassification(category=Category.NOTIFICATIONS, residents=["RANDOM NAME"], house_number="123", date="2023-01-04", is_continuation=False, summary="test"))
     ]
     docs = pipeline._group_pages_into_documents(raw_pages, {})
     assert len(docs) == 4
