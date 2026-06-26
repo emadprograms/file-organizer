@@ -1,13 +1,12 @@
 import os
 import shutil
-from pathlib import Path
-from collections import Counter
-from collections import defaultdict
 import re
-from typing import Union
+from pathlib import Path
+from collections import defaultdict
+from typing import Union, Optional, Any, Dict, Tuple, List, Set
 
 from src.schemas import Category, DocumentGroup
-from src.split import extract_pdf_segment
+from src.split import extract_pdf_segment, compress_pdf
 
 CATEGORY_FOLDERS = {
     Category.BASIC_DETAILS: "01_البيانات الاساسية",
@@ -27,18 +26,14 @@ CATEGORY_FOLDERS = {
 
 class FileOrganizer:
     def _resolve_house_number(self, source_pdf: Union[str, Path]) -> str:
-        import re
-        from pathlib import Path
         filename = Path(source_pdf).name
         match = re.search(r'\d+', filename)
         if match:
             return match.group(0)
         return "unknown_house"
 
-    def _compute_tenant_timelines(self, documents: list[DocumentGroup]) -> dict[str, str]:
-        # returns mapping from tenant name to folder suffix like "(1997-05 - 2013-08) - الساكن الحالي"
-        from collections import defaultdict
-        tenant_dates = defaultdict(list)
+    def _compute_tenant_timelines(self, documents: List[DocumentGroup]) -> Dict[str, str]:
+        tenant_dates: Dict[str, List[str]] = defaultdict(list)
         
         for doc in documents:
             tenant = doc.primary_tenant
@@ -53,7 +48,7 @@ class FileOrganizer:
         if not tenant_dates:
             return {}
             
-        tenant_ranges = {}
+        tenant_ranges: Dict[str, Tuple[str, str]] = {}
         for tenant, dates in tenant_dates.items():
             if dates:
                 tenant_ranges[tenant] = (min(dates), max(dates))
@@ -64,7 +59,7 @@ class FileOrganizer:
         # Find the max end_date across ALL tenants to determine the "Current Resident"
         global_max_date = max(end for start, end in tenant_ranges.values())
         
-        result = {}
+        result: Dict[str, str] = {}
         for tenant, (start, end) in tenant_ranges.items():
             if end == global_max_date:
                 suffix = f" ({start} to {end}) - الساكن الحالي"
@@ -74,12 +69,12 @@ class FileOrganizer:
             
         return result
 
-    def _build_resident_order(self, documents: list[DocumentGroup]) -> list[tuple[int, str]]:
-        seen_tenants = set()
-        ordered_tenants = []
+    def _build_resident_order(self, documents: List[DocumentGroup]) -> List[Tuple[int, str]]:
+        seen_tenants: Set[str] = set()
+        ordered_tenants: List[Tuple[int, str]] = []
         
         # Collect all tenants and what categories they have
-        tenant_categories = defaultdict(set)
+        tenant_categories: Dict[str, Set[Category]] = defaultdict(set)
         for doc in documents:
             tenant = doc.primary_tenant
             if not tenant or not tenant.strip() or tenant.upper() in ("UNKNOWN", "NONE"):
@@ -125,8 +120,6 @@ class FileOrganizer:
         if not date_str or date_str.upper() == "NONE":
             return "NONE"
             
-        import re
-        
         # 1. Convert Eastern Arabic numerals to Western
         eastern_to_western = {
             '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
@@ -210,7 +203,7 @@ class FileOrganizer:
         # Fallback sanitize
         return re.sub(r'[/\\:*?"<>|\s]', '-', date_str).strip('-')
 
-    def _generate_pdf_name(self, doc: DocumentGroup, category_counter: int, used_names: set, is_global_amar: bool = False) -> str:
+    def _generate_pdf_name(self, doc: DocumentGroup, category_counter: int, used_names: Set[str], is_global_amar: bool = False) -> str:
         category_value = doc.category.value
         
         tenant_str = ""
@@ -237,7 +230,7 @@ class FileOrganizer:
                 return new_name
             counter += 1
 
-    def organize(self, documents: list[DocumentGroup], source_pdf: str, output_base_dir: Path) -> dict:
+    def organize(self, documents: List[DocumentGroup], source_pdf: str, output_base_dir: Path) -> Dict[str, Tuple[int, int]]:
         if not documents:
             print("⚠ No documents to organize. Exiting.")
             return {}
@@ -254,7 +247,6 @@ class FileOrganizer:
         # Copy the original full PDF file for reference
         try:
             full_file_dest = house_dir / f"{house_number}.pdf"
-            from src.split import compress_pdf
             compress_pdf(str(source_pdf), str(full_file_dest))
             print(f"  → Copied and compressed full original file to: {full_file_dest.name}")
         except Exception as e:
@@ -262,7 +254,7 @@ class FileOrganizer:
         
         resident_order = self._build_resident_order(documents)
         tenant_suffixes = self._compute_tenant_timelines(documents)
-        resident_folder_map = {}
+        resident_folder_map: Dict[str, Path] = {}
         
         for index, name in resident_order:
             sanitized_name = self._sanitize_filename(name)
@@ -274,45 +266,42 @@ class FileOrganizer:
             os.makedirs(resident_dir, exist_ok=True)
             resident_folder_map[name] = resident_dir
             
-            for folder_name in CATEGORY_FOLDERS.values():
-                pass # removed eager folder creation
-                
         amar_takhsees_dir = house_dir / "أمر التخصيص لغير المقيمين"
         house_letters_dir = house_dir / "رسائل عامة"
 
         # Phase C - Write PDFs
-        summary = {}
+        summary: Dict[str, Tuple[int, int]] = {}
         # directory path -> set of used names
-        used_names_per_dir = defaultdict(set)
+        used_names_per_dir: Dict[str, Set[str]] = defaultdict(set)
         # tenant -> category -> counter
-        tenant_category_counters = defaultdict(lambda: defaultdict(int))
+        tenant_category_counters: Dict[str, Dict[Category, int]] = defaultdict(lambda: defaultdict(int))
         
         for doc in documents:
             tenant = doc.primary_tenant
-            target_dir = None
+            target_dir: Optional[Path] = None
             is_global_amar = False
             
             # Check if this tenant is a verified resident (i.e. has a folder)
-            resident_dir = None
+            doc_resident_dir: Optional[Path] = None
             if tenant and tenant.strip() and tenant.upper() not in ("UNKNOWN", "NONE"):
-                resident_dir = resident_folder_map.get(tenant)
+                doc_resident_dir = resident_folder_map.get(tenant)
             
             if doc.category == Category.AMAR_TAKHSEES:
-                if resident_dir:
+                if doc_resident_dir:
                     # Tenant is verified (has other documents), put in their personal amar_takhsees folder
-                    target_dir = resident_dir / CATEGORY_FOLDERS[doc.category]
+                    target_dir = doc_resident_dir / CATEGORY_FOLDERS[doc.category]
                 else:
                     # Tenant never moved in (no other docs) or no tenant found, route to global amar takhsees folder
                     target_dir = amar_takhsees_dir
                     is_global_amar = True
-            elif not resident_dir:
+            elif not doc_resident_dir:
                 # No valid tenant found or tenant didn't qualify for a folder
                 if tenant and tenant.upper() == "UNKNOWN":
                     target_dir = house_dir / "UNKNOWN"
                 else:
                     target_dir = house_letters_dir
             else:
-                target_dir = resident_dir / CATEGORY_FOLDERS[doc.category]
+                target_dir = doc_resident_dir / CATEGORY_FOLDERS[doc.category]
 
             tenant_category_counters[tenant][doc.category] += 1
             counter = tenant_category_counters[tenant][doc.category]

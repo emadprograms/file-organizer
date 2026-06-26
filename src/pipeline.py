@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional, Any
 import json
 import os
 import threading
@@ -18,7 +18,7 @@ class SimpleCache:
     """Encapsulates JSON-based caching with atomic writes."""
     def __init__(self, filename: str):
         self.filename = filename
-        self.data = {}
+        self.data: dict[str, Any] = {}
         self.load()
 
     def load(self):
@@ -30,7 +30,7 @@ class SimpleCache:
                 print(f"Error loading cache {self.filename}: {e}")
                 self.data = {}
 
-    def set(self, key: str, value: any):
+    def set(self, key: str, value: Any):
         self.data[key] = value
         temp_file = f"{self.filename}.tmp"
         try:
@@ -43,17 +43,17 @@ class SimpleCache:
     def get(self, key: str):
         return self.data.get(key)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str):
         return self.data[key]
 
-    def __contains__(self, key):
+    def __contains__(self, key: str):
         return key in self.data
 
     def values(self):
         return self.data.values()
 
 class Pipeline:
-    def __init__(self, api_keys: list[str] = None, delay_between_pages: float = 1.0, telemetry_queue=None, use_local_llm: bool = True):
+    def __init__(self, api_keys: Optional[list[str]] = None, delay_between_pages: float = 1.0, telemetry_queue: Any = None, use_local_llm: bool = True):
         self.ingestor = PdfIngestor()
         self.client = GemmaClient(api_keys, delay_between_pages, telemetry_queue=telemetry_queue, use_local_llm=use_local_llm)
 
@@ -61,7 +61,7 @@ class Pipeline:
         """Retrieve the first available house number from the cache as a fallback."""
         for v in cache.values():
             if isinstance(v, dict) and v.get("house_number") and v.get("house_number") != "UNKNOWN":
-                return v.get("house_number")
+                return str(v.get("house_number"))
         return "UNKNOWN"
 
     def process_pdf(self, pdf_path: str) -> list[DocumentGroup]:
@@ -108,7 +108,7 @@ class Pipeline:
         cache_lock = threading.Lock()
         
         if pages_to_process:
-            deferred_local_pages = []
+            deferred_local_pages: list[tuple[int, str, Optional[str]]] = []
             
             for p_idx, i_bytes in pages_to_process:
                 # 1. Blank Page check
@@ -121,11 +121,11 @@ class Pipeline:
                     continue
 
                 # 2. Extract footer using Vision framework (macOS local utility)
-                extracted_footer = None
+                extracted_footer: Optional[str] = None
                 if sys.platform == "darwin":
                     try:
-                        import Vision, Quartz, re
-                        from Foundation import NSData
+                        import Vision, Quartz, re  # type: ignore
+                        from Foundation import NSData  # type: ignore
                         ns_data = NSData.dataWithBytes_length_(i_bytes, len(i_bytes))
                         cg_data_provider = Quartz.CGDataProviderCreateWithCFData(ns_data)
                         cg_image = Quartz.CGImageCreateWithPNGDataProvider(cg_data_provider, None, False, Quartz.kCGRenderingIntentDefault)
@@ -148,7 +148,7 @@ class Pipeline:
                 if str(p_idx) in text_cache:
                     print(f" Loaded Arabic text for Page {p_idx} from cache. Deferring local classification.")
                     text = text_cache[str(p_idx)]
-                    deferred_local_pages.append((p_idx, text))
+                    deferred_local_pages.append((p_idx, text, extracted_footer))
                     continue
 
                 # 4. Check fallback status or try cloud
@@ -191,11 +191,7 @@ class Pipeline:
             # Phase 2: Run deferred local classification (Pass 1b) at the very end
             if deferred_local_pages:
                 print(f"Pass 1b: Running local text classification (Qwen-14B) for {len(deferred_local_pages)} deferred pages...")
-                for p_idx, *args in deferred_local_pages:
-                    # Handle both (p_idx, text) and (p_idx, text, extracted_footer)
-                    text = args[0]
-                    extracted_footer = args[1] if len(args) > 1 else None
-                    
+                for p_idx, text, extracted_footer in deferred_local_pages:
                     try:
                         print(f" Classifying text for Page {p_idx} using 14B Text Model...")
                         res = self.client.classify_extracted_page(text, extracted_footer)
@@ -291,7 +287,7 @@ class Pipeline:
                     raw_pages[i][1].date = next_valid_date
                     print(f"[Pass 1.5 Date] Page {actual_page_idx}: NONE -> {next_valid_date} (Interpolated from Page {next_valid_idx})")
 
-    def _parse_date(self, d_str: str):
+    def _parse_date(self, d_str: str) -> Optional[Any]:
         if not d_str or d_str == "NONE":
             return None
         import re
@@ -333,8 +329,8 @@ class Pipeline:
                 page.residents = new_residents
         
         # 1. Collect Statistics
-        name_page_appearances = {}
-        name_dates = {}
+        name_page_appearances: dict[str, set[int]] = {}
+        name_dates: dict[str, list[Any]] = {}
         names_in_anchors = set()
         
         for p_idx, page in raw_pages:
@@ -481,7 +477,7 @@ class Pipeline:
                 all_groups.append([block[0]])
                 continue
                 
-            block_groups = [] # list of lists of (p_idx, p)
+            block_groups: list[list[tuple[int, PageClassification]]] = [] # list of lists of (p_idx, p)
             for i in range(0, len(block), chunk_size):
                 # Overlapping sliding window
                 start_idx = max(0, i - 2) if i > 0 else 0

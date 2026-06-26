@@ -2,20 +2,25 @@ import concurrent.futures
 import os
 import time
 import json
+from typing import Optional, Any, Dict, List, Deque
+
 import re
 import random
 import threading
 import logging
 import base64
 import openai
-import requests
-import pydantic
-import functools
 from collections import deque
 from google import genai
 from google.genai import types
 
-from src.schemas import PageClassification, EntityResolutionMapping, Category, NameMatchResult, BulkSemanticMatchResult
+from src.schemas import (
+    PageClassification,
+    EntityResolutionMapping,
+    Category,
+    BulkSemanticMatchResult,
+    DateOutlierDetectionResult
+)
 
 log = logging.getLogger(__name__)
 
@@ -26,7 +31,7 @@ telemetry_logger.setLevel(logging.INFO)
 if not telemetry_logger.handlers:
     fh = logging.FileHandler("telemetry.log", encoding="utf-8")
     class JsonFormatter(logging.Formatter):
-        def format(self, record):
+        def format(self, record: logging.LogRecord) -> str:
             return json.dumps(record.msg)
     fh.setFormatter(JsonFormatter())
     telemetry_logger.addHandler(fh)
@@ -38,14 +43,14 @@ class InvalidResponseError(Exception):
     pass
 
 class GemmaClient:
-    NONE_EXPECTED_CATEGORIES = {'amar_takhsees', 'inspection_pictures'}
+
     TPM_LIMIT = 30000
     RPM_LIMIT = 5
     
-    global_rpm_tracker = deque()
+    global_rpm_tracker: deque[float] = deque()
     global_cooldown_until = 0.0
 
-    def __init__(self, api_keys: list[str] = None, delay_between_pages: float = 5.0, telemetry_queue=None, use_local_llm: bool = True):
+    def __init__(self, api_keys: Optional[list[str]] = None, delay_between_pages: float = 5.0, telemetry_queue: Any = None, use_local_llm: bool = True) -> None:
         self.use_local_llm = use_local_llm
         if not api_keys:
             keys_str = os.getenv("GEMINI_API_KEYS")
@@ -60,7 +65,7 @@ class GemmaClient:
         self.global_rpm_limit = 15
         self.clients = {key: genai.Client(api_key=key) for key in self.api_keys}
         
-        self.cooldown_keys = {}  # key -> release_time
+        self.cooldown_keys: dict[str, float] = {}  # key -> release_time
         self.key_strikes = {key: 0 for key in self.api_keys}
         self.current_key_idx = 0
         
@@ -69,8 +74,8 @@ class GemmaClient:
         self.last_request_time = {key: 0.0 for key in self.api_keys}
         
         # Trackers
-        self.tpm_trackers = {key: deque() for key in self.api_keys}
-        self.rpm_trackers = {key: deque() for key in self.api_keys}
+        self.tpm_trackers: dict[str, deque[list[Any]]] = {key: deque() for key in self.api_keys}
+        self.rpm_trackers: dict[str, deque[float]] = {key: deque() for key in self.api_keys}
         
         self.telemetry_queue = telemetry_queue
         self.total_requests = {key: 0 for key in self.api_keys}
@@ -102,14 +107,14 @@ class GemmaClient:
                 return True
             return False
 
-    def activate_cooldown(self):
+    def activate_cooldown(self) -> None:
         with self.lock:
             now = time.time()
             GemmaClient.global_cooldown_until = max(GemmaClient.global_cooldown_until, now + 65.0)
             self._save_state()
             self._push_telemetry()
 
-    def _save_state(self):
+    def _save_state(self) -> None:
         state = {
             "global_rpm_tracker": list(GemmaClient.global_rpm_tracker),
             "global_cooldown_until": GemmaClient.global_cooldown_until
@@ -120,9 +125,9 @@ class GemmaClient:
         except Exception:
             pass
 
-    def _push_telemetry(self):
+    def _push_telemetry(self) -> None:
         if self.telemetry_queue:
-            state = {
+            state: dict[str, list[dict[str, Any]]] = {
                 "keys": []
             }
             now = time.time()
@@ -148,7 +153,7 @@ class GemmaClient:
             except Exception:
                 pass
 
-    def _prune_trackers(self, key: str, now: float):
+    def _prune_trackers(self, key: str, now: float) -> None:
         while self.tpm_trackers[key] and now - self.tpm_trackers[key][0][0] > 60:
             self.tpm_trackers[key].popleft()
         while self.rpm_trackers[key] and now - self.rpm_trackers[key][0] > 60:
@@ -227,7 +232,7 @@ class GemmaClient:
                 print(f"[Rate Limit Guard] Staggering... Thread sleeping for {sleep_time:.1f}s...")
                 time.sleep(sleep_time)
 
-    def _reconcile_usage(self, key: str, reserve_time: float, actual_tokens: int):
+    def _reconcile_usage(self, key: str, reserve_time: float, actual_tokens: int) -> None:
         with self.lock:
             for item in self.tpm_trackers[key]:
                 if item[0] == reserve_time:
@@ -235,7 +240,7 @@ class GemmaClient:
                     break
             self._push_telemetry()
 
-    def _report_failure(self, key: str, is_429: bool, is_token_limit: bool = False):
+    def _report_failure(self, key: str, is_429: bool, is_token_limit: bool = False) -> None:
         with self.lock:
             self.key_strikes[key] += 1
             strikes = self.key_strikes[key]
@@ -275,13 +280,13 @@ class GemmaClient:
             self._save_state()
             self._push_telemetry()
 
-    def _report_success(self, key: str):
+    def _report_success(self, key: str) -> None:
         with self.lock:
             if self.key_strikes[key] > 0:
                 self.key_strikes[key] = 0
             self._push_telemetry()
 
-    def _route_llm_call(self, model: str, contents: list, response_schema: type, log_prefix: str = "Retry", max_attempts: int = None) -> any:
+    def _route_llm_call(self, model: str, contents: list, response_schema: type, log_prefix: str = "Retry", max_attempts: Optional[int] = None) -> Any:
         attempts = 0
         if max_attempts is None:
             max_attempts = max(7, len(self.api_keys) * 2)
@@ -405,6 +410,7 @@ class GemmaClient:
                         raise e
                     self._report_failure(key, is_429=False)
                     continue
+        raise RuntimeError("LLM routing failed")
 
     def cluster_names(self, unique_names: list[str]) -> dict[str, str]:
         """
@@ -448,7 +454,7 @@ Return the mapping_list with each original raw_name and its resolved canonical_n
         # Fallback to self-mapping
         mapping = {n.upper().strip(): n.upper().strip() for n in unique_names}
         
-        if result and hasattr(result, "mapping_list"):
+        if result and hasattr(result, "mapping_list"): # type: ignore
             for item in result.mapping_list:
                 raw = item.raw_name.upper().strip()
                 canonical = item.canonical_name.upper().strip()
@@ -500,69 +506,69 @@ SPECIAL RULES:
 Return a JSON object with: house_number, residents (list of strings), category, date, summary (string), and is_form (boolean)."""
 
 
-
-    def _extract_text_with_qwen(self, image_bytes: bytes) -> str:
+    def extract_page(self, image_bytes: bytes) -> str:
+        """Extracts Arabic text from an image using the local Qwen-VL model with retries."""
         base64_image = base64.b64encode(image_bytes).decode('utf-8')
         local_model = os.getenv("LOCAL_MODEL_NAME", "qwen2.5vl:7b")
-        response = self.local_client.chat.completions.create(
-            model=local_model,
-            messages=[
-                {"role": "system", "content": "Transcribe all Arabic text from the image verbatim. If the main content of the image is a photograph of a property, room, or inspection site, explicitly write '[PHOTOGRAPH OF PROPERTY]' at the beginning of your response, even if there are watermarks, disclaimers, or minor text visible. Do not attempt to classify or summarize otherwise."},
-                {
-                    "role": "user",
-                    "content": [
+        
+        last_error: Optional[Exception] = None
+        for qwen_attempt in range(2):
+            try:
+                response = self.local_client.chat.completions.create(
+                    model=local_model,
+                    messages=[
+                        {"role": "system", "content": "Transcribe all Arabic text from the image verbatim. If the main content of the image is a photograph of a property, room, or inspection site, explicitly write '[PHOTOGRAPH OF PROPERTY]' at the beginning of your response, even if there are watermarks, disclaimers, or minor text visible. Do not attempt to classify or summarize otherwise."},
                         {
-                            "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/png;base64,{base64_image}"
-                            }
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/png;base64,{base64_image}"
+                                    }
+                                }
+                            ]
                         }
-                    ]
-                }
-            ],
-            temperature=0.0
-        )
-        return response.choices[0].message.content
+                    ],
+                    temperature=0.0
+                )
+                res = response.choices[0].message.content
+                if res is not None:
+                    return res
+                last_error = ValueError("Returned None")
+            except Exception as e:
+                last_error = e
+        raise Exception(f"Failed to extract text after 2 attempts. Last error: {last_error}")
 
-    def _classify_text_with_local_model(self, text: str, extracted_footer: str = None) -> PageClassification:
+    def classify_extracted_page(self, text: str, extracted_footer: Optional[str] = None) -> PageClassification:
+        """Classifies an extracted text page using a local LLM with structured output and heuristics."""
         system_prompt = self._build_system_prompt()
         user_prompt = f"Classify this scanned document page based on the following extracted text.\n\nExtracted Text:\n{text}"
         if extracted_footer:
             user_prompt += f"\n\nExtracted Footer Text: {extracted_footer}"
         
         local_model = os.getenv("LOCAL_TEXT_MODEL_NAME", "qwen2.5:14b")
-        response = self.local_client.beta.chat.completions.parse(
-            model=local_model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            response_format=PageClassification,
-            temperature=0.0,
-            extra_body={"options": {"num_ctx": 8192}}
-        )
-        if response.choices[0].message.parsed:
-            return response.choices[0].message.parsed
-        else:
-            raise openai.OpenAIError("Parsed response is None")
-
-    def extract_page(self, image_bytes: bytes) -> str:
-        last_error = None
-        for qwen_attempt in range(2):
-            try:
-                return self._extract_text_with_qwen(image_bytes)
-            except Exception as e:
-                last_error = e
-        raise Exception(f"Failed to extract text after 2 attempts. Last error: {last_error}")
-
-    def classify_extracted_page(self, text: str, extracted_footer: str = None) -> PageClassification:
-        last_error = None
+        
+        last_error: Optional[Exception] = None
         for text_attempt in range(3):
             try:
-                parsed_result = self._classify_text_with_local_model(text, extracted_footer)
+                response = self.local_client.beta.chat.completions.parse(
+                    model=local_model,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt}
+                    ],
+                    response_format=PageClassification,
+                    temperature=0.0,
+                    extra_body={"options": {"num_ctx": 8192}}
+                )
+                
+                if response.choices[0].message.parsed:
+                    parsed_result = response.choices[0].message.parsed
+                else:
+                    raise openai.OpenAIError("Parsed response is None")
                 
                 # Heuristic Override: Local models struggle with complex negative constraints.
-                # If it correctly sees a form, force it to basic_details.
                 if getattr(parsed_result, "is_form", False) and parsed_result.category.value == "Allocation Order":
                     print("[Heuristic Override] Local model selected Allocation Order for a FORM. Forcing Basic Details Form.")
                     parsed_result.category = Category.BASIC_DETAILS
@@ -576,7 +582,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         else:
             raise RuntimeError("Failed after 3 text classification attempts")
 
-    def classify_page_direct(self, image_bytes: bytes, extracted_footer: str = None) -> PageClassification:
+    def classify_page_direct(self, image_bytes: bytes, extracted_footer: Optional[str] = None) -> PageClassification:
         system_prompt = self._build_system_prompt()
         user_prompt = "Classify this scanned document page."
         if extracted_footer:
@@ -598,56 +604,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         )
         return result
 
-    @functools.lru_cache(maxsize=1024)
-    def check_name_match(self, name_current: str, name_candidate: str, category: str) -> bool:
-        """Semantically compare two names to determine if they refer to the same primary tenant."""
-        if not name_current or not name_candidate:
-            return False
-            
-        system_prompt = (
-            f"You are an Arabic name matching expert analyzing names from a '{category}' housing document.\n\n"
-            "CRITICAL RULES:\n"
-            "1. Ignore common Arabic prefixes like 'ال' (Al-) and titles like 'السيد' (Mr.), 'المرحوم' (The late), 'ورثة' (Heirs).\n"
-            "2. Tolerate slight spelling variations or missing middle names (e.g., 'محمد علي أحمد' and 'محمد أحمد' might be the same person).\n"
-            "3. If one name is clearly a completely different person, return false.\n"
-            "4. Provide a structured JSON response with 'is_match' (boolean) and 'reason' (string explaining why).\n"
-        )
-        user_prompt = f"Name 1: {name_current}\nName 2: {name_candidate}\n\nDo these names semantically refer to the same person?"
-        
-        local_model = os.getenv("LOCAL_MODEL_NAME", "qwen2.5vl:7b")
-        try:
-            response = self.local_client.beta.chat.completions.parse(
-                model=local_model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                response_format=NameMatchResult,
-                temperature=0.0,
-                extra_body={"options": {"num_ctx": 8192}}
-            )
-            if response.choices[0].message.parsed:
-                return response.choices[0].message.parsed.is_match
-            else:
-                raise openai.OpenAIError("Parsed response is None")
-        except (openai.OpenAIError, requests.exceptions.RequestException, pydantic.ValidationError, ConnectionError, TimeoutError) as e:
-            print(f"[Local Inference Failed] Falling back to gemma-4-26b-a4b-it for name match. Error: {e}")
-            contents = [
-                system_prompt,
-                user_prompt
-            ]
-            try:
-                result = self._route_llm_call(
-                    model='gemma-4-26b-a4b-it',
-                    contents=contents,
-                    response_schema=NameMatchResult,
-                    log_prefix="NameMatch Fallback",
-                    max_attempts=3
-                )
-                return result.is_match
-            except Exception as gemini_err:
-                print(f"[Gemini Fallback Failed] {gemini_err}")
-                return False
+
 
     def detect_date_outliers(self, date_pairs: list[tuple[int, str]]) -> list[int]:
         """
@@ -678,7 +635,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 response_schema=DateOutlierDetectionResult,
                 log_prefix="DateOutlierDetection"
             )
-            return result.outlier_page_indices
+            return result.outlier_page_indices # type: ignore
         except Exception as e:
             print(f"[DateOutlierDetection] Error during LLM call: {e}")
             return []
@@ -740,6 +697,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
             except Exception as e:
                 print(f"[Local Inference Failed] bulk semantic grouping failed. Error: {e}")
                 raise
+        raise RuntimeError("Unexpected control flow")
 
 
 
