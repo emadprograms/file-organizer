@@ -28,3 +28,7 @@ out_*.pdf
 *.pdf
 .venv/
 *.log
+telemetry.log
+
+# Scratch
+scratch/
