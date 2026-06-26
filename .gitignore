@@ -19,6 +19,7 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+.rate_limit_state.json
 
 # Output
 output/
