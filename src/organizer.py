@@ -35,6 +35,45 @@ class FileOrganizer:
             return match.group(0)
         return "unknown_house"
 
+    def _compute_tenant_timelines(self, documents: list[DocumentGroup]) -> dict[str, str]:
+        # returns mapping from tenant name to folder suffix like "(1997-05 - 2013-08) - الساكن الحالي"
+        from collections import defaultdict
+        tenant_dates = defaultdict(list)
+        
+        for doc in documents:
+            tenant = doc.primary_tenant
+            if not tenant or tenant.upper() in ("UNKNOWN", "NONE"):
+                continue
+            for d_str in doc.dates:
+                if d_str and d_str != "NONE":
+                    # Parse YYYY-MM from YYYY-MM-DD
+                    if len(d_str) >= 7 and d_str[:4].isdigit() and d_str[5:7].isdigit():
+                        tenant_dates[tenant].append(d_str[:7])
+                        
+        if not tenant_dates:
+            return {}
+            
+        tenant_ranges = {}
+        for tenant, dates in tenant_dates.items():
+            if dates:
+                tenant_ranges[tenant] = (min(dates), max(dates))
+                
+        if not tenant_ranges:
+            return {}
+            
+        # Find the max end_date across ALL tenants to determine the "Current Resident"
+        global_max_date = max(end for start, end in tenant_ranges.values())
+        
+        result = {}
+        for tenant, (start, end) in tenant_ranges.items():
+            if end == global_max_date:
+                suffix = f" ({start} to {end}) - الساكن الحالي"
+            else:
+                suffix = f" ({start} to {end})"
+            result[tenant] = suffix
+            
+        return result
+
     def _build_resident_order(self, documents: list[DocumentGroup]) -> list[tuple[int, str]]:
         seen_tenants = set()
         ordered_tenants = []
@@ -222,11 +261,16 @@ class FileOrganizer:
             print(f"⚠ Could not copy original PDF: {e}")
         
         resident_order = self._build_resident_order(documents)
+        tenant_suffixes = self._compute_tenant_timelines(documents)
         resident_folder_map = {}
         
         for index, name in resident_order:
             sanitized_name = self._sanitize_filename(name)
-            resident_dir = house_dir / f"{index}_{sanitized_name}"
+            suffix = tenant_suffixes.get(name, "")
+            sanitized_suffix = self._sanitize_filename(suffix)
+            folder_name = f"{index}_{sanitized_name}{sanitized_suffix}"
+            
+            resident_dir = house_dir / folder_name
             os.makedirs(resident_dir, exist_ok=True)
             resident_folder_map[name] = resident_dir
             

@@ -2,13 +2,11 @@ from typing import List
 import json
 import os
 import threading
+import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.ingest import PdfIngestor
 from src.llm import GemmaClient, LLMFailureError, InvalidResponseError
 from src.schemas import PageClassification, DocumentGroup, Category
-
-
-import sys
 
 if sys.stdout is not None and hasattr(sys.stdout, 'reconfigure'):
     try:
@@ -16,12 +14,55 @@ if sys.stdout is not None and hasattr(sys.stdout, 'reconfigure'):
     except Exception:
         pass
 
+class SimpleCache:
+    """Encapsulates JSON-based caching with atomic writes."""
+    def __init__(self, filename: str):
+        self.filename = filename
+        self.data = {}
+        self.load()
+
+    def load(self):
+        if os.path.exists(self.filename):
+            try:
+                with open(self.filename, "r", encoding="utf-8") as f:
+                    self.data = json.load(f)
+            except Exception as e:
+                print(f"Error loading cache {self.filename}: {e}")
+                self.data = {}
+
+    def set(self, key: str, value: any):
+        self.data[key] = value
+        temp_file = f"{self.filename}.tmp"
+        try:
+            with open(temp_file, "w", encoding="utf-8") as f:
+                json.dump(self.data, f, ensure_ascii=False, indent=2)
+            os.replace(temp_file, self.filename)
+        except Exception as e:
+            print(f"Error saving cache {self.filename}: {e}")
+
+    def get(self, key: str):
+        return self.data.get(key)
+
+    def __getitem__(self, key):
+        return self.data[key]
+
+    def __contains__(self, key):
+        return key in self.data
+
+    def values(self):
+        return self.data.values()
+
 class Pipeline:
     def __init__(self, api_keys: list[str] = None, delay_between_pages: float = 1.0, telemetry_queue=None, use_local_llm: bool = True):
         self.ingestor = PdfIngestor()
         self.client = GemmaClient(api_keys, delay_between_pages, telemetry_queue=telemetry_queue, use_local_llm=use_local_llm)
 
-
+    def _get_fallback_house_number(self, cache: SimpleCache) -> str:
+        """Retrieve the first available house number from the cache as a fallback."""
+        for v in cache.values():
+            if isinstance(v, dict) and v.get("house_number") and v.get("house_number") != "UNKNOWN":
+                return v.get("house_number")
+        return "UNKNOWN"
 
     def process_pdf(self, pdf_path: str) -> list[DocumentGroup]:
         """
@@ -31,27 +72,20 @@ class Pipeline:
         """
         print(f"Starting Pass 1 (Vision Extraction) for {pdf_path}...")
         
-        cache_file = f"{pdf_path}.cache.json"
-        cached_pages = {}
-        if os.path.exists(cache_file):
-            with open(cache_file, "r", encoding="utf-8") as f:
-                cached_pages = json.load(f)
-                print(f"Loaded {len(cached_pages)} pages from cache.")
-                
-        text_cache_file = f"{pdf_path}.extracted.cache.json"
-        extracted_text_cache = {}
-        if os.path.exists(text_cache_file):
-            with open(text_cache_file, "r", encoding="utf-8") as f:
-                extracted_text_cache = json.load(f)
-                print(f"Loaded {len(extracted_text_cache)} extracted text pages from cache.")
+        # Initialize Caches
+        pages_cache = SimpleCache(f"{pdf_path}.cache.json")
+        text_cache = SimpleCache(f"{pdf_path}.extracted.cache.json")
+        
+        print(f"Loaded {len(pages_cache.data)} pages from cache.")
+        print(f"Loaded {len(text_cache.data)} extracted text pages from cache.")
 
         raw_pages = []
         pages_to_process = []
         
         for page_index, image_bytes in self.ingestor.extract_pages_as_images(pdf_path):
             str_index = str(page_index)
-            if str_index in cached_pages:
-                cache_data = cached_pages[str_index]
+            if str_index in pages_cache:
+                cache_data = pages_cache[str_index]
                 if 'resident' in cache_data and 'residents' not in cache_data:
                     cache_data['residents'] = [cache_data.pop('resident')]
                 if cache_data.get('category') == 'pictures':
@@ -76,48 +110,44 @@ class Pipeline:
         if pages_to_process:
             deferred_local_pages = []
             
-            # Phase 1: Loop through each page, checking cache first, then cloud direct, then local OCR fallback
             for p_idx, i_bytes in pages_to_process:
                 # 1. Blank Page check
                 if len(i_bytes) < 15000:
                     print(f" Page {p_idx} is blank (size {len(i_bytes)} bytes). Skipping LLM.")
                     res = PageClassification(category=Category.OTHER_LETTERS, residents=["NONE"], date="NONE", house_number="UNKNOWN", summary="Blank page.")
                     with cache_lock:
-                        cached_pages[str(p_idx)] = res.model_dump()
-                        temp_cache_file = f"{cache_file}.tmp"
-                        with open(temp_cache_file, "w", encoding="utf-8") as f:
-                            json.dump(cached_pages, f, ensure_ascii=False, indent=2)
-                        os.replace(temp_cache_file, cache_file)
+                        pages_cache.set(str(p_idx), res.model_dump())
                     raw_pages.append((p_idx, res))
                     continue
 
                 # 2. Extract footer using Vision framework (macOS local utility)
                 extracted_footer = None
-                try:
-                    import Vision, Quartz, re
-                    from Foundation import NSData
-                    ns_data = NSData.dataWithBytes_length_(i_bytes, len(i_bytes))
-                    cg_data_provider = Quartz.CGDataProviderCreateWithCFData(ns_data)
-                    cg_image = Quartz.CGImageCreateWithPNGDataProvider(cg_data_provider, None, False, Quartz.kCGRenderingIntentDefault)
-                    if cg_image:
-                        request_handler = Vision.VNImageRequestHandler.alloc().initWithCGImage_options_(cg_image, None)
-                        request = Vision.VNRecognizeTextRequest.alloc().init()
-                        request.setRecognitionLanguages_(["ar", "en"])
-                        request.setRegionOfInterest_(Vision.CGRectMake(0.0, 0.0, 1.0, 0.15))
-                        success, error = request_handler.performRequests_error_([request], None)
-                        if success:
-                            full_text = " ".join([obs.topCandidates_(1)[0].string() for obs in request.results() if obs.topCandidates_(1)])
-                            match = re.search(r'(\d+)\s*من\s*(\d+)', full_text)
-                            if not match: match = re.search(r'(\d+)\s+(\d+)\s*من', full_text)
-                            if not match: match = re.search(r'(\d+)\s*من', full_text)
-                            if match: extracted_footer = match.group(0)
-                except Exception as e:
-                    print(f"Vision OCR Error on page {p_idx}: {e}")
+                if sys.platform == "darwin":
+                    try:
+                        import Vision, Quartz, re
+                        from Foundation import NSData
+                        ns_data = NSData.dataWithBytes_length_(i_bytes, len(i_bytes))
+                        cg_data_provider = Quartz.CGDataProviderCreateWithCFData(ns_data)
+                        cg_image = Quartz.CGImageCreateWithPNGDataProvider(cg_data_provider, None, False, Quartz.kCGRenderingIntentDefault)
+                        if cg_image:
+                            request_handler = Vision.VNImageRequestHandler.alloc().initWithCGImage_options_(cg_image, None)
+                            request = Vision.VNRecognizeTextRequest.alloc().init()
+                            request.setRecognitionLanguages_(["ar", "en"])
+                            request.setRegionOfInterest_(Vision.CGRectMake(0.0, 0.0, 1.0, 0.15))
+                            success, error = request_handler.performRequests_error_([request], None)
+                            if success:
+                                full_text = " ".join([obs.topCandidates_(1)[0].string() for obs in request.results() if obs.topCandidates_(1)])
+                                match = re.search(r'(\d+)\s*من\s*(\d+)', full_text)
+                                if not match: match = re.search(r'(\d+)\s+(\d+)\s*من', full_text)
+                                if not match: match = re.search(r'(\d+)\s*من', full_text)
+                                if match: extracted_footer = match.group(0)
+                    except Exception as e:
+                        print(f"Vision OCR Error on page {p_idx}: {e}")
 
                 # 3. Check if we already have the OCR text cached
-                if str(p_idx) in extracted_text_cache:
+                if str(p_idx) in text_cache:
                     print(f" Loaded Arabic text for Page {p_idx} from cache. Deferring local classification.")
-                    text = extracted_text_cache[str(p_idx)]
+                    text = text_cache[str(p_idx)]
                     deferred_local_pages.append((p_idx, text))
                     continue
 
@@ -134,11 +164,7 @@ class Pipeline:
                         except UnicodeEncodeError: print(msg.encode('utf-8', errors='replace').decode('utf-8'))
                         
                         with cache_lock:
-                            cached_pages[str(p_idx)] = res.model_dump()
-                            temp_cache_file = f"{cache_file}.tmp"
-                            with open(temp_cache_file, "w", encoding="utf-8") as f:
-                                json.dump(cached_pages, f, ensure_ascii=False, indent=2)
-                            os.replace(temp_cache_file, cache_file)
+                            pages_cache.set(str(p_idx), res.model_dump())
                         raw_pages.append((p_idx, res))
                         continue
                     except Exception as e:
@@ -152,33 +178,24 @@ class Pipeline:
                         print(f" Extracting Arabic text from Page {p_idx} using Local Vision Model (Qwen-VL)...")
                         text = self.client.extract_page(i_bytes)
                         with cache_lock:
-                            extracted_text_cache[str(p_idx)] = text
-                            temp_text_cache_file = f"{text_cache_file}.tmp"
-                            with open(temp_text_cache_file, "w", encoding="utf-8") as f:
-                                json.dump(extracted_text_cache, f, ensure_ascii=False, indent=2)
-                            os.replace(temp_text_cache_file, text_cache_file)
+                            text_cache.set(str(p_idx), text)
                         deferred_local_pages.append((p_idx, text, extracted_footer))
                     except Exception as e:
                         print(f"WARNING: Local OCR extraction failed on page {p_idx}: {e}")
-                        house_number = "UNKNOWN"
-                        with cache_lock:
-                            for v in cached_pages.values():
-                                if v.get("house_number") and v.get("house_number") != "UNKNOWN":
-                                    house_number = v.get("house_number")
-                                    break
+                        house_number = self._get_fallback_house_number(pages_cache)
                         fallback_res = PageClassification(category=Category.OTHER_LETTERS, residents=["UNKNOWN"], date="NONE", house_number=house_number, summary="OCR extraction failed.")
                         with cache_lock:
-                            cached_pages[str(p_idx)] = fallback_res.model_dump()
-                            temp_cache_file = f"{cache_file}.tmp"
-                            with open(temp_cache_file, "w", encoding="utf-8") as f:
-                                json.dump(cached_pages, f, ensure_ascii=False, indent=2)
-                            os.replace(temp_cache_file, cache_file)
+                            pages_cache.set(str(p_idx), fallback_res.model_dump())
                         raw_pages.append((p_idx, fallback_res))
 
             # Phase 2: Run deferred local classification (Pass 1b) at the very end
             if deferred_local_pages:
                 print(f"Pass 1b: Running local text classification (Qwen-14B) for {len(deferred_local_pages)} deferred pages...")
-                for p_idx, text, extracted_footer in deferred_local_pages:
+                for p_idx, *args in deferred_local_pages:
+                    # Handle both (p_idx, text) and (p_idx, text, extracted_footer)
+                    text = args[0]
+                    extracted_footer = args[1] if len(args) > 1 else None
+                    
                     try:
                         print(f" Classifying text for Page {p_idx} using 14B Text Model...")
                         res = self.client.classify_extracted_page(text, extracted_footer)
@@ -188,27 +205,14 @@ class Pipeline:
                         except UnicodeEncodeError: print(msg.encode('utf-8', errors='replace').decode('utf-8'))
                         
                         with cache_lock:
-                            cached_pages[str(p_idx)] = res.model_dump()
-                            temp_cache_file = f"{cache_file}.tmp"
-                            with open(temp_cache_file, "w", encoding="utf-8") as f:
-                                json.dump(cached_pages, f, ensure_ascii=False, indent=2)
-                            os.replace(temp_cache_file, cache_file)
+                            pages_cache.set(str(p_idx), res.model_dump())
                         raw_pages.append((p_idx, res))
                     except Exception as e:
                         print(f"WARNING: Local classification failed on page {p_idx}: {e}")
-                        house_number = "UNKNOWN"
-                        with cache_lock:
-                            for v in cached_pages.values():
-                                if v.get("house_number") and v.get("house_number") != "UNKNOWN":
-                                    house_number = v.get("house_number")
-                                    break
+                        house_number = self._get_fallback_house_number(pages_cache)
                         fallback_res = PageClassification(category=Category.OTHER_LETTERS, residents=["UNKNOWN"], date="NONE", house_number=house_number, summary="Local classification failed.")
                         with cache_lock:
-                            cached_pages[str(p_idx)] = fallback_res.model_dump()
-                            temp_cache_file = f"{cache_file}.tmp"
-                            with open(temp_cache_file, "w", encoding="utf-8") as f:
-                                json.dump(cached_pages, f, ensure_ascii=False, indent=2)
-                            os.replace(temp_cache_file, cache_file)
+                            pages_cache.set(str(p_idx), fallback_res.model_dump())
                         raw_pages.append((p_idx, fallback_res))
             
             raw_pages.sort(key=lambda x: x[0])
@@ -216,11 +220,20 @@ class Pipeline:
         if len(raw_pages) != total_expected_pages:
             raise RuntimeError(f"CRITICAL: Expected {total_expected_pages} pages, but only recovered {len(raw_pages)}. Aborting Pass 1.5 to prevent data loss.")
 
+        print(f"--- Starting Pass 1.5 Audit for {pdf_path} ---")
         print(f"Starting Pass 1.5 (Date Cleaning & Interpolation) for {pdf_path}...")
         self._interpolate_dates(raw_pages)
 
         print(f"Starting Pass 1.5 (Dependent Alias Mapping) for {pdf_path}...")
         canonical_mapping_clean = self._map_aliases(raw_pages)
+        print(f"--- Pass 1.5 Completed for {pdf_path} ---")
+        
+        print(f"\n--- Final Page State After Pass 1.5 for {pdf_path} ---")
+        for p_idx, page in raw_pages:
+            resolved_names = [canonical_mapping_clean.get(r.upper().strip(), r) for r in page.residents if r not in ("NONE", "UNKNOWN", "")]
+            names_str = ", ".join(resolved_names) if resolved_names else "NONE"
+            print(f"Page {p_idx} | Date: {page.date} | Category: {page.category.value} | Names: {names_str}")
+        print("-" * 50 + "\n")
 
         print(f"Starting Pass 2 (Tenant Grouping) for {pdf_path}...")
         
@@ -231,150 +244,298 @@ class Pipeline:
 
     def _interpolate_dates(self, raw_pages: list[tuple[int, PageClassification]]):
         from datetime import datetime
+
+        # 1. LLM-Based Outlier Detection
+        print(f"  [Pass 1.5] Running LLM-based outlier detection for {len(raw_pages)} pages...")
+        date_pairs = [(idx, page.date) for idx, page in raw_pages if page.date and page.date != "NONE"]
         
-        for i in range(len(raw_pages)):
-            d = raw_pages[i][1].date
-            if d and d != "NONE":
-                try:
-                    dt = datetime.strptime(d, "%Y-%m-%d")
-                    if dt.year < 1970 or dt.year > datetime.now().year:
-                        raw_pages[i][1].date = "NONE"
-                except ValueError:
-                    raw_pages[i][1].date = "NONE"
-                    
+        if date_pairs:
+            outlier_indices = self.client.detect_date_outliers(date_pairs)
+            
+            for idx in outlier_indices:
+                # Find the page object in our raw_pages list
+                for p_idx, page in raw_pages:
+                    if p_idx == idx:
+                        old_date = page.date
+                        page.date = "NONE"
+                        print(f"[Pass 1.5 Date] Page {idx}: {old_date} -> NONE (LLM detected as outlier)")
+                        break
+
+        # 2. Global Interpolation (Fill the holes)
         for i in range(len(raw_pages)):
             if raw_pages[i][1].date == "NONE":
-                last_valid = None
+                last_valid_date = None
+                last_valid_idx = -1
                 for j in range(i-1, -1, -1):
                     if raw_pages[j][1].date != "NONE":
-                        last_valid = raw_pages[j][1].date
+                        last_valid_date = raw_pages[j][1].date
+                        last_valid_idx = raw_pages[j][0]
                         break
-                next_valid = None
+                
+                next_valid_date = None
+                next_valid_idx = -1
                 for j in range(i+1, len(raw_pages)):
                     if raw_pages[j][1].date != "NONE":
-                        next_valid = raw_pages[j][1].date
+                        next_valid_date = raw_pages[j][1].date
+                        next_valid_idx = raw_pages[j][0]
                         break
                         
-                if last_valid and next_valid:
-                    raw_pages[i][1].date = last_valid
-                elif last_valid:
-                    raw_pages[i][1].date = last_valid
-                elif next_valid:
-                    raw_pages[i][1].date = next_valid
+                actual_page_idx = raw_pages[i][0]
+                if last_valid_date and next_valid_date:
+                    raw_pages[i][1].date = last_valid_date
+                    print(f"[Pass 1.5 Date] Page {actual_page_idx}: NONE -> {last_valid_date} (Interpolated from Page {last_valid_idx})")
+                elif last_valid_date:
+                    raw_pages[i][1].date = last_valid_date
+                    print(f"[Pass 1.5 Date] Page {actual_page_idx}: NONE -> {last_valid_date} (Interpolated from Page {last_valid_idx})")
+                elif next_valid_date:
+                    raw_pages[i][1].date = next_valid_date
+                    print(f"[Pass 1.5 Date] Page {actual_page_idx}: NONE -> {next_valid_date} (Interpolated from Page {next_valid_idx})")
+
+    def _parse_date(self, d_str: str):
+        if not d_str or d_str == "NONE":
+            return None
+        import re
+        from datetime import datetime
+        m = re.match(r'^(\d{4})-(\d{2})-(\d{2})$', d_str.strip())
+        if m:
+            try:
+                return datetime(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            except ValueError:
+                return None
+        return None
 
     def _map_aliases(self, raw_pages: list[tuple[int, PageClassification]]) -> dict[str, str]:
-        canonical_mapping = {}
-        active_primary_tenant = "UNKNOWN"
-        ANCHOR_CATEGORIES = {Category.BASIC_DETAILS, Category.KEY_HANDOVER, Category.CONTRACT}
+        ANCHOR_CATEGORIES = {Category.BASIC_DETAILS, Category.CONTRACT, Category.RENT_DEDUCTION}
         
-        from collections import Counter
-        name_counts = Counter()
+        # 0. Semantic Name Clustering
+        unique_names = set()
         for _, page in raw_pages:
             for r in page.residents:
-                if r and r not in ("NONE", "UNKNOWN"):
-                    name_counts[r.upper().strip()] += 1
+                clean_r = r.upper().strip()
+                if clean_r and clean_r not in ("NONE", "UNKNOWN", ""):
+                    unique_names.add(clean_r)
+                    
+        print(f"  [Pass 1.5] Clustering {len(unique_names)} unique names using LLM...")
+        if unique_names:
+            canonical_map = self.client.cluster_names(list(unique_names))
+            for p_idx, page in raw_pages:
+                new_residents = []
+                for r in page.residents:
+                    clean_r = r.upper().strip()
+                    if clean_r and clean_r not in ("NONE", "UNKNOWN", ""):
+                        canonical = canonical_map.get(clean_r, clean_r)
+                        if canonical not in new_residents:
+                            new_residents.append(canonical)
+                    else:
+                        new_residents.append(r)
+                if not new_residents:
+                    new_residents = ["NONE"]
+                page.residents = new_residents
+        
+        # 1. Collect Statistics
+        name_page_appearances = {}
+        name_dates = {}
+        names_in_anchors = set()
+        
+        for p_idx, page in raw_pages:
+            mapped_residents = [r.upper().strip() for r in page.residents if r not in ("NONE", "UNKNOWN", "")]
+            d_obj = self._parse_date(page.date)
+            
+            for r in mapped_residents:
+                if r not in name_page_appearances:
+                    name_page_appearances[r] = set()
+                    name_dates[r] = []
+                name_page_appearances[r].add(p_idx)
+                if d_obj:
+                    name_dates[r].append(d_obj)
+                
+                if page.category in ANCHOR_CATEGORIES:
+                    names_in_anchors.add(r)
 
-        for _, page in raw_pages:
+        # 2. Identify Primary Tenants (1 anchor + >= 5 pages)
+        primary_tenants = []
+        for r, pages in name_page_appearances.items():
+            if r in names_in_anchors and len(pages) >= 5:
+                primary_tenants.append(r)
+                
+        if not primary_tenants:
+            return {}
+            
+        # 3. Construct Timelines
+        primary_tenant_timelines = {}
+        valid_pts = []
+        
+        pt_explicit_ranges = {}
+        for pt in primary_tenants:
+            dates = name_dates.get(pt, [])
+            if dates:
+                pt_explicit_ranges[pt] = (min(dates), max(dates))
+                
+        # Sort PTs by their first explicit date
+        sorted_pts = sorted(pt_explicit_ranges.keys(), key=lambda k: pt_explicit_ranges[k][0])
+        
+        from datetime import timedelta, datetime
+        for i, pt in enumerate(sorted_pts):
+            start_date, end_date = pt_explicit_ranges[pt]
+            # Backtrack start date slightly
+            final_start = start_date - timedelta(days=180)
+            
+            # Stretch end date
+            if i == len(sorted_pts) - 1:
+                # Last / Current Resident stretches to infinity
+                final_end = datetime.max
+            else:
+                # Older resident stretches until the next resident's start date
+                next_pt = sorted_pts[i+1]
+                next_start = pt_explicit_ranges[next_pt][0]
+                final_end = next_start - timedelta(days=1)
+                
+            primary_tenant_timelines[pt] = (final_start, final_end)
+            valid_pts.append(pt)
+            
+        print(f"\n  [Pass 1.5] Calculated Timelines:")
+        for pt in sorted_pts:
+            start_str = primary_tenant_timelines[pt][0].strftime('%Y-%m-%d')
+            end_str = primary_tenant_timelines[pt][1].strftime('%Y-%m-%d') if primary_tenant_timelines[pt][1] != datetime.max else "Present (الساكن الحالي)"
+            print(f"    - {pt}: {start_str} to {end_str}")
+        
+        # 4. Global Overwrite
+        new_raw_pages = []
+        for p_idx, page in raw_pages:
             mapped_residents = [r.upper().strip() for r in page.residents if r not in ("NONE", "UNKNOWN", "")]
             
-            if page.category in ANCHOR_CATEGORIES:
-                if mapped_residents:
-                    active_primary_tenant = mapped_residents[0]
+            # Check if page natively contains a Primary Tenant
+            native_pts = [pt for pt in mapped_residents if pt in primary_tenants]
+            if native_pts:
+                import copy
+                for pt in native_pts:
+                    page_copy = copy.deepcopy(page)
+                    page_copy.residents = [pt]
+                    new_raw_pages.append((p_idx, page_copy))
+                    print(f"[Pass 1.5 Name] Page {p_idx}: Native PT kept/duplicated -> {pt}")
+                continue
+                
+            # No native Primary Tenant -> Use Timeline Overwrite
+            d_obj = self._parse_date(page.date)
+            if not d_obj:
+                page.residents = ["NONE"]
+                new_raw_pages.append((p_idx, page))
+                print(f"[Pass 1.5 Name] Page {p_idx}: Overwritten -> NONE (No valid date)")
+                continue
+                
+            # Find overlapping PTs
+            overlapping_pts = []
+            for pt in valid_pts:
+                start, end = primary_tenant_timelines[pt]
+                if start <= d_obj <= end:
+                    overlapping_pts.append(pt)
+                    
+            if len(overlapping_pts) == 1:
+                chosen_pt = overlapping_pts[0]
+                page.residents = [chosen_pt]
+                new_raw_pages.append((p_idx, page))
+                print(f"[Pass 1.5 Name] Page {p_idx}: Timeline Overwrite -> {chosen_pt}")
+            elif len(overlapping_pts) > 1:
+                # Overlap! Previous tenant wins
+                chosen_pt = overlapping_pts[0]
+                page.residents = [chosen_pt]
+                new_raw_pages.append((p_idx, page))
+                print(f"[Pass 1.5 Name] Page {p_idx}: Timeline Overlap Overwrite (Previous PT Wins) -> {chosen_pt}")
             else:
-                for r in mapped_residents:
-                    if name_counts[r] > 3:
-                        active_primary_tenant = r
-                        break
-                        
-            if page.category == Category.PERSONAL_DETAILS and active_primary_tenant != "UNKNOWN":
-                for r in mapped_residents:
-                    if r != active_primary_tenant:
-                        canonical_mapping[r] = active_primary_tenant
-                        
-        return canonical_mapping
+                # Orphaned
+                page.residents = ["NONE"]
+                new_raw_pages.append((p_idx, page))
+                print(f"[Pass 1.5 Name] Page {p_idx}: Overwritten -> NONE (Orphaned/Out of bounds)")
+                
+        # Since we modified the structure of raw_pages, we must clear and replace it
+        raw_pages.clear()
+        raw_pages.extend(new_raw_pages)
+        return {}
 
     def _group_pages_into_documents(self, raw_pages: list[tuple[int, PageClassification]], canonical_mapping_clean: dict[str, str]) -> list[DocumentGroup]:
         documents: list[DocumentGroup] = []
         
-        # 1. Pre-group by Category (The "Category Wall")
-        category_blocks = []
+        # 1. Pre-group by Category AND Primary Tenant (The "Category & Tenant Wall")
+        blocks = []
         if raw_pages:
             current_block = [raw_pages[0]]
-            current_category = raw_pages[0][1].category
-            for p_idx, p in raw_pages[1:]:
-                if p.category == current_category:
-                    current_block.append((p_idx, p))
+            def get_sig(p): return (p.category, p.residents[0] if p.residents else "NONE")
+            
+            current_sig = get_sig(raw_pages[0][1])
+            for item in raw_pages[1:]:
+                sig = get_sig(item[1])
+                if sig == current_sig:
+                    current_block.append(item)
                 else:
-                    category_blocks.append(current_block)
-                    current_block = [(p_idx, p)]
-                    current_category = p.category
+                    blocks.append(current_block)
+                    current_block = [item]
+                    current_sig = sig
             if current_block:
-                category_blocks.append(current_block)
+                blocks.append(current_block)
 
-        all_groups = []
+        all_groups = [] # list of lists of (p_idx, p)
         chunk_size = 25
         
-        for block in category_blocks:
+        for block in blocks:
             if len(block) == 1:
-                all_groups.append([block[0][0]])
+                all_groups.append([block[0]])
                 continue
                 
-            block_groups = []
+            block_groups = [] # list of lists of (p_idx, p)
             for i in range(0, len(block), chunk_size):
-                # Overlapping sliding window (overlap by 2 pages)
+                # Overlapping sliding window
                 start_idx = max(0, i - 2) if i > 0 else 0
                 chunk = block[start_idx:i+chunk_size]
                 
                 pages_data = []
                 for p_idx, p in chunk:
-                    names_str = ", ".join([canonical_mapping_clean.get(r.upper().strip(), r) for r in p.residents])
+                    names_str = p.residents[0] if p.residents else "NONE"
                     summary_str = p.summary
                     pages_data.append([p_idx, names_str, summary_str])
                 
                 result = self.client.check_bulk_semantic_grouping(pages_data)
                 
-                # Merge overlapping groups using set intersection
-                for new_g in result.groups:
-                    if not new_g: continue
+                # Match LLM result groups back to our (p_idx, p) objects based on their order in the chunk
+                for new_g_indices in result.groups:
+                    if not new_g_indices: continue
+                    # Build a list of actual items for this new group
+                    new_g_items = []
+                    for expected_idx in new_g_indices:
+                        for item in chunk:
+                            if item[0] == expected_idx and item not in new_g_items:
+                                new_g_items.append(item)
+                                break
+                                
+                    if not new_g_items: continue
+                    
                     shared = False
                     for existing_g in block_groups:
-                        if set(existing_g).intersection(set(new_g)):
-                            for x in new_g:
+                        # Check intersection by identity
+                        if any(x in existing_g for x in new_g_items):
+                            for x in new_g_items:
                                 if x not in existing_g:
                                     existing_g.append(x)
-                            existing_g.sort()
+                            # Sort by p_idx
+                            existing_g.sort(key=lambda x: x[0])
                             shared = True
                             break
                     if not shared:
-                        # Ensure we don't accidentally pull in pages from outside this block's actual chunk scope
-                        # (Though the LLM should only return what we gave it)
-                        block_groups.append(new_g)
+                        new_g_items.sort(key=lambda x: x[0])
+                        block_groups.append(new_g_items)
                         
             all_groups.extend(block_groups)
             
-        page_map = {idx: p for idx, p in raw_pages}
         for group in all_groups:
             if not group: continue
-            group.sort()
-            start_page = group[0]
-            end_page = group[-1]
+            # group is a list of (p_idx, p)
+            group.sort(key=lambda x: x[0])
+            start_page = group[0][0]
+            end_page = group[-1][0]
             
-            group_names = []
-            for p_idx in group:
-                p = page_map[p_idx]
-                for r in p.residents:
-                    mapped = canonical_mapping_clean.get(r.upper().strip(), r)
-                    if mapped not in ("NONE", "UNKNOWN", ""):
-                        group_names.append(mapped)
-            
-            primary_tenant = "UNKNOWN"
-            if group_names:
-                from collections import Counter
-                primary_tenant = Counter(group_names).most_common(1)[0][0]
-                
-            category = page_map[start_page].category
-            house_number = page_map[start_page].house_number
-            dates = [page_map[p_idx].date for p_idx in group if page_map[p_idx].date != "NONE"]
+            primary_tenant = group[0][1].residents[0] if group[0][1].residents else "NONE"
+            category = group[0][1].category
+            house_number = group[0][1].house_number
+            dates = [p.date for p_idx, p in group if p.date != "NONE"]
             
             documents.append(DocumentGroup(
                 start_page=start_page,
@@ -384,5 +545,7 @@ class Pipeline:
                 category=category,
                 dates=dates
             ))
+            
+        return documents
             
         return documents

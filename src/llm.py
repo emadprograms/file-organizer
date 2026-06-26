@@ -40,7 +40,7 @@ class InvalidResponseError(Exception):
 class GemmaClient:
     NONE_EXPECTED_CATEGORIES = {'amar_takhsees', 'inspection_pictures'}
     TPM_LIMIT = 30000
-    RPM_LIMIT = 30
+    RPM_LIMIT = 5
     
     global_rpm_tracker = deque()
     global_cooldown_until = 0.0
@@ -406,12 +406,63 @@ class GemmaClient:
                     self._report_failure(key, is_429=False)
                     continue
 
+    def cluster_names(self, unique_names: list[str]) -> dict[str, str]:
+        """
+        Takes a list of unique names and asks the LLM to group them into canonical identities.
+        Returns a mapping of {ORIGINAL_NAME: CANONICAL_NAME} (uppercase stripped).
+        """
+        if not unique_names:
+            return {}
+            
+        system_prompt = "You are an expert at resolving Arabic and English name variations. Your task is to map multiple variations, misspellings, or abbreviations of the same name to a single 'canonical' identity."
+        
+        import json
+        user_prompt = f"""Given the following list of unique names extracted from a file, some are variations or misspellings of the exact same person.
+        
+List of names:
+{json.dumps(unique_names, ensure_ascii=False)}
+
+Group the names that refer to the same person. Pick the most complete, correctly spelled version of the name as the 'canonical_name'.
+For any name that does not have variations, map it to itself.
+Return the mapping_list with each original raw_name and its resolved canonical_name.
+"""
+        from src.schemas import EntityResolutionMapping
+        
+        contents = [
+            system_prompt,
+            user_prompt
+        ]
+        
+        try:
+            result = self._route_llm_call(
+                model="gemini-2.5-flash",
+                contents=contents,
+                response_schema=EntityResolutionMapping,
+                log_prefix="Name Clustering",
+                max_attempts=3
+            )
+        except Exception as e:
+            print(f"[Name Clustering] Failed to cluster names using LLM: {e}")
+            result = None
+            
+        # Fallback to self-mapping
+        mapping = {n.upper().strip(): n.upper().strip() for n in unique_names}
+        
+        if result and hasattr(result, "mapping_list"):
+            for item in result.mapping_list:
+                raw = item.raw_name.upper().strip()
+                canonical = item.canonical_name.upper().strip()
+                if raw in mapping:
+                    mapping[raw] = canonical
+                    
+        return mapping
+
     def _build_system_prompt(self) -> str:
         return """You are an Arabic document classification expert analyzing scanned housing files from the Bahrain/Gulf region.
 
 You are receiving a scanned page IMAGE. Read the page directly using your vision capabilities and classify it.
 
-CRITICAL FIRST STEP: ALWAYS analyze the subject (الموضوع) of the letter or document first before looking at the body text.
+CRITICAL FIRST STEP: If the image is a letter, first analyze the subject (الموضوع) of the letter or document before looking at the body text.
 
 Classify this page into exactly ONE of the following 13 categories:
 
@@ -420,7 +471,7 @@ Classify this page into exactly ONE of the following 13 categories:
 3. Allocation Order — أمر تخصيص (Allocation orders. STRICT DEFINITION: A letter from a higher authority ordering to give a place to stay. FORMS OR TABLES ARE NEVER AMAR TAKHSEES. It MUST be a letter paragraph format. Strong pattern: Exact subject 'الموضوع : الوحدات السكنية' AND format is a letter.)
 4. Key Handover Certificate — نموذج تسليم المفتاح (ONLY use this for the INITIAL key handover after making the contract. Do NOT use this for temporary key handovers related to maintenance. If the word 'الأشغال' (Ashgal) is present anywhere, it is NEVER key_handover_form. Strong pattern: Contains 'استمارة تسليم الوحدات السكنية التابعة لوزارة الداخلية'.)
 5. Housing Contract — العقد (Rental or housing contracts. STRICT DEFINITION: If the page contains contract articles like "مادة (1)", "مادة (2)", "الطرف الأول" (First Party), "الطرف الثاني" (Second Party), or "التمهيد" (Preamble), it MUST be a contract. WARNING: Contract pages often discuss rent deduction, allowances, or eviction inside their clauses. If these topics appear as part of a contract's "مادة" or terms, you MUST classify it as a contract and NEVER as rent_deduction, allowance_deduction, or notifications.)
-6. Electricity and Water — رسائل الكهرباء والماء (EWA electricity/water letters. Strong pattern: Contains a meter number, such as 'الوحدة السكنية رقم' or similar.)
+6. Electricity and Water — رسائل الكهرباء والماء (EWA electricity/water letters. Strong pattern: Contains a meter number, such as 'الوحدة السكنية رقم', or the terms 'electricity & water' or 'ewa' in English at the beginning of the form. WARNING: These can be forms with details filled out; do NOT misclassify them as basic_details just because they are forms.)
 7. Rent Deduction Notice — خصم الإيجار (Rent deduction notices or rosters. Usually formatted as letters addressed to someone to deduct rent. STRICT DEFINITION: They ALWAYS mention deducting amounts like "30" or "60" (bd). WARNING: Contracts and basic_details forms are EXEMPT and can mention rent amounts without being rent_deduction. Do NOT classify a single-person profile form (with rank, allotment date) or a contract clause as rent_deduction just because it mentions an amount. Use the amount presence ONLY to disambiguate from allowance_deduction.)
 8. Allowance Deduction Notice — خصم العلاوة (Allowance deduction notices. Strong pattern: Subject is 'الموضوع: وقف استقطاع بدل الانتفاع'. Will NOT have "30 bd" or "60 bd" written on it.)
 9. General Notifications — الإشعارات (General notifications, warnings, and ANY documents regarding vacating the house/eviction. STRICT DEFINITION: If the document mentions the tenant vacating the house (إخلاء), refusing to vacate, extensions for vacating, or any similar eviction terms, it MUST be notifications. Also includes 'إشعار' or 'اشعار'. Do NOT put eviction/vacating notices in other_letters. Do NOT use this for allocation orders.)
@@ -525,54 +576,6 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         else:
             raise RuntimeError("Failed after 3 text classification attempts")
 
-    def classify_page(self, image_bytes: bytes) -> PageClassification:
-        system_prompt = self._build_system_prompt()
-        user_prompt = "Classify this scanned document page."
-
-        try:
-            last_error = None
-            for qwen_attempt in range(2):
-                try:
-                    text = self._extract_text_with_qwen(image_bytes)
-                except Exception as e:
-                    last_error = e
-                    continue
-                
-                for text_attempt in range(3):
-                    try:
-                        parsed_result = self._classify_text_with_local_model(text)
-                        
-                        # Heuristic Override: Local models struggle with complex negative constraints.
-                        # If it correctly sees a form, force it to basic_details.
-                        if getattr(parsed_result, "is_form", False) and parsed_result.category.value == "Allocation Order":
-                            print("[Heuristic Override] Local model selected Allocation Order for a FORM. Forcing Basic Details Form.")
-                            parsed_result.category = Category.BASIC_DETAILS
-                            
-                        return parsed_result
-                    except Exception as e:
-                        last_error = e
-            
-            if last_error:
-                raise last_error
-            else:
-                raise RuntimeError("Failed after 2 Qwen attempts and 3 text classification attempts")
-                
-        except Exception as e:
-            print(f"[Local Inference Failed/Refused] Falling back to gemma-4-26b-a4b-it. Error: {e}")
-            contents = [
-                system_prompt,
-                user_prompt,
-                types.Part.from_bytes(data=image_bytes, mime_type='image/png')
-            ]
-            
-            result = self._route_llm_call(
-                model='gemma-4-26b-a4b-it',
-                contents=contents,
-                response_schema=PageClassification,
-                log_prefix="Fallback"
-            )
-            return result
-
     def classify_page_direct(self, image_bytes: bytes, extracted_footer: str = None) -> PageClassification:
         system_prompt = self._build_system_prompt()
         user_prompt = "Classify this scanned document page."
@@ -646,11 +649,41 @@ Return a JSON object with: house_number, residents (list of strings), category, 
                 print(f"[Gemini Fallback Failed] {gemini_err}")
                 return False
 
-    def check_bulk_semantic_grouping(self, pages_data: list[list]) -> BulkSemanticMatchResult:
+    def detect_date_outliers(self, date_pairs: list[tuple[int, str]]) -> list[int]:
         """
-        Takes a list of pages data: [[page_num, names_str, summary_str], ...]
-        Returns a BulkSemanticMatchResult containing groups of page numbers.
+        Uses the LLM to identify page indices whose dates are chronological outliers.
+        Returns a list of outlier page indices.
         """
+        from src.schemas import DateOutlierDetectionResult
+        
+        system_prompt = (
+            "You are a chronological analysis expert. You will be given a list of page indices and their associated dates "
+            "from a single document. Your task is to identify which dates are 'outliers'—meaning they do not belong to the "
+            "primary chronological timeline of the document (e.g., a birth date from 1980 appearing in a document from 2024).\n\n"
+            "CRITICAL RULES:\n"
+            "1. Look for the main chronological 'chapters' of the document.\n"
+            "2. A date is an outlier if it clearly belongs to a different life stage or event era than the rest of the sequence.\n"
+            "3. Do NOT flag dates that show natural progression (e.g., 2021, 2022, 2023).\n"
+            "4. Return ONLY a JSON object containing the 'outlier_page_indices' list."
+        )
+        
+        # Format the input for the LLM
+        pairs_str = "\n".join([f"Page {idx}: {date}" for idx, date in date_pairs])
+        user_prompt = f"Identify the outlier page indices from this list:\n\n{pairs_str}"
+        
+        try:
+            result = self._route_llm_call(
+                model='gemma-4-26b-a4b-it',
+                contents=[system_prompt, user_prompt],
+                response_schema=DateOutlierDetectionResult,
+                log_prefix="DateOutlierDetection"
+            )
+            return result.outlier_page_indices
+        except Exception as e:
+            print(f"[DateOutlierDetection] Error during LLM call: {e}")
+            return []
+
+    def check_bulk_semantic_grouping(self, pages_data: list) -> BulkSemanticMatchResult:
         system_prompt = (
             "You are an expert document organizer analyzing a sequence of pages from a single property file.\n\n"
             "CRITICAL RULES:\n"

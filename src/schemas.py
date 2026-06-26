@@ -63,6 +63,10 @@ class NameMatchResult(BaseModel):
     is_match: bool = Field(description="True if the names semantically refer to the same person, False otherwise")
     reason: str = Field(description="The reasoning for the decision")
 
+class DateOutlierDetectionResult(BaseModel):
+    """Schema for LLM-based date outlier detection."""
+    outlier_page_indices: list[int] = Field(description="List of page indices that contain dates which are clearly outliers in the document's chronological sequence.")
+
 class BulkSemanticMatchResult(BaseModel):
-    """Structured output for bulk semantic grouping."""
-    groups: list[list[int]] = Field(description="List of groups, where each group is a list of page numbers that belong to the same document")
+    """Schema for bulk semantic grouping."""
+    groups: list[list[int]] = Field(description="List of groups, where each group is a list of page numbers that belong together.")
