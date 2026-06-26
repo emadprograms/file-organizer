@@ -212,7 +212,42 @@ Plans:
 
 - [x] TBD (run /gsd-plan-phase 07.5.2 to break down) (completed 2026-06-25)
 
-## Phase 8: Output Quality Review & Refinement
+### Phase 07.8: Local vs Cloud LLM Quality & Latency Comparison (INSERTED)
+
+**Goal:** Understand the difference in output quality and latency between local Gemma 4 12b (installed locally) and cloud Gemma 4 26b for Pass 1 processing to validate if local inference is sufficient for basic page content identification.
+**Requirements**: 
+
+- Compare accuracy and latency for the first 10 pages of a sample PDF in the `pdfs/` folder.
+- Specifically focus on "Pass 1" differences, as it is the most time-consuming and accuracy-critical phase.
+- Validate if local Gemma 4 12b can accurately identify page content without requiring a cloud API key.
+
+**Depends on:** Phase 07.5.2
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 07.8 to break down)
+
+## Phase 8: Technical Debt Clearance & Code Hardening
+
+**Goal:** Perform a comprehensive audit of the codebase to identify and remove dead code, orphaned logic, and redundant functions resulting from multiple iterations. Harden the remaining core logic to ensure stability and maintainability.
+
+**Requirements Mapped:**
+
+- `CLEAN-01`: Dead Code Audit & Removal
+- `CLEAN-02`: Logic Consolidation
+- `CLEAN-03`: Type Safety & Validation Hardening
+- `CLEAN-04`: Documentation & Schema Sync
+
+**Success Criteria:**
+
+1. All unused helper functions, legacy API call paths, and commented-out code blocks are removed.
+2. Redundant logic paths in `src/llm.py` and `src/organizer.py` (from earlier vision-to-text iterations) are consolidated into clean, single-purpose abstractions.
+3. Type hints are consistently applied across the project, and strict validation is added to key data boundaries to prevent runtime crashes.
+4. The codebase is "lean," where every function and variable is mapped to a current requirement.
+5. No regressions are introduced, verified by running the full test suite.
+
+## Phase 9: Output Quality Review & Refinement
 
 **Goal:** Analyze the output of the newly localized/optimized pipeline to identify classification mistakes, extraction anomalies, and grouping errors, and systematically implement fixes to improve overall accuracy.
 
@@ -230,7 +265,7 @@ Plans:
 3. Implement the fixes without breaking previously working edge cases.
 4. Achieve a visually flawless output structure on the test batch.
 
-## Phase 9: OS, File I/O, and UI Stabilization
+## Phase 10: OS, File I/O, and UI Stabilization
 
 **Goal:** Prevent data corruption, crashes, and OS locks by fixing how the system handles files, directories, and background telemetry.
 
@@ -252,3 +287,4 @@ Plans:
 4. Users can successfully delete or move the input PDF immediately after processing (no PyMuPDF file locks).
 5. Running the pipeline multiple times on the same house safely merges files instead of `rmtree` wiping the folder.
 6. Hallucinated line breaks in resident names are stripped and do not crash the OS `makedirs` call.
+
