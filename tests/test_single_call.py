@@ -3,30 +3,38 @@ import io
 from dotenv import load_dotenv
 from src.ingest import PdfIngestor
 from src.llm import GemmaClient
+import pytest
 
 load_dotenv()
 
-if "GEMINI_API_KEYS" not in os.environ:
-    print("Warning: No GEMINI_API_KEYS in env, testing skipped")
-else:
-    # Use real PDF from repo
+@pytest.mark.skipif(
+    "GEMINI_API_KEYS" not in os.environ,
+    reason="No GEMINI_API_KEYS in env"
+)
+def test_single_call_integration():
+    """
+    Integration test that verifies a single page can be processed by the ingestor and LLM.
+    This requires a real PDF file and API keys.
+    """
+    # Use a sample PDF if available, otherwise skip
+    pdf_path = "510.pdf"
+    if not os.path.exists(pdf_path):
+        pytest.skip(f"Sample PDF {pdf_path} not found")
+
     ingestor = PdfIngestor()
-    pages = [next(ingestor.extract_pages_as_images("510.pdf"))]
+    pages = list(ingestor.extract_pages_as_images(pdf_path))
     if not pages:
-        print("No pages found in 1273.pdf")
-        exit(1)
+        pytest.skip("No pages found in PDF")
     
     img_bytes = pages[0][1]
 
     client = GemmaClient(delay_between_pages=0)
-    print("Sending request to LLM to verify is_continuation extraction...")
     try:
         res = client.classify_page(img_bytes)
-        print("Response received!")
-        print(f"Category: {res.category}")
-        print(f"Residents: {res.residents}")
-        print(f"is_continuation: {res.is_continuation}")
-        print(f"is_form: {getattr(res, 'is_form', False)}")
-        print("Test passed: is_continuation is part of the single unified LLM call!")
+        assert res is not None
+        # We don't assert specific values as the LLM output is non-deterministic
+        assert hasattr(res, 'category')
+        assert hasattr(res, 'residents')
+        assert hasattr(res, 'is_continuation')
     except Exception as e:
-        print(f"Test failed or rate limited: {e}")
+        pytest.fail(f"LLM call failed: {e}")
