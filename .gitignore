@@ -22,6 +22,7 @@ Thumbs.db
 .rate_limit_state.json
 
 # Output
+pdfs/
 output/
 test_output/
 out_*.pdf
