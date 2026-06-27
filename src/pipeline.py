@@ -1,18 +1,15 @@
-from typing import List, Optional, Any
+from typing import Optional, Any
 import json
 import os
 import threading
 import sys
+import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.ingest import PdfIngestor
 from src.llm import GemmaClient, LLMFailureError, InvalidResponseError
 from src.schemas import PageClassification, DocumentGroup, Category
 
-if sys.stdout is not None and hasattr(sys.stdout, 'reconfigure'):
-    try:
-        sys.stdout.reconfigure(encoding='utf-8')
-    except Exception:
-        pass
+logger = logging.getLogger(__name__)
 
 class SimpleCache:
     """Encapsulates JSON-based caching with atomic writes."""
@@ -27,7 +24,7 @@ class SimpleCache:
                 with open(self.filename, "r", encoding="utf-8") as f:
                     self.data = json.load(f)
             except Exception as e:
-                print(f"Error loading cache {self.filename}: {e}")
+                logger.error(f"Error loading cache {self.filename}: {e}")
                 self.data = {}
 
     def set(self, key: str, value: Any):
@@ -38,7 +35,7 @@ class SimpleCache:
                 json.dump(self.data, f, ensure_ascii=False, indent=2)
             os.replace(temp_file, self.filename)
         except Exception as e:
-            print(f"Error saving cache {self.filename}: {e}")
+            logger.error(f"Error saving cache {self.filename}: {e}")
 
     def get(self, key: str):
         return self.data.get(key)
@@ -57,25 +54,18 @@ class Pipeline:
         self.ingestor = PdfIngestor()
         self.client = GemmaClient(api_key, delay_between_pages)
 
-    def _get_fallback_house_number(self, cache: SimpleCache) -> str:
-        """Retrieve the first available house number from the cache as a fallback."""
-        for v in cache.values():
-            if isinstance(v, dict) and v.get("house_number") and v.get("house_number") != "UNKNOWN":
-                return str(v.get("house_number"))
-        return "UNKNOWN"
-
     def process_pdf(self, pdf_path: str) -> list[DocumentGroup]:
         """
         Two-pass architecture:
         Pass 1: Vision extraction (category, resident, date) per page.
         Pass 2: Python timeline logic to group consecutive pages by Category + Primary Tenant.
         """
-        print(f"Starting Pass 1 (Vision Extraction) for {pdf_path}...")
+        logger.info(f"Starting Pass 1 (Vision Extraction) for {pdf_path}...")
         
         # Initialize Caches
         pages_cache = SimpleCache(f"{pdf_path}.cache.json")
         
-        print(f"Loaded {len(pages_cache.data)} pages from cache.")
+        logger.info(f"Loaded {len(pages_cache.data)} pages from cache.")
 
         raw_pages = []
         pages_to_process = []
@@ -90,11 +80,7 @@ class Pipeline:
                     cache_data['category'] = 'inspection_pictures'
                 result = PageClassification(**cache_data)
                 msg = f" Cached Page {page_index}: {result.category.value} | {result.residents} | {result.date} | Sum: {str(result.summary)}"
-                try:
-                    print(msg)
-                except UnicodeEncodeError:
-                    fallback = getattr(sys.stdout, 'encoding', 'utf-8') or 'utf-8'
-                    print(msg.encode(fallback, errors='replace').decode(fallback))
+                logger.info(msg)
                 raw_pages.append((page_index, result))
             else:
                 pages_to_process.append((page_index, image_bytes))
@@ -109,7 +95,7 @@ class Pipeline:
             for p_idx, i_bytes in pages_to_process:
                 # 1. Blank Page check
                 if len(i_bytes) < 15000:
-                    print(f" Page {p_idx} is blank (size {len(i_bytes)} bytes). Skipping LLM.")
+                    logger.info(f" Page {p_idx} is blank (size {len(i_bytes)} bytes). Skipping LLM.")
                     res = PageClassification(category=Category.OTHER_LETTERS, residents=["NONE"], date="NONE", house_number="UNKNOWN", summary="Blank page.")
                     with cache_lock:
                         pages_cache.set(str(p_idx), res.model_dump())
@@ -138,61 +124,51 @@ class Pipeline:
                                 if not match: match = re.search(r'(\d+)\s*من', full_text)
                                 if match: extracted_footer = match.group(0)
                     except Exception as e:
-                        print(f"Vision OCR Error on page {p_idx}: {e}")
+                        logger.error(f"Vision OCR Error on page {p_idx}: {e}")
 
                 # 3. Try cloud classification
-                try:
-                    print(f" Classifying Page {p_idx} directly using Cloud Model...")
-                    res = self.client.classify_page_direct(i_bytes, extracted_footer)
-                    
-                    msg = f" Cloud Extracted Page {p_idx}: {res.category.value} | {res.residents} | {res.date} | Sum: {str(res.summary)}"
-                    try: print(msg)
-                    except UnicodeEncodeError: print(msg.encode('utf-8', errors='replace').decode('utf-8'))
-                    
-                    with cache_lock:
-                        pages_cache.set(str(p_idx), res.model_dump())
-                    raw_pages.append((p_idx, res))
-                except Exception as e:
-                    print(f"WARNING: Direct Cloud classification failed for page {p_idx}: {e}")
-                    self.client.activate_cooldown()
-                    house_number = self._get_fallback_house_number(pages_cache)
-                    fallback_res = PageClassification(category=Category.OTHER_LETTERS, residents=["UNKNOWN"], date="NONE", house_number=house_number, summary="Cloud classification failed.")
-                    with cache_lock:
-                        pages_cache.set(str(p_idx), fallback_res.model_dump())
-                    raw_pages.append((p_idx, fallback_res))
+                logger.info(f" Classifying Page {p_idx} directly using Cloud Model...")
+                res = self.client.classify_page_direct(i_bytes, extracted_footer)
+                
+                msg = f" Cloud Extracted Page {p_idx}: {res.category.value} | {res.residents} | {res.date} | Sum: {str(res.summary)}"
+                logger.info(msg)
+                
+                with cache_lock:
+                    pages_cache.set(str(p_idx), res.model_dump())
+                raw_pages.append((p_idx, res))
             
             raw_pages.sort(key=lambda x: x[0])
     
         if len(raw_pages) != total_expected_pages:
             raise RuntimeError(f"CRITICAL: Expected {total_expected_pages} pages, but only recovered {len(raw_pages)}. Aborting Pass 1.5 to prevent data loss.")
 
-        print(f"--- Starting Pass 1.5 Audit for {pdf_path} ---")
-        print(f"Starting Pass 1.5 (Date Cleaning & Interpolation) for {pdf_path}...")
+        logger.info(f"--- Starting Pass 1.5 Audit for {pdf_path} ---")
+        logger.info(f"Starting Pass 1.5 (Date Cleaning & Interpolation) for {pdf_path}...")
         self._interpolate_dates(raw_pages)
 
-        print(f"Starting Pass 1.5 (Dependent Alias Mapping) for {pdf_path}...")
+        logger.info(f"Starting Pass 1.5 (Dependent Alias Mapping) for {pdf_path}...")
         canonical_mapping_clean = self._map_aliases(raw_pages)
-        print(f"--- Pass 1.5 Completed for {pdf_path} ---")
+        logger.info(f"--- Pass 1.5 Completed for {pdf_path} ---")
         
-        print(f"\n--- Final Page State After Pass 1.5 for {pdf_path} ---")
+        logger.info(f"\n--- Final Page State After Pass 1.5 for {pdf_path} ---")
         for p_idx, page in raw_pages:
             resolved_names = [canonical_mapping_clean.get(r.upper().strip(), r) for r in page.residents if r not in ("NONE", "UNKNOWN", "")]
             names_str = ", ".join(resolved_names) if resolved_names else "NONE"
-            print(f"Page {p_idx} | Date: {page.date} | Category: {page.category.value} | Names: {names_str}")
-        print("-" * 50 + "\n")
+            logger.info(f"Page {p_idx} | Date: {page.date} | Category: {page.category.value} | Names: {names_str}")
+        logger.info("-" * 50 + "\n")
 
-        print(f"Starting Pass 2 (Tenant Grouping) for {pdf_path}...")
+        logger.info(f"Starting Pass 2 (Tenant Grouping) for {pdf_path}...")
         
         documents = self._group_pages_into_documents(raw_pages, canonical_mapping_clean)
         
-        print(f"Identified {len(documents)} document groups based on timeline logic.")
+        logger.info(f"Identified {len(documents)} document groups based on timeline logic.")
         return documents
 
     def _interpolate_dates(self, raw_pages: list[tuple[int, PageClassification]]):
         from datetime import datetime
 
         # 1. LLM-Based Outlier Detection
-        print(f"  [Pass 1.5] Running LLM-based outlier detection for {len(raw_pages)} pages...")
+        logger.info(f"  [Pass 1.5] Running LLM-based outlier detection for {len(raw_pages)} pages...")
         date_pairs = [(idx, page.date) for idx, page in raw_pages if page.date and page.date != "NONE"]
         
         if date_pairs:
@@ -204,7 +180,7 @@ class Pipeline:
                     if p_idx == idx:
                         old_date = page.date
                         page.date = "NONE"
-                        print(f"[Pass 1.5 Date] Page {idx}: {old_date} -> NONE (LLM detected as outlier)")
+                        logger.info(f"[Pass 1.5 Date] Page {idx}: {old_date} -> NONE (LLM detected as outlier)")
                         break
 
         # 2. Global Interpolation (Fill the holes)
@@ -229,13 +205,13 @@ class Pipeline:
                 actual_page_idx = raw_pages[i][0]
                 if last_valid_date and next_valid_date:
                     raw_pages[i][1].date = last_valid_date
-                    print(f"[Pass 1.5 Date] Page {actual_page_idx}: NONE -> {last_valid_date} (Interpolated from Page {last_valid_idx})")
+                    logger.info(f"[Pass 1.5 Date] Page {actual_page_idx}: NONE -> {last_valid_date} (Interpolated from Page {last_valid_idx})")
                 elif last_valid_date:
                     raw_pages[i][1].date = last_valid_date
-                    print(f"[Pass 1.5 Date] Page {actual_page_idx}: NONE -> {last_valid_date} (Interpolated from Page {last_valid_idx})")
+                    logger.info(f"[Pass 1.5 Date] Page {actual_page_idx}: NONE -> {last_valid_date} (Interpolated from Page {last_valid_idx})")
                 elif next_valid_date:
                     raw_pages[i][1].date = next_valid_date
-                    print(f"[Pass 1.5 Date] Page {actual_page_idx}: NONE -> {next_valid_date} (Interpolated from Page {next_valid_idx})")
+                    logger.info(f"[Pass 1.5 Date] Page {actual_page_idx}: NONE -> {next_valid_date} (Interpolated from Page {next_valid_idx})")
 
     def _parse_date(self, d_str: str) -> Optional[Any]:
         if not d_str or d_str == "NONE":
@@ -261,7 +237,7 @@ class Pipeline:
                 if clean_r and clean_r not in ("NONE", "UNKNOWN", ""):
                     unique_names.add(clean_r)
                     
-        print(f"  [Pass 1.5] Clustering {len(unique_names)} unique names using LLM...")
+        logger.info(f"  [Pass 1.5] Clustering {len(unique_names)} unique names using LLM...")
         if unique_names:
             canonical_map = self.client.cluster_names(list(unique_names))
             for p_idx, page in raw_pages:
@@ -339,11 +315,11 @@ class Pipeline:
             primary_tenant_timelines[pt] = (final_start, final_end)
             valid_pts.append(pt)
             
-        print(f"\n  [Pass 1.5] Calculated Timelines:")
+        logger.info(f"\n  [Pass 1.5] Calculated Timelines:")
         for pt in sorted_pts:
             start_str = primary_tenant_timelines[pt][0].strftime('%Y-%m-%d')
             end_str = primary_tenant_timelines[pt][1].strftime('%Y-%m-%d') if primary_tenant_timelines[pt][1] != datetime.max else "Present (الساكن الحالي)"
-            print(f"    - {pt}: {start_str} to {end_str}")
+            logger.info(f"    - {pt}: {start_str} to {end_str}")
         
         # 4. Global Overwrite
         new_raw_pages = []
@@ -358,7 +334,7 @@ class Pipeline:
                     page_copy = copy.deepcopy(page)
                     page_copy.residents = [pt]
                     new_raw_pages.append((p_idx, page_copy))
-                    print(f"[Pass 1.5 Name] Page {p_idx}: Native PT kept/duplicated -> {pt}")
+                    logger.info(f"[Pass 1.5 Name] Page {p_idx}: Native PT kept/duplicated -> {pt}")
                 continue
                 
             # No native Primary Tenant -> Use Timeline Overwrite
@@ -366,7 +342,7 @@ class Pipeline:
             if not d_obj:
                 page.residents = ["NONE"]
                 new_raw_pages.append((p_idx, page))
-                print(f"[Pass 1.5 Name] Page {p_idx}: Overwritten -> NONE (No valid date)")
+                logger.info(f"[Pass 1.5 Name] Page {p_idx}: Overwritten -> NONE (No valid date)")
                 continue
                 
             # Find overlapping PTs
@@ -380,18 +356,18 @@ class Pipeline:
                 chosen_pt = overlapping_pts[0]
                 page.residents = [chosen_pt]
                 new_raw_pages.append((p_idx, page))
-                print(f"[Pass 1.5 Name] Page {p_idx}: Timeline Overwrite -> {chosen_pt}")
+                logger.info(f"[Pass 1.5 Name] Page {p_idx}: Timeline Overwrite -> {chosen_pt}")
             elif len(overlapping_pts) > 1:
                 # Overlap! Previous tenant wins
                 chosen_pt = overlapping_pts[0]
                 page.residents = [chosen_pt]
                 new_raw_pages.append((p_idx, page))
-                print(f"[Pass 1.5 Name] Page {p_idx}: Timeline Overlap Overwrite (Previous PT Wins) -> {chosen_pt}")
+                logger.info(f"[Pass 1.5 Name] Page {p_idx}: Timeline Overlap Overwrite (Previous PT Wins) -> {chosen_pt}")
             else:
                 # Orphaned
                 page.residents = ["NONE"]
                 new_raw_pages.append((p_idx, page))
-                print(f"[Pass 1.5 Name] Page {p_idx}: Overwritten -> NONE (Orphaned/Out of bounds)")
+                logger.info(f"[Pass 1.5 Name] Page {p_idx}: Overwritten -> NONE (Orphaned/Out of bounds)")
                 
         # Since we modified the structure of raw_pages, we must clear and replace it
         raw_pages.clear()

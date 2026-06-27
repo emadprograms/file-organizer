@@ -3,7 +3,7 @@ import concurrent.futures
 import os
 import time
 import json
-from typing import Optional, Any, Dict, List, Deque
+from typing import Optional, Any, Deque
 
 import re
 import random
@@ -136,21 +136,15 @@ class GemmaClient:
 
             except Exception as e:
                 error_str = str(e).lower()
-                is_auth = "401" in error_str or "403" in error_str
+                is_auth = "401" in error_str or "403" in error_str or "400" in error_str or "api key not valid" in error_str or "invalid_api_key" in error_str
                 is_429 = "429" in error_str or "too many requests" in error_str or "quota" in error_str or "resource exhausted" in error_str
                 is_5xx = "500" in error_str or "503" in error_str or "internal error" in error_str or "timeout" in error_str
                 
-                print(f"[{log_prefix} - {provider} attempt {provider_attempts}] LLM call failed: {e}")
+                log.info(f"[{log_prefix} - {provider} attempt {provider_attempts}] LLM call failed: {e}")
                 
                 if is_auth:
-                    print(f"[{log_prefix}] Auth error on {provider}: {e}")
-                    current_provider_idx += 1
-                    provider_attempts = 0
-                    if current_provider_idx < len(providers):
-                        next_prov = providers[current_provider_idx]
-                        next_name = "OpenRouter" if next_prov == "openrouter" else "Groq"
-                        print(f"[Cloud Fallback] Failed over to {next_name}")
-                    continue
+                    log.info(f"[{log_prefix}] Auth/Bad Request error on {provider}: fail fast. Error: {e}")
+                    raise e
                     
                 if is_429:
                     if provider_attempts >= 3:
@@ -159,9 +153,9 @@ class GemmaClient:
                         if current_provider_idx < len(providers):
                             next_prov = providers[current_provider_idx]
                             next_name = "OpenRouter" if next_prov == "openrouter" else "Groq"
-                            print(f"[Cloud Fallback] Failed over to {next_name}")
+                            log.info(f"[Cloud Fallback] Failed over to {next_name}")
                         continue
-                    print(f"[{log_prefix}] 429 Error on {provider}. Sleeping for 65 seconds.")
+                    log.info(f"[{log_prefix}] 429 Error on {provider}. Sleeping for 65 seconds.")
                     time.sleep(65)
                     continue
                     
@@ -171,7 +165,7 @@ class GemmaClient:
                     if current_provider_idx < len(providers):
                         next_prov = providers[current_provider_idx]
                         next_name = "OpenRouter" if next_prov == "openrouter" else "Groq"
-                        print(f"[Cloud Fallback] Failed over to {next_name}")
+                        log.info(f"[Cloud Fallback] Failed over to {next_name}")
                     continue
                 
                 if provider_attempts >= 3:
@@ -180,7 +174,7 @@ class GemmaClient:
                     if current_provider_idx < len(providers):
                         next_prov = providers[current_provider_idx]
                         next_name = "OpenRouter" if next_prov == "openrouter" else "Groq"
-                        print(f"[Cloud Fallback] Failed over to {next_name}")
+                        log.info(f"[Cloud Fallback] Failed over to {next_name}")
                     continue
                 time.sleep(7.5)
                 continue
@@ -223,7 +217,7 @@ Return the mapping_list with each original raw_name and its resolved canonical_n
                 max_attempts=3
             )
         except Exception as e:
-            print(f"[Name Clustering] Failed to cluster names using LLM: {e}")
+            log.info(f"[Name Clustering] Failed to cluster names using LLM: {e}")
             result = None
             
         # Fallback to self-mapping
@@ -336,7 +330,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
             )
             return result.outlier_page_indices # type: ignore
         except Exception as e:
-            print(f"[DateOutlierDetection] Error during LLM call: {e}")
+            log.info(f"[DateOutlierDetection] Error during LLM call: {e}")
             return []
 
     def check_bulk_semantic_grouping(self, pages_data: list) -> BulkSemanticMatchResult:
@@ -352,7 +346,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         user_prompt = f"Group these pages logically:\n{json.dumps(pages_data, ensure_ascii=False, indent=2)}"
         
         try:
-            print(" Running bulk semantic grouping using Cloud Model...")
+            log.info(" Running bulk semantic grouping using Cloud Model...")
             contents = [
                 system_prompt,
                 user_prompt
@@ -367,9 +361,11 @@ Return a JSON object with: house_number, residents (list of strings), category, 
             )
             return result
         except Exception as e:
-            print(f"WARNING: Direct Cloud bulk grouping failed: {e}")
+            log.info(f"WARNING: Direct Cloud bulk grouping failed: {e}")
             self.activate_cooldown()
-            raise
+            from src.schemas import BulkSemanticMatchResult
+            default_groups = [[p[0]] for p in pages_data]
+            return BulkSemanticMatchResult(groups=default_groups)
 
 
 
