@@ -5,6 +5,8 @@ import time
 from pathlib import Path
 from dataclasses import dataclass
 
+logger = logging.getLogger(__name__)
+
 @dataclass
 class AppConfig:
     gemini_api_key: str
