@@ -45,6 +45,14 @@ def parse_datetime_str(date_str: str) -> Optional[str]:
     """
     # Helper for 2-digit years
     def fix_year(y: int) -> int:
+        """Convert a 2-digit year into a 4-digit year.
+        
+        Args:
+            y (int): The year to convert.
+            
+        Returns:
+            int: The 4-digit year.
+        """
         if y < 100:
             return y + 2000 if y < 50 else y + 1900
         return y

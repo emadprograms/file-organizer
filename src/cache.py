@@ -62,10 +62,34 @@ class SimpleCache:
         return self.data.get(key)
 
     def __getitem__(self, key: str):
+        """Retrieve an item from the cache using subscript notation.
+        
+        Args:
+            key (str): The cache key.
+            
+        Returns:
+            Any: The cached value.
+            
+        Raises:
+            KeyError: If the key is not in the cache.
+        """
         return self.data[key]
 
     def __contains__(self, key: str):
+        """Check if a key exists in the cache.
+        
+        Args:
+            key (str): The cache key.
+            
+        Returns:
+            bool: True if the key is in the cache, False otherwise.
+        """
         return key in self.data
 
     def values(self):
+        """Get all values stored in the cache.
+        
+        Returns:
+            dict_values: A view object displaying a list of all the values in the cache.
+        """
         return self.data.values()
