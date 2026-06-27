@@ -1,7 +1,22 @@
+"""Utility functions for filename sanitization and date parsing/normalization."""
+
 import re
 from typing import Optional
 
 def sanitize_filename(name: str, max_length: int = 50) -> str:
+    """Sanitize a string to be used as a valid filename.
+    
+    Replaces illegal characters with underscores, collapses multiple
+    underscores, and truncates to a maximum length while preserving
+    multi-byte UTF-8 characters.
+    
+    Args:
+        name (str): The original filename to sanitize.
+        max_length (int): The maximum allowed length for the filename. Defaults to 50.
+        
+    Returns:
+        str: The sanitized filename.
+    """
     # Replace illegal characters with underscore
     sanitized = re.sub(r'[/\\:*?"<>|]', '_', name)
     sanitized = sanitized.strip()
@@ -17,6 +32,17 @@ def sanitize_filename(name: str, max_length: int = 50) -> str:
     return sanitized
 
 def parse_datetime_str(date_str: str) -> Optional[str]:
+    """Parse a date string into a normalized YYYY-MM-DD format.
+    
+    Attempts to parse numeric formats and formats containing English,
+    Arabic, or French month names. Also handles two-digit years.
+    
+    Args:
+        date_str (str): The raw date string.
+        
+    Returns:
+        Optional[str]: The normalized YYYY-MM-DD string, or None if parsing fails.
+    """
     # Helper for 2-digit years
     def fix_year(y: int) -> int:
         if y < 100:
@@ -80,6 +106,19 @@ def parse_datetime_str(date_str: str) -> Optional[str]:
     return None
 
 def normalize_date(date_str: str) -> str:
+    """Normalize and format a date string.
+    
+    Converts Eastern Arabic numerals to Western, removes extraneous text
+    (e.g., days of the week, Arabic year suffixes), and attempts to parse
+    the string into a YYYY-MM-DD format.
+    
+    Args:
+        date_str (str): The raw date string to normalize.
+        
+    Returns:
+        str: The normalized date string, or a sanitized version of the input
+             if parsing fails. Returns 'NONE' if the input is empty or 'NONE'.
+    """
     if not date_str or date_str.upper() == "NONE":
         return "NONE"
         

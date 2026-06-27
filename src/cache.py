@@ -1,7 +1,6 @@
-"""
-This file handles saving data so we don't have to ask the AI the same questions twice.
-It saves the AI's answers in a simple file on your computer. If we run the program 
-again, it will just read the saved file instead of waiting for the AI.
+"""Local caching mechanisms to persist LLM classifications and avoid redundant API calls.
+
+This module provides a simple file-backed JSON cache for storing structured responses.
 """
 import json
 import os
@@ -11,13 +10,22 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 class SimpleCache:
-    """A simple tool to save data to a JSON file safely."""
+    """A thread-safe, simple JSON-backed cache.
+    
+    Handles loading and atomic saving of key-value pairs to disk.
+    """
     def __init__(self, filename: str):
+        """Initialize the cache.
+        
+        Args:
+            filename (str): The path to the JSON cache file.
+        """
         self.filename = filename
         self.data: dict[str, Any] = {}
         self.load()
 
     def load(self):
+        """Load the cache data from the JSON file if it exists."""
         if os.path.exists(self.filename):
             try:
                 with open(self.filename, "r", encoding="utf-8") as f:
@@ -27,6 +35,12 @@ class SimpleCache:
                 self.data = {}
 
     def set(self, key: str, value: Any):
+        """Store a value in the cache and persist to disk.
+        
+        Args:
+            key (str): The cache key.
+            value (Any): The JSON-serializable value to store.
+        """
         self.data[key] = value
         temp_file = f"{self.filename}.tmp"
         try:
@@ -36,7 +50,15 @@ class SimpleCache:
         except Exception as e:
             logger.error(f"Error saving cache {self.filename}: {e}")
 
-    def get(self, key: str):
+    def get(self, key: str) -> Any:
+        """Retrieve a value from the cache.
+        
+        Args:
+            key (str): The cache key.
+            
+        Returns:
+            Any: The cached value, or None if the key is not found.
+        """
         return self.data.get(key)
 
     def __getitem__(self, key: str):

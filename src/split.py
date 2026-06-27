@@ -1,3 +1,8 @@
+"""PDF segment extraction and compression utilities.
+
+This module handles extracting specific page ranges from a PDF and 
+compressing the resulting files by downscaling images.
+"""
 import logging
 import fitz
 import os
@@ -16,9 +21,16 @@ except ImportError:
 fitz.TOOLS.mupdf_display_errors(False)
 
 def extract_pdf_segment(source_pdf: str, start_page: int, end_page: int, output_path: str):
-    """
-    Extracts a segment of pages from source_pdf and saves it to output_path.
-    start_page and end_page are 0-indexed and inclusive.
+    """Extract a segment of pages from a PDF and save to a new file.
+    
+    Extracts the specified page range (0-indexed, inclusive) into a temporary
+    file, applies compression, and saves the final result to `output_path`.
+    
+    Args:
+        source_pdf (str): Path to the source PDF file.
+        start_page (int): The starting page index (0-indexed, inclusive).
+        end_page (int): The ending page index (0-indexed, inclusive).
+        output_path (str): Path where the extracted PDF segment should be saved.
     """
     src_doc = fitz.open(source_pdf)
     dst_doc = fitz.open()
@@ -41,9 +53,15 @@ def extract_pdf_segment(source_pdf: str, start_page: int, end_page: int, output_
 
 
 def compress_pdf(input_path: str, output_path: str):
-    """
-    Compresses a PDF file (downscaling large images to 1500px, 80% JPEG quality)
-    Uses PyMuPDF. Falls back to shutil.copy2 if compression fails or doesn't improve size.
+    """Compress a PDF file by downscaling and compressing embedded images.
+    
+    Extracts large images, resizes them (max dimension 1500px), compresses
+    them to JPEG (80% quality), and replaces the original images. Uses a
+    fallback to a simple copy if compression fails or increases file size.
+    
+    Args:
+        input_path (str): Path to the input PDF file to compress.
+        output_path (str): Path where the compressed PDF should be saved.
     """
     temp_output_path = output_path + ".tmp.pdf"
     original_size = os.path.getsize(input_path)

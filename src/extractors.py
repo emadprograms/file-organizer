@@ -1,7 +1,7 @@
-"""
-This file contains the tools used to read and understand the PDF pages.
-It has a 'VisionExtractor' to read the small text at the bottom of the page,
-and a 'CloudExtractor' that sends the page to the AI to figure out what the document is.
+"""Information extraction components for processing document pages.
+
+Provides the VisionExtractor for local OCR (e.g., footer extraction) and
+the CloudExtractor for LLM-based page classification.
 """
 import sys
 import logging
@@ -15,10 +15,28 @@ from src.llm import LLMClient
 logger = logging.getLogger(__name__)
 
 class VisionExtractor:
+    """Extractor for performing local OCR tasks on page images."""
     def __init__(self, cache: SimpleCache):
+        """Initialize the VisionExtractor.
+        
+        Args:
+            cache (SimpleCache): Cache instance for storing/retrieving OCR results.
+        """
         self.cache = cache
 
     def extract_footer(self, page_index: int, image_bytes: bytes) -> Optional[str]:
+        """Extract pagination text from the footer of a page image.
+        
+        Uses macOS Vision framework (if available) to OCR the bottom 15% of the
+        page and extracts text like "1 of 5" or "1 من 5".
+        
+        Args:
+            page_index (int): The 1-indexed page number being processed.
+            image_bytes (bytes): The PNG image data of the page.
+            
+        Returns:
+            Optional[str]: The extracted footer string, or None if not found or unsupported.
+        """
         extracted_footer: Optional[str] = None
         if sys.platform == "darwin":
             try:
@@ -44,12 +62,32 @@ class VisionExtractor:
         return extracted_footer
 
 class CloudExtractor:
+    """Extractor for sending page images to an LLM for classification."""
     def __init__(self, cache: SimpleCache, client: LLMClient):
+        """Initialize the CloudExtractor.
+        
+        Args:
+            cache (SimpleCache): Cache instance to avoid redundant API calls.
+            client (LLMClient): The LLM client to use for classification.
+        """
         self.cache = cache
         self.client = client
         self.cache_lock = threading.Lock()
 
     def extract(self, page_index: int, image_bytes: bytes, extracted_footer: Optional[str]) -> PageClassification:
+        """Classify a single document page using the LLM.
+        
+        Skips LLM invocation for pages that are clearly blank based on image size.
+        Caches the result to avoid redundant classification on subsequent runs.
+        
+        Args:
+            page_index (int): The 1-indexed page number being classified.
+            image_bytes (bytes): The PNG image data of the page.
+            extracted_footer (Optional[str]): Any text previously extracted from the footer.
+            
+        Returns:
+            PageClassification: The structured classification result from the LLM.
+        """
         if len(image_bytes) < 15000:
             logger.info(f" Page {page_index} is blank (size {len(image_bytes)} bytes). Skipping LLM.")
             res = PageClassification(category=Category.OTHER_LETTERS, residents=["NONE"], date="NONE", summary="Blank page.")
