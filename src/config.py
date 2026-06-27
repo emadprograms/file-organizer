@@ -100,7 +100,14 @@ def record_successful_call() -> None:
 
 
 def setup_logging() -> None:
+    log_dir = PROJECT_ROOT / "logs"
+    log_dir.mkdir(exist_ok=True)
+    
     logging.basicConfig(
         level=logging.INFO,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.FileHandler(log_dir / "app.log", encoding="utf-8"),
+            logging.StreamHandler(sys.stderr)
+        ]
     )
