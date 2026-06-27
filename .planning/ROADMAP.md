@@ -10,7 +10,7 @@
 | 2 | Key Mgmt | 2/2 | Complete    | 2026-06-27 |
 | 3 | Cloud Fallback | 2/2 | Complete   | 2026-06-27 |
 | 4 | Audit & Fix | Audit code for bugs and fix them | TEST-02 | 1 |
-| 5 | Testing | Add tests and harden code | TEST-01 | 2 |
+| 5 | Testing | 1/1 | Complete | 2026-06-28 |
 
 ### Phase Details
 
@@ -83,3 +83,9 @@ Plans:
 
 1. Unit tests pass.
 2. Integration tests for fallback chain pass.
+
+**Plans:** 1/1 plans complete
+
+Plans:
+
+- [x] 1-PLAN.md (completed 2026-06-28)
