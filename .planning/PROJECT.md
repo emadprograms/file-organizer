@@ -37,4 +37,4 @@ This document evolves at phase transitions and milestone boundaries.
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
 
-*Last updated: 2026-06-27 after Phase 02*
+*Last updated: 2026-06-28 after Phase 04.1.1*
