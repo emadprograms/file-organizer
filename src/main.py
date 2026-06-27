@@ -20,17 +20,12 @@ def main():
     parser = argparse.ArgumentParser(description="Process and categorize housing documents.")
     parser.add_argument("pdf_path", help="Path to the input PDF file")
     parser.add_argument("-o", "--output", default="./output", help="Base output directory")
-    parser.add_argument("--no-local", action="store_true", help="Disable local LLM fallback and wait for cloud rate limits instead")
     args = parser.parse_args()
     
     api_keys_str = os.getenv("GEMINI_API_KEYS")
     api_keys = [k.strip() for k in api_keys_str.split(",")] if api_keys_str else None
     
-    # Check .env first, then override with CLI flag if set
-    env_use_local = str(os.getenv("USE_LOCAL_LLM", "true")).lower() == "true"
-    final_use_local = False if args.no_local else env_use_local
-    
-    pipeline = Pipeline(api_keys=api_keys, use_local_llm=final_use_local)
+    pipeline = Pipeline(api_keys=api_keys)
     
     if not os.path.exists(args.pdf_path):
         print(f"Please provide a valid PDF file at {args.pdf_path} to run.")

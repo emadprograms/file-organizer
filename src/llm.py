@@ -9,7 +9,6 @@ import random
 import threading
 import logging
 import base64
-import openai
 from collections import deque
 from google import genai
 from google.genai import types
@@ -50,8 +49,7 @@ class GemmaClient:
     global_rpm_tracker: deque[float] = deque()
     global_cooldown_until = 0.0
 
-    def __init__(self, api_keys: Optional[list[str]] = None, delay_between_pages: float = 5.0, telemetry_queue: Any = None, use_local_llm: bool = True) -> None:
-        self.use_local_llm = use_local_llm
+    def __init__(self, api_keys: Optional[list[str]] = None, delay_between_pages: float = 5.0, telemetry_queue: Any = None) -> None:
         if not api_keys:
             keys_str = os.getenv("GEMINI_API_KEYS")
             if not keys_str:
@@ -80,9 +78,6 @@ class GemmaClient:
         self.telemetry_queue = telemetry_queue
         self.total_requests = {key: 0 for key in self.api_keys}
 
-        local_base_url = os.getenv("LOCAL_BASE_URL", "http://localhost:11434/v1")
-        self.local_client = openai.OpenAI(base_url=local_base_url, api_key="ollama")
-
         state_file = ".rate_limit_state.json"
         if os.path.exists(state_file):
             try:
@@ -92,20 +87,6 @@ class GemmaClient:
                     GemmaClient.global_cooldown_until = state.get("global_cooldown_until", 0.0)
             except Exception:
                 pass
-
-    def should_use_local_fallback(self) -> bool:
-        if not self.use_local_llm:
-            return False
-        with self.lock:
-            now = time.time()
-            while GemmaClient.global_rpm_tracker and now - GemmaClient.global_rpm_tracker[0] > 65.0:
-                GemmaClient.global_rpm_tracker.popleft()
-            
-            if now < GemmaClient.global_cooldown_until:
-                return True
-            if len(GemmaClient.global_rpm_tracker) >= self.global_rpm_limit:
-                return True
-            return False
 
     def activate_cooldown(self) -> None:
         with self.lock:
@@ -506,82 +487,6 @@ SPECIAL RULES:
 Return a JSON object with: house_number, residents (list of strings), category, date, summary (string), and is_form (boolean)."""
 
 
-    def extract_page(self, image_bytes: bytes) -> str:
-        """Extracts Arabic text from an image using the local Qwen-VL model with retries."""
-        base64_image = base64.b64encode(image_bytes).decode('utf-8')
-        local_model = os.getenv("LOCAL_MODEL_NAME", "qwen2.5vl:7b")
-        
-        last_error: Optional[Exception] = None
-        for qwen_attempt in range(2):
-            try:
-                response = self.local_client.chat.completions.create(
-                    model=local_model,
-                    messages=[
-                        {"role": "system", "content": "Transcribe all Arabic text from the image verbatim. If the main content of the image is a photograph of a property, room, or inspection site, explicitly write '[PHOTOGRAPH OF PROPERTY]' at the beginning of your response, even if there are watermarks, disclaimers, or minor text visible. Do not attempt to classify or summarize otherwise."},
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:image/png;base64,{base64_image}"
-                                    }
-                                }
-                            ]
-                        }
-                    ],
-                    temperature=0.0
-                )
-                res = response.choices[0].message.content
-                if res is not None:
-                    return res
-                last_error = ValueError("Returned None")
-            except Exception as e:
-                last_error = e
-        raise Exception(f"Failed to extract text after 2 attempts. Last error: {last_error}")
-
-    def classify_extracted_page(self, text: str, extracted_footer: Optional[str] = None) -> PageClassification:
-        """Classifies an extracted text page using a local LLM with structured output and heuristics."""
-        system_prompt = self._build_system_prompt()
-        user_prompt = f"Classify this scanned document page based on the following extracted text.\n\nExtracted Text:\n{text}"
-        if extracted_footer:
-            user_prompt += f"\n\nExtracted Footer Text: {extracted_footer}"
-        
-        local_model = os.getenv("LOCAL_TEXT_MODEL_NAME", "qwen2.5:14b")
-        
-        last_error: Optional[Exception] = None
-        for text_attempt in range(3):
-            try:
-                response = self.local_client.beta.chat.completions.parse(
-                    model=local_model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    response_format=PageClassification,
-                    temperature=0.0,
-                    extra_body={"options": {"num_ctx": 8192}}
-                )
-                
-                if response.choices[0].message.parsed:
-                    parsed_result = response.choices[0].message.parsed
-                else:
-                    raise openai.OpenAIError("Parsed response is None")
-                
-                # Heuristic Override: Local models struggle with complex negative constraints.
-                if getattr(parsed_result, "is_form", False) and parsed_result.category.value == "Allocation Order":
-                    print("[Heuristic Override] Local model selected Allocation Order for a FORM. Forcing Basic Details Form.")
-                    parsed_result.category = Category.BASIC_DETAILS
-                    
-                return parsed_result
-            except Exception as e:
-                last_error = e
-        
-        if last_error:
-            raise last_error
-        else:
-            raise RuntimeError("Failed after 3 text classification attempts")
-
     def classify_page_direct(self, image_bytes: bytes, extracted_footer: Optional[str] = None) -> PageClassification:
         system_prompt = self._build_system_prompt()
         user_prompt = "Classify this scanned document page."
@@ -594,7 +499,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
             types.Part.from_bytes(data=image_bytes, mime_type='image/png')
         ]
         
-        attempts = 1 if self.use_local_llm else 100
+        attempts = 100
         result = self._route_llm_call(
             model='gemma-4-26b-a4b-it',
             contents=contents,
@@ -652,52 +557,25 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         )
         user_prompt = f"Group these pages logically:\n{json.dumps(pages_data, ensure_ascii=False, indent=2)}"
         
-        use_local = self.should_use_local_fallback()
-        
-        if not use_local:
-            try:
-                print(" Running bulk semantic grouping using Cloud Model...")
-                contents = [
-                    system_prompt,
-                    user_prompt
-                ]
-                attempts = 1 if self.use_local_llm else 100
-                result = self._route_llm_call(
-                    model='gemma-4-26b-a4b-it',
-                    contents=contents,
-                    response_schema=BulkSemanticMatchResult,
-                    log_prefix="BulkSemanticCloud",
-                    max_attempts=attempts
-                )
-                return result
-            except Exception as e:
-                print(f"WARNING: Direct Cloud bulk grouping failed: {e}")
-                print("  [Transition] Triggering Rate Limit Cooldown. Falling back to local model...")
-                self.activate_cooldown()
-                use_local = True
-
-        if use_local:
-            local_model = os.getenv("LOCAL_TEXT_MODEL_NAME", "qwen2.5:14b")
-            try:
-                print(f" Running bulk semantic grouping using Local Model ({local_model})...")
-                response = self.local_client.beta.chat.completions.parse(
-                    model=local_model,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt}
-                    ],
-                    response_format=BulkSemanticMatchResult,
-                    temperature=0.0,
-                    extra_body={"options": {"num_ctx": 32768}}
-                )
-                if response.choices[0].message.parsed:
-                    return response.choices[0].message.parsed
-                else:
-                    raise openai.OpenAIError("Parsed response is None")
-            except Exception as e:
-                print(f"[Local Inference Failed] bulk semantic grouping failed. Error: {e}")
-                raise
-        raise RuntimeError("Unexpected control flow")
+        try:
+            print(" Running bulk semantic grouping using Cloud Model...")
+            contents = [
+                system_prompt,
+                user_prompt
+            ]
+            attempts = 100
+            result = self._route_llm_call(
+                model='gemma-4-26b-a4b-it',
+                contents=contents,
+                response_schema=BulkSemanticMatchResult,
+                log_prefix="BulkSemanticCloud",
+                max_attempts=attempts
+            )
+            return result
+        except Exception as e:
+            print(f"WARNING: Direct Cloud bulk grouping failed: {e}")
+            self.activate_cooldown()
+            raise
 
 
 

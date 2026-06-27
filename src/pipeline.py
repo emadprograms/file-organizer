@@ -53,9 +53,9 @@ class SimpleCache:
         return self.data.values()
 
 class Pipeline:
-    def __init__(self, api_keys: Optional[list[str]] = None, delay_between_pages: float = 1.0, telemetry_queue: Any = None, use_local_llm: bool = True):
+    def __init__(self, api_keys: Optional[list[str]] = None, delay_between_pages: float = 1.0, telemetry_queue: Any = None):
         self.ingestor = PdfIngestor()
-        self.client = GemmaClient(api_keys, delay_between_pages, telemetry_queue=telemetry_queue, use_local_llm=use_local_llm)
+        self.client = GemmaClient(api_keys, delay_between_pages, telemetry_queue=telemetry_queue)
 
     def _get_fallback_house_number(self, cache: SimpleCache) -> str:
         """Retrieve the first available house number from the cache as a fallback."""
@@ -74,10 +74,8 @@ class Pipeline:
         
         # Initialize Caches
         pages_cache = SimpleCache(f"{pdf_path}.cache.json")
-        text_cache = SimpleCache(f"{pdf_path}.extracted.cache.json")
         
         print(f"Loaded {len(pages_cache.data)} pages from cache.")
-        print(f"Loaded {len(text_cache.data)} extracted text pages from cache.")
 
         raw_pages = []
         pages_to_process = []
@@ -108,8 +106,6 @@ class Pipeline:
         cache_lock = threading.Lock()
         
         if pages_to_process:
-            deferred_local_pages: list[tuple[int, str, Optional[str]]] = []
-            
             for p_idx, i_bytes in pages_to_process:
                 # 1. Blank Page check
                 if len(i_bytes) < 15000:
@@ -144,72 +140,26 @@ class Pipeline:
                     except Exception as e:
                         print(f"Vision OCR Error on page {p_idx}: {e}")
 
-                # 3. Check if we already have the OCR text cached
-                if str(p_idx) in text_cache:
-                    print(f" Loaded Arabic text for Page {p_idx} from cache. Deferring local classification.")
-                    text = text_cache[str(p_idx)]
-                    deferred_local_pages.append((p_idx, text, extracted_footer))
-                    continue
-
-                # 4. Check fallback status or try cloud
-                use_local = self.client.should_use_local_fallback()
-                
-                if not use_local:
-                    try:
-                        print(f" Classifying Page {p_idx} directly using Cloud Model...")
-                        res = self.client.classify_page_direct(i_bytes, extracted_footer)
-                        
-                        msg = f" Cloud Extracted Page {p_idx}: {res.category.value} | {res.residents} | {res.date} | Sum: {str(res.summary)}"
-                        try: print(msg)
-                        except UnicodeEncodeError: print(msg.encode('utf-8', errors='replace').decode('utf-8'))
-                        
-                        with cache_lock:
-                            pages_cache.set(str(p_idx), res.model_dump())
-                        raw_pages.append((p_idx, res))
-                        continue
-                    except Exception as e:
-                        print(f"WARNING: Direct Cloud classification failed for page {p_idx}: {e}")
-                        print("  [Transition] Triggering Rate Limit Cooldown. Falling back to local OCR...")
-                        self.client.activate_cooldown()
-                        use_local = True
-
-                if use_local:
-                    try:
-                        print(f" Extracting Arabic text from Page {p_idx} using Local Vision Model (Qwen-VL)...")
-                        text = self.client.extract_page(i_bytes)
-                        with cache_lock:
-                            text_cache.set(str(p_idx), text)
-                        deferred_local_pages.append((p_idx, text, extracted_footer))
-                    except Exception as e:
-                        print(f"WARNING: Local OCR extraction failed on page {p_idx}: {e}")
-                        house_number = self._get_fallback_house_number(pages_cache)
-                        fallback_res = PageClassification(category=Category.OTHER_LETTERS, residents=["UNKNOWN"], date="NONE", house_number=house_number, summary="OCR extraction failed.")
-                        with cache_lock:
-                            pages_cache.set(str(p_idx), fallback_res.model_dump())
-                        raw_pages.append((p_idx, fallback_res))
-
-            # Phase 2: Run deferred local classification (Pass 1b) at the very end
-            if deferred_local_pages:
-                print(f"Pass 1b: Running local text classification (Qwen-14B) for {len(deferred_local_pages)} deferred pages...")
-                for p_idx, text, extracted_footer in deferred_local_pages:
-                    try:
-                        print(f" Classifying text for Page {p_idx} using 14B Text Model...")
-                        res = self.client.classify_extracted_page(text, extracted_footer)
-                        
-                        msg = f" Local Classified Page {p_idx}: {res.category.value} | {res.residents} | {res.date} | Sum: {str(res.summary)}"
-                        try: print(msg)
-                        except UnicodeEncodeError: print(msg.encode('utf-8', errors='replace').decode('utf-8'))
-                        
-                        with cache_lock:
-                            pages_cache.set(str(p_idx), res.model_dump())
-                        raw_pages.append((p_idx, res))
-                    except Exception as e:
-                        print(f"WARNING: Local classification failed on page {p_idx}: {e}")
-                        house_number = self._get_fallback_house_number(pages_cache)
-                        fallback_res = PageClassification(category=Category.OTHER_LETTERS, residents=["UNKNOWN"], date="NONE", house_number=house_number, summary="Local classification failed.")
-                        with cache_lock:
-                            pages_cache.set(str(p_idx), fallback_res.model_dump())
-                        raw_pages.append((p_idx, fallback_res))
+                # 3. Try cloud classification
+                try:
+                    print(f" Classifying Page {p_idx} directly using Cloud Model...")
+                    res = self.client.classify_page_direct(i_bytes, extracted_footer)
+                    
+                    msg = f" Cloud Extracted Page {p_idx}: {res.category.value} | {res.residents} | {res.date} | Sum: {str(res.summary)}"
+                    try: print(msg)
+                    except UnicodeEncodeError: print(msg.encode('utf-8', errors='replace').decode('utf-8'))
+                    
+                    with cache_lock:
+                        pages_cache.set(str(p_idx), res.model_dump())
+                    raw_pages.append((p_idx, res))
+                except Exception as e:
+                    print(f"WARNING: Direct Cloud classification failed for page {p_idx}: {e}")
+                    self.client.activate_cooldown()
+                    house_number = self._get_fallback_house_number(pages_cache)
+                    fallback_res = PageClassification(category=Category.OTHER_LETTERS, residents=["UNKNOWN"], date="NONE", house_number=house_number, summary="Cloud classification failed.")
+                    with cache_lock:
+                        pages_cache.set(str(p_idx), fallback_res.model_dump())
+                    raw_pages.append((p_idx, fallback_res))
             
             raw_pages.sort(key=lambda x: x[0])
     
