@@ -89,7 +89,7 @@ class GemmaClient:
                             prompt_content.append({"type": "text", "text": part})
                         elif hasattr(part, "data") and hasattr(part, "mime_type"):
                             b64 = base64.b64encode(part.data).decode("utf-8")
-                            prompt_content.append({"type": "image_url", "image_url": {"url": f"data:{part.mime_type};base64,{b64}"}})
+                            prompt_content.append({"type": "image_url", "image_url": {"url": f"data:{part.mime_type};base64,{b64}"}})  # type: ignore
                     messages = [{"role": "user", "content": prompt_content}]
                     
                     if provider == "openrouter":
@@ -100,7 +100,7 @@ class GemmaClient:
                         fallback_model = GROQ_MODEL
                         
                     future = executor.submit(
-                        client.chat.completions.create,
+                        client.chat.completions.create,  # type: ignore
                         model=fallback_model,
                         messages=messages,
                         response_format={"type": "json_object"},
@@ -124,9 +124,9 @@ class GemmaClient:
                 if provider == "gemini":
                     if response.parsed is not None:
                         return response.parsed
-                    text = response.text.strip()
+                    text = response.text.strip()  # type: ignore
                 else:
-                    text = response.choices[0].message.content.strip()
+                    text = response.choices[0].message.content.strip()  # type: ignore
                     
                 json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
                 if json_match:
@@ -289,7 +289,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         
         attempts = 100
         result = self._route_llm_call(
-            model='gemma-4-26b-a4b-it',
+            model='gemma-4-31b-it',
             contents=contents,
             response_schema=PageClassification,
             log_prefix="DirectCloud",
@@ -323,7 +323,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         
         try:
             result = self._route_llm_call(
-                model='gemma-4-26b-a4b-it',
+                model='gemma-4-31b-it',
                 contents=[system_prompt, user_prompt],
                 response_schema=DateOutlierDetectionResult,
                 log_prefix="DateOutlierDetection"
@@ -353,7 +353,7 @@ Return a JSON object with: house_number, residents (list of strings), category, 
             ]
             attempts = 100
             result = self._route_llm_call(
-                model='gemma-4-26b-a4b-it',
+                model='gemma-4-31b-it',
                 contents=contents,
                 response_schema=BulkSemanticMatchResult,
                 log_prefix="BulkSemanticCloud",

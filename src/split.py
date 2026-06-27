@@ -70,12 +70,12 @@ def compress_pdf(input_path: str, output_path: str):
                     image_bytes = base_image["image"]
                     pil_img = Image.open(io.BytesIO(image_bytes))
                     if pil_img.mode in ("RGBA", "P", "CMYK", "LA", "1", "L"):
-                        pil_img = pil_img.convert("RGB")
+                        pil_img = pil_img.convert("RGB")  # type: ignore
                     max_dim = 1500
                     if max(pil_img.width, pil_img.height) > max_dim:
                         ratio = max_dim / float(max(pil_img.width, pil_img.height))
-                        new_size = (int(pil_img.width * ratio), int(pil_img.height * ratio))
-                        pil_img = pil_img.resize(new_size, Image.Resampling.LANCZOS)
+                        new_size = (int(pil_img.width * ratio), int(pil_img.height * ratio))  # type: ignore
+                        pil_img = pil_img.resize(new_size, Image.Resampling.LANCZOS)  # type: ignore
                     out = io.BytesIO()
                     pil_img.save(out, "JPEG", quality=80, optimize=True)
                     new_image_bytes = out.getvalue()
@@ -86,8 +86,8 @@ def compress_pdf(input_path: str, output_path: str):
         doc.save(temp_output_path, garbage=4, deflate=True)
         doc.close()
         
-        new_size = os.path.getsize(temp_output_path)
-        if new_size < original_size:
+        new_size = os.path.getsize(temp_output_path)  # type: ignore
+        if new_size < original_size:  # type: ignore
             os.replace(temp_output_path, output_path)
         else:
             os.remove(temp_output_path)
