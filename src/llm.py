@@ -1,3 +1,9 @@
+"""Core LLM orchestration and client management.
+
+This module provides the `LLMClient` which orchestrates LLM requests across multiple
+provider strategies (defined in `providers.py`). It implements resilient API routing,
+error handling, rate-limit backoffs, and cloud failover for robust document processing.
+"""
 from src.config import record_successful_call, OPENROUTER_MODEL, GROQ_MODEL
 import concurrent.futures
 import os
@@ -27,16 +33,31 @@ log = logging.getLogger(__name__)
 
 
 class LLMFailureError(Exception):
+    """Exception raised when an LLM API call fails repeatedly."""
     pass
 
 class InvalidResponseError(Exception):
+    """Exception raised when an LLM returns a malformed or unparsable response."""
     pass
 
 
 from src.providers import LLMProvider, GeminiProvider, OpenRouterProvider, GroqProvider
 
 class LLMClient:
+    """Client for orchestrating LLM requests across multiple providers.
+    
+    Manages API keys, provider fallback logic, and specific orchestration tasks
+    like name clustering and date outlier detection.
+    """
+    
     def __init__(self, api_key: str, delay_between_pages: float = 5.0) -> None:
+        """Initialize the LLMClient with API credentials.
+        
+        Args:
+            api_key (str): Primary API key (typically for Gemini).
+            delay_between_pages (float): Delay in seconds between page extractions.
+                Defaults to 5.0.
+        """
         if not api_key:
             api_key = os.getenv("GEMINI_API_KEY", "").strip()
             if not api_key:
@@ -57,9 +78,28 @@ class LLMClient:
         self.total_requests = 0
 
     def activate_cooldown(self) -> None:
+        """Activate a long sleep to recover from severe rate limits (e.g., 429)."""
         time.sleep(65)
 
     def _route_llm_call(self, model: str, contents: list, response_schema: type, log_prefix: str = "Retry", max_attempts: Optional[int] = None) -> Any:
+        """Route an LLM call through configured providers with failover.
+        
+        Attempts to call the primary provider and falls back to secondary
+        providers if rate limits or server errors are encountered.
+        
+        Args:
+            model (str): The model identifier to use.
+            contents (list): Prompt contents (text and/or images).
+            response_schema (type): Pydantic model for structured output.
+            log_prefix (str): Prefix used for logging. Defaults to "Retry".
+            max_attempts (Optional[int]): Ignored legacy parameter.
+            
+        Returns:
+            Any: An instance of the response_schema.
+            
+        Raises:
+            RuntimeError: If all providers fail.
+        """
         current_provider_idx = 0
         provider_attempts = 0
         
@@ -139,9 +179,16 @@ class LLMClient:
         raise RuntimeError("LLM routing failed across all providers")
 
     def cluster_names(self, unique_names: list[str]) -> dict[str, str]:
-        """
-        Takes a list of unique names and asks the LLM to group them into canonical identities.
-        Returns a mapping of {ORIGINAL_NAME: CANONICAL_NAME} (uppercase stripped).
+        """Group unique names into canonical identities using an LLM.
+        
+        Asks the LLM to resolve variations, misspellings, or abbreviations of names
+        found within a single property file to a single 'canonical' identity.
+        
+        Args:
+            unique_names (list[str]): List of unique raw names to cluster.
+            
+        Returns:
+            dict[str, str]: A mapping of uppercase raw names to canonical names.
         """
         if not unique_names:
             return {}
@@ -236,6 +283,15 @@ Return a JSON object with: residents (list of strings), category, date, and summ
 
 
     def classify_page_direct(self, image_bytes: bytes, extracted_footer: Optional[str] = None) -> PageClassification:
+        """Classify a document page using the LLM based on its image content.
+        
+        Args:
+            image_bytes (bytes): PNG image data of the page.
+            extracted_footer (Optional[str]): Text previously OCR'd from the footer.
+            
+        Returns:
+            PageClassification: The classification result.
+        """
         system_prompt = self._build_system_prompt()
         user_prompt = "Classify this scanned document page."
         if extracted_footer:
@@ -260,9 +316,13 @@ Return a JSON object with: residents (list of strings), category, date, and summ
 
 
     def detect_date_outliers(self, date_pairs: list[tuple[int, str]]) -> list[int]:
-        """
-        Uses the LLM to identify page indices whose dates are chronological outliers.
-        Returns a list of outlier page indices.
+        """Identify page indices whose dates are chronological outliers.
+        
+        Args:
+            date_pairs (list[tuple[int, str]]): List of tuples containing page indices and dates.
+            
+        Returns:
+            list[int]: List of page indices identified as outliers.
         """
         from src.schemas import DateOutlierDetectionResult
         
@@ -294,6 +354,14 @@ Return a JSON object with: residents (list of strings), category, date, and summ
             return []
 
     def check_bulk_semantic_grouping(self, pages_data: list) -> BulkSemanticMatchResult:
+        """Group pages logically based on semantic content.
+        
+        Args:
+            pages_data (list): List of page data tuples (page_number, names, summary).
+            
+        Returns:
+            BulkSemanticMatchResult: The grouping of page indices.
+        """
         system_prompt = (
             "You are an expert document organizer analyzing a sequence of pages from a single property file.\n\n"
             "CRITICAL RULES:\n"

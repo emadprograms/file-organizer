@@ -1,7 +1,9 @@
-"""
-This file contains the code to talk to different AI models.
-Instead of having one giant file, we separated each AI service (like Gemini, OpenRouter, and Groq)
-into its own dedicated block of code here. This makes it very easy to add new AI models later.
+"""LLM Provider implementations using the Strategy Pattern.
+
+This module defines the `LLMProvider` protocol and provides concrete implementations
+for Gemini, OpenRouter, and Groq. By using the strategy pattern, the core LLM orchestration
+logic in `llm.py` is decoupled from the specific API clients, allowing for seamless
+failover and easy integration of new models.
 """
 from typing import Any, Protocol
 import re
@@ -13,23 +15,54 @@ import openai
 from src.config import OPENROUTER_MODEL, GROQ_MODEL
 
 class LLMProvider(Protocol):
+    """Protocol defining the interface for an LLM provider strategy."""
+    
     @property
     def name(self) -> str:
+        """The identifier name of the provider."""
         ...
 
     def generate(self, model: str, contents: list, response_schema: type) -> Any:
+        """Generate a structured response from the LLM.
+        
+        Args:
+            model (str): The model identifier to use.
+            contents (list): The list of prompt contents (text or images).
+            response_schema (type): A Pydantic BaseModel class for structured output.
+            
+        Returns:
+            Any: An instance of the response_schema populated with the LLM's output.
+        """
         ...
 
 class GeminiProvider:
+    """Concrete LLM provider implementation for Google Gemini."""
+    
     def __init__(self, api_key: str):
+        """Initialize the GeminiProvider.
+        
+        Args:
+            api_key (str): The Google GenAI API key.
+        """
         self._name = "gemini"
         self.client = genai.Client(api_key=api_key)
 
     @property
     def name(self) -> str:
+        """str: The identifier name of the provider ('gemini')."""
         return self._name
 
     def generate(self, model: str, contents: list, response_schema: type) -> Any:
+        """Generate a structured response using the Gemini API.
+        
+        Args:
+            model (str): The model identifier to use.
+            contents (list): The list of prompt contents.
+            response_schema (type): A Pydantic BaseModel class for structured output.
+            
+        Returns:
+            Any: An instance of the response_schema.
+        """
         response = self.client.models.generate_content(
             model=model,
             contents=contents,
@@ -49,15 +82,33 @@ class GeminiProvider:
         return response_schema(**data)
 
 class OpenRouterProvider:
+    """Concrete LLM provider implementation for OpenRouter."""
+    
     def __init__(self, api_key: str):
+        """Initialize the OpenRouterProvider.
+        
+        Args:
+            api_key (str): The OpenRouter API key.
+        """
         self._name = "openrouter"
         self.client = openai.Client(api_key=api_key, base_url="https://openrouter.ai/api/v1")
 
     @property
     def name(self) -> str:
+        """str: The identifier name of the provider ('openrouter')."""
         return self._name
 
     def generate(self, model: str, contents: list, response_schema: type) -> Any:
+        """Generate a structured response using the OpenRouter API.
+        
+        Args:
+            model (str): The model identifier to use.
+            contents (list): The list of prompt contents.
+            response_schema (type): A Pydantic BaseModel class for structured output.
+            
+        Returns:
+            Any: An instance of the response_schema.
+        """
         prompt_content = []
         for part in contents:
             if isinstance(part, str):
@@ -81,15 +132,33 @@ class OpenRouterProvider:
         return response_schema(**data)
 
 class GroqProvider:
+    """Concrete LLM provider implementation for Groq."""
+    
     def __init__(self, api_key: str):
+        """Initialize the GroqProvider.
+        
+        Args:
+            api_key (str): The Groq API key.
+        """
         self._name = "groq"
         self.client = openai.Client(api_key=api_key, base_url="https://api.groq.com/openai/v1")
 
     @property
     def name(self) -> str:
+        """str: The identifier name of the provider ('groq')."""
         return self._name
 
     def generate(self, model: str, contents: list, response_schema: type) -> Any:
+        """Generate a structured response using the Groq API.
+        
+        Args:
+            model (str): The model identifier to use.
+            contents (list): The list of prompt contents.
+            response_schema (type): A Pydantic BaseModel class for structured output.
+            
+        Returns:
+            Any: An instance of the response_schema.
+        """
         prompt_content = []
         for part in contents:
             if isinstance(part, str):
