@@ -16,6 +16,9 @@ LOG_FILE = TRACKING_DIR / "api_calls.log"
 QUOTA_LIMIT = 1500
 SECONDS_IN_24H = 24 * 60 * 60
 
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "gemma-4-26b-a4b-it")
+GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen3.6-27b")
+
 def _get_recent_calls_count() -> int:
     if not LOG_FILE.exists():
         return 0
