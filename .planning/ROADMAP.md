@@ -6,7 +6,7 @@
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
-| 1 | Cleanup | 1/1 | Complete   | 2026-06-27 |
+| 1 | Cleanup | 1/1 | Complete    | 2026-06-27 |
 | 2 | Key Mgmt | Simplify API key loading and switching | REF-03 | 2 |
 | 3 | Cloud Fallback | Implement Gemini -> OpenRouter -> Groq chain | CLOUD-01, CLOUD-02, CLOUD-03 | 3 |
 | 4 | Audit & Fix | Audit code for bugs and fix them | TEST-02 | 1 |
