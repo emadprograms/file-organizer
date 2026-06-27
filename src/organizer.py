@@ -1,9 +1,11 @@
+import logging
 import os
 import shutil
 import re
+logger = logging.getLogger(__name__)
 from pathlib import Path
 from collections import defaultdict
-from typing import Union, Optional, Any, Dict, Tuple, List, Set
+from typing import Union, Optional, Any, Set
 
 from src.schemas import Category, DocumentGroup
 from src.split import extract_pdf_segment, compress_pdf
@@ -32,8 +34,8 @@ class FileOrganizer:
             return match.group(0)
         return "unknown_house"
 
-    def _compute_tenant_timelines(self, documents: List[DocumentGroup]) -> Dict[str, str]:
-        tenant_dates: Dict[str, List[str]] = defaultdict(list)
+    def _compute_tenant_timelines(self, documents: list[DocumentGroup]) -> dict[str, str]:
+        tenant_dates: dict[str, list[str]] = defaultdict(list)
         
         for doc in documents:
             tenant = doc.primary_tenant
@@ -48,7 +50,7 @@ class FileOrganizer:
         if not tenant_dates:
             return {}
             
-        tenant_ranges: Dict[str, Tuple[str, str]] = {}
+        tenant_ranges: dict[str, tuple[str, str]] = {}
         for tenant, dates in tenant_dates.items():
             if dates:
                 tenant_ranges[tenant] = (min(dates), max(dates))
@@ -59,7 +61,7 @@ class FileOrganizer:
         # Find the max end_date across ALL tenants to determine the "Current Resident"
         global_max_date = max(end for start, end in tenant_ranges.values())
         
-        result: Dict[str, str] = {}
+        result: dict[str, str] = {}
         for tenant, (start, end) in tenant_ranges.items():
             if end == global_max_date:
                 suffix = f" ({start} to {end}) - الساكن الحالي"
@@ -69,12 +71,12 @@ class FileOrganizer:
             
         return result
 
-    def _build_resident_order(self, documents: List[DocumentGroup]) -> List[Tuple[int, str]]:
-        seen_tenants: Set[str] = set()
-        ordered_tenants: List[Tuple[int, str]] = []
+    def _build_resident_order(self, documents: list[DocumentGroup]) -> list[tuple[int, str]]:
+        seen_tenants: set[str] = set()
+        ordered_tenants: list[tuple[int, str]] = []
         
         # Collect all tenants and what categories they have
-        tenant_categories: Dict[str, Set[Category]] = defaultdict(set)
+        tenant_categories: dict[str, set[Category]] = defaultdict(set)
         for doc in documents:
             tenant = doc.primary_tenant
             if not tenant or not tenant.strip() or tenant.upper() in ("UNKNOWN", "NONE"):
@@ -140,6 +142,14 @@ class FileOrganizer:
         if re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
             return date_str
             
+        parsed = self._parse_datetime_str(date_str)
+        if parsed:
+            return parsed
+            
+        # Fallback sanitize
+        return re.sub(r'[/\\:*?"<>|\s]', '-', date_str).strip('-')
+
+    def _parse_datetime_str(self, date_str: str) -> Optional[str]:
         # Helper for 2-digit years
         def fix_year(y: int) -> int:
             if y < 100:
@@ -199,11 +209,10 @@ class FileOrganizer:
             y = int(m.group(2))
             if mon in months:
                 return f"{y}-{months[mon]}-01"
+                
+        return None
 
-        # Fallback sanitize
-        return re.sub(r'[/\\:*?"<>|\s]', '-', date_str).strip('-')
-
-    def _generate_pdf_name(self, doc: DocumentGroup, category_counter: int, used_names: Set[str], is_global_amar: bool = False) -> str:
+    def _generate_pdf_name(self, doc: DocumentGroup, category_counter: int, used_names: set[str], is_global_amar: bool = False) -> str:
         category_name = doc.category.name.lower()
         
         tenant_str = ""
@@ -230,9 +239,9 @@ class FileOrganizer:
                 return new_name
             counter += 1
 
-    def organize(self, documents: List[DocumentGroup], source_pdf: str, output_base_dir: Path) -> Dict[str, Tuple[int, int]]:
+    def organize(self, documents: list[DocumentGroup], source_pdf: str, output_base_dir: Path) -> dict[str, tuple[int, int]]:
         if not documents:
-            print("⚠ No documents to organize. Exiting.")
+            logger.warning("⚠ No documents to organize. Exiting.")
             return {}
 
         house_number = self._resolve_house_number(source_pdf)
@@ -248,13 +257,13 @@ class FileOrganizer:
         try:
             full_file_dest = house_dir / f"{house_number}.pdf"
             compress_pdf(str(source_pdf), str(full_file_dest))
-            print(f"  → Copied and compressed full original file to: {full_file_dest.name}")
+            logger.info(f"  → Copied and compressed full original file to: {full_file_dest.name}")
         except Exception as e:
-            print(f"⚠ Could not copy original PDF: {e}")
+            logger.error(f"⚠ Could not copy original PDF: {e}")
         
         resident_order = self._build_resident_order(documents)
         tenant_suffixes = self._compute_tenant_timelines(documents)
-        resident_folder_map: Dict[str, Path] = {}
+        resident_folder_map: dict[str, Path] = {}
         
         for index, name in resident_order:
             sanitized_name = self._sanitize_filename(name)
@@ -270,11 +279,11 @@ class FileOrganizer:
         house_letters_dir = house_dir / "رسائل عامة"
 
         # Phase C - Write PDFs
-        summary: Dict[str, Tuple[int, int]] = {}
+        summary: dict[str, tuple[int, int]] = {}
         # directory path -> set of used names
-        used_names_per_dir: Dict[str, Set[str]] = defaultdict(set)
+        used_names_per_dir: dict[str, set[str]] = defaultdict(set)
         # tenant -> category -> counter
-        tenant_category_counters: Dict[str, Dict[Category, int]] = defaultdict(lambda: defaultdict(int))
+        tenant_category_counters: dict[str, dict[Category, int]] = defaultdict(lambda: defaultdict(int))
         
         for doc in documents:
             tenant = doc.primary_tenant
@@ -312,9 +321,9 @@ class FileOrganizer:
             target_path = target_dir / filename
             os.makedirs(target_dir, exist_ok=True)
             extract_pdf_segment(str(source_pdf), doc.start_page, doc.end_page, str(target_path))
-            print(f"  → {filename} (pages {doc.start_page}-{doc.end_page})")
+            logger.info(f"  → {filename} (pages {doc.start_page}-{doc.end_page})")
             
             summary[str(target_path)] = (doc.start_page, doc.end_page)
             
-        print(f"✓ Generated {len(summary)} PDFs across {len(resident_order)} residents in {house_dir}")
+        logger.info(f"✓ Generated {len(summary)} PDFs across {len(resident_order)} residents in {house_dir}")
         return summary

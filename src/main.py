@@ -1,5 +1,7 @@
+import logging
 import os
 import argparse
+logger = logging.getLogger(__name__)
 from pathlib import Path
 from dotenv import load_dotenv
 import sys
@@ -11,9 +13,10 @@ if project_root not in sys.path:
 
 from src.pipeline import Pipeline
 from src.organizer import FileOrganizer
-from src.config import load_config
+from src.config import load_config, setup_logging
 
 def main():
+    setup_logging()
     if sys.stdout.encoding.lower() != 'utf-8':
         sys.stdout.reconfigure(encoding='utf-8')
     load_dotenv()
@@ -28,11 +31,11 @@ def main():
     pipeline = Pipeline(api_key=config.gemini_api_key)
     
     if not os.path.exists(args.pdf_path):
-        print(f"Please provide a valid PDF file at {args.pdf_path} to run.")
+        logger.info(f"Please provide a valid PDF file at {args.pdf_path} to run.")
         return
         
     documents = pipeline.process_pdf(args.pdf_path)
-    print(f"Identified {len(documents)} documents.")
+    logger.info(f"Identified {len(documents)} documents.")
     
     organizer = FileOrganizer()
     summary = organizer.organize(documents, args.pdf_path, Path(args.output))
@@ -42,12 +45,12 @@ def main():
         num_residents = len(organizer._build_resident_order(documents))
         output_dir = Path(args.output) / house_number
         
-        print(f"\n{'='*50}")
-        print(f"  House: {house_number}")
-        print(f"  Residents: {num_residents}")
-        print(f"  PDFs generated: {len(summary)}")
-        print(f"  Output: {output_dir}")
-        print(f"{'='*50}")
+        logger.info(f"\n{'='*50}")
+        logger.info(f"  House: {house_number}")
+        logger.info(f"  Residents: {num_residents}")
+        logger.info(f"  PDFs generated: {len(summary)}")
+        logger.info(f"  Output: {output_dir}")
+        logger.info(f"{'='*50}")
 
 if __name__ == "__main__":
     main()

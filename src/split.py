@@ -1,5 +1,7 @@
+import logging
 import fitz
 import os
+logger = logging.getLogger(__name__)
 import io
 import shutil
 
@@ -92,7 +94,7 @@ def compress_pdf(input_path: str, output_path: str):
             if input_path != output_path:
                 shutil.copy2(input_path, output_path)
     except Exception as e:
-        print(f"Compression failed for {input_path}: {e}")
+        logger.error(f"Compression failed for {input_path}: {e}")
         if os.path.exists(temp_output_path):
             try:
                 os.remove(temp_output_path)

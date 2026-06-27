@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import time
@@ -96,3 +97,10 @@ def record_successful_call() -> None:
     except Exception as e:
         print(f"Warning: Failed to record API call to quota log: {e}")
 
+
+
+def setup_logging() -> None:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
