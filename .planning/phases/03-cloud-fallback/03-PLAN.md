@@ -32,7 +32,20 @@ Implement Gemini -> OpenRouter -> Groq chain for cloud fallback.
 
 ## Tasks
 
-### Task 1: Add OpenAI Clients to `GemmaClient`
+### Task 1: Configuration & Models
+<read_first>
+- src/config.py
+</read_first>
+<action>
+Modify `src/config.py` to add constants for the fallback models:
+1. `OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "gemma-4-26b-a4b-it")`
+2. `GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen3.6-27b")`
+</action>
+<acceptance_criteria>
+`src/config.py` exposes `OPENROUTER_MODEL` and `GROQ_MODEL`.
+</acceptance_criteria>
+
+### Task 2: Add OpenAI Clients to `GemmaClient`
 <read_first>
 - src/llm.py
 </read_first>
@@ -40,27 +53,30 @@ Implement Gemini -> OpenRouter -> Groq chain for cloud fallback.
 Modify `GemmaClient.__init__` in `src/llm.py`:
 1. Add `import openai` at the top of the file.
 2. In `GemmaClient.__init__`, fetch `OPENROUTER_API_KEY` and `GROQ_API_KEY` from `os.getenv()`.
-3. Initialize `self.openrouter_client = openai.Client(api_key=..., base_url="https://openrouter.ai/api/v1")`.
-4. Initialize `self.groq_client = openai.Client(api_key=..., base_url="https://api.groq.com/openai/v1")`.
+3. Initialize `self.openrouter_client = openai.Client(api_key=OPENROUTER_API_KEY, base_url="https://openrouter.ai/api/v1")`.
+4. Initialize `self.groq_client = openai.Client(api_key=GROQ_API_KEY, base_url="https://api.groq.com/openai/v1")`.
 </action>
 <acceptance_criteria>
 `src/llm.py` contains `import openai` and initializes `self.openrouter_client` and `self.groq_client`.
 </acceptance_criteria>
 
-### Task 2: Implement Fallback Chain in `_route_llm_call`
+### Task 3: Implement Fallback Chain with SDK Translation in `_route_llm_call`
 <read_first>
 - src/llm.py
 - .planning/phases/03-cloud-fallback/03-CONTEXT.md
+- src/config.py
 </read_first>
 <action>
 Rewrite the error handling and execution flow in `_route_llm_call` in `src/llm.py`:
-1. Implement a provider sequence: Try Gemini first. If a 5xx/timeout exception occurs, catch it and immediately try OpenRouter (`model="gemma-4-26b-a4b-it"`). If OpenRouter throws a 5xx/timeout exception, fall back to Groq (`model="qwen3.6-27b"`).
-2. For OpenRouter and Groq, make calls using their respective `chat.completions.create` functions, passing `response_format={"type": "json_object"}`. 
-3. If any provider throws a 429 error (or rate limit / quota error), sleep for 65 seconds and retry the *current* provider (do not fail over).
-4. If a JSON parsing error occurs, treat it as an invalid response and retry on the *current* provider.
-5. Print `[Cloud Fallback] Failed over to OpenRouter` and `[Cloud Fallback] Failed over to Groq` to stdout when failover occurs.
-6. The function must return the parsed Pydantic object as it currently does, without adding provider metadata to it.
+1. Implement a provider sequence: Try Gemini first. 
+2. **SDK Translation**: If falling back to OpenRouter or Groq, you must translate the Google GenAI prompt into the OpenAI format: `messages=[{"role": "user", "content": prompt_content}]`.
+3. **5xx/Timeouts**: If a 5xx or timeout occurs on Gemini, immediately try OpenRouter (using `config.OPENROUTER_MODEL`). If OpenRouter throws a 5xx/timeout, fall back to Groq (`config.GROQ_MODEL`).
+4. **Auth Errors**: If an authentication error (401/403) occurs on any provider, do *not* fail over or retry. Raise the error immediately to fail fast.
+5. **Rate Limits (429)**: If any provider throws a 429 error, sleep for 65 seconds and retry the *current* provider. Add a maximum retry limit of 3 to prevent infinite loops.
+6. For OpenRouter and Groq, make calls using `chat.completions.create` and extract the result from `response.choices[0].message.content`. Pass `response_format={"type": "json_object"}`.
+7. Print `[Cloud Fallback] Failed over to OpenRouter` and `[Cloud Fallback] Failed over to Groq` to stdout when failover occurs.
+8. The function must return the parsed Pydantic object without adding provider metadata.
 </action>
 <acceptance_criteria>
-`_route_llm_call` successfully routes failed Gemini requests to OpenRouter, and failed OpenRouter requests to Groq, and continues to respect the 65s pause on 429 errors without skipping to the next provider.
+`_route_llm_call` routes 5xx/timeout errors sequentially, translates inputs to the `openai` SDK format for OpenRouter/Groq, fails fast on auth errors, and caps 429 retries at 3.
 </acceptance_criteria>
