@@ -1,3 +1,5 @@
+"""Configuration management and API quota tracking for the File Categorizer application."""
+
 import logging
 import os
 import sys
@@ -9,6 +11,13 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class AppConfig:
+    """Application configuration holding API keys.
+    
+    Attributes:
+        gemini_api_key (str): Primary API key for Gemini.
+        openrouter_api_key (str): Fallback API key for OpenRouter.
+        groq_api_key (str): Fallback API key for Groq.
+    """
     gemini_api_key: str
     openrouter_api_key: str
     groq_api_key: str
@@ -23,6 +32,14 @@ OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemma-4-31b-it")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen3.6-27b")
 
 def _get_recent_calls_count() -> int:
+    """Calculate the number of API calls made within the last 24 hours.
+    
+    Reads from the local API call tracking log, purges older entries,
+    and returns the count of recent calls.
+    
+    Returns:
+        int: The number of API calls made in the last 24 hours.
+    """
     if not LOG_FILE.exists():
         return 0
     
@@ -58,6 +75,18 @@ def _get_recent_calls_count() -> int:
         return 0
 
 def load_config() -> AppConfig:
+    """Load configuration from environment variables.
+    
+    Validates the presence of required API keys (Gemini) and checks for
+    optional fallback keys (OpenRouter, Groq). Also reports on the remaining
+    API quota for the current 24-hour period.
+    
+    Returns:
+        AppConfig: The validated application configuration.
+        
+    Raises:
+        SystemExit: If the required GEMINI_API_KEY is missing.
+    """
     gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
     openrouter_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
     groq_key = os.environ.get("GROQ_API_KEY", "").strip()
@@ -92,6 +121,11 @@ def load_config() -> AppConfig:
     )
 
 def record_successful_call() -> None:
+    """Record a successful API call for quota tracking.
+    
+    Appends the current timestamp to the local tracking log file.
+    Failures in recording do not crash the application but are printed as warnings.
+    """
     TRACKING_DIR.mkdir(exist_ok=True)
     try:
         with open(LOG_FILE, "a") as f:
@@ -102,6 +136,11 @@ def record_successful_call() -> None:
 
 
 def setup_logging() -> None:
+    """Configure application logging.
+    
+    Sets up a file handler in the project's 'logs' directory and a stream
+    handler for standard error output. The log filename incorporates a timestamp.
+    """
     log_dir = PROJECT_ROOT / "logs"
     log_dir.mkdir(exist_ok=True)
     

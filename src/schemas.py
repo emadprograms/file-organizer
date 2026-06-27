@@ -1,3 +1,7 @@
+"""Data schemas and models used across the File Categorizer application.
+
+These schemas leverage Pydantic for validation and structured data representation.
+"""
 from enum import Enum
 from dataclasses import dataclass
 from pydantic import BaseModel, Field, field_validator
@@ -49,6 +53,7 @@ class DocumentGroup:
 
 
 class NameMapping(BaseModel):
+    """Mapping between a raw extracted name and its canonical representation."""
     raw_name: str = Field(description="The raw name as it appears in the log")
     canonical_name: str = Field(description="The canonical Arabic Primary Tenant name it resolves to")
 
