@@ -20,3 +20,9 @@
 ## Out of Scope
 
 - Local model execution.
+
+## Documentation
+
+- [x] **REQ-DOCS-001**: Implement Google style docstrings across all core source code files.
+- [x] **REQ-DOCS-002**: Ensure both public APIs and internal helper functions are fully documented.
+- [x] **REQ-DOCS-003**: Include architecture and module-level summaries, particularly emphasizing the Strategy Pattern in providers.py and orchestration in pipeline.py.

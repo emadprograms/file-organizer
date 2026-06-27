@@ -63,6 +63,18 @@ Plans:
 
 - [x] TBD (run /gsd-plan-phase 04.1 to break down) (completed 2026-06-27)
 
+### Phase 04.1.1: Code Documentation (INSERTED)
+
+**Goal:** Comprehensive codebase documentation via module-level design summaries and standard Google-style docstrings, targeting Phase 4 modules.
+**Requirements**: REQ-DOCS-001, REQ-DOCS-002, REQ-DOCS-003
+**Depends on:** Phase 4.1
+**Plans:** 2/2 plans complete
+
+Plans:
+
+- [x] 01-PLAN.md
+- [x] 02-PLAN.md
+
 ### Phase 5: Testing
 
 **Goal:** Add tests and harden code
