@@ -8,9 +8,9 @@
 
 ## Cloud-Only Migration
 
-- [ ] **CLOUD-01**: Implement primary LLM requests using Gemini.
-- [ ] **CLOUD-02**: Implement fallback to OpenRouter when Gemini fails.
-- [ ] **CLOUD-03**: Implement fallback to Groq when OpenRouter fails.
+- [x] **CLOUD-01**: Implement primary LLM requests using Gemini.
+- [x] **CLOUD-02**: Implement fallback to OpenRouter when Gemini fails.
+- [x] **CLOUD-03**: Implement fallback to Groq when OpenRouter fails.
 
 ## Hardening
 
