@@ -11,21 +11,21 @@ if project_root not in sys.path:
 
 from src.pipeline import Pipeline
 from src.organizer import FileOrganizer
+from src.config import load_config
 
 def main():
     if sys.stdout.encoding.lower() != 'utf-8':
         sys.stdout.reconfigure(encoding='utf-8')
     load_dotenv()
     
+    config = load_config()
+    
     parser = argparse.ArgumentParser(description="Process and categorize housing documents.")
     parser.add_argument("pdf_path", help="Path to the input PDF file")
     parser.add_argument("-o", "--output", default="./output", help="Base output directory")
     args = parser.parse_args()
     
-    api_keys_str = os.getenv("GEMINI_API_KEYS")
-    api_keys = [k.strip() for k in api_keys_str.split(",")] if api_keys_str else None
-    
-    pipeline = Pipeline(api_keys=api_keys)
+    pipeline = Pipeline(api_key=config.gemini_api_key)
     
     if not os.path.exists(args.pdf_path):
         print(f"Please provide a valid PDF file at {args.pdf_path} to run.")
