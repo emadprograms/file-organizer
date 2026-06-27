@@ -1,9 +1,9 @@
-from src.config import record_successful_call
+from src.config import record_successful_call, OPENROUTER_MODEL, GROQ_MODEL
 import concurrent.futures
 import os
 import time
 import json
-from typing import Optional, Any, Deque
+from typing import Optional, Any, Deque, Protocol
 
 import re
 import random
@@ -32,20 +32,124 @@ class LLMFailureError(Exception):
 class InvalidResponseError(Exception):
     pass
 
-class GemmaClient:
+
+class LLMProvider(Protocol):
+    @property
+    def name(self) -> str:
+        ...
+
+    def generate(self, model: str, contents: list, response_schema: type) -> Any:
+        ...
+
+class GeminiProvider:
+    def __init__(self, api_key: str):
+        self._name = "gemini"
+        self.client = genai.Client(api_key=api_key)
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def generate(self, model: str, contents: list, response_schema: type) -> Any:
+        response = self.client.models.generate_content(
+            model=model,
+            contents=contents,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=response_schema,
+                temperature=0
+            )
+        )
+        if response.parsed is not None:
+            return response.parsed
+        text = response.text.strip() # type: ignore
+        json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
+        if json_match:
+            text = json_match.group(1)
+        data = json.loads(text)
+        return response_schema(**data)
+
+class OpenRouterProvider:
+    def __init__(self, api_key: str):
+        self._name = "openrouter"
+        self.client = openai.Client(api_key=api_key, base_url="https://openrouter.ai/api/v1")
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def generate(self, model: str, contents: list, response_schema: type) -> Any:
+        prompt_content = []
+        for part in contents:
+            if isinstance(part, str):
+                prompt_content.append({"type": "text", "text": part})
+            elif hasattr(part, "data") and hasattr(part, "mime_type"):
+                b64 = base64.b64encode(part.data).decode("utf-8")
+                prompt_content.append({"type": "image_url", "image_url": {"url": f"data:{part.mime_type};base64,{b64}"}})
+        
+        messages = [{"role": "user", "content": prompt_content}]
+        response = self.client.chat.completions.create(
+            model=OPENROUTER_MODEL,
+            messages=messages, # type: ignore
+            response_format={"type": "json_object"},
+            temperature=0
+        )
+        text = response.choices[0].message.content.strip() # type: ignore
+        json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
+        if json_match:
+            text = json_match.group(1)
+        data = json.loads(text)
+        return response_schema(**data)
+
+class GroqProvider:
+    def __init__(self, api_key: str):
+        self._name = "groq"
+        self.client = openai.Client(api_key=api_key, base_url="https://api.groq.com/openai/v1")
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def generate(self, model: str, contents: list, response_schema: type) -> Any:
+        prompt_content = []
+        for part in contents:
+            if isinstance(part, str):
+                prompt_content.append({"type": "text", "text": part})
+            elif hasattr(part, "data") and hasattr(part, "mime_type"):
+                b64 = base64.b64encode(part.data).decode("utf-8")
+                prompt_content.append({"type": "image_url", "image_url": {"url": f"data:{part.mime_type};base64,{b64}"}})
+        
+        messages = [{"role": "user", "content": prompt_content}]
+        response = self.client.chat.completions.create(
+            model=GROQ_MODEL,
+            messages=messages, # type: ignore
+            response_format={"type": "json_object"},
+            temperature=0
+        )
+        text = response.choices[0].message.content.strip() # type: ignore
+        json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
+        if json_match:
+            text = json_match.group(1)
+        data = json.loads(text)
+        return response_schema(**data)
+
+class LLMClient:
     def __init__(self, api_key: str, delay_between_pages: float = 5.0) -> None:
         if not api_key:
             api_key = os.getenv("GEMINI_API_KEY", "").strip()
             if not api_key:
                 raise ValueError("No API key provided and GEMINI_API_KEY not found in environment.")
         self.api_key = api_key
-        self.client = genai.Client(api_key=self.api_key)
+        
+        self.providers: list[LLMProvider] = [GeminiProvider(api_key)]
         
         openrouter_key = os.getenv("OPENROUTER_API_KEY", "").strip()
-        self.openrouter_client = openai.Client(api_key=openrouter_key, base_url="https://openrouter.ai/api/v1") if openrouter_key else None
-        
+        if openrouter_key:
+            self.providers.append(OpenRouterProvider(openrouter_key))
+            
         groq_key = os.getenv("GROQ_API_KEY", "").strip()
-        self.groq_client = openai.Client(api_key=groq_key, base_url="https://api.groq.com/openai/v1") if groq_key else None
+        if groq_key:
+            self.providers.append(GroqProvider(groq_key))
 
         self.delay_between_pages = delay_between_pages
         self.total_requests = 0
@@ -54,61 +158,26 @@ class GemmaClient:
         time.sleep(65)
 
     def _route_llm_call(self, model: str, contents: list, response_schema: type, log_prefix: str = "Retry", max_attempts: Optional[int] = None) -> Any:
-        from src.config import OPENROUTER_MODEL, GROQ_MODEL
-        providers = ["gemini"]
-        if self.openrouter_client is not None:
-            providers.append("openrouter")
-        if self.groq_client is not None:
-            providers.append("groq")
         current_provider_idx = 0
         provider_attempts = 0
         
-        while current_provider_idx < len(providers):
-            provider = providers[current_provider_idx]
+        while current_provider_idx < len(self.providers):
+            provider_obj = self.providers[current_provider_idx]
+            provider_name = provider_obj.name
             provider_attempts += 1
             
             start_time = time.time()
             try:
                 executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+                future = executor.submit(
+                    provider_obj.generate,
+                    model=model,
+                    contents=contents,
+                    response_schema=response_schema
+                )
                 
-                if provider == "gemini":
-                    future = executor.submit(
-                        self.client.models.generate_content,
-                        model=model,
-                        contents=contents,
-                        config=types.GenerateContentConfig(
-                            response_mime_type="application/json",
-                            response_schema=response_schema,
-                            temperature=0
-                        )
-                    )
-                else:
-                    prompt_content = []
-                    for part in contents:
-                        if isinstance(part, str):
-                            prompt_content.append({"type": "text", "text": part})
-                        elif hasattr(part, "data") and hasattr(part, "mime_type"):
-                            b64 = base64.b64encode(part.data).decode("utf-8")
-                            prompt_content.append({"type": "image_url", "image_url": {"url": f"data:{part.mime_type};base64,{b64}"}})  # type: ignore
-                    messages = [{"role": "user", "content": prompt_content}]
-                    
-                    if provider == "openrouter":
-                        client = self.openrouter_client
-                        fallback_model = OPENROUTER_MODEL
-                    else:
-                        client = self.groq_client
-                        fallback_model = GROQ_MODEL
-                        
-                    future = executor.submit(
-                        client.chat.completions.create,  # type: ignore
-                        model=fallback_model,
-                        messages=messages,
-                        response_format={"type": "json_object"},
-                        temperature=0
-                    )
-                    
                 try:
-                    response = future.result(timeout=90)
+                    response_parsed = future.result(timeout=90)
                 except concurrent.futures.TimeoutError:
                     raise TimeoutError("LLM API call hung and timed out after 90 seconds.")
                 finally:
@@ -121,18 +190,7 @@ class GemmaClient:
                 if elapsed < 7.0:
                     time.sleep(7.0 - elapsed)
                 
-                if provider == "gemini":
-                    if response.parsed is not None:
-                        return response.parsed
-                    text = response.text.strip()  # type: ignore
-                else:
-                    text = response.choices[0].message.content.strip()  # type: ignore
-                    
-                json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
-                if json_match:
-                    text = json_match.group(1)
-                data = json.loads(text)
-                return response_schema(**data)
+                return response_parsed
 
             except Exception as e:
                 error_str = str(e).lower()
@@ -140,40 +198,37 @@ class GemmaClient:
                 is_429 = "429" in error_str or "too many requests" in error_str or "quota" in error_str or "resource exhausted" in error_str
                 is_5xx = "500" in error_str or "503" in error_str or "internal error" in error_str or "timeout" in error_str
                 
-                log.info(f"[{log_prefix} - {provider} attempt {provider_attempts}] LLM call failed: {e}")
+                log.info(f"[{log_prefix} - {provider_name} attempt {provider_attempts}] LLM call failed: {e}")
                 
                 if is_auth:
-                    log.info(f"[{log_prefix}] Auth/Bad Request error on {provider}: fail fast. Error: {e}")
+                    log.info(f"[{log_prefix}] Auth/Bad Request error on {provider_name}: fail fast. Error: {e}")
                     raise e
                     
                 if is_429:
                     if provider_attempts >= 3:
                         current_provider_idx += 1
                         provider_attempts = 0
-                        if current_provider_idx < len(providers):
-                            next_prov = providers[current_provider_idx]
-                            next_name = "OpenRouter" if next_prov == "openrouter" else "Groq"
+                        if current_provider_idx < len(self.providers):
+                            next_name = self.providers[current_provider_idx].name
                             log.info(f"[Cloud Fallback] Failed over to {next_name}")
                         continue
-                    log.info(f"[{log_prefix}] 429 Error on {provider}. Sleeping for 65 seconds.")
+                    log.info(f"[{log_prefix}] 429 Error on {provider_name}. Sleeping for 65 seconds.")
                     time.sleep(65)
                     continue
                     
                 if is_5xx or isinstance(e, TimeoutError):
                     current_provider_idx += 1
                     provider_attempts = 0
-                    if current_provider_idx < len(providers):
-                        next_prov = providers[current_provider_idx]
-                        next_name = "OpenRouter" if next_prov == "openrouter" else "Groq"
+                    if current_provider_idx < len(self.providers):
+                        next_name = self.providers[current_provider_idx].name
                         log.info(f"[Cloud Fallback] Failed over to {next_name}")
                     continue
                 
                 if provider_attempts >= 3:
                     current_provider_idx += 1
                     provider_attempts = 0
-                    if current_provider_idx < len(providers):
-                        next_prov = providers[current_provider_idx]
-                        next_name = "OpenRouter" if next_prov == "openrouter" else "Groq"
+                    if current_provider_idx < len(self.providers):
+                        next_name = self.providers[current_provider_idx].name
                         log.info(f"[Cloud Fallback] Failed over to {next_name}")
                     continue
                 time.sleep(7.5)
@@ -365,6 +420,3 @@ Return a JSON object with: residents (list of strings), category, date, and summ
             self.activate_cooldown()
             default_groups = [[p[0]] for p in pages_data]
             return BulkSemanticMatchResult(groups=default_groups)
-
-
-

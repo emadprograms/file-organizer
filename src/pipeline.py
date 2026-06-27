@@ -6,7 +6,7 @@ import sys
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.ingest import PdfIngestor
-from src.llm import GemmaClient, LLMFailureError, InvalidResponseError
+from src.llm import LLMClient, LLMFailureError, InvalidResponseError
 from src.schemas import PageClassification, DocumentGroup, Category
 
 logger = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ class SimpleCache:
 class Pipeline:
     def __init__(self, api_key: str, delay_between_pages: float = 1.0):
         self.ingestor = PdfIngestor()
-        self.client = GemmaClient(api_key, delay_between_pages)
+        self.client = LLMClient(api_key, delay_between_pages)
 
     def process_pdf(self, pdf_path: str) -> list[DocumentGroup]:
         """
