@@ -1,33 +1,50 @@
 # Project Roadmap
 
-## Milestone 1: Core Infrastructure & LLM Integration
-- [ ] Phase 1: Initial Setup
-- [ ] Phase 2: OpenRouter Integration & Testing
-    - **Goal:** Verify OpenRouter API connectivity and performance with Gemma 4 26B model.
-    - **Requirements:** [OPENROUTER-01]
-    - **Success Criteria:**
-        - Successful API response from OpenRouter using Gemma 4 26B.
-        - Ability to load API key from `.env`.
-        - Verified response quality/format.
-    - **Status:** Pending
-- [ ] Phase 3: LLM Rate Limit Analysis & Failover Strategy
-    - **Goal:** Determine the rate limits for Gemini Cloud and OpenRouter (Gemma 4 26B) and validate a failover strategy.
-    - **Requirements:**
-        - [RATE-LIMIT-01] Empirical measurement of OpenRouter rate limits.
-        - [RATE-LIMIT-02] Validation of failover from Gemini to OpenRouter on 429/500/503 errors.
-        - [RATE-LIMIT-03] Evaluation of primary model selection based on generosity and stability.
-    - **Success Criteria:**
-        - Documented rate limits for both Gemini Cloud and OpenRouter.
-        - Verified testing scripts that trigger and handle rate limits.
-        - Final recommendation on primary vs. secondary model configuration.
-    - **Status:** Pending
-- [ ] Phase 4: Grok Model Integration & Verification
-    - **Goal:** Verify access to high-parameter models on Groq and prepare for integration.
-    - **Requirements:**
-        - [GROK-01] Successful connectivity to Groq API.
-        - [GROK-02] Verified access to llama-3.3-70b-versatile and qwen/qwen3.6-27b.
-    - **Success Criteria:**
-        - Scripted verification of model responses.
-        - Documented latency and response quality for the selected models.
-    - **Status:** Pending
+## Milestone v1.1: Tech Debt & Cloud Migration
 
+**5 phases** | **8 requirements mapped** | All covered ✓
+
+| # | Phase | Goal | Requirements | Success Criteria |
+|---|-------|------|--------------|------------------|
+| 1 | Cleanup | Remove local model support and redundant code | REF-01, REF-02 | 2 |
+| 2 | Key Mgmt | Simplify API key loading and switching | REF-03 | 2 |
+| 3 | Cloud Fallback | Implement Gemini -> OpenRouter -> Groq chain | CLOUD-01, CLOUD-02, CLOUD-03 | 3 |
+| 4 | Audit & Fix | Audit code for bugs and fix them | TEST-02 | 1 |
+| 5 | Testing | Add tests and harden code | TEST-01 | 2 |
+
+### Phase Details
+
+**Phase 1: Cleanup**
+Goal: Remove local model support and redundant code
+Requirements: REF-01, REF-02
+Success criteria:
+1. Local model configuration and logic removed.
+2. Unused legacy code paths deleted.
+
+**Phase 2: Key Mgmt**
+Goal: Simplify API key loading and switching
+Requirements: REF-03
+Success criteria:
+1. Unified API key management logic.
+2. Keys loaded cleanly without unnecessary complexity.
+
+**Phase 3: Cloud Fallback**
+Goal: Implement Gemini -> OpenRouter -> Groq chain
+Requirements: CLOUD-01, CLOUD-02, CLOUD-03
+Success criteria:
+1. Initial request goes to Gemini.
+2. If Gemini fails, request routes to OpenRouter.
+3. If OpenRouter fails, request routes to Groq.
+
+**Phase 4: Audit & Fix**
+Goal: Audit code for bugs and fix them
+Requirements: TEST-02
+Success criteria:
+1. Known bugs resolved and edge cases handled.
+
+**Phase 5: Testing**
+Goal: Add tests and harden code
+Requirements: TEST-01
+Success criteria:
+1. Unit tests pass.
+2. Integration tests for fallback chain pass.
