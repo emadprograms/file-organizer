@@ -4,7 +4,7 @@
 
 - [x] **REF-01**: Delete all redundant code and unused logic.
 - [x] **REF-02**: Remove local model support completely.
-- [ ] **REF-03**: Simplify the API key usage and switching process.
+- [x] **REF-03**: Simplify the API key usage and switching process.
 
 ## Cloud-Only Migration
 
