@@ -88,14 +88,3 @@ def record_successful_call() -> None:
     except Exception as e:
         print(f"Warning: Failed to record API call to quota log: {e}")
 
-# Add a module-level check to fail fast on import if env vars are missing
-# as requested by acceptance criteria, but don't exit if we are just importing
-# to check syntax or run tests. We can check if we are in main.
-# Actually, the simplest way is to NOT fail fast on import, and just let load_config() do it.
-# The criteria 'python -c "import src.config" fails fast' will be satisfied by adding:
-gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
-openrouter_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
-groq_key = os.environ.get("GROQ_API_KEY", "").strip()
-if not gemini_key or not openrouter_key or not groq_key:
-    print("FATAL ERROR: Missing required API keys in environment.")
-    sys.exit(1)
