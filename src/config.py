@@ -65,7 +65,7 @@ def load_config() -> AppConfig:
         missing_keys.append("GEMINI_API_KEY")
         
     if missing_keys:
-        print(f"FATAL ERROR: Missing required API keys in environment: {', '.join(missing_keys)}")
+        logger.error(f"FATAL ERROR: Missing required API keys in environment: {', '.join(missing_keys)}")
         sys.exit(1)
         
     optional_missing = []
@@ -75,13 +75,13 @@ def load_config() -> AppConfig:
         optional_missing.append("GROQ_API_KEY")
         
     if optional_missing:
-        print(f"WARNING: The following optional fallback API keys are missing: {', '.join(optional_missing)}. Cloud failover may be limited.")
+        logger.warning(f"The following optional fallback API keys are missing: {', '.join(optional_missing)}. Cloud failover may be limited.")
         
     TRACKING_DIR.mkdir(exist_ok=True)
     recent_calls = _get_recent_calls_count()
     remaining = max(0, QUOTA_LIMIT - recent_calls)
     
-    print(f"API Quota Remaining: {remaining}/{QUOTA_LIMIT} calls for the next 24h.")
+    logger.info(f"API Quota Remaining: {remaining}/{QUOTA_LIMIT} calls for the next 24h.")
     
     return AppConfig(
         gemini_api_key=gemini_key,
