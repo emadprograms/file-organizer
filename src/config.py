@@ -62,10 +62,6 @@ def load_config() -> AppConfig:
     missing_keys = []
     if not gemini_key:
         missing_keys.append("GEMINI_API_KEY")
-    if not openrouter_key:
-        missing_keys.append("OPENROUTER_API_KEY")
-    if not groq_key:
-        missing_keys.append("GROQ_API_KEY")
         
     if missing_keys:
         print(f"FATAL ERROR: Missing required API keys in environment: {', '.join(missing_keys)}")

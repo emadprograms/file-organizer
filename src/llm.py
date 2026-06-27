@@ -25,17 +25,6 @@ from src.schemas import (
 
 log = logging.getLogger(__name__)
 
-# Telemetry Logger setup
-telemetry_logger = logging.getLogger("telemetry")
-telemetry_logger.setLevel(logging.INFO)
-# Ensure we don't duplicate handlers
-if not telemetry_logger.handlers:
-    fh = logging.FileHandler("telemetry.log", encoding="utf-8")
-    class JsonFormatter(logging.Formatter):
-        def format(self, record: logging.LogRecord) -> str:
-            return json.dumps(record.msg)
-    fh.setFormatter(JsonFormatter())
-    telemetry_logger.addHandler(fh)
 
 class LLMFailureError(Exception):
     pass
@@ -44,7 +33,7 @@ class InvalidResponseError(Exception):
     pass
 
 class GemmaClient:
-    def __init__(self, api_key: str, delay_between_pages: float = 5.0, telemetry_queue: Any = None) -> None:
+    def __init__(self, api_key: str, delay_between_pages: float = 5.0) -> None:
         if not api_key:
             api_key = os.getenv("GEMINI_API_KEY", "").strip()
             if not api_key:
@@ -59,7 +48,6 @@ class GemmaClient:
         self.groq_client = openai.Client(api_key=groq_key, base_url="https://api.groq.com/openai/v1") if groq_key else None
 
         self.delay_between_pages = delay_between_pages
-        self.telemetry_queue = telemetry_queue
         self.total_requests = 0
 
     def activate_cooldown(self) -> None:
@@ -67,7 +55,11 @@ class GemmaClient:
 
     def _route_llm_call(self, model: str, contents: list, response_schema: type, log_prefix: str = "Retry", max_attempts: Optional[int] = None) -> Any:
         from src.config import OPENROUTER_MODEL, GROQ_MODEL
-        providers = ["gemini", "openrouter", "groq"]
+        providers = ["gemini"]
+        if self.openrouter_client is not None:
+            providers.append("openrouter")
+        if self.groq_client is not None:
+            providers.append("groq")
         current_provider_idx = 0
         provider_attempts = 0
         
@@ -151,7 +143,14 @@ class GemmaClient:
                 print(f"[{log_prefix} - {provider} attempt {provider_attempts}] LLM call failed: {e}")
                 
                 if is_auth:
-                    raise LLMFailureError(f"Authentication failed on {provider}: {e}")
+                    print(f"[{log_prefix}] Auth error on {provider}: {e}")
+                    current_provider_idx += 1
+                    provider_attempts = 0
+                    if current_provider_idx < len(providers):
+                        next_prov = providers[current_provider_idx]
+                        next_name = "OpenRouter" if next_prov == "openrouter" else "Groq"
+                        print(f"[Cloud Fallback] Failed over to {next_name}")
+                    continue
                     
                 if is_429:
                     if provider_attempts >= 3:
