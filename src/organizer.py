@@ -109,16 +109,16 @@ class FileOrganizer:
         
         tenant_str = ""
         if is_global_amar and doc.primary_tenant and doc.primary_tenant not in ("UNKNOWN", "NONE"):
-            sanitized_tenant = self._sanitize_filename(doc.primary_tenant)
+            sanitized_tenant = utils.sanitize_filename(doc.primary_tenant)
             tenant_str = f"_{sanitized_tenant}"
 
         if doc.dates:
-            normalized_date = self._normalize_date(doc.dates[0])
+            normalized_date = utils.normalize_date(doc.dates[0])
             base_name = f"{normalized_date}_{category_name}{tenant_str}.pdf"
         else:
             base_name = f"{category_name}{tenant_str}_{category_counter}.pdf"
             
-        base_name = self._sanitize_filename(base_name)
+        base_name = utils.sanitize_filename(base_name)
         
         if base_name not in used_names:
             return base_name

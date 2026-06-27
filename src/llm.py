@@ -33,105 +33,7 @@ class InvalidResponseError(Exception):
     pass
 
 
-class LLMProvider(Protocol):
-    @property
-    def name(self) -> str:
-        ...
-
-    def generate(self, model: str, contents: list, response_schema: type) -> Any:
-        ...
-
-class GeminiProvider:
-    def __init__(self, api_key: str):
-        self._name = "gemini"
-        self.client = genai.Client(api_key=api_key)
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    def generate(self, model: str, contents: list, response_schema: type) -> Any:
-        response = self.client.models.generate_content(
-            model=model,
-            contents=contents,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=response_schema,
-                temperature=0
-            )
-        )
-        if response.parsed is not None:
-            return response.parsed
-        text = response.text.strip() # type: ignore
-        json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
-        if json_match:
-            text = json_match.group(1)
-        data = json.loads(text)
-        return response_schema(**data)
-
-class OpenRouterProvider:
-    def __init__(self, api_key: str):
-        self._name = "openrouter"
-        self.client = openai.Client(api_key=api_key, base_url="https://openrouter.ai/api/v1")
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    def generate(self, model: str, contents: list, response_schema: type) -> Any:
-        prompt_content = []
-        for part in contents:
-            if isinstance(part, str):
-                prompt_content.append({"type": "text", "text": part})
-            elif hasattr(part, "data") and hasattr(part, "mime_type"):
-                b64 = base64.b64encode(part.data).decode("utf-8")
-                prompt_content.append({"type": "image_url", "image_url": {"url": f"data:{part.mime_type};base64,{b64}"}})
-        
-        messages = [{"role": "user", "content": prompt_content}]
-        response = self.client.chat.completions.create(
-            model=OPENROUTER_MODEL,
-            messages=messages, # type: ignore
-            response_format={"type": "json_object"},
-            temperature=0
-        )
-        text = response.choices[0].message.content.strip() # type: ignore
-        json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
-        if json_match:
-            text = json_match.group(1)
-        data = json.loads(text)
-        return response_schema(**data)
-
-class GroqProvider:
-    def __init__(self, api_key: str):
-        self._name = "groq"
-        self.client = openai.Client(api_key=api_key, base_url="https://api.groq.com/openai/v1")
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    def generate(self, model: str, contents: list, response_schema: type) -> Any:
-        prompt_content = []
-        for part in contents:
-            if isinstance(part, str):
-                prompt_content.append({"type": "text", "text": part})
-            elif hasattr(part, "data") and hasattr(part, "mime_type"):
-                b64 = base64.b64encode(part.data).decode("utf-8")
-                prompt_content.append({"type": "image_url", "image_url": {"url": f"data:{part.mime_type};base64,{b64}"}})
-        
-        messages = [{"role": "user", "content": prompt_content}]
-        response = self.client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=messages, # type: ignore
-            response_format={"type": "json_object"},
-            temperature=0
-        )
-        text = response.choices[0].message.content.strip() # type: ignore
-        json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
-        if json_match:
-            text = json_match.group(1)
-        data = json.loads(text)
-        return response_schema(**data)
+from src.providers import LLMProvider, GeminiProvider, OpenRouterProvider, GroqProvider
 
 class LLMClient:
     def __init__(self, api_key: str, delay_between_pages: float = 5.0) -> None:
@@ -244,16 +146,19 @@ class LLMClient:
         if not unique_names:
             return {}
             
-        system_prompt = "You are an expert at resolving Arabic and English name variations. Your task is to map multiple variations, misspellings, or abbreviations of the same name to a single 'canonical' identity."
+        system_prompt = "You are an expert at resolving Arabic and English name variations. Your task is to map multiple variations, misspellings, or abbreviations of the same name to a single 'canonical' identity. CRITICAL: These names all come from a SINGLE property file, so highly similar names are almost certainly severe OCR typos of the exact same person, NOT different people."
         
         import json
-        user_prompt = f"""Given the following list of unique names extracted from a file, some are variations or misspellings of the exact same person.
+        user_prompt = f"""Given the following list of unique names extracted from a single property file, some are variations or severe OCR misspellings of the exact same person.
         
 List of names:
 {json.dumps(unique_names, ensure_ascii=False)}
 
-Group the names that refer to the same person. Pick the most complete, correctly spelled version of the name as the 'canonical_name'.
-For any name that does not have variations, map it to itself.
+CRITICAL INSTRUCTIONS:
+1. Aggressively group names that sound similar or look similar in Arabic script (e.g. common dot-errors like بدر and بير, or عبيد and عبد).
+2. Because they belong to the same property file, assume they are the same person unless the names are completely and fundamentally different.
+3. Group the names that refer to the same person and pick the most complete, correctly spelled version as the 'canonical_name'.
+4. For any name that does not have variations, map it to itself.
 Return the mapping_list with each original raw_name and its resolved canonical_name.
 """
         from src.schemas import EntityResolutionMapping

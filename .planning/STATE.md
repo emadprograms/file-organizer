@@ -2,35 +2,35 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Tech Debt & Cloud Migration
-current_phase: 04
-current_phase_name: audit-fix
-status: completed
-stopped_at: Phase 4 execution completed
-last_updated: "2026-06-27T19:56:10.880Z"
+current_phase: 04.1
+current_phase_name: refactor-core-modules-refactor-llm-py-pipeline-py-and-organi
+status: verifying
+stopped_at: Phase 04.1 context gathered
+last_updated: "2026-06-27T22:08:00.357Z"
 last_activity: 2026-06-27
-last_activity_desc: Phase 04 execution started
+last_activity_desc: Phase 04.1 execution started
 progress:
-  total_phases: 5
-  completed_phases: 3
-  total_plans: 7
-  completed_plans: 6
-  percent: 40
+  total_phases: 6
+  completed_phases: 4
+  total_plans: 8
+  completed_plans: 7
+  percent: 67
 ---
 
 # Project State
 
 ## Current Position
 
-Phase: 04 (audit-fix) — COMPLETED
+Phase: 04.1 (refactor-core-modules-refactor-llm-py-pipeline-py-and-organi) — EXECUTING
 Plan: 1 of 1
-Status: Completed Phase 04
-Last activity: 2026-06-27 — Phase 04 execution completed
+Status: Phase complete — ready for verification
+Last activity: 2026-06-27 — Phase 04.1 execution started
 
 ## Session
 
-**Last session:** 2026-06-27T18:27:09.028Z
-**Stopped at:** Phase 4 execution completed
-**Resume file:** .planning/phases/04-audit-fix/04-SUMMARY.md
+**Last session:** 2026-06-27T21:38:06.573Z
+**Stopped at:** Phase 04.1 context gathered
+**Resume file:** .planning/phases/04.1-refactor-core-modules-refactor-llm-py-pipeline-py-and-organi/04.1-CONTEXT.md
 
 ## Performance Metrics
 
@@ -45,7 +45,7 @@ Last activity: 2026-06-27 — Phase 04 execution completed
 See: .planning/PROJECT.md (updated 2026-06-27)
 
 **Core value:** Categorizes files using LLMs.
-**Current focus:** Phase 04 — audit-fix
+**Current focus:** Phase 04.1 — refactor-core-modules-refactor-llm-py-pipeline-py-and-organi
 
 ## Accumulated Context
 
@@ -57,3 +57,7 @@ See: .planning/PROJECT.md (updated 2026-06-27)
 ### Blockers/Concerns
 
 - None
+
+### Roadmap Evolution
+
+- Phase 04.1 inserted after Phase 4: Refactor core modules: refactor llm.py, pipeline.py and organizer.py to reduce bloat before adding tests (URGENT)

@@ -50,6 +50,19 @@
 
 1. Known bugs resolved and edge cases handled.
 
+### Phase 04.1: Refactor core modules: refactor llm.py, pipeline.py and organizer.py to reduce bloat before adding tests (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 4
+**Plans:** 1/1 plans complete
+
+Plans:
+
+- [ ] 1-PLAN.md
+
+- [x] TBD (run /gsd-plan-phase 04.1 to break down) (completed 2026-06-27)
+
 ### Phase 5: Testing
 
 **Goal:** Add tests and harden code
