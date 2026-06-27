@@ -49,6 +49,55 @@ class SimpleCache:
     def values(self):
         return self.data.values()
 
+class VisionExtractor:
+    def __init__(self, cache: SimpleCache):
+        self.cache = cache
+
+    def extract_footer(self, page_index: int, image_bytes: bytes) -> Optional[str]:
+        extracted_footer: Optional[str] = None
+        if sys.platform == "darwin":
+            try:
+                import Vision, Quartz, re  # type: ignore
+                from Foundation import NSData  # type: ignore
+                ns_data = NSData.dataWithBytes_length_(image_bytes, len(image_bytes))
+                cg_data_provider = Quartz.CGDataProviderCreateWithCFData(ns_data)
+                cg_image = Quartz.CGImageCreateWithPNGDataProvider(cg_data_provider, None, False, Quartz.kCGRenderingIntentDefault)
+                if cg_image:
+                    request_handler = Vision.VNImageRequestHandler.alloc().initWithCGImage_options_(cg_image, None)
+                    request = Vision.VNRecognizeTextRequest.alloc().init()
+                    request.setRecognitionLanguages_(["ar", "en"])
+                    request.setRegionOfInterest_(Vision.CGRectMake(0.0, 0.0, 1.0, 0.15))
+                    success, error = request_handler.performRequests_error_([request], None)
+                    if success:
+                        full_text = " ".join([obs.topCandidates_(1)[0].string() for obs in request.results() if obs.topCandidates_(1)])
+                        match = re.search(r'(\d+)\s*من\s*(\d+)', full_text)
+                        if not match: match = re.search(r'(\d+)\s+(\d+)\s*من', full_text)
+                        if not match: match = re.search(r'(\d+)\s*من', full_text)
+                        if match: extracted_footer = match.group(0)
+            except Exception as e:
+                logger.error(f"Vision OCR Error on page {page_index}: {e}")
+        return extracted_footer
+
+class CloudExtractor:
+    def __init__(self, cache: SimpleCache, client: LLMClient):
+        self.cache = cache
+        self.client = client
+        self.cache_lock = threading.Lock()
+
+    def extract(self, page_index: int, image_bytes: bytes, extracted_footer: Optional[str]) -> PageClassification:
+        if len(image_bytes) < 15000:
+            logger.info(f" Page {page_index} is blank (size {len(image_bytes)} bytes). Skipping LLM.")
+            res = PageClassification(category=Category.OTHER_LETTERS, residents=["NONE"], date="NONE", summary="Blank page.")
+        else:
+            logger.info(f" Classifying Page {page_index} directly using Cloud Model...")
+            res = self.client.classify_page_direct(image_bytes, extracted_footer)
+            msg = f" Cloud Extracted Page {page_index}: {res.category.value} | {res.residents} | {res.date} | Sum: {str(res.summary)}"
+            logger.info(msg)
+            
+        with self.cache_lock:
+            self.cache.set(str(page_index), res.model_dump())
+        return res
+
 class Pipeline:
     def __init__(self, api_key: str, delay_between_pages: float = 1.0):
         self.ingestor = PdfIngestor()
@@ -89,52 +138,13 @@ class Pipeline:
         if total_expected_pages == 0:
             raise ValueError(f"The file {pdf_path} could not be read or contains 0 extractable pages.")
                 
-        cache_lock = threading.Lock()
-        
         if pages_to_process:
+            vision_extractor = VisionExtractor(pages_cache)
+            cloud_extractor = CloudExtractor(pages_cache, self.client)
+            
             for p_idx, i_bytes in pages_to_process:
-                # 1. Blank Page check
-                if len(i_bytes) < 15000:
-                    logger.info(f" Page {p_idx} is blank (size {len(i_bytes)} bytes). Skipping LLM.")
-                    res = PageClassification(category=Category.OTHER_LETTERS, residents=["NONE"], date="NONE", summary="Blank page.")
-                    with cache_lock:
-                        pages_cache.set(str(p_idx), res.model_dump())
-                    raw_pages.append((p_idx, res))
-                    continue
-
-                # 2. Extract footer using Vision framework (macOS local utility)
-                extracted_footer: Optional[str] = None
-                if sys.platform == "darwin":
-                    try:
-                        import Vision, Quartz, re  # type: ignore
-                        from Foundation import NSData  # type: ignore
-                        ns_data = NSData.dataWithBytes_length_(i_bytes, len(i_bytes))
-                        cg_data_provider = Quartz.CGDataProviderCreateWithCFData(ns_data)
-                        cg_image = Quartz.CGImageCreateWithPNGDataProvider(cg_data_provider, None, False, Quartz.kCGRenderingIntentDefault)
-                        if cg_image:
-                            request_handler = Vision.VNImageRequestHandler.alloc().initWithCGImage_options_(cg_image, None)
-                            request = Vision.VNRecognizeTextRequest.alloc().init()
-                            request.setRecognitionLanguages_(["ar", "en"])
-                            request.setRegionOfInterest_(Vision.CGRectMake(0.0, 0.0, 1.0, 0.15))
-                            success, error = request_handler.performRequests_error_([request], None)
-                            if success:
-                                full_text = " ".join([obs.topCandidates_(1)[0].string() for obs in request.results() if obs.topCandidates_(1)])
-                                match = re.search(r'(\d+)\s*من\s*(\d+)', full_text)
-                                if not match: match = re.search(r'(\d+)\s+(\d+)\s*من', full_text)
-                                if not match: match = re.search(r'(\d+)\s*من', full_text)
-                                if match: extracted_footer = match.group(0)
-                    except Exception as e:
-                        logger.error(f"Vision OCR Error on page {p_idx}: {e}")
-
-                # 3. Try cloud classification
-                logger.info(f" Classifying Page {p_idx} directly using Cloud Model...")
-                res = self.client.classify_page_direct(i_bytes, extracted_footer)
-                
-                msg = f" Cloud Extracted Page {p_idx}: {res.category.value} | {res.residents} | {res.date} | Sum: {str(res.summary)}"
-                logger.info(msg)
-                
-                with cache_lock:
-                    pages_cache.set(str(p_idx), res.model_dump())
+                extracted_footer = vision_extractor.extract_footer(p_idx, i_bytes)
+                res = cloud_extractor.extract(p_idx, i_bytes, extracted_footer)
                 raw_pages.append((p_idx, res))
             
             raw_pages.sort(key=lambda x: x[0])
