@@ -53,9 +53,9 @@ class SimpleCache:
         return self.data.values()
 
 class Pipeline:
-    def __init__(self, api_key: str, delay_between_pages: float = 1.0, telemetry_queue: Any = None):
+    def __init__(self, api_key: str, delay_between_pages: float = 1.0):
         self.ingestor = PdfIngestor()
-        self.client = GemmaClient(api_key, delay_between_pages, telemetry_queue=telemetry_queue)
+        self.client = GemmaClient(api_key, delay_between_pages)
 
     def _get_fallback_house_number(self, cache: SimpleCache) -> str:
         """Retrieve the first available house number from the cache as a fallback."""

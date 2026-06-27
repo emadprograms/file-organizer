@@ -67,6 +67,15 @@ def load_config() -> AppConfig:
         print(f"FATAL ERROR: Missing required API keys in environment: {', '.join(missing_keys)}")
         sys.exit(1)
         
+    optional_missing = []
+    if not openrouter_key:
+        optional_missing.append("OPENROUTER_API_KEY")
+    if not groq_key:
+        optional_missing.append("GROQ_API_KEY")
+        
+    if optional_missing:
+        print(f"WARNING: The following optional fallback API keys are missing: {', '.join(optional_missing)}. Cloud failover may be limited.")
+        
     TRACKING_DIR.mkdir(exist_ok=True)
     recent_calls = _get_recent_calls_count()
     remaining = max(0, QUOTA_LIMIT - recent_calls)
