@@ -8,12 +8,15 @@ Categorizes files using LLMs.
 **Goal:** Clear technical debt, remove local model support, simplify API key management, establish a robust cloud-only fallback structure (Gemini -> OpenRouter -> Groq), and harden code with tests.
 
 **Target features:**
-- Clean up, audit, and fix existing code
-- Delete redundant code no longer using core logic
-- Remove local model support
+- ✓ Clean up, audit, and fix existing code — Phase 01
+- ✓ Delete redundant code no longer using core logic — Phase 01
+- ✓ Remove local model support — Phase 01
 - Simplify API key loading and switching process
 - Implement cloud-only fallback chain: Gemini -> OpenRouter -> Groq
 - Add comprehensive tests and harden code
+
+### Key Decisions
+- **01-01-local-removal:** Removed all local LLM extraction and fallback logic. Rationale: Migrating purely to cloud APIs for stability and avoiding local model management overhead.
 
 ## Evolution
 
@@ -31,3 +34,5 @@ This document evolves at phase transitions and milestone boundaries.
 2. Core Value check — still the right priority?
 3. Audit Out of Scope — reasons still valid?
 4. Update Context with current state
+
+*Last updated: 2026-06-27 after Phase 01*

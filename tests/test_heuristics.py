@@ -36,7 +36,7 @@ def test_zero_padded_folders():
 def test_blank_page_heuristic_skip(tmp_path):
     """Verify that a blank page skips the LLM and falls back."""
     # Mocking a small image size to trigger the <15KB check
-    pipeline = Pipeline(api_keys=["dummy_key"])
+    pipeline = Pipeline(api_key="dummy_key")
     # Prevent cache creation from writing to the real directory during tests
     pipeline.cache_file = tmp_path / ".cache.json"
     
