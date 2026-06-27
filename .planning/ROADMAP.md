@@ -7,7 +7,7 @@
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
 | 1 | Cleanup | 1/1 | Complete    | 2026-06-27 |
-| 2 | Key Mgmt | 2/2 | Complete   | 2026-06-27 |
+| 2 | Key Mgmt | 2/2 | Complete    | 2026-06-27 |
 | 3 | Cloud Fallback | Implement Gemini -> OpenRouter -> Groq chain | CLOUD-01, CLOUD-02, CLOUD-03 | 3 |
 | 4 | Audit & Fix | Audit code for bugs and fix them | TEST-02 | 1 |
 | 5 | Testing | Add tests and harden code | TEST-01 | 2 |
