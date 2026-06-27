@@ -13,6 +13,7 @@ import base64
 from collections import deque
 from google import genai
 from google.genai import types
+import openai
 
 from src.schemas import (
     PageClassification,
@@ -50,6 +51,13 @@ class GemmaClient:
                 raise ValueError("No API key provided and GEMINI_API_KEY not found in environment.")
         self.api_key = api_key
         self.client = genai.Client(api_key=self.api_key)
+        
+        openrouter_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+        self.openrouter_client = openai.Client(api_key=openrouter_key, base_url="https://openrouter.ai/api/v1") if openrouter_key else None
+        
+        groq_key = os.getenv("GROQ_API_KEY", "").strip()
+        self.groq_client = openai.Client(api_key=groq_key, base_url="https://api.groq.com/openai/v1") if groq_key else None
+
         self.delay_between_pages = delay_between_pages
         self.telemetry_queue = telemetry_queue
         self.total_requests = 0
@@ -58,27 +66,55 @@ class GemmaClient:
         time.sleep(65)
 
     def _route_llm_call(self, model: str, contents: list, response_schema: type, log_prefix: str = "Retry", max_attempts: Optional[int] = None) -> Any:
-        attempts = 0
-        if max_attempts is None:
-            max_attempts = 7
-        invalid_retries = 0
+        from src.config import OPENROUTER_MODEL, GROQ_MODEL
+        providers = ["gemini", "openrouter", "groq"]
+        current_provider_idx = 0
+        provider_attempts = 0
         
-        while attempts < max_attempts:
-            attempts += 1
-            start_time = time.time()
+        while current_provider_idx < len(providers):
+            provider = providers[current_provider_idx]
+            provider_attempts += 1
             
+            start_time = time.time()
             try:
                 executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-                future = executor.submit(
-                    self.client.models.generate_content,
-                    model=model,
-                    contents=contents,
-                    config=types.GenerateContentConfig(
-                        response_mime_type="application/json",
-                        response_schema=response_schema,
+                
+                if provider == "gemini":
+                    future = executor.submit(
+                        self.client.models.generate_content,
+                        model=model,
+                        contents=contents,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            response_schema=response_schema,
+                            temperature=0
+                        )
+                    )
+                else:
+                    prompt_content = []
+                    for part in contents:
+                        if isinstance(part, str):
+                            prompt_content.append({"type": "text", "text": part})
+                        elif hasattr(part, "data") and hasattr(part, "mime_type"):
+                            b64 = base64.b64encode(part.data).decode("utf-8")
+                            prompt_content.append({"type": "image_url", "image_url": {"url": f"data:{part.mime_type};base64,{b64}"}})
+                    messages = [{"role": "user", "content": prompt_content}]
+                    
+                    if provider == "openrouter":
+                        client = self.openrouter_client
+                        fallback_model = OPENROUTER_MODEL
+                    else:
+                        client = self.groq_client
+                        fallback_model = GROQ_MODEL
+                        
+                    future = executor.submit(
+                        client.chat.completions.create,
+                        model=fallback_model,
+                        messages=messages,
+                        response_format={"type": "json_object"},
                         temperature=0
                     )
-                )
+                    
                 try:
                     response = future.result(timeout=90)
                 except concurrent.futures.TimeoutError:
@@ -86,7 +122,6 @@ class GemmaClient:
                 finally:
                     executor.shutdown(wait=False)
 
-                # Call config.py's record_successful_call
                 record_successful_call()
                 self.total_requests += 1
 
@@ -94,62 +129,64 @@ class GemmaClient:
                 if elapsed < 7.0:
                     time.sleep(7.0 - elapsed)
                 
-                if response.parsed is not None:
-                    result = response.parsed
+                if provider == "gemini":
+                    if response.parsed is not None:
+                        return response.parsed
+                    text = response.text.strip()
                 else:
-                    try:
-                        text = response.text.strip()
-                        json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
-                        if json_match:
-                            text = json_match.group(1)
-                        data = json.loads(text)
-                        result = response_schema(**data)
-                    except (json.JSONDecodeError, Exception) as parse_err:
-                        raw_preview = ""
-                        if hasattr(response, "text") and response.text:
-                            raw_preview = response.text[:200]
-                        print(f"JSON PARSE ERROR. Raw text preview: {raw_preview}")
-                        raise InvalidResponseError(raw_preview)
-                        
-                return result
+                    text = response.choices[0].message.content.strip()
+                    
+                json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
+                if json_match:
+                    text = json_match.group(1)
+                data = json.loads(text)
+                return response_schema(**data)
 
             except Exception as e:
                 error_str = str(e).lower()
+                is_auth = "401" in error_str or "403" in error_str
                 is_429 = "429" in error_str or "too many requests" in error_str or "quota" in error_str or "resource exhausted" in error_str
-                is_token_limit = "token" in error_str and is_429
-                is_5xx = "500" in error_str or "503" in error_str or "internal error" in error_str
-                is_invalid = "invalidresponseerror" in error_str or isinstance(e, InvalidResponseError)
+                is_5xx = "500" in error_str or "503" in error_str or "internal error" in error_str or "timeout" in error_str
                 
-                print(f"[{log_prefix} {attempts}/{max_attempts}] LLM call failed: {e}")
+                print(f"[{log_prefix} - {provider} attempt {provider_attempts}] LLM call failed: {e}")
                 
-                if is_invalid:
-                    invalid_retries += 1
-                    if invalid_retries >= 2:
-                        raise InvalidResponseError(str(e))
-                
-                if is_429 or is_token_limit:
-                    if attempts == max_attempts:
-                        raise LLMFailureError(f"Max retries reached. Last error: {error_str}")
-                    print(f"[{log_prefix}] 429 Error. Sleeping for 65 seconds.")
+                if is_auth:
+                    raise LLMFailureError(f"Authentication failed on {provider}: {e}")
+                    
+                if is_429:
+                    if provider_attempts >= 3:
+                        current_provider_idx += 1
+                        provider_attempts = 0
+                        if current_provider_idx < len(providers):
+                            next_prov = providers[current_provider_idx]
+                            next_name = "OpenRouter" if next_prov == "openrouter" else "Groq"
+                            print(f"[Cloud Fallback] Failed over to {next_name}")
+                        continue
+                    print(f"[{log_prefix}] 429 Error on {provider}. Sleeping for 65 seconds.")
                     time.sleep(65)
                     continue
-                elif is_5xx:
-                    if attempts == max_attempts:
-                        raise LLMFailureError(f"Max retries reached. Last error: {error_str}")
-                    print(f"[{log_prefix}] 5xx Error. Sleeping for 15 seconds.")
-                    time.sleep(15)
+                    
+                if is_5xx or isinstance(e, TimeoutError):
+                    current_provider_idx += 1
+                    provider_attempts = 0
+                    if current_provider_idx < len(providers):
+                        next_prov = providers[current_provider_idx]
+                        next_name = "OpenRouter" if next_prov == "openrouter" else "Groq"
+                        print(f"[Cloud Fallback] Failed over to {next_name}")
                     continue
-                elif is_invalid:
-                    if attempts == max_attempts:
-                        raise LLMFailureError(f"Max retries reached. Last error: {error_str}")
-                    time.sleep(7.5)
+                
+                if provider_attempts >= 3:
+                    current_provider_idx += 1
+                    provider_attempts = 0
+                    if current_provider_idx < len(providers):
+                        next_prov = providers[current_provider_idx]
+                        next_name = "OpenRouter" if next_prov == "openrouter" else "Groq"
+                        print(f"[Cloud Fallback] Failed over to {next_name}")
                     continue
-                else:
-                    if attempts == max_attempts:
-                        raise e
-                    time.sleep(7.5)
-                    continue
-        raise RuntimeError("LLM routing failed")
+                time.sleep(7.5)
+                continue
+
+        raise RuntimeError("LLM routing failed across all providers")
 
     def cluster_names(self, unique_names: list[str]) -> dict[str, str]:
         """
