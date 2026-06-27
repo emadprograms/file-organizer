@@ -1,91 +1,24 @@
 # Project Roadmap
 
-## Milestone v1.1: Tech Debt & Cloud Migration
+## Milestones
 
-**5 phases** | **8 requirements mapped** | All covered ✓
+- ✅ **v1.1 Tech Debt & Cloud Migration** — Phases 01-05 (shipped 2026-06-28)
 
-| # | Phase | Goal | Requirements | Success Criteria |
-|---|-------|------|--------------|------------------|
-| 1 | Cleanup | 1/1 | Complete    | 2026-06-27 |
-| 2 | Key Mgmt | 2/2 | Complete    | 2026-06-27 |
-| 3 | Cloud Fallback | 2/2 | Complete   | 2026-06-27 |
-| 4 | Audit & Fix | Audit code for bugs and fix them | TEST-02 | 1 |
-| 5 | Testing | 1/1 | Complete | 2026-06-28 |
+## Phases
 
-### Phase Details
+<details>
+<summary>✅ v1.1 Tech Debt & Cloud Migration (Phases 01-05) — SHIPPED 2026-06-28</summary>
 
-### Phase 1: Cleanup
+- [x] Phase 01: Cleanup
+- [x] Phase 02: Key Mgmt
+- [x] Phase 03: Cloud Fallback
+- [x] Phase 04: Audit & Fix
+- [x] Phase 04.1: Refactor Core Modules
+- [x] Phase 04.1.1: Code Documentation
+- [x] Phase 05: Testing
 
-**Goal:** Remove local model support and redundant code
-**Requirements:** REF-01, REF-02
-**Success Criteria**:
+</details>
 
-1. Local model configuration and logic removed.
-2. Unused legacy code paths deleted.
+## Backlog
 
-### Phase 2: Key Mgmt
-
-**Goal:** Simplify API key loading and switching
-**Requirements:** REF-03
-**Success Criteria**:
-
-1. Unified API key management logic.
-2. Keys loaded cleanly without unnecessary complexity.
-
-### Phase 3: Cloud Fallback
-
-**Goal:** Implement Gemini -> OpenRouter -> Groq chain
-**Requirements:** CLOUD-01, CLOUD-02, CLOUD-03
-**Success Criteria**:
-
-1. Initial request goes to Gemini.
-2. If Gemini fails, request routes to OpenRouter.
-3. If OpenRouter fails, request routes to Groq.
-
-### Phase 4: Audit & Fix
-
-**Goal:** Audit code for bugs and fix them
-**Requirements:** TEST-02
-**Success Criteria**:
-
-1. Known bugs resolved and edge cases handled.
-
-### Phase 04.1: Refactor core modules: refactor llm.py, pipeline.py and organizer.py to reduce bloat before adding tests (INSERTED)
-
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
-**Depends on:** Phase 4
-**Plans:** 1/1 plans complete
-
-Plans:
-
-- [ ] 1-PLAN.md
-
-- [x] TBD (run /gsd-plan-phase 04.1 to break down) (completed 2026-06-27)
-
-### Phase 04.1.1: Code Documentation (INSERTED)
-
-**Goal:** Comprehensive codebase documentation via module-level design summaries and standard Google-style docstrings, targeting Phase 4 modules.
-**Requirements**: REQ-DOCS-001, REQ-DOCS-002, REQ-DOCS-003
-**Depends on:** Phase 4.1
-**Plans:** 2/2 plans complete
-
-Plans:
-
-- [x] 01-PLAN.md
-- [x] 02-PLAN.md
-
-### Phase 5: Testing
-
-**Goal:** Add tests and harden code
-**Requirements:** TEST-01
-**Success Criteria**:
-
-1. Unit tests pass.
-2. Integration tests for fallback chain pass.
-
-**Plans:** 1/1 plans complete
-
-Plans:
-
-- [x] 1-PLAN.md (completed 2026-06-28)
+*(Empty)*
