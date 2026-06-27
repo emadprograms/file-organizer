@@ -1,0 +1,63 @@
+import pytest
+import os
+from unittest.mock import patch, MagicMock
+from src.llm import LLMClient
+from src.providers import GeminiProvider, OpenRouterProvider, GroqProvider
+
+@patch.dict('os.environ', {
+    'OPENROUTER_API_KEY': 'invalid_or_key',
+    'GROQ_API_KEY': 'invalid_groq_key'
+})
+def test_live_fallback_invalid_key_fail_fast():
+    client = LLMClient(api_key="invalid_gemini_key")
+    
+    with patch.object(OpenRouterProvider, 'generate') as mock_or, \
+         patch.object(GroqProvider, 'generate') as mock_groq:
+        
+        # We will directly call _route_llm_call to verify it raises,
+        # because cluster_names swallows the exception.
+        from src.schemas import EntityResolutionMapping
+        with pytest.raises(Exception) as excinfo:
+            client._route_llm_call(
+                model="gemini-2.5-flash",
+                contents=["test"],
+                response_schema=EntityResolutionMapping
+            )
+            
+        error_msg = str(excinfo.value).lower()
+        assert "400" in error_msg or "api key not valid" in error_msg or "invalid_api_key" in error_msg or "403" in error_msg
+        
+        # Ensure secondary providers were NOT invoked
+        mock_or.assert_not_called()
+        mock_groq.assert_not_called()
+
+def test_mocked_fallback_chain_integration():
+    client = LLMClient(api_key="dummy")
+    # Need to force providers to exist if not loaded by environ
+    client.providers = [
+        GeminiProvider("dummy"),
+        OpenRouterProvider("dummy"),
+        GroqProvider("dummy")
+    ]
+    
+    with patch.object(GeminiProvider, 'generate') as mock_gemini, \
+         patch.object(OpenRouterProvider, 'generate') as mock_openrouter, \
+         patch.object(GroqProvider, 'generate') as mock_groq:
+        
+        mock_gemini.side_effect = Exception("503 Service Unavailable")
+        mock_openrouter.side_effect = Exception("500 Internal Error")
+        
+        # Groq returns a valid object
+        mock_return = MagicMock()
+        mock_return.mapping_list = []
+        mock_groq.return_value = mock_return
+        
+        result = client.cluster_names(["test"])
+        
+        # If it falls back correctly to Groq, cluster_names will succeed and return mapping
+        assert result == {"TEST": "TEST"}
+        
+        # Ensure all providers were called exactly once (for the attempts)
+        mock_gemini.assert_called_once()
+        mock_openrouter.assert_called_once()
+        mock_groq.assert_called_once()
