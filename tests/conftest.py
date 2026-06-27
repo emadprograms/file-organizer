@@ -52,5 +52,5 @@ def sample_image_bytes():
 @pytest.fixture
 def mock_gemma_client(monkeypatch, mock_api_response):
     client = GemmaClient(api_keys=["test-key"])
-    monkeypatch.setattr(client, "classify_page", lambda **kwargs: mock_api_response)
+    monkeypatch.setattr(client, "classify_page_direct", lambda **kwargs: mock_api_response)
     return client

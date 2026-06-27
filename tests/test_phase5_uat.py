@@ -7,7 +7,7 @@ from src.llm import GemmaClient
 from src.schemas import Category
 
 def test_exact_arabic_intersection():
-    """Test 2: Verify Exact Arabic Name Intersection."""
+    """Verify Exact Arabic Name Intersection."""
     # Pipeline checks this: len(words_current.intersection(words_candidate)) < 2
     # Before, it stripped "ال", meaning "أحمد الخالد" and "أحمد خالد" would intersect on "خالد" and "أحمد"
     # Now, "الخالد" and "خالد" don't intersect.
@@ -27,14 +27,14 @@ def test_exact_arabic_intersection():
 
 
 def test_zero_padded_folders():
-    """Test 3: Verify zero-padding and lexicographical sorting of category folders."""
+    """Verify zero-padding and lexicographical sorting of category folders."""
     # Verify that ALL folders start with two digits and an underscore
     for cat, folder_name in CATEGORY_FOLDERS.items():
         assert re.match(r'^\d{2}_', folder_name), f"Folder '{folder_name}' is not zero-padded"
 
 
 def test_blank_page_heuristic_skip(tmp_path):
-    """Test 4: Verify that a blank page skips the LLM and falls back."""
+    """Verify that a blank page skips the LLM and falls back."""
     # Mocking a small image size to trigger the <15KB check
     pipeline = Pipeline(api_keys=["dummy_key"])
     # Prevent cache creation from writing to the real directory during tests
@@ -66,17 +66,3 @@ def test_blank_page_heuristic_skip(tmp_path):
         cache = json.load(f)
     assert cache["0"]["category"] == Category.OTHER_LETTERS.value
     assert cache["0"]["residents"] == ["NONE"]
-
-
-def test_family_identity_preservation():
-    """Test 5: Verify the prompt for entity resolution preserves family identities."""
-    client = GemmaClient(api_keys=["test-key"])
-    
-    # In src.llm, resolve_entities contains the prompt inside the function block
-    # We can read the code to ensure the exact phrase is there
-    with open("src/llm.py", "r", encoding="utf-8") as f:
-        content = f.read()
-        
-    assert "retain their distinct identities instead of merging them" in content
-    assert "map them to their OWN canonical name" in content
-

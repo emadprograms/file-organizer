@@ -10,7 +10,7 @@ def test_page_classification_valid():
         "date": "2023-01-01",
         "summary": "A test summary"
     }
-    pc = PageClassification(**data, summary="test")
+    pc = PageClassification(**data)
     assert pc.house_number == "123"
     assert pc.residents == ["AHMED ALI", "FATIMA ALI (WIFE)"]
     assert pc.category == Category.BASIC_DETAILS

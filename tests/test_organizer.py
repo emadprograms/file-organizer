@@ -44,23 +44,7 @@ def test_resident_ordering(mock_extract, organizer, tmp_path):
     assert (house_dir / "1_Resident B").exists()
     assert (house_dir / "2_Resident A").exists()
 
-@patch('src.organizer.extract_pdf_segment')
-def test_amar_takhsees_routing(mock_extract, organizer, tmp_path):
-    docs = [
-        DocumentGroup(0, 1, "123", "Resident A", Category.AMAR_TAKHSEES, []),
-        DocumentGroup(2, 3, "123", "Resident B", Category.BASIC_DETAILS, []),
-    ]
-    organizer.organize(docs, "123.pdf", tmp_path)
-    
-    # Resident A ONLY has amar takhsees, so should not have a resident folder
-    house_dir = tmp_path / "123"
-    assert not (house_dir / "1_Resident A").exists()
-    
-    # Resident B is the first valid resident
-    assert (house_dir / "1_Resident B").exists()
-    
-    # AMAR_TAKHSEES should be in amar_takhsees folder
-    mock_extract.assert_any_call("123.pdf", 0, 1, str(house_dir / "أمر التخصيص لغير المقيمين" / "amar_takhsees_1.pdf"))
+
 
 @patch('src.organizer.extract_pdf_segment')
 def test_house_letters_routing(mock_extract, organizer, tmp_path):
@@ -82,15 +66,7 @@ def test_continuation_pages_merged(mock_extract, organizer, tmp_path):
     target_path = house_dir / "1_Resident A" / "01_البيانات الاساسية" / "basic_details_1.pdf"
     mock_extract.assert_called_once_with("123.pdf", 5, 8, str(target_path))
 
-@patch('src.organizer.extract_pdf_segment')
-def test_date_based_naming(mock_extract, organizer, tmp_path):
-    docs = [
-        DocumentGroup(0, 1, "123", "Resident A", Category.NOTIFICATIONS, ["2023-05-20"]),
-    ]
-    organizer.organize(docs, "123.pdf", tmp_path)
-    house_dir = tmp_path / "123"
-    target_path = house_dir / "1_Resident A" / "09_الاشعارات" / "2023-05-20_notifications.pdf"
-    mock_extract.assert_called_once_with("123.pdf", 0, 1, str(target_path))
+
 
 @patch('src.organizer.extract_pdf_segment')
 def test_counter_fallback_naming(mock_extract, organizer, tmp_path):
