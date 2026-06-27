@@ -103,11 +103,14 @@ def setup_logging() -> None:
     log_dir = PROJECT_ROOT / "logs"
     log_dir.mkdir(exist_ok=True)
     
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    log_filename = f"{timestamp}_app.log"
+    
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
-            logging.FileHandler(log_dir / "app.log", encoding="utf-8"),
+            logging.FileHandler(log_dir / log_filename, encoding="utf-8"),
             logging.StreamHandler(sys.stderr)
         ]
     )
