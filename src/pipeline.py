@@ -364,7 +364,16 @@ class Pipeline:
         blocks = []
         if raw_pages:
             current_block = [raw_pages[0]]
-            def get_sig(p): return (p.category, p.residents[0] if p.residents else "NONE")
+            def get_sig(p):
+                """Generate a signature for a page to determine block grouping.
+                
+                Args:
+                    p (PageClassification): The classified page.
+                    
+                Returns:
+                    tuple: A tuple containing the category and primary resident.
+                """
+                return (p.category, p.residents[0] if p.residents else "NONE")
             
             current_sig = get_sig(raw_pages[0][1])
             for item in raw_pages[1:]:

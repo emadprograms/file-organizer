@@ -240,6 +240,14 @@ Return the mapping_list with each original raw_name and its resolved canonical_n
         return mapping
 
     def _build_system_prompt(self) -> str:
+        """Build the system prompt for document classification.
+        
+        Constructs the detailed instructions, categories, and extraction rules
+        used to prompt the LLM for page classification.
+        
+        Returns:
+            str: The complete system prompt.
+        """
         return """You are an Arabic document classification expert analyzing scanned housing files from the Bahrain/Gulf region.
 
 You are receiving a scanned page IMAGE. Read the page directly using your vision capabilities and classify it.
