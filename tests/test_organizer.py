@@ -11,9 +11,9 @@ def organizer():
 @patch('src.organizer.extract_pdf_segment')
 def test_basic_structure(mock_extract, organizer, tmp_path):
     docs = [
-        DocumentGroup(0, 1, "123", "Resident A", Category.BASIC_DETAILS, []),
-        DocumentGroup(2, 3, "123", "Resident B", Category.PERSONAL_DETAILS, []),
-        DocumentGroup(4, 5, "123", "Resident A", Category.CONTRACT, []),
+        DocumentGroup(0, 1, "Resident A", Category.BASIC_DETAILS, []),
+        DocumentGroup(2, 3, "Resident B", Category.PERSONAL_DETAILS, []),
+        DocumentGroup(4, 5, "Resident A", Category.CONTRACT, []),
     ]
     summary = organizer.organize(docs, "123.pdf", tmp_path)
     
@@ -35,8 +35,8 @@ def test_basic_structure(mock_extract, organizer, tmp_path):
 @patch('src.organizer.extract_pdf_segment')
 def test_resident_ordering(mock_extract, organizer, tmp_path):
     docs = [
-        DocumentGroup(0, 1, "123", "Resident B", Category.BASIC_DETAILS, []),
-        DocumentGroup(2, 3, "123", "Resident A", Category.PERSONAL_DETAILS, []),
+        DocumentGroup(0, 1, "Resident B", Category.BASIC_DETAILS, []),
+        DocumentGroup(2, 3, "Resident A", Category.PERSONAL_DETAILS, []),
     ]
     organizer.organize(docs, "123.pdf", tmp_path)
     
@@ -49,7 +49,7 @@ def test_resident_ordering(mock_extract, organizer, tmp_path):
 @patch('src.organizer.extract_pdf_segment')
 def test_house_letters_routing(mock_extract, organizer, tmp_path):
     docs = [
-        DocumentGroup(0, 1, "123", "NONE", Category.OTHER_LETTERS, []),
+        DocumentGroup(0, 1, "NONE", Category.OTHER_LETTERS, []),
     ]
     organizer.organize(docs, "123.pdf", tmp_path)
     
@@ -59,7 +59,7 @@ def test_house_letters_routing(mock_extract, organizer, tmp_path):
 @patch('src.organizer.extract_pdf_segment')
 def test_continuation_pages_merged(mock_extract, organizer, tmp_path):
     docs = [
-        DocumentGroup(5, 8, "123", "Resident A", Category.BASIC_DETAILS, []),
+        DocumentGroup(5, 8, "Resident A", Category.BASIC_DETAILS, []),
     ]
     organizer.organize(docs, "123.pdf", tmp_path)
     house_dir = tmp_path / "123"
@@ -71,8 +71,8 @@ def test_continuation_pages_merged(mock_extract, organizer, tmp_path):
 @patch('src.organizer.extract_pdf_segment')
 def test_counter_fallback_naming(mock_extract, organizer, tmp_path):
     docs = [
-        DocumentGroup(0, 1, "123", "Resident A", Category.NOTIFICATIONS, []),
-        DocumentGroup(2, 3, "123", "Resident A", Category.NOTIFICATIONS, []),
+        DocumentGroup(0, 1, "Resident A", Category.NOTIFICATIONS, []),
+        DocumentGroup(2, 3, "Resident A", Category.NOTIFICATIONS, []),
     ]
     organizer.organize(docs, "123.pdf", tmp_path)
     house_dir = tmp_path / "123"
@@ -84,7 +84,7 @@ def test_counter_fallback_naming(mock_extract, organizer, tmp_path):
 @patch('src.organizer.extract_pdf_segment')
 def test_overwrite_behavior(mock_extract, organizer, tmp_path):
     docs = [
-        DocumentGroup(0, 1, "123", "Resident A", Category.BASIC_DETAILS, []),
+        DocumentGroup(0, 1, "Resident A", Category.BASIC_DETAILS, []),
     ]
     organizer.organize(docs, "123.pdf", tmp_path)
     
@@ -100,7 +100,7 @@ def test_overwrite_behavior(mock_extract, organizer, tmp_path):
 @patch('src.organizer.extract_pdf_segment')
 def test_unknown_tenant_filtered(mock_extract, organizer, tmp_path):
     docs = [
-        DocumentGroup(0, 1, "123", "UNKNOWN", Category.BASIC_DETAILS, []),
+        DocumentGroup(0, 1, "UNKNOWN", Category.BASIC_DETAILS, []),
     ]
     organizer.organize(docs, "123.pdf", tmp_path)
     house_dir = tmp_path / "123"

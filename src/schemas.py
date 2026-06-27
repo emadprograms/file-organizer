@@ -22,7 +22,6 @@ class Category(str, Enum):
 
 class PageClassification(BaseModel):
     """Structured output schema for per-page document classification."""
-    house_number: str = Field(description="The house number mentioned in the document")
     residents: list[str] = Field(description="List of resident names in Arabic, with relationship in parentheses if known (e.g. 'Name (Wife)'). Return ['NONE'] if no names.")
     category: Category = Field(description="The document category from the 13 defined types")
     date: str = Field(description="The date of the document (Gregorian or Hijri) if visible, otherwise 'NONE'")
@@ -44,7 +43,6 @@ class DocumentGroup:
     """A group of consecutive pages belonging to the same document segment."""
     start_page: int
     end_page: int
-    house_number: str
     primary_tenant: str
     category: Category
     dates: list[str]

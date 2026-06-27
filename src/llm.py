@@ -272,7 +272,7 @@ SPECIAL RULES:
 - Normalize Arabic names intelligently: group variations like "محمد" and "المحمد" as the same person.
 - Tolerate OCR noise and imperfect text in scanned documents.
 
-Return a JSON object with: house_number, residents (list of strings), category, date, summary (string), and is_form (boolean)."""
+Return a JSON object with: residents (list of strings), category, date, and summary (string)."""
 
 
     def classify_page_direct(self, image_bytes: bytes, extracted_footer: Optional[str] = None) -> PageClassification:
@@ -363,7 +363,6 @@ Return a JSON object with: house_number, residents (list of strings), category, 
         except Exception as e:
             log.info(f"WARNING: Direct Cloud bulk grouping failed: {e}")
             self.activate_cooldown()
-            from src.schemas import BulkSemanticMatchResult
             default_groups = [[p[0]] for p in pages_data]
             return BulkSemanticMatchResult(groups=default_groups)
 

@@ -96,7 +96,7 @@ class Pipeline:
                 # 1. Blank Page check
                 if len(i_bytes) < 15000:
                     logger.info(f" Page {p_idx} is blank (size {len(i_bytes)} bytes). Skipping LLM.")
-                    res = PageClassification(category=Category.OTHER_LETTERS, residents=["NONE"], date="NONE", house_number="UNKNOWN", summary="Blank page.")
+                    res = PageClassification(category=Category.OTHER_LETTERS, residents=["NONE"], date="NONE", summary="Blank page.")
                     with cache_lock:
                         pages_cache.set(str(p_idx), res.model_dump())
                     raw_pages.append((p_idx, res))
@@ -456,13 +456,11 @@ class Pipeline:
             
             primary_tenant = group[0][1].residents[0] if group[0][1].residents else "NONE"
             category = group[0][1].category
-            house_number = group[0][1].house_number
             dates = [p.date for p_idx, p in group if p.date != "NONE"]
             
             documents.append(DocumentGroup(
                 start_page=start_page,
                 end_page=end_page,
-                house_number=house_number,
                 primary_tenant=primary_tenant,
                 category=category,
                 dates=dates
