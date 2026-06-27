@@ -1,3 +1,8 @@
+"""File organization and PDF segmentation.
+
+This module translates logically grouped documents into a structured
+filesystem hierarchy based on house numbers, residents, and categories.
+"""
 import logging
 import os
 import shutil
@@ -28,7 +33,17 @@ CATEGORY_FOLDERS = {
 }
 
 class FileOrganizer:
+    """Organizer responsible for writing documents to disk in a structured hierarchy."""
+    
     def _resolve_house_number(self, source_pdf: Union[str, Path]) -> str:
+        """Extract the house number from the source PDF filename.
+        
+        Args:
+            source_pdf (Union[str, Path]): Path to the original PDF.
+            
+        Returns:
+            str: The extracted house number or 'unknown_house' if not found.
+        """
         filename = Path(source_pdf).name
         match = re.search(r'\d+', filename)
         if match:
@@ -36,6 +51,14 @@ class FileOrganizer:
         return "unknown_house"
 
     def _compute_tenant_timelines(self, documents: list[DocumentGroup]) -> dict[str, str]:
+        """Compute the residency timeline for each tenant.
+        
+        Args:
+            documents (list[DocumentGroup]): The grouped documents.
+            
+        Returns:
+            dict[str, str]: A mapping of tenant names to their chronological suffix.
+        """
         tenant_dates: dict[str, list[str]] = defaultdict(list)
         
         for doc in documents:
@@ -73,6 +96,14 @@ class FileOrganizer:
         return result
 
     def _build_resident_order(self, documents: list[DocumentGroup]) -> list[tuple[int, str]]:
+        """Determine the chronological order of residents for folder numbering.
+        
+        Args:
+            documents (list[DocumentGroup]): The grouped documents.
+            
+        Returns:
+            list[tuple[int, str]]: A list of tuples containing the resident index and name.
+        """
         seen_tenants: set[str] = set()
         ordered_tenants: list[tuple[int, str]] = []
         
@@ -105,6 +136,17 @@ class FileOrganizer:
         return ordered_tenants
 
     def _generate_pdf_name(self, doc: DocumentGroup, category_counter: int, used_names: set[str], is_global_amar: bool = False) -> str:
+        """Generate a unique filename for a document segment.
+        
+        Args:
+            doc (DocumentGroup): The document group being written.
+            category_counter (int): The current count for this category and tenant.
+            used_names (set[str]): A set of already assigned filenames in the target directory.
+            is_global_amar (bool): Whether the document goes to the global allocation folder. Defaults to False.
+            
+        Returns:
+            str: A unique sanitized filename.
+        """
         category_name = doc.category.name.lower()
         
         tenant_str = ""
@@ -132,6 +174,19 @@ class FileOrganizer:
             counter += 1
 
     def organize(self, documents: list[DocumentGroup], source_pdf: str, output_base_dir: Path) -> dict[str, tuple[int, int]]:
+        """Organize the extracted documents into a structured directory hierarchy.
+        
+        Creates directories based on the house number, residents, and document categories,
+        and saves compressed PDF segments to their respective locations.
+        
+        Args:
+            documents (list[DocumentGroup]): The grouped documents from the pipeline.
+            source_pdf (str): Path to the source PDF.
+            output_base_dir (Path): The root output directory.
+            
+        Returns:
+            dict[str, tuple[int, int]]: A mapping of output file paths to their page ranges.
+        """
         if not documents:
             logger.warning("⚠ No documents to organize. Exiting.")
             return {}

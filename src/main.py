@@ -1,3 +1,8 @@
+"""Command-line entry point for the File Categorizer application.
+
+Initializes the environment, loads configuration, parses arguments,
+and orchestrates the pipeline and file organizer.
+"""
 import logging
 import os
 import argparse
@@ -16,6 +21,11 @@ from src.organizer import FileOrganizer
 from src.config import load_config, setup_logging
 
 def main():
+    """Main execution function.
+    
+    Sets up logging, loads environment variables, initializes the pipeline,
+    processes the input PDF, and organizes the resulting documents.
+    """
     setup_logging()
     if sys.stdout.encoding.lower() != 'utf-8':
         sys.stdout.reconfigure(encoding='utf-8')

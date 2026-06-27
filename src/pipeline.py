@@ -1,3 +1,10 @@
+"""Orchestration pipeline for processing and categorizing document pages.
+
+This module acts as the core orchestrator. It manages the two-pass architecture:
+1. Pass 1: Local OCR and LLM-based classification of individual pages.
+2. Pass 1.5: Date outlier detection, global interpolation, and semantic name clustering.
+3. Pass 2: Grouping pages logically into cohesive document segments based on category, tenant, and date timelines.
+"""
 from typing import Optional, Any
 import json
 import os
@@ -15,15 +22,35 @@ from src.cache import SimpleCache
 from src.extractors import VisionExtractor, CloudExtractor
 
 class Pipeline:
+    """Orchestrator for the document processing workflow."""
+    
     def __init__(self, api_key: str, delay_between_pages: float = 1.0):
+        """Initialize the pipeline with necessary clients and extractors.
+        
+        Args:
+            api_key (str): The primary API key for the LLM.
+            delay_between_pages (float): Delay in seconds between processing pages.
+        """
         self.ingestor = PdfIngestor()
         self.client = LLMClient(api_key, delay_between_pages)
 
     def process_pdf(self, pdf_path: str) -> list[DocumentGroup]:
-        """
+        """Process a PDF through the multi-pass categorization pipeline.
+        
         Two-pass architecture:
         Pass 1: Vision extraction (category, resident, date) per page.
+        Pass 1.5: Date interpolation and alias mapping for missing or noisy data.
         Pass 2: Python timeline logic to group consecutive pages by Category + Primary Tenant.
+        
+        Args:
+            pdf_path (str): The file path to the source PDF.
+            
+        Returns:
+            list[DocumentGroup]: A list of grouped documents representing logical segments.
+            
+        Raises:
+            ValueError: If the PDF cannot be read or contains 0 pages.
+            RuntimeError: If page loss is detected during processing.
         """
         logger.info(f"Starting Pass 1 (Vision Extraction) for {pdf_path}...")
         
@@ -91,6 +118,11 @@ class Pipeline:
         return documents
 
     def _interpolate_dates(self, raw_pages: list[tuple[int, PageClassification]]):
+        """Interpolate missing dates and handle chronological outliers.
+        
+        Args:
+            raw_pages (list[tuple[int, PageClassification]]): The list of classified pages.
+        """
         from datetime import datetime
 
         # 1. LLM-Based Outlier Detection
@@ -140,6 +172,14 @@ class Pipeline:
                     logger.info(f"[Pass 1.5 Date] Page {actual_page_idx}: NONE -> {next_valid_date} (Interpolated from Page {next_valid_idx})")
 
     def _parse_date(self, d_str: str) -> Optional[Any]:
+        """Parse a normalized date string into a datetime object.
+        
+        Args:
+            d_str (str): The YYYY-MM-DD date string.
+            
+        Returns:
+            Optional[Any]: A datetime object, or None if parsing fails.
+        """
         if not d_str or d_str == "NONE":
             return None
         import re
@@ -153,6 +193,14 @@ class Pipeline:
         return None
 
     def _map_aliases(self, raw_pages: list[tuple[int, PageClassification]]) -> dict[str, str]:
+        """Map entity aliases and resolve primary tenants across the timeline.
+        
+        Args:
+            raw_pages (list[tuple[int, PageClassification]]): The list of classified pages.
+            
+        Returns:
+            dict[str, str]: A mapping of canonical names applied.
+        """
         ANCHOR_CATEGORIES = {Category.BASIC_DETAILS, Category.CONTRACT, Category.RENT_DEDUCTION}
         
         # 0. Semantic Name Clustering
@@ -301,6 +349,15 @@ class Pipeline:
         return {}
 
     def _group_pages_into_documents(self, raw_pages: list[tuple[int, PageClassification]], canonical_mapping_clean: dict[str, str]) -> list[DocumentGroup]:
+        """Group classified pages into cohesive document blocks.
+        
+        Args:
+            raw_pages (list[tuple[int, PageClassification]]): The sequence of classified pages.
+            canonical_mapping_clean (dict[str, str]): The mapping of canonical names.
+            
+        Returns:
+            list[DocumentGroup]: The final grouped documents.
+        """
         documents: list[DocumentGroup] = []
         
         # 1. Pre-group by Category AND Primary Tenant (The "Category & Tenant Wall")
