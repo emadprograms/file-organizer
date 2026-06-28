@@ -31,6 +31,17 @@ class PageClassification(BaseModel):
     date: str = Field(description="The date of the document (Gregorian or Hijri) if visible, otherwise 'NONE'")
     summary: str = Field(description="A verbose, one-line 'full story' of the page content, e.g., 'This letter from Ministry of Housing is for Mohamed Ali regarding a request to build an additional room.' Do not be lazy; extract all key context.")
 
+    @field_validator('category', mode='before')
+    @classmethod
+    def normalize_category(cls, v):
+        """Normalize category string to enum values."""
+        if isinstance(v, str):
+            v_lower = v.lower().strip()
+            for category in Category:
+                if v_lower == category.value.lower() or v_lower == category.name.lower() or v_lower.replace('_', ' ') == category.value.lower():
+                    return category.value
+        return v
+
     @field_validator('residents', mode='before')
     @classmethod
     def normalize_resident(cls, v):

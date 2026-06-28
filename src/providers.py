@@ -72,14 +72,18 @@ class GeminiProvider:
                 temperature=0
             )
         )
-        if response.parsed is not None:
-            return response.parsed
-        text = response.text.strip() # type: ignore
-        json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
-        if json_match:
-            text = json_match.group(1)
-        data = json.loads(text)
-        return response_schema(**data)
+        try:
+            if response.parsed is not None:
+                return response.parsed
+            text = response.text.strip() # type: ignore
+            json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
+            if json_match:
+                text = json_match.group(1)
+            data = json.loads(text)
+            return response_schema(**data)
+        except Exception as e:
+            raw_text = getattr(response, 'text', 'No text available')
+            raise ValueError(f"LLM parsing error. Raw output: {raw_text}. Error: {e}")
 
 class OpenRouterProvider:
     """Concrete LLM provider implementation for OpenRouter."""
@@ -124,12 +128,16 @@ class OpenRouterProvider:
             response_format={"type": "json_object"},
             temperature=0
         )
-        text = response.choices[0].message.content.strip() # type: ignore
-        json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
-        if json_match:
-            text = json_match.group(1)
-        data = json.loads(text)
-        return response_schema(**data)
+        text = ""
+        try:
+            text = response.choices[0].message.content.strip() # type: ignore
+            json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
+            if json_match:
+                text = json_match.group(1)
+            data = json.loads(text)
+            return response_schema(**data)
+        except Exception as e:
+            raise ValueError(f"LLM parsing error. Raw output: {text}. Error: {e}")
 
 class GroqProvider:
     """Concrete LLM provider implementation for Groq."""
@@ -174,9 +182,13 @@ class GroqProvider:
             response_format={"type": "json_object"},
             temperature=0
         )
-        text = response.choices[0].message.content.strip() # type: ignore
-        json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
-        if json_match:
-            text = json_match.group(1)
-        data = json.loads(text)
-        return response_schema(**data)
+        text = ""
+        try:
+            text = response.choices[0].message.content.strip() # type: ignore
+            json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
+            if json_match:
+                text = json_match.group(1)
+            data = json.loads(text)
+            return response_schema(**data)
+        except Exception as e:
+            raise ValueError(f"LLM parsing error. Raw output: {text}. Error: {e}")

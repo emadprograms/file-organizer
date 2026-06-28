@@ -99,3 +99,39 @@ def test_groq_provider_generate():
         content = messages[0]["content"]
         assert content[0] == {"type": "text", "text": "test prompt groq"}
         assert content[1] == {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,ZHVtbXk="}}
+
+def test_gemini_provider_error_handling():
+    with patch('src.providers.genai.Client') as mock_client:
+        mock_instance = MagicMock()
+        mock_client.return_value = mock_instance
+        
+        mock_response = MagicMock()
+        mock_response.parsed = None
+        mock_response.text = 'invalid json output'
+        mock_instance.models.generate_content.return_value = mock_response
+
+        provider = GeminiProvider("fake_key")
+        
+        with pytest.raises(ValueError) as exc:
+            provider.generate(GEMINI_MODEL, ["test"], PageClassification)
+        
+        assert "LLM parsing error" in str(exc.value)
+        assert "invalid json output" in str(exc.value)
+
+def test_openrouter_provider_error_handling():
+    with patch('src.providers.openai.Client') as mock_client:
+        mock_instance = MagicMock()
+        mock_client.return_value = mock_instance
+        
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = 'bad text'
+        mock_instance.chat.completions.create.return_value = mock_response
+
+        provider = OpenRouterProvider("fake_key")
+        
+        with pytest.raises(ValueError) as exc:
+            provider.generate("mock_model", ["test"], PageClassification)
+        
+        assert "LLM parsing error" in str(exc.value)
+        assert "bad text" in str(exc.value)
