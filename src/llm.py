@@ -340,7 +340,7 @@ Return a JSON object with: residents (list of strings), category, date, and summ
         
         attempts = 100
         result = self._route_llm_call(
-            model='gemma-4-31b-it',
+            model=GEMINI_MODEL,
             contents=contents,
             response_schema=PageClassification,
             log_prefix="DirectCloud",
@@ -378,7 +378,7 @@ Return a JSON object with: residents (list of strings), category, date, and summ
         
         try:
             result = self._route_llm_call(
-                model='gemma-4-31b-it',
+                model=GEMINI_MODEL,
                 contents=[system_prompt, user_prompt],
                 response_schema=DateOutlierDetectionResult,
                 log_prefix="DateOutlierDetection"
@@ -416,7 +416,7 @@ Return a JSON object with: residents (list of strings), category, date, and summ
             ]
             attempts = 100
             result = self._route_llm_call(
-                model='gemma-4-31b-it',
+                model=GEMINI_MODEL,
                 contents=contents,
                 response_schema=BulkSemanticMatchResult,
                 log_prefix="BulkSemanticCloud",
