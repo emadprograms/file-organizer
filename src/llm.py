@@ -76,6 +76,7 @@ class LLMClient:
 
         self.delay_between_pages = delay_between_pages
         self.total_requests = 0
+        self._fallback_toggle = False
 
     def activate_cooldown(self) -> None:
         """Activate a long sleep to recover from severe rate limits (e.g., 429)."""
@@ -104,11 +105,19 @@ class LLMClient:
         or_provider = next((p for p in self.providers if p.name == "openrouter"), None)
         groq_provider = next((p for p in self.providers if p.name == "groq"), None)
         
-        if or_provider:
-            provider_sequence.append(or_provider)
+        secondary_1, secondary_2 = None, None
+        if not self._fallback_toggle:
+            secondary_1, secondary_2 = or_provider, groq_provider
+        else:
+            secondary_1, secondary_2 = groq_provider, or_provider
+            
+        self._fallback_toggle = not self._fallback_toggle
+        
+        if secondary_1:
+            provider_sequence.append(secondary_1)
             provider_sequence.append(self.providers[0])
-        if groq_provider:
-            provider_sequence.append(groq_provider)
+        if secondary_2:
+            provider_sequence.append(secondary_2)
 
         current_provider_idx = 0
         provider_attempts = 0
@@ -152,12 +161,12 @@ class LLMClient:
                 
                 log.info(f"[{log_prefix} - {provider_name} attempt {provider_attempts}] LLM call failed: {e}")
                 
-                if provider_name == "openrouter":
+                if provider_name in ("openrouter", "groq"):
                     current_provider_idx += 1
                     provider_attempts = 0
                     if current_provider_idx < len(provider_sequence):
                         next_name = provider_sequence[current_provider_idx].name
-                        log.info(f"[Cloud Fallback] OpenRouter failed. Failing over to {next_name}")
+                        log.info(f"[Cloud Fallback] {provider_name} failed. Failing over to {next_name}")
                     continue
 
                 if is_auth:
