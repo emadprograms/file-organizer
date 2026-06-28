@@ -58,7 +58,7 @@ def test_mocked_fallback_chain_integration():
         # If it falls back correctly to Groq, cluster_names will succeed and return mapping
         assert result == {"TEST": "TEST"}
         
-        # Ensure all providers were called exactly once (for the attempts)
-        mock_gemini.assert_called_once()
+        # Ensure providers were called expected number of times
+        assert mock_gemini.call_count == 2
         mock_openrouter.assert_called_once()
         mock_groq.assert_called_once()

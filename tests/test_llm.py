@@ -49,7 +49,7 @@ def test_llm_fallback_chain_on_5xx():
         result = client._route_llm_call("model", ["test"], DummyResponse)
         
         assert result.success is True
-        mock_gemini.assert_called_once()
+        assert mock_gemini.call_count == 2
         mock_openrouter.assert_called_once()
         mock_groq.assert_called_once()
 
@@ -68,6 +68,6 @@ def test_llm_exhaustion(mock_sleep):
         with pytest.raises(RuntimeError, match="LLM routing failed across all providers"):
             client._route_llm_call("model", ["test"], DummyResponse)
             
-        mock_gemini.assert_called_once()
+        assert mock_gemini.call_count == 2
         mock_openrouter.assert_called_once()
         mock_groq.assert_called_once()

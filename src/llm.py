@@ -100,11 +100,21 @@ class LLMClient:
         Raises:
             RuntimeError: If all providers fail.
         """
+        provider_sequence = [self.providers[0]]
+        or_provider = next((p for p in self.providers if p.name == "openrouter"), None)
+        groq_provider = next((p for p in self.providers if p.name == "groq"), None)
+        
+        if or_provider:
+            provider_sequence.append(or_provider)
+            provider_sequence.append(self.providers[0])
+        if groq_provider:
+            provider_sequence.append(groq_provider)
+
         current_provider_idx = 0
         provider_attempts = 0
         
-        while current_provider_idx < len(self.providers):
-            provider_obj = self.providers[current_provider_idx]
+        while current_provider_idx < len(provider_sequence):
+            provider_obj = provider_sequence[current_provider_idx]
             provider_name = provider_obj.name
             provider_attempts += 1
             
@@ -142,6 +152,14 @@ class LLMClient:
                 
                 log.info(f"[{log_prefix} - {provider_name} attempt {provider_attempts}] LLM call failed: {e}")
                 
+                if provider_name == "openrouter":
+                    current_provider_idx += 1
+                    provider_attempts = 0
+                    if current_provider_idx < len(provider_sequence):
+                        next_name = provider_sequence[current_provider_idx].name
+                        log.info(f"[Cloud Fallback] OpenRouter failed. Failing over to {next_name}")
+                    continue
+
                 if is_auth:
                     log.info(f"[{log_prefix}] Auth/Bad Request error on {provider_name}: fail fast. Error: {e}")
                     raise e
@@ -150,8 +168,8 @@ class LLMClient:
                     if provider_attempts >= 3:
                         current_provider_idx += 1
                         provider_attempts = 0
-                        if current_provider_idx < len(self.providers):
-                            next_name = self.providers[current_provider_idx].name
+                        if current_provider_idx < len(provider_sequence):
+                            next_name = provider_sequence[current_provider_idx].name
                             log.info(f"[Cloud Fallback] Failed over to {next_name}")
                         continue
                     log.info(f"[{log_prefix}] 429 Error on {provider_name}. Sleeping for 65 seconds.")
@@ -161,16 +179,16 @@ class LLMClient:
                 if is_5xx or isinstance(e, TimeoutError):
                     current_provider_idx += 1
                     provider_attempts = 0
-                    if current_provider_idx < len(self.providers):
-                        next_name = self.providers[current_provider_idx].name
+                    if current_provider_idx < len(provider_sequence):
+                        next_name = provider_sequence[current_provider_idx].name
                         log.info(f"[Cloud Fallback] Failed over to {next_name}")
                     continue
                 
                 if provider_attempts >= 3:
                     current_provider_idx += 1
                     provider_attempts = 0
-                    if current_provider_idx < len(self.providers):
-                        next_name = self.providers[current_provider_idx].name
+                    if current_provider_idx < len(provider_sequence):
+                        next_name = provider_sequence[current_provider_idx].name
                         log.info(f"[Cloud Fallback] Failed over to {next_name}")
                     continue
                 time.sleep(7.5)
