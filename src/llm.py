@@ -155,7 +155,7 @@ class LLMClient:
                             log.info(f"[Cloud Fallback] Failed over to {next_name}")
                         continue
                     log.info(f"[{log_prefix}] 429 Error on {provider_name}. Sleeping for 65 seconds.")
-                    time.sleep(65)
+                    self.activate_cooldown()
                     continue
                     
                 if is_5xx or isinstance(e, TimeoutError):
