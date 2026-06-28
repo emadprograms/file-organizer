@@ -4,7 +4,7 @@ This module provides the `LLMClient` which orchestrates LLM requests across mult
 provider strategies (defined in `providers.py`). It implements resilient API routing,
 error handling, rate-limit backoffs, and cloud failover for robust document processing.
 """
-from src.config import record_successful_call, OPENROUTER_MODEL, GROQ_MODEL
+from src.config import record_successful_call, OPENROUTER_MODEL, GROQ_MODEL, GEMINI_MODEL
 import concurrent.futures
 import os
 import time
@@ -217,7 +217,7 @@ Return the mapping_list with each original raw_name and its resolved canonical_n
         
         try:
             result = self._route_llm_call(
-                model="gemini-2.5-flash",
+                model=GEMINI_MODEL,
                 contents=contents,
                 response_schema=EntityResolutionMapping,
                 log_prefix="Name Clustering",

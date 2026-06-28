@@ -30,6 +30,7 @@ SECONDS_IN_24H = 24 * 60 * 60
 
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemma-4-31b-it")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen3.6-27b")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemma-4-31b-it")
 
 def _get_recent_calls_count() -> int:
     """Calculate the number of API calls made within the last 24 hours.

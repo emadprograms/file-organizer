@@ -1,6 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from pydantic import BaseModel
+from src.config import GEMINI_MODEL
 from src.providers import GeminiProvider, OpenRouterProvider, GroqProvider
 from google.genai import types
 import base64
@@ -31,7 +32,7 @@ def test_gemini_provider_generate():
         part = types.Part.from_bytes(data=b"dummy", mime_type="image/png")
         contents = ["test prompt", part]
 
-        result = provider.generate("gemini-2.5-flash", contents, PageClassification)
+        result = provider.generate(GEMINI_MODEL, contents, PageClassification)
 
         assert result.category == "invoice"
         assert result.confidence == 0.99
@@ -39,7 +40,7 @@ def test_gemini_provider_generate():
         # Verify call args
         mock_instance.models.generate_content.assert_called_once()
         call_args = mock_instance.models.generate_content.call_args[1]
-        assert call_args["model"] == "gemini-2.5-flash"
+        assert call_args["model"] == GEMINI_MODEL
         assert call_args["contents"] == contents
         assert call_args["config"].response_schema == PageClassification
 

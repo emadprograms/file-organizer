@@ -1,6 +1,7 @@
 import pytest
 import os
 from unittest.mock import patch, MagicMock
+from src.config import GEMINI_MODEL
 from src.llm import LLMClient
 from src.providers import GeminiProvider, OpenRouterProvider, GroqProvider
 
@@ -19,7 +20,7 @@ def test_live_fallback_invalid_key_fail_fast():
         from src.schemas import EntityResolutionMapping
         with pytest.raises(Exception) as excinfo:
             client._route_llm_call(
-                model="gemini-2.5-flash",
+                model=GEMINI_MODEL,
                 contents=["test"],
                 response_schema=EntityResolutionMapping
             )
