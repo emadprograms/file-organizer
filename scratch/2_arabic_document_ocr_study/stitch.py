@@ -4,7 +4,7 @@ import os
 def main():
     base_dir = os.path.dirname(__file__)
     temp_dir = os.path.join(base_dir, 'temp_pages')
-    output_pdf = os.path.join(base_dir, '1281_cleaned.pdf')
+    output_pdf = os.path.abspath(os.path.join(base_dir, '..', '..', 'pdfs', '1281_cleaned.pdf'))
 
     doc = fitz.open()
 

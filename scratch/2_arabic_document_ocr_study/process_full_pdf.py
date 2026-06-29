@@ -7,7 +7,7 @@ def main():
     # Paths
     base_dir = os.path.dirname(__file__)
     input_pdf = os.path.abspath(os.path.join(base_dir, '..', '..', 'pdfs', '1281.pdf'))
-    output_pdf = os.path.join(base_dir, '1281_cleaned.pdf')
+    output_pdf = os.path.abspath(os.path.join(base_dir, '..', '..', 'pdfs', '1281_cleaned.pdf'))
     temp_dir = os.path.join(base_dir, 'temp_pages')
     
     if not os.path.exists(temp_dir):
