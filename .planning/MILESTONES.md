@@ -15,10 +15,14 @@
 
 ---
 
-## v1.0 (Previous)
+## v1.0 (Shipped)
 
 - Core Infrastructure & LLM Integration (OpenRouter, rate limit analysis, Groq model integration).
 
-## v1.1 (Current)
+## v1.1 (Previous)
 
 - Tech Debt & Cloud Migration (Cleanup, Key Mgmt, Cloud Fallback, Audit & Fix, Testing).
+
+## v1.2 (Current)
+
+- Architecture Research & Classification (Explore Alternatives to LLM Classification).
