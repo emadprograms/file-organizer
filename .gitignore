@@ -35,4 +35,7 @@ out_*.pdf
 telemetry.log
 
 # Scratch
-scratch/
+# scratch/
+
+# Tesseract
+tessdata/
