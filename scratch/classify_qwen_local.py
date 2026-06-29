@@ -26,7 +26,7 @@ def classify_page(img_bytes, page_num):
     )
     
     data = {
-        "model": "qwen2.5-vl",
+        "model": "qwen2.5vl:3b",
         "messages": [
             {
                 "role": "user",
