@@ -3,6 +3,13 @@
 ## Core Value
 Categorizes files using LLMs.
 
+## Current Milestone: v1.2 Architecture Research & Classification
+
+**Goal:** Conduct research on document classification alternatives and evaluate options.
+
+**Target features:**
+- Explore Alternatives to LLM Classification
+
 ## Requirements
 
 ### Validated
@@ -17,7 +24,10 @@ Categorizes files using LLMs.
 
 ### Active
 
-*(None yet — Planning next milestone)*
+- [ ] ARCH-01: Conduct research on document classification alternatives (form vs letter vs picture).
+- [ ] ARCH-02: Research rule-based extraction approaches.
+- [ ] ARCH-03: Design processing logic based on document classification.
+- [ ] ARCH-04: Design grouping logic for multi-page documents.
 
 ### Out of Scope
 
@@ -55,4 +65,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-28 after v1.1 milestone*
+*Last updated: 2026-06-29 after initializing v1.2 milestone*
