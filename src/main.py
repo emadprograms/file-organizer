@@ -18,7 +18,7 @@ if project_root not in sys.path:
 
 from src.pipeline import Pipeline
 from src.organizer import FileOrganizer
-from src.config import load_config, setup_logging
+from src.config import load_config, setup_logging, load_user_config, InvalidConfigError
 
 def main():
     """Main execution function.
@@ -36,7 +36,14 @@ def main():
     parser = argparse.ArgumentParser(description="Process and categorize housing documents.")
     parser.add_argument("pdf_path", help="Path to the input PDF file")
     parser.add_argument("-o", "--output", default="./output", help="Base output directory")
+    parser.add_argument("-c", "--config", default="config.yaml", help="Path to user configuration file")
     args = parser.parse_args()
+    
+    try:
+        user_config = load_user_config(Path(args.config))
+    except (InvalidConfigError, FileNotFoundError) as e:
+        logger.error(str(e))
+        sys.exit(1)
     
     pipeline = Pipeline(api_key=config.gemini_api_key)
     
