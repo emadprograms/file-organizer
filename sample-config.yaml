@@ -44,3 +44,7 @@ extraction:
 
 routing:
   destination_format: "{primary_tenant}/{category}"
+
+cleaning:
+  strategy: "llm"
+  prompt_template: "Detect and remove outliers in dates based on document context. Then perform alias mapping to unify different spellings of the same resident name into a canonical primary tenant name."
