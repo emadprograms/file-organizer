@@ -27,7 +27,20 @@ categories:
     name: "Miscellaneous Letters"
 
 extraction:
-  prompt_rules: "Extract residents, categories, and dates. Dates should be in YYYY-MM-DD format."
+  prompt_template: "Extract residents, categories, and dates. Dates should be in YYYY-MM-DD format."
+  fields:
+    - name: residents
+      type: "list[str]"
+      description: "List of resident names in Arabic, with relationship in parentheses if known (e.g. 'Name (Wife)'). Return ['NONE'] if no names."
+    - name: category
+      type: "str"
+      description: "The document category from the 13 defined types"
+    - name: date
+      type: "str"
+      description: "The date of the document (Gregorian or Hijri) if visible, otherwise 'NONE'"
+    - name: summary
+      type: "str"
+      description: "A verbose, one-line 'full story' of the page content, e.g., 'This letter from Ministry of Housing is for Mohamed Ali regarding a request to build an additional room.' Do not be lazy; extract all key context."
 
 routing:
   destination_format: "{primary_tenant}/{category}"

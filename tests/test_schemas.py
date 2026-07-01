@@ -22,3 +22,16 @@ def test_normalize_category():
     # Test invalid category
     with pytest.raises(ValidationError):
          PageClassification(residents=["Mohamed"], category="Invalid Category", date="2020-01-01", summary="summary")
+
+def test_user_config_loading_with_dynamic_fields():
+    import yaml
+    from src.schemas import UserConfig
+    with open('sample-config.yaml', 'r', encoding='utf-8') as f:
+        config_data = yaml.safe_load(f)
+    
+    config = UserConfig(**config_data)
+    assert hasattr(config.extraction, "prompt_template")
+    assert hasattr(config.extraction, "fields")
+    assert len(config.extraction.fields) == 4
+    assert config.extraction.fields[0].name == "residents"
+    assert config.extraction.fields[0].type == "list[str]"
