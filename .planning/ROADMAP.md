@@ -14,7 +14,7 @@
 
 **Goal**: Generalize the first half of the pipeline (Passes 1 and 1.5) to use the new config-driven instructions instead of hardcoded rules.
 **Requirements**: EXT-01, EXT-02
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 **Success Criteria**:
 
 1. Pass 1 extracts metadata based exclusively on instructions from the configuration file.
@@ -23,7 +23,7 @@
 Plans:
 
 - [x] 02-01-PLAN.md — Extract metadata dynamically based on config
-- [ ] 02-02-PLAN.md — Refactor Pass 1.5 to use configured cleaning rules
+- [x] 02-02-PLAN.md — Refactor Pass 1.5 to use configured cleaning rules
 
 ## Phase 3: Organization Logic (Grouping & Routing)
 
