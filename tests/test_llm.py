@@ -71,3 +71,18 @@ def test_llm_exhaustion(mock_sleep):
         assert mock_gemini.call_count == 2
         mock_openrouter.assert_called_once()
         mock_groq.assert_called_once()
+
+def test_classify_page_direct_dynamic_schema():
+    from src.schemas import ConfigField
+    client = LLMClient("dummy")
+    fields = [ConfigField(name="custom_field", type="str", description="A custom string field")]
+    
+    with patch.object(client, "_route_llm_call") as mock_route:
+        # Will fail if classify_page_direct doesn't accept prompt_template and fields
+        client.classify_page_direct(b"dummy_bytes", None, prompt_template="Test prompt", fields=fields)
+        mock_route.assert_called_once()
+        kwargs = mock_route.call_args.kwargs
+        assert "Test prompt" in kwargs["contents"][0]
+        schema = kwargs["response_schema"]
+        assert schema.__name__ == "DynamicClassification"
+        assert "custom_field" in schema.model_fields
