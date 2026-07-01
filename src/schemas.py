@@ -84,3 +84,18 @@ class DateOutlierDetectionResult(BaseModel):
 class BulkSemanticMatchResult(BaseModel):
     """Schema for bulk semantic grouping."""
     groups: list[list[int]] = Field(description="List of groups, where each group is a list of page numbers that belong together.")
+
+class ConfigCategory(BaseModel):
+    id: str = Field(description="Category identifier mapping to Category enum")
+    name: str = Field(description="Display name or destination folder name")
+
+class ConfigExtraction(BaseModel):
+    prompt_rules: str = Field(description="Specific instructions for extracting data from documents")
+
+class ConfigRouting(BaseModel):
+    destination_format: str = Field(description="Format string for destination folders")
+
+class UserConfig(BaseModel):
+    categories: list[ConfigCategory] = Field(description="List of document categories")
+    extraction: ConfigExtraction = Field(description="Extraction instructions")
+    routing: ConfigRouting = Field(description="Routing and organization rules")
