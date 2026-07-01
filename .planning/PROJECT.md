@@ -1,51 +1,49 @@
-# File Categorizer
+# File Categorizer Generalization
+
+## What This Is
+
+A high-precision document processing pipeline that currently ingests housing-related PDFs and categorizes them. We are transforming it into a general-purpose, configuration-driven tool where users can provide their own instructions for AI extraction, cleaning, grouping, and folder organization via a config file.
 
 ## Core Value
-Categorizes files using LLMs.
 
-## Current Milestone: v1.2 Architecture Research & Classification
-
-**Goal:** Conduct research on document classification alternatives and evaluate options.
-
-**Target features:**
-- Explore Alternatives to LLM Classification
+Empower users to seamlessly categorize and organize any type of PDF by simply providing clear AI instructions and destination folders, without changing the underlying pipeline engine.
 
 ## Requirements
 
 ### Validated
 
-- ✓ Clean up, audit, and fix existing code — v1.1
-- ✓ Delete redundant code no longer using core logic — v1.1
-- ✓ Remove local model support — v1.1
-- ✓ Simplify API key loading and switching process — v1.1
-- ✓ Implement cloud-only fallback chain: Gemini -> OpenRouter -> Groq — v1.1
-- ✓ Add comprehensive tests and harden code — v1.1
-- ✓ Add Google style docstrings — v1.1
+- ✓ Multi-Pass Classification — Pass 1 (vision extraction), Pass 1.5 (audit/cleaning), Pass 2 (tenant/logical grouping), Pass 3 (organization/routing).
+- ✓ LLM Integration — Providers for Gemini, OpenRouter, Groq.
+- ✓ Automated PDF Segmentation — Splits large PDFs into categories.
 
 ### Active
 
-- [ ] ARCH-01: Conduct research on document classification alternatives (form vs letter vs picture).
-- [ ] ARCH-02: Research rule-based extraction approaches.
-- [ ] ARCH-03: Design processing logic based on document classification.
-- [ ] ARCH-04: Design grouping logic for multi-page documents.
+- [ ] Implement a user-provided configuration file (YAML/JSON) parser.
+- [ ] Migrate Pass 1 (Vision Extraction) to use config-defined metadata extraction instructions.
+- [ ] Migrate Pass 1.5 (Audit & Cleaning) to use config-defined global cleaning instructions.
+- [ ] Migrate Pass 2 (Grouping) to use config-defined grouping constraints.
+- [ ] Migrate Pass 3 (Organization) to map generated document groups to config-defined "Destination Folders".
+- [ ] Create a `sample-config.yaml` for users (e.g. replicating the tenant/real-estate structure).
+- [ ] Create a private config for local testing to ensure backward compatibility.
 
 ### Out of Scope
 
-- Local model execution.
+- [Changing the core pipeline implementation] — The engine (ingestion, 4 passes) must remain identical, only the instructions/rules are externalized.
 
 ## Context
 
-Shipped v1.1 with completely overhauled LLM architecture, transitioning exclusively to cloud APIs with a robust failover chain (Gemini -> OpenRouter -> Groq) via the Strategy Pattern. Extractor pipelines and configuration parsing have been hardened and modularized.
+The current tool was hardcoded for a very specific real estate/tenant use case. It is already fully functional, but users cannot bring their own categories or grouping logic. The codebase is fully mapped in `.planning/codebase/`.
 
-- Test suite passes 100% (22 integration/unit tests).
-- E2E cascade for LLM fallback validated.
-- Nyquist validation passing.
+## Constraints
+
+- **Compatibility**: Must not alter the underlying Python architecture/pipeline logic.
+- **Configuration**: Uses YAML/JSON for the config file.
 
 ## Key Decisions
-- **01-01-local-removal:** Removed all local LLM extraction and fallback logic. ✓ Good (Migrating purely to cloud APIs for stability and avoiding local model management overhead.)
-- **02-01-api-keys:** Centralized API key configuration with fail-fast validation and local quota tracking. ✓ Good (Prevent runtime crashes and monitor quota.)
-- **02-02-gap-closure:** Deferred environment variable checks to load_config(). ✓ Good (Ensures load_dotenv() runs before environment checks.)
-- **03-cloud-fallback:** Implemented provider cascade via Strategy Pattern. ✓ Good (Seamless failover from primary to fallback providers).
+
+| Decision | Rationale | Outcome |
+|----------|-----------|---------|
+| "Destination Folders" Terminology | Avoiding the term 'category' for user-defined buckets prevents conflict with the extracted 'category' metadata. | — Pending |
 
 ## Evolution
 
@@ -65,4 +63,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-06-29 after initializing v1.2 milestone*
+*Last updated: 2026-07-01 after initialization*
