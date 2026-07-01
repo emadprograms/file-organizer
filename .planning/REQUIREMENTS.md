@@ -1,22 +1,28 @@
 # Requirements
 
-## Milestone v1.2 Requirements
+## v1 Requirements
 
-### Architecture Research & Classification
-- [ ] **ARCH-01**: Conduct research on document classification alternatives (form vs letter vs picture).
-- [ ] **ARCH-02**: Research rule-based extraction approaches.
-- [ ] **ARCH-03**: Design processing logic based on document classification (e.g., OCR cleaning for letters/forms, direct routing for pictures).
-- [ ] **ARCH-04**: Design grouping logic for multi-page documents.
+### Configuration
+- [ ] **CONF-01**: Parse user-provided configuration file (YAML or JSON) to define the routing and instructions.
+- [ ] **CONF-02**: Provide a sample configuration file (`sample-config.yaml`) replicating the existing tenant structure.
+- [ ] **CONF-03**: Create a private local configuration for regression testing.
 
-## Future Requirements
-- Implement the classification and rule-based extraction into the core application.
-- Expand classification rules based on research findings.
+### Extraction & Cleaning
+- [ ] **EXT-01**: Update Pass 1 to use config-defined metadata extraction instructions.
+- [ ] **EXT-02**: Update Pass 1.5 to execute config-defined global cleaning and interpolation rules.
+
+### Grouping & Organization
+- [ ] **GRP-01**: Update Pass 2 to group pages based on config-defined boundary rules.
+- [ ] **ORG-01**: Update Pass 3 to route documents into user-defined "Destination Folders".
+
+## v2 Requirements
+
+(None)
 
 ## Out of Scope
-- Code modifications to the core app (this milestone is purely for research).
+
+- Changing the underlying Python pipeline architecture (ingestion, 4 passes) — Keep the engine the same, only externalize the rules.
 
 ## Traceability
-- ARCH-01: Phase 1
-- ARCH-02: Phase 2
-- ARCH-03: Phase 3
-- ARCH-04: Phase 3
+
+*(Populated during roadmap creation)*
