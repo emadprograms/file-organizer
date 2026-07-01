@@ -173,16 +173,14 @@ class FileOrganizer:
                 return new_name
             counter += 1
 
-    def organize(self, documents: list[DocumentGroup], source_pdf: str, output_base_dir: Path) -> dict[str, tuple[int, int]]:
+    def organize(self, documents: list[DocumentGroup], source_pdf: str, output_base_dir: Path, config: 'UserConfig') -> dict[str, tuple[int, int]]:
         """Organize the extracted documents into a structured directory hierarchy.
-        
-        Creates directories based on the house number, residents, and document categories,
-        and saves compressed PDF segments to their respective locations.
         
         Args:
             documents (list[DocumentGroup]): The grouped documents from the pipeline.
             source_pdf (str): Path to the source PDF.
             output_base_dir (Path): The root output directory.
+            config (UserConfig): User configuration containing routing rules.
             
         Returns:
             dict[str, tuple[int, int]]: A mapping of output file paths to their page ranges.
@@ -191,86 +189,76 @@ class FileOrganizer:
             logger.warning("⚠ No documents to organize. Exiting.")
             return {}
 
-        house_number = self._resolve_house_number(source_pdf)
-        house_dir = output_base_dir / house_number
-        
-        if house_dir.exists():
-            shutil.rmtree(house_dir)
-            
-        # Phase B - Create ALL directories
-        os.makedirs(house_dir, exist_ok=True)
-        
-        # Copy the original full PDF file for reference
-        try:
-            full_file_dest = house_dir / f"{house_number}.pdf"
-            compress_pdf(str(source_pdf), str(full_file_dest))
-            logger.info(f"  → Copied and compressed full original file to: {full_file_dest.name}")
-        except Exception as e:
-            logger.error(f"⚠ Could not copy original PDF: {e}")
-        
-        resident_order = self._build_resident_order(documents)
-        tenant_suffixes = self._compute_tenant_timelines(documents)
-        resident_folder_map: dict[str, Path] = {}
-        
-        for index, name in resident_order:
-            sanitized_name = utils.sanitize_filename(name)
-            suffix = tenant_suffixes.get(name, "")
-            sanitized_suffix = utils.sanitize_filename(suffix)
-            folder_name = f"{index}_{sanitized_name}{sanitized_suffix}"
-            
-            resident_dir = house_dir / folder_name
-            os.makedirs(resident_dir, exist_ok=True)
-            resident_folder_map[name] = resident_dir
-            
-        amar_takhsees_dir = house_dir / "أمر التخصيص لغير المقيمين"
-        house_letters_dir = house_dir / "رسائل عامة"
-
-        # Phase C - Write PDFs
-        summary: dict[str, tuple[int, int]] = {}
-        # directory path -> set of used names
-        used_names_per_dir: dict[str, set[str]] = defaultdict(set)
-        # tenant -> category -> counter
-        tenant_category_counters: dict[str, dict[Category, int]] = defaultdict(lambda: defaultdict(int))
-        
-        for doc in documents:
-            tenant = doc.primary_tenant
-            target_dir: Optional[Path] = None
-            is_global_amar = False
-            
-            # Check if this tenant is a verified resident (i.e. has a folder)
-            doc_resident_dir: Optional[Path] = None
-            if tenant and tenant.strip() and tenant.upper() not in ("UNKNOWN", "NONE"):
-                doc_resident_dir = resident_folder_map.get(tenant)
-            
-            if doc.category == Category.AMAR_TAKHSEES:
-                if doc_resident_dir:
-                    # Tenant is verified (has other documents), put in their personal amar_takhsees folder
-                    target_dir = doc_resident_dir / CATEGORY_FOLDERS[doc.category]
+        routing_cfg = config.routing
+        if routing_cfg.strategy == "python":
+            if not routing_cfg.script_path:
+                raise ValueError("Python routing strategy requires a script_path in config.")
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("routing_script", routing_cfg.script_path)
+            if spec and spec.loader:
+                routing_script = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(routing_script)
+                if hasattr(routing_script, "organize"):
+                    return routing_script.organize(documents, source_pdf, output_base_dir)
                 else:
-                    # Tenant never moved in (no other docs) or no tenant found, route to global amar takhsees folder
-                    target_dir = amar_takhsees_dir
-                    is_global_amar = True
-            elif not doc_resident_dir:
-                # No valid tenant found or tenant didn't qualify for a folder
-                if tenant and tenant.upper() == "UNKNOWN":
-                    target_dir = house_dir / "UNKNOWN"
-                else:
-                    target_dir = house_letters_dir
+                    raise ValueError("Python routing script must define an 'organize(documents, source_pdf, output_base_dir)' function.")
             else:
-                target_dir = doc_resident_dir / CATEGORY_FOLDERS[doc.category]
-
-            tenant_category_counters[tenant][doc.category] += 1
-            counter = tenant_category_counters[tenant][doc.category]
+                raise ValueError(f"Could not load python script: {routing_cfg.script_path}")
+        elif routing_cfg.strategy == "template":
+            summary: dict[str, tuple[int, int]] = {}
+            used_names_per_dir: dict[str, set[str]] = defaultdict(set)
             
-            filename = self._generate_pdf_name(doc, counter, used_names_per_dir[str(target_dir)], is_global_amar)
-            used_names_per_dir[str(target_dir)].add(filename)
-            
-            target_path = target_dir / filename
-            os.makedirs(target_dir, exist_ok=True)
-            extract_pdf_segment(str(source_pdf), doc.start_page, doc.end_page, str(target_path))
-            logger.info(f"  → {filename} (pages {doc.start_page}-{doc.end_page})")
-            
-            summary[str(target_path)] = (doc.start_page, doc.end_page)
-            
-        logger.info(f"✓ Generated {len(summary)} PDFs across {len(resident_order)} residents in {house_dir}")
-        return summary
+            for doc in documents:
+                tenant = doc.primary_tenant
+                if not tenant or tenant.strip().upper() in ("UNKNOWN", "NONE"):
+                    relative_dir = routing_cfg.fallback_folder
+                else:
+                    category_name = doc.category.name if hasattr(doc.category, 'name') else str(doc.category)
+                    date_val = doc.dates[0] if doc.dates and doc.dates[0] != "NONE" else "UNKNOWN_DATE"
+                    
+                    # Sanitize variables for path formatting
+                    sanitized_tenant = utils.sanitize_filename(tenant)
+                    
+                    try:
+                        relative_dir = routing_cfg.destination_format.format(
+                            primary_tenant=sanitized_tenant,
+                            category=category_name,
+                            date=date_val
+                        )
+                    except KeyError as e:
+                        logger.error(f"Missing key in destination_format: {e}")
+                        relative_dir = routing_cfg.fallback_folder
+                
+                target_dir = output_base_dir / relative_dir
+                os.makedirs(target_dir, exist_ok=True)
+                
+                # Generate a simple filename based on category, date, tenant
+                cat_str = doc.category.name.lower() if hasattr(doc.category, 'name') else str(doc.category).lower()
+                tenant_str = utils.sanitize_filename(tenant) if tenant and tenant.strip().upper() not in ("UNKNOWN", "NONE") else "unknown"
+                date_str = utils.normalize_date(doc.dates[0]) if doc.dates and doc.dates[0] != "NONE" else "nodate"
+                
+                base_name = utils.sanitize_filename(f"{date_str}_{cat_str}_{tenant_str}.pdf")
+                
+                if base_name not in used_names_per_dir[str(target_dir)]:
+                    filename = base_name
+                else:
+                    counter = 2
+                    name_without_ext = base_name[:-4] if base_name.endswith(".pdf") else base_name
+                    while True:
+                        new_name = f"{name_without_ext}_{counter}.pdf"
+                        if new_name not in used_names_per_dir[str(target_dir)]:
+                            filename = new_name
+                            break
+                        counter += 1
+                        
+                used_names_per_dir[str(target_dir)].add(filename)
+                target_path = target_dir / filename
+                
+                extract_pdf_segment(str(source_pdf), doc.start_page, doc.end_page, str(target_path))
+                logger.info(f"  → {filename} (pages {doc.start_page}-{doc.end_page})")
+                
+                summary[str(target_path)] = (doc.start_page, doc.end_page)
+                
+            return summary
+        else:
+            raise ValueError(f"Unknown routing strategy: {routing_cfg.strategy}")
