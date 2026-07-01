@@ -35,3 +35,8 @@ def test_user_config_loading_with_dynamic_fields():
     assert len(config.extraction.fields) == 4
     assert config.extraction.fields[0].name == "residents"
     assert config.extraction.fields[0].type == "list[str]"
+    assert config.grouping.strategy == "python"
+    assert config.grouping.script_path == "./scripts/sample-grouping.py"
+    assert config.routing.strategy == "python"
+    assert config.routing.fallback_folder == "UNKNOWN"
+    assert config.routing.script_path == "./scripts/sample-routing.py"

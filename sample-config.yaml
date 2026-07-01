@@ -42,7 +42,14 @@ extraction:
       type: "str"
       description: "A verbose, one-line 'full story' of the page content, e.g., 'This letter from Ministry of Housing is for Mohamed Ali regarding a request to build an additional room.' Do not be lazy; extract all key context."
 
+grouping:
+  strategy: "python"
+  script_path: "./scripts/sample-grouping.py"
+
 routing:
+  strategy: "python"
+  fallback_folder: "UNKNOWN"
+  script_path: "./scripts/sample-routing.py"
   destination_format: "{primary_tenant}/{category}"
 
 cleaning:

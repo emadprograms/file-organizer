@@ -98,7 +98,15 @@ class ConfigExtraction(BaseModel):
     prompt_template: str = Field(description="Specific instructions for extracting data from documents")
     fields: list[ConfigField] = Field(description="Fields to extract")
 
+class ConfigGrouping(BaseModel):
+    strategy: str = Field(default="declarative", description="Grouping strategy to use ('declarative' or 'python')")
+    group_by: list[str] | None = Field(default=None, description="Fields to group by if strategy is 'declarative'")
+    script_path: str | None = Field(default=None, description="Path to python script if strategy is 'python'")
+
 class ConfigRouting(BaseModel):
+    strategy: str = Field(default="template", description="Routing strategy to use ('template' or 'python')")
+    fallback_folder: str = Field(default="UNKNOWN", description="Fallback folder if resident is NONE")
+    script_path: str | None = Field(default=None, description="Path to python script if strategy is 'python'")
     destination_format: str = Field(description="Format string for destination folders")
 
 class ConfigCleaning(BaseModel):
@@ -111,4 +119,5 @@ class UserConfig(BaseModel):
     categories: list[ConfigCategory] = Field(description="List of document categories")
     extraction: ConfigExtraction = Field(description="Extraction instructions")
     cleaning: ConfigCleaning = Field(description="Cleaning strategy and rules")
+    grouping: ConfigGrouping = Field(description="Grouping constraints and strategies")
     routing: ConfigRouting = Field(description="Routing and organization rules")
