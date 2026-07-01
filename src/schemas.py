@@ -89,8 +89,14 @@ class ConfigCategory(BaseModel):
     id: str = Field(description="Category identifier mapping to Category enum")
     name: str = Field(description="Display name or destination folder name")
 
+class ConfigField(BaseModel):
+    name: str = Field(description="Name of the field to extract")
+    type: str = Field(description="Type of the field (e.g., str, list[str])")
+    description: str = Field(description="Description of the field for the LLM")
+
 class ConfigExtraction(BaseModel):
-    prompt_rules: str = Field(description="Specific instructions for extracting data from documents")
+    prompt_template: str = Field(description="Specific instructions for extracting data from documents")
+    fields: list[ConfigField] = Field(description="Fields to extract")
 
 class ConfigRouting(BaseModel):
     destination_format: str = Field(description="Format string for destination folders")
