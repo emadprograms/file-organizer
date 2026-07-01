@@ -118,7 +118,7 @@ class Pipeline:
 
         logger.info(f"Starting Pass 2 (Tenant Grouping) for {pdf_path}...")
         
-        documents = self._group_pages_into_documents(raw_pages, canonical_mapping_clean)
+        documents = self._group_pages_into_documents(raw_pages, config)
         
         logger.info(f"Identified {len(documents)} document groups based on timeline logic.")
         return documents
@@ -423,116 +423,75 @@ class Pipeline:
         raw_pages.extend(new_raw_pages)
         return {}
 
-    def _group_pages_into_documents(self, raw_pages: list[tuple[int, PageClassification]], canonical_mapping_clean: dict[str, str]) -> list[DocumentGroup]:
+    def _group_pages_into_documents(self, raw_pages: list[tuple[int, PageClassification]], config: 'UserConfig') -> list[DocumentGroup]:
         """Group classified pages into cohesive document blocks.
         
         Args:
             raw_pages (list[tuple[int, PageClassification]]): The sequence of classified pages.
-            canonical_mapping_clean (dict[str, str]): The mapping of canonical names.
+            config (UserConfig): User configuration containing grouping strategy.
             
         Returns:
             list[DocumentGroup]: The final grouped documents.
         """
-        documents: list[DocumentGroup] = []
-        
-        # 1. Pre-group by Category AND Primary Tenant (The "Category & Tenant Wall")
-        blocks = []
-        if raw_pages:
-            current_block = [raw_pages[0]]
-            def get_sig(p):
-                """Generate a signature for a page to determine block grouping.
-                
-                Args:
-                    p (PageClassification): The classified page.
-                    
-                Returns:
-                    tuple: A tuple containing the category and primary resident.
-                """
-                return (p.category, p.residents[0] if p.residents else "NONE")
-            
-            current_sig = get_sig(raw_pages[0][1])
-            for item in raw_pages[1:]:
-                sig = get_sig(item[1])
-                if sig == current_sig:
-                    current_block.append(item)
+        grouping_cfg = config.grouping
+        if grouping_cfg.strategy == "python":
+            if not grouping_cfg.script_path:
+                raise ValueError("Python strategy requires a script_path in config.")
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("grouping_script", grouping_cfg.script_path)
+            if spec and spec.loader:
+                grouping_script = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(grouping_script)
+                if hasattr(grouping_script, "group_pages"):
+                    return grouping_script.group_pages(raw_pages, client=self.client)
                 else:
-                    blocks.append(current_block)
-                    current_block = [item]
-                    current_sig = sig
-            if current_block:
-                blocks.append(current_block)
-
-        all_groups = [] # list of lists of (p_idx, p)
-        chunk_size = 25
-        
-        for block in blocks:
-            if len(block) == 1:
-                all_groups.append([block[0]])
-                continue
+                    raise ValueError("Python grouping script must define a 'group_pages(raw_pages, client)' function.")
+            else:
+                raise ValueError(f"Could not load python script: {grouping_cfg.script_path}")
+        elif grouping_cfg.strategy == "declarative":
+            group_by_fields = grouping_cfg.group_by or ["category", "residents"]
+            documents: list[DocumentGroup] = []
+            if not raw_pages:
+                return documents
                 
-            block_groups: list[list[tuple[int, PageClassification]]] = [] # list of lists of (p_idx, p)
-            for i in range(0, len(block), chunk_size):
-                # Overlapping sliding window
-                start_idx = max(0, i - 2) if i > 0 else 0
-                chunk = block[start_idx:i+chunk_size]
+            current_group = [raw_pages[0]]
+            def get_group_key(p: PageClassification):
+                key = []
+                for field in group_by_fields:
+                    val = getattr(p, field, None)
+                    if isinstance(val, list):
+                        val = tuple(val)
+                    key.append(val)
+                return tuple(key)
                 
-                pages_data = []
-                for p_idx, p in chunk:
-                    names_str = p.residents[0] if p.residents else "NONE"
-                    summary_str = p.summary
-                    pages_data.append([p_idx, names_str, summary_str])
+            current_key = get_group_key(raw_pages[0][1])
+            
+            def finish_group(group):
+                group.sort(key=lambda x: x[0])
+                start_page = group[0][0]
+                end_page = group[-1][0]
+                primary_tenant = group[0][1].residents[0] if group[0][1].residents else "NONE"
+                category = group[0][1].category
+                dates = [p.date for p_idx, p in group if p.date != "NONE"]
+                documents.append(DocumentGroup(
+                    start_page=start_page,
+                    end_page=end_page,
+                    primary_tenant=primary_tenant,
+                    category=category,
+                    dates=dates
+                ))
+            
+            for item in raw_pages[1:]:
+                key = get_group_key(item[1])
+                if key == current_key:
+                    current_group.append(item)
+                else:
+                    finish_group(current_group)
+                    current_group = [item]
+                    current_key = key
+            if current_group:
+                finish_group(current_group)
                 
-                result = self.client.check_bulk_semantic_grouping(pages_data)
-                
-                # Match LLM result groups back to our (p_idx, p) objects based on their order in the chunk
-                for new_g_indices in result.groups:
-                    if not new_g_indices: continue
-                    # Build a list of actual items for this new group
-                    new_g_items = []
-                    for expected_idx in new_g_indices:
-                        for item in chunk:
-                            if item[0] == expected_idx and item not in new_g_items:
-                                new_g_items.append(item)
-                                break
-                                
-                    if not new_g_items: continue
-                    
-                    shared = False
-                    for existing_g in block_groups:
-                        # Check intersection by identity
-                        if any(x in existing_g for x in new_g_items):
-                            for x in new_g_items:
-                                if x not in existing_g:
-                                    existing_g.append(x)
-                            # Sort by p_idx
-                            existing_g.sort(key=lambda x: x[0])
-                            shared = True
-                            break
-                    if not shared:
-                        new_g_items.sort(key=lambda x: x[0])
-                        block_groups.append(new_g_items)
-                        
-            all_groups.extend(block_groups)
-            
-        for group in all_groups:
-            if not group: continue
-            # group is a list of (p_idx, p)
-            group.sort(key=lambda x: x[0])
-            start_page = group[0][0]
-            end_page = group[-1][0]
-            
-            primary_tenant = group[0][1].residents[0] if group[0][1].residents else "NONE"
-            category = group[0][1].category
-            dates = [p.date for p_idx, p in group if p.date != "NONE"]
-            
-            documents.append(DocumentGroup(
-                start_page=start_page,
-                end_page=end_page,
-                primary_tenant=primary_tenant,
-                category=category,
-                dates=dates
-            ))
-            
-        return documents
-            
-        return documents
+            return documents
+        else:
+            raise ValueError(f"Unknown grouping strategy: {grouping_cfg.strategy}")
