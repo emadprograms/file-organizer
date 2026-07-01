@@ -25,4 +25,7 @@
 
 ## Traceability
 
-*(Populated during roadmap creation)*
+- **Phase 1: Configuration Infrastructure**: CONF-01, CONF-02, CONF-03
+- **Phase 2: Pipeline Adaptation**: EXT-01, EXT-02
+- **Phase 3: Organization Logic**: GRP-01, ORG-01
+

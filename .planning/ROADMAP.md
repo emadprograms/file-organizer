@@ -1,34 +1,23 @@
-# Project Roadmap
+# Roadmap
 
-## Milestones
+## Phase 1: Configuration Infrastructure
+**Goal**: Build the core capability to parse and validate user-provided YAML/JSON configuration files.
+**Requirements**: CONF-01, CONF-02, CONF-03
+**Success Criteria**:
+1. Tool can read and parse a user-provided `config.yaml` or `config.json`.
+2. A valid `sample-config.yaml` replicating the existing hardcoded tenant logic is provided.
+3. Private test configuration works seamlessly for regression testing.
 
-- 🔄 **v1.2 Architecture Research & Classification** — Active
-- ✅ **v1.1 Tech Debt & Cloud Migration** — Phases 01-05 (shipped 2026-06-28)
+## Phase 2: Pipeline Adaptation (Extraction & Cleaning)
+**Goal**: Generalize the first half of the pipeline (Passes 1 and 1.5) to use the new config-driven instructions instead of hardcoded rules.
+**Requirements**: EXT-01, EXT-02
+**Success Criteria**:
+1. Pass 1 extracts metadata based exclusively on instructions from the configuration file.
+2. Pass 1.5 executes cleaning and interpolation logic dynamically based on config rules.
 
-## Phases
-
-### 🔄 v1.2 Architecture Research & Classification (Active)
-
-- [ ] Phase 01: Explore Alternatives to LLM Classification
-  - Goal: Conduct research on document classification alternatives.
-  - Requirements: ARCH-01, ARCH-02, ARCH-03, ARCH-04
-  - Success criteria:
-    1. Architecture research complete and documented.
-    2. Feasibility of rule-based vs ML classification evaluated.
-
-<details>
-<summary>✅ v1.1 Tech Debt & Cloud Migration (Phases 01-05) — SHIPPED 2026-06-28</summary>
-
-- [x] Phase 01: Cleanup
-- [x] Phase 02: Key Mgmt
-- [x] Phase 03: Cloud Fallback
-- [x] Phase 04: Audit & Fix
-- [x] Phase 04.1: Refactor Core Modules
-- [x] Phase 04.1.1: Code Documentation
-- [x] Phase 05: Testing
-
-</details>
-
-## Backlog
-
-*(Empty)*
+## Phase 3: Organization Logic (Grouping & Routing)
+**Goal**: Generalize the second half of the pipeline (Passes 2 and 3) to group and route documents based on the config.
+**Requirements**: GRP-01, ORG-01
+**Success Criteria**:
+1. Pass 2 respects user-defined boundary constraints for grouping pages into documents.
+2. Pass 3 routes grouped documents into "Destination Folders" exactly as specified in the configuration.
