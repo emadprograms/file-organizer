@@ -6,10 +6,10 @@ This module acts as the core orchestrator. It manages the two-pass architecture:
 3. Pass 2: Grouping pages logically into cohesive document segments based on category, tenant, and date timelines.
 """
 from typing import Optional, Any
-import json
 import os
 import threading
 import sys
+import yaml
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.ingest import PdfIngestor
@@ -34,7 +34,7 @@ class Pipeline:
         self.ingestor = PdfIngestor()
         self.client = LLMClient(api_key, delay_between_pages)
 
-    def process_pdf(self, pdf_path: str) -> list[DocumentGroup]:
+    def process_pdf(self, pdf_path: str, config_path: str = "sample-config.yaml") -> list[DocumentGroup]:
         """Process a PDF through the multi-pass categorization pipeline.
         
         Two-pass architecture:
@@ -54,6 +54,11 @@ class Pipeline:
         """
         logger.info(f"Starting Pass 1 (Vision Extraction) for {pdf_path}...")
         
+        from src.schemas import UserConfig
+        config_file = os.getenv("CONFIG_PATH", config_path)
+        with open(config_file, "r", encoding="utf-8") as f:
+            config = UserConfig(**yaml.safe_load(f))
+
         # Initialize Caches
         pages_cache = SimpleCache(f"{pdf_path}.cache.json")
         
@@ -87,7 +92,12 @@ class Pipeline:
             
             for p_idx, i_bytes in pages_to_process:
                 extracted_footer = vision_extractor.extract_footer(p_idx, i_bytes)
-                res = cloud_extractor.extract(p_idx, i_bytes, extracted_footer)
+                res_dynamic = cloud_extractor.extract(p_idx, i_bytes, extracted_footer, config.extraction.prompt_template, config.extraction.fields)
+                
+                # Backwards compatibility for Pass 1.5
+                res_dict = res_dynamic.model_dump()
+                res = PageClassification(**res_dict)
+                
                 raw_pages.append((p_idx, res))
             
             raw_pages.sort(key=lambda x: x[0])

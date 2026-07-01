@@ -317,17 +317,36 @@ SPECIAL RULES:
 Return a JSON object with: residents (list of strings), category, date, and summary (string)."""
 
 
-    def classify_page_direct(self, image_bytes: bytes, extracted_footer: Optional[str] = None) -> PageClassification:
+    def classify_page_direct(self, image_bytes: bytes, extracted_footer: Optional[str], prompt_template: str, fields: list) -> Any:
         """Classify a document page using the LLM based on its image content.
         
         Args:
             image_bytes (bytes): PNG image data of the page.
             extracted_footer (Optional[str]): Text previously OCR'd from the footer.
+            prompt_template (str): The instructions for extraction.
+            fields (list): The list of ConfigField objects.
             
         Returns:
-            PageClassification: The classification result.
+            Any: The classification result (dynamic model).
         """
-        system_prompt = self._build_system_prompt()
+        from pydantic import create_model, Field
+        from typing import Any
+        
+        type_mapping = {
+            "str": str,
+            "list[str]": list[str],
+            "int": int,
+            "bool": bool
+        }
+        
+        model_fields = {}
+        for f in fields:
+            t = type_mapping.get(f.type, Any)
+            model_fields[f.name] = (t, Field(description=f.description))
+            
+        DynamicSchema = create_model('DynamicClassification', **model_fields)
+
+        system_prompt = prompt_template
         user_prompt = "Classify this scanned document page."
         if extracted_footer:
             user_prompt += f"\n\nExtracted Footer Text: {extracted_footer}"
@@ -342,7 +361,7 @@ Return a JSON object with: residents (list of strings), category, date, and summ
         result = self._route_llm_call(
             model=GEMINI_MODEL,
             contents=contents,
-            response_schema=PageClassification,
+            response_schema=DynamicSchema,
             log_prefix="DirectCloud",
             max_attempts=attempts
         )

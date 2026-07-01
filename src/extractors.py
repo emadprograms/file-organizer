@@ -6,7 +6,7 @@ the CloudExtractor for LLM-based page classification.
 import sys
 import logging
 import threading
-from typing import Optional
+from typing import Optional, Any
 
 from src.schemas import PageClassification, Category
 from src.cache import SimpleCache
@@ -74,7 +74,7 @@ class CloudExtractor:
         self.client = client
         self.cache_lock = threading.Lock()
 
-    def extract(self, page_index: int, image_bytes: bytes, extracted_footer: Optional[str]) -> PageClassification:
+    def extract(self, page_index: int, image_bytes: bytes, extracted_footer: Optional[str], prompt_template: str, fields: list) -> Any:
         """Classify a single document page using the LLM.
         
         Skips LLM invocation for pages that are clearly blank based on image size.
@@ -90,11 +90,21 @@ class CloudExtractor:
         """
         if len(image_bytes) < 15000:
             logger.info(f" Page {page_index} is blank (size {len(image_bytes)} bytes). Skipping LLM.")
-            res = PageClassification(category=Category.OTHER_LETTERS, residents=["NONE"], date="NONE", summary="Blank page.")
+            from pydantic import create_model, Field
+            from typing import Any
+            type_mapping = {"str": str, "list[str]": list[str], "int": int, "bool": bool}
+            model_fields = {}
+            fallback_values = {}
+            for f in fields:
+                t = type_mapping.get(f.type, Any)
+                model_fields[f.name] = (t, Field(description=f.description))
+                fallback_values[f.name] = ["NONE"] if f.type == "list[str]" else "NONE"
+            DynamicSchema = create_model('DynamicClassification', **model_fields)
+            res = DynamicSchema(**fallback_values)
         else:
             logger.info(f" Classifying Page {page_index} directly using Cloud Model...")
-            res = self.client.classify_page_direct(image_bytes, extracted_footer)
-            msg = f" Cloud Extracted Page {page_index}: {res.category.value} | {res.residents} | {res.date} | Sum: {str(res.summary)}"
+            res = self.client.classify_page_direct(image_bytes, extracted_footer, prompt_template, fields)
+            msg = f" Cloud Extracted Page {page_index}: {res.model_dump()}"
             logger.info(msg)
             
         with self.cache_lock:
