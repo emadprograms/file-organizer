@@ -106,11 +106,7 @@ class Pipeline:
             raise RuntimeError(f"CRITICAL: Expected {total_expected_pages} pages, but only recovered {len(raw_pages)}. Aborting Pass 1.5 to prevent data loss.")
 
         logger.info(f"--- Starting Pass 1.5 Audit for {pdf_path} ---")
-        logger.info(f"Starting Pass 1.5 (Date Cleaning & Interpolation) for {pdf_path}...")
-        self._interpolate_dates(raw_pages)
-
-        logger.info(f"Starting Pass 1.5 (Dependent Alias Mapping) for {pdf_path}...")
-        canonical_mapping_clean = self._map_aliases(raw_pages)
+        canonical_mapping_clean = self._run_cleaning_pass(raw_pages, config)
         logger.info(f"--- Pass 1.5 Completed for {pdf_path} ---")
         
         logger.info(f"\n--- Final Page State After Pass 1.5 for {pdf_path} ---")
@@ -126,6 +122,75 @@ class Pipeline:
         
         logger.info(f"Identified {len(documents)} document groups based on timeline logic.")
         return documents
+
+    def _run_cleaning_pass(self, raw_pages: list[tuple[int, PageClassification]], config: 'UserConfig') -> dict[str, str]:
+        """Dynamically run the cleaning pass based on user configuration.
+        
+        Args:
+            raw_pages: The sequence of classified pages.
+            config: User configuration containing cleaning strategy.
+            
+        Returns:
+            dict[str, str]: Canonical mapping (empty by default for new architecture).
+        """
+        cleaning_cfg = config.cleaning
+        if cleaning_cfg.strategy == "python":
+            if not cleaning_cfg.script_path:
+                raise ValueError("Python strategy requires a script_path in config.")
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("cleaning_script", cleaning_cfg.script_path)
+            if spec and spec.loader:
+                cleaning_script = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(cleaning_script)
+                if hasattr(cleaning_script, "clean_pages"):
+                    return cleaning_script.clean_pages(raw_pages)
+                else:
+                    raise ValueError("Python cleaning script must define a 'clean_pages(raw_pages)' function.")
+            else:
+                raise ValueError(f"Could not load python script: {cleaning_cfg.script_path}")
+        elif cleaning_cfg.strategy == "llm":
+            if not cleaning_cfg.prompt_template:
+                raise ValueError("LLM strategy requires a prompt_template in config.")
+            
+            # Send raw_pages to LLM
+            pages_data = [{"page_index": idx, "data": p.model_dump()} for idx, p in raw_pages]
+            import json
+            user_prompt = f"Pages data:\n{json.dumps(pages_data, ensure_ascii=False, indent=2)}\n\nPlease return the cleaned pages in the same format."
+            
+            from pydantic import BaseModel
+            class CleanedPage(BaseModel):
+                page_index: int
+                residents: list[str]
+                category: str
+                date: str
+                summary: str
+                
+            class CleanedPagesResult(BaseModel):
+                pages: list[CleanedPage]
+                
+            from src.config import GEMINI_MODEL
+            result = self.client._route_llm_call(
+                model=GEMINI_MODEL,
+                contents=[cleaning_cfg.prompt_template, user_prompt],
+                response_schema=CleanedPagesResult,
+                log_prefix="CleaningPass"
+            )
+            
+            # Update raw_pages in-place
+            cleaned_map = {p.page_index: p for p in result.pages}
+            for idx, p in raw_pages:
+                if idx in cleaned_map:
+                    cp = cleaned_map[idx]
+                    p.residents = cp.residents
+                    try:
+                        p.category = Category(cp.category)
+                    except ValueError:
+                        pass
+                    p.date = cp.date
+                    p.summary = cp.summary
+            return {}
+        else:
+            raise ValueError(f"Unknown cleaning strategy: {cleaning_cfg.strategy}")
 
     def _interpolate_dates(self, raw_pages: list[tuple[int, PageClassification]]):
         """Interpolate missing dates and handle chronological outliers.

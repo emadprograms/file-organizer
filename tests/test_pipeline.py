@@ -41,8 +41,7 @@ def test_pipeline_cache_hit(tmp_path):
     
     with patch("src.extractors.VisionExtractor.extract_footer") as mock_vision, \
          patch("src.extractors.CloudExtractor.extract") as mock_cloud, \
-         patch("src.pipeline.Pipeline._interpolate_dates"), \
-         patch("src.pipeline.Pipeline._map_aliases", return_value={}), \
+         patch("src.pipeline.Pipeline._run_cleaning_pass", return_value={}), \
          patch("src.pipeline.Pipeline._group_pages_into_documents", return_value=[]):
         
         pipeline.process_pdf(str(pdf_path))
