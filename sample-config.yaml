@@ -1,0 +1,33 @@
+categories:
+  - id: BASIC_DETAILS
+    name: "Basic Details Form"
+  - id: PERSONAL_DETAILS
+    name: "Personal Identification"
+  - id: AMAR_TAKHSEES
+    name: "Allocation Order"
+  - id: KEY_HANDOVER
+    name: "Key Handover Certificate"
+  - id: CONTRACT
+    name: "Housing Contract"
+  - id: EWA_LETTERS
+    name: "Electricity and Water"
+  - id: RENT_DEDUCTION
+    name: "Rent Deduction Notice"
+  - id: ALLOWANCE_DEDUCTION
+    name: "Allowance Deduction Notice"
+  - id: NOTIFICATIONS
+    name: "General Notifications"
+  - id: MAINTENANCE
+    name: "Maintenance Records"
+  - id: INSPECTION_PICTURES
+    name: "Inspection and Pictures"
+  - id: MODIFICATIONS
+    name: "Property Modifications"
+  - id: OTHER_LETTERS
+    name: "Miscellaneous Letters"
+
+extraction:
+  prompt_rules: "Extract residents, categories, and dates. Dates should be in YYYY-MM-DD format."
+
+routing:
+  destination_format: "{primary_tenant}/{category}"

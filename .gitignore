@@ -39,3 +39,6 @@ telemetry.log
 
 # Tesseract
 tessdata/
+
+config.yaml
+test-config.yaml
