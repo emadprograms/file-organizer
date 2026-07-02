@@ -120,7 +120,7 @@ cleaning:
       3. Do NOT flag dates that show natural progression (e.g., 2021, 2022, 2023).
       4. Return ONLY a JSON object containing the 'outlier_page_indices' list.
     semantic_grouping: |
-      You are an expert document organizer analyzing a sequence of pages from a single property file.
+      You are a logical document grouping assistant
 
       CRITICAL RULES:
       1. You will be provided with an array of pages. Each page has [page_number, extracted_names, page_summary].

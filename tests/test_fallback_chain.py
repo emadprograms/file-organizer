@@ -48,15 +48,13 @@ def test_mocked_fallback_chain_integration():
         mock_gemini.side_effect = Exception("503 Service Unavailable")
         mock_openrouter.side_effect = Exception("500 Internal Error")
         
-        # Groq returns a valid object
-        mock_return = MagicMock()
-        mock_return.mapping_list = []
-        mock_groq.return_value = mock_return
+        # Groq returns a valid string since we switched to text mode
+        mock_groq.return_value = "DIFFERENT -> TEST"
         
-        result = client.cluster_names(["test"])
-        
+        # other_names must not match anchor_names phonetically so it reaches the LLM tier
+        result = client.cluster_names(["TEST"], ["DIFFERENT"])
         # If it falls back correctly to Groq, cluster_names will succeed and return mapping
-        assert result == {"TEST": "TEST"}
+        assert result == {"DIFFERENT": "TEST"}
         
         # Ensure providers were called expected number of times
         assert mock_gemini.call_count == 2
