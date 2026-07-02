@@ -86,6 +86,7 @@ def compress_pdf(input_path: str, output_path: str):
                 try:
                     base_image = doc.extract_image(xref)
                     image_bytes = base_image["image"]
+                    Image.MAX_IMAGE_PIXELS = 100_000_000  # Prevent DecompressionBomb DoS
                     pil_img = Image.open(io.BytesIO(image_bytes))
                     if pil_img.mode in ("RGBA", "P", "CMYK", "LA", "1", "L"):
                         pil_img = pil_img.convert("RGB")  # type: ignore
@@ -99,8 +100,8 @@ def compress_pdf(input_path: str, output_path: str):
                     new_image_bytes = out.getvalue()
                     if len(new_image_bytes) < len(image_bytes):
                         page.replace_image(xref, stream=new_image_bytes)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Skipping image compression: {e}")
         doc.save(temp_output_path, garbage=4, deflate=True)
         doc.close()
         
