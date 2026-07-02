@@ -95,7 +95,8 @@ def group_pages(raw_pages, client=None) -> list[DocumentGroup]:
         start_page = group[0][0]
         end_page = group[-1][0]
         
-        primary_tenant = group[0][1].residents[0] if group[0][1].residents else "NONE"
+        primary_tenant = group[0][1].residents[0] if group[0][1].residents else "UNKNOWN"
+            
         category = group[0][1].category
         dates = [p.date for p_idx, p in group if p.date != "NONE"]
         

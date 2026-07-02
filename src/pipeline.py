@@ -287,16 +287,20 @@ class Pipeline:
         ANCHOR_CATEGORIES = {Category.BASIC_DETAILS, Category.CONTRACT, Category.RENT_DEDUCTION}
         
         # 0. Semantic Name Clustering
-        unique_names = set()
+        anchor_names = set()
+        other_names = set()
         for _, page in raw_pages:
             for r in page.residents:
                 clean_r = r.upper().strip()
                 if clean_r and clean_r not in ("NONE", "UNKNOWN", ""):
-                    unique_names.add(clean_r)
-                    
-        logger.info(f"  [Pass 1.5] Clustering {len(unique_names)} unique names using LLM...")
-        if unique_names:
-            canonical_map = self.client.cluster_names(list(unique_names))
+                    if page.category in ANCHOR_CATEGORIES:
+                        anchor_names.add(clean_r)
+                    else:
+                        other_names.add(clean_r)
+                        
+        logger.info(f"  [Pass 1.5] Clustering {len(other_names)} other names against {len(anchor_names)} anchor names using LLM...")
+        if anchor_names and other_names:
+            canonical_map = self.client.cluster_names(list(anchor_names), list(other_names))
             for p_idx, page in raw_pages:
                 new_residents = []
                 for r in page.residents:

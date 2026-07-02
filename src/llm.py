@@ -82,7 +82,7 @@ class LLMClient:
         """Activate a long sleep to recover from severe rate limits (e.g., 429)."""
         time.sleep(65)
 
-    def _route_llm_call(self, model: str, contents: list, response_schema: type, log_prefix: str = "Retry", max_attempts: Optional[int] = None) -> Any:
+    def _route_llm_call(self, model: str, contents: list, response_schema: type | None = None, log_prefix: str = "Retry", max_attempts: Optional[int] = None) -> Any:
         """Route an LLM call through configured providers with failover.
         
         Attempts to call the primary provider and falls back to secondary
@@ -138,9 +138,9 @@ class LLMClient:
                 )
                 
                 try:
-                    response_parsed = future.result(timeout=90)
+                    response_parsed = future.result(timeout=300)
                 except concurrent.futures.TimeoutError:
-                    raise TimeoutError("LLM API call hung and timed out after 90 seconds.")
+                    raise TimeoutError("LLM API call hung and timed out after 5 minutes.")
                 finally:
                     executor.shutdown(wait=False)
 
@@ -205,66 +205,90 @@ class LLMClient:
 
         raise RuntimeError("LLM routing failed across all providers")
 
-    def cluster_names(self, unique_names: list[str]) -> dict[str, str]:
-        """Group unique names into canonical identities using an LLM.
+    def cluster_names(self, anchor_names: list[str], other_names: list[str]) -> dict[str, str]:
+        """Group other names into anchor names using a Two-Tier Hybrid approach.
         
-        Asks the LLM to resolve variations, misspellings, or abbreviations of names
-        found within a single property file to a single 'canonical' identity.
-        
-        Args:
-            unique_names (list[str]): List of unique raw names to cluster.
-            
-        Returns:
-            dict[str, str]: A mapping of uppercase raw names to canonical names.
+        Tier 1: Fast local string matching (thefuzz) to collapse severe OCR typos into anchors.
+        Tier 2: LLM (Plain Text mode) to link the remaining other names to anchors.
         """
-        if not unique_names:
+        if not anchor_names or not other_names:
             return {}
             
-        system_prompt = "You are an expert at resolving Arabic and English name variations. Your task is to map multiple variations, misspellings, or abbreviations of the same name to a single 'canonical' identity. CRITICAL: These names all come from a SINGLE property file, so highly similar names are almost certainly severe OCR typos of the exact same person, NOT different people."
-        
-        import json
-        user_prompt = f"""Given the following list of unique names extracted from a single property file, some are variations or severe OCR misspellings of the exact same person.
-        
-List of names:
-{json.dumps(unique_names, ensure_ascii=False)}
+        # Tier 1: Fast Phonetic Clustering against anchor names
+        import difflib
+        try:
+            from thefuzz import fuzz
+        except ImportError:
+            fuzz = None
 
-CRITICAL INSTRUCTIONS:
-1. Aggressively group names that sound similar or look similar in Arabic script (e.g. common dot-errors like بدر and بير, or عبيد and عبد).
-2. Because they belong to the same property file, assume they are the same person unless the names are completely and fundamentally different.
-3. Group the names that refer to the same person and pick the most complete, correctly spelled version as the 'canonical_name'.
-4. For any name that does not have variations, map it to itself.
-Return the mapping_list with each original raw_name and its resolved canonical_name.
-"""
-        from src.schemas import EntityResolutionMapping
+        final_mapping = {}
+        unmatched_other_names = []
         
-        contents = [
-            system_prompt,
-            user_prompt
-        ]
+        for other in other_names:
+            matched_anchor = None
+            if fuzz:
+                for anchor in anchor_names:
+                    # token_set_ratio is highly resilient to word reordering and partial OCR loss
+                    if fuzz.token_set_ratio(other, anchor) > 85:
+                        matched_anchor = anchor
+                        break
+            else:
+                matches = difflib.get_close_matches(other, anchor_names, n=1, cutoff=0.85)
+                if matches:
+                    matched_anchor = matches[0]
+                    
+            if matched_anchor:
+                final_mapping[other] = matched_anchor
+            else:
+                unmatched_other_names.append(other)
+
+        log.info(f"Tier 1 (Local) matched {len(final_mapping)} names directly to anchors. {len(unmatched_other_names)} remaining for LLM.")
+        
+        if not unmatched_other_names:
+            return final_mapping
+
+        # Tier 2: LLM Cross-Lingual Linking
+        log.info(f"Tier 2 (LLM) matching {len(unmatched_other_names)} names to anchors (Plain Text mode)...")
+        
+        system_prompt = (
+            "You are an expert at entity resolution for Bahrain housing documents.\n"
+            "You will be given a list of 'Official Anchor Names' and a list of 'Other Names' (which include severe OCR typos and variations in both Arabic and English).\n"
+            "Your task is to match each 'Other Name' to its correct 'Official Anchor Name'.\n"
+            "CRITICAL RULES:\n"
+            "1. Link English names to their Arabic counterparts if they represent the same person.\n"
+            "2. If an 'Other Name' clearly refers to a completely different person (e.g. an inspector), match it to 'NONE'.\n"
+            "3. Output YOUR RESPONSE EXACTLY as a list of mappings in plain text format:\n"
+            "Other Name -> Official Anchor Name\n\n"
+            "Example Output:\n"
+            "YOUNIS MOHD. MAYAN -> YOUNIS MOHAMMED MALIK\n"
+            "يونس محمد -> YOUNIS MOHAMMED MALIK\n"
+            "ALI HASSAN -> NONE\n\n"
+            "DO NOT output JSON. DO NOT output anything else except the mappings."
+        )
+        
+        user_prompt = "Official Anchor Names:\n" + "\n".join(f"- {n}" for n in anchor_names) + "\n\nOther Names:\n" + "\n".join(f"- {n}" for n in unmatched_other_names)
         
         try:
-            result = self._route_llm_call(
+            result_text = self._route_llm_call(
                 model=GEMINI_MODEL,
-                contents=contents,
-                response_schema=EntityResolutionMapping,
-                log_prefix="Name Clustering",
-                max_attempts=3
+                contents=[system_prompt, user_prompt],
+                response_schema=None,
+                log_prefix="NameClusteringText"
             )
-        except Exception as e:
-            log.info(f"[Name Clustering] Failed to cluster names using LLM: {e}")
-            result = None
             
-        # Fallback to self-mapping
-        mapping = {n.upper().strip(): n.upper().strip() for n in unique_names}
-        
-        if result and hasattr(result, "mapping_list"): # type: ignore
-            for item in result.mapping_list:
-                raw = item.raw_name.upper().strip()
-                canonical = item.canonical_name.upper().strip()
-                if raw in mapping:
-                    mapping[raw] = canonical
-                    
-        return mapping
+            for line in result_text.splitlines():
+                if "->" in line:
+                    parts = line.split("->")
+                    raw = parts[0].strip()
+                    canonical = parts[1].strip()
+                    if raw and canonical and canonical != "NONE" and canonical in anchor_names:
+                        final_mapping[raw] = canonical
+                        
+            return final_mapping
+        except Exception as e:
+            log.error(f"[NameClusteringText] LLM failed: {e}. Returning only Tier 1 mapping.")
+            return final_mapping
+
 
     def _build_system_prompt(self) -> str:
         """Build the system prompt for document classification.

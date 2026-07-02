@@ -22,7 +22,7 @@ class LLMProvider(Protocol):
         """The identifier name of the provider."""
         ...
 
-    def generate(self, model: str, contents: list, response_schema: type) -> Any:
+    def generate(self, model: str, contents: list, response_schema: type | None = None) -> Any:
         """Generate a structured response from the LLM.
         
         Args:
@@ -52,26 +52,30 @@ class GeminiProvider:
         """str: The identifier name of the provider ('gemini')."""
         return self._name
 
-    def generate(self, model: str, contents: list, response_schema: type) -> Any:
+    def generate(self, model: str, contents: list, response_schema: type | None = None) -> Any:
         """Generate a structured response using the Gemini API.
         
         Args:
             model (str): The model identifier to use.
             contents (list): The list of prompt contents.
-            response_schema (type): A Pydantic BaseModel class for structured output.
+            response_schema (type | None): A Pydantic BaseModel class for structured output, or None for raw text.
             
         Returns:
-            Any: An instance of the response_schema.
+            Any: An instance of the response_schema, or raw text if schema is None.
         """
+        kwargs = {"temperature": 0}
+        if response_schema:
+            kwargs["response_mime_type"] = "application/json"
+            kwargs["response_schema"] = response_schema
+            
         response = self.client.models.generate_content(
             model=model,
             contents=contents,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=response_schema,
-                temperature=0
-            )
+            config=types.GenerateContentConfig(**kwargs)
         )
+        if not response_schema:
+            return getattr(response, "text", "")
+            
         try:
             if response.parsed is not None:
                 return response.parsed
@@ -102,16 +106,16 @@ class OpenRouterProvider:
         """str: The identifier name of the provider ('openrouter')."""
         return self._name
 
-    def generate(self, model: str, contents: list, response_schema: type) -> Any:
+    def generate(self, model: str, contents: list, response_schema: type | None = None) -> Any:
         """Generate a structured response using the OpenRouter API.
         
         Args:
             model (str): The model identifier to use.
             contents (list): The list of prompt contents.
-            response_schema (type): A Pydantic BaseModel class for structured output.
+            response_schema (type | None): A Pydantic BaseModel class for structured output.
             
         Returns:
-            Any: An instance of the response_schema.
+            Any: An instance of the response_schema or raw text.
         """
         prompt_content = []
         for part in contents:
@@ -122,15 +126,17 @@ class OpenRouterProvider:
                 prompt_content.append({"type": "image_url", "image_url": {"url": f"data:{part.mime_type};base64,{b64}"}})
         
         messages = [{"role": "user", "content": prompt_content}]
-        response = self.client.chat.completions.create(
-            model=OPENROUTER_MODEL,
-            messages=messages, # type: ignore
-            response_format={"type": "json_object"},
-            temperature=0
-        )
+        kwargs = {"model": OPENROUTER_MODEL, "messages": messages, "temperature": 0} # type: ignore
+        if response_schema:
+            kwargs["response_format"] = {"type": "json_object"} # type: ignore
+            
+        response = self.client.chat.completions.create(**kwargs)
         text = ""
         try:
             text = response.choices[0].message.content.strip() # type: ignore
+            if not response_schema:
+                return text
+                
             json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
             if json_match:
                 text = json_match.group(1)
@@ -156,16 +162,16 @@ class GroqProvider:
         """str: The identifier name of the provider ('groq')."""
         return self._name
 
-    def generate(self, model: str, contents: list, response_schema: type) -> Any:
+    def generate(self, model: str, contents: list, response_schema: type | None = None) -> Any:
         """Generate a structured response using the Groq API.
         
         Args:
             model (str): The model identifier to use.
             contents (list): The list of prompt contents.
-            response_schema (type): A Pydantic BaseModel class for structured output.
+            response_schema (type | None): A Pydantic BaseModel class for structured output.
             
         Returns:
-            Any: An instance of the response_schema.
+            Any: An instance of the response_schema or text.
         """
         prompt_content = []
         for part in contents:
@@ -176,15 +182,17 @@ class GroqProvider:
                 prompt_content.append({"type": "image_url", "image_url": {"url": f"data:{part.mime_type};base64,{b64}"}})
         
         messages = [{"role": "user", "content": prompt_content}]
-        response = self.client.chat.completions.create(
-            model=GROQ_MODEL,
-            messages=messages, # type: ignore
-            response_format={"type": "json_object"},
-            temperature=0
-        )
+        kwargs = {"model": GROQ_MODEL, "messages": messages, "temperature": 0} # type: ignore
+        if response_schema:
+            kwargs["response_format"] = {"type": "json_object"} # type: ignore
+            
+        response = self.client.chat.completions.create(**kwargs)
         text = ""
         try:
             text = response.choices[0].message.content.strip() # type: ignore
+            if not response_schema:
+                return text
+                
             json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
             if json_match:
                 text = json_match.group(1)
