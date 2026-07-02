@@ -70,12 +70,13 @@ class FileOrganizer:
                 category_name = str(doc.category)
                 
                 if not tenant or tenant.strip().upper() in ("UNKNOWN", "NONE"):
-                    relative_dir = routing_cfg.fallback_folder
+                    relative_dir = os.path.basename(routing_cfg.fallback_folder)
                 elif category_name in routing_cfg.rules:
                     sanitized_tenant = utils.sanitize_filename(tenant)
-                    relative_dir = f"{routing_cfg.rules[category_name]}/{sanitized_tenant}"
+                    safe_rule = os.path.basename(routing_cfg.rules[category_name])
+                    relative_dir = f"{safe_rule}/{sanitized_tenant}"
                 else:
-                    relative_dir = routing_cfg.fallback_folder
+                    relative_dir = os.path.basename(routing_cfg.fallback_folder)
                     
                 target_dir = output_base_dir / relative_dir
                 os.makedirs(target_dir, exist_ok=True)
