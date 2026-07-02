@@ -6,7 +6,7 @@
       "mode": "update",
       "preservation_mode": null,
       "wave": 1,
-      "status": "completed"
+      "status": "verified"
     },
     {
       "type": "architecture",
@@ -14,7 +14,7 @@
       "mode": "update",
       "preservation_mode": null,
       "wave": 1,
-      "status": "completed"
+      "status": "verified"
     },
     {
       "type": "configuration",
@@ -22,7 +22,7 @@
       "mode": "update",
       "preservation_mode": null,
       "wave": 1,
-      "status": "completed"
+      "status": "verified"
     },
     {
       "type": "getting_started",
@@ -30,7 +30,7 @@
       "mode": "update",
       "preservation_mode": null,
       "wave": 2,
-      "status": "completed"
+      "status": "verified"
     },
     {
       "type": "development",
@@ -38,7 +38,7 @@
       "mode": "update",
       "preservation_mode": null,
       "wave": 2,
-      "status": "completed"
+      "status": "verified"
     },
     {
       "type": "testing",
@@ -46,10 +46,10 @@
       "mode": "update",
       "preservation_mode": null,
       "wave": 2,
-      "status": "completed"
+      "status": "verified"
     }
   ],
   "review_queue": [],
   "gap_queue": [],
-  "created_at": "2026-07-01T17:51:30Z"
+  "created_at": "2026-07-02T18:10:00Z"
 }

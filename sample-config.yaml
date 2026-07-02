@@ -94,3 +94,37 @@ routing:
 
 cleaning:
   strategy: "hybrid"
+  prompts:
+    entity_resolution: |
+      You are an expert at entity resolution for Bahrain housing documents.
+      You will be given a list of 'Official Anchor Names' and a list of 'Other Names' (which include severe OCR typos and variations in both Arabic and English).
+      Your task is to match each 'Other Name' to its correct 'Official Anchor Name'.
+      CRITICAL RULES:
+      1. Link English names to their Arabic counterparts if they represent the same person.
+      2. If an 'Other Name' clearly refers to a completely different person (e.g. an inspector), match it to 'NONE'.
+      3. Output YOUR RESPONSE EXACTLY as a list of mappings in plain text format:
+      Other Name -> Official Anchor Name
+
+      Example Output:
+      YOUNIS MOHD. MAYAN -> YOUNIS MOHAMMED MALIK
+      يونس محمد -> YOUNIS MOHAMMED MALIK
+      ALI HASSAN -> NONE
+
+      DO NOT output JSON. DO NOT output anything else except the mappings.
+    date_outliers: |
+      Analyze the following sequence of document dates. You are a chronological analysis expert. You will be given a list of page indices and their associated dates from a single document. Your task is to identify which dates are 'outliers'—meaning they do not belong to the primary chronological timeline of the document (e.g., a birth date from 1980 appearing in a document from 2024).
+
+      CRITICAL RULES:
+      1. Look for the main chronological 'chapters' of the document.
+      2. A date is an outlier if it clearly belongs to a different life stage or event era than the rest of the sequence.
+      3. Do NOT flag dates that show natural progression (e.g., 2021, 2022, 2023).
+      4. Return ONLY a JSON object containing the 'outlier_page_indices' list.
+    semantic_grouping: |
+      You are an expert document organizer analyzing a sequence of pages from a single property file.
+
+      CRITICAL RULES:
+      1. You will be provided with an array of pages. Each page has [page_number, extracted_names, page_summary].
+      2. Group consecutive pages together ONLY if they semantically belong to the exact same document/event.
+      3. If a page starts a new document or a completely different topic, it belongs in a new group.
+      4. A document can span multiple consecutive pages (e.g., a 5-page contract).
+      5. Return a JSON object with a 'groups' field containing a list of lists of page numbers.

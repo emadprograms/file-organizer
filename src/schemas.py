@@ -113,6 +113,7 @@ class ConfigCleaning(BaseModel):
     strategy: str = Field(description="Cleaning strategy to use ('llm', 'python', or 'hybrid')")
     prompt_template: str | None = Field(default=None, description="Prompt template if strategy is 'llm'")
     script_path: str | None = Field(default=None, description="Path to python script if strategy is 'python'")
+    prompts: dict[str, str] | None = Field(default=None, description="Dictionary of specific LLM prompts for cleaning steps")
 
 class UserConfig(BaseModel):
     categories: list[ConfigCategory] = Field(description="List of document categories")
