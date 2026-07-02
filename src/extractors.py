@@ -72,6 +72,8 @@ class CloudExtractor:
         self.cache = cache
         self.client = client
         self.cache_lock = threading.Lock()
+        self._cached_schema = None
+        self._cached_fallback = None
 
     def extract(self, page_index: int, image_bytes: bytes, extracted_footer: Optional[str], prompt_template: str, fields: list) -> Any:
         """Classify a single document page using the LLM.
@@ -89,17 +91,19 @@ class CloudExtractor:
         """
         if len(image_bytes) < 15000:
             logger.info(f" Page {page_index} is blank (size {len(image_bytes)} bytes). Skipping LLM.")
-            from pydantic import create_model, Field
-            from typing import Any
-            type_mapping = {"str": str, "list[str]": list[str], "int": int, "bool": bool}
-            model_fields = {}
-            fallback_values = {}
-            for f in fields:
-                t = type_mapping.get(f.type, Any)
-                model_fields[f.name] = (t, Field(description=f.description))
-                fallback_values[f.name] = ["NONE"] if f.type == "list[str]" else "NONE"
-            DynamicSchema = create_model('DynamicClassification', **model_fields)
-            res = DynamicSchema(**fallback_values)
+            if self._cached_schema is None:
+                from pydantic import create_model, Field
+                from typing import Any
+                type_mapping = {"str": str, "list[str]": list[str], "int": int, "bool": bool}
+                model_fields = {}
+                fallback_values = {}
+                for f in fields:
+                    t = type_mapping.get(f.type, Any)
+                    model_fields[f.name] = (t, Field(description=f.description))
+                    fallback_values[f.name] = ["NONE"] if f.type == "list[str]" else "NONE"
+                self._cached_schema = create_model('DynamicClassification', **model_fields)
+                self._cached_fallback = fallback_values
+            res = self._cached_schema(**self._cached_fallback)
         else:
             logger.info(f" Classifying Page {page_index} directly using Cloud Model...")
             res = self.client.classify_page_direct(image_bytes, extracted_footer, prompt_template, fields)

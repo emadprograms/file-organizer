@@ -75,6 +75,8 @@ class LLMClient:
         self.delay_between_pages = delay_between_pages
         self.total_requests = 0
         self._fallback_toggle = False
+        self._cached_schema = None
+        self._cached_schema_lock = threading.Lock()
 
     def activate_cooldown(self) -> None:
         """Activate a long sleep to recover from severe rate limits (e.g., 429)."""
@@ -292,19 +294,23 @@ class LLMClient:
         from pydantic import create_model, Field
         from typing import Any
         
-        type_mapping = {
-            "str": str,
-            "list[str]": list[str],
-            "int": int,
-            "bool": bool
-        }
-        
-        model_fields = {}
-        for f in fields:
-            t = type_mapping.get(f.type, Any)
-            model_fields[f.name] = (t, Field(description=f.description))
+        with self._cached_schema_lock:
+            if self._cached_schema is None:
+                type_mapping = {
+                    "str": str,
+                    "list[str]": list[str],
+                    "int": int,
+                    "bool": bool
+                }
+                
+                model_fields = {}
+                for f in fields:
+                    t = type_mapping.get(f.type, Any)
+                    model_fields[f.name] = (t, Field(description=f.description))
+                    
+                self._cached_schema = create_model('DynamicClassification', **model_fields)
             
-        DynamicSchema = create_model('DynamicClassification', **model_fields)
+            DynamicSchema = self._cached_schema
 
         system_prompt = prompt_template
         user_prompt = "Classify this scanned document page."
