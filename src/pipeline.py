@@ -14,12 +14,17 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from src.ingest import PdfIngestor
 from src.llm import LLMClient, LLMFailureError, InvalidResponseError
-from src.schemas import PageClassification, DocumentGroup, Category
+from src.schemas import DocumentGroup
 
 logger = logging.getLogger(__name__)
 
 from src.cache import SimpleCache
 from src.extractors import VisionExtractor, CloudExtractor
+from types import SimpleNamespace
+
+class PageData(SimpleNamespace):
+    def model_dump(self):
+        return self.__dict__
 
 class Pipeline:
     """Orchestrator for the document processing workflow."""
@@ -76,8 +81,8 @@ class Pipeline:
                 if cache_data.get('category') == 'pictures':
                     cache_data['category'] = 'inspection_pictures'
                 try:
-                    result = PageClassification(**cache_data)
-                    msg = f" Cached Page {page_index}: {result.category.value} | {result.residents} | {result.date} | Sum: {str(result.summary)}"
+                    result = PageData(**cache_data)
+                    msg = f" Cached Page {page_index}: {result.category} | {result.residents} | {result.date} | Sum: {str(result.summary)}"
                     logger.info(msg)
                     raw_pages.append((page_index, result))
                 except Exception as e:
@@ -100,7 +105,7 @@ class Pipeline:
                 
                 # Backwards compatibility for Pass 1.5
                 res_dict = res_dynamic.model_dump()
-                res = PageClassification(**res_dict)
+                res = PageData(**res_dict)
                 
                 raw_pages.append((p_idx, res))
             
@@ -117,7 +122,7 @@ class Pipeline:
         for p_idx, page in raw_pages:
             resolved_names = [canonical_mapping_clean.get(r.upper().strip(), r) for r in page.residents if r not in ("NONE", "UNKNOWN", "")]
             names_str = ", ".join(resolved_names) if resolved_names else "NONE"
-            logger.info(f"Page {p_idx} | Date: {page.date} | Category: {page.category.value} | Names: {names_str}")
+            logger.info(f"Page {p_idx} | Date: {page.date} | Category: {page.category} | Names: {names_str}")
         logger.info("-" * 50 + "\n")
 
         logger.info(f"Starting Pass 2 (Tenant Grouping) for {pdf_path}...")
@@ -127,7 +132,7 @@ class Pipeline:
         logger.info(f"Identified {len(documents)} document groups based on timeline logic.")
         return documents
 
-    def _run_cleaning_pass(self, raw_pages: list[tuple[int, PageClassification]], config: 'UserConfig') -> dict[str, str]:
+    def _run_cleaning_pass(self, raw_pages: list[tuple[int, PageData]], config: 'UserConfig') -> dict[str, str]:
         """Dynamically run the cleaning pass based on user configuration.
         
         Args:
@@ -186,25 +191,23 @@ class Pipeline:
                 if idx in cleaned_map:
                     cp = cleaned_map[idx]
                     p.residents = cp.residents
-                    try:
-                        p.category = Category(cp.category)
-                    except ValueError:
-                        pass
+                    p.category = cp.category
                     p.date = cp.date
                     p.summary = cp.summary
             return {}
         elif cleaning_cfg.strategy == "hybrid":
             logger.info("Running hybrid (Python + LLM) timeline logic...")
-            self._interpolate_dates(raw_pages)
-            return self._map_aliases(raw_pages)
+            self._interpolate_dates(raw_pages, config)
+            return self._map_aliases(raw_pages, config)
         else:
             raise ValueError(f"Unknown cleaning strategy: {cleaning_cfg.strategy}")
 
-    def _interpolate_dates(self, raw_pages: list[tuple[int, PageClassification]]):
+    def _interpolate_dates(self, raw_pages: list[tuple[int, PageData]], config: 'UserConfig'):
         """Interpolate missing dates and handle chronological outliers.
         
         Args:
-            raw_pages (list[tuple[int, PageClassification]]): The list of classified pages.
+            raw_pages (list[tuple[int, PageData]]): The list of classified pages.
+            config (UserConfig): User configuration containing prompts.
         """
         from datetime import datetime
 
@@ -213,7 +216,8 @@ class Pipeline:
         date_pairs = [(idx, page.date) for idx, page in raw_pages if page.date and page.date != "NONE"]
         
         if date_pairs:
-            outlier_indices = self.client.detect_date_outliers(date_pairs)
+            prompt = config.cleaning.prompts.get('date_outliers', '') if config.cleaning.prompts else ''
+            outlier_indices = self.client.detect_date_outliers(date_pairs, prompt_template=prompt)
             
             for idx in outlier_indices:
                 # Find the page object in our raw_pages list
@@ -275,16 +279,17 @@ class Pipeline:
                 return None
         return None
 
-    def _map_aliases(self, raw_pages: list[tuple[int, PageClassification]]) -> dict[str, str]:
+    def _map_aliases(self, raw_pages: list[tuple[int, PageData]], config: 'UserConfig') -> dict[str, str]:
         """Map entity aliases and resolve primary tenants across the timeline.
         
         Args:
-            raw_pages (list[tuple[int, PageClassification]]): The list of classified pages.
+            raw_pages (list[tuple[int, PageData]]): The list of classified pages.
+            config (UserConfig): User configuration containing prompts.
             
         Returns:
             dict[str, str]: A mapping of canonical names applied.
         """
-        ANCHOR_CATEGORIES = {Category.BASIC_DETAILS, Category.CONTRACT, Category.RENT_DEDUCTION}
+        ANCHOR_CATEGORIES = {"Basic Details Form", "Housing Contract", "Rent Deduction Notice"}
         
         # 0. Semantic Name Clustering
         anchor_names = set()
@@ -300,7 +305,8 @@ class Pipeline:
                         
         logger.info(f"  [Pass 1.5] Clustering {len(other_names)} other names against {len(anchor_names)} anchor names using LLM...")
         if anchor_names and other_names:
-            canonical_map = self.client.cluster_names(list(anchor_names), list(other_names))
+            prompt = config.cleaning.prompts.get('cluster_names', '') if config.cleaning.prompts else ''
+            canonical_map = self.client.cluster_names(list(anchor_names), list(other_names), prompt_template=prompt)
             for p_idx, page in raw_pages:
                 new_residents = []
                 for r in page.residents:
@@ -435,11 +441,11 @@ class Pipeline:
         raw_pages.extend(new_raw_pages)
         return {}
 
-    def _group_pages_into_documents(self, raw_pages: list[tuple[int, PageClassification]], config: 'UserConfig') -> list[DocumentGroup]:
+    def _group_pages_into_documents(self, raw_pages: list[tuple[int, PageData]], config: 'UserConfig') -> list[DocumentGroup]:
         """Group classified pages into cohesive document blocks.
         
         Args:
-            raw_pages (list[tuple[int, PageClassification]]): The sequence of classified pages.
+            raw_pages (list[tuple[int, PageData]]): The sequence of classified pages.
             config (UserConfig): User configuration containing grouping strategy.
             
         Returns:
@@ -447,27 +453,32 @@ class Pipeline:
         """
         grouping_cfg = config.grouping
         if grouping_cfg.strategy == "python":
-            if not grouping_cfg.script_path:
-                raise ValueError("Python strategy requires a script_path in config.")
-            import importlib.util
-            spec = importlib.util.spec_from_file_location("grouping_script", grouping_cfg.script_path)
-            if spec and spec.loader:
-                grouping_script = importlib.util.module_from_spec(spec)
-                spec.loader.exec_module(grouping_script)
-                if hasattr(grouping_script, "group_pages"):
-                    return grouping_script.group_pages(raw_pages, client=self.client)
+            try:
+                if not grouping_cfg.script_path:
+                    raise ValueError("Python strategy requires a script_path in config.")
+                import importlib.util
+                spec = importlib.util.spec_from_file_location("grouping_script", grouping_cfg.script_path)
+                if spec and spec.loader:
+                    grouping_script = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(grouping_script)
+                    if hasattr(grouping_script, "group_pages"):
+                        return grouping_script.group_pages(raw_pages, client=self.client)
+                    else:
+                        raise ValueError("Python grouping script must define a 'group_pages(raw_pages, client)' function.")
                 else:
-                    raise ValueError("Python grouping script must define a 'group_pages(raw_pages, client)' function.")
-            else:
-                raise ValueError(f"Could not load python script: {grouping_cfg.script_path}")
-        elif grouping_cfg.strategy == "declarative":
+                    raise ValueError(f"Could not load python script: {grouping_cfg.script_path}")
+            except Exception as e:
+                logger.error(f"Grouping script failed: {e}. Falling back to declarative strategy.")
+                
+        # Declarative Strategy (Fallback or explicit)
+        if grouping_cfg.strategy == "declarative" or grouping_cfg.strategy == "python":
             group_by_fields = grouping_cfg.group_by or ["category", "residents"]
             documents: list[DocumentGroup] = []
             if not raw_pages:
                 return documents
                 
             current_group = [raw_pages[0]]
-            def get_group_key(p: PageClassification):
+            def get_group_key(p: PageData):
                 key = []
                 for field in group_by_fields:
                     val = getattr(p, field, None)
