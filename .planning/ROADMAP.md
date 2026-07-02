@@ -30,3 +30,14 @@ Success criteria:
 2. `src/organizer.py` relies strictly on YAML-defined rules.
 3. `src/pipeline.py` no longer contains real-estate specific heuristics.
 4. A test execution of the pipeline completes successfully, proving backward compatibility.
+
+### Phase 6: Refactor the src folder into a clear folder structure
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 5
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 6 to break down)

@@ -6,15 +6,15 @@ current_phase: 05
 current_phase_name: decouple-core-pipeline
 status: executing
 stopped_at: Phase 5 context gathered
-last_updated: "2026-07-02T19:41:44.880Z"
+last_updated: "2026-07-02T21:01:38.616Z"
 last_activity: 2026-07-02
 last_activity_desc: Phase 05 execution started
 progress:
   total_phases: 2
-  completed_phases: 2
-  total_plans: 3
+  completed_phases: 1
+  total_plans: 4
   completed_plans: 3
-  percent: 100
+  percent: 50
 ---
 
 # Project State
@@ -35,6 +35,12 @@ See: .planning/PROJECT.md (updated 2026-07-01)
 ## Current Position
 
 Phase: 05 (decouple-core-pipeline) — EXECUTING
-Plan: 1 of 1
+Plan: 1 of 2
 Status: Ready to execute
 Last activity: 2026-07-02 — Phase 05 execution started
+
+## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 6 added: Refactor the src folder into a clear folder structure
