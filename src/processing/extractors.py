@@ -91,18 +91,19 @@ class CloudExtractor:
         """
         if len(image_bytes) < 15000:
             logger.info(f" Page {page_index} is blank (size {len(image_bytes)} bytes). Skipping LLM.")
-            if self._cached_schema is None:
-                from pydantic import create_model, Field
-                from typing import Any
-                type_mapping = {"str": str, "list[str]": list[str], "int": int, "bool": bool}
-                model_fields = {}
-                fallback_values = {}
-                for f in fields:
-                    t = type_mapping.get(f.type, Any)
-                    model_fields[f.name] = (t, Field(description=f.description))
-                    fallback_values[f.name] = ["NONE"] if f.type == "list[str]" else "NONE"
-                self._cached_schema = create_model('DynamicClassification', **model_fields)
-                self._cached_fallback = fallback_values
+            with self.cache_lock:
+                if self._cached_schema is None:
+                    from pydantic import create_model, Field
+                    from typing import Any
+                    type_mapping = {"str": str, "list[str]": list[str], "int": int, "bool": bool}
+                    model_fields = {}
+                    fallback_values = {}
+                    for f in fields:
+                        t = type_mapping.get(f.type, Any)
+                        model_fields[f.name] = (t, Field(description=f.description))
+                        fallback_values[f.name] = ["NONE"] if f.type == "list[str]" else "NONE"
+                    self._cached_schema = create_model('DynamicClassification', **model_fields)
+                    self._cached_fallback = fallback_values
             res = self._cached_schema(**self._cached_fallback)
         else:
             logger.info(f" Classifying Page {page_index} directly using Cloud Model...")
