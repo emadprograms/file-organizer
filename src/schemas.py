@@ -60,10 +60,10 @@ class ConfigGrouping(BaseModel):
     script_path: str | None = Field(default=None, description="Path to python script if strategy is 'python'")
 
 class ConfigRouting(BaseModel):
-    strategy: str = Field(default="template", description="Routing strategy to use ('template' or 'python')")
+    strategy: str = Field(default="declarative", description="Routing strategy to use ('declarative' or 'python')")
     fallback_folder: str = Field(default="UNKNOWN", description="Fallback folder if resident is NONE")
     script_path: str | None = Field(default=None, description="Path to python script if strategy is 'python'")
-    destination_format: str = Field(description="Format string for destination folders")
+    rules: dict[str, str] = Field(description="Mapping of category to destination folder")
 
 class ConfigCleaning(BaseModel):
     strategy: str = Field(description="Cleaning strategy to use ('llm', 'python', or 'hybrid')")
