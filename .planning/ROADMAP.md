@@ -11,7 +11,7 @@
 
 ### Phase Details
 
-### Phase 4: Legacy Logic Porting & Verification
+### Phase 4: Legacy Logic Porting & Verification (COMPLETED)
 Goal: Replicate the existing Bahrain housing logic via external config scripts.
 Requirements: REF-04
 Success criteria:
