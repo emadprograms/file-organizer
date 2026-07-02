@@ -8,6 +8,15 @@ A high-precision document processing pipeline that currently ingests housing-rel
 
 Empower users to seamlessly categorize and organize any type of PDF by simply providing clear AI instructions and destination folders, without changing the underlying pipeline engine.
 
+## Current Milestone: v1.1 Code Hardening & Tech Debt Cleanup
+
+**Goal:** Harden the codebase, remove redundant code, and clarify the structure to reduce technical debt introduced in the previous generalization milestone.
+
+**Target features:**
+- Clean up redundant code in `src/llm.py`, `src/organizer.py`, and other modules.
+- Clarify code architecture and responsibilities to improve readability.
+- Eliminate existing technical debt left from the refactor.
+
 ## Requirements
 
 ### Validated
@@ -15,24 +24,26 @@ Empower users to seamlessly categorize and organize any type of PDF by simply pr
 - ✓ Multi-Pass Classification — Pass 1 (vision extraction), Pass 1.5 (audit/cleaning), Pass 2 (tenant/logical grouping), Pass 3 (organization/routing).
 - ✓ LLM Integration — Providers for Gemini, OpenRouter, Groq.
 - ✓ Automated PDF Segmentation — Splits large PDFs into categories.
+- ✓ Implement a user-provided configuration file (YAML/JSON) parser.
+- ✓ Migrate Pass 1 (Vision Extraction) to use config-defined metadata extraction instructions.
+- ✓ Migrate Pass 1.5 (Audit & Cleaning) to use config-defined global cleaning instructions.
+- ✓ Migrate Pass 2 (Grouping) to use config-defined grouping constraints.
+- ✓ Migrate Pass 3 (Organization) to map generated document groups to config-defined "Destination Folders".
 
 ### Active
 
-- [ ] Implement a user-provided configuration file (YAML/JSON) parser.
-- [ ] Migrate Pass 1 (Vision Extraction) to use config-defined metadata extraction instructions.
-- [ ] Migrate Pass 1.5 (Audit & Cleaning) to use config-defined global cleaning instructions.
-- [ ] Migrate Pass 2 (Grouping) to use config-defined grouping constraints.
-- [ ] Migrate Pass 3 (Organization) to map generated document groups to config-defined "Destination Folders".
-- [ ] Create a `sample-config.yaml` for users (e.g. replicating the tenant/real-estate structure).
-- [ ] Create a private config for local testing to ensure backward compatibility.
+- [ ] Remove redundant/unused legacy code in `src/llm.py` and `src/organizer.py`.
+- [ ] Refactor and clarify code architecture to ensure separation of concerns.
+- [ ] Clear up existing technical debt left over from the generalization refactoring.
 
 ### Out of Scope
 
 - [Changing the core pipeline implementation] — The engine (ingestion, 4 passes) must remain identical, only the instructions/rules are externalized.
+- [New feature additions] — This milestone focuses purely on hardening, cleanup, and reducing tech debt.
 
 ## Context
 
-The current tool was hardcoded for a very specific real estate/tenant use case. It is already fully functional, but users cannot bring their own categories or grouping logic. The codebase is fully mapped in `.planning/codebase/`.
+The codebase was recently refactored to support general-purpose YAML/JSON configurations, but old logic was left in place, leading to a messy, hard-to-understand architecture. The goal is to clean this up before adding any new features.
 
 ## Constraints
 
@@ -63,4 +74,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-01 after initialization*
+*Last updated: 2026-07-02 after new milestone v1.1 initialization*
