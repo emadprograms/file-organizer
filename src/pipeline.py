@@ -115,12 +115,12 @@ class Pipeline:
             raise RuntimeError(f"CRITICAL: Expected {total_expected_pages} pages, but only recovered {len(raw_pages)}. Aborting Pass 1.5 to prevent data loss.")
 
         logger.info(f"--- Starting Pass 1.5 Audit for {pdf_path} ---")
-        canonical_mapping_clean = self._run_cleaning_pass(raw_pages, config)
+        self._run_cleaning_pass(raw_pages, config)
         logger.info(f"--- Pass 1.5 Completed for {pdf_path} ---")
         
         logger.info(f"\n--- Final Page State After Pass 1.5 for {pdf_path} ---")
         for p_idx, page in raw_pages:
-            resolved_names = [canonical_mapping_clean.get(r.upper().strip(), r) for r in page.residents if r not in ("NONE", "UNKNOWN", "")]
+            resolved_names = [r for r in page.residents if r not in ("NONE", "UNKNOWN", "")]
             names_str = ", ".join(resolved_names) if resolved_names else "NONE"
             logger.info(f"Page {p_idx} | Date: {page.date} | Category: {page.category} | Names: {names_str}")
         logger.info("-" * 50 + "\n")
