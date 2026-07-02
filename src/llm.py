@@ -75,8 +75,10 @@ class LLMClient:
         self.delay_between_pages = delay_between_pages
         self.total_requests = 0
         self._fallback_toggle = False
+        self._fallback_toggle_lock = threading.Lock()
         self._cached_schema = None
         self._cached_schema_lock = threading.Lock()
+        self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
 
     def activate_cooldown(self) -> None:
         """Activate a long sleep to recover from severe rate limits (e.g., 429)."""
@@ -106,12 +108,13 @@ class LLMClient:
         groq_provider = next((p for p in self.providers if p.name == "groq"), None)
         
         secondary_1, secondary_2 = None, None
-        if not self._fallback_toggle:
-            secondary_1, secondary_2 = or_provider, groq_provider
-        else:
-            secondary_1, secondary_2 = groq_provider, or_provider
-            
-        self._fallback_toggle = not self._fallback_toggle
+        with self._fallback_toggle_lock:
+            if not self._fallback_toggle:
+                secondary_1, secondary_2 = or_provider, groq_provider
+            else:
+                secondary_1, secondary_2 = groq_provider, or_provider
+                
+            self._fallback_toggle = not self._fallback_toggle
         
         if secondary_1:
             provider_sequence.append(secondary_1)
@@ -129,8 +132,7 @@ class LLMClient:
             
             start_time = time.time()
             try:
-                executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-                future = executor.submit(
+                future = self._executor.submit(
                     provider_obj.generate,
                     model=model,
                     contents=contents,
@@ -141,8 +143,6 @@ class LLMClient:
                     response_parsed = future.result(timeout=300)
                 except concurrent.futures.TimeoutError:
                     raise TimeoutError("LLM API call hung and timed out after 5 minutes.")
-                finally:
-                    executor.shutdown(wait=False)
 
                 record_successful_call()
                 self.total_requests += 1
