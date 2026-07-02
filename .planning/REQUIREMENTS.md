@@ -1,33 +1,38 @@
-# Requirements
+# Requirements: File Categorizer Generalization
+
+**Defined:** 2026-07-02
+**Core Value:** Empower users to seamlessly categorize and organize any type of PDF by simply providing clear AI instructions and destination folders, without changing the underlying pipeline engine.
 
 ## v1 Requirements
 
-### Configuration
+### Code Hardening & Decoupling
 
-- [ ] **CONF-01**: Parse user-provided configuration file (YAML or JSON) to define the routing and instructions.
-- [ ] **CONF-02**: Provide a sample configuration file (`sample-config.yaml`) replicating the existing tenant structure.
-- [ ] **CONF-03**: Create a private local configuration for regression testing.
-
-### Extraction & Cleaning
-
-- [ ] **EXT-01**: Update Pass 1 to use config-defined metadata extraction instructions.
-- [x] **EXT-02**: Update Pass 1.5 to execute config-defined global cleaning and interpolation rules.
-
-### Grouping & Organization
-
-- [ ] **GRP-01**: Update Pass 2 to group pages based on config-defined boundary rules.
-- [ ] **ORG-01**: Update Pass 3 to route documents into user-defined "Destination Folders".
-
-## v2 Requirements
-
-(None)
+- [ ] **REF-01**: Refactor `src/llm.py` to extract domain-specific prompts (Bahrain housing) and logic into external configuration, ensuring the core LLM client is fully generic.
+- [ ] **REF-02**: Refactor `src/organizer.py` to remove hardcoded folder structures and entity parsing, driving organization entirely by YAML config rules and scripts.
+- [ ] **REF-03**: Refactor `src/pipeline.py` to eliminate hardcoded heuristic strategies (e.g., timeline overrides, anchor categories), allowing these to be fully supplied via external Python scripts.
+- [ ] **REF-04**: Port the extracted legacy logic into default fallback scripts or sample configurations to ensure the existing Bahrain housing use case remains 100% functional (backward compatibility).
 
 ## Out of Scope
 
-- Changing the underlying Python pipeline architecture (ingestion, 4 passes) — Keep the engine the same, only externalize the rules.
+| Feature | Reason |
+|---------|--------|
+| New extraction passes | Focus is on hardening the existing 4 passes and moving logic to config. |
+| GUI / UI development | Tool remains CLI/config driven for now. |
 
 ## Traceability
 
-- **Phase 1: Configuration Infrastructure**: CONF-01, CONF-02, CONF-03
-- **Phase 2: Pipeline Adaptation**: EXT-01, EXT-02
-- **Phase 3: Organization Logic**: GRP-01, ORG-01
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| REF-01 | Phase 1 | Pending |
+| REF-02 | Phase 1 | Pending |
+| REF-03 | Phase 1 | Pending |
+| REF-04 | Phase 1 | Pending |
+
+**Coverage:**
+- v1 requirements: 4 total
+- Mapped to phases: 0
+- Unmapped: 4 ⚠️
+
+---
+*Requirements defined: 2026-07-02*
+*Last updated: 2026-07-02 after initial definition*
