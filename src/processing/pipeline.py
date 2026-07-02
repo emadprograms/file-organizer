@@ -149,7 +149,7 @@ class Pipeline:
             
             from pathlib import Path
             script_path = Path(cleaning_cfg.script_path).resolve()
-            if not str(script_path).startswith(str(Path.cwd())):
+            if not script_path.is_relative_to(Path.cwd()):
                 raise PermissionError(f"Script path {script_path} is outside the allowed directory.")
 
             import importlib.util
@@ -465,7 +465,7 @@ class Pipeline:
                 
                 from pathlib import Path
                 script_path = Path(grouping_cfg.script_path).resolve()
-                if not str(script_path).startswith(str(Path.cwd())):
+                if not script_path.is_relative_to(Path.cwd()):
                     raise PermissionError(f"Script path {script_path} is outside the allowed directory.")
 
                 import importlib.util

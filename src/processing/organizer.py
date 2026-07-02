@@ -42,7 +42,7 @@ class FileOrganizer:
                     raise ValueError("Python routing strategy requires a script_path in config.")
                 
                 script_path = Path(routing_cfg.script_path).resolve()
-                if not str(script_path).startswith(str(Path.cwd())):
+                if not script_path.is_relative_to(Path.cwd()):
                     raise PermissionError(f"Script path {script_path} is outside the allowed directory.")
 
                 import importlib.util
