@@ -75,10 +75,14 @@ class Pipeline:
                     cache_data['residents'] = [cache_data.pop('resident')]
                 if cache_data.get('category') == 'pictures':
                     cache_data['category'] = 'inspection_pictures'
-                result = PageClassification(**cache_data)
-                msg = f" Cached Page {page_index}: {result.category.value} | {result.residents} | {result.date} | Sum: {str(result.summary)}"
-                logger.info(msg)
-                raw_pages.append((page_index, result))
+                try:
+                    result = PageClassification(**cache_data)
+                    msg = f" Cached Page {page_index}: {result.category.value} | {result.residents} | {result.date} | Sum: {str(result.summary)}"
+                    logger.info(msg)
+                    raw_pages.append((page_index, result))
+                except Exception as e:
+                    logger.warning(f"Failed to load page {page_index} from cache due to validation error: {e}. Re-processing...")
+                    pages_to_process.append((page_index, image_bytes))
             else:
                 pages_to_process.append((page_index, image_bytes))
                 

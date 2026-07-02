@@ -108,5 +108,7 @@ class CloudExtractor:
             logger.info(msg)
             
         with self.cache_lock:
-            self.cache.set(str(page_index), res.model_dump())
+            dumped_data = res.model_dump(mode='json')
+            self.cache.set(str(page_index), dumped_data)
+            logger.debug(f"Saved page {page_index} to cache {self.cache.filename}")
         return res
