@@ -2,8 +2,8 @@ import fitz
 import json
 import os
 import time
-from src.llm import LLMClient
-from src.config import GEMINI_MODEL
+from src.llm.llm import LLMClient
+from src.core.config import GEMINI_MODEL
 from pydantic import BaseModel, Field
 from google.genai import types
 from dotenv import load_dotenv

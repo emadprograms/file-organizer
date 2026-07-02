@@ -90,7 +90,8 @@ routing:
   strategy: "python"
   fallback_folder: "UNKNOWN"
   script_path: "./scripts/sample-routing.py"
-  destination_format: "{primary_tenant}/{category}"
+  rules:
+    CONTRACT: "Housing Contract"
 
 cleaning:
   strategy: "hybrid"

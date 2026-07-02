@@ -1,6 +1,6 @@
 import os
 import json
-from src.cache import SimpleCache
+from src.core.cache import SimpleCache
 from pydantic import create_model, Field
 
 cache = SimpleCache("scratch/test_pipeline_cache.json")
