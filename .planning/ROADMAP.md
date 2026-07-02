@@ -11,14 +11,14 @@
 
 ### Phase Details
 
-**Phase 4: Legacy Logic Porting & Verification**
+### Phase 4: Legacy Logic Porting & Verification
 Goal: Replicate the existing Bahrain housing logic via external config scripts.
 Requirements: REF-04
 Success criteria:
 1. The extracted logic is ported into default fallback scripts provided to the user.
 2. The config accurately represents the old hardcoded structure.
 
-**Phase 5: Decouple Core Pipeline**
+### Phase 5: Decouple Core Pipeline
 Goal: Remove all hardcoded domain logic from the core pipeline engine and verify via the scripts from Phase 4.
 Requirements: REF-01, REF-02, REF-03
 Success criteria:
