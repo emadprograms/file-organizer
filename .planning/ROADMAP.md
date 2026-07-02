@@ -1,35 +1,28 @@
-# Roadmap
+# Roadmap: v1.1 Code Hardening and Tech Debt Cleanup
 
-## Phase 1: Configuration Infrastructure
+## Proposed Roadmap
 
-**Goal**: Build the core capability to parse and validate user-provided YAML/JSON configuration files.
-**Requirements**: CONF-01, CONF-02, CONF-03
-**Success Criteria**:
+**2 phases** | **4 requirements mapped** | All covered ✓
 
-1. Tool can read and parse a user-provided `config.yaml` or `config.json`.
-2. A valid `sample-config.yaml` replicating the existing hardcoded tenant logic is provided.
-3. Private test configuration works seamlessly for regression testing.
+| # | Phase | Goal | Requirements | Success Criteria |
+|---|-------|------|--------------|------------------|
+| 4 | Legacy Logic Porting & Verification | Replicate the existing Bahrain housing logic via external config scripts. | REF-04 | 2 |
+| 5 | Decouple Core Pipeline | Remove all hardcoded domain logic from the core pipeline engine. | REF-01, REF-02, REF-03 | 4 |
 
-## Phase 2: Pipeline Adaptation (Extraction & Cleaning)
+### Phase Details
 
-**Goal**: Generalize the first half of the pipeline (Passes 1 and 1.5) to use the new config-driven instructions instead of hardcoded rules.
-**Requirements**: EXT-01, EXT-02
-**Plans:** 2/2 plans complete
-**Success Criteria**:
+**Phase 4: Legacy Logic Porting & Verification**
+Goal: Replicate the existing Bahrain housing logic via external config scripts.
+Requirements: REF-04
+Success criteria:
+1. The extracted logic is ported into default fallback scripts provided to the user.
+2. The config accurately represents the old hardcoded structure.
 
-1. Pass 1 extracts metadata based exclusively on instructions from the configuration file.
-2. Pass 1.5 executes cleaning and interpolation logic dynamically based on config rules.
-
-Plans:
-
-- [x] 02-01-PLAN.md — Extract metadata dynamically based on config
-- [x] 02-02-PLAN.md — Refactor Pass 1.5 to use configured cleaning rules
-
-## Phase 3: Organization Logic (Grouping & Routing)
-
-**Goal**: Generalize the second half of the pipeline (Passes 2 and 3) to group and route documents based on the config.
-**Requirements**: GRP-01, ORG-01
-**Success Criteria**:
-
-1. Pass 2 respects user-defined boundary constraints for grouping pages into documents.
-2. Pass 3 routes grouped documents into "Destination Folders" exactly as specified in the configuration.
+**Phase 5: Decouple Core Pipeline**
+Goal: Remove all hardcoded domain logic from the core pipeline engine and verify via the scripts from Phase 4.
+Requirements: REF-01, REF-02, REF-03
+Success criteria:
+1. `src/llm.py` contains no Bahrain housing specific prompts.
+2. `src/organizer.py` relies strictly on YAML-defined rules.
+3. `src/pipeline.py` no longer contains real-estate specific heuristics.
+4. A test execution of the pipeline completes successfully, proving backward compatibility.

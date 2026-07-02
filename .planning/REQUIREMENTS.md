@@ -23,16 +23,16 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| REF-01 | Phase 1 | Pending |
-| REF-02 | Phase 1 | Pending |
-| REF-03 | Phase 1 | Pending |
-| REF-04 | Phase 1 | Pending |
+| REF-01 | Phase 5 | Pending |
+| REF-02 | Phase 5 | Pending |
+| REF-03 | Phase 5 | Pending |
+| REF-04 | Phase 4 | Pending |
 
 **Coverage:**
 - v1 requirements: 4 total
-- Mapped to phases: 0
-- Unmapped: 4 ⚠️
+- Mapped to phases: 4
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-07-02*
-*Last updated: 2026-07-02 after initial definition*
+*Last updated: 2026-07-02 after roadmap creation*
