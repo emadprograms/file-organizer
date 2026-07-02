@@ -165,7 +165,7 @@ class InvalidConfigError(Exception):
     pass
 
 def load_user_config(config_path: Path) -> 'UserConfig':
-    from src.schemas import UserConfig
+    from src.core.schemas import UserConfig
     if not config_path.exists():
         raise FileNotFoundError(f"Configuration file not found: {config_path}")
     try:

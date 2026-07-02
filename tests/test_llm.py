@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from src.llm import LLMClient
-from src.providers import GeminiProvider, OpenRouterProvider, GroqProvider
+from src.llm.llm import LLMClient
+from src.llm.providers import GeminiProvider, OpenRouterProvider, GroqProvider
 from pydantic import BaseModel
 
 class DummyResponse(BaseModel):
@@ -19,7 +19,7 @@ def test_llm_auth_error_fails_fast():
         mock_gemini.assert_called_once()
 
 @patch.dict('os.environ', {'GEMINI_API_KEY': 'dummy', 'OPENROUTER_API_KEY': 'dummy', 'GROQ_API_KEY': 'dummy'})
-@patch('src.llm.time.sleep')
+@patch('src.llm.llm.time.sleep')
 def test_llm_429_retry_and_failover(mock_sleep):
     client = LLMClient("dummy")
     with patch.object(GeminiProvider, 'generate') as mock_gemini, \
@@ -54,7 +54,7 @@ def test_llm_fallback_chain_on_5xx():
         mock_groq.assert_called_once()
 
 @patch.dict('os.environ', {'GEMINI_API_KEY': 'dummy', 'OPENROUTER_API_KEY': 'dummy', 'GROQ_API_KEY': 'dummy'})
-@patch('src.llm.time.sleep')
+@patch('src.llm.llm.time.sleep')
 def test_llm_exhaustion(mock_sleep):
     client = LLMClient("dummy")
     with patch.object(GeminiProvider, 'generate') as mock_gemini, \
@@ -73,7 +73,7 @@ def test_llm_exhaustion(mock_sleep):
         mock_groq.assert_called_once()
 
 def test_classify_page_direct_dynamic_schema():
-    from src.schemas import ConfigField
+    from src.core.schemas import ConfigField
     client = LLMClient("dummy")
     fields = [ConfigField(name="custom_field", type="str", description="A custom string field")]
     

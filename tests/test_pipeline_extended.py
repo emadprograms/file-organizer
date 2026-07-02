@@ -8,8 +8,8 @@ class MockPage(BaseModel):
     summary: str
 
 from unittest.mock import MagicMock, patch
-from src.pipeline import Pipeline
-from src.schemas import UserConfig, ConfigCleaning, ConfigGrouping, ConfigCategory, ConfigExtraction, ConfigRouting
+from src.processing.pipeline import Pipeline
+from src.core.schemas import UserConfig, ConfigCleaning, ConfigGrouping, ConfigCategory, ConfigExtraction, ConfigRouting
 
 @pytest.fixture
 def mock_config_llm_cleaning():
@@ -25,7 +25,7 @@ def test_run_cleaning_pass_llm(mock_config_llm_cleaning):
     pipeline = Pipeline("dummy")
     raw_pages = [(1, MockPage(category="BASIC_DETAILS", residents=["Dirty Name"], date="2020-01-01", summary=""))]
     
-    with patch("src.llm.LLMClient._route_llm_call") as mock_route:
+    with patch('src.llm.llm.LLMClient._route_llm_call') as mock_route:
         mock_result = MagicMock()
         mock_page = MagicMock()
         mock_page.page_index = 1

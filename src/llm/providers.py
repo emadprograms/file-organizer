@@ -12,7 +12,7 @@ import base64
 from google import genai
 from google.genai import types
 import openai
-from src.config import OPENROUTER_MODEL, GROQ_MODEL
+from src.core.config import OPENROUTER_MODEL, GROQ_MODEL
 
 class LLMProvider(Protocol):
     """Protocol defining the interface for an LLM provider strategy."""

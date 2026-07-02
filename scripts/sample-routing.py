@@ -6,26 +6,26 @@ from pathlib import Path
 from collections import defaultdict
 from typing import Union, Optional, Any, Set
 
-from src.schemas import Category, DocumentGroup
-import src.utils as utils
-from src.split import extract_pdf_segment, compress_pdf
+from src.core.schemas import DocumentGroup
+import src.core.utils as utils
+from src.processing.split import extract_pdf_segment, compress_pdf
 
 logger = logging.getLogger(__name__)
 
 CATEGORY_FOLDERS = {
-    Category.BASIC_DETAILS: "01_البيانات الاساسية",
-    Category.PERSONAL_DETAILS: "02_بيانات المنتفع",
-    Category.AMAR_TAKHSEES: "03_أمر التخصيص",
-    Category.KEY_HANDOVER: "04_استمارات تسليم مفاتيح الوحدة",
-    Category.CONTRACT: "05_عقد الانتفاع",
-    Category.EWA_LETTERS: "06_مراسلات الكهرباء و الجهاز المركزي",
-    Category.RENT_DEDUCTION: "07_الاستقطاعات",
-    Category.ALLOWANCE_DEDUCTION: "08_وقف علاوة السكن",
-    Category.NOTIFICATIONS: "09_الاشعارات",
-    Category.MAINTENANCE: "10_طلبات وتقارير الصيانه",
-    Category.INSPECTION_PICTURES: "11_تقارير التفتيش والصور",
-    Category.MODIFICATIONS: "12_طلب الاضافة",
-    Category.OTHER_LETTERS: "13_أخرى",
+    "BASIC_DETAILS": "01_البيانات الاساسية",
+    "PERSONAL_DETAILS": "02_بيانات المنتفع",
+    "AMAR_TAKHSEES": "03_أمر التخصيص",
+    "KEY_HANDOVER": "04_استمارات تسليم مفاتيح الوحدة",
+    "CONTRACT": "05_عقد الانتفاع",
+    "EWA_LETTERS": "06_مراسلات الكهرباء و الجهاز المركزي",
+    "RENT_DEDUCTION": "07_الاستقطاعات",
+    "ALLOWANCE_DEDUCTION": "08_وقف علاوة السكن",
+    "NOTIFICATIONS": "09_الاشعارات",
+    "MAINTENANCE": "10_طلبات وتقارير الصيانه",
+    "INSPECTION_PICTURES": "11_تقارير التفتيش والصور",
+    "MODIFICATIONS": "12_طلب الاضافة",
+    "OTHER_LETTERS": "13_أخرى",
 }
 
 def _resolve_house_number(source_pdf: Union[str, Path]) -> str:
@@ -77,7 +77,7 @@ def _build_resident_order(documents: list[DocumentGroup]) -> list[tuple[int, str
     ordered_tenants: list[tuple[int, str]] = []
     
     # Collect all tenants and what categories they have
-    tenant_categories: dict[str, set[Category]] = defaultdict(set)
+    tenant_categories: dict[str, set[str]] = defaultdict(set)
     for doc in documents:
         tenant = doc.primary_tenant
         if not tenant or not tenant.strip() or tenant.upper() in ("UNKNOWN", "NONE"):
@@ -95,7 +95,7 @@ def _build_resident_order(documents: list[DocumentGroup]) -> list[tuple[int, str
             
         # Skip if ONLY amar takhsees
         cats = tenant_categories[tenant]
-        if len(cats) == 1 and Category.AMAR_TAKHSEES in cats:
+        if len(cats) == 1 and AMAR_TAKHSEES in cats:
             continue
             
         ordered_tenants.append((index, tenant))
@@ -105,7 +105,7 @@ def _build_resident_order(documents: list[DocumentGroup]) -> list[tuple[int, str
     return ordered_tenants
 
 def _generate_pdf_name(doc: DocumentGroup, category_counter: int, used_names: set[str], is_global_amar: bool = False) -> str:
-    category_name = doc.category.name.lower()
+    category_name = doc.category.lower()
     
     tenant_str = ""
     if is_global_amar and doc.primary_tenant and doc.primary_tenant not in ("UNKNOWN", "NONE"):
@@ -175,7 +175,7 @@ def organize(documents: list[DocumentGroup], source_pdf: str, output_base_dir: P
     # directory path -> set of used names
     used_names_per_dir: dict[str, set[str]] = defaultdict(set)
     # tenant -> category -> counter
-    tenant_category_counters: dict[str, dict[Category, int]] = defaultdict(lambda: defaultdict(int))
+    tenant_category_counters: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
     
     for doc in documents:
         tenant = doc.primary_tenant
@@ -187,7 +187,7 @@ def organize(documents: list[DocumentGroup], source_pdf: str, output_base_dir: P
         if tenant and tenant.strip() and tenant.upper() not in ("UNKNOWN", "NONE"):
             doc_resident_dir = resident_folder_map.get(tenant)
         
-        if doc.category == Category.AMAR_TAKHSEES:
+        if doc.category == AMAR_TAKHSEES:
             if doc_resident_dir:
                 # Tenant is verified (has other documents), put in their personal amar_takhsees folder
                 target_dir = doc_resident_dir / CATEGORY_FOLDERS[doc.category]

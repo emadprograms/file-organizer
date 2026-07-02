@@ -10,7 +10,7 @@ class MockPage(BaseModel):
 import json
 import os
 from unittest.mock import MagicMock, patch
-from src.pipeline import Pipeline
+from src.processing.pipeline import Pipeline
 
 @patch.dict('os.environ', {'GEMINI_API_KEY': 'dummy'})
 def test_pipeline_fails_fast_on_classification_error(tmp_path):
@@ -21,7 +21,7 @@ def test_pipeline_fails_fast_on_classification_error(tmp_path):
     
     pdf_path = str(tmp_path / "dummy.pdf")
     
-    with patch("src.llm.LLMClient.classify_page_direct") as mock_classify:
+    with patch('src.llm.llm.LLMClient.classify_page_direct') as mock_classify:
         mock_classify.side_effect = RuntimeError("API Exhausted")
         with pytest.raises(RuntimeError, match="API Exhausted"):
             pipeline.process_pdf(pdf_path)
@@ -46,10 +46,10 @@ def test_pipeline_cache_hit(tmp_path):
     image_data = b"a" * 16000
     pipeline.ingestor.extract_pages_as_images = MagicMock(return_value=[(1, image_data)])
     
-    with patch("src.extractors.VisionExtractor.extract_footer") as mock_vision, \
-         patch("src.extractors.CloudExtractor.extract") as mock_cloud, \
-         patch("src.pipeline.Pipeline._run_cleaning_pass", return_value={}), \
-         patch("src.pipeline.Pipeline._group_pages_into_documents", return_value=[]):
+    with patch('src.processing.extractors.VisionExtractor.extract_footer') as mock_vision, \
+         patch('src.processing.extractors.CloudExtractor.extract') as mock_cloud, \
+         patch('src.processing.pipeline.Pipeline._run_cleaning_pass', return_value={}), \
+         patch('src.processing.pipeline.Pipeline._group_pages_into_documents', return_value=[]):
         
         pipeline.process_pdf(str(pdf_path))
         

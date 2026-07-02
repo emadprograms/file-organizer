@@ -12,14 +12,14 @@ import sys
 import yaml
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from src.ingest import PdfIngestor
-from src.llm import LLMClient, LLMFailureError, InvalidResponseError
-from src.schemas import DocumentGroup
+from src.processing.ingest import PdfIngestor
+from src.llm.llm import LLMClient, LLMFailureError, InvalidResponseError
+from src.core.schemas import DocumentGroup
 
 logger = logging.getLogger(__name__)
 
-from src.cache import SimpleCache
-from src.extractors import VisionExtractor, CloudExtractor
+from src.core.cache import SimpleCache
+from src.processing.extractors import VisionExtractor, CloudExtractor
 from types import SimpleNamespace
 
 class PageData(SimpleNamespace):
@@ -59,7 +59,7 @@ class Pipeline:
         """
         logger.info(f"Starting Pass 1 (Vision Extraction) for {pdf_path}...")
         
-        from src.schemas import UserConfig
+        from src.core.schemas import UserConfig
         config_file = os.getenv("CONFIG_PATH", config_path)
         with open(config_file, "r", encoding="utf-8") as f:
             config = UserConfig(**yaml.safe_load(f))
@@ -183,7 +183,7 @@ class Pipeline:
             class CleanedPagesResult(BaseModel):
                 pages: list[CleanedPage]
                 
-            from src.config import GEMINI_MODEL
+            from src.core.config import GEMINI_MODEL
             result = self.client._route_llm_call(
                 model=GEMINI_MODEL,
                 contents=[cleaning_cfg.prompt_template, user_prompt],

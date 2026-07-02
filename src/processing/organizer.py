@@ -12,9 +12,9 @@ from pathlib import Path
 from collections import defaultdict
 from typing import Union, Optional, Any, Set
 
-from src.schemas import DocumentGroup
-from src.split import extract_pdf_segment, compress_pdf
-import src.utils as utils
+from src.core.schemas import DocumentGroup
+from src.processing.split import extract_pdf_segment, compress_pdf
+import src.core.utils as utils
 
 class FileOrganizer:
     """Organizer responsible for writing documents to disk in a structured hierarchy."""

@@ -16,9 +16,9 @@ project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.pipeline import Pipeline
-from src.organizer import FileOrganizer
-from src.config import load_config, setup_logging, load_user_config, InvalidConfigError
+from src.processing.pipeline import Pipeline
+from src.processing.organizer import FileOrganizer
+from src.core.config import load_config, setup_logging, load_user_config, InvalidConfigError
 
 def main():
     """Main execution function.
@@ -51,15 +51,16 @@ def main():
         logger.info(f"Please provide a valid PDF file at {args.pdf_path} to run.")
         return
         
-    documents = pipeline.process_pdf(args.pdf_path)
+    documents = pipeline.process_pdf(args.pdf_path, args.config)
     logger.info(f"Identified {len(documents)} documents.")
     
     organizer = FileOrganizer()
     summary = organizer.organize(documents, args.pdf_path, Path(args.output), user_config)
     
     if summary:
-        house_number = organizer._resolve_house_number(args.pdf_path)
-        num_residents = len(organizer._build_resident_order(documents))
+        house_number = Path(args.pdf_path).name.split('_')[0]
+        unique_residents = {d.primary_tenant for d in documents if d.primary_tenant and d.primary_tenant not in ("UNKNOWN", "NONE")}
+        num_residents = len(unique_residents)
         output_dir = Path(args.output) / house_number
         
         logger.info(f"\n{'='*50}")

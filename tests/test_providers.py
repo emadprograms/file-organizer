@@ -1,8 +1,8 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from pydantic import BaseModel
-from src.config import GEMINI_MODEL
-from src.providers import GeminiProvider, OpenRouterProvider, GroqProvider
+from src.core.config import GEMINI_MODEL
+from src.llm.providers import GeminiProvider, OpenRouterProvider, GroqProvider
 from google.genai import types
 import base64
 
@@ -16,7 +16,7 @@ class DummyPart:
         self.mime_type = mime_type
 
 def test_gemini_provider_generate():
-    with patch('src.providers.genai.Client') as mock_client:
+    with patch('src.llm.providers.genai.Client') as mock_client:
         mock_instance = MagicMock()
         mock_client.return_value = mock_instance
         
@@ -45,7 +45,7 @@ def test_gemini_provider_generate():
         assert call_args["config"].response_schema == PageClassification
 
 def test_openrouter_provider_generate():
-    with patch('src.providers.openai.Client') as mock_client:
+    with patch('src.llm.providers.openai.Client') as mock_client:
         mock_instance = MagicMock()
         mock_client.return_value = mock_instance
         
@@ -73,7 +73,7 @@ def test_openrouter_provider_generate():
         assert content[1] == {"type": "image_url", "image_url": {"url": "data:image/png;base64,ZHVtbXk="}}
 
 def test_groq_provider_generate():
-    with patch('src.providers.openai.Client') as mock_client:
+    with patch('src.llm.providers.openai.Client') as mock_client:
         mock_instance = MagicMock()
         mock_client.return_value = mock_instance
         
@@ -101,7 +101,7 @@ def test_groq_provider_generate():
         assert content[1] == {"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,ZHVtbXk="}}
 
 def test_gemini_provider_error_handling():
-    with patch('src.providers.genai.Client') as mock_client:
+    with patch('src.llm.providers.genai.Client') as mock_client:
         mock_instance = MagicMock()
         mock_client.return_value = mock_instance
         
@@ -119,7 +119,7 @@ def test_gemini_provider_error_handling():
         assert "invalid json output" in str(exc.value)
 
 def test_openrouter_provider_error_handling():
-    with patch('src.providers.openai.Client') as mock_client:
+    with patch('src.llm.providers.openai.Client') as mock_client:
         mock_instance = MagicMock()
         mock_client.return_value = mock_instance
         

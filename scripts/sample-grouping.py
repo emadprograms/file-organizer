@@ -1,10 +1,10 @@
-from src.schemas import DocumentGroup, PageClassification, Category
+from src.core.schemas import DocumentGroup
 
 def group_pages(raw_pages, client=None) -> list[DocumentGroup]:
     """Group classified pages into cohesive document blocks.
     
     Args:
-        raw_pages (list[tuple[int, PageClassification]]): The sequence of classified pages.
+        raw_pages (list[tuple[int, any]]): The sequence of classified pages.
         client: The LLM client for semantic grouping.
         
     Returns:
@@ -40,7 +40,7 @@ def group_pages(raw_pages, client=None) -> list[DocumentGroup]:
             all_groups.append([block[0]])
             continue
             
-        block_groups: list[list[tuple[int, PageClassification]]] = [] # list of lists of (p_idx, p)
+        block_groups: list[list[tuple[int, any]]] = [] # list of lists of (p_idx, p)
         for i in range(0, len(block), chunk_size):
             # Overlapping sliding window
             start_idx = max(0, i - 2) if i > 0 else 0

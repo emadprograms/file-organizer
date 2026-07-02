@@ -5,7 +5,7 @@ from pydantic import ValidationError
 
 def test_user_config_loading_with_dynamic_fields():
     import yaml
-    from src.schemas import UserConfig
+    from src.core.schemas import UserConfig
     with open('sample-config.yaml', 'r', encoding='utf-8') as f:
         config_data = yaml.safe_load(f)
     

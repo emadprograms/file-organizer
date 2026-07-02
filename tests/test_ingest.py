@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from src.ingest import PdfIngestor
+from src.processing.ingest import PdfIngestor
 
 def test_pdf_ingestor_extraction(tmp_path):
     """Test that PdfIngestor yields pages and image bytes."""

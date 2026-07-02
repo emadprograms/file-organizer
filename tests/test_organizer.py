@@ -1,8 +1,8 @@
 import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
-from src.organizer import FileOrganizer
-from src.schemas import DocumentGroup, UserConfig, ConfigRouting, ConfigExtraction, ConfigCleaning, ConfigGrouping, ConfigCategory
+from src.processing.organizer import FileOrganizer
+from src.core.schemas import DocumentGroup, UserConfig, ConfigRouting, ConfigExtraction, ConfigCleaning, ConfigGrouping, ConfigCategory
 
 @pytest.fixture
 def organizer():
@@ -22,7 +22,7 @@ def mock_config():
         )
     )
 
-@patch('src.organizer.extract_pdf_segment')
+@patch('src.processing.organizer.extract_pdf_segment')
 def test_basic_structure(mock_extract, organizer, mock_config, tmp_path):
     docs = [
         DocumentGroup(0, 1, "Resident A", "BASIC_DETAILS", ["2023-01-01"]),
@@ -37,7 +37,7 @@ def test_basic_structure(mock_extract, organizer, mock_config, tmp_path):
     
     assert len(summary) == 3
 
-@patch('src.organizer.extract_pdf_segment')
+@patch('src.processing.organizer.extract_pdf_segment')
 def test_resident_ordering(mock_extract, organizer, mock_config, tmp_path):
     docs = [
         DocumentGroup(0, 1, "Resident B", "BASIC_DETAILS", []),
@@ -49,7 +49,7 @@ def test_resident_ordering(mock_extract, organizer, mock_config, tmp_path):
     assert (tmp_path / "PERSONAL_DETAILS" / "Resident A").exists()
 
 
-@patch('src.organizer.extract_pdf_segment')
+@patch('src.processing.organizer.extract_pdf_segment')
 def test_house_letters_routing(mock_extract, organizer, mock_config, tmp_path):
     docs = [
         DocumentGroup(0, 1, "NONE", "OTHER_LETTERS", []),
@@ -58,7 +58,7 @@ def test_house_letters_routing(mock_extract, organizer, mock_config, tmp_path):
     
     mock_extract.assert_any_call("123.pdf", 0, 1, str(tmp_path / "UNKNOWN" / "nodate_other_letters_unknown.pdf"))
 
-@patch('src.organizer.extract_pdf_segment')
+@patch('src.processing.organizer.extract_pdf_segment')
 def test_continuation_pages_merged(mock_extract, organizer, mock_config, tmp_path):
     docs = [
         DocumentGroup(5, 8, "Resident A", "BASIC_DETAILS", ["2023-01-05"]),
@@ -68,7 +68,7 @@ def test_continuation_pages_merged(mock_extract, organizer, mock_config, tmp_pat
     mock_extract.assert_called_once_with("123.pdf", 5, 8, str(target_path))
 
 
-@patch('src.organizer.extract_pdf_segment')
+@patch('src.processing.organizer.extract_pdf_segment')
 def test_counter_fallback_naming(mock_extract, organizer, mock_config, tmp_path):
     docs = [
         DocumentGroup(0, 1, "Resident A", "NOTIFICATIONS", ["2023-01-01"]),
@@ -80,7 +80,7 @@ def test_counter_fallback_naming(mock_extract, organizer, mock_config, tmp_path)
     mock_extract.assert_any_call("123.pdf", 0, 1, str(target_path_1))
     mock_extract.assert_any_call("123.pdf", 2, 3, str(target_path_2))
 
-@patch('src.organizer.extract_pdf_segment')
+@patch('src.processing.organizer.extract_pdf_segment')
 def test_overwrite_behavior(mock_extract, organizer, mock_config, tmp_path):
     docs = [
         DocumentGroup(0, 1, "Resident A", "BASIC_DETAILS", []),
@@ -93,7 +93,7 @@ def test_overwrite_behavior(mock_extract, organizer, mock_config, tmp_path):
     organizer.organize(docs, "123.pdf", tmp_path, mock_config)
     assert (tmp_path / "BASIC_DETAILS" / "Resident A").exists()
 
-@patch('src.organizer.extract_pdf_segment')
+@patch('src.processing.organizer.extract_pdf_segment')
 def test_unknown_tenant_filtered(mock_extract, organizer, mock_config, tmp_path):
     docs = [
         DocumentGroup(0, 1, "UNKNOWN", "BASIC_DETAILS", []),

@@ -4,7 +4,7 @@ This module provides the `LLMClient` which orchestrates LLM requests across mult
 provider strategies (defined in `providers.py`). It implements resilient API routing,
 error handling, rate-limit backoffs, and cloud failover for robust document processing.
 """
-from src.config import record_successful_call, OPENROUTER_MODEL, GROQ_MODEL, GEMINI_MODEL
+from src.core.config import record_successful_call, OPENROUTER_MODEL, GROQ_MODEL, GEMINI_MODEL
 import concurrent.futures
 import os
 import time
@@ -21,7 +21,7 @@ from google import genai
 from google.genai import types
 import openai
 
-from src.schemas import (
+from src.core.schemas import (
     EntityResolutionMapping,
     BulkSemanticMatchResult,
     DateOutlierDetectionResult
@@ -39,7 +39,7 @@ class InvalidResponseError(Exception):
     pass
 
 
-from src.providers import LLMProvider, GeminiProvider, OpenRouterProvider, GroqProvider
+from src.llm.providers import LLMProvider, GeminiProvider, OpenRouterProvider, GroqProvider
 
 class LLMClient:
     """Client for orchestrating LLM requests across multiple providers.
@@ -345,7 +345,7 @@ class LLMClient:
         Returns:
             list[int]: List of page indices identified as outliers.
         """
-        from src.schemas import DateOutlierDetectionResult
+        from src.core.schemas import DateOutlierDetectionResult
         
         system_prompt = prompt_template
         

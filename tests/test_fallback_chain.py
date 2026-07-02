@@ -1,9 +1,9 @@
 import pytest
 import os
 from unittest.mock import patch, MagicMock
-from src.config import GEMINI_MODEL
-from src.llm import LLMClient
-from src.providers import GeminiProvider, OpenRouterProvider, GroqProvider
+from src.core.config import GEMINI_MODEL
+from src.llm.llm import LLMClient
+from src.llm.providers import GeminiProvider, OpenRouterProvider, GroqProvider
 
 @patch.dict('os.environ', {
     'OPENROUTER_API_KEY': 'invalid_or_key',
@@ -17,7 +17,7 @@ def test_live_fallback_invalid_key_fail_fast():
         
         # We will directly call _route_llm_call to verify it raises,
         # because cluster_names swallows the exception.
-        from src.schemas import EntityResolutionMapping
+        from src.core.schemas import EntityResolutionMapping
         with pytest.raises(Exception) as excinfo:
             client._route_llm_call(
                 model=GEMINI_MODEL,

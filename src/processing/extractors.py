@@ -8,8 +8,8 @@ import logging
 import threading
 from typing import Optional, Any
 
-from src.cache import SimpleCache
-from src.llm import LLMClient
+from src.core.cache import SimpleCache
+from src.llm.llm import LLMClient
 
 logger = logging.getLogger(__name__)
 

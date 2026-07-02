@@ -1,7 +1,7 @@
 import pytest
 import yaml
 from pathlib import Path
-from src.config import load_user_config, InvalidConfigError
+from src.core.config import load_user_config, InvalidConfigError
 
 def test_load_valid_config(tmp_path):
     config_content = """
