@@ -2,19 +2,19 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Code Hardening and Tech Debt Cleanup
-current_phase: 4
-status: executing
+current_phase: 05
+current_phase_name: decouple-core-pipeline
+status: verifying
 stopped_at: Phase 5 context gathered
-last_updated: "2026-07-02T19:25:42.981Z"
+last_updated: "2026-07-02T19:34:57.912Z"
 last_activity: 2026-07-02
-last_activity_desc: Phase 4 marked complete
+last_activity_desc: Phase 05 execution started
 progress:
   total_phases: 2
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
-  percent: 50
-current_phase_name: legacy-logic-porting-verification
+  completed_phases: 2
+  total_plans: 3
+  completed_plans: 3
+  percent: 100
 ---
 
 # Project State
@@ -24,17 +24,17 @@ current_phase_name: legacy-logic-porting-verification
 See: .planning/PROJECT.md (updated 2026-07-01)
 
 **Core value:** Empower users to seamlessly categorize and organize any type of PDF by simply providing clear AI instructions and destination folders, without changing the underlying pipeline engine.
-**Current focus:** Phase 4 — legacy-logic-porting-verification
+**Current focus:** Phase 05 — decouple-core-pipeline
 
 ## Session
 
-**Last session:** 2026-07-02T19:13:29.104Z
+**Last session:** 2026-07-02T19:34:57.897Z
 **Stopped at:** Phase 5 context gathered
 **Resume file:** .planning/phases/05-decouple-core-pipeline/05-CONTEXT.md
 
 ## Current Position
 
-Phase: 4 — COMPLETE
-Plan: 2 of 2
-Status: Ready to execute
-Last activity: 2026-07-02 — Phase 4 marked complete
+Phase: 05 (decouple-core-pipeline) — EXECUTING
+Plan: 1 of 1
+Status: Phase complete — ready for verification
+Last activity: 2026-07-02 — Phase 05 execution started
