@@ -3,7 +3,7 @@
 
 ## Environment Variables
 
-The application is configured primarily through environment variables. Use a `.env` file in the root directory for local development.
+The application's core infrastructure is configured through environment variables. Use a `.env` file in the root directory for local development.
 
 | Variable | Required | Default | Description |
 |:---|:---:|:---|:---|
@@ -13,15 +13,26 @@ The application is configured primarily through environment variables. Use a `.e
 | `OPENROUTER_MODEL` | No | `google/gemma-4-31b-it` | The model used when routing through OpenRouter. |
 | `GROQ_MODEL` | No | `qwen3.6-27b` | The model used when routing through Groq. |
 
-## Config File Format
-The application does not use external configuration files (like JSON or YAML) for its core logic, relying instead on the `AppConfig` dataclass in `src/config.py` which is populated from the environment.
+## User Configuration File (YAML/JSON)
+
+The core logic of extraction, classification, and routing is fully driven by a user-supplied configuration file (passed via the `-c` flag). This allows the tool to process any type of document, not just housing records.
+
+### Configuration Sections
+
+1. **`categories`**: Defines the target classes for the document pages. Each category needs an `id`, a `name`, and a detailed `description` used by the AI to make classification decisions.
+2. **`extraction`**: Provides the AI with a `prompt_template` instructing it on how to process the pages. It also defines custom `fields` (names, types, and descriptions) to extract from each page.
+3. **`grouping`**: Configures how individual pages are grouped into logical documents. For instance, using `strategy: "python"` allows referencing a custom `script_path`.
+4. **`routing`**: Determines the output directory structure. It specifies `destination_format` (e.g., `{primary_tenant}/{category}`), a `fallback_folder`, and potentially a custom `script_path` to resolve metadata.
+5. **`cleaning`**: Instructs the pipeline on data normalization strategies (e.g., `strategy: "hybrid"`).
+
+See `sample-config.yaml` for a complete example.
 
 ## Required vs Optional Settings
-- **GEMINI_API_KEY**: Required. The application will call `sys.exit(1)` if this key is missing upon startup.
-- **Fallback Keys**: Optional. If missing, the system logs a warning that cloud failover may be limited, but the application will still function using the primary key.
+- **GEMINI_API_KEY**: Required. The application will error out if this key is missing upon startup.
+- **Fallback Keys**: Optional. If missing, the system logs a warning that cloud failover may be limited.
 
 ## Defaults
-- **API Quota**: The system tracks API usage in `.tracking/api_calls.log` with a default `QUOTA_LIMIT` of 1500 calls per 24 hours.
+- **API Quota**: <!-- VERIFY: The system tracks API usage with a default QUOTA_LIMIT of 1500 calls per 24 hours. --> The system tracks API usage in `.tracking/api_calls.log` with a default `QUOTA_LIMIT` of 1500 calls per 24 hours.
 - **Output Directory**: Defaults to `./output` if the `-o` flag is not provided via CLI.
 
 ## Per-Environment Overrides
