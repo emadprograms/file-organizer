@@ -40,8 +40,13 @@ class FileOrganizer:
             try:
                 if not routing_cfg.script_path:
                     raise ValueError("Python routing strategy requires a script_path in config.")
+                
+                script_path = Path(routing_cfg.script_path).resolve()
+                if not str(script_path).startswith(str(Path.cwd())):
+                    raise PermissionError(f"Script path {script_path} is outside the allowed directory.")
+
                 import importlib.util
-                spec = importlib.util.spec_from_file_location("routing_script", routing_cfg.script_path)
+                spec = importlib.util.spec_from_file_location("routing_script", str(script_path))
                 if spec and spec.loader:
                     routing_script = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(routing_script)
@@ -52,10 +57,11 @@ class FileOrganizer:
                 else:
                     raise ValueError(f"Could not load python script: {routing_cfg.script_path}")
             except Exception as e:
-                logger.error(f"Routing script failed: {e}. Falling back to declarative strategy.")
+                logger.error(f"Routing script failed: {e}")
+                raise
                 
         # Declarative Strategy (Fallback or explicit)
-        if routing_cfg.strategy == "declarative" or routing_cfg.strategy == "python" or routing_cfg.strategy == "template":
+        if routing_cfg.strategy == "declarative" or routing_cfg.strategy == "template":
             summary: dict[str, tuple[int, int]] = {}
             used_names_per_dir: dict[str, set[str]] = defaultdict(set)
             

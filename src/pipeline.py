@@ -146,8 +146,14 @@ class Pipeline:
         if cleaning_cfg.strategy == "python":
             if not cleaning_cfg.script_path:
                 raise ValueError("Python strategy requires a script_path in config.")
+            
+            from pathlib import Path
+            script_path = Path(cleaning_cfg.script_path).resolve()
+            if not str(script_path).startswith(str(Path.cwd())):
+                raise PermissionError(f"Script path {script_path} is outside the allowed directory.")
+
             import importlib.util
-            spec = importlib.util.spec_from_file_location("cleaning_script", cleaning_cfg.script_path)
+            spec = importlib.util.spec_from_file_location("cleaning_script", str(script_path))
             if spec and spec.loader:
                 cleaning_script = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(cleaning_script)
@@ -456,8 +462,14 @@ class Pipeline:
             try:
                 if not grouping_cfg.script_path:
                     raise ValueError("Python strategy requires a script_path in config.")
+                
+                from pathlib import Path
+                script_path = Path(grouping_cfg.script_path).resolve()
+                if not str(script_path).startswith(str(Path.cwd())):
+                    raise PermissionError(f"Script path {script_path} is outside the allowed directory.")
+
                 import importlib.util
-                spec = importlib.util.spec_from_file_location("grouping_script", grouping_cfg.script_path)
+                spec = importlib.util.spec_from_file_location("grouping_script", str(script_path))
                 if spec and spec.loader:
                     grouping_script = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(grouping_script)
@@ -468,10 +480,11 @@ class Pipeline:
                 else:
                     raise ValueError(f"Could not load python script: {grouping_cfg.script_path}")
             except Exception as e:
-                logger.error(f"Grouping script failed: {e}. Falling back to declarative strategy.")
+                logger.error(f"Grouping script failed: {e}")
+                raise
                 
         # Declarative Strategy (Fallback or explicit)
-        if grouping_cfg.strategy == "declarative" or grouping_cfg.strategy == "python":
+        if grouping_cfg.strategy == "declarative":
             group_by_fields = grouping_cfg.group_by or ["category", "residents"]
             documents: list[DocumentGroup] = []
             if not raw_pages:
