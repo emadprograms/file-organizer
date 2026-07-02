@@ -7,50 +7,6 @@ from dataclasses import dataclass
 from pydantic import BaseModel, Field, field_validator
 
 
-class Category(str, Enum):
-    """13-category classification for Bahrain housing documents."""
-    BASIC_DETAILS = "Basic Details Form"
-    PERSONAL_DETAILS = "Personal Identification"
-    AMAR_TAKHSEES = "Allocation Order"
-    KEY_HANDOVER = "Key Handover Certificate"
-    CONTRACT = "Housing Contract"
-    EWA_LETTERS = "Electricity and Water"
-    RENT_DEDUCTION = "Rent Deduction Notice"
-    ALLOWANCE_DEDUCTION = "Allowance Deduction Notice"
-    NOTIFICATIONS = "General Notifications"
-    MAINTENANCE = "Maintenance Records"
-    INSPECTION_PICTURES = "Inspection and Pictures"
-    MODIFICATIONS = "Property Modifications"
-    OTHER_LETTERS = "Miscellaneous Letters"
-
-
-class PageClassification(BaseModel):
-    """Structured output schema for per-page document classification."""
-    residents: list[str] = Field(description="List of resident names in Arabic, with relationship in parentheses if known (e.g. 'Name (Wife)'). Return ['NONE'] if no names.")
-    category: Category = Field(description="The document category from the 13 defined types")
-    date: str = Field(description="The date of the document (Gregorian or Hijri) if visible, otherwise 'NONE'")
-    summary: str = Field(description="A verbose, one-line 'full story' of the page content, e.g., 'This letter from Ministry of Housing is for Mohamed Ali regarding a request to build an additional room.' Do not be lazy; extract all key context.")
-
-    @field_validator('category', mode='before')
-    @classmethod
-    def normalize_category(cls, v):
-        """Normalize category string to enum values."""
-        if isinstance(v, str):
-            v_lower = v.lower().strip()
-            for category in Category:
-                if v_lower == category.value.lower() or v_lower == category.name.lower() or v_lower.replace('_', ' ') == category.value.lower():
-                    return category.value
-        return v
-
-    @field_validator('residents', mode='before')
-    @classmethod
-    def normalize_resident(cls, v):
-        """Strip whitespace and uppercase so ' none ' becomes 'NONE'."""
-        if isinstance(v, str):
-            v = [v]
-        if isinstance(v, list):
-            return [name.strip().upper() for name in v if isinstance(name, str)]
-        return v
 
 
 @dataclass
@@ -59,7 +15,7 @@ class DocumentGroup:
     start_page: int
     end_page: int
     primary_tenant: str
-    category: Category
+    category: str
     dates: list[str]
 
 
