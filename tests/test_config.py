@@ -22,7 +22,8 @@ def test_load_valid_config(tmp_path):
       fields: ["residents", "category"]
     routing:
       strategy: template
-      destination_format: "{category}/{residents}"
+      rules:
+        basic_details_form: basic_details_form
       fallback_folder: "UNKNOWN"
     """
     config_file = tmp_path / "valid.yaml"

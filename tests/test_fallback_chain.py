@@ -52,7 +52,7 @@ def test_mocked_fallback_chain_integration():
         mock_groq.return_value = "DIFFERENT -> TEST"
         
         # other_names must not match anchor_names phonetically so it reaches the LLM tier
-        result = client.cluster_names(["TEST"], ["DIFFERENT"])
+        result = client.cluster_names(["TEST"], ["DIFFERENT"], "dummy template")
         # If it falls back correctly to Groq, cluster_names will succeed and return mapping
         assert result == {"DIFFERENT": "TEST"}
         

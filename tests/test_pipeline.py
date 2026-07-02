@@ -1,9 +1,16 @@
 import pytest
+
+from pydantic import BaseModel
+class MockPage(BaseModel):
+    category: str
+    residents: list[str]
+    date: str
+    summary: str
+
 import json
 import os
 from unittest.mock import MagicMock, patch
 from src.pipeline import Pipeline
-from src.schemas import PageClassification, Category
 
 @patch.dict('os.environ', {'GEMINI_API_KEY': 'dummy'})
 def test_pipeline_fails_fast_on_classification_error(tmp_path):
@@ -53,10 +60,10 @@ def test_pipeline_cache_hit(tmp_path):
 def test_pipeline_interpolate_dates():
     pipeline = Pipeline("dummy_key")
     
-    page1 = PageClassification(category=Category.CONTRACT, residents=["A"], date="2023-01-01", summary="")
-    page2 = PageClassification(category=Category.CONTRACT, residents=["A"], date="NONE", summary="")
-    page3 = PageClassification(category=Category.CONTRACT, residents=["A"], date="2023-01-05", summary="")
-    page4 = PageClassification(category=Category.CONTRACT, residents=["A"], date="NONE", summary="")
+    page1 = MockPage(category="CONTRACT", residents=["A"], date="2023-01-01", summary="")
+    page2 = MockPage(category="CONTRACT", residents=["A"], date="NONE", summary="")
+    page3 = MockPage(category="CONTRACT", residents=["A"], date="2023-01-05", summary="")
+    page4 = MockPage(category="CONTRACT", residents=["A"], date="NONE", summary="")
     
     raw_pages = [
         (1, page1),
@@ -67,7 +74,7 @@ def test_pipeline_interpolate_dates():
     
     pipeline.client.detect_date_outliers = MagicMock(return_value=[])
     
-    pipeline._interpolate_dates(raw_pages)
+    pipeline._interpolate_dates(raw_pages, MagicMock())
     
     assert raw_pages[1][1].date == "2023-01-01"
     assert raw_pages[3][1].date == "2023-01-05"
