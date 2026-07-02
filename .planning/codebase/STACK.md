@@ -1,23 +1,22 @@
----
-last_mapped_commit: HEAD
----
 # Tech Stack
 
 **Focus:** tech
-**Date:** 2026-06-26
+**Date:** 2026-07-01
 
-## Core Technologies
-- **Language**: Python 3
-- **Primary Domain**: Document processing (PDF) and LLM-based categorization
+## Languages & Runtimes
+- **Python**: Version 3.10+. Primary language for the categorization pipeline.
 
-## Key Dependencies
-- `PyMuPDF`: PDF parsing and image extraction
-- `google-genai`, `openai`: Cloud LLM inference
-- `pydantic`: Schema validation and structured data (`src/schemas.py`)
-- `tenacity`: Retry logic for LLM calls
-- `python-dotenv`: Environment variable management
-- `pytest`: Testing framework
+## Core Frameworks & Dependencies
+- **PyMuPDF**: PDF manipulation, splitting, and rendering.
+- **Pydantic**: Data validation and structured schemas (likely used with LLM outputs).
+- **Tenacity**: Retry logic for robust API calls.
+- **Google GenAI / OpenAI**: LLM integration for page classification and entity extraction.
+- **Python-dotenv**: Managing environment variables (`.env`).
+
+## Build & Tooling
+- **Virtual Environments**: `venv` is used for isolation.
+- **Type Checking**: `mypy` is used (evident from `.mypy_cache`).
 
 ## Configuration
-- Project relies on `.env` (e.g., `GEMINI_API_KEYS`, `USE_LOCAL_LLM`).
-- CLI Arguments (e.g., `--no-local` fallback flags in `src/main.py`).
+- Environment variables are defined in `.env` (with an example provided in `.env.example`).
+- API keys like `GEMINI_API_KEY` are managed via the environment.

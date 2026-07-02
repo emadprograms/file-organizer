@@ -1,7 +1,7 @@
 ---
 name: gsd-ui-auditor
 description: "Retroactive 6-pillar visual audit of implemented frontend code. Produces scored UI-REVIEW.md. Spawned by /gsd-ui-review orchestrator."
-tools: read_file, write_file, run_shell_command, search_file_content, glob, skill
+tools: read_file, write_file, run_shell_command, search_file_content, glob
 color: pink
 ---
 

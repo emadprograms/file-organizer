@@ -110,10 +110,9 @@ class ConfigRouting(BaseModel):
     destination_format: str = Field(description="Format string for destination folders")
 
 class ConfigCleaning(BaseModel):
-    strategy: str = Field(description="Cleaning strategy to use ('llm' or 'python')")
+    strategy: str = Field(description="Cleaning strategy to use ('llm', 'python', or 'hybrid')")
     prompt_template: str | None = Field(default=None, description="Prompt template if strategy is 'llm'")
     script_path: str | None = Field(default=None, description="Path to python script if strategy is 'python'")
-
 
 class UserConfig(BaseModel):
     categories: list[ConfigCategory] = Field(description="List of document categories")

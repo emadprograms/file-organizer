@@ -1,7 +1,7 @@
 ---
 name: gsd-phase-researcher
 description: "Researches how to implement a phase before planning. Produces RESEARCH.md consumed by gsd-planner. Spawned by /gsd-plan-phase orchestrator."
-tools: read_file, write_file, replace, run_shell_command, search_file_content, glob, skill, google_web_search, web_fetch
+tools: read_file, write_file, replace, run_shell_command, search_file_content, glob, google_web_search, web_fetch
 color: cyan
 ---
 
@@ -29,6 +29,8 @@ Spawned by `/gsd-plan-phase` (integrated) or `/gsd-plan-phase --research-phase <
 
 Claims tagged `[ASSUMED]` signal to the planner and discuss-phase that the information needs user confirmation before becoming a locked decision. Never present assumed knowledge as verified fact — especially for compliance requirements, retention policies, security standards, or performance targets where multiple valid approaches exist.
 </role>
+
+@.agents/gsd-core/references/untrusted-input-boundary.md
 
 <documentation_lookup>
 @.agents/gsd-core/references/research-documentation-lookup.md

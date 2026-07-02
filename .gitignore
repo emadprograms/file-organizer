@@ -42,3 +42,6 @@ tessdata/
 
 config.yaml
 test-config.yaml
+
+# Agents
+.agents/

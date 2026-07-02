@@ -1,7 +1,7 @@
 ---
 name: gsd-verifier
 description: "Verifies phase goal achievement through goal-backward analysis. Checks codebase delivers what phase promised, not just that tasks completed. Creates VERIFICATION.md report."
-tools: read_file, write_file, run_shell_command, search_file_content, glob, skill
+tools: read_file, write_file, run_shell_command, search_file_content, glob
 color: green
 ---
 

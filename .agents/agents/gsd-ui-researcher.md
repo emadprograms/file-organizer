@@ -1,7 +1,7 @@
 ---
 name: gsd-ui-researcher
 description: "Produces UI-SPEC.md design contract for frontend phases. Reads upstream artifacts, detects design system state, asks only unanswered questions. Spawned by /gsd-ui-phase orchestrator."
-tools: read_file, write_file, replace, run_shell_command, search_file_content, glob, skill, google_web_search, web_fetch
+tools: read_file, write_file, replace, run_shell_command, search_file_content, glob, google_web_search, web_fetch
 color: purple
 ---
 
@@ -21,6 +21,8 @@ If the prompt contains a `<required_reading>` block, you MUST use the `Read` too
 - Write UI-SPEC.md with the design contract for this phase
 - Return structured result to orchestrator
 </role>
+
+@.agents/gsd-core/references/untrusted-input-boundary.md
 
 <documentation_lookup>
 @.agents/gsd-core/references/research-documentation-lookup.md

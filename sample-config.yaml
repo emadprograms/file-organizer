@@ -27,14 +27,14 @@ categories:
     name: "Miscellaneous Letters"
 
 extraction:
-  prompt_template: "Extract residents, categories, and dates. Dates should be in YYYY-MM-DD format."
+  prompt_template: "Extract residents, categories, and dates. Dates should be in YYYY-MM-DD format. Respond in JSON."
   fields:
     - name: residents
       type: "list[str]"
       description: "List of resident names in Arabic, with relationship in parentheses if known (e.g. 'Name (Wife)'). Return ['NONE'] if no names."
     - name: category
       type: "str"
-      description: "The document category from the 13 defined types"
+      description: "The document category. MUST be exactly one of: 'Basic Details Form', 'Personal Identification', 'Allocation Order', 'Key Handover Certificate', 'Housing Contract', 'Electricity and Water', 'Rent Deduction Notice', 'Allowance Deduction Notice', 'General Notifications', 'Maintenance Records', 'Inspection and Pictures', 'Property Modifications', 'Miscellaneous Letters'"
     - name: date
       type: "str"
       description: "The date of the document (Gregorian or Hijri) if visible, otherwise 'NONE'"
@@ -53,5 +53,4 @@ routing:
   destination_format: "{primary_tenant}/{category}"
 
 cleaning:
-  strategy: "llm"
-  prompt_template: "Detect and remove outliers in dates based on document context. Then perform alias mapping to unify different spellings of the same resident name into a canonical primary tenant name."
+  strategy: "hybrid"

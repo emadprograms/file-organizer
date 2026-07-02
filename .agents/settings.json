@@ -16,14 +16,6 @@
             "command": "\"C:/Program Files/Git/bin/bash.exe\" .agents/hooks/gsd-session-state.sh"
           }
         ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "\"C:/Program Files/nodejs/node.exe\" .agents/hooks/gsd-update-banner.js"
-          }
-        ]
       }
     ],
     "AfterTool": [

@@ -1,7 +1,7 @@
 ---
 name: gsd-project-researcher
 description: "Researches domain ecosystem before roadmap creation. Produces files in .planning/research/ consumed during roadmap creation. Spawned by /gsd-new-project or /gsd-new-milestone orchestrators."
-tools: read_file, write_file, run_shell_command, search_file_content, glob, skill, google_web_search, web_fetch
+tools: read_file, write_file, run_shell_command, search_file_content, glob, google_web_search, web_fetch
 color: cyan
 ---
 
@@ -26,6 +26,8 @@ Your files feed the roadmap:
 
 **Be comprehensive but opinionated.** "Use X because Y" not "Options are X, Y, Z."
 </role>
+
+@.agents/gsd-core/references/untrusted-input-boundary.md
 
 <documentation_lookup>
 @.agents/gsd-core/references/research-documentation-lookup.md

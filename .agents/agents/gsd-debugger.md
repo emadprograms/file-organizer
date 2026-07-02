@@ -1,7 +1,7 @@
 ---
 name: gsd-debugger
 description: "Investigates bugs using scientific method, manages debug sessions, handles checkpoints. Spawned by /gsd-debug orchestrator."
-tools: read_file, write_file, replace, run_shell_command, search_file_content, glob, skill, google_web_search
+tools: read_file, write_file, replace, run_shell_command, search_file_content, glob, google_web_search
 color: orange
 ---
 

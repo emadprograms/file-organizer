@@ -9,22 +9,22 @@ Sub-skill names below are post-#2790 consolidated targets — `gsd-phase`
 absorbs the former add/insert/remove/edit-phase commands and `gsd-progress`
 absorbs the former next/do commands.
 
-| User wants | Read |
+| User wants | Invoke |
 |---|---|
-| Gather context before planning | Read `skills/discuss-phase/SKILL.md` |
-| Clarify what a phase delivers | Read `skills/spec-phase/SKILL.md` |
-| Create a PLAN.md | Read `skills/plan-phase/SKILL.md` |
-| Execute plans in a phase | Read `skills/execute-phase/SKILL.md` |
-| Verify built features through UAT | Read `skills/verify-work/SKILL.md` |
-| Add / insert / remove / edit a phase | Read `skills/phase/SKILL.md` |
-| Advance to the next logical step | Read `skills/progress/SKILL.md` |
-| Offload planning to the ultraplan cloud | Read `skills/ultraplan-phase/SKILL.md` |
-| Cross-AI plan review convergence loop | Read `skills/plan-review-convergence/SKILL.md` |
-| Generate tests for a completed phase | Read `skills/add-tests/SKILL.md` |
-| Design an AI-integration phase | Read `skills/ai-integration-phase/SKILL.md` |
-| Run all remaining phases autonomously | Read `skills/autonomous/SKILL.md` |
-| Execute a trivial task inline | Read `skills/fast/SKILL.md` |
-| Plan a phase as a vertical MVP slice | Read `skills/mvp-phase/SKILL.md` |
-| Execute a quick task with GSD guarantees | Read `skills/quick/SKILL.md` |
+| Gather context before planning | gsd-discuss-phase |
+| Clarify what a phase delivers | gsd-spec-phase |
+| Create a PLAN.md | gsd-plan-phase |
+| Execute plans in a phase | gsd-execute-phase |
+| Verify built features through UAT | gsd-verify-work |
+| Add / insert / remove / edit a phase | gsd-phase |
+| Advance to the next logical step | gsd-progress |
+| Offload planning to the ultraplan cloud | gsd-ultraplan-phase |
+| Cross-AI plan review convergence loop | gsd-plan-review-convergence |
+| Generate tests for a completed phase | gsd-add-tests |
+| Design an AI-integration phase | gsd-ai-integration-phase |
+| Run all remaining phases autonomously | gsd-autonomous |
+| Execute a trivial task inline | gsd-fast |
+| Plan a phase as a vertical MVP slice | gsd-mvp-phase |
+| Execute a quick task with GSD guarantees | gsd-quick |
 
-Read the matched sub-skill's SKILL.md and follow its instructions. The `skills/<name>/SKILL.md` paths in the right column are relative to this skill's own directory.
+Invoke the matched skill directly using the Skill tool.

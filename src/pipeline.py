@@ -193,6 +193,10 @@ class Pipeline:
                     p.date = cp.date
                     p.summary = cp.summary
             return {}
+        elif cleaning_cfg.strategy == "hybrid":
+            logger.info("Running hybrid (Python + LLM) timeline logic...")
+            self._interpolate_dates(raw_pages)
+            return self._map_aliases(raw_pages)
         else:
             raise ValueError(f"Unknown cleaning strategy: {cleaning_cfg.strategy}")
 
