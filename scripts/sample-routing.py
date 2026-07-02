@@ -95,7 +95,7 @@ def _build_resident_order(documents: list[DocumentGroup]) -> list[tuple[int, str
             
         # Skip if ONLY amar takhsees
         cats = tenant_categories[tenant]
-        if len(cats) == 1 and AMAR_TAKHSEES in cats:
+        if len(cats) == 1 and "AMAR_TAKHSEES" in cats:
             continue
             
         ordered_tenants.append((index, tenant))
@@ -187,7 +187,7 @@ def organize(documents: list[DocumentGroup], source_pdf: str, output_base_dir: P
         if tenant and tenant.strip() and tenant.upper() not in ("UNKNOWN", "NONE"):
             doc_resident_dir = resident_folder_map.get(tenant)
         
-        if doc.category == AMAR_TAKHSEES:
+        if doc.category == "AMAR_TAKHSEES":
             if doc_resident_dir:
                 # Tenant is verified (has other documents), put in their personal amar_takhsees folder
                 target_dir = doc_resident_dir / CATEGORY_FOLDERS[doc.category]
