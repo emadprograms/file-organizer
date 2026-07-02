@@ -8,7 +8,6 @@ import logging
 import threading
 from typing import Optional, Any
 
-from src.schemas import PageClassification, Category
 from src.cache import SimpleCache
 from src.llm import LLMClient
 
@@ -86,7 +85,7 @@ class CloudExtractor:
             extracted_footer (Optional[str]): Any text previously extracted from the footer.
             
         Returns:
-            PageClassification: The structured classification result from the LLM.
+            Any: The structured classification result from the LLM.
         """
         if len(image_bytes) < 15000:
             logger.info(f" Page {page_index} is blank (size {len(image_bytes)} bytes). Skipping LLM.")
