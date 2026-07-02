@@ -87,14 +87,14 @@ class FileOrganizer:
                 
                 base_name = utils.sanitize_filename(f"{date_str}_{cat_str}_{tenant_str}.pdf")
                 
-                if base_name not in used_names_per_dir[str(target_dir)]:
+                if base_name not in used_names_per_dir[str(target_dir)] and not (target_dir / base_name).exists():
                     filename = base_name
                 else:
                     counter = 2
                     name_without_ext = base_name[:-4] if base_name.endswith(".pdf") else base_name
                     while True:
                         new_name = f"{name_without_ext}_{counter}.pdf"
-                        if new_name not in used_names_per_dir[str(target_dir)]:
+                        if new_name not in used_names_per_dir[str(target_dir)] and not (target_dir / new_name).exists():
                             filename = new_name
                             break
                         counter += 1
