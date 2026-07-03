@@ -18,11 +18,11 @@
     "quick_branch_template": null
   },
   "workflow": {
-    "research": false,
+    "research": true,
     "plan_check": true,
     "verifier": true,
     "nyquist_validation": true,
-    "auto_advance": true,
+    "auto_advance": false,
     "node_repair": true,
     "node_repair_budget": 2,
     "ui_phase": true,
@@ -45,8 +45,7 @@
     "post_planning_gaps": true,
     "security_enforcement": true,
     "security_asvs_level": 1,
-    "security_block_on": "high",
-    "_auto_chain_active": true
+    "security_block_on": "high"
   },
   "ship": {
     "pr_body_sections": []
