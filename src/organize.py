@@ -3,6 +3,7 @@ import os
 import sys
 import logging
 from pathlib import Path
+import json
 
 # Ensure src module is resolvable when run directly
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -86,6 +87,11 @@ def main():
     
     unique_tenants = len(set(p.canonical_tenant for p in cleaned_pages))
     logger.info(f"Cleaned {len(cleaned_pages)} pages successfully. Resolved {unique_tenants} unique tenant(s).")
+    
+    output_json_path = args.target_dir / "output" / f"{house_id}_cleaned.json"
+    with open(output_json_path, 'w', encoding='utf-8') as f:
+        json.dump([p.model_dump() for p in cleaned_pages], f, ensure_ascii=False, indent=2)
+    logger.info(f"Wrote cleaned data to {output_json_path}")
     
     return 0
 
