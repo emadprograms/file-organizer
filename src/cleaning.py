@@ -247,3 +247,28 @@ def assign_pages_to_tenants(pages: list[PageData], timelines: list[TenantTimelin
         else:
             month_str = page.resolved_date[:7]
             page.canonical_tenant = f"Unassigned ({month_str})"
+
+def process_cleaning_phase(json_path: Path, llm_client: LLMClient) -> list[PageData]:
+    pages = load_and_parse_json(json_path)
+    
+    infer_missing_dates(pages)
+    
+    unique_names = {p.expected_tenant_name for p in pages if p.expected_tenant_name}
+    
+    fuzzy_map = cluster_names_fuzzily(unique_names)
+    representatives = list(set(fuzzy_map.values()))
+    
+    llm_map = canonicalize_with_llm(representatives, llm_client)
+    
+    final_mapping = {}
+    for raw, rep in fuzzy_map.items():
+        final_mapping[raw] = llm_map.get(rep, rep)
+        
+    timelines = build_tenant_timelines(pages, final_mapping)
+    assign_pages_to_tenants(pages, timelines)
+    
+    for page in pages:
+        assert page.canonical_tenant is not None, "Page is missing canonical_tenant"
+        assert page.resolved_date is not None, "Page is missing resolved_date"
+        
+    return pages
