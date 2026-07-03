@@ -7,13 +7,13 @@
 
 ### Startup & Validation
 
-- [ ] **INIT-01**: CLI accepts a single directory path argument (e.g., `python organize.py ./pdfs/1273`)
-- [ ] **INIT-02**: Fail fast if `[ID]_categorized.pdf` is missing or misnamed in the target directory
-- [ ] **INIT-03**: Fail fast if `[ID]_report.json` is missing or misnamed in the target directory
-- [ ] **INIT-04**: Fail fast if required API key (GEMINI_API_KEY) is missing from environment
-- [ ] **INIT-05**: Derive house number from PDF filename (e.g., `1273_categorized.pdf` → house `1273`)
-- [ ] **INIT-06**: Create output directory at `./[source_dir]/output/` (same directory as input files)
-- [ ] **INIT-07**: CLI `--model` flag to switch between `gemma-4-26b-a4b-it` (default) and `gemma-4-31b-it`
+- [x] **INIT-01**: CLI accepts a single directory path argument (e.g., `python organize.py ./pdfs/1273`)
+- [x] **INIT-02**: Fail fast if `[ID]_categorized.pdf` is missing or misnamed in the target directory
+- [x] **INIT-03**: Fail fast if `[ID]_report.json` is missing or misnamed in the target directory
+- [x] **INIT-04**: Fail fast if required API key (GEMINI_API_KEY) is missing from environment
+- [x] **INIT-05**: Derive house number from PDF filename (e.g., `1273_categorized.pdf` → house `1273`)
+- [x] **INIT-06**: Create output directory at `./[source_dir]/output/` (same directory as input files)
+- [x] **INIT-07**: CLI `--model` flag to switch between `gemma-4-26b-a4b-it` (default) and `gemma-4-31b-it`
 
 ### Pass 1 — Document Cleaning
 
@@ -109,12 +109,12 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| INIT-01 | Phase 1 | Pending |
-| INIT-02 | Phase 1 | Pending |
-| INIT-03 | Phase 1 | Pending |
-| INIT-04 | Phase 1 | Pending |
-| INIT-05 | Phase 1 | Pending |
-| INIT-06 | Phase 1 | Pending |
+| INIT-01 | Phase 1 | Complete |
+| INIT-02 | Phase 1 | Complete |
+| INIT-03 | Phase 1 | Complete |
+| INIT-04 | Phase 1 | Complete |
+| INIT-05 | Phase 1 | Complete |
+| INIT-06 | Phase 1 | Complete |
 | CLN-01 | Phase 2 | Pending |
 | CLN-02 | Phase 2 | Pending |
 | CLN-03 | Phase 2 | Pending |
@@ -166,6 +166,7 @@
 | DIFF-03 | Phase 4 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 47 total
 - Mapped to phases: 47
 - Unmapped: 0 ✓

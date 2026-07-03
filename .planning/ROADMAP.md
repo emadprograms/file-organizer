@@ -9,11 +9,13 @@
 ## Milestone: v1.0
 
 ### Phase 1: Foundation & Infrastructure
+
 **Goal:** Build the shared infrastructure that every other module depends on — schemas, LLM client, logging, CLI entry point, and file system utilities.
 
 **Requirements:** INIT-01, INIT-02, INIT-03, INIT-04, INIT-05, INIT-06, INIT-07, LLM-01, LLM-02, LLM-03, LLM-04, LLM-05, LLM-06, LLM-07, LLM-08, LLM-09, LOG-01, LOG-02, LOG-03, FS-01, FS-02, FS-03, FS-04
 
 **Success Criteria:**
+
 1. `python organize.py ./pdfs/1273` validates file pair existence and exits cleanly with error if missing
 2. `python organize.py ./pdfs/1273 --model gemma-4-31b-it` accepts model flag
 3. Centralized LLM client enforces 7s rate limit between calls (measurable via timestamps in logs)
@@ -23,11 +25,13 @@
 7. JSON report parsed into Pydantic PageData models
 
 ### Phase 2: Pass 1 — Document Cleaning
+
 **Goal:** Implement the full cleaning pipeline — anchor extraction, name canonicalization, tenant qualification, timeline building, date filling, and tenant assignment. After this phase, every page has a canonical tenant and a resolved date.
 
 **Requirements:** CLN-01, CLN-02, CLN-03, CLN-04, CLN-05, CLN-06, CLN-07, CLN-08, CLN-09, CLN-10
 
 **Success Criteria:**
+
 1. Anchor documents (contract, forms, id_cards) correctly identified from the JSON report
 2. LLM canonicalization merges OCR variations (Arabic + English transliterations) into canonical identities
 3. Tenant qualification filters out names that appear on <1 anchor OR <5 total documents
@@ -37,11 +41,13 @@
 7. Zero null tenant names and zero null dates in the cleaned output (except Unassigned)
 
 ### Phase 3: Pass 2 — Grouping & Routing
+
 **Goal:** Implement boundary detection with overlapping chunks, programmatic verification, chunk merging, folder routing, and PDF splitting. After this phase, the original PDF is split into logical documents and each is assigned a destination folder.
 
 **Requirements:** GRP-01, GRP-02, GRP-03, GRP-04, GRP-05, GRP-06, GRP-07, GRP-08, GRP-09, GRP-10, GRP-11, GRP-12, GRP-13
 
 **Success Criteria:**
+
 1. Category pre-split correctly produces automatic boundaries at every category change
 2. Overlapping chunks (1-10, 10-20, etc.) with 1-page overlap processed correctly
 3. LLM grouping uses ONLY subject/content shift as boundary signals (not date or sender changes)
@@ -54,11 +60,13 @@
 10. Filenames follow `YYYY-MM-DD - عنوان عربي.pdf` format (or `YYYY-MM-DD.pdf` for direct-routed)
 
 ### Phase 4: Output Structure & Reconciliation
+
 **Goal:** Build the final output directory hierarchy, move split PDFs into their assigned folders, run page count reconciliation, and implement checkpoint/resume and reconciliation manifest.
 
 **Requirements:** OUT-01, OUT-02, OUT-03, OUT-04, OUT-05, OUT-06, LOG-04, DIFF-02, DIFF-03
 
 **Success Criteria:**
+
 1. Output directory created at `./[source_dir]/output/[house_number]/`
 2. Tenant directories include timeline in name (e.g., `John Doe 2020-2022/`)
 3. All 13 topic subdirectories created for every tenant, even if empty
@@ -69,11 +77,13 @@
 8. Reconciliation manifest generated showing every input page → output file mapping
 
 ### Phase 5: Dry Run & Polish
+
 **Goal:** Implement dry run mode, final integration testing, and edge case hardening.
 
 **Requirements:** DIFF-01
 
 **Success Criteria:**
+
 1. `--dry-run` flag shows full pipeline output (folder structure, filenames, routing decisions) without writing any files
 2. End-to-end test with real `1273_report.json` and `1273_categorized.pdf` produces correct output
 3. Arabic filenames render correctly on Windows
