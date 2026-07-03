@@ -1,4 +1,6 @@
 import pytest
+from unittest.mock import patch
+
 from pathlib import Path
 from src.cleaning import (
     PageData,
@@ -115,3 +117,33 @@ def test_process_cleaning_phase(tmp_path):
     pages = process_cleaning_phase(json_path, MockLLMClient())
     assert len(pages) == 5
     assert pages[0].canonical_tenant == "احمد"
+
+def test_parse_flexible_date_edge_cases():
+    assert parse_flexible_date("August 2023") == "2023-08-01"
+    assert parse_flexible_date("2023/05/15") == "2023-05-15"
+    assert parse_flexible_date("05-2023") == "2023-05-01"
+
+def test_canonicalize_with_llm_empty():
+    client = MockLLMClient()
+    res = canonicalize_with_llm([], client)
+    assert res == {}
+
+def test_canonicalize_with_llm_missing_keys():
+    class MissingKeyLLMClient:
+        def generate_content(self, contents, config):
+            class MockResponse:
+                text = '{"احمد": "احمد"}'
+            return MockResponse()
+    
+    with pytest.raises(RuntimeError, match="LLM dropped names from the mapping"):
+        canonicalize_with_llm(["احمد", "محمد"], MissingKeyLLMClient())
+
+def test_process_cleaning_phase_missing_tenant(tmp_path):
+    json_path = tmp_path / "test_report.json"
+    json_path.write_text("""[
+        {"category": "other", "content_explanation": "test", "expected_tenant_name": "احمد", "date": "2023-05-01", "sender": "s", "receiver": "r", "subject": "Subj"}
+    ]""", encoding="utf-8")
+    
+    with patch("src.cleaning.assign_pages_to_tenants", return_value=None):
+        with pytest.raises(RuntimeError, match="Page is missing canonical_tenant"):
+            process_cleaning_phase(json_path, MockLLMClient())
