@@ -1,8 +1,16 @@
 import argparse
 import os
 import sys
+import logging
 from pathlib import Path
+
+# Ensure src module is resolvable when run directly
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from dotenv import load_dotenv
+
+from src.logger import setup_logging
+from src.llm_client import LLMClient
 
 def validate_environment():
     load_dotenv()
@@ -56,8 +64,22 @@ def main():
     
     validate_environment()
     house_id = validate_target_directory(args.target_dir)
-    # Further logic will be attached here
+    
+    log_dir = setup_logging()
+    logger = logging.getLogger("file_organizer")
+    
+    logger.info(f"Starting File Organizer Post-Processor for house ID: {house_id}")
+    logger.info(f"Target directory: {args.target_dir}")
+    logger.info(f"Using LLM model: {args.model}")
+    logger.info(f"Logs will be written to: {log_dir}")
+    
+    llm_client = LLMClient(api_key=os.getenv("GEMINI_API_KEY"))
+    llm_client.default_model = args.model
+    
+    logger.info("Initialization and validation successful.")
+    
     return 0
 
 if __name__ == "__main__":
     sys.exit(main())
+

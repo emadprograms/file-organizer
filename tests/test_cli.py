@@ -30,15 +30,20 @@ def test_validate_environment_missing_key(mock_load_dotenv, capsys):
     captured = capsys.readouterr()
     assert "ERROR: GEMINI_API_KEY is missing from the environment." in captured.err
 
+@patch("src.organize.LLMClient")
+@patch("src.organize.setup_logging")
 @patch("src.organize.validate_target_directory")
 @patch("src.organize.validate_environment")
 @patch("sys.argv", ["organize.py", "./pdfs/1273"])
-def test_main_success(mock_validate_env, mock_validate_target):
+def test_main_success(mock_validate_env, mock_validate_target, mock_setup_logging, mock_llm_client):
     mock_validate_target.return_value = "1273"
-    # Until task 03-02, main just validates env and returns 0
+    mock_setup_logging.return_value = "/tmp/logs"
+    
     assert main() == 0
     mock_validate_env.assert_called_once()
     mock_validate_target.assert_called_once_with(Path("./pdfs/1273"))
+    mock_setup_logging.assert_called_once()
+    mock_llm_client.assert_called_once()
 
 def test_validate_target_directory_success(tmp_path):
     target_dir = tmp_path / "1273"
