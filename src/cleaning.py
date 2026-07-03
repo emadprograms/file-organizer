@@ -5,6 +5,8 @@ from typing import Optional
 from pydantic import BaseModel, Field
 import unicodedata
 from rapidfuzz import fuzz
+from src.llm_client import LLMClient
+from google.genai import types
 
 class PageData(BaseModel):
     category: str
@@ -157,3 +159,36 @@ def cluster_names_fuzzily(names: set[str]) -> dict[str, str]:
             mapping[name] = longest
             
     return mapping
+
+def canonicalize_with_llm(unresolved_names: list[str], llm_client: LLMClient) -> dict[str, str]:
+    if not unresolved_names:
+        return {}
+        
+    prompt = f"""
+Please map the following raw tenant names to unified canonical identities.
+Merge transliterations and OCR errors into a single canonical name.
+IMPORTANT: Output all canonical identities strictly in Arabic.
+
+Raw names:
+{json.dumps(unresolved_names, ensure_ascii=False)}
+
+Respond ONLY with a JSON dictionary where keys are the raw names and values are the canonical Arabic names.
+"""
+    
+    response = llm_client.generate_content(
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            temperature=0.0
+        )
+    )
+    
+    if not response or not response.text:
+        raise RuntimeError("LLM returned empty response")
+        
+    result_map = json.loads(response.text)
+    
+    missing_keys = set(unresolved_names) - set(result_map.keys())
+    assert not missing_keys, f"LLM dropped names from the mapping: {missing_keys}"
+    
+    return result_map
