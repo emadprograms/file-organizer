@@ -46,3 +46,6 @@ def test_atomic_write_failure(tmp_path):
         
     assert not target_file.exists()
     assert not os.path.exists(str(target_file) + ".tmp")
+
+def test_sanitize_filename_empty():
+    assert sanitize_filename("") == ""

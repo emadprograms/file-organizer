@@ -50,3 +50,9 @@ def test_log_llm_api_call(tmp_path, monkeypatch):
         data = json.loads(lines[0])
         assert data["request"]["prompt"] == "hello"
         assert data["response"]["arabic"] == "عالم"
+
+def test_setup_logging_no_run_id(tmp_path, monkeypatch):
+    monkeypatch.setattr("logger.LOGS_DIR", str(tmp_path))
+    log_dir = setup_logging()
+    assert os.path.exists(log_dir)
+    assert "_" in os.path.basename(log_dir) # Timestamp has underscore

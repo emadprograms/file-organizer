@@ -100,3 +100,11 @@ def test_500_non_boundary_skip(llm_client, mock_sleep):
         assert resp is None
         sleeps = [call[0][0] for call in mock_sleep.call_args_list]
         assert sleeps.count(15) == 4
+
+def test_404_fails_fast(llm_client, mock_sleep):
+    error = APIError("Not Found", {})
+    error.code = 404
+    llm_client.client.models.generate_content.side_effect = error
+    
+    with pytest.raises(LLMClientError, match="HTTP 404"):
+        llm_client.generate_content("test")
