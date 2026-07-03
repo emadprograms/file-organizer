@@ -192,3 +192,40 @@ Respond ONLY with a JSON dictionary where keys are the raw names and values are 
     assert not missing_keys, f"LLM dropped names from the mapping: {missing_keys}"
     
     return result_map
+
+def build_tenant_timelines(pages: list[PageData], canonical_mapping: dict[str, str]) -> list[TenantTimeline]:
+    anchor_categories = {"contract", "forms", "id_cards"}
+    
+    tenant_stats = {}
+    for page in pages:
+        raw_name = page.expected_tenant_name
+        if not raw_name:
+            continue
+            
+        canonical_name = canonical_mapping.get(raw_name, raw_name)
+        if canonical_name not in tenant_stats:
+            tenant_stats[canonical_name] = {"anchor_count": 0, "total_count": 0, "dates": []}
+            
+        stats = tenant_stats[canonical_name]
+        stats["total_count"] += 1
+        
+        if page.category in anchor_categories:
+            stats["anchor_count"] += 1
+            
+        if page.resolved_date:
+            stats["dates"].append(page.resolved_date)
+            
+    timelines = []
+    for name, stats in tenant_stats.items():
+        if stats["anchor_count"] >= 1 and stats["total_count"] >= 5:
+            if stats["dates"]:
+                min_date = min(stats["dates"])
+                max_date = max(stats["dates"])
+                assert min_date <= max_date, f"min_date {min_date} > max_date {max_date}"
+                timelines.append(TenantTimeline(
+                    canonical_name=name,
+                    min_date=min_date,
+                    max_date=max_date
+                ))
+                
+    return timelines
