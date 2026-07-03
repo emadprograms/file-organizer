@@ -97,3 +97,20 @@ def load_and_parse_json(json_path: Path) -> list[PageData]:
 
     assert len(pages) == len(data), "Mismatch in parsed pages and source array length."
     return pages
+
+def infer_missing_dates(pages: list[PageData]) -> None:
+    # Get all indices with a valid date
+    valid_dates = [(p.original_index, p.date) for p in pages if p.date is not None]
+    
+    for page in pages:
+        if page.date is not None:
+            page.resolved_date = page.date
+        else:
+            if not valid_dates:
+                continue # No valid dates at all, can't infer
+            
+            # Find the closest date
+            # Distance is abs(valid_idx - page.original_index)
+            # Tie break is valid_idx < page.original_index
+            closest = min(valid_dates, key=lambda x: (abs(x[0] - page.original_index), x[0]))
+            page.resolved_date = closest[1]
