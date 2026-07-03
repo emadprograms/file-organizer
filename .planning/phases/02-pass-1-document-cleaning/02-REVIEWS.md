@@ -24,7 +24,7 @@ The plan for Phase 2 is comprehensive and logically sequenced. It effectively tr
 | Severity | Concern | Description |
 | :--- | :--- | :--- |
 | **MEDIUM** | **Date Parsing Robustness** | Task 1 mentions "load and parse," but the research findings note that JSON date formats are inconsistent. The plan lacks a specific strategy for handling varied date granularities (e.g., "2023", "2023-05", "May 2023") which is necessary for the timeline comparisons in Task 6. |
-| **MEDIUM** | **Disqualified Tenant Leakage** | Task 5 identifies and "discards" disqualified tenants. However, Task 6 assigns pages based on timelines. It must be explicitly ensured that pages belonging to disqualified tenants are not accidentally assigned to a "partial" timeline or left with a canonical name that isn't qualified, which would violate CLN-04. |
+| ~~MEDIUM~~ **RESOLVED** | **~~Disqualified Tenant Leakage~~** | ~~Task 5 identifies and "discards" disqualified tenants.~~ **Non-issue:** Task 5 only builds timelines for qualified tenants; Task 6 assigns ALL pages against those timelines. Disqualified tenants' pages are naturally reassigned to the qualified tenant whose timeline covers their date, or to Unassigned. No leakage is possible by design. |
 | **LOW** | **LLM Rate Limit Enforcement** | While the global constraint is 7s, Task 4 (LLM Canonicalization) may involve a batch of unresolved names. The plan should explicitly ensure the `llm_client` handles the rate limiting internally or that the coordinator manages the cadence to avoid 429s. |
 | **LOW** | **Memory Usage on Large PDFs** | For very large house directories, creating a full list of `PageData` objects in memory is fine, but the "nearest-page" search in Task 2 is O(N²) if implemented naively. For thousands of pages, this could be a bottleneck. |
 
@@ -58,7 +58,7 @@ Antigravity review failed — known Windows stdout bug with `agy -p` (issue #274
 
 ### Agreed Concerns
 - **Date parsing robustness** (MEDIUM): No explicit strategy for inconsistent date formats/granularities
-- **Disqualified tenant leakage** (MEDIUM): Pages belonging to disqualified tenants need an explicit reassignment path to Unassigned
+- ~~**Disqualified tenant leakage** (MEDIUM)~~ — **RESOLVED**: Plan already handles this correctly. Task 6 assigns all pages against qualified-only timelines; disqualified tenants' pages are naturally overwritten.
 - **LLM rate limiting** (LOW): Already handled by `llm_client.py` but plan should note this explicitly
 - **O(N²) date inference** (LOW): Two-pass approach suggested as optimization
 
