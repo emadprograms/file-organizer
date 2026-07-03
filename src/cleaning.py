@@ -3,6 +3,8 @@ import re
 from pathlib import Path
 from typing import Optional
 from pydantic import BaseModel, Field
+import unicodedata
+from rapidfuzz import fuzz
 
 class PageData(BaseModel):
     category: str
@@ -114,3 +116,44 @@ def infer_missing_dates(pages: list[PageData]) -> None:
             # Tie break is valid_idx < page.original_index
             closest = min(valid_dates, key=lambda x: (abs(x[0] - page.original_index), x[0]))
             page.resolved_date = closest[1]
+
+def normalize_arabic_text(text: str) -> str:
+    text = unicodedata.normalize('NFKC', text)
+    # Strip diacritics
+    text = re.sub(r'[\u0617-\u061A\u064B-\u0652]', '', text)
+    # Normalize alef
+    text = re.sub(r'[أإآ]', 'ا', text)
+    # Normalize teh marbuta
+    text = re.sub(r'ة', 'ه', text)
+    # Normalize alef maksura / yeh
+    text = re.sub(r'ى', 'ي', text)
+    # Clean up whitespace
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+def cluster_names_fuzzily(names: set[str]) -> dict[str, str]:
+    names_list = list(names)
+    normalized_map = {n: normalize_arabic_text(n) for n in names_list}
+    
+    assigned_clusters = []
+    for name in names_list:
+        norm = normalized_map[name]
+        found = False
+        for cluster in assigned_clusters:
+            rep_name = next(iter(cluster))
+            rep_norm = normalized_map[rep_name]
+            score = fuzz.ratio(norm, rep_norm)
+            if score >= 85:
+                cluster.add(name)
+                found = True
+                break
+        if not found:
+            assigned_clusters.append({name})
+            
+    mapping = {}
+    for cluster in assigned_clusters:
+        longest = max(cluster, key=len)
+        for name in cluster:
+            mapping[name] = longest
+            
+    return mapping
