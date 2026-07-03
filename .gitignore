@@ -3,3 +3,28 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+
+# Environments
+venv/
+.venv/
+env/
+.env/
+
+# Caches and logs
+.pytest_cache/
+.mypy_cache/
+.tox/
+logs/
+*.log
+
+# Build and distributions
+build/
+dist/
+*.egg-info/
+
+# Node
+node_modules/
+
+# IDEs
+.idea/
+.vscode/
