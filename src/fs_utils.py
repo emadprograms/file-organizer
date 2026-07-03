@@ -2,6 +2,7 @@ import os
 import re
 import unicodedata
 from contextlib import contextmanager
+import uuid
 
 def sanitize_filename(filename: str) -> str:
     """
@@ -17,8 +18,15 @@ def sanitize_filename(filename: str) -> str:
     # Strip invisible Unicode control characters (Cc and Cf)
     filename = ''.join(ch for ch in filename if unicodedata.category(ch) not in ('Cc', 'Cf'))
     
-    # Truncate to 200 characters
-    return filename[:200]
+    # Truncate to 200 characters preserving extension
+    root, ext = os.path.splitext(filename)
+    if len(filename) > 200:
+        max_root_len = max(0, 200 - len(ext))
+        if max_root_len > 0:
+            return root[:max_root_len] + ext
+        else:
+            return filename[:200]
+    return filename
 
 @contextmanager
 def atomic_write(filepath: str):
@@ -26,7 +34,7 @@ def atomic_write(filepath: str):
     Yields a temporary file path, and atomically renames it to filepath
     upon successful completion.
     """
-    tmp_filepath = filepath + ".tmp"
+    tmp_filepath = filepath + f".{uuid.uuid4().hex}.tmp"
     try:
         yield tmp_filepath
         os.replace(tmp_filepath, filepath)
