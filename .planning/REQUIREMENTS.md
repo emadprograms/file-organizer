@@ -55,29 +55,29 @@
 
 ### Infrastructure — LLM Client
 
-- [ ] **LLM-01**: Centralized LLM client — all calls routed through single class
-- [ ] **LLM-02**: Model: Gemma 4 26B A4B IT for all calls
-- [ ] **LLM-03**: Rate limiting: minimum 7 seconds between requests; if reply comes before 7s, wait the remainder; if reply comes after 7s, fire next call immediately
-- [ ] **LLM-04**: Error 400/404 → fail fast, abort program
-- [ ] **LLM-05**: Error 500 → wait 15 seconds, retry
-- [ ] **LLM-06**: Error 429 → wait 65 seconds, retry; fail entirely after 3 consecutive 429s
-- [ ] **LLM-07**: Boundary detection 500s: shrink chunk size after 5 consecutive; fail at 10 consecutive
-- [ ] **LLM-08**: Other LLM call 500s: skip item after 5 consecutive, log warning
-- [ ] **LLM-09**: Error counters reset on ANY successful response
+- [x] **LLM-01**: Centralized LLM client — all calls routed through single class
+- [x] **LLM-02**: Model: Gemma 4 26B A4B IT for all calls
+- [x] **LLM-03**: Rate limiting: minimum 7 seconds between requests; if reply comes before 7s, wait the remainder; if reply comes after 7s, fire next call immediately
+- [x] **LLM-04**: Error 400/404 → fail fast, abort program
+- [x] **LLM-05**: Error 500 → wait 15 seconds, retry
+- [x] **LLM-06**: Error 429 → wait 65 seconds, retry; fail entirely after 3 consecutive 429s
+- [x] **LLM-07**: Boundary detection 500s: shrink chunk size after 5 consecutive; fail at 10 consecutive
+- [x] **LLM-08**: Other LLM call 500s: skip item after 5 consecutive, log warning
+- [x] **LLM-09**: Error counters reset on ANY successful response
 
 ### Infrastructure — Logging & Audit
 
-- [ ] **LOG-01**: Timestamped logs directory at project root `./logs/[YYYY-MM-DD_HHMMSS]/`
-- [ ] **LOG-02**: Full audit trail: every LLM call (prompt + response), every grouping decision, every routing decision, every tenant resolution
-- [ ] **LOG-03**: All log file handlers use `encoding='utf-8'` for Arabic text
+- [x] **LOG-01**: Timestamped logs directory at project root `./logs/[YYYY-MM-DD_HHMMSS]/`
+- [x] **LOG-02**: Full audit trail: every LLM call (prompt + response), every grouping decision, every routing decision, every tenant resolution
+- [x] **LOG-03**: All log file handlers use `encoding='utf-8'` for Arabic text
 - [ ] **LOG-04**: Reconciliation report at pipeline end: input page count, output file count, pages per file, unaccounted pages
 
 ### Infrastructure — File System Safety
 
-- [ ] **FS-01**: Sanitize Arabic filenames: strip Windows-reserved characters, invisible Unicode control characters
-- [ ] **FS-02**: Truncate filenames to 200 characters to leave margin for path prefixes (Windows MAX_PATH)
-- [ ] **FS-03**: Unicode normalize all filenames with `NFC` before any file operation
-- [ ] **FS-04**: Atomic file writes: write to temp file, then rename to final path
+- [x] **FS-01**: Sanitize Arabic filenames: strip Windows-reserved characters, invisible Unicode control characters
+- [x] **FS-02**: Truncate filenames to 200 characters to leave margin for path prefixes (Windows MAX_PATH)
+- [x] **FS-03**: Unicode normalize all filenames with `NFC` before any file operation
+- [x] **FS-04**: Atomic file writes: write to temp file, then rename to final path
 
 ### Differentiators
 
@@ -144,23 +144,23 @@
 | OUT-04 | Phase 4 | Pending |
 | OUT-05 | Phase 4 | Pending |
 | OUT-06 | Phase 4 | Pending |
-| LLM-01 | Phase 1 | Pending |
-| LLM-02 | Phase 1 | Pending |
-| LLM-03 | Phase 1 | Pending |
-| LLM-04 | Phase 1 | Pending |
-| LLM-05 | Phase 1 | Pending |
-| LLM-06 | Phase 1 | Pending |
-| LLM-07 | Phase 1 | Pending |
-| LLM-08 | Phase 1 | Pending |
-| LLM-09 | Phase 1 | Pending |
-| LOG-01 | Phase 1 | Pending |
-| LOG-02 | Phase 1 | Pending |
-| LOG-03 | Phase 1 | Pending |
+| LLM-01 | Phase 1 | Complete |
+| LLM-02 | Phase 1 | Complete |
+| LLM-03 | Phase 1 | Complete |
+| LLM-04 | Phase 1 | Complete |
+| LLM-05 | Phase 1 | Complete |
+| LLM-06 | Phase 1 | Complete |
+| LLM-07 | Phase 1 | Complete |
+| LLM-08 | Phase 1 | Complete |
+| LLM-09 | Phase 1 | Complete |
+| LOG-01 | Phase 1 | Complete |
+| LOG-02 | Phase 1 | Complete |
+| LOG-03 | Phase 1 | Complete |
 | LOG-04 | Phase 4 | Pending |
-| FS-01 | Phase 1 | Pending |
-| FS-02 | Phase 1 | Pending |
-| FS-03 | Phase 1 | Pending |
-| FS-04 | Phase 1 | Pending |
+| FS-01 | Phase 1 | Complete |
+| FS-02 | Phase 1 | Complete |
+| FS-03 | Phase 1 | Complete |
+| FS-04 | Phase 1 | Complete |
 | DIFF-01 | Phase 5 | Pending |
 | DIFF-02 | Phase 4 | Pending |
 | DIFF-03 | Phase 4 | Pending |
