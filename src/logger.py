@@ -26,21 +26,20 @@ def setup_logging(run_id: str = None) -> str:
     logger = logging.getLogger("file_organizer")
     logger.setLevel(logging.INFO)
     
-    # Clear existing handlers to prevent duplicate logs during testing or repeated calls
-    logger.handlers.clear()
-    
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    
-    # File handler
-    log_file = os.path.join(full_dir, "app.log")
-    file_handler = logging.FileHandler(log_file, encoding='utf-8')
-    file_handler.setFormatter(formatter)
-    logger.addHandler(file_handler)
-    
-    # Stream handler
-    stream_handler = logging.StreamHandler(sys.stdout)
-    stream_handler.setFormatter(formatter)
-    logger.addHandler(stream_handler)
+    # Check if handlers already exist to prevent duplicate logs or overriding other handlers
+    if not logger.handlers:
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        
+        # File handler
+        log_file = os.path.join(full_dir, "app.log")
+        file_handler = logging.FileHandler(log_file, encoding='utf-8')
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+        
+        # Stream handler
+        stream_handler = logging.StreamHandler(sys.stdout)
+        stream_handler.setFormatter(formatter)
+        logger.addHandler(stream_handler)
     
     return full_dir
 
@@ -51,7 +50,11 @@ def log_llm_api_call(request: dict, response: dict, run_id: str):
     log_dir = _run_directories.get(run_id)
     if not log_dir:
         # Fallback if log_llm_api_call is called without setup_logging
-        log_dir = setup_logging(run_id)
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        dir_name = f"{timestamp}_{run_id}"
+        log_dir = os.path.join(LOGS_DIR, dir_name)
+        os.makedirs(log_dir, exist_ok=True)
+        _run_directories[run_id] = log_dir
         
     audit_file = os.path.join(log_dir, "llm_audit.jsonl")
     
