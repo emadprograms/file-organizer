@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 
 from src.logger import setup_logging
 from src.llm_client import LLMClient
+from src.cleaning import process_cleaning_phase
 
 def validate_environment():
     load_dotenv()
@@ -77,6 +78,14 @@ def main():
     llm_client.default_model = args.model
     
     logger.info("Initialization and validation successful.")
+    
+    json_path = list(args.target_dir.glob("*_report.json"))[0]
+    
+    logger.info("Starting Pass 1 — Document Cleaning")
+    cleaned_pages = process_cleaning_phase(json_path, llm_client)
+    
+    unique_tenants = len(set(p.canonical_tenant for p in cleaned_pages))
+    logger.info(f"Cleaned {len(cleaned_pages)} pages successfully. Resolved {unique_tenants} unique tenant(s).")
     
     return 0
 
