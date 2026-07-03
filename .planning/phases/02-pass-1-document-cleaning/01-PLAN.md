@@ -41,6 +41,7 @@ Implement the document cleaning pipeline: parse the JSON report, resolve canonic
 - `PageData`: Pydantic model class for page-level data.
 - `TenantTimeline`: Pydantic model class for timeline bounds.
 - `load_and_parse_json`: Function to load JSON to models.
+- `parse_flexible_date`: Function to normalize varied date formats into `YYYY-MM-DD`.
 - `infer_missing_dates`: Function to fill null dates.
 - `normalize_arabic_text`: Function for string normalization.
 - `cluster_names_fuzzily`: Function to cluster names using RapidFuzz.
@@ -71,7 +72,13 @@ Implement the document cleaning pipeline: parse the JSON report, resolve canonic
     Create `src/cleaning.py` and define Pydantic models `PageData` and `TenantTimeline`.
     - `PageData`: fields `category` (str), `content_explanation` (str), `expected_tenant_name` (Optional[str]), `date` (Optional[str]), `sender` (str), `receiver` (str), `subject` (str). Add computed fields `canonical_tenant` (Optional[str] initialized to None), `resolved_date` (Optional[str] initialized to None), and `original_index` (int).
     - `TenantTimeline`: fields `canonical_name` (str), `min_date` (str), `max_date` (str).
+    Implement `parse_flexible_date(date_str: str) -> str` to normalize varied date formats into a standardized `YYYY-MM-DD` string:
+    - Handle at least these formats: `"2023"`, `"2023-05"`, `"2023-05-15"`, `"May 2023"`, `"15/05/2023"`, `"05-2023"`.
+    - Use regex-based pattern matching (no external date parsing libraries) to detect the format and extract components.
+    - Apply sensible defaults for missing components: year-only → `YYYY-01-01`, year-month → `YYYY-MM-01`.
+    - Raise `ValueError` for completely unparseable strings.
     Implement `load_and_parse_json(json_path: Path) -> list[PageData]` to load the raw JSON, add `original_index` starting from 0, and return instantiated models.
+    - During loading, apply `parse_flexible_date` to each page's `date` field (when not None) to normalize it before storing in the `date` field of `PageData`.
     - Assert that the number of instantiated `PageData` objects matches the array length in the original raw JSON file.
   </action>
   <read_first>
@@ -79,15 +86,21 @@ Implement the document cleaning pipeline: parse the JSON report, resolve canonic
     - .planning/phases/02-pass-1-document-cleaning/02-RESEARCH.md
   </read_first>
   <acceptance_criteria>
-    - `python -c "from src.cleaning import PageData, TenantTimeline, load_and_parse_json"` executes successfully.
+    - `python -c "from src.cleaning import PageData, TenantTimeline, load_and_parse_json, parse_flexible_date"` executes successfully.
     - `PageData` instantiated from a valid dict does not raise ValidationError.
     - Loading JSON verifies the list length matches the source array.
+    - `parse_flexible_date("2023")` returns `"2023-01-01"`.
+    - `parse_flexible_date("2023-05")` returns `"2023-05-01"`.
+    - `parse_flexible_date("May 2023")` returns `"2023-05-01"`.
+    - `parse_flexible_date("2023-05-15")` returns `"2023-05-15"`.
+    - `parse_flexible_date("garbage")` raises `ValueError`.
   </acceptance_criteria>
 </task>
 
 <task>
   <action>
     Implement `infer_missing_dates(pages: list[PageData]) -> None` in `src/cleaning.py`.
+    - All non-None `date` fields are already normalized to `YYYY-MM-DD` by `parse_flexible_date` during loading.
     - For each page where `date` is None, find the nearest page (by `original_index` distance) where `date` is not None.
     - If distances are equal, pick the page with the smaller `original_index` (backward tie-break).
     - Set the `resolved_date` on all pages to either their own `date` or the inferred date.
