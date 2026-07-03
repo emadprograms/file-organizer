@@ -13,19 +13,19 @@ from src.processing.split import extract_pdf_segment, compress_pdf
 logger = logging.getLogger(__name__)
 
 CATEGORY_FOLDERS = {
-    "BASIC_DETAILS": "01_البيانات الاساسية",
-    "PERSONAL_DETAILS": "02_بيانات المنتفع",
-    "AMAR_TAKHSEES": "03_أمر التخصيص",
-    "KEY_HANDOVER": "04_استمارات تسليم مفاتيح الوحدة",
-    "CONTRACT": "05_عقد الانتفاع",
-    "EWA_LETTERS": "06_مراسلات الكهرباء و الجهاز المركزي",
-    "RENT_DEDUCTION": "07_الاستقطاعات",
-    "ALLOWANCE_DEDUCTION": "08_وقف علاوة السكن",
-    "NOTIFICATIONS": "09_الاشعارات",
-    "MAINTENANCE": "10_طلبات وتقارير الصيانه",
-    "INSPECTION_PICTURES": "11_تقارير التفتيش والصور",
-    "MODIFICATIONS": "12_طلب الاضافة",
-    "OTHER_LETTERS": "13_أخرى",
+    "Basic Details Form": "01_البيانات الاساسية",
+    "Personal Identification": "02_بيانات المنتفع",
+    "Allocation Order": "03_أمر التخصيص",
+    "Key Handover Certificate": "04_استمارات تسليم مفاتيح الوحدة",
+    "Housing Contract": "05_عقد الانتفاع",
+    "Electricity and Water": "06_مراسلات الكهرباء و الجهاز المركزي",
+    "Rent Deduction Notice": "07_الاستقطاعات",
+    "Allowance Deduction Notice": "08_وقف علاوة السكن",
+    "General Notifications": "09_الاشعارات",
+    "Maintenance Records": "10_طلبات وتقارير الصيانه",
+    "Inspection and Pictures": "11_تقارير التفتيش والصور",
+    "Property Modifications": "12_طلب الاضافة",
+    "Miscellaneous Letters": "13_أخرى",
 }
 
 def _resolve_house_number(source_pdf: Union[str, Path]) -> str:
@@ -95,7 +95,7 @@ def _build_resident_order(documents: list[DocumentGroup]) -> list[tuple[int, str
             
         # Skip if ONLY amar takhsees
         cats = tenant_categories[tenant]
-        if len(cats) == 1 and "AMAR_TAKHSEES" in cats:
+        if len(cats) == 1 and "Allocation Order" in cats:
             continue
             
         ordered_tenants.append((index, tenant))
@@ -187,7 +187,7 @@ def organize(documents: list[DocumentGroup], source_pdf: str, output_base_dir: P
         if tenant and tenant.strip() and tenant.upper() not in ("UNKNOWN", "NONE"):
             doc_resident_dir = resident_folder_map.get(tenant)
         
-        if doc.category == "AMAR_TAKHSEES":
+        if doc.category == "Allocation Order":
             if doc_resident_dir:
                 # Tenant is verified (has other documents), put in their personal amar_takhsees folder
                 target_dir = doc_resident_dir / CATEGORY_FOLDERS[doc.category]

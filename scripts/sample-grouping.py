@@ -1,11 +1,12 @@
 from src.core.schemas import DocumentGroup
 
-def group_pages(raw_pages, client=None) -> list[DocumentGroup]:
+def group_pages(raw_pages, client=None, config=None) -> list[DocumentGroup]:
     """Group classified pages into cohesive document blocks.
     
     Args:
         raw_pages (list[tuple[int, any]]): The sequence of classified pages.
         client: The LLM client for semantic grouping.
+        config: The UserConfig containing prompts.
         
     Returns:
         list[DocumentGroup]: The final grouped documents.
@@ -53,7 +54,10 @@ def group_pages(raw_pages, client=None) -> list[DocumentGroup]:
                 pages_data.append([p_idx, names_str, summary_str])
             
             if client:
-                result = client.check_bulk_semantic_grouping(pages_data)
+                prompt_template = ""
+                if config and getattr(config, 'cleaning', None) and getattr(config.cleaning, 'prompts', None):
+                    prompt_template = config.cleaning.prompts.get('semantic_grouping', '')
+                result = client.check_bulk_semantic_grouping(pages_data, prompt_template=prompt_template)
                 
                 # Match LLM result groups back to our (p_idx, p) objects based on their order in the chunk
                 for new_g_indices in result.groups:

@@ -311,7 +311,7 @@ class Pipeline:
                         
         logger.info(f"  [Pass 1.5] Clustering {len(other_names)} other names against {len(anchor_names)} anchor names using LLM...")
         if anchor_names and other_names:
-            prompt = config.cleaning.prompts.get('cluster_names', '') if config.cleaning.prompts else ''
+            prompt = config.cleaning.prompts.get('entity_resolution', '') if config.cleaning.prompts else ''
             canonical_map = self.client.cluster_names(list(anchor_names), list(other_names), prompt_template=prompt)
             for p_idx, page in raw_pages:
                 new_residents = []
@@ -474,6 +474,10 @@ class Pipeline:
                     grouping_script = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(grouping_script)
                     if hasattr(grouping_script, "group_pages"):
+                        import inspect
+                        sig = inspect.signature(grouping_script.group_pages)
+                        if "config" in sig.parameters:
+                            return grouping_script.group_pages(raw_pages, client=self.client, config=config)
                         return grouping_script.group_pages(raw_pages, client=self.client)
                     else:
                         raise ValueError("Python grouping script must define a 'group_pages(raw_pages, client)' function.")

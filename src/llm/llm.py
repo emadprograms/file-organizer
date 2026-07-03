@@ -140,9 +140,9 @@ class LLMClient:
                 )
                 
                 try:
-                    response_parsed = future.result(timeout=300)
+                    response_parsed = future.result(timeout=20)
                 except concurrent.futures.TimeoutError:
-                    raise TimeoutError("LLM API call hung and timed out after 5 minutes.")
+                    raise TimeoutError("LLM API call hung and timed out after 20 seconds.")
 
                 record_successful_call()
                 self.total_requests += 1
@@ -227,13 +227,19 @@ class LLMClient:
         for other in other_names:
             matched_anchor = None
             if fuzz:
+                # First check exact token_set_ratio with 70 threshold for OCR misspellings
                 for anchor in anchor_names:
-                    # token_set_ratio is highly resilient to word reordering and partial OCR loss
-                    if fuzz.token_set_ratio(other, anchor) > 85:
+                    if fuzz.token_set_ratio(other, anchor) > 70:
                         matched_anchor = anchor
                         break
+                # If still not matched, try phonetic/ratio on normalized names
+                if not matched_anchor:
+                    for anchor in anchor_names:
+                        if fuzz.ratio(other.replace(" ", ""), anchor.replace(" ", "")) > 70:
+                            matched_anchor = anchor
+                            break
             else:
-                matches = difflib.get_close_matches(other, anchor_names, n=1, cutoff=0.85)
+                matches = difflib.get_close_matches(other, anchor_names, n=1, cutoff=0.70)
                 if matches:
                     matched_anchor = matches[0]
                     

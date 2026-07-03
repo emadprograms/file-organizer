@@ -29,12 +29,13 @@ Empower users to seamlessly categorize and organize any type of PDF by simply pr
 - ✓ Migrate Pass 1.5 (Audit & Cleaning) to use config-defined global cleaning instructions.
 - ✓ Migrate Pass 2 (Grouping) to use config-defined grouping constraints.
 - ✓ Migrate Pass 3 (Organization) to map generated document groups to config-defined "Destination Folders".
+- ✓ Remove redundant/unused legacy code in `src/llm.py` and `src/organizer.py` — Phases 4 & 5
+- ✓ Refactor and clarify code architecture to ensure separation of concerns — Phase 6
+- ✓ Clear up existing technical debt left over from the generalization refactoring — Phase 6
 
 ### Active
 
-- [ ] Remove redundant/unused legacy code in `src/llm.py` and `src/organizer.py`.
-- [ ] Refactor and clarify code architecture to ensure separation of concerns.
-- [ ] Clear up existing technical debt left over from the generalization refactoring.
+(None)
 
 ### Out of Scope
 
@@ -74,4 +75,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-02 after new milestone v1.1 initialization*
+*Last updated: 2026-07-03 after Phase 06*

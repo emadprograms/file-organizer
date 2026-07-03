@@ -24,7 +24,7 @@ class AppConfig:
     openrouter_api_key: str
     groq_api_key: str
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 TRACKING_DIR = PROJECT_ROOT / ".tracking"
 LOG_FILE = TRACKING_DIR / "api_calls.log"
 QUOTA_LIMIT = 1500
