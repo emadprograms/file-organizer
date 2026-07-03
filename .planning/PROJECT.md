@@ -1,61 +1,95 @@
-# File Categorizer Generalization
+# File Organizer Post-Processor
 
 ## What This Is
 
-A high-precision document processing pipeline that currently ingests housing-related PDFs and categorizes them. We are transforming it into a general-purpose, configuration-driven tool where users can provide their own instructions for AI extraction, cleaning, grouping, and folder organization via a config file.
+A CLI-based post-processing tool that takes pre-categorized housing PDFs and their corresponding JSON reports, resolves tenant identities, groups pages into logical multi-page documents, and organizes them into a structured directory hierarchy: House → Tenant (with timeline) → 13 Topic Folders. Built for the Kingdom of Bahrain Ministry of Interior housing document workflow.
 
 ## Core Value
 
-Empower users to seamlessly categorize and organize any type of PDF by simply providing clear AI instructions and destination folders, without changing the underlying pipeline engine.
-
-## Current Milestone: v1.1 Code Hardening & Tech Debt Cleanup
-
-**Goal:** Harden the codebase, remove redundant code, and clarify the structure to reduce technical debt introduced in the previous generalization milestone.
-
-**Target features:**
-- Clean up redundant code in `src/llm.py`, `src/organizer.py`, and other modules.
-- Clarify code architecture and responsibilities to improve readability.
-- Eliminate existing technical debt left from the refactor.
+Automatically transform a flat, pre-categorized PDF into a perfectly organized folder structure per tenant, with zero manual sorting — driven entirely by the JSON report data, LLM intelligence, and configurable YAML routing rules.
 
 ## Requirements
 
 ### Validated
 
-- ✓ Multi-Pass Classification — Pass 1 (vision extraction), Pass 1.5 (audit/cleaning), Pass 2 (tenant/logical grouping), Pass 3 (organization/routing).
-- ✓ LLM Integration — Providers for Gemini, OpenRouter, Groq.
-- ✓ Automated PDF Segmentation — Splits large PDFs into categories.
-- ✓ Implement a user-provided configuration file (YAML/JSON) parser.
-- ✓ Migrate Pass 1 (Vision Extraction) to use config-defined metadata extraction instructions.
-- ✓ Migrate Pass 1.5 (Audit & Cleaning) to use config-defined global cleaning instructions.
-- ✓ Migrate Pass 2 (Grouping) to use config-defined grouping constraints.
-- ✓ Migrate Pass 3 (Organization) to map generated document groups to config-defined "Destination Folders".
-- ✓ Remove redundant/unused legacy code in `src/llm.py` and `src/organizer.py` — Phases 4 & 5
-- ✓ Refactor and clarify code architecture to ensure separation of concerns — Phase 6
-- ✓ Clear up existing technical debt left over from the generalization refactoring — Phase 6
+(None yet — ship to validate)
 
 ### Active
 
-(None)
+- [ ] CLI script that takes a directory path (e.g., `python organize.py ./pdfs/1273`)
+- [ ] Strict startup validation: fail fast if `[ID]_categorized.pdf` or `[ID]_report.json` is missing or misnamed
+- [ ] Pydantic validation of `sample-config.yaml` format on startup before any processing
+- [ ] YAML-driven folder routing: 13 folders, each with `allowed_source_categories` — zero hardcoded routing rules
+- [ ] Pass 1 — Document Cleaning: resolve tenant names, fill null dates, build timelines
+- [ ] Pass 2 — Grouping & Routing: boundary detection via overlapping LLM chunks, folder assignment, PDF splitting
+- [ ] Anchor-based tenant resolution using high-signal documents (contract, forms, id_cards)
+- [ ] LLM-driven name canonicalization to merge OCR spelling variations
+- [ ] Primary tenant qualification: must appear on ≥1 anchor document AND ≥5 total documents after canonicalization
+- [ ] Timeline generation from min/max dates of a tenant's assigned documents
+- [ ] Timeline-based ownership: documents assigned to tenant whose timeline covers the document's date; overlap → earlier tenant
+- [ ] Null tenant/date resolution: infer from nearest dated page by position; if unresolvable → Unassigned folder with inferred period in name
+- [ ] Boundary detection with overlapping chunks (pages 1-10, 10-20, 20-30) and programmatic merge on overlap page
+- [ ] LLM grouping rules: boundaries on subject/topic shift and context/content shift ONLY — date and sender/receiver changes are NOT boundaries
+- [ ] LLM must provide reasoning for every grouping decision
+- [ ] Programmatic verification of LLM grouping output: no gaps, no overlaps, no invented pages; retry on failure
+- [ ] Pre-split by category before boundary detection (category change = automatic boundary)
+- [ ] Folder routing: single-match categories route directly (no LLM); multi-match categories use LLM to pick from allowed list
+- [ ] Output PDFs named as `2026-04-03 - ملخص قصير بالعربية.pdf` (date + brief Arabic summary from LLM)
+- [ ] Dateless documents use inferred date from nearest dated page
+- [ ] All 13 folders created for every tenant, even if empty
+- [ ] Output directory at `./[source_dir]/output/`
+- [ ] Logs directory at project root `./logs/[timestamp]/` with full audit trail
+- [ ] Centralized LLM client: all calls routed through single class enforcing rate limits and error handling
+- [ ] LLM model: Gemma 4 26B A4B IT
+- [ ] Rate limiting: minimum 7 seconds between requests
+- [ ] Error handling: 400/404 → fail fast; 500 → wait 15s retry; 429 → wait 65s retry
+- [ ] Boundary detection 500s: shrink chunk after 5 consecutive, fail at 10 consecutive
+- [ ] Other LLM calls 500s: skip after 5 consecutive
+- [ ] 429s: fail entirely after 3 consecutive
+- [ ] One `expected_tenant_name` per page (or null) — no multi-tenant ambiguity per page
+- [ ] PyMuPDF for PDF splitting by page ranges
 
 ### Out of Scope
 
-- [Changing the core pipeline implementation] — The engine (ingestion, 4 passes) must remain identical, only the instructions/rules are externalized.
-- [New feature additions] — This milestone focuses purely on hardening, cleanup, and reducing tech debt.
+- AI extraction or PDF categorization from scratch — relies on outputs from the separate categorizer repo
+- Batch processing multiple houses — one house directory at a time
+- GUI — CLI only
+- House number extraction — always derived from the PDF filename
 
 ## Context
 
-The codebase was recently refactored to support general-purpose YAML/JSON configurations, but old logic was left in place, leading to a messy, hard-to-understand architecture. The goal is to clean this up before adding any new features.
+- The categorizer (separate repo) already processes each PDF page through an LLM and produces a JSON report with: category (one of 7: forms, letters, id_cards, pictures, utility_bills, contract, others), content_explanation, expected_tenant_name, date/sender/receiver/subject (for letters), and other category-specific fields.
+- Documents are housing-related: contracts, government letters, utility bills, ID cards, inspection photos, maintenance forms — all in Arabic.
+- The 7 broad categories from the categorizer must map to 13 specific destination folders via YAML configuration.
+- Folder routing rules (which category can go where):
+  - **forms** → basic_details, ewa, rent_deduction, maintenance, others
+  - **letters** → allocation_order, key_handover, ewa_related_letters, rent_deduction, allowance_deduction, notifications, maintenance, inspection_and_pictures, modifications, others
+  - **utility_bills** → ewa_related_letters only
+  - **contract** → contract only
+  - **pictures** → inspection_and_pictures only
+  - **id_cards** → personal_details only
+  - **others** → NOT basic_details, NOT allocation_order, NOT contract (can go to remaining folders)
 
 ## Constraints
 
-- **Compatibility**: Must not alter the underlying Python architecture/pipeline logic.
-- **Configuration**: Uses YAML/JSON for the config file.
+- **Model**: Gemma 4 26B A4B IT — all LLM calls use this model
+- **Rate Limit**: Minimum 7 seconds between LLM requests, enforced centrally
+- **Single Processing**: No batch mode — one house directory per invocation
+- **Compatibility**: Must consume the JSON report format from the existing categorizer without modification
+- **Language**: Output filenames and LLM summaries in Arabic
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| "Destination Folders" Terminology | Avoiding the term 'category' for user-defined buckets prevents conflict with the extracted 'category' metadata. | — Pending |
+| Two-pass architecture (Clean → Group) | Pass 1 guarantees every page has a tenant + date before Pass 2 runs, eliminating null-handling complexity in grouping/routing | — Pending |
+| Anchor-based tenant resolution | Pulling names from every page creates noise (maintenance workers, clerks); anchor documents (contracts, forms, IDs) are the most reliable sources | — Pending |
+| 5-document + 1-anchor threshold | Filters out incidental names that appear once or twice without being overly aggressive | — Pending |
+| Overlapping chunks for boundary detection | Simple 1-page overlap with set-intersection merge avoids complex state machines and sliding window prompts | — Pending |
+| Subject/content shift as ONLY boundary signal | Date changes and sender/receiver changes are metadata, not boundaries — a back-and-forth exchange about the same issue is one document | — Pending |
+| YAML for routing rules, hardcode engineering decisions | Routing rules are business logic that changes; rate limits and error handling are engineering constants | — Pending |
+| Timeline as ownership authority | Single source of truth for document ownership; overlap periods → earlier tenant | — Pending |
+| Centralized LLM client | One place to enforce rate limiting, error handling, and logging across all call types | — Pending |
 
 ## Evolution
 
@@ -75,4 +109,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-03 after Phase 06*
+*Last updated: 2026-07-03 after initialization*
