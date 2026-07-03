@@ -43,7 +43,8 @@ def parse_flexible_date(date_str: str) -> str:
         "december": "12", "dec": "12"
     }
     
-    date_str_lower = date_str.strip().lower()
+    date_str_clean = date_str.strip()
+    date_str_lower = date_str_clean.lower()
 
     # match "May 2023" or "May-2023"
     m_month_word = re.match(r"^([a-z]+)[\s-]+(\d{4})$", date_str_lower)
@@ -54,30 +55,30 @@ def parse_flexible_date(date_str: str) -> str:
             return f"{year}-{month}-01"
 
     # match "YYYY-MM-DD"
-    m_ymd = re.match(r"^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$", date_str)
+    m_ymd = re.match(r"^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$", date_str_clean)
     if m_ymd:
         y, m, d = m_ymd.groups()
         return f"{y}-{int(m):02d}-{int(d):02d}"
 
     # match "DD/MM/YYYY" or "DD-MM-YYYY"
-    m_dmy = re.match(r"^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$", date_str)
+    m_dmy = re.match(r"^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$", date_str_clean)
     if m_dmy:
         d, m, y = m_dmy.groups()
         return f"{y}-{int(m):02d}-{int(d):02d}"
 
     # match "YYYY-MM" or "MM-YYYY" or "YYYY/MM" or "MM/YYYY"
-    m_ym = re.match(r"^(\d{4})[/-](\d{1,2})$", date_str)
+    m_ym = re.match(r"^(\d{4})[/-](\d{1,2})$", date_str_clean)
     if m_ym:
         y, m = m_ym.groups()
         return f"{y}-{int(m):02d}-01"
 
-    m_my = re.match(r"^(\d{1,2})[/-](\d{4})$", date_str)
+    m_my = re.match(r"^(\d{1,2})[/-](\d{4})$", date_str_clean)
     if m_my:
         m, y = m_my.groups()
         return f"{y}-{int(m):02d}-01"
 
     # match "YYYY"
-    m_y = re.match(r"^(\d{4})$", date_str)
+    m_y = re.match(r"^(\d{4})$", date_str_clean)
     if m_y:
         y = m_y.group(1)
         return f"{y}-01-01"
@@ -99,7 +100,8 @@ def load_and_parse_json(json_path: Path) -> list[PageData]:
         item["original_index"] = i
         pages.append(PageData(**item))
 
-    assert len(pages) == len(data), "Mismatch in parsed pages and source array length."
+    if len(pages) != len(data):
+        raise RuntimeError("Mismatch in parsed pages and source array length.")
     return pages
 
 def infer_missing_dates(pages: list[PageData]) -> None:
@@ -134,7 +136,7 @@ def normalize_arabic_text(text: str) -> str:
     return text
 
 def cluster_names_fuzzily(names: set[str]) -> dict[str, str]:
-    names_list = list(names)
+    names_list = sorted(list(names))
     normalized_map = {n: normalize_arabic_text(n) for n in names_list}
     
     assigned_clusters = []
@@ -142,19 +144,19 @@ def cluster_names_fuzzily(names: set[str]) -> dict[str, str]:
         norm = normalized_map[name]
         found = False
         for cluster in assigned_clusters:
-            rep_name = next(iter(cluster))
+            rep_name = cluster[0]
             rep_norm = normalized_map[rep_name]
             score = fuzz.ratio(norm, rep_norm)
             if score >= 85:
-                cluster.add(name)
+                cluster.append(name)
                 found = True
                 break
         if not found:
-            assigned_clusters.append({name})
+            assigned_clusters.append([name])
             
     mapping = {}
     for cluster in assigned_clusters:
-        longest = max(cluster, key=len)
+        longest = sorted(cluster, key=lambda x: (-len(x), x))[0]
         for name in cluster:
             mapping[name] = longest
             
@@ -189,7 +191,8 @@ Respond ONLY with a JSON dictionary where keys are the raw names and values are 
     result_map = json.loads(response.text)
     
     missing_keys = set(unresolved_names) - set(result_map.keys())
-    assert not missing_keys, f"LLM dropped names from the mapping: {missing_keys}"
+    if missing_keys:
+        raise RuntimeError(f"LLM dropped names from the mapping: {missing_keys}")
     
     return result_map
 
@@ -221,7 +224,8 @@ def build_tenant_timelines(pages: list[PageData], canonical_mapping: dict[str, s
             if stats["dates"]:
                 min_date = min(stats["dates"])
                 max_date = max(stats["dates"])
-                assert min_date <= max_date, f"min_date {min_date} > max_date {max_date}"
+                if min_date > max_date:
+                    raise RuntimeError(f"min_date {min_date} > max_date {max_date}")
                 timelines.append(TenantTimeline(
                     canonical_name=name,
                     min_date=min_date,
@@ -268,7 +272,7 @@ def process_cleaning_phase(json_path: Path, llm_client: LLMClient) -> list[PageD
     assign_pages_to_tenants(pages, timelines)
     
     for page in pages:
-        assert page.canonical_tenant is not None, "Page is missing canonical_tenant"
-        assert page.resolved_date is not None, "Page is missing resolved_date"
+        if page.canonical_tenant is None:
+            raise RuntimeError("Page is missing canonical_tenant")
         
     return pages
