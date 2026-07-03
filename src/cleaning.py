@@ -229,3 +229,21 @@ def build_tenant_timelines(pages: list[PageData], canonical_mapping: dict[str, s
                 ))
                 
     return timelines
+
+def assign_pages_to_tenants(pages: list[PageData], timelines: list[TenantTimeline]) -> None:
+    for page in pages:
+        if not page.resolved_date:
+            page.canonical_tenant = "Unassigned (Unknown)"
+            continue
+            
+        covering = []
+        for t in timelines:
+            if t.min_date <= page.resolved_date <= t.max_date:
+                covering.append(t)
+                
+        if covering:
+            covering.sort(key=lambda t: t.min_date)
+            page.canonical_tenant = covering[0].canonical_name
+        else:
+            month_str = page.resolved_date[:7]
+            page.canonical_tenant = f"Unassigned ({month_str})"
