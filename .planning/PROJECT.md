@@ -12,12 +12,24 @@ Automatically transform a flat, pre-categorized PDF into a perfectly organized f
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] CLI script that takes a directory path (e.g., `python organize.py ./pdfs/1273`) (Validated in Phase 01: foundation-infrastructure)
+- [x] Strict startup validation: fail fast if `[ID]_categorized.pdf` or `[ID]_report.json` is missing or misnamed (Validated in Phase 01: foundation-infrastructure)
+- [x] Output directory at `./[source_dir]/output/` (Validated in Phase 01: foundation-infrastructure)
+- [x] Logs directory at project root `./logs/[timestamp]/` with full audit trail (Validated in Phase 01: foundation-infrastructure)
+- [x] Centralized LLM client: all calls routed through single class enforcing rate limits and error handling (Validated in Phase 01: foundation-infrastructure)
+- [x] LLM model: Gemma 4 26B A4B IT (Validated in Phase 01: foundation-infrastructure)
+- [x] Rate limiting: minimum 7 seconds between requests (Validated in Phase 01: foundation-infrastructure)
+- [x] Error handling: 400/404 → fail fast; 500 → wait 15s retry; 429 → wait 65s retry (Validated in Phase 01: foundation-infrastructure)
+- [x] Boundary detection 500s: shrink chunk after 5 consecutive, fail at 10 consecutive (Validated in Phase 01: foundation-infrastructure)
+- [x] Other LLM calls 500s: skip after 5 consecutive (Validated in Phase 01: foundation-infrastructure)
+- [x] 429s: fail entirely after 3 consecutive (Validated in Phase 01: foundation-infrastructure)
+
+## Current State
+
+Phase 01 complete — Built the shared filesystem utilities and logging infrastructure, and the core CLI entry point.
 
 ### Active
 
-- [ ] CLI script that takes a directory path (e.g., `python organize.py ./pdfs/1273`)
-- [ ] Strict startup validation: fail fast if `[ID]_categorized.pdf` or `[ID]_report.json` is missing or misnamed
 - [ ] Pydantic validation of `sample-config.yaml` format on startup before any processing
 - [ ] YAML-driven folder routing: 13 folders, each with `allowed_source_categories` — zero hardcoded routing rules
 - [ ] Pass 1 — Document Cleaning: resolve tenant names, fill null dates, build timelines
@@ -37,15 +49,6 @@ Automatically transform a flat, pre-categorized PDF into a perfectly organized f
 - [ ] Output PDFs named as `2026-04-03 - ملخص قصير بالعربية.pdf` (date + brief Arabic summary from LLM)
 - [ ] Dateless documents use inferred date from nearest dated page
 - [ ] All 13 folders created for every tenant, even if empty
-- [ ] Output directory at `./[source_dir]/output/`
-- [ ] Logs directory at project root `./logs/[timestamp]/` with full audit trail
-- [ ] Centralized LLM client: all calls routed through single class enforcing rate limits and error handling
-- [ ] LLM model: Gemma 4 26B A4B IT
-- [ ] Rate limiting: minimum 7 seconds between requests
-- [ ] Error handling: 400/404 → fail fast; 500 → wait 15s retry; 429 → wait 65s retry
-- [ ] Boundary detection 500s: shrink chunk after 5 consecutive, fail at 10 consecutive
-- [ ] Other LLM calls 500s: skip after 5 consecutive
-- [ ] 429s: fail entirely after 3 consecutive
 - [ ] One `expected_tenant_name` per page (or null) — no multi-tenant ambiguity per page
 - [ ] PyMuPDF for PDF splitting by page ranges
 
@@ -109,4 +112,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-03 after initialization*
+*Last updated: 2026-07-03 after Phase 01 completion*
