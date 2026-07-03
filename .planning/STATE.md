@@ -1,47 +1,40 @@
----
-gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: Code Hardening and Tech Debt Cleanup
-current_phase: 06
-status: completed
-stopped_at: Phase 06 complete
-last_updated: "2026-07-03T00:38:00.000Z"
-last_activity: 2026-07-03
-last_activity_desc: Phase 06 complete
-progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 5
-  completed_plans: 5
-  percent: 100
-current_phase_name: Refactor the src folder into a clear folder structure
----
-
 # Project State
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-07-03)
 
-**Core value:** Empower users to seamlessly categorize and organize any type of PDF by simply providing clear AI instructions and destination folders, without changing the underlying pipeline engine.
-**Current focus:** Milestone v1.1 complete
+**Core value:** Automatically transform a flat, pre-categorized PDF into a perfectly organized folder structure per tenant, with zero manual sorting.
+**Current focus:** Phase 1 — Foundation & Infrastructure
 
-## Session
+## Current Status
 
-**Last session:** 2026-07-03T00:38:00.000Z
-**Stopped at:** Phase 06 complete
-**Resume file:** None
+- **Active Phase:** Phase 1 — Foundation & Infrastructure
+- **Phase Status:** Not Started
+- **Blockers:** None
 
-## Current Position
+## Phase Progress
 
-Phase: 06
-Plan: Not started
-Status: Milestone v1.1 complete
-Last activity: 2026-07-03 — Phase 06 complete
+| Phase | Name | Status | Plans |
+|-------|------|--------|-------|
+| 1 | Foundation & Infrastructure | ○ Pending | 0/0 |
+| 2 | Pass 1 — Document Cleaning | ○ Pending | 0/0 |
+| 3 | Pass 2 — Grouping & Routing | ○ Pending | 0/0 |
+| 4 | Output Structure & Reconciliation | ○ Pending | 0/0 |
+| 5 | Dry Run & Polish | ○ Pending | 0/0 |
 
-## Accumulated Context
+## Decision Log
 
-### Roadmap Evolution
+| Date | Decision | Context |
+|------|----------|---------|
+| 2026-07-03 | Two-pass architecture (Clean → Group) | Pass 1 guarantees clean data for Pass 2 |
+| 2026-07-03 | Anchor-based tenant resolution | High-signal docs only; 5-doc + 1-anchor threshold |
+| 2026-07-03 | Overlapping chunks for boundary detection | 1-page overlap with set-intersection merge |
+| 2026-07-03 | Subject/content shift as ONLY boundary signal | Date/sender changes are metadata, not boundaries |
+| 2026-07-03 | Hardcoded routing rules | Dropped YAML config — simpler, suits the structure |
+| 2026-07-03 | Timeline as ownership authority | Overlap periods → earlier tenant |
+| 2026-07-03 | Arabic filename from grouping call | No separate LLM call — title piggybacks on boundary detection |
+| 2026-07-03 | Gemma 4 26B A4B IT (default) with --model flag for 31B | CLI flag for model switching |
 
-- Phase 6 complete: Refactor the src folder into a clear folder structure
-
+---
+*Last updated: 2026-07-03 after project initialization*

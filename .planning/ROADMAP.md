@@ -1,43 +1,114 @@
-# Roadmap: v1.1 Code Hardening and Tech Debt Cleanup
+# Roadmap: File Organizer Post-Processor
 
-## Proposed Roadmap
+**Created:** 2026-07-03
+**Phases:** 5
+**Structure:** Horizontal Layers (Foundation → Pass 1 → Pass 2 → Output → Polish)
 
-**2 phases** | **4 requirements mapped** | All covered ✓
+---
 
-| # | Phase | Goal | Requirements | Success Criteria |
-|---|-------|------|--------------|------------------|
-| 4 | Legacy Logic Porting & Verification | Replicate the existing Bahrain housing logic via external config scripts. | REF-04 | 2 |
-| 5 | Decouple Core Pipeline | 1/1 | Complete   | 2026-07-02 |
+## Milestone: v1.0
 
-### Phase Details
+### Phase 1: Foundation & Infrastructure
+**Goal:** Build the shared infrastructure that every other module depends on — schemas, LLM client, logging, CLI entry point, and file system utilities.
 
-### Phase 4: Legacy Logic Porting & Verification (COMPLETED)
+**Requirements:** INIT-01, INIT-02, INIT-03, INIT-04, INIT-05, INIT-06, INIT-07, LLM-01, LLM-02, LLM-03, LLM-04, LLM-05, LLM-06, LLM-07, LLM-08, LLM-09, LOG-01, LOG-02, LOG-03, FS-01, FS-02, FS-03, FS-04
 
-Goal: Replicate the existing Bahrain housing logic via external config scripts.
-Requirements: REF-04
-Success criteria:
+**Success Criteria:**
+1. `python organize.py ./pdfs/1273` validates file pair existence and exits cleanly with error if missing
+2. `python organize.py ./pdfs/1273 --model gemma-4-31b-it` accepts model flag
+3. Centralized LLM client enforces 7s rate limit between calls (measurable via timestamps in logs)
+4. LLM client handles 400→fail, 500→retry 15s, 429→retry 65s with correct consecutive error counting
+5. Timestamped log directory created at `./logs/YYYY-MM-DD_HHMMSS/` with UTF-8 encoding
+6. Filename sanitizer strips Windows-reserved chars, truncates to 200 chars, NFC normalizes
+7. JSON report parsed into Pydantic PageData models
 
-1. The extracted logic is ported into default fallback scripts provided to the user.
-2. The config accurately represents the old hardcoded structure.
+### Phase 2: Pass 1 — Document Cleaning
+**Goal:** Implement the full cleaning pipeline — anchor extraction, name canonicalization, tenant qualification, timeline building, date filling, and tenant assignment. After this phase, every page has a canonical tenant and a resolved date.
 
-### Phase 5: Decouple Core Pipeline
+**Requirements:** CLN-01, CLN-02, CLN-03, CLN-04, CLN-05, CLN-06, CLN-07, CLN-08, CLN-09, CLN-10
 
-Goal: Remove all hardcoded domain logic from the core pipeline engine and verify via the scripts from Phase 4.
-Requirements: REF-01, REF-02, REF-03
-Success criteria:
+**Success Criteria:**
+1. Anchor documents (contract, forms, id_cards) correctly identified from the JSON report
+2. LLM canonicalization merges OCR variations (Arabic + English transliterations) into canonical identities
+3. Tenant qualification filters out names that appear on <1 anchor OR <5 total documents
+4. Timeline generated with correct min/max dates per qualified tenant
+5. All null dates filled via nearest-dated-page inference
+6. All pages assigned to a tenant (or explicitly to Unassigned bucket)
+7. Zero null tenant names and zero null dates in the cleaned output (except Unassigned)
 
-1. `src/llm.py` contains no Bahrain housing specific prompts.
-2. `src/organizer.py` relies strictly on YAML-defined rules.
-3. `src/pipeline.py` no longer contains real-estate specific heuristics.
-4. A test execution of the pipeline completes successfully, proving backward compatibility.
+### Phase 3: Pass 2 — Grouping & Routing
+**Goal:** Implement boundary detection with overlapping chunks, programmatic verification, chunk merging, folder routing, and PDF splitting. After this phase, the original PDF is split into logical documents and each is assigned a destination folder.
 
-### Phase 6: Refactor the src folder into a clear folder structure
+**Requirements:** GRP-01, GRP-02, GRP-03, GRP-04, GRP-05, GRP-06, GRP-07, GRP-08, GRP-09, GRP-10, GRP-11, GRP-12, GRP-13
 
-**Goal:** [To be planned]
-**Requirements**: TBD
-**Depends on:** Phase 5
-**Plans:** 1/1 plans complete
+**Success Criteria:**
+1. Category pre-split correctly produces automatic boundaries at every category change
+2. Overlapping chunks (1-10, 10-20, etc.) with 1-page overlap processed correctly
+3. LLM grouping uses ONLY subject/content shift as boundary signals (not date or sender changes)
+4. LLM response includes reasoning and brief_arabic_title for every group
+5. Programmatic verification catches gaps, overlaps, and invented pages — retries on failure
+6. Overlap merge correctly joins groups that share the overlap page
+7. On 500 errors: chunk size shrinks (10→5→3) after 5 consecutive; hard fail at 10
+8. Single-match categories route directly without LLM; multi-match categories use LLM
+9. PyMuPDF splits PDF into individual document files by page ranges
+10. Filenames follow `YYYY-MM-DD - عنوان عربي.pdf` format (or `YYYY-MM-DD.pdf` for direct-routed)
 
-Plans:
+### Phase 4: Output Structure & Reconciliation
+**Goal:** Build the final output directory hierarchy, move split PDFs into their assigned folders, run page count reconciliation, and implement checkpoint/resume and reconciliation manifest.
 
-- [x] TBD (run /gsd-plan-phase 6 to break down) (completed 2026-07-02)
+**Requirements:** OUT-01, OUT-02, OUT-03, OUT-04, OUT-05, OUT-06, LOG-04, DIFF-02, DIFF-03
+
+**Success Criteria:**
+1. Output directory created at `./[source_dir]/output/[house_number]/`
+2. Tenant directories include timeline in name (e.g., `John Doe 2020-2022/`)
+3. All 13 topic subdirectories created for every tenant, even if empty
+4. Routing rules hardcoded as Python dict — forms/letters/others routed correctly
+5. Unassigned folder created with inferred period when needed
+6. Page count reconciliation passes: total input pages == sum of output PDF pages
+7. Pass 1 checkpoint saved to disk; Pass 2 can resume from checkpoint after crash
+8. Reconciliation manifest generated showing every input page → output file mapping
+
+### Phase 5: Dry Run & Polish
+**Goal:** Implement dry run mode, final integration testing, and edge case hardening.
+
+**Requirements:** DIFF-01
+
+**Success Criteria:**
+1. `--dry-run` flag shows full pipeline output (folder structure, filenames, routing decisions) without writing any files
+2. End-to-end test with real `1273_report.json` and `1273_categorized.pdf` produces correct output
+3. Arabic filenames render correctly on Windows
+4. All error paths tested (missing files, LLM failures, malformed JSON)
+
+---
+
+## Phase Dependencies
+
+```
+Phase 1 (Foundation) ──→ Phase 2 (Pass 1) ──→ Phase 3 (Pass 2) ──→ Phase 4 (Output) ──→ Phase 5 (Polish)
+```
+
+All phases are strictly sequential — each depends on the previous.
+
+---
+
+## Requirement Coverage
+
+| Requirement | Phase |
+|-------------|-------|
+| INIT-01 through INIT-07 | Phase 1 |
+| LLM-01 through LLM-09 | Phase 1 |
+| LOG-01 through LOG-03 | Phase 1 |
+| FS-01 through FS-04 | Phase 1 |
+| CLN-01 through CLN-10 | Phase 2 |
+| GRP-01 through GRP-13 | Phase 3 |
+| OUT-01 through OUT-06 | Phase 4 |
+| LOG-04 | Phase 4 |
+| DIFF-02, DIFF-03 | Phase 4 |
+| DIFF-01 | Phase 5 |
+
+**Coverage:** 48/48 requirements mapped ✓
+**Unmapped:** 0 ✓
+
+---
+*Roadmap created: 2026-07-03*
+*Last updated: 2026-07-03 after initial creation*

@@ -10,9 +10,9 @@
 - [ ] **INIT-01**: CLI accepts a single directory path argument (e.g., `python organize.py ./pdfs/1273`)
 - [ ] **INIT-02**: Fail fast if `[ID]_categorized.pdf` is missing or misnamed in the target directory
 - [ ] **INIT-03**: Fail fast if `[ID]_report.json` is missing or misnamed in the target directory
-- [ ] **INIT-04**: Pydantic-validate `sample-config.yaml` on startup — reject malformed config with clear error
+- [ ] **INIT-04**: Fail fast if required API key (GEMINI_API_KEY) is missing from environment
 - [ ] **INIT-05**: Derive house number from PDF filename (e.g., `1273_categorized.pdf` → house `1273`)
-- [ ] **INIT-06**: Create output directory at `./[source_dir]/output/`
+- [ ] **INIT-06**: Create output directory at `./[source_dir]/output/` (same directory as input files)
 - [ ] **INIT-07**: CLI `--model` flag to switch between `gemma-4-26b-a4b-it` (default) and `gemma-4-31b-it`
 
 ### Pass 1 — Document Cleaning
@@ -34,14 +34,14 @@
 - [ ] **GRP-02**: Boundary detection via overlapping chunks (pages 1-10, 10-20, 20-30) with 1-page overlap
 - [ ] **GRP-03**: LLM grouping rules: boundaries ONLY on subject/topic shift and context/content shift — date changes and sender/receiver changes are NOT boundaries
 - [ ] **GRP-04**: LLM must provide reasoning for every grouping decision explaining what it saw and what it didn't
-- [ ] **GRP-05**: LLM returns strict JSON array with start_page, end_page, and reason fields
+- [ ] **GRP-05**: LLM returns strict JSON array with start_page, end_page, reason, and brief_arabic_title fields — title generated as part of the grouping call (no separate LLM call)
 - [ ] **GRP-06**: Programmatic verification of LLM output: no page gaps, no page overlaps, no invented pages; retry on failure
 - [ ] **GRP-07**: Merge overlapping chunks: if overlap page appears in groups from both chunks, merge those groups into one document
-- [ ] **GRP-08**: Route documents to folders using YAML config — check document's category, find all folders with that category in `allowed_source_categories`
+- [ ] **GRP-08**: Route documents to folders using hardcoded routing rules — check document's category, find all folders that accept that category
 - [ ] **GRP-09**: Single-match categories route directly without LLM (contract → 5_contract, pictures → 11_inspection_and_pictures, id_cards → 2_personal_details, utility_bills → 6_ewa_related_letters)
 - [ ] **GRP-10**: Multi-match categories (forms, letters, others) use LLM to pick from allowed folder list based on content_explanation
 - [ ] **GRP-11**: Split physical PDF into individual document PDFs using PyMuPDF page ranges
-- [ ] **GRP-12**: Name output PDFs as `YYYY-MM-DD - ملخص قصير بالعربية.pdf` (date + brief Arabic summary from LLM)
+- [ ] **GRP-12**: Name output PDFs as `YYYY-MM-DD - brief_arabic_title.pdf` using the title from the grouping LLM call; single-page direct-routed docs (pictures, contracts) get date-only filenames (`YYYY-MM-DD.pdf`)
 - [ ] **GRP-13**: Dateless documents use inferred date from nearest dated page for filename
 
 ### Output Structure
@@ -49,7 +49,7 @@
 - [ ] **OUT-01**: Create house-level directory from filename (e.g., `1273/`)
 - [ ] **OUT-02**: Create tenant-level directories with timeline in name (e.g., `John Doe 2020-2022/`)
 - [ ] **OUT-03**: Create all 13 topic subdirectories inside each tenant folder, even if empty
-- [ ] **OUT-04**: 13 folders and their allowed categories are fully defined in YAML — zero hardcoded routing rules
+- [ ] **OUT-04**: 13 folders and their allowed categories are hardcoded in Python — routing rules defined as a dictionary in the codebase
 - [ ] **OUT-05**: Create "Unassigned (inferred period)" folder for unresolvable documents with inferred period in name
 - [ ] **OUT-06**: Page count reconciliation: total pages across all output PDFs must equal total pages in input PDF
 
