@@ -4,7 +4,6 @@ depends_on:
   - 03-PLAN.md
   - 04-PLAN.md
 files_modified:
-  - src/processing/pipeline.py
   - src/processing/organizer.py
 autonomous: true
 ---
@@ -31,24 +30,10 @@ autonomous: true
   <acceptance_criteria>
     - `FileOrganizer` removes the old declarative grouping/routing logic if present.
     - Uses `group.folder_path` for the destination folder.
-    - If `group.is_direct_routed` is True, filename is `YYYY-MM-DD.pdf` (using `group.dates[0]`).
-    - If `group.is_direct_routed` is False, filename is `YYYY-MM-DD - {group.brief_arabic_title}.pdf`.
+    - If `group.is_direct_routed` is True AND the document is a single page (`group.start_page == group.end_page`), filename is `YYYY-MM-DD.pdf` (using `group.dates[0]`).
+    - If `group.is_direct_routed` is False OR the document is multi-page, filename is `YYYY-MM-DD - {group.brief_arabic_title}.pdf`.
     - If `group.dates` is empty or null, uses `"nodate"` as the date string.
     - Calls `extract_pdf_segment` using `group.start_page` and `group.end_page`.
-  </acceptance_criteria>
-</task>
-
-<task>
-  <action>Wire Phase 3 logic into `pipeline.py`</action>
-  <read_first>
-    - src/processing/pipeline.py
-  </read_first>
-  <acceptance_criteria>
-    - Replaces old grouping logic in `Pipeline.run()`.
-    - Passes `raw_pages` through `category_presplit`.
-    - Iterates over category runs, calling `process_with_shrink` on each.
-    - Iterates over generated groups, calling `route_document`, and sets `group.folder_path` and `group.is_direct_routed`.
-    - Passes the final list of `DocumentGroup` objects to `FileOrganizer`.
   </acceptance_criteria>
 </task>
 ```
@@ -57,9 +42,7 @@ autonomous: true
 - Running `python src/organize.py` on a sample creates overlapping chunks, merges them, and splits PDFs into the correct folder layout with correct filenames.
 
 ## Must Haves
-- Filename formatting strictly branches on `is_direct_routed`.
-- Pipeline fully delegates to `process_with_shrink` and `route_document`.
+- Filename formatting correctly branches on `is_direct_routed` and page count.
 
 ## Artifacts this phase produces
 - Modified `FileOrganizer` class
-- Modified `Pipeline.run()` execution flow

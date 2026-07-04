@@ -71,7 +71,8 @@ Wire the output of Pass 1.5 in `src/processing/pipeline.py` through the newly bu
     Map each resulting `GroupEntry` into a `DocumentGroup` schema object.
     Set the `DocumentGroup`'s `start_page`, `end_page`, `reason`, `brief_arabic_title`.
     The `primary_tenant`, `category`, and `dates` should be extracted from the source `PageData` elements covered by the group's page range.
-    For each final `DocumentGroup`, call `determine_folder(category, content_explanation, self.client)` from `src/processing/routing.py` to get the target folder (constructing `content_explanation` from underlying pages) and set `doc.folder_path`.
+    For each final `DocumentGroup`, call `route_document(doc, self.client)` from `src/processing/routing.py` to get the target folder and whether it was direct-routed.
+    Set `doc.folder_path` and `doc.is_direct_routed` accordingly.
   </action>
   <verify>
     <automated>python -m pytest tests/test_pipeline_pass2.py::test_routing_integration -x</automated>
