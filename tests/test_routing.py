@@ -95,3 +95,42 @@ def test_unknown_category_fallback():
     assert folder == "13_others"
     assert direct is False
     assert llm.call_count == 0
+
+from src.processing.organizer import FileOrganizer
+from pathlib import Path
+
+def test_filename_format(monkeypatch):
+    monkeypatch.setattr("src.processing.organizer.extract_pdf_segment", lambda s, st, e, t: None)
+    
+    group = DocumentGroup(
+        start_page=0, end_page=1, primary_tenant="TestTenant",
+        category="letters", dates=["2023-05-10"],
+        brief_arabic_title="TestTitle", folder_path="12_tenant_correspondence",
+        is_direct_routed=False,
+        reason=""
+    )
+    
+    organizer = FileOrganizer()
+    summary = organizer.organize([group], "dummy.pdf", Path("dummy_out"), None)
+    
+    paths = list(summary.keys())
+    assert len(paths) == 1
+    assert "2023-05-10 - TestTitle.pdf" in paths[0]
+
+def test_dateless_filename(monkeypatch):
+    monkeypatch.setattr("src.processing.organizer.extract_pdf_segment", lambda s, st, e, t: None)
+    
+    group = DocumentGroup(
+        start_page=0, end_page=1, primary_tenant="TestTenant",
+        category="letters", dates=[],
+        brief_arabic_title="TestTitle", folder_path="12_tenant_correspondence",
+        is_direct_routed=False,
+        reason=""
+    )
+    
+    organizer = FileOrganizer()
+    summary = organizer.organize([group], "dummy.pdf", Path("dummy_out"), None)
+    
+    paths = list(summary.keys())
+    assert len(paths) == 1
+    assert "nodate - TestTitle.pdf" in paths[0]

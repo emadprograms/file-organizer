@@ -74,3 +74,65 @@ def test_overlap_merge():
     assert merged[1].brief_arabic_title == "title1" # Trust chunk 1
     assert merged[2].start_page == 13
     assert merged[2].end_page == 15
+
+from src.processing.grouping import process_with_shrink, GROUPING_PROMPT
+from src.core.schemas import GroupingResponse
+
+class MockGroup:
+    def __init__(self, start, end, reason, brief):
+        self.start_page = start
+        self.end_page = end
+        self.reason = reason
+        self.brief_arabic_title = brief
+
+class MockResponse:
+    def __init__(self, groups):
+        self.groups = groups
+
+class MockLLMForOverlap:
+    def __init__(self):
+        self.calls = []
+        self.chunk_ranges = []
+
+    def _route_llm_call(self, model, contents, response_schema, log_prefix=None, max_attempts=None):
+        self.calls.append(contents)
+        import re
+        match = re.search(r"Chunk range: Page (\d+) to Page (\d+)", contents[0])
+        if match:
+            start = int(match.group(1))
+            end = int(match.group(2))
+            self.chunk_ranges.append((start, end))
+            return MockResponse([MockGroup(start, end, "reason", "title")])
+        raise ValueError("Prompt doesn't match")
+
+def test_chunk_generator_overlap():
+    pages = [SimpleNamespace(category="forms", page_idx=i, date="NONE", residents=[]) for i in range(15)]
+    llm = MockLLMForOverlap()
+    groups = process_with_shrink(pages, llm)
+    assert len(llm.chunk_ranges) == 2
+    assert llm.chunk_ranges[0] == (0, 9)
+    assert llm.chunk_ranges[1] == (9, 14)
+
+def test_boundary_signals():
+    assert "subject/content shift" in GROUPING_PROMPT
+    assert "DO NOT split on date changes" in GROUPING_PROMPT
+
+def test_response_has_reasoning():
+    from src.core.schemas import GroupEntry
+    assert "reason" in GroupEntry.model_fields
+    assert "brief_arabic_title" in GroupEntry.model_fields
+
+def test_schema_validation():
+    data = {
+        "groups": [
+            {
+                "start_page": 0,
+                "end_page": 2,
+                "reason": "Because",
+                "brief_arabic_title": "Test"
+            }
+        ]
+    }
+    obj = GroupingResponse(**data)
+    assert len(obj.groups) == 1
+    assert obj.groups[0].reason == "Because"
