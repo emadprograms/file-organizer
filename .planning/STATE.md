@@ -4,11 +4,11 @@ milestone: v1.0
 milestone_name: "### Phase 1: Foundation & Infrastructure"
 status: Ready to plan
 stopped_at: Phase 3 UI-SPEC approved
-last_updated: "2026-07-04T10:02:49.293Z"
+last_updated: "2026-07-04T13:55:08.948Z"
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 4
+  total_plans: 10
   completed_plans: 4
   percent: 40
 ---
@@ -20,7 +20,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03)
 
 **Core value:** Automatically transform a flat, pre-categorized PDF into a perfectly organized folder structure per tenant, with zero manual sorting.
-**Current focus:** Phase 03 — Pass 2 — Grouping & Routing
+**Current focus:** Phase 03 — pass-2-grouping-routing
 
 ## Current Status
 
@@ -34,9 +34,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 |-------|------|--------|-------|
 | 1 | Foundation & Infrastructure | ● Complete | 3/3 |
 | 2 | Pass 1 — Document Cleaning | ● Complete | 1/1 |
-| 2 | Pass 2 — Grouping & Routing | ○ Pending | 0/0 |
-| 3 | Output Structure & Reconciliation | ○ Pending | 0/0 |
-| 4 | Dry Run & Polish | ○ Pending | 0/0 |
+| 3 | Pass 2 — Grouping & Routing | ○ Pending | 1/x |
+| 4 | Output Structure & Reconciliation | ○ Pending | 0/0 |
+| 5 | Dry Run & Polish | ○ Pending | 0/0 |
 
 ## Decision Log
 
@@ -52,12 +52,13 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 | 2026-07-03 | Gemma 4 26B A4B IT (default) with --model flag for 31B | CLI flag for model switching |
 | 2026-07-03 | Custom retry logic for LLMClient | 500 boundary/non-boundary logic required stateful loop |
 | 2026-07-03 | Adjusted sys.path for direct script execution | Allows `python src/organize.py` without module resolution issues |
+| 2026-07-04 | Refactor DocumentGroup | Use Pydantic BaseModel to align with project and validate fields |
 
 ---
-*Last updated: 2026-07-04 after Phase 02 completion*
+*Last updated: 2026-07-04 after Phase 03 Plan 01 completion*
 
 ## Session
 
-**Last session:** 2026-07-04T10:02:49.279Z
-**Stopped at:** Phase 3 UI-SPEC approved
-**Resume file:** .planning/phases/03-pass-2-grouping-routing/03-UI-SPEC.md
+**Last session:** 2026-07-04T13:54:11Z
+**Stopped at:** Phase 3 Plan 1 completed
+**Resume file:** .planning/phases/03-pass-2-grouping-routing/01-SUMMARY.md
