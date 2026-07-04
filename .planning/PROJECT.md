@@ -23,23 +23,24 @@ Automatically transform a flat, pre-categorized PDF into a perfectly organized f
 - [x] Boundary detection 500s: shrink chunk after 5 consecutive, fail at 10 consecutive (Validated in Phase 01: foundation-infrastructure)
 - [x] Other LLM calls 500s: skip after 5 consecutive (Validated in Phase 01: foundation-infrastructure)
 - [x] 429s: fail entirely after 3 consecutive (Validated in Phase 01: foundation-infrastructure)
+- [x] Pass 1 — Document Cleaning: resolve tenant names, fill null dates, build timelines (Validated in Phase 02: pass-1-document-cleaning)
+- [x] Anchor-based tenant resolution using high-signal documents (contract, forms, id_cards) (Validated in Phase 02: pass-1-document-cleaning)
+- [x] LLM-driven name canonicalization to merge OCR spelling variations (Validated in Phase 02: pass-1-document-cleaning)
+- [x] Primary tenant qualification: must appear on ≥1 anchor document AND ≥5 total documents after canonicalization (Validated in Phase 02: pass-1-document-cleaning)
+- [x] Timeline generation from min/max dates of a tenant's assigned documents (Validated in Phase 02: pass-1-document-cleaning)
+- [x] Timeline-based ownership: documents assigned to tenant whose timeline covers the document's date; overlap → earlier tenant (Validated in Phase 02: pass-1-document-cleaning)
+- [x] Null tenant/date resolution: infer from nearest dated page by position; if unresolvable → Unassigned folder with inferred period in name (Validated in Phase 02: pass-1-document-cleaning)
+- [x] One `expected_tenant_name` per page (or null) — no multi-tenant ambiguity per page (Validated in Phase 02: pass-1-document-cleaning)
 
 ## Current State
 
-Phase 01 complete — Built the shared filesystem utilities and logging infrastructure, and the core CLI entry point.
+Phase 02 complete — Built the full document cleaning pipeline: date parsing (Gregorian/Hijri/Arabic), fuzzy Arabic name clustering, LLM canonicalization, tenant timeline building, date inference, and tenant assignment.
 
 ### Active
 
 - [ ] Pydantic validation of `sample-config.yaml` format on startup before any processing
 - [ ] YAML-driven folder routing: 13 folders, each with `allowed_source_categories` — zero hardcoded routing rules
-- [ ] Pass 1 — Document Cleaning: resolve tenant names, fill null dates, build timelines
 - [ ] Pass 2 — Grouping & Routing: boundary detection via overlapping LLM chunks, folder assignment, PDF splitting
-- [ ] Anchor-based tenant resolution using high-signal documents (contract, forms, id_cards)
-- [ ] LLM-driven name canonicalization to merge OCR spelling variations
-- [ ] Primary tenant qualification: must appear on ≥1 anchor document AND ≥5 total documents after canonicalization
-- [ ] Timeline generation from min/max dates of a tenant's assigned documents
-- [ ] Timeline-based ownership: documents assigned to tenant whose timeline covers the document's date; overlap → earlier tenant
-- [ ] Null tenant/date resolution: infer from nearest dated page by position; if unresolvable → Unassigned folder with inferred period in name
 - [ ] Boundary detection with overlapping chunks (pages 1-10, 10-20, 20-30) and programmatic merge on overlap page
 - [ ] LLM grouping rules: boundaries on subject/topic shift and context/content shift ONLY — date and sender/receiver changes are NOT boundaries
 - [ ] LLM must provide reasoning for every grouping decision
@@ -49,7 +50,6 @@ Phase 01 complete — Built the shared filesystem utilities and logging infrastr
 - [ ] Output PDFs named as `2026-04-03 - ملخص قصير بالعربية.pdf` (date + brief Arabic summary from LLM)
 - [ ] Dateless documents use inferred date from nearest dated page
 - [ ] All 13 folders created for every tenant, even if empty
-- [ ] One `expected_tenant_name` per page (or null) — no multi-tenant ambiguity per page
 - [ ] PyMuPDF for PDF splitting by page ranges
 
 ### Out of Scope
@@ -112,4 +112,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-03 after Phase 01 completion*
+*Last updated: 2026-07-04 after Phase 02 completion*
