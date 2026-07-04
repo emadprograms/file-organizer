@@ -457,7 +457,7 @@ class Pipeline:
         Returns:
             list[DocumentGroup]: The final grouped and routed documents.
         """
-        from src.processing.grouping import category_presplit, process_with_shrink
+        from src.processing.grouping import process_with_shrink
         from src.processing.routing import route_document
         
         if not raw_pages:
@@ -465,8 +465,28 @@ class Pipeline:
             
         pages_only = [p for _, p in raw_pages]
         
-        # 1. Category Pre-split
-        runs = category_presplit(pages_only)
+        # 1. Category and Resident Pre-split
+        runs = []
+        if pages_only:
+            current_run = [pages_only[0]]
+            current_category = getattr(pages_only[0], "category", None)
+            res_0 = getattr(pages_only[0], "residents", [])
+            current_resident = res_0[0] if res_0 else None
+            
+            for page in pages_only[1:]:
+                cat = getattr(page, "category", None)
+                res = getattr(page, "residents", [])
+                resident = res[0] if res else None
+                
+                if cat == current_category and resident == current_resident:
+                    current_run.append(page)
+                else:
+                    runs.append(current_run)
+                    current_run = [page]
+                    current_category = cat
+                    current_resident = resident
+            if current_run:
+                runs.append(current_run)
         
         documents: list[DocumentGroup] = []
         

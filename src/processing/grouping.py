@@ -145,16 +145,19 @@ def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup
                 log_prefix="Grouping"
             )
             
-            verify_groups(response.groups, current_page_index, end_index - 1)
+            verify_groups(response.groups, current_page_index, end_index)
             
             chunk_groups = []
             for g in response.groups:
                 g_pages = pages[g.start_page : g.end_page + 1]
-                primary_tenant = getattr(g_pages[0], "primary_tenant", "UNKNOWN")
+                res = getattr(g_pages[0], "residents", [])
+                primary_tenant = res[0] if res else "UNKNOWN"
                 category = getattr(g_pages[0], "category", "UNKNOWN")
                 dates = []
                 for p in g_pages:
-                    dates.extend(getattr(p, "dates", []) or [])
+                    d = getattr(p, "date", None)
+                    if d and d != "NONE":
+                        dates.append(d)
                 
                 doc_group = DocumentGroup(
                     start_page=g.start_page,
