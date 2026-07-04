@@ -1,71 +1,49 @@
 ---
-objective: "Implement LLM Grouping Call and Resilient Loop"
-wave: 2
+objective: "Implement Grouping Algorithms"
+wave: 1
 depends_on: [1]
 files_modified:
-  - src/llm/llm.py
   - src/processing/grouping.py
-  - tests/test_llm_grouping.py
 autonomous: true
 requirements:
-  - GRP-03
-  - GRP-04
-  - GRP-05
+  - GRP-02
+  - GRP-06
+  - GRP-07
 must_haves:
   truths:
-    - group_chunk method added to LLMClient that yields GroupingResponse
-    - process_with_shrink implemented with 10->5->3 logic
-    - 10-consecutive-failures hard limit enforced
+    - generate_chunks yields overlapping segments
+    - verify_groups strictly catches non-contiguous coverage
+    - merge_chunks joins chunks cleanly without duplicating pages
   artifacts:
-    - src.llm.llm.LLMClient.group_chunk
-    - src.processing.grouping.process_with_shrink
-    - tests/test_llm_grouping.py
+    - src.processing.grouping.generate_chunks
+    - src.processing.grouping.verify_groups
+    - src.processing.grouping.merge_chunks
   key_links: []
 ---
 
-# Plan 2: LLM Grouping Call and Resilient Loop
+# Plan 2: Grouping Algorithms
 
 ## Objective
-Implement the LLM call that asks the model to detect subject boundaries and generate Arabic titles for a chunk of pages. Build the `process_with_shrink` loop that orchestrates this call, retrying and shrinking the chunk size upon verification failures or 500 errors.
+Implement the pure-Python grouping algorithms for Pass 2: overlapping chunk generation, verification logic, and chunk merging.
 
 ## Tasks
 
 ```xml
 <task>
   <files>
-    - tests/test_llm_grouping.py
+    - src/processing/grouping.py
   </files>
   <action>
-    Create `tests/test_llm_grouping.py`.
-    Write tests simulating the LLM client responses.
-    Mock `LLMClient.group_chunk` to return valid responses, and test `process_with_shrink`'s success path.
-    Mock `LLMClient.group_chunk` to raise exceptions, and test the shrink logic and the 10-failure hard fail limit.
+    Create `src/processing/grouping.py`.
+    Implement `generate_chunks(pages: list, chunk_size: int = 10, overlap: int = 1)`.
+    It should yield tuples of `(chunk_pages, is_overlap_with_prev)`. A sliding window that yields a subsequence of pages with a 1-page overlap with the preceding chunk.
   </action>
   <verify>
-    <automated>python -m pytest tests/test_llm_grouping.py -x</automated>
+    <automated>python -m pytest tests/test_grouping.py::test_chunk_generator_overlap -x</automated>
   </verify>
   <done>
-    - Tests for LLM grouping orchestration are fully defined and fail (implementation not written).
-  </done>
-</task>
-
-<task>
-  <files>
-    - src/llm/llm.py
-  </files>
-  <action>
-    Add `group_chunk(self, pages: list, prompt_template: str = "") -> GroupingResponse` to `LLMClient` in `src/llm/llm.py`.
-    Format the `pages` input into a text representation containing page index, date, tenant, category, and text content for the model to read.
-    Use `_route_llm_call` specifying the `GroupingResponse` schema.
-    Ensure the prompt strictly commands the LLM to group ONLY on subject/content shifts, ignoring date or sender changes.
-  </action>
-  <verify>
-    <automated>python -c "from src.llm.llm import LLMClient; assert hasattr(LLMClient, 'group_chunk')"</automated>
-  </verify>
-  <done>
-    - `group_chunk` is defined on `LLMClient`.
-    - It returns a `GroupingResponse`.
-    - It delegates to `_route_llm_call`.
+    - `src/processing/grouping.py` has a `generate_chunks` generator function.
+    - For `pages=[0,1,2,3,4]`, `chunk_size=3`, `overlap=1`, it yields `([0,1,2], False)` then `([2,3,4], True)`.
   </done>
 </task>
 
@@ -74,29 +52,36 @@ Implement the LLM call that asks the model to detect subject boundaries and gene
     - src/processing/grouping.py
   </files>
   <action>
-    Implement `process_with_shrink(pages: list, llm_client: 'LLMClient') -> list[GroupEntry]` in `src/processing/grouping.py`.
-    It implements the 10->5->3 chunk shrinking logic:
-    - Try to process `pages` using `generate_chunks` with `chunk_size` starting at 10.
-    - For each chunk, call `llm_client.group_chunk`.
-    - Verify the response using `verify_groups`.
-    - If `verify_groups` raises `InvalidResponseError` or the LLM call raises a `5xx` error, increment a consecutive failure counter.
-    - If consecutive failures reach 5, shrink the `chunk_size` to the next level in `[10, 5, 3]`. Restart the processing loop.
-    - Hard fail (raise `RuntimeError`) if total consecutive failures hit 10.
-    - On successful chunk processing, reset consecutive failures.
-    - Returns the merged result using `merge_chunks` on all successful chunk results.
+    Implement `verify_groups(groups: list[GroupEntry], chunk_start_page: int, chunk_end_page: int) -> bool` in `src/processing/grouping.py`.
+    It must check for contiguous coverage of the chunk's range (no gaps, no overlaps between groups, and no invented pages outside the chunk).
+    Return `True` if valid, raise `InvalidResponseError` (from `src.llm.llm`) with a descriptive message if invalid.
   </action>
   <verify>
-    <automated>python -m pytest tests/test_llm_grouping.py -x</automated>
+    <automated>python -m pytest tests/test_grouping.py::test_verification_logic -x</automated>
   </verify>
   <done>
-    - `process_with_shrink` correctly calls `group_chunk`, `verify_groups`, and `merge_chunks`.
-    - Shrinks chunk sizes correctly after 5 consecutive failures.
-    - Aborts with `RuntimeError` after 10 consecutive failures.
+    - `verify_groups` raises error if a gap exists between groups.
+    - `verify_groups` raises error if groups overlap.
+    - `verify_groups` raises error if group indices fall outside `[chunk_start_page, chunk_end_page]`.
+    - Returns `True` for perfect contiguity.
+  </done>
+</task>
+
+<task>
+  <files>
+    - src/processing/grouping.py
+  </files>
+  <action>
+    Implement `merge_chunks(chunk_results: list[list[GroupEntry]]) -> list[GroupEntry]` in `src/processing/grouping.py`.
+    Given a list of verified group arrays (one array per chunk), merge them into a single list.
+    When the overlap page (e.g., page 10) appears at the end of Chunk N and the start of Chunk N+1, trust Chunk N's grouping metadata. If the overlap page belongs to a multi-page group in Chunk N, and is the start of a group in Chunk N+1, extend Chunk N's group to cover Chunk N+1's group and discard Chunk N+1's metadata for that segment.
+  </action>
+  <verify>
+    <automated>python -m pytest tests/test_grouping.py::test_overlap_merge -x</automated>
+  </verify>
+  <done>
+    - `merge_chunks` correctly joins groups across chunk boundaries without duplicating the overlap page.
+    - Metadata (`reason`, `brief_arabic_title`) from the earlier chunk takes precedence on the overlap page.
   </done>
 </task>
 ```
-
-## Artifacts this phase produces
-- `src.llm.llm.LLMClient.group_chunk` (method)
-- `src.processing.grouping.process_with_shrink` (function)
-- `tests/test_llm_grouping.py` (test file)

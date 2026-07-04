@@ -1,104 +1,110 @@
 ---
-objective: "Pipeline Integration for Pass 2"
-wave: 4
+objective: "Implement Routing Rules and LLM Route Call"
+wave: 3
 depends_on: [3]
 files_modified:
-  - src/processing/pipeline.py
-  - tests/test_pipeline_pass2.py
+  - tests/test_routing.py
+  - src/processing/routing.py
+  - src/llm/llm.py
 autonomous: true
 requirements:
-  - GRP-01
   - GRP-08
+  - GRP-09
   - GRP-10
-  - GRP-12
 must_haves:
   truths:
-    - _group_pages_into_documents pre-splits by category and primary_tenant
-    - LLM grouping logic is executed for each split chunk via process_with_shrink
-    - Folder routing is executed for each grouped document via determine_folder
+    - FOLDER_ROUTING dictionary contains exactly the 13 specified destination folders
+    - Multi-match categories use the LLM to choose an allowed folder
   artifacts:
-    - tests/test_pipeline_pass2.py
+    - src.processing.routing.FOLDER_ROUTING
+    - src.processing.routing.CATEGORY_TO_FOLDERS
+    - src.processing.routing.SINGLE_MATCH
+    - src.processing.routing.MULTI_MATCH
+    - src.processing.routing.determine_folder
+    - src.llm.llm.LLMClient.route_document
+    - tests/test_routing.py
   key_links: []
 ---
 
-# Plan 4: Pipeline Integration for Pass 2
+# Plan 4: Routing Rules and LLM Route Call
 
 ## Objective
-Wire the output of Pass 1.5 in `src/processing/pipeline.py` through the newly built Grouping and Routing modules, replacing the old declarative grouping logic, and hand off the result to `FileOrganizer`.
+Implement the 13-folder routing logic and handle LLM fallback for multi-match categories.
 
 ## Tasks
 
 ```xml
 <task>
   <files>
-    - tests/test_pipeline_pass2.py
+    - tests/test_routing.py
   </files>
   <action>
-    Create `tests/test_pipeline_pass2.py`.
-    Write integration tests validating the end-to-end data flow of Pass 2, mocking `LLMClient` appropriately.
+    Create `tests/test_routing.py`.
+    Write tests covering `FOLDER_ROUTING` correctness (that it has exactly 13 folders) and `determine_folder` (both single and multi match with fallback to "13_others").
   </action>
   <verify>
-    <automated>python -m pytest tests/test_pipeline_pass2.py -x</automated>
+    <automated>python -m pytest tests/test_routing.py -x</automated>
   </verify>
   <done>
-    - Pipeline integration tests are defined and fail.
+    - Tests for routing utilities are defined and fail.
   </done>
 </task>
 
 <task>
   <files>
-    - src/processing/pipeline.py
+    - src/processing/routing.py
   </files>
   <action>
-    Update `_group_pages_into_documents(self, raw_pages: list[tuple[int, PageData]], config: 'UserConfig') -> list[DocumentGroup]` in `src/processing/pipeline.py`.
-    Remove the old declarative and script-based grouping logic entirely.
-    Implement Step 1: Category Pre-Split (GRP-01). Iterate through `raw_pages` and split them into contiguous sub-sequences where both the `category` and the assigned `residents[0]` are identical. Any change is an automatic boundary.
+    Create `src/processing/routing.py`.
+    Define `FOLDER_ROUTING: dict[str, list[str]]` mapping the 13 hardcoded folders to categories as specified in `03-RESEARCH.md` (e.g. `"5_contract": ["contract"]`).
+    Derive `CATEGORY_TO_FOLDERS`, `SINGLE_MATCH`, and `MULTI_MATCH` constants.
   </action>
   <verify>
-    <automated>python -m pytest tests/test_pipeline_pass2.py::test_category_presplit -x</automated>
+    <automated>python -c "from src.processing.routing import FOLDER_ROUTING; assert len(FOLDER_ROUTING) == 13"</automated>
   </verify>
   <done>
-    - `_group_pages_into_documents` correctly segments `raw_pages` into contiguous runs of the same category and tenant.
+    - `src/processing/routing.py` exists with the 13 folder names and mappings.
+    - `SINGLE_MATCH` contains categories like "contract", "pictures", "id_cards", "utility_bills".
+    - `MULTI_MATCH` contains "forms", "letters", "others".
   </done>
 </task>
 
 <task>
   <files>
-    - src/processing/pipeline.py
+    - src/llm/llm.py
   </files>
   <action>
-    Implement Step 2 in `_group_pages_into_documents`: For each sub-sequence from Step 1, call `process_with_shrink(sub_sequence, self.client)` from `src/processing/grouping.py`.
-    Capture the resulting `list[GroupEntry]`.
-    Map each `GroupEntry` into a `DocumentGroup` schema object.
-    Set the `DocumentGroup`'s `start_page`, `end_page`, `reason`, `brief_arabic_title`.
-    The `primary_tenant`, `category`, and `dates` should be extracted from the source `PageData` elements covered by the group's page range.
+    Add `route_document(self, category: str, content_explanation: str, allowed_folders: list[str]) -> str` to `LLMClient` in `src/llm/llm.py`.
+    It should ask the LLM to choose ONE folder from `allowed_folders` based on the document's content.
+    Return the chosen folder name.
   </action>
   <verify>
-    <automated>python -m pytest tests/test_pipeline_pass2.py::test_grouping_mapping -x</automated>
+    <automated>python -c "from src.llm.llm import LLMClient; assert hasattr(LLMClient, 'route_document')"</automated>
   </verify>
   <done>
-    - `process_with_shrink` is successfully called for each category run.
-    - Final result is a flat `list[DocumentGroup]` accurately reflecting the LLM's grouping decisions.
+    - `route_document` is implemented.
+    - Uses `_route_llm_call`.
   </done>
 </task>
 
 <task>
   <files>
-    - src/processing/pipeline.py
+    - src/processing/routing.py
   </files>
   <action>
-    Implement Step 3 in `_group_pages_into_documents`: For each final `DocumentGroup`, call `determine_folder(category, content_explanation, self.client)` from `src/processing/routing.py` to get the target folder.
-    (Construct `content_explanation` by sampling or concatenating the explanations from the underlying pages).
-    Set `doc.folder_path = chosen_folder`.
+    Implement `determine_folder(category: str, content_explanation: str, llm_client: 'LLMClient') -> str` in `src/processing/routing.py`.
+    If `category` is in `SINGLE_MATCH`, return the mapped folder directly.
+    If `category` is in `MULTI_MATCH`, call `llm_client.route_document` passing the allowed folders.
+    If the LLM call fails or returns an invalid folder, retry once.
+    If it fails again, return the `"13_others"` fallback folder.
   </action>
   <verify>
-    <automated>python -m pytest tests/test_pipeline_pass2.py::test_routing_integration -x</automated>
+    <automated>python -m pytest tests/test_routing.py::test_determine_folder -x</automated>
   </verify>
   <done>
-    - Every returned `DocumentGroup` has `folder_path` populated with a valid folder name from the 13 hardcoded folders.
+    - `determine_folder` handles single-match directly.
+    - Handles multi-match via `LLMClient.route_document`.
+    - Correctly falls back to `"13_others"` on repeated failure.
   </done>
 </task>
 ```
-
-## Artifacts this phase produces
-- `tests/test_pipeline_pass2.py` (test file)

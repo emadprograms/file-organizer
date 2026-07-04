@@ -1,76 +1,51 @@
 ---
-objective: "Implement Routing Logic and Update Organizer"
-wave: 3
+objective: "Implement LLM Grouping Call and Resilient Loop"
+wave: 2
 depends_on: [2]
 files_modified:
-  - src/processing/routing.py
   - src/llm/llm.py
-  - src/processing/organizer.py
-  - tests/test_routing.py
+  - src/processing/grouping.py
+  - tests/test_llm_grouping.py
 autonomous: true
 requirements:
-  - GRP-08
-  - GRP-09
-  - GRP-10
-  - GRP-11
-  - GRP-12
-  - GRP-13
+  - GRP-03
+  - GRP-04
+  - GRP-05
 must_haves:
   truths:
-    - FOLDER_ROUTING dictionary contains exactly the 13 specified destination folders
-    - Multi-match categories use the LLM to choose an allowed folder
-    - organizer.py correctly constructs the filename schema YYYY-MM-DD - brief_arabic_title.pdf
+    - group_chunk method added to LLMClient that yields GroupingResponse
+    - process_with_shrink implemented with 10->5->3 logic
+    - 10-consecutive-failures hard limit enforced
   artifacts:
-    - src.processing.routing.FOLDER_ROUTING
-    - src.processing.routing.CATEGORY_TO_FOLDERS
-    - src.processing.routing.SINGLE_MATCH
-    - src.processing.routing.MULTI_MATCH
-    - src.processing.routing.determine_folder
-    - src.llm.llm.LLMClient.route_document
-    - tests/test_routing.py
+    - src.llm.llm.LLMClient.group_chunk
+    - src.processing.grouping.process_with_shrink
+    - tests/test_llm_grouping.py
   key_links: []
 ---
 
-# Plan 3: Routing Logic and Organizer Update
+# Plan 3: LLM Grouping Call and Resilient Loop
 
 ## Objective
-Implement the 13-folder routing logic, handle LLM fallback for multi-match categories, and update the file organizer to synthesize the final file names (`YYYY-MM-DD - عنوان.pdf`) and split the documents physically using `split.py`.
+Implement the LLM call that asks the model to detect subject boundaries and generate Arabic titles for a chunk of pages. Build the `process_with_shrink` loop that orchestrates this call, retrying and shrinking the chunk size upon verification failures or 500 errors.
 
 ## Tasks
 
 ```xml
 <task>
   <files>
-    - tests/test_routing.py
+    - tests/test_llm_grouping.py
   </files>
   <action>
-    Create `tests/test_routing.py`.
-    Write tests covering `FOLDER_ROUTING` correctness (that it has exactly 13 folders), `determine_folder` (both single and multi match with fallback), and the filename generation logic we will add to `FileOrganizer`.
+    Create `tests/test_llm_grouping.py`.
+    Write tests simulating the LLM client responses.
+    Mock `LLMClient.group_chunk` to return valid responses, and test `process_with_shrink`'s success path.
+    Mock `LLMClient.group_chunk` to raise exceptions, and test the shrink logic and the 10-failure hard fail limit.
   </action>
   <verify>
-    <automated>python -m pytest tests/test_routing.py -x</automated>
+    <automated>python -m pytest tests/test_llm_grouping.py -x</automated>
   </verify>
   <done>
-    - Tests for routing utilities and filename formatting are defined and fail.
-  </done>
-</task>
-
-<task>
-  <files>
-    - src/processing/routing.py
-  </files>
-  <action>
-    Create `src/processing/routing.py`.
-    Define `FOLDER_ROUTING: dict[str, list[str]]` mapping the 13 hardcoded folders to categories as specified in `03-RESEARCH.md` (e.g. `"5_contract": ["contract"]`).
-    Derive `CATEGORY_TO_FOLDERS`, `SINGLE_MATCH`, and `MULTI_MATCH` constants.
-  </action>
-  <verify>
-    <automated>python -c "from src.processing.routing import FOLDER_ROUTING; assert len(FOLDER_ROUTING) == 13"</automated>
-  </verify>
-  <done>
-    - `src/processing/routing.py` exists with the 13 folder names and mappings.
-    - `SINGLE_MATCH` contains categories like "contract", "pictures", "id_cards", "utility_bills".
-    - `MULTI_MATCH` contains "forms", "letters", "others".
+    - Tests for LLM grouping orchestration are fully defined and fail (implementation not written).
   </done>
 </task>
 
@@ -79,72 +54,46 @@ Implement the 13-folder routing logic, handle LLM fallback for multi-match categ
     - src/llm/llm.py
   </files>
   <action>
-    Add `route_document(self, category: str, content_explanation: str, allowed_folders: list[str]) -> str` to `LLMClient` in `src/llm/llm.py`.
-    It should ask the LLM to choose ONE folder from `allowed_folders` based on the document's content.
-    Return the chosen folder name.
+    Add `group_chunk(self, pages: list, prompt_template: str = "") -> GroupingResponse` to `LLMClient` in `src/llm/llm.py`.
+    Format the `pages` input into a text representation containing page index, date, tenant, category, and text content for the model to read.
+    Use `_route_llm_call` specifying the `GroupingResponse` schema.
+    Ensure the prompt strictly commands the LLM to group ONLY on subject/content shifts, ignoring date or sender changes.
+    Also, the prompt instruction MUST explicitly command the LLM to explain what it saw and what it didn't in the reason field (Requirement GRP-04).
   </action>
   <verify>
-    <automated>python -c "from src.llm.llm import LLMClient; assert hasattr(LLMClient, 'route_document')"</automated>
+    <automated>python -c "from src.llm.llm import LLMClient; assert hasattr(LLMClient, 'group_chunk')"</automated>
   </verify>
   <done>
-    - `route_document` is implemented.
-    - Uses `_route_llm_call`.
+    - `group_chunk` is defined on `LLMClient`.
+    - It returns a `GroupingResponse`.
+    - It delegates to `_route_llm_call`.
+    - Prompt string contains explicit instruction for GRP-04 reasoning.
   </done>
 </task>
 
 <task>
   <files>
-    - src/processing/routing.py
+    - src/processing/grouping.py
   </files>
   <action>
-    Implement `determine_folder(category: str, content_explanation: str, llm_client: 'LLMClient') -> str` in `src/processing/routing.py`.
-    If `category` is in `SINGLE_MATCH`, return the mapped folder directly.
-    If `category` is in `MULTI_MATCH`, call `llm_client.route_document` passing the allowed folders.
-    If the LLM call fails or returns an invalid folder, retry once.
-    If it fails again, return the `"13_others"` fallback folder.
+    Implement `process_with_shrink(pages: list, llm_client: 'LLMClient') -> list[GroupEntry]` in `src/processing/grouping.py`.
+    It implements the 10->5->3 chunk shrinking logic:
+    - Try to process `pages` using `generate_chunks` with `chunk_size` starting at 10.
+    - For each chunk, call `llm_client.group_chunk`.
+    - Verify the response using `verify_groups`.
+    - If `verify_groups` raises `InvalidResponseError` or the LLM call raises a `5xx` error, increment a consecutive failure counter.
+    - If consecutive failures reach 5, shrink the `chunk_size` to the next level in `[10, 5, 3]`. Restart the processing loop.
+    - Hard fail (raise `RuntimeError`) if total consecutive failures hit 10.
+    - On successful chunk processing, reset consecutive failures.
+    - Returns the merged result using `merge_chunks` on all successful chunk results.
   </action>
   <verify>
-    <automated>python -m pytest tests/test_routing.py::test_determine_folder -x</automated>
+    <automated>python -m pytest tests/test_llm_grouping.py -x</automated>
   </verify>
   <done>
-    - `determine_folder` handles single-match directly.
-    - Handles multi-match via `LLMClient.route_document`.
-    - Correctly falls back to `"13_others"` on repeated failure.
-  </done>
-</task>
-
-<task>
-  <files>
-    - src/processing/organizer.py
-  </files>
-  <action>
-    Update `src/processing/organizer.py` `FileOrganizer.organize` method.
-    Remove reliance on the declarative `config.routing` logic.
-    For each `DocumentGroup` passed in, the folder path should already be provided via `DocumentGroup.folder_path` (set by pipeline).
-    Format the filename:
-    - If `category` is in `SINGLE_MATCH` and it's a 1-page document (like a single ID or picture), use `YYYY-MM-DD.pdf`.
-    - Otherwise, use `YYYY-MM-DD - {brief_arabic_title}.pdf`.
-    - If dates are missing, fallback to `"nodate"`. Use the first date in `doc.dates`.
-    Sanitize the filename via `utils.sanitize_filename`.
-    Keep the collision handling (`_2.pdf` suffix loop).
-    Call `extract_pdf_segment` from `src/processing/split.py` to physically extract and compress the segment.
-  </action>
-  <verify>
-    <automated>python -m pytest tests/test_routing.py::test_filename_generation -x</automated>
-  </verify>
-  <done>
-    - `organize` method correctly constructs the `YYYY-MM-DD - عنوان.pdf` name format.
-    - Handles dateless documents.
-    - Calls `extract_pdf_segment`.
+    - `process_with_shrink` correctly calls `group_chunk`, `verify_groups`, and `merge_chunks`.
+    - Shrinks chunk sizes correctly after 5 consecutive failures.
+    - Aborts with `RuntimeError` after 10 consecutive failures.
   </done>
 </task>
 ```
-
-## Artifacts this phase produces
-- `src.processing.routing.FOLDER_ROUTING` (constant dict)
-- `src.processing.routing.CATEGORY_TO_FOLDERS` (constant dict)
-- `src.processing.routing.SINGLE_MATCH` (constant set)
-- `src.processing.routing.MULTI_MATCH` (constant set)
-- `src.processing.routing.determine_folder` (function)
-- `src.llm.llm.LLMClient.route_document` (method)
-- `tests/test_routing.py` (test file)
