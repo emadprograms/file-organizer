@@ -51,7 +51,7 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
         folder = CATEGORY_TO_FOLDERS[category][0]
         return folder, True
         
-    allowed_folders = CATEGORY_TO_FOLDERS.get(category, [])
+    allowed_folders = CATEGORY_TO_FOLDERS.get(category, []).copy()
     if not allowed_folders:
         log.warning(f"Category '{category}' has no mapping, falling back to 13_others")
         return "13_others", False
