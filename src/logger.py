@@ -24,7 +24,7 @@ def setup_logging(run_id: str = None) -> str:
     
     # Setup standard logger
     logger = logging.getLogger("file_organizer")
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     
     # Check if handlers already exist to prevent duplicate logs or overriding other handlers
     if not logger.handlers:
@@ -37,6 +37,11 @@ def setup_logging(run_id: str = None) -> str:
         logger.addHandler(file_handler)
         
         # Stream handler
+        if hasattr(sys.stdout, 'reconfigure'):
+            try:
+                sys.stdout.reconfigure(encoding='utf-8')
+            except Exception:
+                pass
         stream_handler = logging.StreamHandler(sys.stdout)
         stream_handler.setFormatter(formatter)
         logger.addHandler(stream_handler)

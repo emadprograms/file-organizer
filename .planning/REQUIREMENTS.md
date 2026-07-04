@@ -17,16 +17,16 @@
 
 ### Pass 1 — Document Cleaning
 
-- [ ] **CLN-01**: Parse JSON report into internal PageData models with category, content_explanation, expected_tenant_name, date, sender, receiver, subject
-- [ ] **CLN-02**: Identify anchor documents (categories defined as anchors: contract, forms, id_cards) and extract tenant names from them
-- [ ] **CLN-03**: Canonicalize tenant names via LLM — merge OCR spelling variations across Arabic and English transliterations into canonical identities
-- [ ] **CLN-04**: Qualify primary tenants: must appear on ≥1 anchor document AND ≥5 total documents after canonicalization; discard all others
-- [ ] **CLN-05**: Build tenant timelines from min/max dates of each qualified tenant's assigned documents
-- [ ] **CLN-06**: Fill null dates by inferring from nearest dated page by position (page index proximity)
-- [ ] **CLN-07**: Assign each page to the tenant whose timeline covers the page's date; overlap periods → earlier tenant wins
-- [ ] **CLN-08**: Pages with null tenant AND null date that cannot be resolved go to "Unassigned (inferred period)" folder
-- [ ] **CLN-09**: One expected_tenant_name per page (or null) — no multi-tenant ambiguity at page level
-- [ ] **CLN-10**: After Pass 1 completes, every page has a canonical tenant name and a resolved date (except Unassigned)
+- [x] **CLN-01**: Parse JSON report into internal PageData models with category, content_explanation, expected_tenant_name, date, sender, receiver, subject
+- [x] **CLN-02**: Identify anchor documents (categories defined as anchors: contract, forms, id_cards) and extract tenant names from them
+- [x] **CLN-03**: Canonicalize tenant names via LLM — merge OCR spelling variations across Arabic and English transliterations into canonical identities
+- [x] **CLN-04**: Qualify primary tenants: must appear on ≥1 anchor document AND ≥5 total documents after canonicalization; discard all others
+- [x] **CLN-05**: Build tenant timelines from min/max dates of each qualified tenant's assigned documents
+- [x] **CLN-06**: Fill null dates by inferring from nearest dated page by position (page index proximity)
+- [x] **CLN-07**: Assign each page to the tenant whose timeline covers the page's date; overlap periods → earlier tenant wins
+- [x] **CLN-08**: Pages with null tenant AND null date that cannot be resolved go to "Unassigned (inferred period)" folder
+- [x] **CLN-09**: One expected_tenant_name per page (or null) — no multi-tenant ambiguity at page level
+- [x] **CLN-10**: After Pass 1 completes, every page has a canonical tenant name and a resolved date (except Unassigned)
 
 ### Pass 2 — Grouping & Routing
 
@@ -115,16 +115,16 @@
 | INIT-04 | Phase 1 | Complete |
 | INIT-05 | Phase 1 | Complete |
 | INIT-06 | Phase 1 | Complete |
-| CLN-01 | Phase 2 | Pending |
-| CLN-02 | Phase 2 | Pending |
-| CLN-03 | Phase 2 | Pending |
-| CLN-04 | Phase 2 | Pending |
-| CLN-05 | Phase 2 | Pending |
-| CLN-06 | Phase 2 | Pending |
-| CLN-07 | Phase 2 | Pending |
-| CLN-08 | Phase 2 | Pending |
-| CLN-09 | Phase 2 | Pending |
-| CLN-10 | Phase 2 | Pending |
+| CLN-01 | Phase 2 | Complete |
+| CLN-02 | Phase 2 | Complete |
+| CLN-03 | Phase 2 | Complete |
+| CLN-04 | Phase 2 | Complete |
+| CLN-05 | Phase 2 | Complete |
+| CLN-06 | Phase 2 | Complete |
+| CLN-07 | Phase 2 | Complete |
+| CLN-08 | Phase 2 | Complete |
+| CLN-09 | Phase 2 | Complete |
+| CLN-10 | Phase 2 | Complete |
 | GRP-01 | Phase 3 | Pending |
 | GRP-02 | Phase 3 | Pending |
 | GRP-03 | Phase 3 | Pending |

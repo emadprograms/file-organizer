@@ -1,6 +1,6 @@
 ---
 objective: "Implement Grouping Algorithms"
-wave: 1
+wave: 2
 depends_on: [1]
 files_modified:
   - src/processing/grouping.py
@@ -11,9 +11,9 @@ requirements:
   - GRP-07
 must_haves:
   truths:
-    - generate_chunks yields overlapping segments
-    - verify_groups strictly catches non-contiguous coverage
-    - merge_chunks joins chunks cleanly without duplicating pages
+    - Sliding windows are produced for any length of document without crashing
+    - Faulty grouping responses are forcefully rejected programmatically
+    - Chunk merges result in a contiguous, non-overlapping document timeline
   artifacts:
     - src.processing.grouping.generate_chunks
     - src.processing.grouping.verify_groups

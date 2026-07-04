@@ -1,6 +1,6 @@
 ---
 objective: "Implement Organizer Filename and Splitting Integration"
-wave: 3
+wave: 5
 depends_on: [4]
 files_modified:
   - src/processing/organizer.py
@@ -12,8 +12,10 @@ requirements:
   - GRP-13
 must_haves:
   truths:
-    - organizer.py correctly constructs the filename schema YYYY-MM-DD - brief_arabic_title.pdf
-  artifacts: []
+    - Final documents are correctly assembled and physically split via PyMuPDF
+    - Output filenames conform strictly to the required Arabic conventions
+  artifacts:
+    - src.processing.organizer.FileOrganizer
   key_links: []
 ---
 

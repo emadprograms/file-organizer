@@ -5,7 +5,7 @@ from google import genai
 from google.genai import types
 from google.genai.errors import APIError
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("file_organizer")
 
 class LLMClientError(Exception):
     """Base exception for LLM Client errors."""
@@ -22,7 +22,7 @@ class LLMServerError(LLMClientError):
 class LLMClient:
     def __init__(self, api_key: str | None = None):
         self.client = genai.Client(api_key=api_key)
-        self.default_model = "gemma-4-26b-a4b-it"
+        self.default_model = "gemma-4-31b-it"
         self._last_request_start_time = 0.0
         self._rate_limit_seconds = 7.0
 
@@ -53,11 +53,18 @@ class LLMClient:
             self._last_request_start_time = time.time()
             
             try:
+                logger.debug(f"Sending request to LLM (model: {model}).")
+                logger.debug(f"Contents being sent:\n{contents}")
+                
                 response = self.client.models.generate_content(
                     model=model,
                     contents=contents,
                     **kwargs
                 )
+                
+                logger.debug(f"Received response from LLM:")
+                logger.debug(f"{response.text if hasattr(response, 'text') else response}")
+                
                 return response
                 
             except APIError as e:

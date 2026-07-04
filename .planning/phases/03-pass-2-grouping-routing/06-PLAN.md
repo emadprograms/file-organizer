@@ -1,6 +1,6 @@
 ---
 objective: "Pipeline Integration for Pass 2"
-wave: 4
+wave: 6
 depends_on: [5]
 files_modified:
   - src/processing/pipeline.py
@@ -10,9 +10,9 @@ requirements:
   - GRP-01
 must_haves:
   truths:
-    - _group_pages_into_documents pre-splits by category and primary_tenant
-    - LLM grouping logic is executed for each split chunk via process_with_shrink
-    - Folder routing is executed for each grouped document via determine_folder
+    - Documents undergo end-to-end processing without unexpected crashes
+    - The processing loop correctly pre-splits items to avoid cross-category overlaps
+    - Generated documents match precisely with predefined routing mappings
   artifacts:
     - tests/test_pipeline_pass2.py
   key_links:

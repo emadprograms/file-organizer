@@ -11,8 +11,9 @@ requirements:
   - GRP-05
 must_haves:
   truths:
-    - GroupEntry and GroupingResponse schemas exist
-    - tests for grouping logic are defined
+    - PDF pages are correctly mapped to structural document boundaries
+    - Boundary detection rigorously rejects overlaps or gaps
+    - Overlap pages accurately inherit metadata from the preceding chunk
   artifacts:
     - src.core.schemas.GroupEntry
     - src.core.schemas.GroupingResponse

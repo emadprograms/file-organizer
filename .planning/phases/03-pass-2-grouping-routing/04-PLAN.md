@@ -1,6 +1,6 @@
 ---
 objective: "Implement Routing Rules and LLM Route Call"
-wave: 3
+wave: 4
 depends_on: [3]
 files_modified:
   - tests/test_routing.py
@@ -13,8 +13,8 @@ requirements:
   - GRP-10
 must_haves:
   truths:
-    - FOLDER_ROUTING dictionary contains exactly the 13 specified destination folders
-    - Multi-match categories use the LLM to choose an allowed folder
+    - All 13 final folders are fully represented in the routing logic
+    - Ambiguous documents are accurately resolved to a target folder via AI
   artifacts:
     - src.processing.routing.FOLDER_ROUTING
     - src.processing.routing.CATEGORY_TO_FOLDERS

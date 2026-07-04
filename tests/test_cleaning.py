@@ -119,9 +119,146 @@ def test_process_cleaning_phase(tmp_path):
     assert pages[0].canonical_tenant == "احمد"
 
 def test_parse_flexible_date_edge_cases():
+    """Original edge cases — preserved for regression."""
     assert parse_flexible_date("August 2023") == "2023-08-01"
     assert parse_flexible_date("2023/05/15") == "2023-05-15"
     assert parse_flexible_date("05-2023") == "2023-05-01"
+
+def test_parse_english_dd_month_yyyy():
+    """DD MonthName YYYY — full and abbreviated."""
+    assert parse_flexible_date("29 February 2024") == "2024-02-29"
+    assert parse_flexible_date("28 February 2024") == "2024-02-28"
+    assert parse_flexible_date("25 September 2007") == "2007-09-25"
+    assert parse_flexible_date("3 SEP 2007") == "2007-09-03"
+    assert parse_flexible_date("1 Jan 2000") == "2000-01-01"
+    assert parse_flexible_date("15 Dec 1999") == "1999-12-15"
+    # "sept" abbreviation
+    assert parse_flexible_date("5 Sept 2010") == "2010-09-05"
+
+def test_parse_english_month_dd_yyyy():
+    """MonthName DD, YYYY — with and without comma."""
+    assert parse_flexible_date("July 11, 2010") == "2010-07-11"
+    assert parse_flexible_date("April 18, 2006") == "2006-04-18"
+    assert parse_flexible_date("July 11 2010") == "2010-07-11"
+    assert parse_flexible_date("December 1, 2023") == "2023-12-01"
+    assert parse_flexible_date("January 31, 1990") == "1990-01-31"
+
+def test_parse_english_ordinal_suffixes():
+    """Dates with ordinal suffixes: 1st, 2nd, 3rd, 4th, 11th, 21st, etc."""
+    assert parse_flexible_date("1st January 2024") == "2024-01-01"
+    assert parse_flexible_date("2nd March 2020") == "2020-03-02"
+    assert parse_flexible_date("3rd April 2019") == "2019-04-03"
+    assert parse_flexible_date("27th September 2007") == "2007-09-27"
+    assert parse_flexible_date("11th November 2011") == "2011-11-11"
+    assert parse_flexible_date("March 3rd, 2020") == "2020-03-03"
+    assert parse_flexible_date("June 21st 2015") == "2015-06-21"
+
+def test_parse_english_weekday_prefix():
+    """Dates with weekday prefix — strip the weekday."""
+    assert parse_flexible_date("Monday, 27 September 2007") == "2007-09-27"
+    assert parse_flexible_date("Sunday, January 1, 2023") == "2023-01-01"
+    assert parse_flexible_date("Thu 15 March 2018") == "2018-03-15"
+    assert parse_flexible_date("Fri, 1 Jan 2000") == "2000-01-01"
+
+def test_parse_arabic_gregorian_months():
+    """Arabic Gregorian month names (the standard Arabic calendar used in Bahrain)."""
+    assert parse_flexible_date("5 مارس 2024م") == "2024-03-05"
+    assert parse_flexible_date("مارس 2024") == "2024-03-01"
+    assert parse_flexible_date("15 يناير 2020") == "2020-01-15"
+    assert parse_flexible_date("سبتمبر 2007") == "2007-09-01"
+    assert parse_flexible_date("1 ديسمبر 2023") == "2023-12-01"
+    assert parse_flexible_date("20 فبراير 2015") == "2015-02-20"
+    assert parse_flexible_date("يوليو 2010") == "2010-07-01"
+    assert parse_flexible_date("10 أكتوبر 2022") == "2022-10-10"
+
+def test_parse_arabic_weekday_prefix():
+    """Arabic dates with weekday prefix — strip the weekday."""
+    assert parse_flexible_date("الأحد، 5 مارس 2024") == "2024-03-05"
+    assert parse_flexible_date("الخميس 15 يناير 2020") == "2020-01-15"
+
+def test_parse_dual_calendar_dates():
+    """Gregorian + Hijri in parentheses or after slash — keep Gregorian only."""
+    assert parse_flexible_date("September 27, 2007 (11 Sha'ban 1428 AH)") == "2007-09-27"
+    assert parse_flexible_date("April 2010 / Rabi' al-Thani 1431 AH") == "2010-04-01"
+    assert parse_flexible_date("15 March 2023 (22 Sha'ban 1444)") == "2023-03-15"
+    assert parse_flexible_date("1 January 2000 (24 Ramadan 1420 AH)") == "2000-01-01"
+
+def test_parse_pure_hijri_arabic():
+    """Pure Hijri dates with Arabic month names → converted to Gregorian."""
+    # 11 Sha'ban 1428 AH ≈ 2007-08-24 (approximate, exact depends on sighting)
+    result = parse_flexible_date("11 شعبان 1428")
+    assert result.startswith("2007-08")
+
+    # 1 Ramadan 1444 ≈ 2023-03-23
+    result = parse_flexible_date("1 رمضان 1444")
+    assert result.startswith("2023-03")
+
+    # Month only: Muharram 1446 ≈ 2024-07
+    result = parse_flexible_date("محرم 1446")
+    assert result.startswith("2024-07")
+
+    # 1 Rajab 1445 ≈ 2024-01-13
+    result = parse_flexible_date("1 رجب 1445")
+    assert result.startswith("2024-01")
+
+def test_parse_pure_hijri_english():
+    """Pure Hijri dates with English transliteration → converted to Gregorian."""
+    result = parse_flexible_date("11 Sha'ban 1428")
+    assert result.startswith("2007-08")
+
+    result = parse_flexible_date("1 Ramadan 1444")
+    assert result.startswith("2023-03")
+
+    result = parse_flexible_date("Rajab 1445")
+    assert result.startswith("2024-01")
+
+    result = parse_flexible_date("15 Shawwal 1443")
+    assert result.startswith("2022-05")
+
+def test_parse_hijri_numeric():
+    """Numeric dates with Hijri year range (1300-1500) → converted to Gregorian."""
+    # 1428/08/11 = 11 Sha'ban 1428
+    result = parse_flexible_date("1428/08/11")
+    assert result.startswith("2007-08")
+
+    # Pure year
+    result = parse_flexible_date("1445")
+    assert result.startswith("2023-")
+
+def test_parse_dot_separated():
+    """European dot-separated format: DD.MM.YYYY."""
+    assert parse_flexible_date("15.03.2023") == "2023-03-15"
+    assert parse_flexible_date("1.1.2000") == "2000-01-01"
+    assert parse_flexible_date("31.12.1999") == "1999-12-31"
+
+def test_parse_trailing_era_markers():
+    """Dates with trailing era markers: AH, A.H., AD, A.D., CE, م, هـ."""
+    assert parse_flexible_date("15 March 2023 AD") == "2023-03-15"
+    assert parse_flexible_date("15 March 2023 A.D.") == "2023-03-15"
+    assert parse_flexible_date("January 2020 CE") == "2020-01-01"
+
+    # Hijri with هـ marker
+    result = parse_flexible_date("11 شعبان 1428 هـ")
+    assert result.startswith("2007-08")
+
+    # English Hijri with AH marker — after stripping AH, pure Hijri date remains
+    result = parse_flexible_date("11 Sha'ban 1428 AH")
+    assert result.startswith("2007-08")
+
+def test_parse_whitespace_handling():
+    """Extra whitespace, leading/trailing spaces."""
+    assert parse_flexible_date("  15/03/2023  ") == "2023-03-15"
+    assert parse_flexible_date("  May 2023  ") == "2023-05-01"
+    assert parse_flexible_date(" 2023 ") == "2023-01-01"
+
+def test_parse_still_raises_on_garbage():
+    """Still raises ValueError on truly unparseable input."""
+    with pytest.raises(ValueError):
+        parse_flexible_date("garbage")
+    with pytest.raises(ValueError):
+        parse_flexible_date("not a date at all")
+    with pytest.raises(ValueError):
+        parse_flexible_date("")
 
 def test_canonicalize_with_llm_empty():
     client = MockLLMClient()

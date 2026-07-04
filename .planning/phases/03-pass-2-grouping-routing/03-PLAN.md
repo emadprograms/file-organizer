@@ -1,6 +1,6 @@
 ---
 objective: "Implement LLM Grouping Call and Resilient Loop"
-wave: 2
+wave: 3
 depends_on: [2]
 files_modified:
   - src/llm/llm.py
@@ -13,9 +13,9 @@ requirements:
   - GRP-05
 must_haves:
   truths:
-    - group_chunk method added to LLMClient that yields GroupingResponse
-    - process_with_shrink implemented with 10->5->3 logic
-    - 10-consecutive-failures hard limit enforced
+    - System can automatically deduce logical document boundaries using AI
+    - The pipeline recovers gracefully if the AI generates poor boundaries
+    - The system never exceeds the 10-retry hard failure limit
   artifacts:
     - src.llm.llm.LLMClient.group_chunk
     - src.processing.grouping.process_with_shrink

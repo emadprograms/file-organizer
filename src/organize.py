@@ -57,7 +57,13 @@ def validate_target_directory(target_dir: Path) -> str:
 def get_parser():
     parser = argparse.ArgumentParser(description="File Organizer Post-Processor")
     parser.add_argument("target_dir", type=Path, help="Path to the target directory containing the categorized PDF and report JSON")
-    parser.add_argument("--model", type=str, default="gemma-4-26b-a4b-it", help="LLM model to use")
+    parser.add_argument(
+        "--model", 
+        type=str, 
+        default="gemma-4-31b-it", 
+        choices=["gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemini-2.5-flash", "gemini-3.5-flash"],
+        help="LLM model to use"
+    )
     return parser
 
 def main():
