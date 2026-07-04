@@ -25,9 +25,9 @@ def mock_config():
 @patch('src.processing.organizer.extract_pdf_segment')
 def test_basic_structure(mock_extract, organizer, mock_config, tmp_path):
     docs = [
-        DocumentGroup(0, 1, "Resident A", "BASIC_DETAILS", ["2023-01-01"]),
-        DocumentGroup(2, 3, "Resident B", "PERSONAL_DETAILS", ["2023-01-02"]),
-        DocumentGroup(4, 5, "Resident A", "CONTRACT", ["NONE"]),
+        DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"]),
+        DocumentGroup(start_page=2, end_page=3, primary_tenant="Resident B", category="PERSONAL_DETAILS", dates=["2023-01-02"]),
+        DocumentGroup(start_page=4, end_page=5, primary_tenant="Resident A", category="CONTRACT", dates=["NONE"]),
     ]
     summary = organizer.organize(docs, "123.pdf", tmp_path, mock_config)
     
@@ -40,8 +40,8 @@ def test_basic_structure(mock_extract, organizer, mock_config, tmp_path):
 @patch('src.processing.organizer.extract_pdf_segment')
 def test_resident_ordering(mock_extract, organizer, mock_config, tmp_path):
     docs = [
-        DocumentGroup(0, 1, "Resident B", "BASIC_DETAILS", []),
-        DocumentGroup(2, 3, "Resident A", "PERSONAL_DETAILS", []),
+        DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident B", category="BASIC_DETAILS", dates=[]),
+        DocumentGroup(start_page=2, end_page=3, primary_tenant="Resident A", category="PERSONAL_DETAILS", dates=[]),
     ]
     organizer.organize(docs, "123.pdf", tmp_path, mock_config)
     
@@ -52,7 +52,7 @@ def test_resident_ordering(mock_extract, organizer, mock_config, tmp_path):
 @patch('src.processing.organizer.extract_pdf_segment')
 def test_house_letters_routing(mock_extract, organizer, mock_config, tmp_path):
     docs = [
-        DocumentGroup(0, 1, "NONE", "OTHER_LETTERS", []),
+        DocumentGroup(start_page=0, end_page=1, primary_tenant="NONE", category="OTHER_LETTERS", dates=[]),
     ]
     organizer.organize(docs, "123.pdf", tmp_path, mock_config)
     
@@ -61,7 +61,7 @@ def test_house_letters_routing(mock_extract, organizer, mock_config, tmp_path):
 @patch('src.processing.organizer.extract_pdf_segment')
 def test_continuation_pages_merged(mock_extract, organizer, mock_config, tmp_path):
     docs = [
-        DocumentGroup(5, 8, "Resident A", "BASIC_DETAILS", ["2023-01-05"]),
+        DocumentGroup(start_page=5, end_page=8, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-05"]),
     ]
     organizer.organize(docs, "123.pdf", tmp_path, mock_config)
     target_path = tmp_path / "BASIC_DETAILS" / "Resident A" / "2023-01-05_basic_details_Resident A.pdf"
@@ -71,8 +71,8 @@ def test_continuation_pages_merged(mock_extract, organizer, mock_config, tmp_pat
 @patch('src.processing.organizer.extract_pdf_segment')
 def test_counter_fallback_naming(mock_extract, organizer, mock_config, tmp_path):
     docs = [
-        DocumentGroup(0, 1, "Resident A", "NOTIFICATIONS", ["2023-01-01"]),
-        DocumentGroup(2, 3, "Resident A", "NOTIFICATIONS", ["2023-01-01"]),
+        DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="NOTIFICATIONS", dates=["2023-01-01"]),
+        DocumentGroup(start_page=2, end_page=3, primary_tenant="Resident A", category="NOTIFICATIONS", dates=["2023-01-01"]),
     ]
     organizer.organize(docs, "123.pdf", tmp_path, mock_config)
     target_path_1 = tmp_path / "NOTIFICATIONS" / "Resident A" / "2023-01-01_notifications_Resident A.pdf"
@@ -83,7 +83,7 @@ def test_counter_fallback_naming(mock_extract, organizer, mock_config, tmp_path)
 @patch('src.processing.organizer.extract_pdf_segment')
 def test_overwrite_behavior(mock_extract, organizer, mock_config, tmp_path):
     docs = [
-        DocumentGroup(0, 1, "Resident A", "BASIC_DETAILS", []),
+        DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=[]),
     ]
     organizer.organize(docs, "123.pdf", tmp_path, mock_config)
     
@@ -96,7 +96,7 @@ def test_overwrite_behavior(mock_extract, organizer, mock_config, tmp_path):
 @patch('src.processing.organizer.extract_pdf_segment')
 def test_unknown_tenant_filtered(mock_extract, organizer, mock_config, tmp_path):
     docs = [
-        DocumentGroup(0, 1, "UNKNOWN", "BASIC_DETAILS", []),
+        DocumentGroup(start_page=0, end_page=1, primary_tenant="UNKNOWN", category="BASIC_DETAILS", dates=[]),
     ]
     organizer.organize(docs, "123.pdf", tmp_path, mock_config)
     assert not (tmp_path / "BASIC_DETAILS" / "UNKNOWN_TENANT").exists()

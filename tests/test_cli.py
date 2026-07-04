@@ -42,7 +42,7 @@ def test_main_success(mock_validate_env, mock_validate_target, mock_setup_loggin
     mock_process_cleaning.return_value = []
     
     # We also need to mock Path.glob because args.target_dir.glob is called
-    with patch.object(Path, "glob") as mock_glob:
+    with patch.object(Path, "glob") as mock_glob, patch("builtins.open"):
         mock_glob.return_value = [Path("1273_report.json")]
         assert main() == 0
         
