@@ -1,54 +1,44 @@
-# Phase 3: Pass 2 — Grouping & Routing Verification
+---
+status: passed
+updated: 2026-07-04T18:27:00Z
+---
 
-## Goal Achievement
-**Phase Goal:** Group pre-categorized pages into logically contiguous documents, apply shrinkage fallbacks for failures, and dynamically route the grouped documents into designated topic folders based on their content and category.
-**Status:** ACHIEVED. The pipeline logic successfully translates the flat sequence of categorized pages into grouped documents using overlapping chunk boundary detection (via LLM) and programmatic routing.
+# Phase 03: Pass 2 - Grouping & Routing — Verification Report**Verification Date:** 2026-07-04
+**Status:** ✅ **VERIFIED**
 
-## Requirements Traceability
+## Objective
+Verify that Phase 03 (Pass 2 - Grouping & Routing) successfully achieved its goal: Apply LLM-driven grouping and routing to turn the cleaned pages into properly grouped multi-page document blocks and categorize them into 13 structured folders.
 
-| ID | Requirement | Status | Code Reference |
-|----|-------------|--------|----------------|
-| GRP-01 | Pre-split page sequence by category | ✅ Verified | `category_presplit` in `src/processing/grouping.py`; integrated in `_group_and_route_documents` |
-| GRP-02 | Boundary detection via overlapping chunks with 1-page overlap | ✅ Verified | `process_with_shrink` in `src/processing/grouping.py` computes chunks with a dynamic overlap |
-| GRP-03 | LLM grouping rules: boundaries ONLY on subject/topic shift | ✅ Verified | Defined in `GROUPING_PROMPT` in `src/processing/grouping.py` |
-| GRP-04 | LLM must provide reasoning for every grouping decision | ✅ Verified | `reason` field in `GroupEntry` and `DocumentGroup` (`src/core/schemas.py`) |
-| GRP-05 | LLM returns strict JSON array with start_page, end_page, reason, brief_arabic_title | ✅ Verified | `GroupEntry` schema definition used by `google-genai` for structured output (`src/core/schemas.py`) |
-| GRP-06 | Programmatic verification of LLM output | ✅ Verified | `verify_groups` inside `src/processing/grouping.py` |
-| GRP-07 | Merge overlapping chunks | ✅ Verified | `merge_chunks` inside `src/processing/grouping.py` |
-| GRP-08 | Route documents to folders using hardcoded routing rules | ✅ Verified | `FOLDER_ROUTING` dictionary in `src/processing/routing.py` |
-| GRP-09 | Single-match categories route directly without LLM | ✅ Verified | Bypasses LLM using `SINGLE_MATCH` sets in `route_document` (`src/processing/routing.py`) |
-| GRP-10 | Multi-match categories use LLM to pick from allowed folder list | ✅ Verified | `route_document` calls LLM for `MULTI_MATCH` categories (`src/processing/routing.py`) |
-| GRP-11 | Split physical PDF into individual document PDFs using PyMuPDF | ✅ Verified | `FileOrganizer.organize` calls `extract_pdf_segment` (`src/processing/organizer.py`) |
-| GRP-12 | Name output PDFs as `YYYY-MM-DD - brief_arabic_title.pdf` | ✅ Verified | Formatting logic resides in `FileOrganizer.organize` (`src/processing/organizer.py`) |
-| GRP-13 | Dateless documents use inferred date from nearest dated page | ✅ Verified | Passed via `dates[0]` field, which falls back to `"nodate"` if NONE (`src/processing/organizer.py`) |
+## Requirement Traceability
 
-## Must-Haves Validation
+The following requirements from `REQUIREMENTS.md` mapped to Phase 3 were checked against the codebase.
 
-**Plan 01:**
-- `DocumentGroup` must be a Pydantic `BaseModel`. (✅ Yes, `src/core/schemas.py`)
-- `is_direct_routed` flag must be present on `DocumentGroup`. (✅ Yes, `src/core/schemas.py`)
+| ID | Requirement | Implementation Status & Code Location |
+|---|---|---|
+| **GRP-01** | Pre-split page sequence by category — any category change is an automatic document boundary | ✅ **Verified.** Implemented in `category_presplit` (`src/processing/grouping.py`) and wired in `pipeline._group_and_route_documents`. |
+| **GRP-02** | Boundary detection via overlapping chunks with 1-page overlap | ✅ **Verified.** Implemented in `process_with_shrink` (`src/processing/grouping.py`). The chunk loop properly iterates using `current_page_index = end_index - overlap`. |
+| **GRP-03** | LLM grouping rules: boundaries ONLY on subject/topic shift and context/content shift — NOT date/sender | ✅ **Verified.** Implemented in `GROUPING_PROMPT` (`src/processing/grouping.py`) with explicit few-shot examples demonstrating this negative constraint. |
+| **GRP-04** | LLM must provide reasoning for every grouping decision | ✅ **Verified.** `GroupEntry` schema (`src/core/schemas.py`) requires a `reason` field. |
+| **GRP-05** | LLM returns strict JSON array with start_page, end_page, reason, and brief_arabic_title fields | ✅ **Verified.** Implemented via `GroupingResponse` and `GroupEntry` Pydantic models (`src/core/schemas.py`), ensuring strict JSON output in the LLM client call. |
+| **GRP-06** | Programmatic verification of LLM output: no gaps, no overlaps, no invented pages; retry on failure | ✅ **Verified.** Implemented in `verify_groups` (`src/processing/grouping.py`), enforcing contiguous bounding blocks. |
+| **GRP-07** | Merge overlapping chunks: merge groups if overlap page appears in both | ✅ **Verified.** Implemented in `merge_chunks` (`src/processing/grouping.py`). It properly resolves the overlap by trusting Chunk 1's metadata (D-01). |
+| **GRP-08** | Route documents to folders using hardcoded routing rules | ✅ **Verified.** Implemented via `FOLDER_ROUTING` and `CATEGORY_TO_FOLDERS` dictionaries in `src/processing/routing.py`. |
+| **GRP-09** | Single-match categories route directly without LLM | ✅ **Verified.** The `route_document` function (`src/processing/routing.py`) natively returns the folder and `is_direct_routed=True` when the category is in `SINGLE_MATCH`. |
+| **GRP-10** | Multi-match categories use LLM to pick from allowed folder list based on content_explanation | ✅ **Verified.** The `route_document` function uses a specific routing prompt, retries once on failure, and falls back to "13_others" on double failure (D-02). |
+| **GRP-11** | Split physical PDF into individual document PDFs using PyMuPDF page ranges | ✅ **Verified.** `FileOrganizer.organize` (`src/processing/organizer.py`) correctly calls `extract_pdf_segment` for each document group. |
+| **GRP-12** | Name output PDFs as `YYYY-MM-DD - brief_arabic_title.pdf` (title or date only for direct) | ✅ **Verified.** `organizer.py` branches on `is_direct_routed`. If direct and single-page, it uses `YYYY-MM-DD.pdf`, otherwise `YYYY-MM-DD - {title}.pdf`. |
+| **GRP-13** | Dateless documents use inferred date from nearest dated page for filename | ✅ **Verified.** Pass 1.5 logic in `pipeline.py` already interpolates missing dates globally, and `organizer.py` defaults to "nodate" if it is entirely empty. |
 
-**Plan 02:**
-- Verification strictly enforces contiguous, non-overlapping coverage of the exact chunk page range. (✅ Yes, `verify_groups` explicitly checks bounds, gaps, overlaps)
-- Must implement D-01 (Overlap Merge Resolution) by trusting the first chunk during merges. (✅ Yes, `merge_chunks` defaults to retaining `last_g1` attributes)
+## Must-Haves Verification
 
-**Plan 03:**
-- The shrink loop must be stateful (dynamic index tracking) rather than a static generator. (✅ Yes, `while current_page_index < len(pages)` loop in `process_with_shrink`)
-- Prompt must explicitly demonstrate the negative constraint (no date boundaries). (✅ Yes, `GROUPING_PROMPT` contains `Example 1 (Date change without boundary)`)
-- Must implement D-03 (Verification Failure Handling) with max 10 attempts and chunk shrinking. (✅ Yes, `total_failures >= 10` raises `RuntimeError`, chunks shrink from `10 -> 5 -> 3`)
+1. **Check must_haves against actual codebase:**
+   - **Schema Consistency (Plan 1):** `DocumentGroup` is a strict Pydantic `BaseModel` instead of a Python `@dataclass`.
+   - **Verification Constraints (Plan 2):** `verify_groups` properly raises `ValueError` on bounds mismatch.
+   - **LLM Prompt Rules (Plan 3):** Prompt contains explicit instructions and few-shot examples for date/subject boundary testing.
+   - **Chunk Shrink Retry State (Plan 3):** `process_with_shrink` handles iteration dynamically, successfully shrinking down to a chunk size of 3 on repeated failures.
+   - **Hardcoded Routing Strategy (Plan 4 & 5):** The system fully drops the previous YAML approach in favor of hard-coded dictionary mapping.
+   - **CLI Pass Integration (Plan 6 & 7):** `organize.py` imports and runs `Pipeline` and `FileOrganizer`, ensuring the end-to-end integration happens successfully upon execution.
 
-**Plan 04:**
-- Single-match docs must completely bypass the LLM. (✅ Yes, early return for `category in SINGLE_MATCH`)
-- Must implement D-02 (Multi-match Routing Fallback) by falling back to "13_others" on double failure. (✅ Yes, hard fallback `return "13_others", False` in `route_document`)
+## Conclusion
 
-**Plan 05:**
-- Filename formatting strictly branches on `is_direct_routed`. (✅ Yes, handled in `FileOrganizer.organize`)
-- Pipeline fully delegates to `process_with_shrink` and `route_document`. (✅ Yes, `_group_and_route_documents` loops through both functions)
-
-**Plan 06:**
-- Documents undergo end-to-end processing without unexpected crashes. (✅ Yes, verified via `test_pipeline_pass2.py`)
-- The processing loop correctly pre-splits items to avoid cross-category overlaps. (✅ Yes, `_group_and_route_documents` partitions by `category` and `residents[0]`)
-- Generated documents match precisely with predefined routing mappings. (✅ Yes, validated in tests)
-
-## Verification Statement
-All phase requirements and mandatory constraints have been thoroughly implemented and verified against the codebase. The Phase 03 goal is marked as **COMPLETE**.
+All requirements (GRP-01 through GRP-13) originally outlined in `REQUIREMENTS.md` and planned in Phase 3 have been successfully translated to functional implementations within the codebase. No gaps or unaccounted requirements exist. The phase goal has been achieved.
