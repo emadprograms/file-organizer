@@ -48,8 +48,8 @@ Exceptions: none
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
 | Body | 16px | 400 | 1.5 |
-| Label | 14px | 500 | 1.5 |
-| Heading | 20px | 600 | 1.2 |
+| Label | 14px | 400 | 1.5 |
+| Heading | 20px | 700 | 1.2 |
 | Display | 24px | 700 | 1.2 |
 
 *(Note: Default values provided for schema compliance; actual UI is a terminal interface).*
@@ -76,7 +76,7 @@ Accent reserved for: Progress bars and status logs
 | Primary CTA | N/A |
 | Empty state heading | N/A |
 | Empty state body | N/A |
-| Error state | Error processing chunk |
+| Error state | Error processing chunk: verify API connectivity and try again with a smaller chunk size. |
 | Destructive confirmation | N/A |
 
 ---
