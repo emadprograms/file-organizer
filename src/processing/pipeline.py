@@ -125,11 +125,11 @@ class Pipeline:
             logger.info(f"Page {p_idx} | Date: {page.date} | Category: {page.category} | Names: {names_str}")
         logger.info("-" * 50 + "\n")
 
-        logger.info(f"Starting Pass 2 (Tenant Grouping) for {pdf_path}...")
+        logger.info(f"Starting Pass 2 (Grouping & Routing) for {pdf_path}...")
         
-        documents = self._group_pages_into_documents(raw_pages, config)
+        documents = self._group_and_route_documents(raw_pages, config)
         
-        logger.info(f"Identified {len(documents)} document groups based on timeline logic.")
+        logger.info(f"Identified {len(documents)} document groups after boundary detection and routing.")
         return documents
 
     def _run_cleaning_pass(self, raw_pages: list[tuple[int, PageData]], config: 'UserConfig') -> dict[str, str]:
@@ -447,91 +447,38 @@ class Pipeline:
         raw_pages.extend(new_raw_pages)
         return {}
 
-    def _group_pages_into_documents(self, raw_pages: list[tuple[int, PageData]], config: 'UserConfig') -> list[DocumentGroup]:
-        """Group classified pages into cohesive document blocks.
+    def _group_and_route_documents(self, raw_pages: list[tuple[int, PageData]], config: 'UserConfig') -> list[DocumentGroup]:
+        """Group classified pages into cohesive document blocks using LLM boundary detection, then route them.
         
         Args:
             raw_pages (list[tuple[int, PageData]]): The sequence of classified pages.
-            config (UserConfig): User configuration containing grouping strategy.
+            config (UserConfig): User configuration.
             
         Returns:
-            list[DocumentGroup]: The final grouped documents.
+            list[DocumentGroup]: The final grouped and routed documents.
         """
-        grouping_cfg = config.grouping
-        if grouping_cfg.strategy == "python":
-            try:
-                if not grouping_cfg.script_path:
-                    raise ValueError("Python strategy requires a script_path in config.")
-                
-                from pathlib import Path
-                script_path = Path(grouping_cfg.script_path).resolve()
-                if not script_path.is_relative_to(Path.cwd()):
-                    raise PermissionError(f"Script path {script_path} is outside the allowed directory.")
-
-                import importlib.util
-                spec = importlib.util.spec_from_file_location("grouping_script", str(script_path))
-                if spec and spec.loader:
-                    grouping_script = importlib.util.module_from_spec(spec)
-                    spec.loader.exec_module(grouping_script)
-                    if hasattr(grouping_script, "group_pages"):
-                        import inspect
-                        sig = inspect.signature(grouping_script.group_pages)
-                        if "config" in sig.parameters:
-                            return grouping_script.group_pages(raw_pages, client=self.client, config=config)
-                        return grouping_script.group_pages(raw_pages, client=self.client)
-                    else:
-                        raise ValueError("Python grouping script must define a 'group_pages(raw_pages, client)' function.")
-                else:
-                    raise ValueError(f"Could not load python script: {grouping_cfg.script_path}")
-            except Exception as e:
-                logger.error(f"Grouping script failed: {e}")
-                raise
-                
-        # Declarative Strategy (Fallback or explicit)
-        if grouping_cfg.strategy == "declarative":
-            group_by_fields = grouping_cfg.group_by or ["category", "residents"]
-            documents: list[DocumentGroup] = []
-            if not raw_pages:
-                return documents
-                
-            current_group = [raw_pages[0]]
-            def get_group_key(p: PageData):
-                key = []
-                for field in group_by_fields:
-                    val = getattr(p, field, None)
-                    if isinstance(val, list):
-                        val = tuple(val)
-                    key.append(val)
-                return tuple(key)
-                
-            current_key = get_group_key(raw_pages[0][1])
+        from src.processing.grouping import category_presplit, process_with_shrink
+        from src.processing.routing import route_document
+        
+        if not raw_pages:
+            return []
             
-            def finish_group(group):
-                group.sort(key=lambda x: x[0])
-                start_page = group[0][0]
-                end_page = group[-1][0]
-                primary_tenant = group[0][1].residents[0] if group[0][1].residents else "NONE"
-                category = group[0][1].category
-                dates = [p.date for p_idx, p in group if p.date != "NONE"]
-                documents.append(DocumentGroup(
-                    start_page=start_page,
-                    end_page=end_page,
-                    primary_tenant=primary_tenant,
-                    category=category,
-                    dates=dates
-                ))
+        pages_only = [p for _, p in raw_pages]
+        
+        # 1. Category Pre-split
+        runs = category_presplit(pages_only)
+        
+        documents: list[DocumentGroup] = []
+        
+        # 2. Process each run with LLM overlapping chunks
+        for run in runs:
+            groups = process_with_shrink(run, self.client)
+            documents.extend(groups)
             
-            for item in raw_pages[1:]:
-                key = get_group_key(item[1])
-                if key == current_key:
-                    current_group.append(item)
-                else:
-                    finish_group(current_group)
-                    current_group = [item]
-                    current_key = key
-            if current_group:
-                finish_group(current_group)
-                
-            return documents
-        else:
-            raise ValueError(f"Unknown grouping strategy: {grouping_cfg.strategy}")
+        # 3. Route each document
+        for doc in documents:
+            folder, is_direct = route_document(doc, self.client)
+            doc.folder_path = folder
+            doc.is_direct_routed = is_direct
+            
+        return documents

@@ -49,7 +49,7 @@ def test_pipeline_cache_hit(tmp_path):
     with patch('src.processing.extractors.VisionExtractor.extract_footer') as mock_vision, \
          patch('src.processing.extractors.CloudExtractor.extract') as mock_cloud, \
          patch('src.processing.pipeline.Pipeline._run_cleaning_pass', return_value={}), \
-         patch('src.processing.pipeline.Pipeline._group_pages_into_documents', return_value=[]):
+         patch('src.processing.pipeline.Pipeline._group_and_route_documents', return_value=[]):
         
         pipeline.process_pdf(str(pdf_path))
         
