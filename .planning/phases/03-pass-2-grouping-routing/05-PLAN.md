@@ -1,70 +1,65 @@
 ---
-objective: "Implement Organizer Filename and Splitting Integration"
 wave: 5
-depends_on: [4]
+depends_on:
+  - 03-PLAN.md
+  - 04-PLAN.md
 files_modified:
+  - src/processing/pipeline.py
   - src/processing/organizer.py
-  - tests/test_routing.py
 autonomous: true
-requirements:
-  - GRP-11
-  - GRP-12
-  - GRP-13
-must_haves:
-  truths:
-    - Final documents are correctly assembled and physically split via PyMuPDF
-    - Output filenames conform strictly to the required Arabic conventions
-  artifacts:
-    - src.processing.organizer.FileOrganizer
-  key_links: []
 ---
 
-# Plan 5: Organizer Filename and Splitting Integration
+# Phase 3 - Plan 5: Pipeline Integration & Organizer Updates
 
-## Objective
-Update the file organizer to synthesize the final file names (`YYYY-MM-DD - عنوان.pdf`) and split the documents physically using `split.py`.
+## Requirements
+- GRP-11: Split PDF using PyMuPDF page ranges
+- GRP-12: Name output PDFs (title or date only)
+- GRP-13: Dateless docs use inferred date
+
+## Review Feedback Incorporation
+- **Bypassing Strategy Pattern (Antigravity - MEDIUM)**: *REJECTED.* According to `STATE.md`, the decision was made to drop YAML config and hardcode routing ("Dropped YAML config — simpler, suits the structure"). Re-implementing a strategy pattern here contradicts the explicit project decision to simplify and hardcode the flow. The pipeline will invoke the new hardcoded steps directly.
+- **Single-Match Filename State Gap (Antigravity - MEDIUM)**: Organizer logic now explicitly checks `group.is_direct_routed` to decide between `YYYY-MM-DD.pdf` and `YYYY-MM-DD - title.pdf`.
 
 ## Tasks
 
 ```xml
 <task>
-  <files>
-    - tests/test_routing.py
-  </files>
-  <action>
-    Add test to `tests/test_routing.py` for the filename generation logic we will add to `FileOrganizer`.
-  </action>
-  <verify>
-    <automated>python -m pytest tests/test_routing.py -x</automated>
-  </verify>
-  <done>
-    - Test for filename formatting is defined and fails.
-  </done>
+  <action>Update `FileOrganizer` naming and splitting logic</action>
+  <read_first>
+    - src/processing/organizer.py
+  </read_first>
+  <acceptance_criteria>
+    - `FileOrganizer` removes the old declarative grouping/routing logic if present.
+    - Uses `group.folder_path` for the destination folder.
+    - If `group.is_direct_routed` is True, filename is `YYYY-MM-DD.pdf` (using `group.dates[0]`).
+    - If `group.is_direct_routed` is False, filename is `YYYY-MM-DD - {group.brief_arabic_title}.pdf`.
+    - If `group.dates` is empty or null, uses `"nodate"` as the date string.
+    - Calls `extract_pdf_segment` using `group.start_page` and `group.end_page`.
+  </acceptance_criteria>
 </task>
 
 <task>
-  <files>
-    - src/processing/organizer.py
-  </files>
-  <action>
-    Update `src/processing/organizer.py` `FileOrganizer.organize` method.
-    Remove reliance on the declarative `config.routing` logic.
-    For each `DocumentGroup` passed in, the folder path should already be provided via `DocumentGroup.folder_path` (set by pipeline).
-    Format the filename:
-    - If `category` is in `SINGLE_MATCH` and it's a 1-page document (like a single ID or picture), use `YYYY-MM-DD.pdf`.
-    - Otherwise, use `YYYY-MM-DD - {brief_arabic_title}.pdf`.
-    - If dates are missing, fallback to `"nodate"`. Use the first date in `doc.dates`.
-    Sanitize the filename via `utils.sanitize_filename`.
-    Keep the collision handling (`_2.pdf` suffix loop).
-    Call `extract_pdf_segment` from `src/processing/split.py` to physically extract and compress the segment.
-  </action>
-  <verify>
-    <automated>python -m pytest tests/test_routing.py::test_filename_generation -x</automated>
-  </verify>
-  <done>
-    - `organize` method correctly constructs the `YYYY-MM-DD - عنوان.pdf` name format.
-    - Handles dateless documents.
-    - Calls `extract_pdf_segment`.
-  </done>
+  <action>Wire Phase 3 logic into `pipeline.py`</action>
+  <read_first>
+    - src/processing/pipeline.py
+  </read_first>
+  <acceptance_criteria>
+    - Replaces old grouping logic in `Pipeline.run()`.
+    - Passes `raw_pages` through `category_presplit`.
+    - Iterates over category runs, calling `process_with_shrink` on each.
+    - Iterates over generated groups, calling `route_document`, and sets `group.folder_path` and `group.is_direct_routed`.
+    - Passes the final list of `DocumentGroup` objects to `FileOrganizer`.
+  </acceptance_criteria>
 </task>
 ```
+
+## Verification
+- Running `python src/organize.py` on a sample creates overlapping chunks, merges them, and splits PDFs into the correct folder layout with correct filenames.
+
+## Must Haves
+- Filename formatting strictly branches on `is_direct_routed`.
+- Pipeline fully delegates to `process_with_shrink` and `route_document`.
+
+## Artifacts this phase produces
+- Modified `FileOrganizer` class
+- Modified `Pipeline.run()` execution flow

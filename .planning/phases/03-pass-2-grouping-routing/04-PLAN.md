@@ -1,110 +1,62 @@
 ---
-objective: "Implement Routing Rules and LLM Route Call"
 wave: 4
-depends_on: [3]
+depends_on:
+  - 01-PLAN.md
 files_modified:
-  - tests/test_routing.py
   - src/processing/routing.py
-  - src/llm/llm.py
+  - tests/test_routing.py
 autonomous: true
-requirements:
-  - GRP-08
-  - GRP-09
-  - GRP-10
-must_haves:
-  truths:
-    - All 13 final folders are fully represented in the routing logic
-    - Ambiguous documents are accurately resolved to a target folder via AI
-  artifacts:
-    - src.processing.routing.FOLDER_ROUTING
-    - src.processing.routing.CATEGORY_TO_FOLDERS
-    - src.processing.routing.SINGLE_MATCH
-    - src.processing.routing.MULTI_MATCH
-    - src.processing.routing.determine_folder
-    - src.llm.llm.LLMClient.route_document
-    - tests/test_routing.py
-  key_links: []
 ---
 
-# Plan 4: Routing Rules and LLM Route Call
+# Phase 3 - Plan 4: Routing Engine
 
-## Objective
-Implement the 13-folder routing logic and handle LLM fallback for multi-match categories.
+## Requirements
+- GRP-08: Route documents using hardcoded rules
+- GRP-09: Single-match categories route directly
+- GRP-10: Multi-match categories use LLM
 
 ## Tasks
 
 ```xml
 <task>
-  <files>
-    - tests/test_routing.py
-  </files>
-  <action>
-    Create `tests/test_routing.py`.
-    Write tests covering `FOLDER_ROUTING` correctness (that it has exactly 13 folders) and `determine_folder` (both single and multi match with fallback to "13_others").
-  </action>
-  <verify>
-    <automated>python -m pytest tests/test_routing.py -x</automated>
-  </verify>
-  <done>
-    - Tests for routing utilities are defined and fail.
-  </done>
+  <action>Define Hardcoded Routing Dictionaries</action>
+  <read_first>
+    - src/processing/routing.py (create if needed)
+  </read_first>
+  <acceptance_criteria>
+    - `FOLDER_ROUTING` maps 13 folders to categories as defined in RESEARCH.md.
+    - `CATEGORY_TO_FOLDERS` is dynamically built or hardcoded to reverse-map category to folders.
+    - `SINGLE_MATCH` and `MULTI_MATCH` sets are defined correctly.
+  </acceptance_criteria>
 </task>
 
 <task>
-  <files>
+  <action>Implement `route_document` with LLM fallback</action>
+  <read_first>
     - src/processing/routing.py
-  </files>
-  <action>
-    Create `src/processing/routing.py`.
-    Define `FOLDER_ROUTING: dict[str, list[str]]` mapping the 13 hardcoded folders to categories as specified in `03-RESEARCH.md` (e.g. `"5_contract": ["contract"]`).
-    Derive `CATEGORY_TO_FOLDERS`, `SINGLE_MATCH`, and `MULTI_MATCH` constants.
-  </action>
-  <verify>
-    <automated>python -c "from src.processing.routing import FOLDER_ROUTING; assert len(FOLDER_ROUTING) == 13"</automated>
-  </verify>
-  <done>
-    - `src/processing/routing.py` exists with the 13 folder names and mappings.
-    - `SINGLE_MATCH` contains categories like "contract", "pictures", "id_cards", "utility_bills".
-    - `MULTI_MATCH` contains "forms", "letters", "others".
-  </done>
-</task>
-
-<task>
-  <files>
-    - src/llm/llm.py
-  </files>
-  <action>
-    Add `route_document(self, category: str, content_explanation: str, allowed_folders: list[str]) -> str` to `LLMClient` in `src/llm/llm.py`.
-    It should ask the LLM to choose ONE folder from `allowed_folders` based on the document's content.
-    Return the chosen folder name.
-  </action>
-  <verify>
-    <automated>python -c "from src.llm.llm import LLMClient; assert hasattr(LLMClient, 'route_document')"</automated>
-  </verify>
-  <done>
-    - `route_document` is implemented.
-    - Uses `_route_llm_call`.
-  </done>
-</task>
-
-<task>
-  <files>
-    - src/processing/routing.py
-  </files>
-  <action>
-    Implement `determine_folder(category: str, content_explanation: str, llm_client: 'LLMClient') -> str` in `src/processing/routing.py`.
-    If `category` is in `SINGLE_MATCH`, return the mapped folder directly.
-    If `category` is in `MULTI_MATCH`, call `llm_client.route_document` passing the allowed folders.
-    If the LLM call fails or returns an invalid folder, retry once.
-    If it fails again, return the `"13_others"` fallback folder.
-  </action>
-  <verify>
-    <automated>python -m pytest tests/test_routing.py::test_determine_folder -x</automated>
-  </verify>
-  <done>
-    - `determine_folder` handles single-match directly.
-    - Handles multi-match via `LLMClient.route_document`.
-    - Correctly falls back to `"13_others"` on repeated failure.
-  </done>
+  </read_first>
+  <acceptance_criteria>
+    - `route_document(group: DocumentGroup, llm_client) -> tuple[str, bool]` returns the folder path and a boolean indicating if it was direct-routed.
+    - If `category` is in `SINGLE_MATCH`, returns the folder and `True`.
+    - If `category` is in `MULTI_MATCH`, calls LLM to pick the best folder from allowed folders.
+    - LLM prompt provides explanations of allowed folders.
+    - If LLM fails or picks an invalid folder, retries once. If it fails again, returns "13_others" and `False` (satisfies D-02).
+    - Test `test_single_match_direct` and `test_multi_match_llm` pass.
+  </acceptance_criteria>
 </task>
 ```
+
+## Verification
+- Unit tests verify that single-match documents don't call the LLM and multi-match documents return valid folders or fallback to "13_others".
+
+## Must Haves
+- Single-match docs must completely bypass the LLM.
+- Must implement D-02 (Multi-match Routing Fallback) by falling back to "13_others" on double failure.
+
+## Artifacts this phase produces
+- `FOLDER_ROUTING` (Constant dict)
+- `CATEGORY_TO_FOLDERS` (Constant dict)
+- `SINGLE_MATCH` (Constant set)
+- `MULTI_MATCH` (Constant set)
+- `route_document` (Function)
+- `tests/test_routing.py` (New File)

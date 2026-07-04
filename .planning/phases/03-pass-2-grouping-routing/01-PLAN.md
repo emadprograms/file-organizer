@@ -1,67 +1,59 @@
 ---
-objective: "Implement Grouping Schemas and Tests"
 wave: 1
 depends_on: []
 files_modified:
-  - tests/test_grouping.py
   - src/core/schemas.py
 autonomous: true
-requirements:
-  - GRP-04
-  - GRP-05
-must_haves:
-  truths:
-    - PDF pages are correctly mapped to structural document boundaries
-    - Boundary detection rigorously rejects overlaps or gaps
-    - Overlap pages accurately inherit metadata from the preceding chunk
-  artifacts:
-    - src.core.schemas.GroupEntry
-    - src.core.schemas.GroupingResponse
-    - tests/test_grouping.py
-  key_links: []
 ---
 
-# Plan 1: Grouping Schemas and Tests
+# Phase 3 - Plan 1: Core Schemas and Data Models
 
-## Objective
-Establish the foundational data structures for Pass 2 and define the unit tests for the pure-Python grouping algorithms.
+## Requirements
+- GRP-04: LLM reasoning field
+- GRP-05: Strict JSON response with start/end page, reason, title
+
+## Review Feedback Incorporation
+- **Schema Consistency (Gemini - LOW)**: Converted `DocumentGroup` from `@dataclass` to Pydantic `BaseModel` to align with the rest of the project and ensure robust validation of new fields.
+- **Single-Match Filename Gap (Antigravity - MEDIUM)**: Added `is_direct_routed: bool = False` to `DocumentGroup` so downstream naming logic knows when to drop the `{brief_arabic_title}`.
 
 ## Tasks
 
 ```xml
 <task>
-  <files>
-    - tests/test_grouping.py
-  </files>
-  <action>
-    Create `tests/test_grouping.py`.
-    Write tests for `generate_chunks` (testing sliding window with overlaps), `verify_groups` (testing gaps, overlaps, and invented pages), and `merge_chunks` (testing that overlap pages are resolved by trusting Chunk 1).
-  </action>
-  <verify>
-    <automated>python -m pytest tests/test_grouping.py -x</automated>
-  </verify>
-  <done>
-    - Tests for grouping utilities are fully defined and fail (since implementation is not written yet).
-  </done>
+  <action>Refactor `DocumentGroup` to Pydantic `BaseModel` and add new fields</action>
+  <read_first>
+    - src/core/schemas.py
+  </read_first>
+  <acceptance_criteria>
+    - `DocumentGroup` inherits from `BaseModel` instead of using `@dataclass`.
+    - `DocumentGroup` includes `reason: str | None = None`.
+    - `DocumentGroup` includes `brief_arabic_title: str | None = None`.
+    - `DocumentGroup` includes `folder_path: str | None = None`.
+    - `DocumentGroup` includes `is_direct_routed: bool = False`.
+  </acceptance_criteria>
 </task>
 
 <task>
-  <files>
+  <action>Create `GroupEntry` and `GroupingResponse` Pydantic schemas</action>
+  <read_first>
     - src/core/schemas.py
-  </files>
-  <action>
-    Add `GroupEntry` and `GroupingResponse` models to `src/core/schemas.py`.
-    `GroupEntry` needs fields: `start_page: int`, `end_page: int`, `reason: str`, `brief_arabic_title: str`.
-    `GroupingResponse` needs field: `groups: list[GroupEntry]`.
-    Extend existing `DocumentGroup` in `src/core/schemas.py` to include `reason: str | None = None`, `brief_arabic_title: str | None = None`, and `folder_path: str | None = None`.
-  </action>
-  <verify>
-    <automated>python -c "from src.core.schemas import GroupEntry, GroupingResponse, DocumentGroup"</automated>
-  </verify>
-  <done>
-    - `src/core/schemas.py` contains `GroupEntry` with specified fields.
-    - `src/core/schemas.py` contains `GroupingResponse` with specified fields.
-    - `DocumentGroup` includes `reason`, `brief_arabic_title`, and `folder_path` as optional fields.
-  </done>
+  </read_first>
+  <acceptance_criteria>
+    - `GroupEntry` is a `BaseModel` with `start_page: int`, `end_page: int`, `reason: str`, and `brief_arabic_title: str`.
+    - Field descriptions are provided for `GroupEntry` fields indicating 0-indexed values for pages.
+    - `GroupingResponse` is a `BaseModel` with `groups: list[GroupEntry]`.
+  </acceptance_criteria>
 </task>
 ```
+
+## Verification
+- Run `pytest` to ensure schema changes do not break existing tests that rely on `DocumentGroup` initialization.
+
+## Must Haves
+- `DocumentGroup` must be a Pydantic `BaseModel`.
+- `is_direct_routed` flag must be present on `DocumentGroup`.
+
+## Artifacts this phase produces
+- `DocumentGroup` (Modified Class)
+- `GroupEntry` (New Class)
+- `GroupingResponse` (New Class)

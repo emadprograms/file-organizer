@@ -1,99 +1,63 @@
 ---
-objective: "Implement LLM Grouping Call and Resilient Loop"
 wave: 3
-depends_on: [2]
+depends_on:
+  - 02-PLAN.md
 files_modified:
-  - src/llm/llm.py
   - src/processing/grouping.py
-  - tests/test_llm_grouping.py
 autonomous: true
-requirements:
-  - GRP-03
-  - GRP-04
-  - GRP-05
-must_haves:
-  truths:
-    - System can automatically deduce logical document boundaries using AI
-    - The pipeline recovers gracefully if the AI generates poor boundaries
-    - The system never exceeds the 10-retry hard failure limit
-  artifacts:
-    - src.llm.llm.LLMClient.group_chunk
-    - src.processing.grouping.process_with_shrink
-    - tests/test_llm_grouping.py
-  key_links: []
 ---
 
-# Plan 3: LLM Grouping Call and Resilient Loop
+# Phase 3 - Plan 3: LLM Grouping Logic & Shrink Loop
 
-## Objective
-Implement the LLM call that asks the model to detect subject boundaries and generate Arabic titles for a chunk of pages. Build the `process_with_shrink` loop that orchestrates this call, retrying and shrinking the chunk size upon verification failures or 500 errors.
+## Requirements
+- GRP-02: Boundary detection overlapping chunks
+- GRP-03: LLM grouping rules (subject/topic shift only)
+
+## Review Feedback Incorporation
+- **process_with_shrink Iteration State (Antigravity - HIGH)**: Replaced static sliding window generator with a dynamic `while` loop tracking `current_page_index` to properly handle chunk shrinking mid-iteration without losing state.
+- **LLM Boundary Prompt Risk (Gemini - MEDIUM)**: Added explicit few-shot examples to the prompt template demonstrating that a date change does NOT trigger a boundary, but a subject change DOES.
 
 ## Tasks
 
 ```xml
 <task>
-  <files>
-    - tests/test_llm_grouping.py
-  </files>
-  <action>
-    Create `tests/test_llm_grouping.py`.
-    Write tests simulating the LLM client responses.
-    Mock `LLMClient.group_chunk` to return valid responses, and test `process_with_shrink`'s success path.
-    Mock `LLMClient.group_chunk` to raise exceptions, and test the shrink logic and the 10-failure hard fail limit.
-  </action>
-  <verify>
-    <automated>python -m pytest tests/test_llm_grouping.py -x</automated>
-  </verify>
-  <done>
-    - Tests for LLM grouping orchestration are fully defined and fail (implementation not written).
-  </done>
-</task>
-
-<task>
-  <files>
-    - src/llm/llm.py
-  </files>
-  <action>
-    Add `group_chunk(self, pages: list, prompt_template: str = "") -> GroupingResponse` to `LLMClient` in `src/llm/llm.py`.
-    Format the `pages` input into a text representation containing page index, date, tenant, category, and text content for the model to read.
-    Use `_route_llm_call` specifying the `GroupingResponse` schema.
-    Ensure the prompt strictly commands the LLM to group ONLY on subject/content shifts, ignoring date or sender changes.
-    Also, the prompt instruction MUST explicitly command the LLM to explain what it saw and what it didn't in the reason field (Requirement GRP-04).
-  </action>
-  <verify>
-    <automated>python -c "from src.llm.llm import LLMClient; assert hasattr(LLMClient, 'group_chunk')"</automated>
-  </verify>
-  <done>
-    - `group_chunk` is defined on `LLMClient`.
-    - It returns a `GroupingResponse`.
-    - It delegates to `_route_llm_call`.
-    - Prompt string contains explicit instruction for GRP-04 reasoning.
-  </done>
-</task>
-
-<task>
-  <files>
+  <action>Define LLM Prompt Templates with Few-Shot Examples</action>
+  <read_first>
     - src/processing/grouping.py
-  </files>
-  <action>
-    Implement `process_with_shrink(pages: list, llm_client: 'LLMClient') -> list[GroupEntry]` in `src/processing/grouping.py`.
-    It implements the 10->5->3 chunk shrinking logic:
-    - Try to process `pages` using `generate_chunks` with `chunk_size` starting at 10.
-    - For each chunk, call `llm_client.group_chunk`.
-    - Verify the response using `verify_groups`.
-    - If `verify_groups` raises `InvalidResponseError` or the LLM call raises a `5xx` error, increment a consecutive failure counter.
-    - If consecutive failures reach 5, shrink the `chunk_size` to the next level in `[10, 5, 3]`. Restart the processing loop.
-    - Hard fail (raise `RuntimeError`) if total consecutive failures hit 10.
-    - On successful chunk processing, reset consecutive failures.
-    - Returns the merged result using `merge_chunks` on all successful chunk results.
-  </action>
-  <verify>
-    <automated>python -m pytest tests/test_llm_grouping.py -x</automated>
-  </verify>
-  <done>
-    - `process_with_shrink` correctly calls `group_chunk`, `verify_groups`, and `merge_chunks`.
-    - Shrinks chunk sizes correctly after 5 consecutive failures.
-    - Aborts with `RuntimeError` after 10 consecutive failures.
-  </done>
+  </read_first>
+  <acceptance_criteria>
+    - Prompt string specifically instructs: "Boundaries ONLY on subject/content shift. DO NOT split on date changes or sender changes."
+    - Prompt string includes at least one few-shot example showing a date change without a boundary.
+    - Prompt string includes at least one few-shot example showing a clear subject shift resulting in a boundary.
+  </acceptance_criteria>
+</task>
+
+<task>
+  <action>Implement `process_with_shrink` using dynamic index tracking</action>
+  <read_first>
+    - src/processing/grouping.py
+    - src/llm/llm.py
+  </read_first>
+  <acceptance_criteria>
+    - `process_with_shrink(pages: list[PageData], llm_client)` processes all pages.
+    - Uses a `while current_page_index < len(pages)` loop.
+    - Shrinks chunk size (10 -> 5 -> 3) after 5 consecutive failures, ONLY triggering on `500 ServerError` or `ValidationError` (allowing 429 errors to be handled normally by the underlying LLM client) (satisfies D-03).
+    - Hard fails (raises RuntimeError) after 10 total consecutive failures (satisfies D-03).
+    - Calls `llm_client._route_llm_call(..., response_schema=GroupingResponse)`.
+    - Calls `verify_groups` on the result. If validation fails, treats it as a failure for the shrink logic.
+    - Merges chunks using `merge_chunks` when moving forward.
+  </acceptance_criteria>
 </task>
 ```
+
+## Verification
+- Code review confirms `process_with_shrink` handles iteration state explicitly via `current_page_index` incrementing by `chunk_size - overlap`.
+
+## Must Haves
+- The shrink loop must be stateful (dynamic index tracking) rather than a static generator.
+- Prompt must explicitly demonstrate the negative constraint (no date boundaries).
+- Must implement D-03 (Verification Failure Handling) with max 10 attempts and chunk shrinking.
+
+## Artifacts this phase produces
+- `process_with_shrink` (Function)
+- `GROUPING_PROMPT` (Constant string)
