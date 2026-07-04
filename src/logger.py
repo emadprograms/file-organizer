@@ -23,7 +23,7 @@ def setup_logging(run_id: str = None) -> str:
     _run_directories[run_id] = full_dir
     
     # Setup standard logger
-    logger = logging.getLogger("file_organizer")
+    logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     
     # Check if handlers already exist to prevent duplicate logs or overriding other handlers

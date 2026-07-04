@@ -140,9 +140,9 @@ class LLMClient:
                 )
                 
                 try:
-                    response_parsed = future.result(timeout=20)
+                    response_parsed = future.result(timeout=120)
                 except concurrent.futures.TimeoutError:
-                    raise TimeoutError("LLM API call hung and timed out after 20 seconds.")
+                    raise TimeoutError("LLM API call hung and timed out after 120 seconds.")
 
                 record_successful_call()
                 self.total_requests += 1
@@ -186,11 +186,15 @@ class LLMClient:
                     continue
                     
                 if is_5xx or isinstance(e, TimeoutError):
-                    current_provider_idx += 1
-                    provider_attempts = 0
-                    if current_provider_idx < len(provider_sequence):
-                        next_name = provider_sequence[current_provider_idx].name
-                        log.info(f"[Cloud Fallback] Failed over to {next_name}")
+                    if provider_attempts >= 3:
+                        current_provider_idx += 1
+                        provider_attempts = 0
+                        if current_provider_idx < len(provider_sequence):
+                            next_name = provider_sequence[current_provider_idx].name
+                            log.info(f"[Cloud Fallback] Failed over to {next_name}")
+                        continue
+                    log.info(f"[{log_prefix}] 5xx/Timeout on {provider_name}. Retrying (attempt {provider_attempts}/3)...")
+                    time.sleep(7.5 * provider_attempts)
                     continue
                 
                 if provider_attempts >= 3:

@@ -420,21 +420,26 @@ Raw names:
 Respond ONLY with a JSON dictionary where keys are the raw names and values are the canonical Arabic names.
 """
     
-    response = llm_client.generate_content(
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            temperature=0.0
-        )
+    response_text = llm_client._route_llm_call(
+        model=llm_client.default_model,
+        contents=[prompt],
+        response_schema=None,
+        log_prefix="CanonicalizeLLM"
     )
     
-    if not response or not response.text:
+    if not response_text:
         raise RuntimeError("LLM returned empty response")
         
+    response_text = response_text.strip()
+    if response_text.startswith("```json"):
+        response_text = response_text[7:-3].strip()
+    elif response_text.startswith("```"):
+        response_text = response_text[3:-3].strip()
+        
     try:
-        result_map = json.loads(response.text)
+        result_map = json.loads(response_text)
     except json.JSONDecodeError as e:
-        raise RuntimeError(f"LLM returned malformed JSON: {e}\nResponse text: {response.text}") from e
+        raise RuntimeError(f"LLM returned malformed JSON: {e}\nResponse text: {response_text}") from e
         
     if not isinstance(result_map, dict):
         raise RuntimeError(f"LLM did not return a JSON object (got {type(result_map).__name__})")

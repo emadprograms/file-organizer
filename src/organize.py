@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from dotenv import load_dotenv
 
 from src.logger import setup_logging
-from src.llm_client import LLMClient
+from src.llm.llm import LLMClient
 from src.cleaning import process_cleaning_phase
 
 def validate_environment():
@@ -87,17 +87,24 @@ def main():
     logger.info("Initialization and validation successful.")
     
     json_path = list(args.target_dir.glob("*_report.json"))[0]
-    
-    logger.info("Starting Pass 1 — Document Cleaning")
-    cleaned_pages = process_cleaning_phase(json_path, llm_client)
-    
-    unique_tenants = len(set(p.canonical_tenant for p in cleaned_pages))
-    logger.info(f"Cleaned {len(cleaned_pages)} pages successfully. Resolved {unique_tenants} unique tenant(s).")
-    
     output_json_path = args.target_dir / "output" / f"{house_id}_cleaned.json"
-    with open(output_json_path, 'w', encoding='utf-8') as f:
-        json.dump([p.model_dump() for p in cleaned_pages], f, ensure_ascii=False, indent=2)
-    logger.info(f"Wrote cleaned data to {output_json_path}")
+    
+    if output_json_path.exists():
+        logger.info(f"Skipping Pass 1 (found {output_json_path}). Loading cleaned data.")
+        with open(output_json_path, 'r', encoding='utf-8') as f:
+            from src.cleaning import PageData
+            cleaned_pages = [PageData(**p) for p in json.load(f)]
+    else:
+        logger.info("Starting Pass 1 — Document Cleaning")
+        cleaned_pages = process_cleaning_phase(json_path, llm_client)
+        
+        unique_tenants = len(set(p.canonical_tenant for p in cleaned_pages))
+        logger.info(f"Cleaned {len(cleaned_pages)} pages successfully. Resolved {unique_tenants} unique tenant(s).")
+        
+        output_json_path.parent.mkdir(exist_ok=True)
+        with open(output_json_path, 'w', encoding='utf-8') as f:
+            json.dump([p.model_dump() for p in cleaned_pages], f, ensure_ascii=False, indent=2)
+        logger.info(f"Wrote cleaned data to {output_json_path}")
     
     from src.processing.pipeline import Pipeline
     from src.processing.organizer import FileOrganizer
@@ -108,7 +115,7 @@ def main():
     pipeline = Pipeline(api_key=os.getenv("GEMINI_API_KEY"))
     pipeline.client = llm_client
     
-    documents = pipeline._group_pages_into_documents(raw_pages, None)
+    documents = pipeline._group_and_route_documents(raw_pages, None)
     
     pdf_path = list(args.target_dir.glob("*_categorized.pdf"))[0]
     output_dir = args.target_dir / "output" / house_id

@@ -193,7 +193,7 @@ def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup
             # 429s are handled normally inside llm_client._route_llm_call (it sleeps and retries).
             # If a TimeoutError or other server error slips out, we treat it as failure here.
             error_str = str(e).lower()
-            if "500" in error_str or "503" in error_str or "servererror" in error_str or "runtimeerror" in error_str or "timeout" in error_str:
+            if isinstance(e, (RuntimeError, TimeoutError)) or "500" in error_str or "503" in error_str or "servererror" in error_str or "llm routing failed" in error_str:
                 consecutive_failures += 1
                 total_failures += 1
                 log.warning(f"Server Error: {e}")
