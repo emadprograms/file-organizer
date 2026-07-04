@@ -99,6 +99,25 @@ def main():
         json.dump([p.model_dump() for p in cleaned_pages], f, ensure_ascii=False, indent=2)
     logger.info(f"Wrote cleaned data to {output_json_path}")
     
+    from src.processing.pipeline import Pipeline
+    from src.processing.organizer import FileOrganizer
+    
+    logger.info("Starting Pass 2 — Grouping and Routing")
+    raw_pages = [(p.original_index, p) for p in cleaned_pages]
+    
+    pipeline = Pipeline(api_key=os.getenv("GEMINI_API_KEY"))
+    pipeline.client = llm_client
+    
+    documents = pipeline._group_pages_into_documents(raw_pages, None)
+    
+    pdf_path = list(args.target_dir.glob("*_categorized.pdf"))[0]
+    output_dir = args.target_dir / "output" / house_id
+    
+    organizer = FileOrganizer()
+    summary = organizer.organize(documents, str(pdf_path), output_dir, None)
+    
+    logger.info(f"Successfully generated {len(summary)} PDFs in {output_dir}")
+    
     return 0
 
 if __name__ == "__main__":
