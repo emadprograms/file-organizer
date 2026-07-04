@@ -11,6 +11,14 @@ requirements:
   - GRP-08
   - GRP-10
   - GRP-12
+must_haves:
+  truths:
+    - _group_pages_into_documents pre-splits by category and primary_tenant
+    - LLM grouping logic is executed for each split chunk via process_with_shrink
+    - Folder routing is executed for each grouped document via determine_folder
+  artifacts:
+    - tests/test_pipeline_pass2.py
+  key_links: []
 ---
 
 # Plan 4: Pipeline Integration for Pass 2
@@ -22,20 +30,42 @@ Wire the output of Pass 1.5 in `src/processing/pipeline.py` through the newly bu
 
 ```xml
 <task>
+  <files>
+    - tests/test_pipeline_pass2.py
+  </files>
   <action>
-    Update `_group_pages_into_documents(self, raw_pages: list[tuple[int, PageData]], config: UserConfig) -> list[DocumentGroup]` in `src/processing/pipeline.py`.
-    Remove the old declarative and script-based grouping logic entirely.
-    Implement Step 1: Category Pre-Split (GRP-01). Iterate through `raw_pages` and split them into contiguous sub-sequences where both the `category` and the assigned `residents[0]` are identical. Any change is an automatic boundary.
+    Create `tests/test_pipeline_pass2.py`.
+    Write integration tests validating the end-to-end data flow of Pass 2, mocking `LLMClient` appropriately.
   </action>
-  <read_first>
-    - src/processing/pipeline.py
-  </read_first>
-  <acceptance_criteria>
-    - `_group_pages_into_documents` correctly segments `raw_pages` into contiguous runs of the same category and tenant.
-  </acceptance_criteria>
+  <verify>
+    <automated>python -m pytest tests/test_pipeline_pass2.py -x</automated>
+  </verify>
+  <done>
+    - Pipeline integration tests are defined and fail.
+  </done>
 </task>
 
 <task>
+  <files>
+    - src/processing/pipeline.py
+  </files>
+  <action>
+    Update `_group_pages_into_documents(self, raw_pages: list[tuple[int, PageData]], config: 'UserConfig') -> list[DocumentGroup]` in `src/processing/pipeline.py`.
+    Remove the old declarative and script-based grouping logic entirely.
+    Implement Step 1: Category Pre-Split (GRP-01). Iterate through `raw_pages` and split them into contiguous sub-sequences where both the `category` and the assigned `residents[0]` are identical. Any change is an automatic boundary.
+  </action>
+  <verify>
+    <automated>python -m pytest tests/test_pipeline_pass2.py::test_category_presplit -x</automated>
+  </verify>
+  <done>
+    - `_group_pages_into_documents` correctly segments `raw_pages` into contiguous runs of the same category and tenant.
+  </done>
+</task>
+
+<task>
+  <files>
+    - src/processing/pipeline.py
+  </files>
   <action>
     Implement Step 2 in `_group_pages_into_documents`: For each sub-sequence from Step 1, call `process_with_shrink(sub_sequence, self.client)` from `src/processing/grouping.py`.
     Capture the resulting `list[GroupEntry]`.
@@ -43,53 +73,32 @@ Wire the output of Pass 1.5 in `src/processing/pipeline.py` through the newly bu
     Set the `DocumentGroup`'s `start_page`, `end_page`, `reason`, `brief_arabic_title`.
     The `primary_tenant`, `category`, and `dates` should be extracted from the source `PageData` elements covered by the group's page range.
   </action>
-  <read_first>
-    - src/processing/pipeline.py
-    - src/processing/grouping.py
-    - src/core/schemas.py
-  </read_first>
-  <acceptance_criteria>
+  <verify>
+    <automated>python -m pytest tests/test_pipeline_pass2.py::test_grouping_mapping -x</automated>
+  </verify>
+  <done>
     - `process_with_shrink` is successfully called for each category run.
     - Final result is a flat `list[DocumentGroup]` accurately reflecting the LLM's grouping decisions.
-  </acceptance_criteria>
+  </done>
 </task>
 
 <task>
+  <files>
+    - src/processing/pipeline.py
+  </files>
   <action>
     Implement Step 3 in `_group_pages_into_documents`: For each final `DocumentGroup`, call `determine_folder(category, content_explanation, self.client)` from `src/processing/routing.py` to get the target folder.
     (Construct `content_explanation` by sampling or concatenating the explanations from the underlying pages).
     Set `doc.folder_path = chosen_folder`.
   </action>
-  <read_first>
-    - src/processing/pipeline.py
-    - src/processing/routing.py
-  </read_first>
-  <acceptance_criteria>
+  <verify>
+    <automated>python -m pytest tests/test_pipeline_pass2.py::test_routing_integration -x</automated>
+  </verify>
+  <done>
     - Every returned `DocumentGroup` has `folder_path` populated with a valid folder name from the 13 hardcoded folders.
-  </acceptance_criteria>
-</task>
-
-<task>
-  <action>
-    Create `tests/test_pipeline_pass2.py` to write integration tests validating the end-to-end data flow of Pass 2, mocking `LLMClient` appropriately.
-  </action>
-  <read_first>
-    - tests/conftest.py
-  </read_first>
-  <acceptance_criteria>
-    - `pytest tests/test_pipeline_pass2.py -x -q` exits 0.
-  </acceptance_criteria>
+  </done>
 </task>
 ```
-
-## Verification
-- Run `pytest tests/test_pipeline_pass2.py -x` and ensure all pass.
-
-## Must Haves
-- **Truths**:
-  - `_group_pages_into_documents` pre-splits by category and primary_tenant.
-  - LLM grouping logic is executed for each split chunk via `process_with_shrink`.
-  - Folder routing is executed for each grouped document via `determine_folder`.
 
 ## Artifacts this phase produces
 - `tests/test_pipeline_pass2.py` (test file)
