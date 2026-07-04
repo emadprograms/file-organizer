@@ -1,9 +1,9 @@
 ---
-status: diagnosed
+status: complete
 phase: 03-pass-2-grouping-routing
-source: [01-SUMMARY.md, 02-SUMMARY.md, 03-SUMMARY.md, 04-SUMMARY.md, 05-SUMMARY.md, 06-SUMMARY.md]
-started: 2026-07-04T17:42:00Z
-updated: 2026-07-04T17:42:00Z
+source: [01-SUMMARY.md, 02-SUMMARY.md, 03-SUMMARY.md, 04-SUMMARY.md, 05-SUMMARY.md, 06-SUMMARY.md, 07-SUMMARY.md]
+started: 2026-07-04T19:23:00Z
+updated: 2026-07-04T19:23:00Z
 ---
 
 ## Current Test
@@ -12,62 +12,47 @@ updated: 2026-07-04T17:42:00Z
 
 ## Tests
 
-### 1. Grouping Engine - Category Pre-split
-expected: Pages are partitioned into contiguous runs by both category and tenant without crossing boundaries.
+### 1. Refactor `DocumentGroup` to Pydantic `BaseModel` and add new fields
+expected: Refactor `DocumentGroup` to Pydantic `BaseModel` and add new fields
 result: pass
 source: automated
-coverage_id: D-01
+coverage_id: D1
 
-### 2. Grouping Engine - Overlap Merge
-expected: Overlapping chunks correctly merge their boundaries, resolving metadata conflicts in favor of Chunk 1.
+### 2. Create `GroupEntry` and `GroupingResponse` Pydantic schemas
+expected: Create `GroupEntry` and `GroupingResponse` Pydantic schemas
 result: pass
 source: automated
-coverage_id: D-02
+coverage_id: D2
 
-### 3. Routing Logic - Hardcoded Dictionary
-expected: Routing uses a hardcoded dictionary mapping to the 13 topic folders.
+### 3. Hardcoded routing logic (GRP-08) mapping 13 folders to categories
+expected: Hardcoded routing logic (GRP-08) mapping 13 folders to categories
 result: pass
 source: automated
-coverage_id: D-03
+coverage_id: D1
 
-### 4. Routing Logic - Single Match Direct
-expected: Single-match categories bypass the LLM and are routed directly.
+### 4. Single-match categories route directly without LLM (GRP-09)
+expected: Single-match categories route directly without LLM (GRP-09)
 result: pass
 source: automated
-coverage_id: D-04
+coverage_id: D2
 
-### 5. Routing Logic - Multi-Match LLM
-expected: Multi-match categories use the LLM to route, with fallback to 13_others.
+### 5. Multi-match categories use LLM and fallback to 13_others (GRP-10)
+expected: Multi-match categories use LLM and fallback to 13_others (GRP-10)
 result: pass
 source: automated
-coverage_id: D-05
+coverage_id: D3
 
 ### 6. Pipeline Integration - End to End
-expected: Running the main CLI with the categorized PDF and JSON report correctly executes Pass 1.5 and Pass 2, producing the organized output folder structure.
-result: issue
-reported: "Running `python src/main.py pdfs/1273_categorized.pdf` failed during Pass 1 because the Live LLM API returned a 500 error. Additionally, `src/organize.py` (which is supposed to be the CLI entry point for this post-processor) only runs Pass 1 and is not wired to run Pass 2 Grouping & Routing."
-severity: blocker
+expected: |
+  Running the CLI (`python src/organize.py pdfs/1273_categorized.pdf`) with the categorized PDF and JSON report correctly executes Pass 2, producing the organized output folder structure of generated PDFs.
+result: pass
 
 ## Summary
 
 total: 6
-passed: 5
-issues: 1
+passed: 6
+issues: 0
 pending: 0
 skipped: 0
-blocked: 0
 
 ## Gaps
-
-- truth: "Running the main CLI with the categorized PDF and JSON report correctly executes Pass 1.5 and Pass 2, producing the organized output folder structure."
-  status: failed
-  reason: "User reported: Running `python src/main.py pdfs/1273_categorized.pdf` failed during Pass 1 because the Live LLM API returned a 500 error. Additionally, `src/organize.py` (which is supposed to be the CLI entry point for this post-processor) only runs Pass 1 and is not wired to run Pass 2 Grouping & Routing."
-  severity: blocker
-  test: 6
-  root_cause: "src/organize.py was not updated to instantiate Pipeline, bypass Pass 1, and execute Grouping/Routing. src/main.py requires running Pass 1 which hits an API failure."
-  artifacts:
-    - path: "src/organize.py"
-      issue: "Only calls process_cleaning_phase and stops, does not run Pass 2."
-  missing:
-    - "Update src/organize.py to run Pass 2 Grouping and Routing (either by calling _group_and_route_documents or configuring Pipeline to skip Pass 1 and run Pass 2)."
-  debug_session: ""
