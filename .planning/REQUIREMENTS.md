@@ -30,19 +30,19 @@
 
 ### Pass 2 — Grouping & Routing
 
-- [ ] **GRP-01**: Pre-split page sequence by category — any category change is an automatic document boundary (no LLM needed)
-- [ ] **GRP-02**: Boundary detection via overlapping chunks (pages 1-10, 10-20, 20-30) with 1-page overlap
-- [ ] **GRP-03**: LLM grouping rules: boundaries ONLY on subject/topic shift and context/content shift — date changes and sender/receiver changes are NOT boundaries
-- [ ] **GRP-04**: LLM must provide reasoning for every grouping decision explaining what it saw and what it didn't
-- [ ] **GRP-05**: LLM returns strict JSON array with start_page, end_page, reason, and brief_arabic_title fields — title generated as part of the grouping call (no separate LLM call)
-- [ ] **GRP-06**: Programmatic verification of LLM output: no page gaps, no page overlaps, no invented pages; retry on failure
-- [ ] **GRP-07**: Merge overlapping chunks: if overlap page appears in groups from both chunks, merge those groups into one document
+- [x] **GRP-01**: Pre-split page sequence by category — any category change is an automatic document boundary (no LLM needed)
+- [x] **GRP-02**: Boundary detection via overlapping chunks (pages 1-10, 10-20, 20-30) with 1-page overlap
+- [x] **GRP-03**: LLM grouping rules: boundaries ONLY on subject/topic shift and context/content shift — date changes and sender/receiver changes are NOT boundaries
+- [x] **GRP-04**: LLM must provide reasoning for every grouping decision explaining what it saw and what it didn't
+- [x] **GRP-05**: LLM returns strict JSON array with start_page, end_page, reason, and brief_arabic_title fields — title generated as part of the grouping call (no separate LLM call)
+- [x] **GRP-06**: Programmatic verification of LLM output: no page gaps, no page overlaps, no invented pages; retry on failure
+- [x] **GRP-07**: Merge overlapping chunks: if overlap page appears in groups from both chunks, merge those groups into one document
 - [x] **GRP-08**: Route documents to folders using hardcoded routing rules — check document's category, find all folders that accept that category
 - [x] **GRP-09**: Single-match categories route directly without LLM (contract → 5_contract, pictures → 11_inspection_and_pictures, id_cards → 2_personal_details, utility_bills → 6_ewa_related_letters)
 - [x] **GRP-10**: Multi-match categories (forms, letters, others) use LLM to pick from allowed folder list based on content_explanation
-- [ ] **GRP-11**: Split physical PDF into individual document PDFs using PyMuPDF page ranges
-- [ ] **GRP-12**: Name output PDFs as `YYYY-MM-DD - brief_arabic_title.pdf` using the title from the grouping LLM call; single-page direct-routed docs (pictures, contracts) get date-only filenames (`YYYY-MM-DD.pdf`)
-- [ ] **GRP-13**: Dateless documents use inferred date from nearest dated page for filename
+- [x] **GRP-11**: Split physical PDF into individual document PDFs using PyMuPDF page ranges
+- [x] **GRP-12**: Name output PDFs as `YYYY-MM-DD - brief_arabic_title.pdf` using the title from the grouping LLM call; single-page direct-routed docs (pictures, contracts) get date-only filenames (`YYYY-MM-DD.pdf`)
+- [x] **GRP-13**: Dateless documents use inferred date from nearest dated page for filename
 
 ### Output Structure
 
@@ -125,19 +125,19 @@
 | CLN-08 | Phase 2 | Complete |
 | CLN-09 | Phase 2 | Complete |
 | CLN-10 | Phase 2 | Complete |
-| GRP-01 | Phase 3 | Pending |
-| GRP-02 | Phase 3 | Pending |
-| GRP-03 | Phase 3 | Pending |
-| GRP-04 | Phase 3 | Pending |
-| GRP-05 | Phase 3 | Pending |
-| GRP-06 | Phase 3 | Pending |
-| GRP-07 | Phase 3 | Pending |
+| GRP-01 | Phase 3 | Complete |
+| GRP-02 | Phase 3 | Complete |
+| GRP-03 | Phase 3 | Complete |
+| GRP-04 | Phase 3 | Complete |
+| GRP-05 | Phase 3 | Complete |
+| GRP-06 | Phase 3 | Complete |
+| GRP-07 | Phase 3 | Complete |
 | GRP-08 | Phase 3 | Complete |
 | GRP-09 | Phase 3 | Complete |
 | GRP-10 | Phase 3 | Complete |
-| GRP-11 | Phase 3 | Pending |
-| GRP-12 | Phase 3 | Pending |
-| GRP-13 | Phase 3 | Pending |
+| GRP-11 | Phase 3 | Complete |
+| GRP-12 | Phase 3 | Complete |
+| GRP-13 | Phase 3 | Complete |
 | OUT-01 | Phase 4 | Pending |
 | OUT-02 | Phase 4 | Pending |
 | OUT-03 | Phase 4 | Pending |
