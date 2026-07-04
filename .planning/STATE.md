@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: "### Phase 1: Foundation & Infrastructure"
 status: Ready to plan
-stopped_at: Phase 3 Plan 4 completed
-last_updated: "2026-07-04T17:08:00.000Z"
+stopped_at: Phase 3 Plan 5 completed
+last_updated: "2026-07-04T17:12:00.000Z"
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 10
-  completed_plans: 7
-  percent: 70
+  completed_plans: 8
+  percent: 80
 ---
 
 # Project State
@@ -34,7 +34,7 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 |-------|------|--------|-------|
 | 1 | Foundation & Infrastructure | ● Complete | 3/3 |
 | 2 | Pass 1 — Document Cleaning | ● Complete | 1/1 |
-| 3 | Pass 2 — Grouping & Routing | ○ Pending | 3/x |
+| 3 | Pass 2 — Grouping & Routing | ○ Pending | 4/x |
 | 4 | Output Structure & Reconciliation | ○ Pending | 0/0 |
 | 5 | Dry Run & Polish | ○ Pending | 0/0 |
 
@@ -55,12 +55,13 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 | 2026-07-04 | Refactor DocumentGroup | Use Pydantic BaseModel to align with project and validate fields |
 | 2026-07-04 | Implemented LLM Grouping Logic | Boundary detection loop with chunk shrinking on failures |
 | 2026-07-04 | Implemented LLM routing logic | Fallback to "13_others" after two failed attempts |
+| 2026-07-04 | Wired LLM Grouping/Routing into Pipeline | Replaced config-driven strategies with hardcoded implementation |
 
 ---
-*Last updated: 2026-07-04 after Phase 03 Plan 04 completion*
+*Last updated: 2026-07-04 after Phase 03 Plan 05 completion*
 
 ## Session
 
-**Last session:** 2026-07-04T17:08:00Z
-**Stopped at:** Phase 3 Plan 4 completed
-**Resume file:** .planning/phases/03-pass-2-grouping-routing/04-SUMMARY.md
+**Last session:** 2026-07-04T17:12:00Z
+**Stopped at:** Phase 3 Plan 5 completed
+**Resume file:** .planning/phases/03-pass-2-grouping-routing/05-SUMMARY.md
