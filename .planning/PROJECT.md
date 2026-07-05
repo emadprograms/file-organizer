@@ -36,10 +36,14 @@ Automatically transform a flat, pre-categorized PDF into a perfectly organized f
 - [x] `--dry-run` flag shows full pipeline output without writing any files (Validated in Phase 05: dry-run-polish)
 - [x] End-to-end test with real JSON/PDF produces correct output (Validated in Phase 05: dry-run-polish)
 - [x] All error paths tested (missing files, LLM failures, malformed JSON) (Validated in Phase 05: dry-run-polish)
+- [x] LLM must provide reasoning for every grouping decision (Validated in Phase 06: milestone-1-0-audit-gap-closures)
+- [x] All 13 topic subdirectories proactively created for every tenant (Validated in Phase 06: milestone-1-0-audit-gap-closures)
+- [x] Graceful routing fallback to `13_others` after consecutive failures (Validated in Phase 06: milestone-1-0-audit-gap-closures)
+- [x] Atomic file writes to prevent corrupted logs during interruption (Validated in Phase 06: milestone-1-0-audit-gap-closures)
 
 ## Current State
 
-Phase 05 complete — Implemented dry run visualization, E2E testing, and edge case hardening.
+Phase 06 complete — Audited and closed integration gaps, enforced Arabic naming, proactively created all topic directories, and added resilient atomic file writes.
 
 ### Active
 
@@ -48,7 +52,6 @@ Phase 05 complete — Implemented dry run visualization, E2E testing, and edge c
 - [ ] Pass 2 — Grouping & Routing: boundary detection via overlapping LLM chunks, folder assignment, PDF splitting
 - [ ] Boundary detection with overlapping chunks (pages 1-10, 10-20, 20-30) and programmatic merge on overlap page
 - [ ] LLM grouping rules: boundaries on subject/topic shift and context/content shift ONLY — date and sender/receiver changes are NOT boundaries
-- [ ] LLM must provide reasoning for every grouping decision
 - [ ] Programmatic verification of LLM grouping output: no gaps, no overlaps, no invented pages; retry on failure
 - [ ] Pre-split by category before boundary detection (category change = automatic boundary)
 - [ ] Folder routing: single-match categories route directly (no LLM); multi-match categories use LLM to pick from allowed list
@@ -62,7 +65,6 @@ Phase 05 complete — Implemented dry run visualization, E2E testing, and edge c
 - Batch processing multiple houses — one house directory at a time
 - GUI — CLI only
 - House number extraction — always derived from the PDF filename
-- All 13 folders created for every tenant, even if empty — Folders are created on demand strictly when a document routes to them to avoid clutter (Phase 04)
 
 ## Context
 
@@ -98,6 +100,7 @@ Phase 05 complete — Implemented dry run visualization, E2E testing, and edge c
 | YAML for routing rules, hardcode engineering decisions | Routing rules are business logic that changes; rate limits and error handling are engineering constants | — Pending |
 | Timeline as ownership authority | Single source of truth for document ownership; overlap periods → earlier tenant | — Pending |
 | Centralized LLM client | One place to enforce rate limiting, error handling, and logging across all call types | — Pending |
+| Proactively create all 13 folders | Required by downstream systems regardless of whether they contain documents | — Shipped Phase 06 |
 
 ## Evolution
 
@@ -117,4 +120,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-05 after Phase 05 completion*
+*Last updated: 2026-07-05 after Phase 06 completion*
