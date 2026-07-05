@@ -1,9 +1,9 @@
 ---
 phase: 04
 slug: output-structure-reconciliation
-status: draft
+status: verified
 # threats_open = count of OPEN threats at or above workflow.security_block_on severity (the blocking gate)
-threats_open: 1
+threats_open: 0
 asvs_level: 1
 created: 2026-07-05
 ---
@@ -27,7 +27,7 @@ created: 2026-07-05
 
 | Threat ID | Category | Component | Severity | Disposition | Mitigation | Status |
 |-----------|----------|-----------|----------|-------------|------------|--------|
-| T-04-01 | Tampering | organizer.py | high | mitigate | Use utils.sanitize_filename and bound output_base_dir to prevent directory traversal | open |
+| T-04-01 | Tampering | organizer.py | high | mitigate | Use utils.sanitize_filename and bound output_base_dir to prevent directory traversal | closed |
 | T-04-02 | Denial of Service | split.py | low | accept | Decompression bomb mitigation already present in split.py | closed |
 | T-04-03 | Tampering | organize.py | medium | mitigate | Checkpoints use atomic file writes to prevent partial JSON corruption. | closed |
 
@@ -52,6 +52,7 @@ created: 2026-07-05
 | Audit Date | Threats Total | Closed | Open | Run By |
 |------------|---------------|--------|------|--------|
 | 2026-07-05 | 3 | 2 | 1 | gsd-security-auditor |
+| 2026-07-05 | 3 | 3 | 0 | gsd-security-auditor |
 
 ---
 
@@ -59,7 +60,7 @@ created: 2026-07-05
 
 - [x] All threats have a disposition (mitigate / accept / transfer)
 - [x] Accepted risks documented in Accepted Risks Log
-- [ ] `threats_open: 0` confirmed
-- [ ] `status: verified` set in frontmatter
+- [x] `threats_open: 0` confirmed
+- [x] `status: verified` set in frontmatter
 
-**Approval:** pending
+**Approval:** verified 2026-07-05
