@@ -20,6 +20,8 @@ except ImportError:
 # Suppress harmless mupdf C-level syntax warnings
 fitz.TOOLS.mupdf_display_errors(False)
 
+from src.core.indexing import to_0_based, validate_bounds
+
 def extract_pdf_segment(source_pdf: str, start_page: int, end_page: int, output_path: str):
     """Extract a segment of pages from a PDF and save to a new file.
     
@@ -35,8 +37,17 @@ def extract_pdf_segment(source_pdf: str, start_page: int, end_page: int, output_
     src_doc = fitz.open(source_pdf)
     dst_doc = fitz.open()
     
+    max_len = len(src_doc)
+    
+    # Ensure they are 0-based and within bounds
+    start_0 = to_0_based(start_page + 1)
+    end_0 = to_0_based(end_page + 1)
+    
+    start_idx = validate_bounds(start_0, max_len)
+    end_idx = validate_bounds(end_0, max_len)
+    
     # insert_pdf arguments: from_page and to_page are 0-indexed and inclusive
-    dst_doc.insert_pdf(src_doc, from_page=start_page, to_page=end_page)
+    dst_doc.insert_pdf(src_doc, from_page=start_idx, to_page=end_idx)
     
     # Save uncompressed initially or we can compress immediately. 
     # The plan says: "Modify extract_pdf_segment in src/split.py to compress the segment before finalizing, or update the calling loop..."
