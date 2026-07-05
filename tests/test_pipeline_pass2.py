@@ -115,7 +115,7 @@ def test_checkpoint_resume(mock_fitz, mock_run_reconciliation, mock_FileOrganize
     
     # Setup args correctly
     with patch('src.organize.argparse.ArgumentParser.parse_args') as mock_parse_args:
-        args = SimpleNamespace(target_dir=dummy_dir, model="gemma-4-26b-a4b-it")
+        args = SimpleNamespace(target_dir=dummy_dir, model="gemma-4-26b-a4b-it", dry_run=False)
         mock_parse_args.return_value = args
         
         # Setup Pass 1 JSON
@@ -167,7 +167,7 @@ def test_pass2_checkpoint_creation(mock_fitz, mock_run_reconciliation, mock_File
     json_file.touch()
     
     with patch('src.organize.argparse.ArgumentParser.parse_args') as mock_parse_args:
-        args = SimpleNamespace(target_dir=dummy_dir, model="gemma-4-26b-a4b-it")
+        args = SimpleNamespace(target_dir=dummy_dir, model="gemma-4-26b-a4b-it", dry_run=False)
         mock_parse_args.return_value = args
         
         # Setup Pass 1 JSON
@@ -222,7 +222,7 @@ def test_pass2_reconciliation_cleanup(mock_fitz, mock_run_reconciliation, mock_F
     json_file.touch()
     
     with patch('src.organize.argparse.ArgumentParser.parse_args') as mock_parse_args:
-        args = SimpleNamespace(target_dir=dummy_dir, model="gemma-4-26b-a4b-it")
+        args = SimpleNamespace(target_dir=dummy_dir, model="gemma-4-26b-a4b-it", dry_run=False)
         mock_parse_args.return_value = args
         
         output_dir = dummy_dir / "output"

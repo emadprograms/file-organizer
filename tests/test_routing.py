@@ -99,7 +99,7 @@ def test_unknown_category_fallback():
 from src.processing.organizer import FileOrganizer
 from pathlib import Path
 
-def test_filename_format(monkeypatch):
+def test_filename_format(monkeypatch, tmp_path):
     monkeypatch.setattr("src.processing.organizer.extract_pdf_segment", lambda s, st, e, t: None)
     
     group = DocumentGroup(
@@ -111,13 +111,15 @@ def test_filename_format(monkeypatch):
     )
     
     organizer = FileOrganizer()
-    summary = organizer.organize([group], "dummy.pdf", "dummy_house", Path("dummy_out"))
+    output_base = tmp_path / "dummy_out"
+    output_base.mkdir()
+    summary = organizer.organize([group], "dummy.pdf", "dummy_house", output_base)
     
     paths = list(set([item["output_file"] for item in summary]))
     assert len(paths) == 1
     assert "2023-05-10 - TestTitle.pdf" in paths[0]
 
-def test_dateless_filename(monkeypatch):
+def test_dateless_filename(monkeypatch, tmp_path):
     monkeypatch.setattr("src.processing.organizer.extract_pdf_segment", lambda s, st, e, t: None)
     
     group = DocumentGroup(
@@ -129,7 +131,9 @@ def test_dateless_filename(monkeypatch):
     )
     
     organizer = FileOrganizer()
-    summary = organizer.organize([group], "dummy.pdf", "dummy_house", Path("dummy_out"))
+    output_base = tmp_path / "dummy_out"
+    output_base.mkdir()
+    summary = organizer.organize([group], "dummy.pdf", "dummy_house", output_base)
     
     paths = list(set([item["output_file"] for item in summary]))
     assert len(paths) == 1
