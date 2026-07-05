@@ -295,7 +295,7 @@ class Pipeline:
         Returns:
             dict[str, str]: A mapping of canonical names applied.
         """
-        ANCHOR_CATEGORIES = {"Basic Details Form", "Housing Contract", "Rent Deduction Notice"}
+        ANCHOR_CATEGORIES = {"contract", "forms", "id_cards"}
         
         # 0. Semantic Name Clustering
         anchor_names = set()

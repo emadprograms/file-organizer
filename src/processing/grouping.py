@@ -13,6 +13,7 @@ CRITICAL RULES:
 2. Every page MUST be part of exactly one group. No gaps, no overlaps.
 3. The first group must start at the first page of the chunk.
 4. The last group must end at the last page of the chunk.
+5. You MUST provide a "reason" string for every group explaining why you grouped these pages together, based on what you saw and didn't see.
 
 FEW-SHOT EXAMPLES:
 
