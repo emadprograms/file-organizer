@@ -65,12 +65,26 @@ def get_parser():
         choices=["gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemini-2.5-flash", "gemini-3.5-flash"],
         help="LLM model to use"
     )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview the pipeline output without writing physical files or PDFs."
+    )
     return parser
 
 def main():
     parser = get_parser()
     args = parser.parse_args()
     
+    if args.dry_run and sys.platform == 'win32':
+        if sys.stdout.encoding.lower() != 'utf-8':
+            print("WARNING: Terminal encoding is not UTF-8. Arabic characters may not render correctly.", file=sys.stderr)
+            print("Recommend setting environment variable: PYTHONIOENCODING=utf8", file=sys.stderr)
+        try:
+            sys.stdout.reconfigure(encoding='utf-8')
+        except AttributeError:
+            pass
+            
     validate_environment()
     house_id = validate_target_directory(args.target_dir)
     
@@ -102,10 +116,13 @@ def main():
         unique_tenants = len(set(p.canonical_tenant for p in cleaned_pages))
         logger.info(f"Cleaned {len(cleaned_pages)} pages successfully. Resolved {unique_tenants} unique tenant(s).")
         
-        output_json_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_json_path, 'w', encoding='utf-8') as f:
-            json.dump([p.model_dump() for p in cleaned_pages], f, ensure_ascii=False, indent=2)
-        logger.info(f"Wrote cleaned data to {output_json_path}")
+        if not args.dry_run:
+            output_json_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(output_json_path, 'w', encoding='utf-8') as f:
+                json.dump([p.model_dump() for p in cleaned_pages], f, ensure_ascii=False, indent=2)
+            logger.info(f"Wrote cleaned data to {output_json_path}")
+        else:
+            logger.info(f"  [DRY RUN] Would write cleaned data to {output_json_path}")
     
     from src.processing.pipeline import Pipeline
     from src.processing.organizer import FileOrganizer, run_reconciliation
@@ -128,17 +145,20 @@ def main():
         
         documents = pipeline._group_and_route_documents(raw_pages, None)
         
-        tmp_path = grouped_checkpoint_path.with_suffix('.tmp')
-        with open(tmp_path, 'w', encoding='utf-8') as f:
-            json.dump([doc.model_dump() for doc in documents], f, ensure_ascii=False, indent=2)
-        tmp_path.replace(grouped_checkpoint_path)
-        logger.info(f"Wrote grouped documents to {grouped_checkpoint_path}")
+        if not args.dry_run:
+            tmp_path = grouped_checkpoint_path.with_suffix('.tmp')
+            with open(tmp_path, 'w', encoding='utf-8') as f:
+                json.dump([doc.model_dump() for doc in documents], f, ensure_ascii=False, indent=2)
+            tmp_path.replace(grouped_checkpoint_path)
+            logger.info(f"Wrote grouped documents to {grouped_checkpoint_path}")
+        else:
+            logger.info(f"  [DRY RUN] Would write grouped documents to {grouped_checkpoint_path}")
 
     pdf_path = list(args.target_dir.glob("*_categorized.pdf"))[0]
     output_dir = args.target_dir / "output"
     
     organizer = FileOrganizer()
-    per_page = organizer.organize(documents, str(pdf_path), house_id, output_dir, None)
+    per_page = organizer.organize(documents, str(pdf_path), house_id, output_dir, None, dry_run=args.dry_run)
     
     with fitz.open(str(pdf_path)) as pdf_doc:
         total_input_pages = pdf_doc.page_count
@@ -150,13 +170,20 @@ def main():
     }
     
     logger.info("Running reconciliation...")
-    run_reconciliation(summary, per_page, total_input_pages, house_id, output_dir)
+    run_reconciliation(summary, per_page, total_input_pages, house_id, output_dir, dry_run=args.dry_run)
     
     # If reconciliation succeeds, clean up checkpoints
-    if output_json_path.exists():
-        output_json_path.unlink()
-    if grouped_checkpoint_path.exists():
-        grouped_checkpoint_path.unlink()
+    if not args.dry_run:
+        if output_json_path.exists():
+            output_json_path.unlink()
+        if grouped_checkpoint_path.exists():
+            grouped_checkpoint_path.unlink()
+            
+    if args.dry_run:
+        from src.processing.visualizer import Visualizer
+        logger.info("Invoking visualizer for dry run output...")
+        visualizer = Visualizer()
+        visualizer.print_summary(house_id, summary, per_page, documents)
         
     logger.info(f"Successfully generated {summary['output_file_count']} PDFs in {output_dir / house_id}")
     
