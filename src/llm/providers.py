@@ -73,6 +73,12 @@ class GeminiProvider:
             contents=contents,
             config=types.GenerateContentConfig(**kwargs)
         )
+        
+        if hasattr(response, "usage_metadata") and response.usage_metadata is not None:
+            if hasattr(response.usage_metadata, "total_token_count"):
+                import logging
+                logging.getLogger(__name__).info(f"Gemini API Token Usage: {response.usage_metadata.total_token_count} total tokens")
+
         if not response_schema:
             return getattr(response, "text", "")
             

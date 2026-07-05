@@ -18,9 +18,12 @@ def test_llm_auth_error_fails_fast():
             
         mock_gemini.assert_called_once()
 
+import logging
+
 @patch.dict('os.environ', {'GEMINI_API_KEY': 'dummy', 'OPENROUTER_API_KEY': 'dummy', 'GROQ_API_KEY': 'dummy'})
 @patch('src.llm.llm.time.sleep')
-def test_llm_429_retry_and_failover(mock_sleep):
+def test_llm_429_retry_and_failover(mock_sleep, caplog):
+    caplog.set_level(logging.WARNING)
     client = LLMClient("dummy")
     with patch.object(GeminiProvider, 'generate') as mock_gemini, \
          patch.object(OpenRouterProvider, 'generate') as mock_openrouter:
@@ -34,9 +37,13 @@ def test_llm_429_retry_and_failover(mock_sleep):
         assert mock_gemini.call_count == 3
         assert mock_openrouter.call_count == 1
         assert mock_sleep.call_count >= 2
+        
+        warning_logs = [r for r in caplog.records if r.levelno == logging.WARNING]
+        assert any("429 error on gemini" in r.message.lower() for r in warning_logs), "Should warn about 429 error"
 
 @patch.dict('os.environ', {'GEMINI_API_KEY': 'dummy', 'OPENROUTER_API_KEY': 'dummy', 'GROQ_API_KEY': 'dummy'})
-def test_llm_fallback_chain_on_5xx():
+def test_llm_fallback_chain_on_5xx(caplog):
+    caplog.set_level(logging.WARNING)
     client = LLMClient("dummy")
     with patch.object(GeminiProvider, 'generate') as mock_gemini, \
          patch.object(OpenRouterProvider, 'generate') as mock_openrouter, \
@@ -52,6 +59,10 @@ def test_llm_fallback_chain_on_5xx():
         assert mock_gemini.call_count == 6
         mock_openrouter.assert_called_once()
         mock_groq.assert_called_once()
+        
+        warning_logs = [r.message.lower() for r in caplog.records if r.levelno == logging.WARNING]
+        assert any("5xx/timeout on gemini" in msg for msg in warning_logs), "Should warn about 500 error"
+        assert any("failed over to groq" in msg for msg in warning_logs), "Should warn about fallback to groq"
 
 @patch.dict('os.environ', {'GEMINI_API_KEY': 'dummy', 'OPENROUTER_API_KEY': 'dummy', 'GROQ_API_KEY': 'dummy'})
 @patch('src.llm.llm.time.sleep')
@@ -90,7 +101,8 @@ def test_classify_page_direct_dynamic_schema():
 
 @patch.dict('os.environ', {'GEMINI_API_KEY': 'dummy'})
 @patch('src.llm.llm.time.sleep')
-def test_llm_500_max_retries_halts(mock_sleep):
+def test_llm_500_max_retries_halts(mock_sleep, caplog):
+    caplog.set_level(logging.WARNING)
     """
     Continuous 500 errors across all providers must halt with RuntimeError,
     not loop infinitely. Verifies max-retry limit is enforced.
@@ -118,4 +130,36 @@ def test_llm_500_max_retries_halts(mock_sleep):
 
         # Sleep must be called (backoff happening)
         assert mock_sleep.call_count >= 1
+        
+        warning_logs = [r.message.lower() for r in caplog.records if r.levelno == logging.WARNING]
+        assert any("5xx/timeout on gemini" in msg for msg in warning_logs), "Should warn about 500 error before halting"
 
+@patch.dict('os.environ', {'GEMINI_API_KEY': 'dummy'})
+def test_llm_trace_files_created(tmp_path):
+    from src.logger import LOGS_DIR
+    import os
+    import json
+    
+    # Overwrite LOGS_DIR for this test to avoid polluting actual logs
+    with patch('src.logger.LOGS_DIR', str(tmp_path)):
+        client = LLMClient("dummy")
+        
+        with patch.object(GeminiProvider, 'generate') as mock_gemini:
+            # Test successful trace
+            mock_gemini.return_value = DummyResponse(success=True)
+            client._route_llm_call("model", ["test"], DummyResponse)
+            
+            traces_dir = tmp_path / "traces"
+            assert traces_dir.exists()
+            
+            trace_files = list(traces_dir.glob("*.json"))
+            assert len(trace_files) == 1
+            assert not str(trace_files[0]).endswith(".error.json")
+            
+            # Test error trace
+            mock_gemini.side_effect = Exception("Test Parse Error")
+            with pytest.raises(Exception):
+                client._route_llm_call("model", ["test"], DummyResponse)
+                
+            error_trace_files = list(traces_dir.glob("*.error.json"))
+            assert len(error_trace_files) == 3

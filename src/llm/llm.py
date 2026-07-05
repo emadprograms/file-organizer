@@ -103,6 +103,24 @@ class LLMClient:
         Raises:
             RuntimeError: If all providers fail.
         """
+        if getattr(self, "skip_llm", False):
+            if response_schema is None:
+                return "mock plain text response"
+            schema_name = response_schema.__name__
+            if schema_name == "GroupingResponse":
+                import re
+                from src.core.schemas import GroupingResponse, GroupEntry
+                content_str = str(contents)
+                m = re.search(r'Chunk range: Page (\d+) to Page (\d+)', content_str)
+                if m:
+                    start, end = int(m.group(1)), int(m.group(2))
+                else:
+                    start, end = 0, 0
+                return GroupingResponse(groups=[GroupEntry(start_page=start, end_page=end, reason="mock skip-llm", brief_arabic_title="عنوان تجريبي")])
+            elif schema_name == "RoutingResponse":
+                from src.core.schemas import RoutingResponse
+                return RoutingResponse(selected_folder="13_others")
+                
         provider_sequence = [self.providers[0]]
         or_provider = next((p for p in self.providers if p.name == "openrouter"), None)
         groq_provider = next((p for p in self.providers if p.name == "groq"), None)
@@ -140,9 +158,46 @@ class LLMClient:
                 )
                 
                 try:
-                    response_parsed = future.result(timeout=120)
-                except concurrent.futures.TimeoutError:
-                    raise TimeoutError("LLM API call hung and timed out after 120 seconds.")
+                    response_parsed = future.result(timeout=300)
+                    
+                    # Trace logging for successful calls
+                    import uuid
+                    from datetime import datetime
+                    from src.logger import LOGS_DIR
+                    run_id = str(uuid.uuid4())[:8]
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    traces_dir = os.path.join(LOGS_DIR, "traces")
+                    os.makedirs(traces_dir, exist_ok=True)
+                    trace_path = os.path.join(traces_dir, f"{run_id}_{timestamp}.json")
+                    try:
+                        payload = {"model": model, "provider": provider_name}
+                        if hasattr(response_parsed, "model_dump"):
+                            payload["response"] = response_parsed.model_dump()
+                        else:
+                            payload["response"] = str(response_parsed)
+                        with open(trace_path, "w", encoding="utf-8") as f:
+                            json.dump(payload, f, ensure_ascii=False, indent=2)
+                    except Exception as trace_err:
+                        log.debug(f"Failed to write trace: {trace_err}")
+                except Exception as parse_err:
+                    # Trace logging for errors
+                    import uuid
+                    from datetime import datetime
+                    from src.logger import LOGS_DIR
+                    run_id = str(uuid.uuid4())[:8]
+                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                    traces_dir = os.path.join(LOGS_DIR, "traces")
+                    os.makedirs(traces_dir, exist_ok=True)
+                    error_trace_path = os.path.join(traces_dir, f"{run_id}_{timestamp}.error.json")
+                    try:
+                        with open(error_trace_path, "w", encoding="utf-8") as f:
+                            json.dump({"error": str(parse_err), "model": model, "provider": provider_name}, f, ensure_ascii=False, indent=2)
+                    except Exception as trace_err:
+                        log.debug(f"Failed to write error trace: {trace_err}")
+                        
+                    if isinstance(parse_err, concurrent.futures.TimeoutError):
+                        raise TimeoutError("LLM API call hung and timed out after 300 seconds.")
+                    raise parse_err
 
                 record_successful_call()
                 self.total_requests += 1
@@ -151,6 +206,10 @@ class LLMClient:
                 if elapsed < 7.0:
                     time.sleep(7.0 - elapsed)
                 
+                if getattr(self, "verbose", False):
+                    log.debug(f"[{log_prefix}] Prompt: {contents}")
+                    log.debug(f"[{log_prefix}] Response: {response_parsed}")
+
                 return response_parsed
 
             except Exception as e:
@@ -159,18 +218,18 @@ class LLMClient:
                 is_429 = "429" in error_str or "too many requests" in error_str or "quota" in error_str or "resource exhausted" in error_str
                 is_5xx = "500" in error_str or "503" in error_str or "internal error" in error_str or "timeout" in error_str
                 
-                log.info(f"[{log_prefix} - {provider_name} attempt {provider_attempts}] LLM call failed: {e}")
+                log.warning(f"[{log_prefix} - {provider_name} attempt {provider_attempts}] LLM call failed: {e}")
                 
                 if provider_name in ("openrouter", "groq"):
                     current_provider_idx += 1
                     provider_attempts = 0
                     if current_provider_idx < len(provider_sequence):
                         next_name = provider_sequence[current_provider_idx].name
-                        log.info(f"[Cloud Fallback] {provider_name} failed. Failing over to {next_name}")
+                        log.warning(f"[Cloud Fallback] {provider_name} failed. Failing over to {next_name}")
                     continue
 
                 if is_auth:
-                    log.info(f"[{log_prefix}] Auth/Bad Request error on {provider_name}: fail fast. Error: {e}")
+                    log.warning(f"[{log_prefix}] Auth/Bad Request error on {provider_name}: fail fast. Error: {e}")
                     raise e
                     
                 if is_429:
@@ -179,9 +238,9 @@ class LLMClient:
                         provider_attempts = 0
                         if current_provider_idx < len(provider_sequence):
                             next_name = provider_sequence[current_provider_idx].name
-                            log.info(f"[Cloud Fallback] Failed over to {next_name}")
+                            log.warning(f"[Cloud Fallback] Failed over to {next_name}")
                         continue
-                    log.info(f"[{log_prefix}] 429 Error on {provider_name}. Sleeping for 65 seconds.")
+                    log.warning(f"[{log_prefix}] 429 Error on {provider_name}. Sleeping for 65 seconds.")
                     self.activate_cooldown()
                     continue
                     
@@ -191,9 +250,9 @@ class LLMClient:
                         provider_attempts = 0
                         if current_provider_idx < len(provider_sequence):
                             next_name = provider_sequence[current_provider_idx].name
-                            log.info(f"[Cloud Fallback] Failed over to {next_name}")
+                            log.warning(f"[Cloud Fallback] Failed over to {next_name}")
                         continue
-                    log.info(f"[{log_prefix}] 5xx/Timeout on {provider_name}. Retrying (attempt {provider_attempts}/3)...")
+                    log.warning(f"[{log_prefix}] 5xx/Timeout on {provider_name}. Retrying (attempt {provider_attempts}/3)...")
                     time.sleep(7.5 * provider_attempts)
                     continue
                 
@@ -202,7 +261,7 @@ class LLMClient:
                     provider_attempts = 0
                     if current_provider_idx < len(provider_sequence):
                         next_name = provider_sequence[current_provider_idx].name
-                        log.info(f"[Cloud Fallback] Failed over to {next_name}")
+                        log.warning(f"[Cloud Fallback] Failed over to {next_name}")
                     continue
                 time.sleep(7.5)
                 continue

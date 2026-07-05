@@ -8,7 +8,7 @@ from datetime import datetime
 LOGS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'logs'))
 _run_directories = {}
 
-def setup_logging(run_id: str = None) -> str:
+def setup_logging(run_id: str = None, verbose: bool = False) -> str:
     """
     Provision a timestamped directory and configure logging.
     """
@@ -20,6 +20,9 @@ def setup_logging(run_id: str = None) -> str:
     full_dir = os.path.join(LOGS_DIR, dir_name)
     
     os.makedirs(full_dir, exist_ok=True)
+    log_dir = full_dir
+    os.makedirs(os.path.join(log_dir, "traces"), exist_ok=True)
+    os.makedirs(os.path.join(LOGS_DIR, "traces"), exist_ok=True) # Also at root for global traces
     _run_directories[run_id] = full_dir
     
     # Setup standard logger
@@ -44,6 +47,10 @@ def setup_logging(run_id: str = None) -> str:
                 pass
         stream_handler = logging.StreamHandler(sys.stdout)
         stream_handler.setFormatter(formatter)
+        if verbose:
+            stream_handler.setLevel(logging.DEBUG)
+        else:
+            stream_handler.setLevel(logging.INFO)
         logger.addHandler(stream_handler)
     
     return full_dir
