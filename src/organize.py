@@ -140,7 +140,8 @@ def main():
     organizer = FileOrganizer()
     per_page = organizer.organize(documents, str(pdf_path), house_id, output_dir, None)
     
-    total_input_pages = fitz.open(str(pdf_path)).page_count
+    with fitz.open(str(pdf_path)) as pdf_doc:
+        total_input_pages = pdf_doc.page_count
     
     output_files = {p["output_file"] for p in per_page}
     summary = {
