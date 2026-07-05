@@ -116,9 +116,9 @@ def test_dry_run_end_to_end(tmp_path):
 
     # Rich output should contain at least one of the visual indicators
     combined_output = stdout + stderr
-    assert any(
+    assert all(
         indicator in combined_output
-        for indicator in ["1273", "Ahmed", "contract", "Dry Run", "dry run", "DRY RUN"]
+        for indicator in ["1273", "Ahmed", "contract"]
     ), (
         f"Expected dry-run visual indicators in output, got:\n{combined_output}"
     )
