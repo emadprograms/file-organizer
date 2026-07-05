@@ -4,6 +4,7 @@ depends_on: []
 files_modified:
   - src/processing/organizer.py
   - src/organize.py
+  - src/processing/visualizer.py
 autonomous: true
 ---
 
@@ -13,6 +14,7 @@ autonomous: true
 Implement the `--dry-run` flag across the pipeline to simulate folder creation, PDF extraction, and reconciliation without executing physical file writes. Add `rich`-based terminal output to visualize the planned actions.
 
 ## Artifacts this phase produces
+- **New Files**: `src/processing/visualizer.py`
 - **CLI Flags**: `--dry-run` added to `src/organize.py`
 - **Function Parameters**: `dry_run: bool = False` added to `FileOrganizer.organize` and `run_reconciliation` in `src/processing/organizer.py`
 
@@ -61,13 +63,15 @@ Implement the `--dry-run` flag across the pipeline to simulate folder creation, 
 4. Implement `rich` visualization for dry run
    <read_first>
    - src/organize.py
+   - src/processing/visualizer.py
    </read_first>
    <action>
-   In `src/organize.py` `main()`, when `args.dry_run` is true, after processing is complete, use `rich.console.Console`, `rich.tree.Tree`, and `rich.table.Table` to output a tabular summary of the actions and a hierarchical Tree view of the generated file structure (`House ID` -> `Tenant` -> `Category` -> `PDFs`). Ensure Windows Arabic encoding works by setting `sys.stdout.reconfigure(encoding='utf-8')` if `sys.platform == 'win32'`.
+   Create `src/processing/visualizer.py` with a `Visualizer` class that encapsulates the `rich.console.Console`, `rich.tree.Tree`, and `rich.table.Table` generation. In `src/organize.py` `main()`, when `args.dry_run` is true, invoke this `Visualizer` to output the summary and hierarchical Tree view (`House ID` -> `Tenant` -> `Category` -> `PDFs`). For Windows encoding robustness, keep `sys.stdout.reconfigure(encoding='utf-8')` if `sys.platform == 'win32'`, and add a check/warning in `organize.py` or the visualizer if `sys.stdout.encoding` is not UTF-8, recommending the user set `PYTHONIOENCODING=utf8`.
    </action>
    <acceptance_criteria>
-   - Running with `--dry-run` prints a `rich` Table and Tree to the terminal.
+   - Running with `--dry-run` prints a `rich` Table and Tree to the terminal via a separate visualizer module.
    - Arabic characters render correctly in the console without throwing `UnicodeEncodeError`.
+   - A warning is logged if the terminal encoding is not UTF-8.
    </acceptance_criteria>
 
 ## Verification

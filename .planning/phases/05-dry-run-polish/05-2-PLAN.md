@@ -16,7 +16,7 @@ autonomous: true
 Implement end-to-end tests for the `--dry-run` mode and ensure edge cases (malformed JSON, LLM failures) are thoroughly covered and handled gracefully.
 
 ## Artifacts this phase produces
-- **New Files**: `tests/test_e2e.py`
+- **New Files**: `tests/test_e2e.py`, `tests/fixtures/golden_1273/1273_categorized.pdf`, `tests/fixtures/golden_1273/1273_report.json`
 - **Functions**: `test_dry_run_end_to_end` in `test_e2e.py`
 - **Functions**: `test_validate_target_directory_missing_json` in `tests/test_cli.py`
 - **Functions**: `test_malformed_json_graceful_failure` in `tests/test_pipeline.py`
@@ -27,16 +27,16 @@ Implement end-to-end tests for the `--dry-run` mode and ensure edge cases (malfo
 
 ## Tasks
 
-1. Implement `test_dry_run_end_to_end`
+1. Implement `test_dry_run_end_to_end` with isolated fixtures
    <read_first>
    - tests/test_e2e.py
    - src/organize.py
    </read_first>
    <action>
-   Create `tests/test_e2e.py` with function `test_dry_run_end_to_end(tmp_path)`. Setup test fixture: create `tmp_path / "1273"`, and copy `pdfs/1273_categorized.pdf` and `pdfs/1273_report.json` to this directory. Execute `subprocess.run(["python", "-m", "src.organize", str(tmp_path / "1273"), "--dry-run"], env={"PYTHONIOENCODING": "utf8", **os.environ}, capture_output=True, text=True)`. Assert that `result.returncode == 0`, output directory doesn't exist or is empty, and `result.stdout` contains indicators from the `rich` table/tree.
+   Create `tests/test_e2e.py` with function `test_dry_run_end_to_end(tmp_path)`. Create a small "golden set" of minimal JSON/PDF fragments within `tests/fixtures/golden_1273/` (a valid minimal `1273_categorized.pdf` and `1273_report.json`). Copy these fixtures to `tmp_path` during the test instead of relying on the main `pdfs/` directory to ensure data isolation. Execute `subprocess.run(["python", "-m", "src.organize", str(tmp_path), "--dry-run"], env={"PYTHONIOENCODING": "utf8", **os.environ}, capture_output=True, text=True)`. Assert that `result.returncode == 0`, output directory doesn't contain generated files, and `result.stdout` contains indicators from the `rich` table/tree.
    </action>
    <acceptance_criteria>
-   - `pytest tests/test_e2e.py` passes.
+   - `pytest tests/test_e2e.py` passes using isolated fixtures in `tests/fixtures/`.
    - Test proves that `--dry-run` produces output but modifies no files.
    </acceptance_criteria>
 
@@ -83,7 +83,7 @@ Implement end-to-end tests for the `--dry-run` mode and ensure edge cases (malfo
 
 ## must_haves
   truths:
-    - "End-to-end test with real `1273_report.json` and `1273_categorized.pdf` produces correct output via dry-run"
+    - "End-to-end test with isolated fixture `1273_report.json` and `1273_categorized.pdf` produces correct output via dry-run"
     - "Arabic filenames render correctly on Windows"
     - "Missing `_report.json` input is gracefully handled and logged"
     - "Malformed JSON inputs fail gracefully"
