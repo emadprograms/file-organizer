@@ -48,10 +48,10 @@
 
 - [ ] **OUT-01**: Create house-level directory from filename (e.g., `1273/`)
 - [ ] **OUT-02**: Create tenant-level directories with timeline in name (e.g., `John Doe 2020-2022/`)
-- [ ] **OUT-03**: Create all 13 topic subdirectories inside each tenant folder, even if empty
+- [x] **OUT-03**: Create all 13 topic subdirectories inside each tenant folder, even if empty
 - [ ] **OUT-04**: 13 folders and their allowed categories are hardcoded in Python — routing rules defined as a dictionary in the codebase
-- [ ] **OUT-05**: Create "Unassigned (inferred period)" folder for unresolvable documents with inferred period in name
-- [ ] **OUT-06**: Page count reconciliation: total pages across all output PDFs must equal total pages in input PDF
+- [x] **OUT-05**: Create "Unassigned (inferred period)" folder for unresolvable documents with inferred period in name
+- [x] **OUT-06**: Page count reconciliation: total pages across all output PDFs must equal total pages in input PDF
 
 ### Infrastructure — LLM Client
 
@@ -70,7 +70,7 @@
 - [x] **LOG-01**: Timestamped logs directory at project root `./logs/[YYYY-MM-DD_HHMMSS]/`
 - [x] **LOG-02**: Full audit trail: every LLM call (prompt + response), every grouping decision, every routing decision, every tenant resolution
 - [x] **LOG-03**: All log file handlers use `encoding='utf-8'` for Arabic text
-- [ ] **LOG-04**: Reconciliation report at pipeline end: input page count, output file count, pages per file, unaccounted pages
+- [x] **LOG-04**: Reconciliation report at pipeline end: input page count, output file count, pages per file, unaccounted pages
 
 ### Infrastructure — File System Safety
 
@@ -140,10 +140,10 @@
 | GRP-13 | Phase 3 | Complete |
 | OUT-01 | Phase 4 | Pending |
 | OUT-02 | Phase 4 | Pending |
-| OUT-03 | Phase 4 | Pending |
+| OUT-03 | Phase 4 | Complete |
 | OUT-04 | Phase 4 | Pending |
-| OUT-05 | Phase 4 | Pending |
-| OUT-06 | Phase 4 | Pending |
+| OUT-05 | Phase 4 | Complete |
+| OUT-06 | Phase 4 | Complete |
 | LLM-01 | Phase 1 | Complete |
 | LLM-02 | Phase 1 | Complete |
 | LLM-03 | Phase 1 | Complete |
@@ -156,7 +156,7 @@
 | LOG-01 | Phase 1 | Complete |
 | LOG-02 | Phase 1 | Complete |
 | LOG-03 | Phase 1 | Complete |
-| LOG-04 | Phase 4 | Pending |
+| LOG-04 | Phase 4 | Complete |
 | FS-01 | Phase 1 | Complete |
 | FS-02 | Phase 1 | Complete |
 | FS-03 | Phase 1 | Complete |
