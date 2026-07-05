@@ -188,7 +188,7 @@ def test_pass2_checkpoint_creation(mock_fitz, mock_run_reconciliation, mock_File
         )
         mock_Pipeline.return_value._group_and_route_documents.return_value = [doc]
         
-        with patch('src.organize.Path.replace') as mock_replace:
+        with patch('src.fs_utils.os.replace') as mock_replace:
             main()
             
             # Should have called group and route
@@ -198,7 +198,7 @@ def test_pass2_checkpoint_creation(mock_fitz, mock_run_reconciliation, mock_File
             checkpoint_dir = output_dir / "checkpoints"
             grouped_path = checkpoint_dir / "grouped.json"
             
-            mock_replace.assert_any_call(grouped_path)
+            mock_replace.assert_any_call(mock_replace.call_args[0][0], str(grouped_path))
 
 @patch('src.organize.validate_environment')
 @patch('src.organize.validate_target_directory', return_value='123')

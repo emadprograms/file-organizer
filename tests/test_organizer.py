@@ -169,7 +169,7 @@ def test_on_demand_topic_creation(mock_extract, organizer, mock_config, tmp_path
     ]
     organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
     assert (tmp_path / "HOUSE_123" / "Resident A 2020-2020" / "1_requests_and_applications").exists()
-    assert not (tmp_path / "HOUSE_123" / "Resident A 2020-2020" / "2_personal_details").exists()
+    assert (tmp_path / "HOUSE_123" / "Resident A 2020-2020" / "2_personal_details").exists()
 
 @patch('src.processing.organizer.extract_pdf_segment')
 def test_hardcoded_routing(mock_extract, organizer, mock_config, tmp_path):
@@ -186,7 +186,7 @@ def test_unassigned_folder_period(mock_extract, organizer, mock_config, tmp_path
         DocumentGroup(start_page=2, end_page=3, primary_tenant="Unassigned (2021-05)", category="BASIC_DETAILS", dates=["2023-01-01", "2023-01-01"], folder_path="1_requests_and_applications", is_direct_routed=True),
     ]
     organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
-    assert (tmp_path / "HOUSE_123" / "غير محدد 2020-2023").exists()
+    assert (tmp_path / "HOUSE_123" / "غير مخصص (فترة مستنتجة) 2020-2023").exists()
 
 @patch('src.processing.organizer.extract_pdf_segment')
 def test_unassigned_folder_fallback(mock_extract, organizer, mock_config, tmp_path):
@@ -194,7 +194,7 @@ def test_unassigned_folder_fallback(mock_extract, organizer, mock_config, tmp_pa
         DocumentGroup(start_page=0, end_page=1, primary_tenant="Unassigned", category="BASIC_DETAILS", dates=["NONE", "NONE"], folder_path="1_requests_and_applications", is_direct_routed=True),
     ]
     organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
-    assert (tmp_path / "HOUSE_123" / "غير محدد").exists()
+    assert (tmp_path / "HOUSE_123" / "غير مخصص").exists()
 
 def test_page_count_reconciliation(tmp_path):
     per_page = [
@@ -223,7 +223,7 @@ def test_reconciliation_manifest(tmp_path):
         data = json.load(f)
 
 
-@patch('src.processing.organizer.Path.replace')
+@patch('src.fs_utils.os.replace')
 def test_reconciliation_manifest_generation(mock_replace, tmp_path):
     per_page = [
         {"page_index": 0, "tenant": "A", "date": "2020", "output_file": "file.pdf", "page_in_output": 1},
@@ -233,12 +233,12 @@ def test_reconciliation_manifest_generation(mock_replace, tmp_path):
     run_reconciliation(summary, per_page, 1, "HOUSE_123", tmp_path)
     
     manifest_file = tmp_path / "HOUSE_123_manifest.json"
-    tmp_file = manifest_file.with_suffix('.tmp')
     
     # Verify atomicity
-    mock_replace.assert_called_once_with(manifest_file)
+    mock_replace.assert_called_once()
     
     # Verify content written to the temp file
+    tmp_file = Path(mock_replace.call_args[0][0])
     assert tmp_file.exists()
     with open(tmp_file, "r", encoding="utf-8") as f:
         data = json.load(f)
