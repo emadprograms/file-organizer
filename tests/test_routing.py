@@ -42,6 +42,23 @@ def test_single_match_direct():
     assert direct is True
     assert llm.call_count == 0
 
+def test_single_match_index_error():
+    """Test that IndexError during folder mapping falls back to Unassigned."""
+    group = DocumentGroup(
+        start_page=0, end_page=1, primary_tenant="Test",
+        category="contract", dates=["2023-01-01"]
+    )
+    llm = MockLLMClient([])
+    # Temporarily remove the mapping to trigger IndexError
+    original_mapping = CATEGORY_TO_FOLDERS.get("contract")
+    CATEGORY_TO_FOLDERS["contract"] = []
+    try:
+        folder, direct = route_document(group, llm)
+        assert folder == "Unassigned"
+        assert direct is False
+    finally:
+        CATEGORY_TO_FOLDERS["contract"] = original_mapping
+
 def test_multi_match_llm():
     """Test that multi-match categories use the LLM and return a valid folder."""
     group = DocumentGroup(

@@ -60,7 +60,7 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
             return folder, True
         except IndexError:
             log.error(f"IndexError: No folder mapping found for SINGLE_MATCH category '{category}'. Falling back.")
-            return "13_others", False
+            return "Unassigned", False
         
     allowed_folders = CATEGORY_TO_FOLDERS.get(category, []).copy()
     if not allowed_folders:
