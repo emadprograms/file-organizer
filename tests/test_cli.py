@@ -51,8 +51,9 @@ def test_main_success(mock_validate_env, mock_validate_target, mock_setup_loggin
     mock_organizer_inst.organize.return_value = []
     
     # We also need to mock Path.glob because args.target_dir.glob is called
-    with patch.object(Path, "glob") as mock_glob, patch("builtins.open"):
-        mock_glob.return_value = [Path("1273_report.json")]
+    with patch.object(Path, "glob") as mock_glob, patch("builtins.open"), patch.object(Path, "replace"), patch("src.organize.fitz") as mock_fitz:
+        mock_glob.return_value = [Path("1273.pdf")]
+        mock_fitz.open.return_value.page_count = 0
         assert main() == 0
         
     mock_validate_env.assert_called_once()

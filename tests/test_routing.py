@@ -111,9 +111,9 @@ def test_filename_format(monkeypatch):
     )
     
     organizer = FileOrganizer()
-    summary = organizer.organize([group], "dummy.pdf", Path("dummy_out"), None)
+    summary = organizer.organize([group], "dummy.pdf", "dummy_house", Path("dummy_out"))
     
-    paths = list(summary.keys())
+    paths = list(set([item["output_file"] for item in summary]))
     assert len(paths) == 1
     assert "2023-05-10 - TestTitle.pdf" in paths[0]
 
@@ -129,8 +129,8 @@ def test_dateless_filename(monkeypatch):
     )
     
     organizer = FileOrganizer()
-    summary = organizer.organize([group], "dummy.pdf", Path("dummy_out"), None)
+    summary = organizer.organize([group], "dummy.pdf", "dummy_house", Path("dummy_out"))
     
-    paths = list(summary.keys())
+    paths = list(set([item["output_file"] for item in summary]))
     assert len(paths) == 1
     assert "nodate - TestTitle.pdf" in paths[0]

@@ -65,10 +65,9 @@ def test_cluster_names_fuzzily():
     assert len(set(res.values())) == 2
 
 class MockLLMClient:
-    def generate_content(self, contents, config):
-        class MockResponse:
-            text = '{"احمد": "احمد", "محمد": "محمد"}'
-        return MockResponse()
+    default_model = "test_model"
+    def _route_llm_call(self, *args, **kwargs):
+        return '{"احمد": "احمد", "محمد": "محمد"}'
 
 def test_canonicalize_with_llm():
     client = MockLLMClient()
@@ -267,20 +266,19 @@ def test_canonicalize_with_llm_empty():
 
 def test_canonicalize_with_llm_missing_keys():
     class MissingKeyLLMClient:
-        def generate_content(self, contents, config):
-            class MockResponse:
-                text = '{"احمد": "احمد"}'
-            return MockResponse()
+        default_model = "test_model"
+        def _route_llm_call(self, *args, **kwargs):
+            return '{"احمد": "احمد"}'
     
     with pytest.raises(RuntimeError, match="LLM dropped names from the mapping"):
         canonicalize_with_llm(["احمد", "محمد"], MissingKeyLLMClient())
 
-def test_process_cleaning_phase_missing_tenant(tmp_path):
+def test_process_cleaning_phase_missing_tenant(tmp_path, monkeypatch):
     json_path = tmp_path / "test_report.json"
     json_path.write_text("""[
         {"category": "other", "content_explanation": "test", "expected_tenant_name": "احمد", "date": "2023-05-01", "sender": "s", "receiver": "r", "subject": "Subj"}
     ]""", encoding="utf-8")
     
-    with patch("src.cleaning.assign_pages_to_tenants", return_value=None):
-        with pytest.raises(RuntimeError, match="Page is missing canonical_tenant"):
-            process_cleaning_phase(json_path, MockLLMClient())
+    monkeypatch.setattr("src.cleaning.assign_pages_to_tenants", lambda p, t: None)
+    with pytest.raises(RuntimeError, match="Page is missing canonical_tenant"):
+        process_cleaning_phase(json_path, MockLLMClient())
