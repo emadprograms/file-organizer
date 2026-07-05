@@ -30,8 +30,8 @@ class Visualizer:
         for p in per_page:
             # Normalize path separators
             path_parts = p["output_file"].replace("\\", "/").split("/")
-            if len(path_parts) == 3:
-                tenant, category, filename = path_parts
+            if len(path_parts) == 4:
+                house_id, tenant, category, filename = path_parts
                 if tenant not in structure:
                     structure[tenant] = {}
                 if category not in structure[tenant]:
