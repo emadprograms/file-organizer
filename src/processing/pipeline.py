@@ -118,6 +118,12 @@ class Pipeline:
         self._run_cleaning_pass(raw_pages, config)
         logger.info(f"--- Pass 1.5 Completed for {pdf_path} ---")
         
+        # Explicit check for None dates before passing into Pass 2
+        for p_idx, page in raw_pages:
+            if not page.date or page.date == "NONE":
+                logger.warning(f"Page {p_idx} still has no date after interpolation. Assigning fallback date '1970-01-01'.")
+                page.date = "1970-01-01"
+
         logger.info(f"\n--- Final Page State After Pass 1.5 for {pdf_path} ---")
         for p_idx, page in raw_pages:
             resolved_names = [r for r in page.residents if r not in ("NONE", "UNKNOWN", "")]
@@ -470,13 +476,11 @@ class Pipeline:
         if pages_only:
             current_run = [pages_only[0]]
             current_category = getattr(pages_only[0], "category", None)
-            res_0 = getattr(pages_only[0], "residents", [])
-            current_resident = res_0[0] if res_0 else None
+            current_resident = getattr(pages_only[0], "canonical_tenant", None)
             
             for page in pages_only[1:]:
                 cat = getattr(page, "category", None)
-                res = getattr(page, "residents", [])
-                resident = res[0] if res else None
+                resident = getattr(page, "canonical_tenant", None)
                 
                 if cat == current_category and resident == current_resident:
                     current_run.append(page)

@@ -80,6 +80,35 @@ def test_pipeline_interpolate_dates():
     assert raw_pages[1][1].date == "2023-01-01"
     assert raw_pages[3][1].date == "2023-01-05"
 
+def test_pipeline_fallback_date():
+    pipeline = Pipeline("dummy_key")
+    
+    pipeline.ingestor.extract_pages_as_images = MagicMock(return_value=[(1, b""), (2, b"")])
+    pipeline._run_cleaning_pass = MagicMock(return_value={})
+    pipeline._group_and_route_documents = MagicMock(return_value=[])
+    
+    from src.core.schemas import UserConfig, ConfigExtraction, ConfigCleaning, ConfigGrouping, ConfigRouting, ConfigCategory
+    mock_config = UserConfig(
+        extraction=ConfigExtraction(prompt_template="", fields=[]),
+        categories=[ConfigCategory(id="forms", name="forms")],
+        cleaning=ConfigCleaning(strategy="hybrid", script_path=None, prompt_template=None, prompts={}),
+        grouping=ConfigGrouping(strategy="declarative"),
+        routing=ConfigRouting(strategy="declarative", rules={})
+    )
+    
+    with patch('src.processing.pipeline.yaml.safe_load', return_value=mock_config.model_dump()), \
+         patch('builtins.open', MagicMock()), \
+         patch('src.core.cache.SimpleCache.__contains__', return_value=True), \
+         patch('src.core.cache.SimpleCache.__getitem__', side_effect=lambda k: {"category": "forms", "resident": "A", "date": "NONE", "summary": ""}):
+        pipeline.process_pdf("dummy.pdf")
+        
+        args, _ = pipeline._group_and_route_documents.call_args
+        raw_pages_passed = args[0]
+        
+        assert all(page.date != "NONE" for _, page in raw_pages_passed)
+        assert all(page.date is not None for _, page in raw_pages_passed)
+        assert raw_pages_passed[0][1].date == "1970-01-01"
+
 
 def test_malformed_json_graceful_failure(tmp_path):
     """Malformed _report.json causes a graceful non-zero exit, not an unhandled stack trace."""
