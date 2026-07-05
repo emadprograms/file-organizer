@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: "### Phase 1: Foundation & Infrastructure"
-status: Ready to plan
-stopped_at: Phase 5 context gathered
-last_updated: "2026-07-05T08:23:20.480Z"
+status: Complete
+stopped_at: Phase 5 complete — all plans executed
+last_updated: "2026-07-05T11:54:00.000Z"
 progress:
   total_phases: 5
-  completed_phases: 4
-  total_plans: 15
-  completed_plans: 13
-  percent: 80
+  completed_phases: 5
+  total_plans: 17
+  completed_plans: 17
+  percent: 100
 ---
 
 # Project State
@@ -25,7 +25,7 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 ## Current Status
 
 - **Active Phase:** Phase 5 — Dry Run & Polish
-- **Phase Status:** Ready to plan
+- **Phase Status:** ● Complete
 - **Blockers:** None
 
 ## Phase Progress
@@ -36,7 +36,7 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 | 2 | Pass 1 — Document Cleaning | ● Complete | 1/1 |
 | 3 | Pass 2 — Grouping & Routing | ● Complete | 6/6 |
 | 4 | Output Structure & Reconciliation | ● Complete | 2/2 |
-| 5 | Dry Run & Polish | ○ Pending | 0/0 |
+| 5 | Dry Run & Polish | ● Complete | 2/2 |
 
 ## Decision Log
 
@@ -57,13 +57,15 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 | 2026-07-04 | Implemented LLM routing logic | Fallback to "13_others" after two failed attempts |
 | 2026-07-04 | Wired LLM Grouping/Routing into Pipeline | Replaced config-driven strategies with hardcoded implementation |
 | 2026-07-04 | Split pages by Category and Tenant | Category pre-split acts on both category and residents[0] |
-| 2026-07-05 | Atomic checkpoints and proper run_reconciliation flow | From Phase 04 Plan 02 |
+| 2026-07-05 | --dry-run flag with rich Visualizer | Checkpoint-aware skipping + rich Tree/Table output without writing PDFs |
+| 2026-07-05 | Pre-baked fixture pattern for E2E tests | Inject cleaned.json + grouped.json so no LLM calls in CI |
+| 2026-07-05 | bytes decode(utf-8, errors=replace) for subprocess tests | Windows cp1252 causes UnicodeDecodeError when rich uses box chars |
 
 ---
-*Last updated: 2026-07-05 after Phase 04 completion*
+*Last updated: 2026-07-05 after Phase 05 completion*
 
 ## Session
 
-**Last session:** 2026-07-05T06:24:27.178Z
-**Stopped at:** Phase 5 context gathered
-**Resume file:** .planning/phases/05-dry-run-polish/05-CONTEXT.md
+**Last session:** 2026-07-05T11:54:00.000Z
+**Stopped at:** Phase 05 Plan 2 complete — all plans executed
+**Resume file:** .planning/phases/05-dry-run-polish/05-2-SUMMARY.md
