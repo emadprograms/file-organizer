@@ -28,3 +28,9 @@ node_modules/
 # IDEs
 .idea/
 .vscode/
+
+# GSD Execution Artifacts
+/run_plan_phase_*.ps1
+/detect_*.ps1
+/commit_reviews.ps1
+
