@@ -64,16 +64,26 @@ class FileOrganizer:
                 min_year = min(years)
                 max_year = max(years)
                 if tenant == "Unassigned":
-                    tenant_folder_names[tenant] = f"غير محدد {min_year}-{max_year}"
+                    tenant_folder_names[tenant] = f"غير مخصص (فترة مستنتجة) {min_year}-{max_year}"
                 else:
                     safe_name = utils.sanitize_filename(tenant)
                     tenant_folder_names[tenant] = f"{safe_name} {min_year}-{max_year}"
             else:
                 if tenant == "Unassigned":
-                    tenant_folder_names[tenant] = "غير محدد"
+                    tenant_folder_names[tenant] = "غير مخصص"
                 else:
                     safe_name = utils.sanitize_filename(tenant)
                     tenant_folder_names[tenant] = f"{safe_name}"
+
+        # Proactively create all 13 subdirectories for each tenant
+        if not dry_run:
+            from src.processing.routing import FOLDER_ROUTING
+            house_dir = output_base_dir / house_id
+            for folder_name in tenant_folder_names.values():
+                for topic in FOLDER_ROUTING.keys():
+                    target_dir = (house_dir / folder_name / topic).resolve()
+                    if str(target_dir).startswith(str(output_base_dir.resolve())):
+                        os.makedirs(target_dir, exist_ok=True)
 
         per_page = []
         used_names_per_dir: dict[str, set[str]] = defaultdict(set)
@@ -174,6 +184,24 @@ def run_reconciliation(summary: dict, per_page: list, total_input_pages: int, ho
         tmp_path.replace(manifest_path)
     else:
         logger.info(f"  [DRY RUN] Would write manifest to {output_dir / f'{house_id}_manifest.json'}")
+    
+    from rich.console import Console
+    from rich.table import Table
+    console = Console()
+    table = Table(title="Reconciliation Report")
+    table.add_column("House ID")
+    table.add_column("Total Input Pages")
+    table.add_column("Total Output Pages")
+    table.add_column("Output File Count")
+    table.add_column("Unaccounted Pages")
+    table.add_row(
+        str(manifest["summary"]["house_id"]),
+        str(manifest["summary"]["total_input_pages"]),
+        str(manifest["summary"]["total_output_pages"]),
+        str(manifest["summary"]["output_file_count"]),
+        str(len(manifest["summary"]["unaccounted_pages"]))
+    )
+    console.print(table)
     
     if total_input_pages != manifest["summary"]["total_output_pages"]:
         raise RuntimeError("Reconciliation failed: total input pages != total output pages")
