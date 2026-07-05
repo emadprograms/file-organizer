@@ -89,12 +89,29 @@
 3. Arabic filenames render correctly on Windows
 4. All error paths tested (missing files, LLM failures, malformed JSON)
 
+### Phase 6: Milestone 1.0 Audit Gap Closures
+
+**Goal:** Resolve integration gaps found in the v1.0 Milestone Audit to ensure full pipeline correctness across phase boundaries.
+
+**Requirements:** CLN-02, CLN-04, CLN-08, OUT-05, OUT-03, FS-04, LOG-04, GRP-04, GRP-12, LLM-08
+
+**Success Criteria:**
+
+1. Anchor category mismatch is resolved in `pipeline.py` to match JSON report categories.
+2. The 13 topic subdirectories are proactively created for every tenant, not just dynamically.
+3. Unassigned folder is correctly named `Unassigned (inferred period)` instead of `NONE`.
+4. Checkpoints and fallbacks use atomic temporary-file-and-rename writes.
+5. The reconciliation report detailed breakdown is logged to console/logs.
+6. Grouping LLM prompt explicitly instructs reasoning generation.
+7. Direct-routed documents check if they are single-page before receiving date-only names.
+8. 5-consecutive failure tracking is implemented for non-boundary multi-match LLM calls in `routing.py`.
+
 ---
 
 ## Phase Dependencies
 
 ```
-Phase 1 (Foundation) ──→ Phase 2 (Pass 1) ──→ Phase 3 (Pass 2) ──→ Phase 4 (Output) ──→ Phase 5 (Polish)
+Phase 1 (Foundation) ──→ Phase 2 (Pass 1) ──→ Phase 3 (Pass 2) ──→ Phase 4 (Output) ──→ Phase 5 (Polish) ──→ Phase 6 (Gap Closures)
 ```
 
 All phases are strictly sequential — each depends on the previous.
@@ -124,6 +141,42 @@ All phases are strictly sequential — each depends on the previous.
 
 **Coverage:** 48/48 requirements mapped ✓
 **Unmapped:** 0 ✓
+
+### Phase 7: Cross-Phase Integration Fixes — tenant/date mapping, relative indexing, CLI flags, dry-run safety
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 6
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 7 to break down)
+
+### [x] Phase 8: Address tech debt: test assertions for logs/fallback
+
+**Goal:** Address tech debt: test assertions for logs/fallback
+**Requirements**: Verify fallback/retry logic emits correct log warnings
+**Depends on:** Phase 7
+**Plans:** 4 plans
+
+Plans:
+
+- [x] 1. Upgrade Log Levels in `llm.py`
+- [x] 2. Add Caplog Assertions to Fallback Tests
+- [x] 3. Add Caplog Assertions to LLM Retry Tests
+- [x] 4. Verify the Test Suite Passes
+
+### Phase 9: Final E2E Sweep: Fix absolute PDF indexing, array bounds alignment, resolved dates, LLM logging, and pipeline architecture
+
+**Goal:** Final E2E Sweep: Fix absolute PDF indexing, array bounds alignment, resolved dates, LLM logging, and pipeline architecture
+**Requirements**: CLN-08, GRP-06, LOG-02, OUT-06
+**Depends on:** Phase 8
+**Plans:** 1 plan
+
+Plans:
+
+- [ ] 1. Core Implementation and Verification
 
 ---
 *Roadmap created: 2026-07-03*
