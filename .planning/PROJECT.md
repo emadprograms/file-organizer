@@ -31,10 +31,12 @@ Automatically transform a flat, pre-categorized PDF into a perfectly organized f
 - [x] Timeline-based ownership: documents assigned to tenant whose timeline covers the document's date; overlap → earlier tenant (Validated in Phase 02: pass-1-document-cleaning)
 - [x] Null tenant/date resolution: infer from nearest dated page by position; if unresolvable → Unassigned folder with inferred period in name (Validated in Phase 02: pass-1-document-cleaning)
 - [x] One `expected_tenant_name` per page (or null) — no multi-tenant ambiguity per page (Validated in Phase 02: pass-1-document-cleaning)
+- [x] Output directories created dynamically by tenant timeline and topic (Validated in Phase 04: output-structure-reconciliation)
+- [x] Strict page-count reconciliation checking output vs input (Validated in Phase 04: output-structure-reconciliation)
 
 ## Current State
 
-Phase 02 complete — Built the full document cleaning pipeline: date parsing (Gregorian/Hijri/Arabic), fuzzy Arabic name clustering, LLM canonicalization, tenant timeline building, date inference, and tenant assignment.
+Phase 04 complete — Built FileOrganizer with dynamic timeline routing, on-demand topic folder creation, and strict page-count reconciliation.
 
 ### Active
 
@@ -49,8 +51,7 @@ Phase 02 complete — Built the full document cleaning pipeline: date parsing (G
 - [ ] Folder routing: single-match categories route directly (no LLM); multi-match categories use LLM to pick from allowed list
 - [ ] Output PDFs named as `2026-04-03 - ملخص قصير بالعربية.pdf` (date + brief Arabic summary from LLM)
 - [ ] Dateless documents use inferred date from nearest dated page
-- [ ] All 13 folders created for every tenant, even if empty
-- [ ] PyMuPDF for PDF splitting by page ranges
+- [x] PyMuPDF for PDF splitting by page ranges (Validated in Phase 04)
 
 ### Out of Scope
 
@@ -58,6 +59,7 @@ Phase 02 complete — Built the full document cleaning pipeline: date parsing (G
 - Batch processing multiple houses — one house directory at a time
 - GUI — CLI only
 - House number extraction — always derived from the PDF filename
+- All 13 folders created for every tenant, even if empty — Folders are created on demand strictly when a document routes to them to avoid clutter (Phase 04)
 
 ## Context
 
@@ -112,4 +114,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-04 after Phase 02 completion*
+*Last updated: 2026-07-05 after Phase 04 completion*
