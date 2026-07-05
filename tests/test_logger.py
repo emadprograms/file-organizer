@@ -11,6 +11,9 @@ def test_setup_logging(tmp_path, monkeypatch):
     # Mock the logs directory to point to tmp_path
     monkeypatch.setattr("logger.LOGS_DIR", str(tmp_path))
     
+    # Clear handlers so setup_logging creates new ones
+    logging.getLogger().handlers.clear()
+    
     # Run setup
     log_dir = setup_logging(run_id="test_run_123")
     

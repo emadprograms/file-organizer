@@ -93,7 +93,10 @@ class FileOrganizer:
             
             topic_folder = doc.folder_path if doc.folder_path else "13_others"
             
-            target_dir = house_dir / tenant_folder / topic_folder
+            target_dir = (house_dir / tenant_folder / topic_folder).resolve()
+            if not str(target_dir).startswith(str(output_base_dir.resolve())):
+                raise ValueError(f"Path traversal detected: {target_dir}")
+                
             os.makedirs(target_dir, exist_ok=True)
             
             date_str = "nodate"

@@ -102,7 +102,7 @@ def main():
         unique_tenants = len(set(p.canonical_tenant for p in cleaned_pages))
         logger.info(f"Cleaned {len(cleaned_pages)} pages successfully. Resolved {unique_tenants} unique tenant(s).")
         
-        output_json_path.parent.mkdir(exist_ok=True)
+        output_json_path.parent.mkdir(parents=True, exist_ok=True)
         with open(output_json_path, 'w', encoding='utf-8') as f:
             json.dump([p.model_dump() for p in cleaned_pages], f, ensure_ascii=False, indent=2)
         logger.info(f"Wrote cleaned data to {output_json_path}")

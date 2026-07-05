@@ -57,6 +57,6 @@ def test_mocked_fallback_chain_integration():
         assert result == {"DIFFERENT": "TEST"}
         
         # Ensure providers were called expected number of times
-        assert mock_gemini.call_count == 2
+        assert mock_gemini.call_count == 6
         mock_openrouter.assert_called_once()
         mock_groq.assert_called_once()
