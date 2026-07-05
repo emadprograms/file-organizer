@@ -100,5 +100,31 @@ def test_reconciliation_manifest(tmp_path):
     
     with open(manifest_file, "r", encoding="utf-8") as f:
         data = json.load(f)
-        
 
+
+@patch('src.processing.organizer.Path.replace')
+def test_reconciliation_manifest_generation(mock_replace, tmp_path):
+    per_page = [
+        {"page_index": 0, "tenant": "A", "date": "2020", "output_file": "file.pdf", "page_in_output": 1},
+    ]
+    summary = {"total_output_pages": 1, "output_file_count": 1}
+    
+    run_reconciliation(summary, per_page, 1, "HOUSE_123", tmp_path)
+    
+    manifest_file = tmp_path / "HOUSE_123_manifest.json"
+    tmp_file = manifest_file.with_suffix('.tmp')
+    
+    # Verify atomicity
+    mock_replace.assert_called_once_with(manifest_file)
+    
+    # Verify content written to the temp file
+    assert tmp_file.exists()
+    with open(tmp_file, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        assert data["summary"]["house_id"] == "HOUSE_123"
+        assert data["summary"]["total_input_pages"] == 1
+        assert data["summary"]["total_output_pages"] == 1
+        assert data["summary"]["output_file_count"] == 1
+        assert data["summary"]["unaccounted_pages"] == []
+        assert len(data["per_page"]) == 1
+        assert data["per_page"][0]["tenant"] == "A"
