@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: "### Phase 1: Foundation & Infrastructure"
 status: Ready to plan
 stopped_at: Phase 4 execution plans generated
-last_updated: "2026-07-05T04:23:51.587Z"
+last_updated: "2026-07-05T04:44:06.561Z"
 progress:
   total_phases: 5
-  completed_phases: 3
-  total_plans: 11
-  completed_plans: 11
-  percent: 60
+  completed_phases: 4
+  total_plans: 13
+  completed_plans: 13
+  percent: 80
 ---
 
 # Project State
@@ -20,12 +20,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03)
 
 **Core value:** Automatically transform a flat, pre-categorized PDF into a perfectly organized folder structure per tenant, with zero manual sorting.
-**Current focus:** Phase 03 — pass-2-grouping-routing
+**Current focus:** Phase 04 — output-structure-reconciliation
 
 ## Current Status
 
-- **Active Phase:** Phase 3 — Pass 2 — Grouping & Routing
-- **Phase Status:** Ready to plan
+- **Active Phase:** Phase 4 — Output Structure & Reconciliation
+- **Phase Status:** Complete
 - **Blockers:** None
 
 ## Phase Progress
@@ -35,7 +35,7 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 | 1 | Foundation & Infrastructure | ● Complete | 3/3 |
 | 2 | Pass 1 — Document Cleaning | ● Complete | 1/1 |
 | 3 | Pass 2 — Grouping & Routing | ○ Pending | 4/x |
-| 4 | Output Structure & Reconciliation | ○ Pending | 0/0 |
+| 4 | Output Structure & Reconciliation | ● Complete | 2/2 |
 | 5 | Dry Run & Polish | ○ Pending | 0/0 |
 
 ## Decision Log
@@ -57,6 +57,7 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 | 2026-07-04 | Implemented LLM routing logic | Fallback to "13_others" after two failed attempts |
 | 2026-07-04 | Wired LLM Grouping/Routing into Pipeline | Replaced config-driven strategies with hardcoded implementation |
 | 2026-07-04 | Split pages by Category and Tenant | Category pre-split acts on both category and residents[0] |
+| 2026-07-05 | Atomic checkpoints and proper run_reconciliation flow | From Phase 04 Plan 02 |
 
 ---
 *Last updated: 2026-07-04 after Phase 03 Plan 06 completion*
