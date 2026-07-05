@@ -4,6 +4,7 @@ import sys
 import logging
 from pathlib import Path
 import json
+import fitz
 
 # Ensure src module is resolvable when run directly
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -107,23 +108,56 @@ def main():
         logger.info(f"Wrote cleaned data to {output_json_path}")
     
     from src.processing.pipeline import Pipeline
-    from src.processing.organizer import FileOrganizer
+    from src.processing.organizer import FileOrganizer, run_reconciliation
     
-    logger.info("Starting Pass 2 — Grouping and Routing")
-    raw_pages = [(p.original_index, p) for p in cleaned_pages]
+    checkpoint_dir = args.target_dir / "output" / "checkpoints"
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    grouped_checkpoint_path = checkpoint_dir / "grouped.json"
     
-    pipeline = Pipeline(api_key=os.getenv("GEMINI_API_KEY"))
-    pipeline.client = llm_client
-    
-    documents = pipeline._group_and_route_documents(raw_pages, None)
-    
+    if grouped_checkpoint_path.exists():
+        logger.info(f"Skipping Pass 2 (found {grouped_checkpoint_path}). Loading grouped documents.")
+        from src.core.schemas import DocumentGroup
+        with open(grouped_checkpoint_path, 'r', encoding='utf-8') as f:
+            documents = [DocumentGroup(**d) for d in json.load(f)]
+    else:
+        logger.info("Starting Pass 2 — Grouping and Routing")
+        raw_pages = [(p.original_index, p) for p in cleaned_pages]
+        
+        pipeline = Pipeline(api_key=os.getenv("GEMINI_API_KEY"))
+        pipeline.client = llm_client
+        
+        documents = pipeline._group_and_route_documents(raw_pages, None)
+        
+        tmp_path = grouped_checkpoint_path.with_suffix('.tmp')
+        with open(tmp_path, 'w', encoding='utf-8') as f:
+            json.dump([doc.model_dump() for doc in documents], f, ensure_ascii=False, indent=2)
+        tmp_path.replace(grouped_checkpoint_path)
+        logger.info(f"Wrote grouped documents to {grouped_checkpoint_path}")
+
     pdf_path = list(args.target_dir.glob("*_categorized.pdf"))[0]
-    output_dir = args.target_dir / "output" / house_id
+    output_dir = args.target_dir / "output"
     
     organizer = FileOrganizer()
-    summary = organizer.organize(documents, str(pdf_path), output_dir, None)
+    per_page = organizer.organize(documents, str(pdf_path), house_id, output_dir, None)
     
-    logger.info(f"Successfully generated {len(summary)} PDFs in {output_dir}")
+    total_input_pages = fitz.open(str(pdf_path)).page_count
+    
+    output_files = {p["output_file"] for p in per_page}
+    summary = {
+        "total_output_pages": len(per_page),
+        "output_file_count": len(output_files)
+    }
+    
+    logger.info("Running reconciliation...")
+    run_reconciliation(summary, per_page, total_input_pages, house_id, output_dir)
+    
+    # If reconciliation succeeds, clean up checkpoints
+    if output_json_path.exists():
+        output_json_path.unlink()
+    if grouped_checkpoint_path.exists():
+        grouped_checkpoint_path.unlink()
+        
+    logger.info(f"Successfully generated {summary['output_file_count']} PDFs in {output_dir / house_id}")
     
     return 0
 

@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from types import SimpleNamespace
 
 from src.processing.pipeline import Pipeline
@@ -86,3 +86,60 @@ def test_routing_integration():
     assert doc.folder_path == "5_contract"
     assert doc.primary_tenant == "Ahmed" # Derived from first page
     assert doc.is_direct_routed is True
+
+import sys
+from unittest.mock import MagicMock
+sys.modules['src.cleaning'] = MagicMock()
+import src.organize
+@patch('src.organize.validate_environment')
+@patch('src.organize.validate_target_directory', return_value='123')
+@patch('src.organize.setup_logging', return_value='logs')
+@patch('src.organize.LLMClient')
+@patch('src.processing.pipeline.Pipeline')
+@patch('src.processing.organizer.FileOrganizer')
+@patch('src.processing.organizer.run_reconciliation')
+@patch('src.organize.fitz')
+def test_checkpoint_resume(mock_fitz, mock_run_reconciliation, mock_FileOrganizer, mock_Pipeline, mock_LLMClient, mock_setup_logging, mock_validate_target, mock_validate_env, tmp_path):
+    from src.organize import main
+    import json
+    
+    # Setup dummy dir
+    dummy_dir = tmp_path / "dummy_dir"
+    dummy_dir.mkdir()
+    
+    # Mock glob for _categorized.pdf and _report.json
+    pdf_file = dummy_dir / "123_categorized.pdf"
+    pdf_file.touch()
+    json_file = dummy_dir / "123_report.json"
+    json_file.touch()
+    
+    # Setup args correctly
+    with patch('src.organize.argparse.ArgumentParser.parse_args') as mock_parse_args:
+        args = SimpleNamespace(target_dir=dummy_dir, model="gemma-4-26b-a4b-it")
+        mock_parse_args.return_value = args
+        
+        # Setup Pass 1 JSON
+        output_dir = dummy_dir / "output"
+        output_dir.mkdir()
+        cleaned_path = output_dir / "123_cleaned.json"
+        with open(cleaned_path, "w", encoding="utf-8") as f:
+            json.dump([{"original_index": 0, "canonical_tenant": "A", "category": "forms", "summary": "", "dates": [], "residents": []}], f)
+            
+        # Setup Pass 2 grouped checkpoint
+        checkpoint_dir = output_dir / "checkpoints"
+        checkpoint_dir.mkdir()
+        grouped_path = checkpoint_dir / "grouped.json"
+        with open(grouped_path, "w", encoding="utf-8") as f:
+            json.dump([{
+                "start_page": 0, "end_page": 0, "primary_tenant": "A", "category": "forms",
+                "dates": [], "reason": "mock", "brief_arabic_title": "mock",
+                "folder_path": "1_forms", "is_direct_routed": True
+            }], f)
+        
+        mock_fitz.open.return_value.page_count = 1
+        
+        # Call main
+        main()
+        
+        # Pipeline._group_and_route_documents should NOT have been called
+        mock_Pipeline.return_value._group_and_route_documents.assert_not_called()
