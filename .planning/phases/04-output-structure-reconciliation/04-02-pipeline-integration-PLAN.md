@@ -3,7 +3,7 @@ phase: 04-output-structure-reconciliation
 plan: 02
 type: execute
 wave: 2
-depends_on: [01]
+depends_on: [04-01-file-organizer]
 files_modified:
   - src/organize.py
   - tests/test_pipeline_pass2.py
@@ -18,6 +18,9 @@ must_haves:
     - src/organize.py
   key_links:
     - FileOrganizer integration in organize.py
+
+## Artifacts this phase produces
+- `output/checkpoints/grouped.json` (checkpoint file, new path pattern)
 ---
 
 <objective>
@@ -45,21 +48,50 @@ Output: Updated organize.py wiring.
 <task type="auto">
   <name>Task 1: Pass 2 Checkpoint & Resume</name>
   <files>src/organize.py, tests/test_pipeline_pass2.py</files>
-  <action>In `main()`, implement checkpointing for Pass 2 (DIFF-02, D-05). Check for `output/checkpoints/grouped.json`. If it exists, load documents from it (`DocumentGroup(**d)`). If not, run `pipeline._group_and_route_documents()` and save the result as JSON (`doc.model_dump()`). Ensure the checkpoint is written atomically. Update tests.</action>
+  <read_first>
+    - src/organize.py
+    - src/core/schemas.py
+  </read_first>
+  <action>
+    In `main()`, implement checkpointing for Pass 2 (DIFF-02, D-05). 
+    Check for checkpoint path constructed strictly using `args.target_dir / "output" / "checkpoints" / "grouped.json"` (addressing Align Paths). 
+    If it exists, load documents from it (`[DocumentGroup(**d) for d in json.load(f)]`). 
+    If not, run `pipeline._group_and_route_documents()` and save the result as JSON (`[doc.model_dump() for doc in documents]`). 
+    Ensure the checkpoint is written atomically (temp file and replace). Update tests.
+  </action>
+  <acceptance_criteria>
+    - `args.target_dir / "output" / "checkpoints" / "grouped.json"` is correctly used for checking, reading, and writing.
+    - Application resumes from `grouped.json` skipping LLM calls if it exists.
+    - Checkpoint file is written atomically.
+  </acceptance_criteria>
   <verify>
     <automated>pytest tests/test_pipeline_pass2.py -x</automated>
   </verify>
-  <done>Pipeline can resume from grouped.json without re-running Pass 2 LLM grouping.</done>
 </task>
 
 <task type="auto">
   <name>Task 2: Wire Organizer and Reconciliation</name>
   <files>src/organize.py, tests/test_pipeline_pass2.py</files>
-  <action>Update `main()` to instantiate `FileOrganizer` using the `house_id`. Call `organize()` and capture the returned `per_page` mapping. Construct the `summary` dictionary (tracking output pages and file count). Call `run_reconciliation` (OUT-06). If it returns successfully, delete both checkpoints (`cleaned.json` and `grouped.json`) as per D-06. If it raises, checkpoints remain intact. Update tests.</action>
+  <read_first>
+    - src/organize.py
+    - src/processing/organizer.py
+  </read_first>
+  <action>
+    Update `main()` to instantiate `FileOrganizer` using `args.target_dir / "output" / house_id` as the output directory. 
+    Call `organize()` and capture the returned `per_page` mapping. 
+    Import `fitz` and calculate `total_input_pages` directly using `fitz.open(pdf_path).page_count` (addressing Calculate Source Pages via PyMuPDF).
+    Construct the `summary` dictionary (tracking output pages and file count). 
+    Call `run_reconciliation` (OUT-06) with `total_input_pages` and `house_id`. 
+    If it returns successfully, delete both checkpoints (`cleaned.json` and `grouped.json`) as per D-06. If it raises, checkpoints remain intact. Update tests.
+  </action>
+  <acceptance_criteria>
+    - `total_input_pages` is computed via `fitz.open(pdf_path).page_count`.
+    - `FileOrganizer` is instantiated with the properly resolved `output_dir`.
+    - Checkpoint deletion only happens after `run_reconciliation` succeeds.
+  </acceptance_criteria>
   <verify>
     <automated>pytest tests/test_pipeline_pass2.py -x</automated>
   </verify>
-  <done>Pipeline seamlessly runs FileOrganizer, generates manifest, and cleans up checkpoints on success.</done>
 </task>
 
 </tasks>

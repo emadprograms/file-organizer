@@ -59,7 +59,7 @@
 9. PyMuPDF splits PDF into individual document files by page ranges
 10. Filenames follow `YYYY-MM-DD - عنوان عربي.pdf` format (or `YYYY-MM-DD.pdf` for direct-routed)
 
-### Phase 4: Output Structure & Reconciliation
+### [x] Phase 4: Output Structure & Reconciliation
 
 **Goal:** Build the final output directory hierarchy, move split PDFs into their assigned folders, run page count reconciliation, and implement checkpoint/resume and reconciliation manifest.
 
@@ -102,6 +102,12 @@ All phases are strictly sequential — each depends on the previous.
 ---
 
 ## Requirement Coverage
+
+| 01 | Requirements & Architecture | Complete | 2026-07-04 | 1 | 1 |
+| 02 | Parsing & Pass 1 Cleaning | Complete | 2026-07-04 | 2 | 2 |
+| 03 | Pass 2 Grouping & Routing | Complete | 2026-07-04 | 2 | 2 |
+| 04 | Output Structure & Reconciliation | Complete | 2026-07-05 | 2 | 2 |
+| 05 | Dry Run & Polish | Pending | - | 0 | 0 |
 
 | Requirement | Phase |
 |-------------|-------|
