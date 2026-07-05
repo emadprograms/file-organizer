@@ -7,6 +7,8 @@ from src.core.schemas import DocumentGroup
 
 log = logging.getLogger(__name__)
 
+consecutive_routing_failures = 0
+
 FOLDER_ROUTING: dict[str, list[str]] = {
     "1_requests_and_applications": ["forms"],
     "2_personal_details": ["id_cards"],
@@ -46,6 +48,11 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
     """
     category = group.category
     
+    global consecutive_routing_failures
+    if consecutive_routing_failures >= 5:
+        log.warning("Skipping LLM routing due to 5 consecutive failures.")
+        return "13_others", False
+        
     if category in SINGLE_MATCH:
         # Should have exactly one
         folder = CATEGORY_TO_FOLDERS[category][0]
@@ -99,6 +106,7 @@ Respond only with a valid JSON matching the requested schema. The selected_folde
             )
             selected = result.selected_folder
             if selected in allowed_folders:
+                consecutive_routing_failures = 0
                 return selected, False
             else:
                 log.warning(f"LLM selected invalid folder: {selected}. Expected one of {allowed_folders}")
@@ -107,4 +115,5 @@ Respond only with a valid JSON matching the requested schema. The selected_folde
             
     # Fallback after two failures
     log.warning(f"LLM routing failed twice for category {category}. Falling back to 13_others.")
+    consecutive_routing_failures += 1
     return "13_others", False
