@@ -81,7 +81,7 @@
 
 ### Differentiators
 
-- [ ] **DIFF-01**: Dry run / preview mode (`--dry-run` flag) — show full pipeline output (folder structure, file names, routing decisions) without writing any files
+- [x] **DIFF-01**: Dry run / preview mode (`--dry-run` flag) — show full pipeline output (folder structure, file names, routing decisions) without writing any files
 - [ ] **DIFF-02**: Checkpoint/resume — persist Pass 1 cleaned state to disk so Pass 2 can resume after crash without re-running Pass 1
 - [ ] **DIFF-03**: Reconciliation manifest — output a detailed manifest comparing every input page to its output location
 
@@ -161,7 +161,7 @@
 | FS-02 | Phase 1 | Complete |
 | FS-03 | Phase 1 | Complete |
 | FS-04 | Phase 1 | Complete |
-| DIFF-01 | Phase 5 | Pending |
+| DIFF-01 | Phase 5 | Complete |
 | DIFF-02 | Phase 4 | Pending |
 | DIFF-03 | Phase 4 | Pending |
 
