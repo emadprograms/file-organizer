@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class FileOrganizer:
     """Organizer responsible for writing documents to disk in a structured hierarchy."""
 
-    def organize(self, documents: list[DocumentGroup], source_pdf: str, house_id: str, output_base_dir: Path, config: Any = None) -> list[dict]:
+    def organize(self, documents: list[DocumentGroup], source_pdf: str, house_id: str, output_base_dir: Path, config: Any = None, dry_run: bool = False) -> list[dict]:
         """Organize the extracted documents into a structured directory hierarchy.
         
         Args:
@@ -97,7 +97,8 @@ class FileOrganizer:
             if not str(target_dir).startswith(str(output_base_dir.resolve())):
                 raise ValueError(f"Path traversal detected: {target_dir}")
                 
-            os.makedirs(target_dir, exist_ok=True)
+            if not dry_run:
+                os.makedirs(target_dir, exist_ok=True)
             
             date_str = "nodate"
             if doc.dates and len(doc.dates) > 0 and doc.dates[0] and doc.dates[0] != "NONE":
@@ -124,8 +125,11 @@ class FileOrganizer:
             used_names_per_dir[str(target_dir)].add(filename)
             target_path = target_dir / filename
             
-            extract_pdf_segment(str(source_pdf), doc.start_page, doc.end_page, str(target_path))
-            logger.info(f"  → {filename} (pages {doc.start_page}-{doc.end_page})")
+            if not dry_run:
+                extract_pdf_segment(str(source_pdf), doc.start_page, doc.end_page, str(target_path))
+                logger.info(f"  → {filename} (pages {doc.start_page}-{doc.end_page})")
+            else:
+                logger.info(f"  [DRY RUN] Would extract: {filename} (pages {doc.start_page}-{doc.end_page}) to {target_dir}")
             
             relative_path = target_path.relative_to(output_base_dir).as_posix()
             
@@ -143,7 +147,7 @@ class FileOrganizer:
             
         return per_page
 
-def run_reconciliation(summary: dict, per_page: list, total_input_pages: int, house_id: str, output_dir: Path):
+def run_reconciliation(summary: dict, per_page: list, total_input_pages: int, house_id: str, output_dir: Path, dry_run: bool = False):
     """Write reconciliation manifest and assert page counts."""
     unaccounted_pages = []
     accounted_page_indices = {p["page_index"] for p in per_page}
@@ -162,11 +166,14 @@ def run_reconciliation(summary: dict, per_page: list, total_input_pages: int, ho
         "per_page": per_page
     }
     
-    manifest_path = output_dir / f"{house_id}_manifest.json"
-    tmp_path = manifest_path.with_suffix('.tmp')
-    with open(tmp_path, 'w', encoding='utf-8') as f:
-        json.dump(manifest, f, ensure_ascii=False, indent=2)
-    tmp_path.replace(manifest_path)
+    if not dry_run:
+        manifest_path = output_dir / f"{house_id}_manifest.json"
+        tmp_path = manifest_path.with_suffix('.tmp')
+        with open(tmp_path, 'w', encoding='utf-8') as f:
+            json.dump(manifest, f, ensure_ascii=False, indent=2)
+        tmp_path.replace(manifest_path)
+    else:
+        logger.info(f"  [DRY RUN] Would write manifest to {output_dir / f'{house_id}_manifest.json'}")
     
     if total_input_pages != manifest["summary"]["total_output_pages"]:
         raise RuntimeError("Reconciliation failed: total input pages != total output pages")
