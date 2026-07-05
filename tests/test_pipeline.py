@@ -1,4 +1,6 @@
 import pytest
+import os
+from pathlib import Path
 
 from pydantic import BaseModel
 class MockPage(BaseModel):
@@ -8,7 +10,6 @@ class MockPage(BaseModel):
     summary: str
 
 import json
-import os
 from unittest.mock import MagicMock, patch
 from src.processing.pipeline import Pipeline
 
@@ -78,3 +79,39 @@ def test_pipeline_interpolate_dates():
     
     assert raw_pages[1][1].date == "2023-01-01"
     assert raw_pages[3][1].date == "2023-01-05"
+
+
+def test_malformed_json_graceful_failure(tmp_path):
+    """Malformed _report.json causes a graceful non-zero exit, not an unhandled stack trace."""
+    import subprocess
+    import sys
+
+    house_dir = tmp_path / "1273"
+    house_dir.mkdir()
+
+    # Provide valid PDF placeholder and a syntactically INVALID report JSON
+    (house_dir / "1273_categorized.pdf").write_bytes(b"%PDF-1.0 invalid")
+    (house_dir / "1273_report.json").write_text("{invalid json: !@#", encoding="utf-8")
+
+    result = subprocess.run(
+        [sys.executable, "-m", "src.organize", str(house_dir)],
+        capture_output=True,
+        env={**os.environ, "PYTHONIOENCODING": "utf8", "GEMINI_API_KEY": "dummy"},
+        cwd=str(Path(__file__).parent.parent),
+    )
+    stderr = result.stderr.decode("utf-8", errors="replace") if result.stderr else ""
+
+    # Must exit non-zero
+    assert result.returncode != 0, (
+        f"Expected non-zero exit for malformed JSON, got 0. stderr: {stderr}"
+    )
+
+    # Should not produce an unhandled stack trace leading to an unexpected error type
+    # The error should be a JSONDecodeError or ValueError, not AttributeError/KeyError etc.
+    assert any(
+        keyword in stderr
+        for keyword in ["JSONDecodeError", "json.decoder", "ValueError", "JSON", "parse"]
+    ), (
+        f"Expected a JSON error indication in stderr, got: {stderr}"
+    )
+

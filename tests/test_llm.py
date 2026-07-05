@@ -86,3 +86,36 @@ def test_classify_page_direct_dynamic_schema():
         schema = kwargs["response_schema"]
         assert schema.__name__ == "DynamicClassification"
         assert "custom_field" in schema.model_fields
+
+
+@patch.dict('os.environ', {'GEMINI_API_KEY': 'dummy'})
+@patch('src.llm.llm.time.sleep')
+def test_llm_500_max_retries_halts(mock_sleep):
+    """
+    Continuous 500 errors across all providers must halt with RuntimeError,
+    not loop infinitely. Verifies max-retry limit is enforced.
+    """
+    client = LLMClient("dummy")
+    with patch.object(GeminiProvider, 'generate') as mock_gemini, \
+         patch.object(OpenRouterProvider, 'generate') as mock_openrouter, \
+         patch.object(GroqProvider, 'generate') as mock_groq:
+
+        # Every provider always returns a 500-class error
+        mock_gemini.side_effect = Exception("500 Internal Server Error")
+        mock_openrouter.side_effect = Exception("500 Internal Server Error")
+        mock_groq.side_effect = Exception("500 Internal Server Error")
+
+        with pytest.raises(RuntimeError, match="LLM routing failed across all providers"):
+            client._route_llm_call("model", ["test"], DummyResponse)
+
+        # Gemini must be called a finite number of times (≤ 6 as per retry logic)
+        assert mock_gemini.call_count <= 6, (
+            f"Expected at most 6 Gemini calls but got {mock_gemini.call_count} — "
+            "retry loop may be infinite"
+        )
+        # At least 1 Gemini attempt must have been made
+        assert mock_gemini.call_count >= 1
+
+        # Sleep must be called (backoff happening)
+        assert mock_sleep.call_count >= 1
+

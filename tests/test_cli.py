@@ -53,7 +53,7 @@ def test_main_success(mock_validate_env, mock_validate_target, mock_setup_loggin
     # We also need to mock Path.glob because args.target_dir.glob is called
     with patch.object(Path, "glob") as mock_glob, patch("builtins.open"), patch.object(Path, "replace"), patch("src.organize.fitz") as mock_fitz:
         mock_glob.return_value = [Path("1273.pdf")]
-        mock_fitz.open.return_value.page_count = 0
+        mock_fitz.open.return_value.__enter__.return_value.page_count = 0
         assert main() == 0
         
     mock_validate_env.assert_called_once()
@@ -99,3 +99,18 @@ def test_validate_target_directory_mismatch_id(tmp_path, capsys):
     assert exc_info.value.code == 1
     captured = capsys.readouterr()
     assert "ERROR: ID mismatch between PDF (1273) and JSON (1274)" in captured.err
+
+def test_validate_target_directory_missing_json(tmp_path, capsys):
+    """Missing _report.json is gracefully caught and exits with code 1."""
+    target_dir = tmp_path / "1273"
+    target_dir.mkdir()
+    # Provide a PDF but NO matching _report.json
+    (target_dir / "1273_categorized.pdf").touch()
+
+    from src.organize import validate_target_directory
+    with pytest.raises(SystemExit) as exc_info:
+        validate_target_directory(target_dir)
+    assert exc_info.value.code == 1
+    captured = capsys.readouterr()
+    assert "ERROR: No *_report.json found" in captured.err
+
