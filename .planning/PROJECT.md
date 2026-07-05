@@ -33,10 +33,13 @@ Automatically transform a flat, pre-categorized PDF into a perfectly organized f
 - [x] One `expected_tenant_name` per page (or null) — no multi-tenant ambiguity per page (Validated in Phase 02: pass-1-document-cleaning)
 - [x] Output directories created dynamically by tenant timeline and topic (Validated in Phase 04: output-structure-reconciliation)
 - [x] Strict page-count reconciliation checking output vs input (Validated in Phase 04: output-structure-reconciliation)
+- [x] `--dry-run` flag shows full pipeline output without writing any files (Validated in Phase 05: dry-run-polish)
+- [x] End-to-end test with real JSON/PDF produces correct output (Validated in Phase 05: dry-run-polish)
+- [x] All error paths tested (missing files, LLM failures, malformed JSON) (Validated in Phase 05: dry-run-polish)
 
 ## Current State
 
-Phase 04 complete — Built FileOrganizer with dynamic timeline routing, on-demand topic folder creation, and strict page-count reconciliation.
+Phase 05 complete — Implemented dry run visualization, E2E testing, and edge case hardening.
 
 ### Active
 
@@ -114,4 +117,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-05 after Phase 04 completion*
+*Last updated: 2026-07-05 after Phase 05 completion*
