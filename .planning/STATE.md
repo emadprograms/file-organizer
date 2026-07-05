@@ -4,11 +4,11 @@ milestone: v1.0
 milestone_name: "### Phase 1: Foundation & Infrastructure"
 status: Ready to plan
 stopped_at: Phase 5 context gathered
-last_updated: "2026-07-05T06:24:27.196Z"
+last_updated: "2026-07-05T08:23:20.480Z"
 progress:
   total_phases: 5
   completed_phases: 4
-  total_plans: 13
+  total_plans: 15
   completed_plans: 13
   percent: 80
 ---
@@ -20,7 +20,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-07-03)
 
 **Core value:** Automatically transform a flat, pre-categorized PDF into a perfectly organized folder structure per tenant, with zero manual sorting.
-**Current focus:** Phase 05 — dry-run-&-polish
+**Current focus:** Phase 05 — dry-run-polish
 
 ## Current Status
 
