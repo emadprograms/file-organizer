@@ -129,14 +129,17 @@ class Pipeline:
             resolved_names = [r for r in page.residents if r not in ("NONE", "UNKNOWN", "")]
             names_str = ", ".join(resolved_names) if resolved_names else "NONE"
             logger.info(f"Page {p_idx} | Date: {page.date} | Category: {page.category} | Names: {names_str}")
-        logger.info("-" * 50 + "\n")
-
-        logger.info(f"Starting Pass 2 (Grouping & Routing) for {pdf_path}...")
+        # Pass 2: Python-based Grouping and Routing
+        logger.info(f"--- Starting Pass 2 (Grouping & Routing) for {pdf_path} ---")
+        document_groups = self._group_and_route_documents(raw_pages, config)
         
-        documents = self._group_and_route_documents(raw_pages, config)
-        
-        logger.info(f"Identified {len(documents)} document groups after boundary detection and routing.")
-        return documents
+        # Reconciliation: ensure no pages were lost
+        total_grouped_pages = sum((group.end_page - group.start_page + 1) for group in document_groups)
+        if total_grouped_pages != len(raw_pages):
+            raise RuntimeError(f"Fatal: Page loss detected during reconciliation. Input pages: {len(raw_pages)}, Grouped pages: {total_grouped_pages}")
+            
+        logger.info(f"--- Pipeline Completed for {pdf_path}. Total groups: {len(document_groups)} ---")
+        return document_groups
 
     def _run_cleaning_pass(self, raw_pages: list[tuple[int, PageData]], config: 'UserConfig') -> dict[str, str]:
         """Dynamically run the cleaning pass based on user configuration.

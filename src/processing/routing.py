@@ -55,8 +55,12 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
         
     if category in SINGLE_MATCH:
         # Should have exactly one
-        folder = CATEGORY_TO_FOLDERS[category][0]
-        return folder, True
+        try:
+            folder = CATEGORY_TO_FOLDERS[category][0]
+            return folder, True
+        except IndexError:
+            log.error(f"IndexError: No folder mapping found for SINGLE_MATCH category '{category}'. Falling back.")
+            return "13_others", False
         
     allowed_folders = CATEGORY_TO_FOLDERS.get(category, []).copy()
     if not allowed_folders:

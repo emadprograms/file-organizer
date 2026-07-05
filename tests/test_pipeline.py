@@ -47,10 +47,12 @@ def test_pipeline_cache_hit(tmp_path):
     image_data = b"a" * 16000
     pipeline.ingestor.extract_pages_as_images = MagicMock(return_value=[(1, image_data)])
     
+    from src.core.schemas import DocumentGroup
+    dummy_group = DocumentGroup(start_page=1, end_page=1, primary_tenant="John", category="cat", dates=[], folder_path="")
     with patch('src.processing.extractors.VisionExtractor.extract_footer') as mock_vision, \
          patch('src.processing.extractors.CloudExtractor.extract') as mock_cloud, \
          patch('src.processing.pipeline.Pipeline._run_cleaning_pass', return_value={}), \
-         patch('src.processing.pipeline.Pipeline._group_and_route_documents', return_value=[]):
+         patch('src.processing.pipeline.Pipeline._group_and_route_documents', return_value=[dummy_group]):
         
         pipeline.process_pdf(str(pdf_path))
         
@@ -85,7 +87,9 @@ def test_pipeline_fallback_date():
     
     pipeline.ingestor.extract_pages_as_images = MagicMock(return_value=[(1, b""), (2, b"")])
     pipeline._run_cleaning_pass = MagicMock(return_value={})
-    pipeline._group_and_route_documents = MagicMock(return_value=[])
+    from src.core.schemas import DocumentGroup
+    dummy_group = DocumentGroup(start_page=1, end_page=2, primary_tenant="A", category="forms", dates=[], folder_path="")
+    pipeline._group_and_route_documents = MagicMock(return_value=[dummy_group])
     
     from src.core.schemas import UserConfig, ConfigExtraction, ConfigCleaning, ConfigGrouping, ConfigRouting, ConfigCategory
     mock_config = UserConfig(
@@ -108,6 +112,33 @@ def test_pipeline_fallback_date():
         assert all(page.date != "NONE" for _, page in raw_pages_passed)
         assert all(page.date is not None for _, page in raw_pages_passed)
         assert raw_pages_passed[0][1].date == "1970-01-01"
+
+def test_pipeline_page_loss_reconciliation():
+    pipeline = Pipeline("dummy_key")
+    
+    pipeline.ingestor.extract_pages_as_images = MagicMock(return_value=[(1, b""), (2, b""), (3, b"")])
+    pipeline._run_cleaning_pass = MagicMock(return_value={})
+    
+    # Mocking Pass 2 to drop a page (returns group spanning 2 pages but 3 input pages exist)
+    from src.core.schemas import DocumentGroup, UserConfig, ConfigExtraction, ConfigCleaning, ConfigGrouping, ConfigRouting, ConfigCategory
+    bad_group = DocumentGroup(start_page=0, end_page=1, primary_tenant="A", category="forms", dates=["NONE"], folder_path="13_others")
+    pipeline._group_and_route_documents = MagicMock(return_value=[bad_group])
+    
+    mock_config = UserConfig(
+        extraction=ConfigExtraction(prompt_template="", fields=[]),
+        categories=[ConfigCategory(id="forms", name="forms")],
+        cleaning=ConfigCleaning(strategy="hybrid", script_path=None, prompt_template=None, prompts={}),
+        grouping=ConfigGrouping(strategy="declarative"),
+        routing=ConfigRouting(strategy="declarative", rules={})
+    )
+    
+    with patch('src.processing.pipeline.yaml.safe_load', return_value=mock_config.model_dump()), \
+         patch('builtins.open', MagicMock()), \
+         patch('src.core.cache.SimpleCache.__contains__', return_value=True), \
+         patch('src.core.cache.SimpleCache.__getitem__', side_effect=lambda k: {"category": "forms", "resident": "A", "date": "NONE", "summary": ""}):
+        
+        with pytest.raises(RuntimeError, match="Fatal: Page loss detected"):
+            pipeline.process_pdf("dummy.pdf")
 
 
 def test_malformed_json_graceful_failure(tmp_path):
