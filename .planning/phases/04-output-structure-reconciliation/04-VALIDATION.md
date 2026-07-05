@@ -2,7 +2,7 @@
 phase: 04
 slug: output-structure-reconciliation
 status: draft
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: false
 created: 2026-07-05
 ---
@@ -47,6 +47,8 @@ created: 2026-07-05
 | 04-01-07 | 01 | 1 | LOG-04 | — | N/A | unit | `pytest tests/test_organizer.py::test_reconciliation_manifest -x` | ✅ W0 | ⬜ pending |
 | 04-01-08 | 01 | 1 | DIFF-02 | — | N/A | integration | `pytest tests/test_pipeline_pass2.py::test_checkpoint_resume -x` | ✅ W0 | ⬜ pending |
 | 04-01-09 | 01 | 1 | DIFF-03 | — | N/A | unit | `pytest tests/test_organizer.py::test_reconciliation_manifest_generation -x` | ✅ W0 | ⬜ pending |
+| 04-02-01 | 02 | 2 | DIFF-02 | — | N/A | integration | `pytest tests/test_pipeline_pass2.py::test_pass2_checkpoint_creation -x` | ✅ W0 | ⬜ pending |
+| 04-02-02 | 02 | 2 | OUT-06 | — | N/A | integration | `pytest tests/test_pipeline_pass2.py::test_pass2_reconciliation_cleanup -x` | ✅ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -77,3 +79,12 @@ created: 2026-07-05
 - [ ] `nyquist_compliant: true` set in frontmatter
 
 **Approval:** pending
+
+---
+
+## Validation Audit 2026-07-05
+| Metric | Count |
+|--------|-------|
+| Gaps found | 3 |
+| Resolved | 3 |
+| Escalated | 0 |
