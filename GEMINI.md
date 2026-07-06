@@ -12,9 +12,11 @@ A CLI-based post-processing tool that takes pre-categorized housing PDFs and the
 
 - **Model**: Gemma 4 26B A4B IT — all LLM calls use this model
 - **Rate Limit**: Minimum 7 seconds between LLM requests, enforced centrally
+- **Failure Threshold**: Pipeline aborts with `LLMFailureError` after 5 consecutive global 500/Timeout errors across all providers
 - **Single Processing**: No batch mode — one house directory per invocation
 - **Compatibility**: Must consume the JSON report format from the existing categorizer without modification
 - **Language**: Output filenames and LLM summaries in Arabic
+
 
 <!-- GSD:project-end -->
 
@@ -77,7 +79,7 @@ A CLI-based post-processing tool that takes pre-categorized housing PDFs and the
 
 - **Why**: PROJECT.md requires "Pydantic validation of `sample-config.yaml` format on startup before any processing". Pydantic v2 is the standard for typed config validation in Python.
 - **Pattern**: Define the config as a `BaseSettings` model with `YamlConfigSettingsSource`, then env vars can override YAML values (e.g., `GEMINI_API_KEY`).
-- **Best practice**: Use `model_config = SettingsConfigDict(extra="forbid")` to catch typos in YAML.
+- **Best practice**: Use `model_config = SettingsConfigDict` configured with `extra="forbid"` to catch typos in YAML.
 
 ### CLI Framework — `argparse` (stdlib)
 
@@ -141,7 +143,7 @@ A CLI-based post-processing tool that takes pre-categorized housing PDFs and the
 
 | Library | Verdict | Why Not |
 |---------|---------|---------|
-| `ruamel.yaml` | ❌ Skip | Designed for round-trip editing (preserving comments). Slower than PyYAML. This project only reads YAML. |
+| `ruamel-yaml` | ❌ Skip | Designed for round-trip editing (preserving comments). Slower than PyYAML. This project only reads YAML. |
 | `strictyaml` | ⚠️ Interesting | Type-safe YAML without implicit typing. But Pydantic already handles validation, so this is redundant. |
 
 ### Fuzzy Matching

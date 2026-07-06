@@ -3,9 +3,19 @@
 
 ## Local Setup
 To set up the project for development:
-1. **Clone and Install**: Follow the steps in [GETTING-STARTED.md](docs/GETTING-STARTED.md).
-2. **Environment Configuration**: Copy `.env.example` (if available) to `.env` and populate your API keys.
-3. **Logging**: The system automatically creates a `logs/` directory. You can monitor the application's progress by tailing the latest `_app.log` file.
+1. **Clone the repository**: `git clone <repository-url>` and `cd file-organizer`
+2. **Virtual Environment**: Create and activate a Python virtual environment.
+   ```bash
+   python -m venv venv
+   # On Windows: venv\Scripts\activate
+   # On macOS/Linux: source venv/bin/activate
+   ```
+3. **Install Dependencies**: Install the required packages.
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. **Environment Configuration**: Copy `.env.example` to `.env` and populate your API keys.
+5. **Logging**: The system automatically creates a `logs/` directory. You can monitor the application's progress by tailing the latest `_app.log` file. Additionally, structured audit trails for AI decisions are saved as JSON files in the `traces/` subdirectory of the current run folder.
 
 ## Build Commands
 The project is a pure Python application and does not require a compilation step.
@@ -22,7 +32,7 @@ The project adheres to standard Python PEP 8 guidelines. While no automated lint
 - **Flake8** or **Ruff**: For linting.
 
 ## Branch Conventions
-No formal branch naming convention is documented. It is recommended to use feature-based naming:
+No formal branch naming convention is documented. The default branch is `main`. It is recommended to use feature-based naming:
 - `feat/description` for new features.
 - `fix/description` for bug fixes.
 
