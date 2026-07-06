@@ -2,6 +2,8 @@ from typing import Any
 import logging
 from src.core.schemas import GroupEntry, DocumentGroup, GroupingResponse
 from src.core.config import GEMINI_MODEL
+from src.llm.llm import LLMFailureError
+from src.llm_client import LLMChunkShrinkRequiredError
 
 log = logging.getLogger(__name__)
 
@@ -139,11 +141,11 @@ def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup
         prompt = f"{GROUPING_PROMPT}\\n\\nChunk range: Page {current_page_index} to Page {end_index - 1}\\n\\nPages Data:\\n{pages_text}"
         
         try:
-            response = llm_client._route_llm_call(
+            response = llm_client.generate_content(
                 model=GEMINI_MODEL,
                 contents=[prompt],
                 response_schema=GroupingResponse,
-                log_prefix="Grouping"
+                is_boundary_call=True
             )
             
             verify_groups(response.groups, current_page_index, end_index)
@@ -151,18 +153,22 @@ def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup
             chunk_groups = []
             for g in response.groups:
                 g_pages = pages[g.start_page : g.end_page + 1]
-                res = getattr(g_pages[0], "residents", [])
-                primary_tenant = res[0] if res else "UNKNOWN"
+                primary_tenant = getattr(g_pages[0], "canonical_tenant", "Unassigned")
+                if primary_tenant == "Unassigned":
+                    log.warning("Tenant could not be resolved for group. Falling back to Unassigned.")
                 category = getattr(g_pages[0], "category", "UNKNOWN")
                 dates = []
                 for p in g_pages:
-                    d = getattr(p, "date", None)
+                    d = getattr(p, "resolved_date", getattr(p, "date", None))
                     if d and d != "NONE":
                         dates.append(d)
                 
+                start_page_original = getattr(g_pages[0], "original_index", g.start_page)
+                end_page_original = getattr(g_pages[-1], "original_index", g.end_page)
+                
                 doc_group = DocumentGroup(
-                    start_page=g.start_page,
-                    end_page=g.end_page,
+                    start_page=start_page_original,
+                    end_page=end_page_original,
                     primary_tenant=primary_tenant,
                     category=category,
                     dates=dates,
@@ -172,7 +178,8 @@ def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup
                 chunk_groups.append(doc_group)
                 
             if final_groups and current_page_index > 0:
-                final_groups = merge_chunks(final_groups, chunk_groups, current_page_index)
+                overlap_original_idx = getattr(pages[current_page_index], "original_index", current_page_index)
+                final_groups = merge_chunks(final_groups, chunk_groups, overlap_original_idx)
             else:
                 final_groups.extend(chunk_groups)
                 
@@ -189,6 +196,13 @@ def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup
                 chunk_size_idx = min(chunk_size_idx + 1, len(CHUNK_SIZES) - 1)
                 consecutive_failures = 0
                 log.warning(f"Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
+        except LLMChunkShrinkRequiredError as e:
+            total_failures += 1
+            chunk_size_idx = min(chunk_size_idx + 1, len(CHUNK_SIZES) - 1)
+            consecutive_failures = 0
+            log.warning(f"Boundary call failed: {e}. Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
+        except LLMFailureError:
+            raise
         except Exception as e:
             # Treat 500 and other LLM errors (which llm_client raises if all retries fail) as failure
             # 429s are handled normally inside llm_client._route_llm_call (it sleeps and retries).
@@ -206,5 +220,12 @@ def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup
                 # Other errors (e.g. 401, etc.) just raise
                 raise e
     
+    from src.logger import log_decision_trace
+    try:
+        payload_groups = [g.model_dump() if hasattr(g, "model_dump") else g.dict() for g in final_groups]
+    except Exception:
+        payload_groups = []
+        
+    log_decision_trace("grouping", {"final_groups": payload_groups})
+    log.info(f"Grouping complete. Identified {len(final_groups)} groups.")
     return final_groups
-
