@@ -1,26 +1,26 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: "### Phase 1: Foundation & Infrastructure"
+milestone: v1.1
+milestone_name: "Legacy Code Cleanup"
 status: Milestone complete
-stopped_at: Phase 15 context gathered
-last_updated: "2026-07-06T09:43:19.252Z"
+stopped_at: Phase 16 cleanup complete
+last_updated: "2026-07-06T12:00:00.000Z"
 progress:
   total_phases: 5
-  completed_phases: 0
-  total_plans: 3
-  completed_plans: 0
-  percent: 0
+  completed_phases: 5
+  total_plans: 5
+  completed_plans: 5
+  percent: 100
 ---
 
 # Project State
 
 ## Project Reference
 
-See .planning/PROJECT.md (updated 2026-07-03)
+See .planning/PROJECT.md (updated 2026-07-06)
 
 **Core value:** Automatically transform a flat, pre-categorized PDF into a perfectly organized folder structure per tenant, with zero manual sorting.
-**Current focus:** Phase 11 — close-gaps-llm-01-to-llm-08-log-02-out-05-grp-10-wire-correc
+**Current focus:** None (Milestone v1.1 complete)
 
 ## Current Status
 
@@ -32,16 +32,11 @@ See .planning/PROJECT.md (updated 2026-07-03)
 
 | Phase | Name | Status | Plans |
 |-------|------|--------|-------|
-| 1 | Foundation & Infrastructure | ● Complete | 3/3 |
-| 2 | Pass 1 — Document Cleaning | ● Complete | 1/1 |
-| 3 | Pass 2 — Grouping & Routing | ● Complete | 6/6 |
-| 4 | Output Structure & Reconciliation | ● Complete | 2/2 |
-| 5 | Dry Run & Polish | ● Complete | 2/2 |
-| 6 | Milestone 1.0 Audit Gap Closures | ● Complete | 1/1 |
-| 7 | Cross-Phase Integration Fixes | ● Complete | 1/1 |
-| 8 | Address tech debt: test assertions for logs/fallback | ● Complete | 4/4 |
-| 9 | Final E2E Sweep | ● Complete | 1/1 |
-| 10 | Close gaps: sanitize_filename & LLM 500 handling | ● Complete | 1/1 |
+| 12 | Config & Scripts Cleanup | ● Complete | 1/1 |
+| 13 | Pipeline Orchestrator Cleanup | ● Complete | 1/1 |
+| 14 | Remove Dead Processing Modules | ● Complete | 1/1 |
+| 15 | Prune `src/core` | ● Complete | 1/1 |
+| 16 | Test Suite Cleanup | ● Complete | 1/1 |
 
 ## Quick Tasks Completed
 
@@ -53,12 +48,12 @@ See .planning/PROJECT.md (updated 2026-07-03)
 
 | Date | Decision | Context |
 |------|----------|---------|
-| 2026-07-03 | Two-pass architecture (Clean → Group) | Pass 1 guarantees clean data for Pass 2 |
+| 2026-07-03 | Two-pass architecture (Clean $ightarrow$ Group) | Pass 1 guarantees clean data for Pass 2 |
 | 2026-07-03 | Anchor-based tenant resolution | High-signal docs only; 5-doc + 1-anchor threshold |
 | 2026-07-03 | Overlapping chunks for boundary detection | 1-page overlap with set-intersection merge |
 | 2026-07-03 | Subject/content shift as ONLY boundary signal | Date/sender changes are metadata, not boundaries |
 | 2026-07-03 | Hardcoded routing rules | Dropped YAML config — simpler, suits the structure |
-| 2026-07-03 | Timeline as ownership authority | Overlap periods → earlier tenant |
+| 2026-07-03 | Timeline as ownership authority | Overlap periods $ightarrow$ earlier tenant |
 | 2026-07-03 | Arabic filename from grouping call | No separate LLM call — title piggybacks on boundary detection |
 | 2026-07-03 | Gemma 4 26B A4B IT (default) with --model flag for 31B | CLI flag for model switching |
 | 2026-07-03 | Custom retry logic for LLMClient | 500 boundary/non-boundary logic required stateful loop |
@@ -73,24 +68,19 @@ See .planning/PROJECT.md (updated 2026-07-03)
 | 2026-07-05 | bytes decode(utf-8, errors=replace) for subprocess tests | Windows cp1252 causes UnicodeDecodeError when rich uses box chars |
 
 ---
-*Last updated: 2026-07-05 after Phase 05 completion*
+*Last updated: 2026-07-06 after Milestone v1.1 completion*
 
 ## Session
 
 **Last session:** 2026-07-06T09:43:19.238Z
-**Stopped at:** Phase 15 context gathered
-**Resume file:** .planning/phases/15-prune-src-core/15-CONTEXT.md
+**Stopped at:** Phase 16 cleanup complete
 
 ### Roadmap Evolution
 
 - Phase 6 added: Milestone 1.0 Audit Gap Closures
 - Phase 7 added: Cross-Phase Integration Fixes — tenant/date mapping, relative indexing, CLI flags, dry-run safety
 - Phase 8 added: Address tech debt: test assertions for logs/fallback
-
-## Accumulated Context
-
-### Roadmap Evolution
-
 - Phase 9 added: Final E2E Sweep: Fix absolute PDF indexing, array bounds alignment, resolved dates, LLM logging, and pipeline architecture
 - Phase 10 added: Close gaps: Wire correct sanitize_filename and fix LLM 500 error handling
 - Phase 11 added: Close gaps: LLM-01 to LLM-08, LOG-02, OUT-05, GRP-10 — Wire correct LLMClient error handling, audit logging, unassigned folder naming, and semantic routing
+- Phase 12-16 added: Legacy Code Cleanup (v1.1)
