@@ -27,6 +27,10 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **CLN-07**: Remove the unused `process_pdf` method and its helpers from `src/processing/pipeline.py`.
 - [ ] **CLN-08**: Remove unused config arguments from `_group_and_route_documents` in `pipeline.py`.
 
+### Test Suite Cleanup
+
+- [ ] **CLN-09**: Remove `test_ingest.py`, `test_config.py`, and prune legacy legacy tests from `test_pipeline.py`.
+
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
@@ -58,10 +62,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | CLN-06 | Phase 14 | Pending |
 | CLN-07 | Phase 15 | Pending |
 | CLN-08 | Phase 15 | Pending |
+| CLN-09 | Phase 16 | Pending |
 
 **Coverage:**
-- v1 requirements: 8 total
-- Mapped to phases: 8
+- v1 requirements: 9 total
+- Mapped to phases: 9
 - Unmapped: 0 ✓
 
 ---

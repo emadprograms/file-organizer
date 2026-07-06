@@ -30,3 +30,11 @@
 1. `process_pdf`, `_run_cleaning_pass`, `_interpolate_dates`, `_map_aliases`, `_parse_date` deleted from `pipeline.py`.
 2. `config` parameter removed from `_group_and_route_documents` (and its signature updated in `organize.py` where it's called).
 3. The pipeline can successfully be imported and used by `organize.py` without throwing runtime errors.
+
+## Phase 16: Test Suite Cleanup
+**Goal:** Remove tests that validate the legacy code (YAML parsing, vision extraction, legacy pipeline flow).
+**Requirements:** CLN-09
+**Success Criteria:**
+1. `tests/test_ingest.py` and `tests/test_config.py` are deleted.
+2. `tests/test_pipeline.py` is stripped of legacy mock-heavy tests (e.g., tests checking image extraction or YAML fallback).
+3. `pytest` runs successfully on the remaining codebase.
