@@ -3,24 +3,24 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: "### Phase 1: Foundation & Infrastructure"
 status: Milestone complete
-stopped_at: Phase 10 context gathered
-last_updated: "2026-07-05T20:50:37.441Z"
+stopped_at: Phase 11 context gathered
+last_updated: "2026-07-06T05:24:54.039Z"
 progress:
-  total_phases: 10
-  completed_phases: 8
-  total_plans: 18
-  completed_plans: 18
-  percent: 80
+  total_phases: 11
+  completed_phases: 9
+  total_plans: 19
+  completed_plans: 19
+  percent: 82
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-07-03)
+See .planning/PROJECT.md (updated 2026-07-03)
 
 **Core value:** Automatically transform a flat, pre-categorized PDF into a perfectly organized folder structure per tenant, with zero manual sorting.
-**Current focus:** Phase 09 — final-e2e-sweep-fix-absolute-pdf-indexing-array-bounds-align
+**Current focus:** Milestone v1.0 Complete
 
 ## Current Status
 
@@ -41,6 +41,7 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 | 7 | Cross-Phase Integration Fixes | ● Complete | 0/0 |
 | 8 | Address tech debt: test assertions for logs/fallback | ● Complete | 4/4 |
 | 9 | Final E2E Sweep | ● Complete | 1/1 |
+| 10 | Close gaps: sanitize_filename & LLM 500 handling | ● Complete | 1/1 |
 
 ## Decision Log
 
@@ -70,9 +71,9 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 
 ## Session
 
-**Last session:** 2026-07-05T20:50:37.423Z
-**Stopped at:** Phase 10 context gathered
-**Resume file:** .planning/phases/10-close-gaps-wire-correct-sanitize-filename-and-fix-llm-500-er/10-CONTEXT.md
+**Last session:** 2026-07-06T05:24:54.023Z
+**Stopped at:** Phase 11 context gathered
+**Resume file:** .planning/phases/11-close-gaps-llm-01-to-llm-08-log-02-out-05-grp-10-wire-correc/11-CONTEXT.md
 
 ### Roadmap Evolution
 
@@ -86,3 +87,4 @@ See: .planning/PROJECT.md (updated 2026-07-03)
 
 - Phase 9 added: Final E2E Sweep: Fix absolute PDF indexing, array bounds alignment, resolved dates, LLM logging, and pipeline architecture
 - Phase 10 added: Close gaps: Wire correct sanitize_filename and fix LLM 500 error handling
+- Phase 11 added: Close gaps: LLM-01 to LLM-08, LOG-02, OUT-05, GRP-10 — Wire correct LLMClient error handling, audit logging, unassigned folder naming, and semantic routing
