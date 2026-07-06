@@ -79,6 +79,7 @@ class LLMClient:
         self._cached_schema = None
         self._cached_schema_lock = threading.Lock()
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
+        self.global_consecutive_500_errors = 0
 
     def activate_cooldown(self) -> None:
         """Activate a long sleep to recover from severe rate limits (e.g., 429)."""
@@ -118,8 +119,8 @@ class LLMClient:
                     start, end = 0, 0
                 return GroupingResponse(groups=[GroupEntry(start_page=start, end_page=end, reason="mock skip-llm", brief_arabic_title="عنوان تجريبي")])
             elif schema_name == "RoutingResponse":
-                from src.core.schemas import RoutingResponse
-                return RoutingResponse(selected_folder="13_others")
+                from src.processing.routing import RoutingResponse
+                return RoutingResponse(selected_folder="13_others", reason="mock skip-llm")
                 
         provider_sequence = [self.providers[0]]
         or_provider = next((p for p in self.providers if p.name == "openrouter"), None)
@@ -142,6 +143,7 @@ class LLMClient:
 
         current_provider_idx = 0
         provider_attempts = 0
+        last_error_is_5xx = False
         
         while current_provider_idx < len(provider_sequence):
             provider_obj = provider_sequence[current_provider_idx]
@@ -201,6 +203,7 @@ class LLMClient:
 
                 record_successful_call()
                 self.total_requests += 1
+                self.global_consecutive_500_errors = 0
 
                 elapsed = time.time() - start_time
                 if elapsed < 7.0:
@@ -217,6 +220,8 @@ class LLMClient:
                 is_auth = "401" in error_str or "403" in error_str or "400" in error_str or "api key not valid" in error_str or "invalid_api_key" in error_str
                 is_429 = "429" in error_str or "too many requests" in error_str or "quota" in error_str or "resource exhausted" in error_str
                 is_5xx = "500" in error_str or "503" in error_str or "internal error" in error_str or "timeout" in error_str
+                
+                last_error_is_5xx = is_5xx or isinstance(e, TimeoutError)
                 
                 log.warning(f"[{log_prefix} - {provider_name} attempt {provider_attempts}] LLM call failed: {e}")
                 
@@ -265,6 +270,11 @@ class LLMClient:
                     continue
                 time.sleep(7.5)
                 continue
+
+        if last_error_is_5xx:
+            self.global_consecutive_500_errors += 1
+            if self.global_consecutive_500_errors >= 5:
+                raise LLMFailureError("Global 500 error limit reached. Aborting pipeline.")
 
         raise RuntimeError("LLM routing failed across all providers")
 

@@ -94,7 +94,7 @@ class MockLLMForOverlap:
         self.calls = []
         self.chunk_ranges = []
 
-    def _route_llm_call(self, model, contents, response_schema, log_prefix=None, max_attempts=None):
+    def generate_content(self, model, contents, response_schema=None, is_boundary_call=False, config=None, **kwargs):
         self.calls.append(contents)
         import re
         match = re.search(r"Chunk range: Page (\d+) to Page (\d+)", contents[0])

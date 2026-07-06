@@ -186,7 +186,7 @@ def test_unassigned_folder_period(mock_extract, organizer, mock_config, tmp_path
         DocumentGroup(start_page=2, end_page=3, primary_tenant="Unassigned (2021-05)", category="BASIC_DETAILS", dates=["2023-01-01", "2023-01-01"], folder_path="1_requests_and_applications", is_direct_routed=True),
     ]
     organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
-    assert (tmp_path / "HOUSE_123" / "غير مخصص (فترة مستنتجة) 2020-2023").exists()
+    assert (tmp_path / "HOUSE_123" / "غير مخصص (فترة مستنتجة) 2020-01 to 2023-01").exists()
 
 @patch('src.processing.organizer.extract_pdf_segment')
 def test_unassigned_folder_fallback(mock_extract, organizer, mock_config, tmp_path):

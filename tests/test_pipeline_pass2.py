@@ -14,10 +14,10 @@ def test_category_presplit():
     
     # 4 pages: first 2 are forms, next 2 are letters
     # Wait, the pipeline splits by category AND residents[0]
-    p0 = PageData(category="forms", residents=["Ahmed"], date="2024-01-01", summary="")
-    p1 = PageData(category="forms", residents=["Ahmed"], date="2024-01-02", summary="")
-    p2 = PageData(category="letters", residents=["Ahmed"], date="2024-01-03", summary="")
-    p3 = PageData(category="forms", residents=["Ali"], date="2024-01-04", summary="")
+    p0 = PageData(category="forms", canonical_tenant="Ahmed", residents=["Ahmed"], date="2024-01-01", summary="")
+    p1 = PageData(category="forms", canonical_tenant="Ahmed", residents=["Ahmed"], date="2024-01-02", summary="")
+    p2 = PageData(category="letters", canonical_tenant="Ahmed", residents=["Ahmed"], date="2024-01-03", summary="")
+    p3 = PageData(category="forms", canonical_tenant="Ali", residents=["Ali"], date="2024-01-04", summary="")
     
     raw_pages = [(0, p0), (1, p1), (2, p2), (3, p3)]
     
@@ -61,8 +61,8 @@ def test_routing_integration():
     pipeline = Pipeline("dummy_key")
     
     # 2 pages of category "contract" (single match) -> "5_contract"
-    p0 = PageData(category="contract", residents=["Ahmed"], date="2024-01-01", summary="")
-    p1 = PageData(category="contract", residents=["Ahmed"], date="2024-01-02", summary="")
+    p0 = PageData(category="contract", canonical_tenant="Ahmed", residents=["Ahmed"], date="2024-01-01", summary="")
+    p1 = PageData(category="contract", canonical_tenant="Ahmed", residents=["Ahmed"], date="2024-01-02", summary="")
     
     raw_pages = [(0, p0), (1, p1)]
     
@@ -71,7 +71,7 @@ def test_routing_integration():
     pipeline.client = mock_client
     
     # We don't mock grouping.process_with_shrink, we mock the LLM call inside it
-    mock_client._route_llm_call.return_value = GroupingResponse(
+    mock_client.generate_content.return_value = GroupingResponse(
         groups=[
             GroupEntry(start_page=0, end_page=1, reason="Test", brief_arabic_title="Test Title")
         ]

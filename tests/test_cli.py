@@ -16,6 +16,12 @@ def test_parser_custom_model():
     args = parser.parse_args(["./pdfs/1273", "--model", "gemma-4-31b-it"])
     assert args.model == "gemma-4-31b-it"
 
+def test_parser_flags():
+    parser = get_parser()
+    args = parser.parse_args(["./pdfs/1273", "--verbose", "--skip-llm"])
+    assert args.verbose is True
+    assert args.skip_llm is True
+
 @patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"}, clear=True)
 def test_validate_environment_success():
     # Should not exit

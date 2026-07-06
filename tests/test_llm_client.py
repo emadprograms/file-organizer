@@ -4,6 +4,7 @@ from unittest.mock import patch, MagicMock
 from src.llm_client import (
     LLMClient,
     LLMClientError,
+    LLMChunkShrinkRequiredError,
     LLMRateLimitError,
     LLMServerError,
 )
@@ -77,18 +78,12 @@ def test_500_boundary_call_shrink_and_fail(llm_client, mock_sleep):
     error.code = 500
     llm_client.client.models.generate_content.side_effect = error
     
-    shrink_called = False
-    def on_shrink():
-        nonlocal shrink_called
-        shrink_called = True
-        
     with patch("src.llm_client.time.time", return_value=1000.0):
-        with pytest.raises(LLMServerError, match="Boundary call failed"):
-            llm_client.generate_content("test", is_boundary_call=True, on_shrink_chunk=on_shrink)
+        with pytest.raises(LLMChunkShrinkRequiredError, match="Boundary call failed"):
+            llm_client.generate_content("test", is_boundary_call=True)
             
-    assert shrink_called
     sleeps = [call[0][0] for call in mock_sleep.call_args_list]
-    assert sleeps.count(15) == 9
+    assert sleeps.count(15) == 4
 
 def test_500_non_boundary_skip(llm_client, mock_sleep):
     error = APIError("Server Error", {})

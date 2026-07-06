@@ -3,25 +3,31 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
 import pytest
-from fs_utils import sanitize_filename, atomic_write
+from fs_utils import atomic_write
+from core.utils import sanitize_filename
 
 def test_sanitize_filename():
     assert sanitize_filename("test") == "test"
     
-    # Strip Windows reserved characters
-    assert sanitize_filename('invalid<name>.txt') == 'invalidname.txt'
-    assert sanitize_filename('test|name?.txt') == 'testname.txt'
-    assert sanitize_filename('file/name\\with*chars:.txt') == 'filenamewithchars.txt'
+    # Replace illegal characters with underscore and collapse
+    assert sanitize_filename('invalid<name>.txt') == 'invalid_name_.txt'
+    assert sanitize_filename('test|name?.txt') == 'test_name_.txt'
+    assert sanitize_filename('file/name\\with*chars:.txt') == 'file_name_with_chars_.txt'
     
     # Unicode NFC normalization and stripping invisible controls
     assert sanitize_filename("test\u200ename") == "testname"
     
-    # Truncate to 200 chars
-    long_name = "a" * 250
-    assert len(sanitize_filename(long_name)) == 200
+    # Truncate to 200 chars while preserving extension
+    long_name = "a" * 250 + ".txt"
+    sanitized = sanitize_filename(long_name)
+    assert len(sanitized) == 200
+    assert sanitized.endswith(".txt")
     
     # Truncate and strip
-    assert len(sanitize_filename("a" * 250 + "\u200e")) == 200
+    long_name2 = "a" * 250 + "\u200e.pdf"
+    sanitized2 = sanitize_filename(long_name2)
+    assert len(sanitized2) == 200
+    assert sanitized2.endswith(".pdf")
 
 def test_atomic_write_success(tmp_path):
     target_file = tmp_path / "output.txt"

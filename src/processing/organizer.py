@@ -69,7 +69,7 @@ class FileOrganizer:
                 min_val = min(years)
                 max_val = max(years)
                 if tenant == "Unassigned":
-                    tenant_folder_names[tenant] = f"غير مخصص ({min_val} to {max_val})"
+                    tenant_folder_names[tenant] = f"غير مخصص (فترة مستنتجة) {min_val} to {max_val}"
                 else:
                     safe_name = utils.sanitize_filename(tenant)
                     tenant_folder_names[tenant] = f"{safe_name} {min_val}-{max_val}"

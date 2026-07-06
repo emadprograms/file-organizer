@@ -4,12 +4,14 @@ from unittest.mock import patch, MagicMock
 from src.core.config import GEMINI_MODEL
 from src.llm.llm import LLMClient
 from src.llm.providers import GeminiProvider, OpenRouterProvider, GroqProvider
+import logging
 
 @patch.dict('os.environ', {
     'OPENROUTER_API_KEY': 'invalid_or_key',
     'GROQ_API_KEY': 'invalid_groq_key'
 })
-def test_live_fallback_invalid_key_fail_fast():
+def test_live_fallback_invalid_key_fail_fast(caplog):
+    caplog.set_level(logging.WARNING)
     client = LLMClient(api_key="invalid_gemini_key")
     
     with patch.object(OpenRouterProvider, 'generate') as mock_or, \
@@ -31,8 +33,13 @@ def test_live_fallback_invalid_key_fail_fast():
         # Ensure secondary providers were NOT invoked
         mock_or.assert_not_called()
         mock_groq.assert_not_called()
+        
+        # Verify that warning was logged
+        warning_logs = [record for record in caplog.records if record.levelno == logging.WARNING]
+        assert any("Auth/Bad Request error" in record.message for record in warning_logs), "Should log warning on auth fail"
 
-def test_mocked_fallback_chain_integration():
+def test_mocked_fallback_chain_integration(caplog):
+    caplog.set_level(logging.WARNING)
     client = LLMClient(api_key="dummy")
     # Need to force providers to exist if not loaded by environ
     client.providers = [
@@ -60,3 +67,8 @@ def test_mocked_fallback_chain_integration():
         assert mock_gemini.call_count == 6
         mock_openrouter.assert_called_once()
         mock_groq.assert_called_once()
+        
+        # Verify fallback warnings were logged
+        warning_logs = [record for record in caplog.records if record.levelno == logging.WARNING]
+        assert any("5xx/timeout on gemini" in record.message.lower() for record in warning_logs), "Should warn about gemini 5xx"
+        assert any("cloud fallback" in record.message.lower() for record in warning_logs), "Should log cloud fallback"

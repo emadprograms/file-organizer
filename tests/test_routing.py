@@ -4,22 +4,29 @@ import pytest
 from src.processing.routing import route_document, SINGLE_MATCH, MULTI_MATCH, FOLDER_ROUTING, CATEGORY_TO_FOLDERS
 from src.core.schemas import DocumentGroup
 
-class MockRoutingResponse:
-    def __init__(self, selected_folder):
+class MockParsedResponse:
+    def __init__(self, selected_folder, reason="mock reason"):
         self.selected_folder = selected_folder
+        self.reason = reason
+
+class MockResponse:
+    def __init__(self, parsed):
+        self.parsed = parsed
 
 class MockLLMClient:
     def __init__(self, responses=None):
         self.responses = responses or []
         self.call_count = 0
         
-    def _route_llm_call(self, model, contents, response_schema, log_prefix=None, max_attempts=None):
+    def generate_content(self, model, contents, response_schema=None, config=None, **kwargs):
         if self.call_count < len(self.responses):
             resp = self.responses[self.call_count]
             self.call_count += 1
             if isinstance(resp, Exception):
                 raise resp
-            return MockRoutingResponse(resp)
+            if response_schema:
+                return MockParsedResponse(resp)
+            return MockResponse(resp)
         raise Exception("No more mock responses")
 
 def test_routing_dict():
