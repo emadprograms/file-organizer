@@ -38,7 +38,7 @@ See .planning/PROJECT.md (updated 2026-07-03)
 | 4 | Output Structure & Reconciliation | ● Complete | 2/2 |
 | 5 | Dry Run & Polish | ● Complete | 2/2 |
 | 6 | Milestone 1.0 Audit Gap Closures | ● Complete | 1/1 |
-| 7 | Cross-Phase Integration Fixes | ● Complete | 0/0 |
+| 7 | Cross-Phase Integration Fixes | ● Complete | 1/1 |
 | 8 | Address tech debt: test assertions for logs/fallback | ● Complete | 4/4 |
 | 9 | Final E2E Sweep | ● Complete | 1/1 |
 | 10 | Close gaps: sanitize_filename & LLM 500 handling | ● Complete | 1/1 |

@@ -167,7 +167,7 @@ Plans:
 - [x] 3. Add Caplog Assertions to LLM Retry Tests
 - [x] 4. Verify the Test Suite Passes
 
-### Phase 9: Final E2E Sweep: Fix absolute PDF indexing, array bounds alignment, resolved dates, LLM logging, and pipeline architecture
+### [x] Phase 9: Final E2E Sweep: Fix absolute PDF indexing, array bounds alignment, resolved dates, LLM logging, and pipeline architecture
 
 **Goal:** Final E2E Sweep: Fix absolute PDF indexing, array bounds alignment, resolved dates, LLM logging, and pipeline architecture
 **Requirements**: CLN-08, GRP-06, LOG-02, OUT-06
@@ -176,7 +176,29 @@ Plans:
 
 Plans:
 
-- [ ] 1. Core Implementation and Verification
+- [x] 1. Core Implementation and Verification
+
+### [x] Phase 10: Close gaps: Wire correct sanitize_filename and fix LLM 500 error handling
+
+**Goal:** Standardize `sanitize_filename` across the project to ensure file extensions are preserved while maintaining safety truncations. Implement a global LLM 500 error counter to abort the pipeline cleanly upon persistent failure.
+**Requirements**: None
+**Depends on:** Phase 9
+**Plans:** 1/1 plans complete
+
+Plans:
+
+- [x] 1. Core Implementation and Verification
+
+### Phase 11: Close gaps: LLM-01 to LLM-08, LOG-02, OUT-05, GRP-10 — Wire correct LLMClient error handling, audit logging, unassigned folder naming, and semantic routing
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 10
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 11 to break down)
 
 ---
 *Roadmap created: 2026-07-03*
