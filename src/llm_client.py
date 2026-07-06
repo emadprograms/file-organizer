@@ -19,6 +19,10 @@ class LLMServerError(LLMClientError):
     """Raised when 500 Server Errors exceed maximum allowed."""
     pass
 
+class LLMChunkShrinkRequiredError(LLMClientError):
+    """Raised when consecutive 500 Server Errors hit threshold on boundary calls, forcing prompt shrinking."""
+    pass
+
 class LLMClient:
     def __init__(self, api_key: str | None = None):
         self.client = genai.Client(api_key=api_key)
@@ -37,9 +41,9 @@ class LLMClient:
         contents: Any,
         model: Optional[str] = None,
         is_boundary_call: bool = False,
-        on_shrink_chunk: Optional[Callable[[], None]] = None,
+        response_schema: type | None = None,
         **kwargs
-    ) -> Optional[types.GenerateContentResponse]:
+    ) -> Any:
         """
         Generates content using the LLM with built-in retry and rate limiting logic.
         """
@@ -56,6 +60,12 @@ class LLMClient:
                 logger.debug(f"Sending request to LLM (model: {model}).")
                 logger.debug(f"Contents being sent:\n{contents}")
                 
+                if response_schema:
+                    kwargs["config"] = types.GenerateContentConfig(
+                        response_mime_type="application/json",
+                        response_schema=response_schema
+                    )
+
                 response = self.client.models.generate_content(
                     model=model,
                     contents=contents,
@@ -65,6 +75,8 @@ class LLMClient:
                 logger.debug(f"Received response from LLM:")
                 logger.debug(f"{response.text if hasattr(response, 'text') else response}")
                 
+                if response_schema:
+                    return response.parsed
                 return response
                 
             except APIError as e:
@@ -92,13 +104,9 @@ class LLMClient:
                     logger.warning(f"HTTP {status_code}. Consecutive 500s: {consecutive_500}")
                     
                     if is_boundary_call:
-                        if consecutive_500 == 5:
+                        if consecutive_500 >= 5:
                             logger.warning("5 consecutive 500s on boundary call. Signaling chunk shrink.")
-                            if on_shrink_chunk:
-                                on_shrink_chunk()
-                        if consecutive_500 >= 10:
-                            logger.error("10 consecutive 500s on boundary call. Failing.")
-                            raise LLMServerError("Boundary call failed after 10 consecutive 500 errors.") from e
+                            raise LLMChunkShrinkRequiredError("Boundary call failed after 5 consecutive 500 errors. Shrink chunk.")
                     else:
                         if consecutive_500 >= 5:
                             logger.warning("5 consecutive 500s on non-boundary call. Skipping item.")
