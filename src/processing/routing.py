@@ -4,6 +4,7 @@ import logging
 from typing import Any
 from pydantic import BaseModel, Field
 from src.core.schemas import DocumentGroup
+from src.llm.llm import LLMFailureError
 
 log = logging.getLogger(__name__)
 
@@ -35,6 +36,7 @@ MULTI_MATCH = {cat for cat, folders in CATEGORY_TO_FOLDERS.items() if len(folder
 
 class RoutingResponse(BaseModel):
     selected_folder: str = Field(description="The exact name of the selected folder from the allowed list")
+    reason: str = Field(description="Explanation of why this folder was selected")
 
 def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
     """Route a document group to the appropriate folder.
@@ -74,7 +76,7 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
     from src.core.config import GEMINI_MODEL
     
     prompt_template = """You are an expert document routing assistant.
-Your task is to assign a document to the most appropriate folder based on its summary.
+Your task is to assign a document to the most appropriate folder based on its summary, and explain why the document fits into the selected folder based on the summary.
 
 Allowed Folders for this document type:
 {allowed_folders}
@@ -102,18 +104,27 @@ Respond only with a valid JSON matching the requested schema. The selected_folde
     
     for attempt in range(2): # Try once, and retry once
         try:
-            result = llm_client._route_llm_call(
+            result = llm_client.generate_content(
                 model=GEMINI_MODEL,
                 contents=contents,
-                response_schema=RoutingResponse,
-                log_prefix=f"RoutingLLM-Attempt{attempt+1}"
+                response_schema=RoutingResponse
             )
+            if result is None:
+                log.warning("LLM routing returned None (likely skipped due to errors).")
+                continue
+                
             selected = result.selected_folder
+            reason = result.reason
             if selected in allowed_folders:
                 consecutive_routing_failures = 0
+                log.info(f"Routed category '{category}' to '{selected}'. Reason: {reason}")
+                from src.logger import log_decision_trace
+                log_decision_trace("routing", {"category": category, "selected": selected, "reason": reason})
                 return selected, False
             else:
                 log.warning(f"LLM selected invalid folder: {selected}. Expected one of {allowed_folders}")
+        except LLMFailureError:
+            raise
         except Exception as e:
             log.warning(f"LLM routing failed on attempt {attempt+1}: {e}")
             
