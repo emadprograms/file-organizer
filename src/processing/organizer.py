@@ -38,7 +38,7 @@ class FileOrganizer:
             return []
 
         # 1. Aggregation pass to compute (min_year, max_year) per tenant
-        tenant_years: dict[str, set[int]] = defaultdict(set)
+        tenant_years: dict[str, set[Any]] = defaultdict(set)
         for doc in documents:
             tenant = doc.primary_tenant
             if not tenant:
@@ -53,27 +53,36 @@ class FileOrganizer:
             
             for d in doc.dates:
                 if d and d != "NONE":
-                    year_match = re.search(r'(\d{4})', d.strip())
-                    if year_match:
-                        tenant_years[group_tenant].add(int(year_match.group(1)))
+                    if group_tenant == "Unassigned":
+                        ym_match = re.search(r'(\d{4}-\d{2})', d.strip())
+                        if ym_match:
+                            tenant_years[group_tenant].add(ym_match.group(1))
+                    else:
+                        year_match = re.search(r'(\d{4})', d.strip())
+                        if year_match:
+                            tenant_years[group_tenant].add(int(year_match.group(1)))
 
         # 2. Build tenant folder names
         tenant_folder_names = {}
         for tenant, years in tenant_years.items():
             if years:
-                min_year = min(years)
-                max_year = max(years)
+                min_val = min(years)
+                max_val = max(years)
                 if tenant == "Unassigned":
-                    tenant_folder_names[tenant] = f"غير مخصص (فترة مستنتجة) {min_year}-{max_year}"
+                    tenant_folder_names[tenant] = f"غير مخصص ({min_val} to {max_val})"
                 else:
                     safe_name = utils.sanitize_filename(tenant)
-                    tenant_folder_names[tenant] = f"{safe_name} {min_year}-{max_year}"
+                    tenant_folder_names[tenant] = f"{safe_name} {min_val}-{max_val}"
             else:
                 if tenant == "Unassigned":
                     tenant_folder_names[tenant] = "غير مخصص"
                 else:
                     safe_name = utils.sanitize_filename(tenant)
                     tenant_folder_names[tenant] = f"{safe_name}"
+
+        from src.logger import log_decision_trace
+        log_decision_trace("tenant_resolution", {"tenant_folders": tenant_folder_names})
+        logger.info(f"Tenant resolution complete. Folders: {tenant_folder_names}")
 
         # Proactively create all 13 subdirectories for each tenant
         if not dry_run:
@@ -87,6 +96,7 @@ class FileOrganizer:
 
         per_page = []
         used_names_per_dir: dict[str, set[str]] = defaultdict(set)
+        tree_data = defaultdict(lambda: defaultdict(list))
         
         house_dir = output_base_dir / house_id
         
@@ -137,11 +147,11 @@ class FileOrganizer:
             
             if not dry_run:
                 extract_pdf_segment(str(source_pdf), doc.start_page, doc.end_page, str(target_path))
-                logger.info(f"  → {filename} (pages {doc.start_page}-{doc.end_page})")
+                logger.info(f"  → {filename} (pages {doc.start_page + 1}-{doc.end_page + 1})")
             else:
-                logger.info(f"  [DRY RUN] Would extract: {filename} (pages {doc.start_page}-{doc.end_page}) to {target_dir}")
+                tree_data[tenant_folder][topic_folder].append(f"{filename} (pages {doc.start_page + 1}-{doc.end_page + 1})")
             
-            relative_path = target_path.relative_to(output_base_dir).as_posix()
+            relative_path = target_path.relative_to(output_base_dir.resolve()).as_posix()
             
             page_in_output = 1
             for page_index in range(doc.start_page, doc.end_page + 1):
@@ -155,6 +165,19 @@ class FileOrganizer:
                 })
                 page_in_output += 1
             
+        if dry_run:
+            from rich.tree import Tree
+            from rich.console import Console
+            console = Console()
+            tree = Tree(f"[bold blue]{house_id}[/bold blue]")
+            for t_folder, topics in tree_data.items():
+                t_node = tree.add(f"[bold green]{t_folder}[/bold green]")
+                for topic, files in topics.items():
+                    topic_node = t_node.add(f"[bold yellow]{topic}[/bold yellow]")
+                    for f in files:
+                        topic_node.add(f)
+            console.print(tree)
+
         return per_page
 
 def run_reconciliation(summary: dict, per_page: list, total_input_pages: int, house_id: str, output_dir: Path, dry_run: bool = False):
