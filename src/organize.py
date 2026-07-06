@@ -50,9 +50,6 @@ def validate_target_directory(target_dir: Path) -> str:
         print(f"ERROR: ID mismatch between PDF ({pdf_id}) and JSON ({json_id}).", file=sys.stderr)
         sys.exit(1)
         
-    output_dir = target_dir / "output"
-    output_dir.mkdir(exist_ok=True)
-    
     return pdf_id
 
 def get_parser():
@@ -69,6 +66,21 @@ def get_parser():
         "--dry-run",
         action="store_true",
         help="Preview the pipeline output without writing physical files or PDFs."
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Enable verbose logging."
+    )
+    parser.add_argument(
+        "--skip-llm",
+        action="store_true",
+        help="Skip LLM calls and return mocked schemas."
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        help="Optional: Path to the output base directory. Defaults to the parent of the house folder if target_dir is the house folder, otherwise to target_dir."
     )
     return parser
 
@@ -88,21 +100,34 @@ def main():
     validate_environment()
     house_id = validate_target_directory(args.target_dir)
     
-    log_dir = setup_logging()
+    # Determine output base directory
+    if args.output_dir:
+        output_dir = args.output_dir
+    elif args.target_dir.name == house_id:
+        output_dir = args.target_dir.parent
+    else:
+        output_dir = args.target_dir
+    
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    log_dir = setup_logging(verbose=getattr(args, 'verbose', False))
     logger = logging.getLogger("file_organizer")
     
     logger.info(f"Starting File Organizer Post-Processor for house ID: {house_id}")
     logger.info(f"Target directory: {args.target_dir}")
+    logger.info(f"Output directory: {output_dir}")
     logger.info(f"Using LLM model: {args.model}")
     logger.info(f"Logs will be written to: {log_dir}")
     
     llm_client = LLMClient(api_key=os.getenv("GEMINI_API_KEY"))
     llm_client.default_model = args.model
+    llm_client.skip_llm = getattr(args, 'skip_llm', False)
+    llm_client.verbose = getattr(args, 'verbose', False)
     
     logger.info("Initialization and validation successful.")
     
     json_path = list(args.target_dir.glob("*_report.json"))[0]
-    output_json_path = args.target_dir / "output" / f"{house_id}_cleaned.json"
+    output_json_path = output_dir / f"{house_id}_cleaned.json"
     
     if output_json_path.exists():
         logger.info(f"Skipping Pass 1 (found {output_json_path}). Loading cleaned data.")
@@ -129,9 +154,9 @@ def main():
     from src.processing.pipeline import Pipeline
     from src.processing.organizer import FileOrganizer, run_reconciliation
     
-    checkpoint_dir = args.target_dir / "output" / "checkpoints"
+    checkpoint_dir = output_dir / "checkpoints"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
-    grouped_checkpoint_path = checkpoint_dir / "grouped.json"
+    grouped_checkpoint_path = checkpoint_dir / f"{house_id}_grouped.json"
     
     if grouped_checkpoint_path.exists():
         logger.info(f"Skipping Pass 2 (found {grouped_checkpoint_path}). Loading grouped documents.")
@@ -145,7 +170,7 @@ def main():
         pipeline = Pipeline(api_key=os.getenv("GEMINI_API_KEY"))
         pipeline.client = llm_client
         
-        documents = pipeline._group_and_route_documents(raw_pages, None)
+        documents = pipeline._group_and_route_documents(raw_pages)
         
         if not args.dry_run:
             from src.fs_utils import atomic_write
@@ -157,7 +182,6 @@ def main():
             logger.info(f"  [DRY RUN] Would write grouped documents to {grouped_checkpoint_path}")
 
     pdf_path = list(args.target_dir.glob("*_categorized.pdf"))[0]
-    output_dir = args.target_dir / "output"
     
     organizer = FileOrganizer()
     per_page = organizer.organize(documents, str(pdf_path), house_id, output_dir, None, dry_run=args.dry_run)

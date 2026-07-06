@@ -4,8 +4,7 @@
 ## Prerequisites
 - **Python**: >= 3.10
 - **Environment**: A valid `.env` file containing a `GEMINI_API_KEY`.
-- **Configuration**: A configuration file (e.g. `config.yaml`) detailing your categories and routing rules.
-- **Input**: A PDF file containing documents.
+- **Input**: A directory containing pre-categorized PDFs and their corresponding JSON reports.
 
 ## Installation Steps
 1. **Clone the Repository**:
@@ -24,17 +23,16 @@
    ```
 
 ## First Run
-The fastest way to see the project in action is to run the main script with your PDF and a configuration file:
+The fastest way to see the project in action is to run the organizer script on a house directory:
 
 ```bash
-python src/main.py path/to/your/document.pdf -c sample-config.yaml
+python src/organize.py path/to/house_directory
 ```
 
-The processed documents will be organized in the `./output` directory, following the hierarchy defined in `sample-config.yaml`.
+The processed documents will be organized in the directory hierarchy defined by the post-processing logic.
 
 ## Common Setup Issues
 - **Missing API Key**: If you see a `FATAL ERROR: Missing required API keys`, ensure your `.env` file is in the project root and contains `GEMINI_API_KEY=your_key`.
-- **Missing Config File**: The app requires a configuration file (`-c`). Ensure the file exists and is valid YAML/JSON.
 - **PDF Read Errors**: Ensure the PDF is not password protected and is accessible at the provided path.
 - **API Rate Limits**: If the process slows down or fails, check your Gemini API quota. The system logs remaining quota in the console on startup.
 - **Catastrophic LLM Failure**: If the pipeline aborts with a `LLMFailureError`, it means the LLM providers are experiencing persistent 500 errors. The system aborts automatically after 5 consecutive global failures to prevent generating degraded or 'Unassigned' output.

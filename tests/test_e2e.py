@@ -84,7 +84,7 @@ def _setup_dry_run_dir(tmp_path: Path) -> Path:
 
     checkpoint_dir = output_dir / "checkpoints"
     checkpoint_dir.mkdir()
-    grouped_path = checkpoint_dir / "grouped.json"
+    grouped_path = checkpoint_dir / "1273_grouped.json"
     grouped_path.write_text(json.dumps(GROUPED_DOCS_FIXTURE), encoding="utf-8")
 
     return house_dir
@@ -100,7 +100,7 @@ def test_dry_run_end_to_end(tmp_path):
     env = {**os.environ, "PYTHONIOENCODING": "utf8"}
 
     result = subprocess.run(
-        [sys.executable, "-m", "src.organize", str(house_dir), "--dry-run"],
+        [sys.executable, "-m", "src.organize", str(house_dir), "--output-dir", str(house_dir / "output"), "--dry-run"],
         capture_output=True,
         env=env,
         cwd=str(Path(__file__).parent.parent),  # project root
@@ -139,6 +139,6 @@ def test_dry_run_end_to_end(tmp_path):
     assert (house_dir / "output" / "1273_cleaned.json").exists(), (
         "--dry-run should NOT delete cleaned.json checkpoint"
     )
-    assert (house_dir / "output" / "checkpoints" / "grouped.json").exists(), (
+    assert (house_dir / "output" / "checkpoints" / "1273_grouped.json").exists(), (
         "--dry-run should NOT delete grouped.json checkpoint"
     )

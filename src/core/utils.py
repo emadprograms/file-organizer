@@ -1,24 +1,31 @@
 """Utility functions for filename sanitization and date parsing/normalization."""
 
+import os
 import re
 from typing import Optional
+import unicodedata
 
-def sanitize_filename(name: str, max_length: int = 50) -> str:
+def sanitize_filename(name: str, max_length: int = 200) -> str:
     """Sanitize a string to be used as a valid filename.
     
     Replaces illegal characters with underscores, collapses multiple
     underscores, and truncates to a maximum length while preserving
-    multi-byte UTF-8 characters.
+    multi-byte UTF-8 characters and file extension.
     
     Args:
         name (str): The original filename to sanitize.
-        max_length (int): The maximum allowed length for the filename. Defaults to 50.
+        max_length (int): The maximum allowed length for the filename. Defaults to 200.
         
     Returns:
         str: The sanitized filename.
     """
+    # NFC normalize before file operations
+    name = unicodedata.normalize('NFC', name)
+    
     # Replace illegal characters with underscore
     sanitized = re.sub(r'[/\\:*?"<>|]', '_', name)
+    # Strip invisible control characters
+    sanitized = ''.join(ch for ch in sanitized if unicodedata.category(ch) not in ('Cc', 'Cf'))
     sanitized = sanitized.strip()
     # Collapse multiple underscores
     sanitized = re.sub(r'_+', '_', sanitized)
@@ -26,9 +33,13 @@ def sanitize_filename(name: str, max_length: int = 50) -> str:
     # Ensure truncation doesn't split a multi-byte UTF-8 character
     encoded = sanitized.encode('utf-8')
     if len(encoded) > max_length:
-        # We truncate based on characters, not bytes to avoid splitting multi-byte characters
-        sanitized = sanitized[:max_length]
-        
+        root, ext = os.path.splitext(sanitized)
+        max_root_len = max(0, max_length - len(ext))
+        if max_root_len > 0:
+            sanitized = root[:max_root_len] + ext
+        else:
+            sanitized = sanitized[:max_length]
+            
     return sanitized
 
 def parse_datetime_str(date_str: str) -> Optional[str]:

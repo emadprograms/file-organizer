@@ -22,7 +22,6 @@ The project is a pure Python application and does not require a compilation step
 
 | Command | Description |
 |:---|:---|
-| `python src/main.py <pdf_path> -c <config.yaml>` | Run the core categorization pipeline with a specified config |
 | `pytest` | Run the full test suite |
 | `pytest tests/test_pipeline.py` | Run only pipeline-related tests |
 

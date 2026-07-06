@@ -4,30 +4,6 @@ import unicodedata
 from contextlib import contextmanager
 import uuid
 
-def sanitize_filename(filename: str) -> str:
-    """
-    Apply Unicode NFC normalization, strip Windows reserved characters,
-    strip invisible Unicode control characters, and truncate the result to 200 characters.
-    """
-    # Unicode normalize NFC
-    filename = unicodedata.normalize('NFC', filename)
-    
-    # Strip Windows reserved characters
-    filename = re.sub(r'[<>:"/\\|?*]', '', filename)
-    
-    # Strip invisible Unicode control characters (Cc and Cf)
-    filename = ''.join(ch for ch in filename if unicodedata.category(ch) not in ('Cc', 'Cf'))
-    
-    # Truncate to 200 characters preserving extension
-    root, ext = os.path.splitext(filename)
-    if len(filename) > 200:
-        max_root_len = max(0, 200 - len(ext))
-        if max_root_len > 0:
-            return root[:max_root_len] + ext
-        else:
-            return filename[:200]
-    return filename
-
 @contextmanager
 def atomic_write(filepath: str):
     """

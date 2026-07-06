@@ -4,8 +4,6 @@ import logging
 import os
 import sys
 import time
-import json
-import yaml
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -158,22 +156,3 @@ def setup_logging() -> None:
             logging.StreamHandler(sys.stderr)
         ]
     )
-
-
-class InvalidConfigError(Exception):
-    """Exception raised for invalid user configurations."""
-    pass
-
-def load_user_config(config_path: Path) -> 'UserConfig':
-    from src.core.schemas import UserConfig
-    if not config_path.exists():
-        raise FileNotFoundError(f"Configuration file not found: {config_path}")
-    try:
-        with open(config_path, 'r', encoding='utf-8') as f:
-            if config_path.suffix.lower() == '.json':
-                data = json.load(f)
-            else:
-                data = yaml.safe_load(f)
-        return UserConfig(**data)
-    except Exception as e:
-        raise InvalidConfigError(f"Failed to load or validate config at {config_path}: {e}")

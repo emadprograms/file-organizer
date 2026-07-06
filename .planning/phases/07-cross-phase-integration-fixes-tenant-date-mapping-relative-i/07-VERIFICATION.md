@@ -1,3 +1,8 @@
+---
+status: passed
+phase: 7
+---
+
 # Phase 07 Verification
 
 **Status:** passed

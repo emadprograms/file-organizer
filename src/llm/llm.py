@@ -85,7 +85,30 @@ class LLMClient:
         """Activate a long sleep to recover from severe rate limits (e.g., 429)."""
         time.sleep(65)
 
+    def generate_content(
+        self,
+        contents: Any,
+        model: Optional[str] = None,
+        is_boundary_call: bool = False,
+        response_schema: type | None = None,
+        **kwargs
+    ) -> Any:
+        """
+        Compatibility wrapper for the LLM interface.
+        Delegates to the robust _route_llm_call method.
+        """
+        model = model or getattr(self, "default_model", GEMINI_MODEL)
+        log_prefix = "BoundaryCall" if is_boundary_call else "GenerateContent"
+        
+        return self._route_llm_call(
+            model=model,
+            contents=contents,
+            response_schema=response_schema,
+            log_prefix=log_prefix
+        )
+
     def _route_llm_call(self, model: str, contents: list, response_schema: type | None = None, log_prefix: str = "Retry", max_attempts: Optional[int] = None) -> Any:
+
         """Route an LLM call through configured providers with failover.
         
         Attempts to call the primary provider and falls back to secondary
@@ -365,7 +388,7 @@ class LLMClient:
             image_bytes (bytes): PNG image data of the page.
             extracted_footer (Optional[str]): Text previously OCR'd from the footer.
             prompt_template (str): The instructions for extraction.
-            fields (list): The list of ConfigField objects.
+            fields (list): The list of field definitions.
             
         Returns:
             Any: The classification result (dynamic model).

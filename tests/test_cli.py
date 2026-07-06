@@ -79,8 +79,6 @@ def test_validate_target_directory_success(tmp_path):
     from src.organize import validate_target_directory
     house_id = validate_target_directory(target_dir)
     assert house_id == "1273"
-    assert (target_dir / "output").exists()
-    assert (target_dir / "output").is_dir()
 
 def test_validate_target_directory_missing_pdf(tmp_path, capsys):
     target_dir = tmp_path / "1273"
