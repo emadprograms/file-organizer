@@ -14,8 +14,11 @@ def test_live_fallback_invalid_key_fail_fast(caplog):
     caplog.set_level(logging.WARNING)
     client = LLMClient(api_key="invalid_gemini_key")
     
-    with patch.object(OpenRouterProvider, 'generate') as mock_or, \
+    with patch.object(GeminiProvider, 'generate') as mock_gemini, \
+         patch.object(OpenRouterProvider, 'generate') as mock_or, \
          patch.object(GroqProvider, 'generate') as mock_groq:
+        
+        mock_gemini.side_effect = Exception("400 API key not valid")
         
         # We will directly call _route_llm_call to verify it raises,
         # because cluster_names swallows the exception.
@@ -50,7 +53,8 @@ def test_mocked_fallback_chain_integration(caplog):
     
     with patch.object(GeminiProvider, 'generate') as mock_gemini, \
          patch.object(OpenRouterProvider, 'generate') as mock_openrouter, \
-         patch.object(GroqProvider, 'generate') as mock_groq:
+         patch.object(GroqProvider, 'generate') as mock_groq, \
+         patch('time.sleep', return_value=None):
         
         mock_gemini.side_effect = Exception("503 Service Unavailable")
         mock_openrouter.side_effect = Exception("500 Internal Error")
