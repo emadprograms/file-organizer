@@ -59,3 +59,40 @@ def test_setup_logging_no_run_id(tmp_path, monkeypatch):
     log_dir = setup_logging()
     assert os.path.exists(log_dir)
     assert "_" in os.path.basename(log_dir) # Timestamp has underscore
+
+def test_log_decision_trace(tmp_path, monkeypatch):
+    monkeypatch.setattr("logger.LOGS_DIR", str(tmp_path))
+    
+    # Setup logging to create the run directory
+    run_id = "test_trace_123"
+    log_dir = setup_logging(run_id=run_id)
+    
+    decision_type = "routing"
+    # Added Arabic text to verify ensure_ascii=False
+    payload = {"category": "forms", "selected": "1_requests", "reason": "سبب التوجيه العربي"}
+    
+    from logger import log_decision_trace
+    log_decision_trace(decision_type, payload, run_id)
+    
+    # The utility creates a 'traces' subdirectory
+    traces_dir = os.path.join(log_dir, "traces")
+    assert os.path.exists(traces_dir)
+    
+    # Find the file (timestamped)
+    files = os.listdir(traces_dir)
+    assert len(files) == 1
+    filename = files[0]
+    assert filename.startswith("routing") or "routing" in filename
+    
+    file_path = os.path.join(traces_dir, filename)
+    
+    # Verify ensure_ascii=False by reading raw file text
+    with open(file_path, "r", encoding="utf-8") as f:
+        raw_text = f.read()
+        assert "سبب التوجيه العربي" in raw_text
+        assert "\\u" not in raw_text  # Make sure no unicode escapes
+        
+    with open(file_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        assert data == payload
+

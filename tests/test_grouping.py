@@ -136,3 +136,49 @@ def test_schema_validation():
     obj = GroupingResponse(**data)
     assert len(obj.groups) == 1
     assert obj.groups[0].reason == "Because"
+
+from unittest.mock import MagicMock, patch
+from src.llm_client import LLMChunkShrinkRequiredError
+
+def test_grouping_shrink_on_error():
+    """Test that process_with_shrink catches LLMChunkShrinkRequiredError and actually reduces chunk size from 10 to 5."""
+    pages = [SimpleNamespace(category="forms", page_idx=i, date="NONE", residents=[]) for i in range(15)]
+    
+    class MockShrinkLLM:
+        def __init__(self):
+            self.calls = []
+            
+        def generate_content(self, model, contents, response_schema=None, is_boundary_call=False, config=None, **kwargs):
+            self.calls.append(contents[0])
+            call_count = len(self.calls)
+            
+            if call_count == 1:
+                # First call: Should be chunk size 10 (Page 0 to 9)
+                assert "Chunk range: Page 0 to Page 9" in contents[0]
+                raise LLMChunkShrinkRequiredError("Shrink now")
+            elif call_count == 2:
+                # Second call: Should be shrunk to chunk size 5 (Page 0 to 4)
+                assert "Chunk range: Page 0 to Page 4" in contents[0]
+                return MockResponse([MockGroup(0, 4, "reason 1", "title 1")])
+            elif call_count == 3:
+                # Third call: Processing next chunk of 5 (Page 4 to 8 due to overlap=1)
+                assert "Chunk range: Page 4 to Page 8" in contents[0]
+                return MockResponse([MockGroup(4, 8, "reason 2", "title 2")])
+            elif call_count == 4:
+                # Fourth call: Processing chunk of 5 (Page 8 to 12)
+                assert "Chunk range: Page 8 to Page 12" in contents[0]
+                return MockResponse([MockGroup(8, 12, "reason 3", "title 3")])
+            elif call_count == 5:
+                # Fifth call: Processing remaining (Page 12 to 14)
+                assert "Chunk range: Page 12 to Page 14" in contents[0]
+                return MockResponse([MockGroup(12, 14, "reason 4", "title 4")])
+            else:
+                raise ValueError(f"Too many calls: {call_count}")
+
+    llm = MockShrinkLLM()
+    groups = process_with_shrink(pages, llm)
+    
+    assert len(llm.calls) == 5
+    assert len(groups) == 1
+    assert groups[0].start_page == 0
+    assert groups[0].end_page == 14

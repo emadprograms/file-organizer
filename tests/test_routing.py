@@ -3,11 +3,16 @@
 import pytest
 from src.processing.routing import route_document, SINGLE_MATCH, MULTI_MATCH, FOLDER_ROUTING, CATEGORY_TO_FOLDERS
 from src.core.schemas import DocumentGroup
+from unittest.mock import patch, MagicMock
 
 class MockParsedResponse:
     def __init__(self, selected_folder, reason="mock reason"):
-        self.selected_folder = selected_folder
-        self.reason = reason
+        if isinstance(selected_folder, tuple):
+            self.selected_folder = selected_folder[0]
+            self.reason = selected_folder[1]
+        else:
+            self.selected_folder = selected_folder
+            self.reason = reason
 
 class MockResponse:
     def __init__(self, parsed):
@@ -65,21 +70,32 @@ def test_single_match_index_error():
         assert direct is False
     finally:
         CATEGORY_TO_FOLDERS["contract"] = original_mapping
-
-def test_multi_match_llm():
-    """Test that multi-match categories use the LLM and return a valid folder."""
+def test_multi_match_llm(monkeypatch):
+    """Test that multi-match categories use the LLM and return a valid folder and reason."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
         category="letters", dates=["2023-01-01"],
         brief_arabic_title="Complaint about water leak",
         reason="Talks about a water leak"
     )
-    llm = MockLLMClient(["8_complaints_and_violations"])
-    folder, direct = route_document(group, llm)
-    
-    assert folder == "8_complaints_and_violations"
-    assert direct is False
-    assert llm.call_count == 1
+    # Mock the LLM to return the folder and a specific reason
+    llm = MockLLMClient([("8_complaints_and_violations", "Explicit explanation for routing")])
+
+    # Mock log_decision_trace to verify it's called
+    with patch("src.logger.log_decision_trace") as mock_trace:
+        folder, direct = route_document(group, llm)
+
+        assert folder == "8_complaints_and_violations"
+        assert direct is False
+        assert llm.call_count == 1
+
+        # Verify the trace call: log_decision_trace("routing", {category, selected, reason})
+        mock_trace.assert_called_once()
+        args, _ = mock_trace.call_args
+        assert args[0] == "routing"
+        assert args[1]["category"] == "letters"
+        assert args[1]["selected"] == "8_complaints_and_violations"
+        assert args[1]["reason"] == "Explicit explanation for routing"
 
 def test_multi_match_llm_retry_on_invalid():
     """Test that if the LLM returns an invalid folder, it retries and then falls back."""
