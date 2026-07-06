@@ -43,6 +43,12 @@ See .planning/PROJECT.md (updated 2026-07-03)
 | 9 | Final E2E Sweep | ● Complete | 1/1 |
 | 10 | Close gaps: sanitize_filename & LLM 500 handling | ● Complete | 1/1 |
 
+## Quick Tasks Completed
+
+| Date | Slug | Description |
+|------|------|-------------|
+| 2026-07-06 | generate-the-verification-md-files | Generate missing VERIFICATION.md files for phases 08 and 10 |
+
 ## Decision Log
 
 | Date | Decision | Context |

@@ -7,7 +7,7 @@ wave_0_complete: true
 created: 2026-07-03
 ---
 
-# Phase 01 — Validation Strategy
+# Phase 01 ï¿½ Validation Strategy
 
 > Per-phase validation contract for feedback sampling during execution.
 
@@ -38,17 +38,17 @@ created: 2026-07-03
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 01-01 | 01 | 1 | FS-01, FS-02, FS-03 | T-01, T-02 | sanitize_filename correctly sanitizes | unit | pytest tests/test_fs_utils.py | ? | ? green |
-| 01-02 | 01 | 1 | FS-04 | — | tomic_write atomic writes | unit | pytest tests/test_fs_utils.py | ? | ? green |
-| 01-03 | 01 | 1 | LOG-01, LOG-02, LOG-03 | — | N/A | unit | pytest tests/test_logger.py | ? | ? green |
+| 01-01 | 01 | 1 | FS-01, FS-02, FS-03 | T-01, T-02 | sanitize_filename correctly sanitizes | unit | pytest tests/test_fs_utils.py | yes | green |
+| 01-02 | 01 | 1 | FS-04 |  |  tomic_write atomic writes | unit | pytest tests/test_fs_utils.py | yes | green |
+| 01-03 | 01 | 1 | LOG-01, LOG-02, LOG-03 |  | N/A | unit | pytest tests/test_logger.py | yes | green |
 | 02-01 | 02 | 1 | LLM-01, LLM-02, LLM-03 | T-01 | 7s wait between calls | unit | pytest tests/test_llm_client.py | ? | ? green |
 | 02-02 | 02 | 1 | LLM-04, LLM-05, LLM-06 | T-01 | Retry logic and hard fails | unit | pytest tests/test_llm_client.py | ? | ? green |
 | 02-03 | 02 | 1 | LLM-07, LLM-08, LLM-09 | T-01 | Context specific error boundaries | unit | pytest tests/test_llm_client.py | ? | ? green |
 | 03-01 | 03 | 1 | INIT-01, INIT-04, INIT-07 | T-01 | Missing key causes hard fail | unit | pytest tests/test_cli.py | ? | ? green |
 | 03-02 | 03 | 1 | INIT-02, INIT-03, INIT-05, INIT-06 | T-01 | Fail fast if directories invalid | unit | pytest tests/test_cli.py | ? | ? green |
-| 03-03 | 03 | 1 | — | — | N/A | unit | pytest tests/test_cli.py | ? | ? green |
+| 03-03 | 03 | 1 | ï¿½ | ï¿½ | N/A | unit | pytest tests/test_cli.py | ? | ? green |
 
-*Status: ? pending · ? green · ? red · ?? flaky*
+*Status: ? pending ï¿½ ? green ï¿½ ? red ï¿½ ?? flaky*
 
 ---
 

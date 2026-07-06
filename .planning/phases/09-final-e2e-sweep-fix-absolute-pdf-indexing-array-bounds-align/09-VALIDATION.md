@@ -1,9 +1,9 @@
 ---
 phase: 09
 slug: final-e2e-sweep-fix-absolute-pdf-indexing-array-bounds-align
-status: draft
-nyquist_compliant: false
-wave_0_complete: false
+status: approved
+nyquist_compliant: true
+wave_0_complete: true
 created: 2026-07-05
 ---
 
@@ -17,20 +17,20 @@ created: 2026-07-05
 
 | Property | Value |
 |----------|-------|
-| **Framework** | {pytest 7.x / jest 29.x / vitest / go test / other} |
-| **Config file** | {path or "none — Wave 0 installs"} |
-| **Quick run command** | `{quick command}` |
-| **Full suite command** | `{full command}` |
-| **Estimated runtime** | ~{N} seconds |
+| **Framework** | pytest 7.x+ |
+| **Config file** | none |
+| **Quick run command** | `pytest tests/test_indexing.py tests/test_routing.py` |
+| **Full suite command** | `pytest tests/test_indexing.py tests/test_llm.py tests/test_pipeline.py tests/test_routing.py` |
+| **Estimated runtime** | ~105 seconds |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `{quick run command}`
-- **After every plan wave:** Run `{full suite command}`
+- **After every task commit:** Run `pytest tests/test_indexing.py tests/test_routing.py`
+- **After every plan wave:** Run `pytest tests/test_indexing.py tests/test_llm.py tests/test_pipeline.py tests/test_routing.py`
 - **Before `/gsd-verify-work`:** Full suite must be green
-- **Max feedback latency:** {N} seconds
+- **Max feedback latency:** 120 seconds
 
 ---
 
@@ -38,7 +38,11 @@ created: 2026-07-05
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| {N}-01-01 | 01 | 1 | REQ-{XX} | T-{N}-01 / — | {expected secure behavior or "N/A"} | unit | `{command}` | ✅ / ❌ W0 | ⬜ pending |
+| 09-01 | 01 | 1 | CLN-08 | — | Validates indices before fitz slicing | unit | `pytest tests/test_indexing.py` | ✅ | ✅ green |
+| 09-02 | 01 | 1 | LOG-02 | — | Writes trace JSONs; logs token usage | unit | `pytest tests/test_llm.py` | ✅ | ✅ green |
+| 09-03 | 01 | 1 | GRP-06 | — | No None dates before Pass 2 | unit | `pytest tests/test_pipeline.py` | ✅ | ✅ green |
+| 09-04 | 01 | 1 | OUT-06 | — | Fatal error on page loss; safe fallback | e2e | `pytest tests/test_pipeline.py` | ✅ | ✅ green |
+| 09-05 | 01 | 1 | OUT-06 | — | Routes index errors to "Unassigned" | unit | `pytest tests/test_routing.py` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -46,11 +50,10 @@ created: 2026-07-05
 
 ## Wave 0 Requirements
 
-- [ ] `{tests/test_file.py}` — stubs for REQ-{XX}
-- [ ] `{tests/conftest.py}` — shared fixtures
-- [ ] `{framework install}` — if no framework detected
-
-*If none: "Existing infrastructure covers all phase requirements."*
+- [x] `tests/test_indexing.py` — tests for boundary validation
+- [x] `tests/test_llm.py` — tests for trace file creation
+- [x] `tests/test_pipeline.py` — tests for date resolution and page reconciliation
+- [x] `tests/test_routing.py` — tests for fallback routing
 
 ---
 
@@ -58,19 +61,17 @@ created: 2026-07-05
 
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
-| {behavior} | REQ-{XX} | {reason} | {steps} |
-
-*If none: "All phase behaviors have automated verification."*
+| Trace File Contents | LOG-02 | Verify JSON schema | Check `logs/traces/` for expected keys |
 
 ---
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < {N}s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 120s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** {pending / approved YYYY-MM-DD}
+**Approval:** approved 2026-07-06
