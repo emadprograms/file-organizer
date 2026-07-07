@@ -9,6 +9,7 @@ venv/
 .venv/
 env/
 .env/
+.env
 
 # Caches and logs
 .pytest_cache/
