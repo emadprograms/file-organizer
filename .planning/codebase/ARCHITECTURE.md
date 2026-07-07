@@ -1,134 +1,67 @@
-<!-- refreshed: 2026-07-07 -->
-# Architecture
+# Codebase Architecture
 
-**Analysis Date:** 2026-07-07
+**Date:** 2026-07-07
 
-## System Overview
+## Overview
+The `file-organizer` repository is a Python-based pipeline designed to categorize, group, and route scanned or OCR'd housing documents (PDFs). It uses a two-pass architecture leveraging large language models (LLMs) to clean extracted data, identify document boundaries, and intelligently route documents to standard folder structures.
 
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                      CLI Entry Point                        │
-│                     `src/organize.py`                       │
-└────────┬────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                    Processing Pipeline                      │
-│                    `src/processing/`                        │
-├──────────────────┬──────────────────┬───────────────────────┤
-│    Cleaning      │    Grouping      │      Routing          │
-│  `src/cleaning.py`│ `src/processing/grouping.py` │ `src/processing/routing.py` │
-└────────┬─────────┴────────┬─────────┴──────────┬────────────┘
-         │                  │                     │
-         ▼                  ▼                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│                     LLM Orchestration                       │
-│                      `src/llm/llm.py`                       │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────────────────────────────┐
-│  [File System / PDF Output / Checkpoints]                    │
-│  `src/fs_utils.py` / `PyMuPDF`                               │
-└─────────────────────────────────────────────────────────────┘
-```
+## System Components
 
-## Component Responsibilities
+1. **CLI Entry Point (`src/organize.py`)**
+   - The main orchestrator of the post-processing step.
+   - Validates input directories, loads categorized JSON reports, initializes the LLM client, and orchestrates Pass 1 (Cleaning) and Pass 2 (Grouping, Routing, Splitting).
 
-| Component | Responsibility | File |
-|-----------|----------------|------|
-| CLI Controller | Validates environment and coordinates the multi-pass pipeline | `src/organize.py` |
-| Pipeline | Manages the flow from cleaning $ightarrow$ grouping $ightarrow$ routing | `src/processing/pipeline.py` |
-| Cleaning Phase | Standardizes extracted data and resolves tenants | `src/cleaning.py` |
-| Grouping Logic | Uses LLM to find boundaries between different documents | `src/processing/grouping.py` |
-| Routing Logic | Assigns final folder paths to grouped documents | `src/processing/routing.py` |
-| LLM Client | Orchestrates requests across Gemini, OpenRouter, and Groq with failover | `src/llm/llm.py` |
-| Schemas | Defines Pydantic models for structured LLM I/O | `src/core/schemas.py` |
-| Cache | Prevents redundant LLM calls using local JSON storage | `src/core/cache.py` |
+2. **Cleaning & Normalization (`src/cleaning.py`)**
+   - Implements **Pass 1** of the pipeline.
+   - **Date Parsing:** Normalizes various date formats (Gregorian, Hijri, English, Arabic) into a standard `YYYY-MM-DD` format using heuristics. Infers missing dates based on proximity.
+   - **Entity Resolution:** Clusters raw tenant names extracted via OCR using fuzzy matching and an LLM canonicalization pass to form unified identities.
+   - **Timeline Construction:** Builds `TenantTimeline` objects defining valid date ranges for each canonical tenant, allowing unassigned pages to be tied to the correct tenant based on date.
 
-## Pattern Overview
+3. **Processing Pipeline (`src/processing/`)**
+   - Implements **Pass 2** of the pipeline.
+   - **Pipeline Orchestrator (`pipeline.py`)**: Wraps grouping and routing.
+   - **Grouping (`grouping.py`)**: Batches consecutive pages of the same category and resident, sending them to the LLM to identify logical document boundaries (subject shifts).
+   - **Routing (`routing.py`)**: Maps categories to specific folders (e.g., `id_cards` -> `2_personal_details`). Resolves ambiguities (e.g., `letters`) by asking the LLM for the best fit folder.
+   - **Organizing & Splitting (`organizer.py`, `split.py`)**: Takes the abstract `DocumentGroup` definitions and physically splits the monolithic input PDF into individual, appropriately named PDF files in the target directory structure using `PyMuPDF` (`fitz`).
+   - **Reconciliation:** Validates that the generated PDFs account for every page of the input PDF without missing or duplicating pages inappropriately.
 
-**Overall:** Sequential Pipeline with Failover LLM Orchestration.
+4. **LLM Abstraction (`src/llm/`)**
+   - Provides a resilient wrapper around the Google GenAI SDK (`LLMClient`).
+   - Handles retries, rate limiting, and structured output parsing (JSON schema).
 
-**Key Characteristics:**
-- **Multi-Pass Architecture:** Separates individual page classification (Pass 1) from document boundary detection (Pass 2).
-- **Robust LLM Routing:** Implements a provider sequence with automatic failover and rate-limit cooldowns.
-- **Structured I/O:** Heavily relies on Pydantic schemas to ensure LLM responses match expected data formats.
-- **Checkpointing:** Saves intermediate results (`_cleaned.json`, `_grouped.json`) to allow resumption after failure.
-
-## Layers
-
-**Core Layer:**
-- Purpose: Shared utilities, configuration, and data models.
-- Location: `src/core/`
-- Contains: `schemas.py`, `config.py`, `cache.py`, `utils.py`.
-- Depends on: Pydantic.
-- Used by: All other layers.
-
-**LLM Layer:**
-- Purpose: Abstracting LLM provider details and providing resilient API access.
-- Location: `src/llm/`
-- Contains: `llm.py`, `providers.py`.
-- Depends on: `google-genai`, `openai`.
-- Used by: `src/processing/` and `src/cleaning.py`.
-
-**Processing Layer:**
-- Purpose: Implementing the domain logic for document organization.
-- Location: `src/processing/`
-- Contains: `pipeline.py`, `grouping.py`, `routing.py`, `organizer.py`.
-- Depends on: `src/llm/`, `src/core/`.
-- Used by: `src/organize.py`.
+5. **Core Data Models (`src/core/schemas.py`)**
+   - Centralized Pydantic models used to enforce structured output from LLMs and internal boundaries.
 
 ## Data Flow
 
-### Primary Request Path
-
-1. **Entry Point** (`src/organize.py`): Validates target directory and loads environment.
-2. **Cleaning** (`src/cleaning.py`): Takes raw JSON report, resolves canonical tenants via LLM, and produces `_cleaned.json`.
-3. **Grouping** (`src/processing/pipeline.py` $ightarrow$ `src/processing/grouping.py`): Groups consecutive pages of the same category/tenant into segments using LLM boundary detection. Produces `_grouped.json`.
-4. **Routing** (`src/processing/routing.py`): Assigns a folder path to each document group based on its content.
-5. **Physical Organization** (`src/processing/organizer.py`): Uses PyMuPDF to split the original PDF into smaller files and move them to the routed folders.
+```mermaid
+flowchart TD
+    A[Input: _categorized.pdf & _report.json] --> B(organize.py)
+    B --> C[Pass 1: cleaning.py]
+    
+    subgraph Pass 1: Cleaning
+        C --> C1[Date Inference & Normalization]
+        C1 --> C2[Tenant Fuzzy Clustering]
+        C2 --> C3[LLM Name Canonicalization]
+        C3 --> C4[Timeline Building]
+    end
+    
+    C4 -->|List of PageData| D[Pass 2: pipeline.py]
+    
+    subgraph Pass 2: Pipeline
+        D --> D1[Pre-split by Category/Tenant]
+        D1 --> D2[grouping.py: LLM Boundary Detection]
+        D2 --> D3[routing.py: LLM Folder Routing]
+    end
+    
+    D3 -->|List of DocumentGroup| E[organizer.py]
+    E --> F[split.py: PDF Split via PyMuPDF]
+    F --> G[Reconciliation & Validation]
+    G --> H[Output: Organized PDFs in subfolders]
+```
 
 ## Key Abstractions
 
-**LLMClient:**
-- Purpose: A high-level wrapper for multiple LLM providers that handles retries, failovers, and structured output.
-- Examples: `src/llm/llm.py`
-- Pattern: Strategy Pattern (via `LLMProvider` subclasses).
-
-**DocumentGroup:**
-- Purpose: Represents a cohesive set of pages that form a single document.
-- Examples: `src/core/schemas.py`
-- Pattern: Data Transfer Object (DTO).
-
-## Entry Points
-
-**CLI Command:**
-- Location: `src/organize.py`
-- Triggers: Manual execution via `python src/organize.py [target_dir]`.
-- Responsibilities: Environment validation, pipeline coordination, and final PDF generation.
-
-## Architectural Constraints
-
-- **API Rate Limits:** The pipeline is throttled by LLM API limits, necessitating the `delay_between_pages` and cooldown logic in `src/llm/llm.py`.
-- **Sequential Processing:** Most stages are sequential, though some LLM calls use `ThreadPoolExecutor` for concurrency.
-- **Local State:** The application is stateless between runs except for the local JSON checkpoints and cache.
-
-## Error Handling
-
-**Strategy:** Fail-fast on configuration errors; resilient retry/failover for API errors.
-
-**Patterns:**
-- **Provider Failover:** If Gemini fails, it tries OpenRouter, then Groq.
-- **Atomic Writes:** Uses a temporary file pattern to prevent corrupting checkpoints (`src/fs_utils.py`).
-- **Global Error Limit:** Aborts the pipeline if too many consecutive 500 errors occur.
-
-## Cross-Cutting Concerns
-
-**Logging:** Centralized logging via `src/logger.py` with dual output to console and file.
-**Validation:** Pydantic models used at every LLM boundary to ensure data integrity.
-**Authentication:** Managed via environment variables and `.env` files.
-
----
-
-*Architecture analysis: 2026-07-07*
+- **`PageData`**: Represents the raw and cleaned metadata for a single physical page (category, raw date, expected tenant, resolved canonical tenant, resolved date).
+- **`TenantTimeline`**: Represents the active date bounds (min and max) for a specific canonical tenant, inferred from anchor documents.
+- **`DocumentGroup` / `GroupEntry`**: A logical document spanning a start and end page index, representing a contiguous block of pages that share the same subject, tenant, and destination folder.

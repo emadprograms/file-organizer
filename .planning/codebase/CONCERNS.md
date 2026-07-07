@@ -1,91 +1,69 @@
-# Codebase Concerns
+# Codebase Concerns & Technical Debt
+**Date**: 2026-07-07
 
-**Analysis Date:** 2026-07-07
+This document outlines technical debt, known issues, security concerns, and performance bottlenecks identified in the codebase.
 
-## Tech Debt
+## 1. Technical Debt & Architecture
 
-**LLM Routing Logic:**
-- Issue: The `_route_llm_call` method in `src/llm/llm.py` is becoming a "god method" that handles routing, retries, failovers, trace logging, and custom error parsing in one place.
-- Files: `src/llm/llm.py`
-- Impact: Harder to test and maintain as new providers or routing strategies are added.
-- Fix approach: Extract retry logic into a decorator or a separate `RetryHandler` class.
+### 1.1 God Module (`src/cleaning.py`)
+- **Issue**: `src/cleaning.py` violates the Single Responsibility Principle. It currently acts as a catch-all for disparate logic including date conversion (`_hijri_to_gregorian`), JSON parsing, Arabic text normalization, fuzzy matching (`cluster_names_fuzzily`), and complex LLM canonicalization.
+- **Impact**: Makes the module very large (23.6 KB), difficult to unit test in isolation, and hard to maintain.
+- **Recommendation**: Split into specialized modules (e.g., `src/core/dates.py`, `src/core/text.py`, `src/processing/canonicalization.py`).
 
-**Direct-to-PDF Logic in Organizer:**
-- Issue: `src/processing/organizer.py` (implied by `src/organize.py` usage) mixes high-level organization logic with low-level PDF splitting using `fitz`.
-- Files: `src/processing/organizer.py`
-- Impact: Tightly couples the business logic of "where to put the file" with the technical implementation of "how to split a PDF".
-- Fix approach: Create a `PDFService` abstraction to handle all `fitz` operations.
+### 1.2 In-Process Dependency Management (`src/processing/split.py`)
+- **Issue**: If `PIL` fails to import, the code shells out to dynamically install it: `subprocess.check_call([sys.executable, "-m", "pip", "install", "Pillow"])`.
+- **Impact**: Severe anti-pattern. This pollutes user/system environments, can fail in restricted environments (e.g., CI/CD, Docker without root), and causes unpredictable delays. `Pillow` is missing from `requirements.txt`.
+- **Recommendation**: Remove the runtime `pip install`, add `Pillow` to `requirements.txt`, and let standard dependency management handle it.
 
-## Known Bugs
+### 1.3 Hardcoded Rate Limiting & Cooldowns (`src/llm/llm.py`)
+- **Issue**: The LLM fallback logic uses pessimistic hardcoded sleep times (`time.sleep(65)` for 429s, and `time.sleep(7.0 - elapsed)` for standard calls). It ignores standard exponential backoff strategies despite `tenacity` being present in `requirements.txt`.
+- **Impact**: Suboptimal performance. The forced 7-second wait between standard calls throttles pipeline throughput unnecessarily. 
+- **Recommendation**: Refactor to use `tenacity` for backoff, and rely on HTTP 429 Retry-After headers when available.
 
-**Arabic Terminal Rendering:**
-- Symptoms: Arabic characters may not render correctly in some Windows terminals during dry runs.
-- Files: `src/organize.py`
-- Trigger: Running with `--dry-run` on Windows without UTF-8 encoding configured.
-- Workaround: Set `PYTHONIOENCODING=utf8`.
+### 1.4 Test/Mock Logic in Production Code (`src/llm/llm.py`)
+- **Issue**: The `--skip-llm` flag triggers hardcoded string-matching and JSON-mocking logic directly inside the production `_route_llm_call` method (using brittle Regex to extract chunk ranges).
+- **Impact**: Clutters production routing logic and makes the LLM client fragile if prompt schemas change.
+- **Recommendation**: Implement a `MockLLMProvider` that conforms to the `LLMProvider` protocol instead of polluting the core client.
 
-## Security Considerations
+### 1.5 Deep `sys.exit()` Calls (`src/organize.py`)
+- **Issue**: Utility functions like `validate_environment` and `validate_target_directory` call `sys.exit(1)` directly on failure.
+- **Impact**: Prevents these functions from being reused or properly tested without patching `sys.exit`. 
+- **Recommendation**: Raise custom exceptions (e.g., `ConfigurationError`, `ValidationError`) and catch them in `main()` to exit gracefully.
 
-**API Key Management:**
-- Risk: API keys are loaded from `.env` and passed around. If `verbose` logging is too aggressive, keys could potentially be leaked in logs (though not currently observed).
-- Files: `src/llm/llm.py`, `.env`
-- Current mitigation: Keys are kept in environment variables and not hardcoded.
-- Recommendations: Implement a masking utility for sensitive strings in the logger.
+## 2. Bugs & Fragility
 
-## Performance Bottlenecks
+### 2.1 Swallowed Exceptions
+- **Issue**: There are instances of `except Exception:` and bare `except:` catching errors without logging or raising them.
+  - `src/processing/split.py` (Line 131): Bare `except:` in cleanup logic.
+  - `src/logger.py` and `src/llm/llm.py`: Multiple `except Exception:` blocks with simple `pass` or `log.debug`.
+- **Impact**: Silent failures make production debugging extremely difficult.
+- **Recommendation**: Catch specific exceptions and log failures at the `ERROR` or `WARNING` level.
 
-**Sequential API Calls:**
-- Problem: The pipeline processes pages in a largely sequential manner to avoid rate limits.
-- Files: `src/processing/pipeline.py`, `src/llm/llm.py`
-- Cause: Reliance on LLM APIs with strict quotas.
-- Improvement path: Implement a more sophisticated request queue with per-provider rate limit tracking to maximize concurrency.
+### 2.2 Resource Leaks
+- **Issue**: `fitz.open()` is used heavily (e.g., in `src/processing/split.py`), but the `doc.close()` calls are not guaranteed to run if an exception occurs mid-processing.
+- **Impact**: File handles may leak, which can crash long-running batch jobs on Windows.
+- **Recommendation**: Use `fitz.open()` as a context manager (`with fitz.open(...) as doc:`).
 
-**PDF Processing Speed:**
-- Problem: Reading and splitting large PDFs can be slow.
-- Files: `src/processing/organizer.py`
-- Cause: PyMuPDF's sequential processing of large files.
-- Improvement path: Use multiprocessing for PDF splitting across different document groups.
+### 2.3 Implicit Circular Dependencies
+- **Issue**: `src/llm/llm.py` dynamically imports `from src.logger import LOGS_DIR` deep inside a method rather than injecting the dependency or configuring it centrally.
+- **Impact**: Causes hidden coupling and can break if initialization orders change.
 
-## Fragile Areas
+## 3. Security Concerns
 
-**Boundary Detection:**
-- Files: `src/processing/grouping.py`
-- Why fragile: Relies on LLM prompts to correctly identify the "start" and "end" of documents. Slight changes in LLM behavior or prompt wording can shift boundaries.
-- Safe modification: Always update `tests/test_grouping.py` with new "golden" examples when changing prompts.
-- Test coverage: Good, but requires high-quality fixtures.
+### 3.1 PII Logging
+- **Issue**: In `verbose` mode, `src/llm/llm.py` logs full prompts and LLM responses to `debug.log`. 
+- **Impact**: These prompts contain raw OCR data, names, and potentially sensitive tenant information, leading to PII leakage in log files.
+- **Recommendation**: Sanitize logs or ensure strict access controls and retention policies for `debug.log`.
 
-## Scaling Limits
+### 3.2 Dynamic Execution
+- **Issue**: The runtime execution of `pip install` via `subprocess` introduces a minor execution risk if the environment is somehow poisoned.
 
-**Memory Usage:**
-- Current capacity: Works well for hundreds of pages.
-- Limit: Since the pipeline loads `PageData` objects into memory and passes them as lists, very large documents (thousands of pages) might cause high memory pressure.
-- Scaling path: Use a generator-based approach for page processing instead of loading all pages into a list.
+## 4. Performance
 
-## Dependencies at Risk
-
-**Google GenAI SDK:**
-- Risk: The `google-genai` SDK is relatively new and subject to breaking changes.
-- Impact: Breaking changes would require updates to `src/llm/providers.py`.
-- Migration plan: The `LLMProvider` abstraction already mitigates this by isolating provider-specific code.
-
-## Missing Critical Features
-
-**GUI/Web Interface:**
-- Problem: Currently a CLI tool. Non-technical users cannot use it.
-- Blocks: Broad adoption.
-
-**Advanced Validation:**
-- Problem: No way to manually "verify" or "correct" LLM grouping before physical PDF splitting occurs.
-- Blocks: Perfect accuracy for critical documents.
-
-## Test Coverage Gaps
-
-**Edge Case PDFs:**
-- What's not tested: PDFs with corrupted pages, extremely large images, or mixed-language content that doesn't fit the standard patterns.
-- Files: `src/processing/organizer.py`
-- Risk: The organizer might crash on malformed PDFs.
-- Priority: Medium.
+### 4.1 In-Memory Image Processing
+- **Issue**: Image compression in `compress_pdf` extracts bytes, resizes them via Pillow, and saves them back to a PDF. It writes intermediate PDFs to disk and does a size comparison, copying the original if the size increased.
+- **Impact**: High disk I/O overhead per page.
+- **Recommendation**: Perform compression checks entirely in-memory before replacing the image stream in the PyMuPDF document to avoid unnecessary disk writes.
 
 ---
-
-*Concerns audit: 2026-07-07*
+*Note: This document is meant to guide future refactoring phases and sprint planning.*

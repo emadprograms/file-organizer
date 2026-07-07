@@ -1,92 +1,53 @@
-# Codebase Structure
+# Codebase Directory Structure
 
-**Analysis Date:** 2026-07-07
+**Date:** 2026-07-07
+
+## Overview
+The `file-organizer` codebase is organized around a core `src/` directory containing the main Python application, alongside standard development directories for tests, virtual environments, and planning artifacts.
 
 ## Directory Layout
 
+```text
+file-organizer/
+├── .agents/                 # AI agent configurations and skills
+├── .planning/               # Project management, AI architecture artifacts, and plans
+│   └── codebase/            # Codebase mapping and architectural documentation
+├── src/                     # Main source code directory
+│   ├── core/                # Core utilities, configuration, and schemas
+│   │   ├── config.py        # Environment variables and global settings
+│   │   ├── indexing.py      # Utilities for PDF page indexing
+│   │   ├── schemas.py       # Pydantic schemas (DocumentGroup, GroupEntry, etc.)
+│   │   └── utils.py         # Miscellaneous utilities
+│   ├── llm/                 # Large Language Model integrations
+│   │   ├── llm.py           # LLMClient handling retries and structured output
+│   │   └── providers.py     # Provider-specific implementations (e.g., Gemini)
+│   ├── processing/          # The Pass 2 processing pipeline
+│   │   ├── grouping.py      # LLM-based logical document boundary detection
+│   │   ├── organizer.py     # End-to-end PDF organization and reconciliation
+│   │   ├── pipeline.py      # Pipeline orchestrator
+│   │   ├── routing.py       # LLM and rule-based folder routing
+│   │   ├── split.py         # PDF splitting logic via PyMuPDF
+│   │   └── visualizer.py    # Dry-run output visualization
+│   ├── cleaning.py          # Pass 1: Date normalization and tenant clustering
+│   ├── fs_utils.py          # File system utilities (atomic writes, etc.)
+│   ├── logger.py            # Custom logging setup (rich console formatting)
+│   └── organize.py          # CLI entry point
+├── tests/                   # Test suite for unit and integration testing
+├── logs/                    # Execution logs
+├── pdfs/                    # Output or sample PDF directory
+├── .env                     # Environment variables (API keys)
+└── requirements.txt         # Python dependencies
 ```
-[project-root]/
-├── src/                    # Source code
-│   ├── core/               # Shared schemas, config, and utility logic
-│   ├── llm/                # LLM provider abstractions and orchestration
-│   ├── processing/         # Document grouping, routing, and pipeline logic
-│   ├── cleaning.py         # Pass 1: Data standardization and tenant resolution
-│   ├── fs_utils.py         # File system operations (e.g., atomic writes)
-│   ├── llm_client.py       # High-level LLM interaction wrapper
-│   ├── logger.py           # Centralized logging system
-│   └── organize.py         # Main CLI entry point
-├── tests/                  # Comprehensive test suite
-│   ├── fixtures/           # Sample data for testing
-│   └── test_*.py           # Unit and integration tests
-├── pdfs/                   # Input/Output PDF storage (project specific)
-└── .env                    # Environment configuration (secrets)
-```
-
-## Directory Purposes
-
-**src/core:**
-- Purpose: Domain-wide constants, data models, and basic utilities.
-- Contains: Pydantic schemas, configuration loaders, and a simple JSON cache.
-- Key files: `schemas.py`, `config.py`, `cache.py`.
-
-**src/llm:**
-- Purpose: Abstracting the complexity of multiple LLM APIs.
-- Contains: Provider implementations (Gemini, Groq, OpenRouter) and a central orchestrator.
-- Key files: `llm.py`, `providers.py`.
-
-**src/processing:**
-- Purpose: The "brain" of the organization process.
-- Contains: Logic for splitting pages into documents and assigning them to folders.
-- Key files: `pipeline.py`, `grouping.py`, `routing.py`, `organizer.py`.
-
-## Key File Locations
-
-**Entry Points:**
-- `src/organize.py`: The main script to run the organization process.
-
-**Configuration:**
-- `.env`: Primary secret storage.
-- `src/core/config.py`: Application settings and constants.
-
-**Core Logic:**
-- `src/processing/pipeline.py`: Orchestrates the flow of data.
-- `src/llm/llm.py`: Handles the resilient API communication.
-
-**Testing:**
-- `tests/`: All test files are located here, organized by component.
 
 ## Naming Conventions
+- **Modules (`.py` files):** Use `snake_case`. Descriptive names reflecting their primary responsibility (e.g., `grouping.py`, `routing.py`).
+- **Classes:** Use `PascalCase`. Usually represent services (`LLMClient`, `Pipeline`, `FileOrganizer`) or data models (`DocumentGroup`, `PageData`, `TenantTimeline`).
+- **Functions:** Use `snake_case`. Prefix private internal functions with an underscore (e.g., `_group_and_route_documents`).
+- **Data Models:** Reside in `src/core/schemas.py` and extensively use Pydantic for validation.
 
-**Files:**
-- `snake_case.py`: Standard Python naming for all modules.
-- `test_*.py`: Test files following pytest conventions.
+## Key Locations
 
-**Directories:**
-- `snake_case`: Standard directory naming.
-
-## Where to Add New Code
-
-**New Feature (Processing Logic):**
-- Primary code: `src/processing/`
-- Tests: `tests/test_processing_*.py`
-
-**New LLM Provider:**
-- Implementation: `src/llm/providers.py` (create a new `LLMProvider` subclass).
-- Tests: `tests/test_providers.py`
-
-**New Data Schema:**
-- Implementation: `src/core/schemas.py`
-
-**Utilities:**
-- Shared helpers: `src/core/utils.py` or `src/fs_utils.py`.
-
-## Special Directories
-
-**pdfs/:**
-- Purpose: Contains input PDFs and the output of the categorized process.
-- Generated: Yes.
-- Committed: No (usually ignored in git).
-
----
-
-*Structure analysis: 2026-07-07*
+- **Entry Point:** `src/organize.py` is the main script that orchestrates the workflow.
+- **Pass 1 Logic:** `src/cleaning.py` handles parsing and canonicalization.
+- **Pass 2 Logic:** `src/processing/pipeline.py` orchestrates boundary detection and routing.
+- **Core Abstractions:** `src/core/schemas.py` defines the fundamental data types.

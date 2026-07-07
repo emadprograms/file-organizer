@@ -1,79 +1,30 @@
-# Coding Conventions
+# Codebase Conventions
 
-**Analysis Date:** 2026-07-07
+**Date**: 2026-07-07
 
-## Naming Patterns
+## 1. Code Style & Formatting
+- **Language**: Python 3.
+- **Type Hinting**: Pervasive use of type hints (e.g., `str`, `Optional[int]`, `list[DocumentGroup]`) using the `typing` module and built-in generics to ensure clarity and support IDE auto-completion.
+- **Docstrings**: Google-style docstrings are used for functions, classes, and modules, clearly defining `Args:`, `Returns:`, and providing robust behavioral descriptions.
+- **Linting & Formatting**: No strict enforcing configuration (like `pyproject.toml` with `ruff` or `black`, or `.flake8`) is present at the root, but the code adheres to standard PEP 8 spacing and stylistic guidelines manually.
 
-**Files:**
-- `snake_case.py`: All source files use lowercase with underscores.
+## 2. Naming Conventions
+- **Variables and Functions**: `snake_case` (e.g., `sanitize_filename`, `parse_datetime_str`).
+- **Classes**: `PascalCase` (e.g., `LLMClient`, `GeminiProvider`, `Pipeline`).
+- **Constants/Globals**: `UPPER_SNAKE_CASE` (e.g., `OPENROUTER_MODEL`).
+- **Private Modifiers**: Internal class methods and state variables are prefixed with an underscore (e.g., `_route_llm_call`, `_fallback_toggle`).
 
-**Functions:**
-- `snake_case`: Standard Python function naming.
+## 3. Architecture & Patterns
+- **Separation of Concerns**: The codebase is logically divided into domains under `src/`:
+  - `core/`: Schemas (Pydantic-like or simple objects), configuration, and pure utility functions (`utils.py`).
+  - `llm/`: Provider interfaces and the resilient `LLMClient`.
+  - `processing/`: Domain logic for the document pipeline (grouping, routing, organizing, visualizer).
+- **Strategy Pattern**: LLM providers are implemented using a common `LLMProvider` interface, allowing `LLMClient` to transparently swap between `GeminiProvider`, `OpenRouterProvider`, and `GroqProvider`.
+- **Pipeline Orchestration**: The system operates on a multi-pass pipeline architecture (cleaning -> grouping -> routing -> physical file generation). Data is persisted as checkpoints (`*_cleaned.json`, `*_grouped.json`) between passes to support resume capabilities.
+- **Resiliency & Failover**: Network calls to LLMs implement robust fallback patterns. If one provider fails (e.g., 429 Rate Limit or 5xx Server Error), the client gracefully falls back to secondary providers with thread-safe toggles and exponential backoffs.
 
-**Variables:**
-- `snake_case`: Local variables and parameters use lowercase with underscores.
-
-**Types:**
-- `PascalCase`: Pydantic models and classes use PascalCase (e.g., `DocumentGroup` in `src/core/schemas.py`).
-
-## Code Style
-
-**Formatting:**
-- Standard PEP 8 style observed. No explicit formatter configuration (like `.prettierrc` or `pyproject.toml` with black/ruff) was detected, but the code is consistently formatted.
-
-**Linting:**
-- Not detected.
-
-## Import Organization
-
-**Order:**
-1. Standard library imports.
-2. Third-party imports (e.g., `pydantic`, `google.genai`).
-3. Local module imports (starting with `src.`).
-
-**Path Aliases:**
-- The `src` directory is added to `sys.path` in `src/organize.py` to allow absolute imports from the root.
-
-## Error Handling
-
-**Patterns:**
-- **Custom Exceptions:** Use of specific exception classes for LLM failures (`LLMFailureError`, `InvalidResponseError` in `src/llm/llm.py`).
-- **Resilient Routing:** Wrapping API calls in a try-except block with automatic failover to alternative providers.
-- **Atomic File Operations:** Writing to temporary files before renaming to prevent data loss during crashes.
-
-## Logging
-
-**Framework:** `logging` (Standard Library).
-
-**Patterns:**
-- Centralized configuration in `src/logger.py`.
-- Use of a "file_organizer" named logger.
-- Dual logging: Console output for user feedback and file output for auditing.
-- Trace logging: JSON dumps of LLM requests and responses stored in `logs/traces/`.
-
-## Comments
-
-**When to Comment:**
-- Module-level docstrings describe the purpose of the file.
-- Complex logic (e.g., the failover loop in `src/llm/llm.py`) is documented with inline comments.
-
-**JSDoc/TSDoc:**
-- Not applicable (Python).
-
-## Function Design
-
-**Size:** Functions are generally focused, though the main LLM routing loop in `src/llm/llm.py` is relatively large to handle all edge cases of API failure.
-
-**Parameters:** Type hinting is used consistently for function signatures.
-
-**Return Values:** Pydantic models are used for structured return values from LLM-related functions.
-
-## Module Design
-
-**Exports:** Modules export classes and functions. `__init__.py` files are present but generally empty.
-
-**Barrel Files:** Not used.
-
----
-
-*Convention analysis: 2026-07-07*
+## 4. Error Handling
+- **Custom Exceptions**: Uses specific domain exceptions for expected failure modes, such as `LLMFailureError` and `InvalidResponseError`.
+- **Graceful Degradation**: The orchestrator prefers logging warnings and failing over to alternative mechanisms rather than immediately crashing on API failures.
+- **CLI Validation**: Scripts meant to be run directly (like `organize.py`) validate the environment and input directories early, printing clear error messages to `sys.stderr` and exiting with a non-zero code (`sys.exit(1)`) rather than throwing unhandled stack traces.
+- **Trace Logging**: Interactions and errors with LLMs are dumped to JSON trace files in a `.tracking`/`logs` or `logs/` directory for later debugging.

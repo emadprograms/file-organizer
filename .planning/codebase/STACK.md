@@ -1,63 +1,24 @@
-# Technology Stack
+# Tech Stack
 
-**Analysis Date:** 2026-07-07
+**Date:** 2026-07-07
 
 ## Languages
+- **Python**: Primary language used across the entire codebase for CLI, PDF processing, and LLM orchestration.
 
-**Primary:**
-- Python 3.12 - Core application logic, document processing pipeline, and LLM orchestration.
+## Runtime & Environment
+- **Python Virtual Environment (`venv`)**: Standard virtual environment used for dependency isolation.
+- **Configuration**: Uses `.env` files managed via `python-dotenv` and standard `os.getenv` for API keys and basic model configuration. No complex configuration frameworks are present.
 
-## Runtime
+## Frameworks & Libraries
+- **Pydantic**: Extensive use for data validation, typing, and enforcing structured JSON schemas in LLM outputs.
+- **Argparse**: Standard Python library utilized for building the CLI entry points (e.g., `organize.py`).
+- **PyMuPDF (fitz)**: Core library used for PDF manipulation (reading page counts, splitting, organizing pages).
+- **Tenacity**: Provides decorator-based retry logic for handling rate limits and transient errors from LLM providers.
+- **RapidFuzz**: Rapid fuzzy string matching algorithm, used in data reconciliation and cleaning.
+- **Rich**: Used for rich text and robust terminal visualization.
+- **Hijridate**: Specialized library for Hijri (Islamic) date parsing and conversions.
+- **Pytest**: Primary testing framework.
+- **Google-GenAI & OpenAI**: SDKs for external LLM API interaction.
 
-**Environment:**
-- CPython 3.12.10
-
-**Package Manager:**
-- pip (via requirements.txt)
-- Lockfile: Not detected
-
-## Frameworks
-
-**Core:**
-- Pydantic - Used for structured data schemas and LLM response validation (`src/core/schemas.py`).
-
-**Testing:**
-- pytest - Primary test runner used across the `tests/` directory.
-
-**Build/Dev:**
-- python-dotenv - Environment variable management.
-- rich - Terminal formatting and logging.
-
-## Key Dependencies
-
-**Critical:**
-- google-genai - Integration with Google Gemini LLMs.
-- openai - Integration with OpenAI-compatible APIs (OpenRouter, Groq).
-- PyMuPDF (fitz) - PDF manipulation, reading, and splitting (`src/organize.py`).
-- tenacity - Robust retry logic for API calls.
-
-**Infrastructure:**
-- rapidfuzz - Fast string matching for name clustering (`src/llm/llm.py`).
-- PyYAML - Configuration file parsing.
-- hijridate - Handling Hijri dates in document processing.
-
-## Configuration
-
-**Environment:**
-- `.env` file for API keys (e.g., `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `GROQ_API_KEY`).
-
-**Build:**
-- No complex build system detected; standard Python source distribution.
-
-## Platform Requirements
-
-**Development:**
-- Python 3.12+
-- API Keys for Google Gemini, OpenRouter, or Groq.
-
-**Production:**
-- Linux/Windows environment with access to PDF files and LLM APIs.
-
----
-
-*Stack analysis: 2026-07-07*
+## Tooling
+- **Logging**: Standard Python `logging` module configured for both application runtime logs and debugging logs.

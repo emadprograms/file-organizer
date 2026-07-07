@@ -1,71 +1,25 @@
 # External Integrations
 
-**Analysis Date:** 2026-07-07
+**Date:** 2026-07-07
 
-## APIs & External Services
+## APIs & LLMs
+The application extensively relies on external Large Language Model APIs for intelligent document processing, entity extraction, routing, and cleaning.
 
-**LLM Providers:**
-- Google Gemini - Primary LLM for classification and grouping.
-  - SDK: `google-genai`
-  - Auth: `GEMINI_API_KEY`
-- OpenRouter - Failover LLM provider.
-  - SDK: `openai` (compatible)
-  - Auth: `OPENROUTER_API_KEY`
-- Groq - Failover LLM provider.
-  - SDK: `openai` (compatible)
-  - Auth: `GROQ_API_KEY`
+- **Google Gemini API**: 
+  - Accessed via the official `google-genai` SDK.
+  - Used as the primary model endpoint (e.g., `gemini-2.5-flash`, `gemini-3.5-flash`) for structured JSON generation.
+- **OpenRouter API**:
+  - Accessed by configuring the `openai` Python SDK with OpenRouter's base URL (`https://openrouter.ai/api/v1`).
+  - Allows routing to a variety of OSS and proprietary models (e.g., `google/gemma-4-26b-a4b-it`).
+- **Groq API**:
+  - Accessed by configuring the `openai` Python SDK with Groq's OpenAI-compatible endpoint (`https://api.groq.com/openai/v1`).
+  - Provides fast inference model options (e.g., `qwen/qwen3.6-27b`).
 
-## Data Storage
+## Databases
+- None. The application operates as a batch script and uses the local filesystem for its input (PDF files), processing state (`checkpoints/` directory), and output (JSON reports and categorized PDFs).
 
-**Databases:**
-- Not detected. The application uses local JSON files for caching and checkpoints.
+## Auth Providers
+- None. The application does not involve end-user authentication. API access to LLMs is managed via standard API keys in `.env`.
 
-**File Storage:**
-- Local filesystem: Used for reading input PDFs, writing categorized PDFs, and storing reports/logs.
-
-**Caching:**
-- Local JSON files: Simple cache implementation (`src/core/cache.py`) to avoid redundant API calls.
-
-## Authentication & Identity
-
-**Auth Provider:**
-- API Key based authentication for all external LLM services.
-
-## Monitoring & Observability
-
-**Error Tracking:**
-- Not detected.
-
-**Logs:**
-- Custom logging system (`src/logger.py`) that writes to local files and provides verbose console output.
-- Trace logging: Detailed JSON traces of LLM requests/responses are stored in `logs/traces/` (`src/llm/llm.py`).
-
-## CI/CD & Deployment
-
-**Hosting:**
-- Not detected. Designed as a CLI tool for local execution.
-
-**CI Pipeline:**
-- Not detected.
-
-## Environment Configuration
-
-**Required env vars:**
-- `GEMINI_API_KEY` (Required)
-- `OPENROUTER_API_KEY` (Optional)
-- `GROQ_API_KEY` (Optional)
-
-**Secrets location:**
-- `.env` file.
-
-## Webhooks & Callbacks
-
-**Incoming:**
-- None.
-
-**Outgoing:**
-- None.
-
----
-
-*Integration audit: 2026-07-07*
+## Webhooks & Events
+- None. The application does not expose external webhooks or listen for external events; it is invoked manually via its CLI entry point.
