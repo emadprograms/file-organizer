@@ -21,8 +21,6 @@ def setup_logging(run_id: str = None, verbose: bool = False) -> str:
     
     os.makedirs(full_dir, exist_ok=True)
     log_dir = full_dir
-    os.makedirs(os.path.join(log_dir, "traces"), exist_ok=True)
-    os.makedirs(os.path.join(LOGS_DIR, "traces"), exist_ok=True) # Also at root for global traces
     _run_directories[run_id] = full_dir
     
     # Setup standard logger
@@ -33,11 +31,19 @@ def setup_logging(run_id: str = None, verbose: bool = False) -> str:
     if not logger.handlers:
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         
-        # File handler
-        log_file = os.path.join(full_dir, "app.log")
-        file_handler = logging.FileHandler(log_file, encoding='utf-8')
-        file_handler.setFormatter(formatter)
-        logger.addHandler(file_handler)
+        # App log - INFO level and above
+        app_log_file = os.path.join(full_dir, "app.log")
+        app_handler = logging.FileHandler(app_log_file, encoding='utf-8')
+        app_handler.setFormatter(formatter)
+        app_handler.setLevel(logging.INFO)
+        logger.addHandler(app_handler)
+
+        # Debug log - DEBUG level and above
+        debug_log_file = os.path.join(full_dir, "debug.log")
+        debug_handler = logging.FileHandler(debug_log_file, encoding='utf-8')
+        debug_handler.setFormatter(formatter)
+        debug_handler.setLevel(logging.DEBUG)
+        logger.addHandler(debug_handler)
         
         # Stream handler
         if hasattr(sys.stdout, 'reconfigure'):
