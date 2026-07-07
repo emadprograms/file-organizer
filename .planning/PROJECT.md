@@ -14,10 +14,10 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 
 - ✓ The application successfully cleans, groups, routes, and organizes PDF documents.
 - ✓ The core pipeline components (`organize.py`, `cleaning.py`, `grouping.py`, `routing.py`, etc.) work as expected.
+- ✓ Identify and remove all unreachable legacy code that is not imported or used by the main application flow. (Validated in Phase 01: legacy-code-cleanup)
 
 ### Active
 
-- [ ] Identify and remove all unreachable legacy code that is not imported or used by the main application flow.
 - [ ] Refactor bloated files into separate focused modules.
 - [ ] Refactor oversized functions into smaller, single-purpose functions.
 
@@ -31,6 +31,7 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 - There is significant legacy code not used by the main application flow (often referred to via `organizer.py` / `organize.py`).
 - We are taking an aggressive refactoring approach by breaking code into separate modules rather than just splitting functions within the same files.
 - The project has a codebase map outlining the existing architecture and pipeline.
+- Phase 01 successfully removed all unused code by tracing imports.
 
 ## Constraints
 
@@ -42,7 +43,7 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | Break bloated code into new modules | Improves maintainability and file sizes over keeping them in the same file. | — Pending |
-| Trace imports from entry point | Safest way to identify truly unused legacy code without false positives. | — Pending |
+| Trace imports from entry point | Safest way to identify truly unused legacy code without false positives. | — Completed (Phase 01) |
 
 ## Evolution
 
@@ -62,4 +63,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-07-07 after initialization*
+*Last updated: 2026-07-07 after Phase 01 completion*

@@ -7,7 +7,7 @@
 
 ### Legacy Cleanup
 
-- [ ] **CLN-01**: Identify and remove unreachable legacy code by tracing imports from the entry point (`src/organize.py`).
+- [x] **CLN-01**: Identify and remove unreachable legacy code by tracing imports from the entry point (`src/organize.py`).
 
 ### Refactoring
 
@@ -31,12 +31,13 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| CLN-01 | Phase 1 | Pending |
+| CLN-01 | Phase 1 | Complete |
 | REF-01 | Phase 2 | Pending |
 | REF-02 | Phase 3 | Pending |
 | REF-03 | Phase 3 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 4 total
 - Mapped to phases: 4
 - Unmapped: 0
