@@ -1,14 +1,31 @@
-# Roadmap v1.3: Output Structure Refinement
+# Roadmap: File Organizer Refactoring
 
-## Phase 1: Output Path Logic Update
+## Phase 1: Legacy Code Cleanup
+**Requirements:** CLN-01
 
-- Update `organize.py` to calculate `output_dir` as `args.target_dir / house_id`.
-- Remove the conditional logic that checks if `args.target_dir.name == house_id`.
-- Ensure all subsequent paths (cleaned JSON, checkpoints, manifest) use this new `output_dir`.
-- Verify that `FileOrganizer.organize` receives the correct `output_base_dir` and correctly creates the `house_dir`.
+Identify and remove unreachable legacy code by tracing imports from the entry point (`src/organize.py`).
 
-## Phase 2: Validation & Testing
+**Success Criteria:**
+1. Unreachable code not in the `src/organize.py` dependency graph is removed.
+2. All test suites pass, verifying no active code was deleted.
+3. Total codebase size or file count is reduced.
 
-- Create a test case in `tests/test_cli.py` or a new test file to verify that the output folder is created exactly where expected, regardless of whether the target directory is the house folder or a parent folder.
-- Run the pipeline in dry-run mode to verify directory creation for various input paths.
-- Perform an E2E test with a real PDF to confirm the final structure.
+## Phase 2: Refactor src/cleaning.py
+**Requirements:** REF-01
+
+Refactor `src/cleaning.py` into separate focused modules based on responsibility.
+
+**Success Criteria:**
+1. `src/cleaning.py` is split into smaller files based on distinct cleaning tasks.
+2. Functionality and output of cleaning processes remain identical.
+3. References in pipeline components are updated and functioning correctly.
+
+## Phase 3: Refactor Processing and Oversized Functions
+**Requirements:** REF-02, REF-03
+
+Identify and refactor bloated files in `src/processing/` into smaller modules, and split oversized functions across the app.
+
+**Success Criteria:**
+1. Bloated files in `src/processing/` are replaced by single-responsibility modules.
+2. Oversized functions (e.g., > 50 lines) are broken down into smaller helper functions.
+3. The core pipeline runs end-to-end without errors.

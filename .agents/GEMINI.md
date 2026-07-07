@@ -2,16 +2,16 @@
 
 ## Project
 
-**File Categorizer Generalization**
+**File Organizer Refactoring**
 
-A high-precision document processing pipeline that currently ingests housing-related PDFs and categorizes them. We are transforming it into a general-purpose, configuration-driven tool where users can provide their own instructions for AI extraction, cleaning, grouping, and folder organization via a config file.
+A technical debt cleanup and refactoring effort for the file organizer project. The goal is to remove unused legacy code by tracing imports from the main entry point, and to break down bloated functions and files into smaller, more focused modules to improve maintainability.
 
-**Core Value:** Empower users to seamlessly categorize and organize any type of PDF by simply providing clear AI instructions and destination folders, without changing the underlying pipeline engine.
+**Core Value:** Keep the codebase lean and maintainable without altering the existing correct functionality.
 
 ### Constraints
 
-- **Compatibility**: Must not alter the underlying Python architecture/pipeline logic.
-- **Configuration**: Uses YAML/JSON for the config file.
+- **Functional Parity**: The refactoring must not break existing functionality or change the output format.
+- **Maintainability**: The new modules should have clear, single responsibilities.
 
 <!-- GSD:project-end -->
 
@@ -19,27 +19,43 @@ A high-precision document processing pipeline that currently ingests housing-rel
 
 ## Technology Stack
 
-## Languages & Runtimes
+## Languages
 
-- **Python**: Version 3.10+. Primary language for the categorization pipeline.
+- Python 3.12 - Core application logic, document processing pipeline, and LLM orchestration.
 
-## Core Frameworks & Dependencies
+## Runtime
 
-- **PyMuPDF**: PDF manipulation, splitting, and rendering.
-- **Pydantic**: Data validation and structured schemas (likely used with LLM outputs).
-- **Tenacity**: Retry logic for robust API calls.
-- **Google GenAI / OpenAI**: LLM integration for page classification and entity extraction.
-- **Python-dotenv**: Managing environment variables (`.env`).
+- CPython 3.12.10
+- pip (via requirements.txt)
+- Lockfile: Not detected
 
-## Build & Tooling
+## Frameworks
 
-- **Virtual Environments**: `venv` is used for isolation.
-- **Type Checking**: `mypy` is used (evident from `.mypy_cache`).
+- Pydantic - Used for structured data schemas and LLM response validation (`src/core/schemas.py`).
+- pytest - Primary test runner used across the `tests/` directory.
+- python-dotenv - Environment variable management.
+- rich - Terminal formatting and logging.
+
+## Key Dependencies
+
+- google-genai - Integration with Google Gemini LLMs.
+- openai - Integration with OpenAI-compatible APIs (OpenRouter, Groq).
+- PyMuPDF (fitz) - PDF manipulation, reading, and splitting (`src/organize.py`).
+- tenacity - Robust retry logic for API calls.
+- rapidfuzz - Fast string matching for name clustering (`src/llm/llm.py`).
+- PyYAML - Configuration file parsing.
+- hijridate - Handling Hijri dates in document processing.
 
 ## Configuration
 
-- Environment variables are defined in `.env` (with an example provided in `.env.example`).
-- API keys like `GEMINI_API_KEY` are managed via the environment.
+- `.env` file for API keys (e.g., `GEMINI_API_KEY`, `OPENROUTER_API_KEY`, `GROQ_API_KEY`).
+- No complex build system detected; standard Python source distribution.
+
+## Platform Requirements
+
+- Python 3.12+
+- API Keys for Google Gemini, OpenRouter, or Groq.
+- Linux/Windows environment with access to PDF files and LLM APIs.
 
 <!-- GSD:stack-end -->
 
@@ -47,23 +63,44 @@ A high-precision document processing pipeline that currently ingests housing-rel
 
 ## Conventions
 
-## Code Style & Patterns
+## Naming Patterns
 
-- **Typing**: Type hints are heavily used (e.g., `list[tuple[int, PageClassification]]`, `Optional[Any]`).
-- **Data Validation**: Pydantic is used for structured data models in `schemas.py`.
-- **Modularity**: Code is split into focused modules (ingest, llm, pipeline, organizer, extractors, split).
-- **Logging**: Python's standard `logging` library is used extensively to track pipeline progression (e.g., `logger.info(f"Starting Pass 1...")`).
+- `snake_case.py`: All source files use lowercase with underscores.
+- `snake_case`: Standard Python function naming.
+- `snake_case`: Local variables and parameters use lowercase with underscores.
+- `PascalCase`: Pydantic models and classes use PascalCase (e.g., `DocumentGroup` in `src/core/schemas.py`).
+
+## Code Style
+
+- Standard PEP 8 style observed. No explicit formatter configuration (like `.prettierrc` or `pyproject.toml` with black/ruff) was detected, but the code is consistently formatted.
+- Not detected.
+
+## Import Organization
+
+- The `src` directory is added to `sys.path` in `src/organize.py` to allow absolute imports from the root.
 
 ## Error Handling
 
-- Custom exceptions are used to signal specific failure states (e.g., `LLMFailureError`, `InvalidResponseError` in `llm.py`).
-- Tenacity is employed for retry logic on flaky API calls (configured in `llm.py` or `providers.py`).
-- Defensive checks exist to abort processing gracefully rather than losing data (e.g., throwing `RuntimeError` if page loss is detected during extraction).
+- **Custom Exceptions:** Use of specific exception classes for LLM failures (`LLMFailureError`, `InvalidResponseError` in `src/llm/llm.py`).
+- **Resilient Routing:** Wrapping API calls in a try-except block with automatic failover to alternative providers.
+- **Atomic File Operations:** Writing to temporary files before renaming to prevent data loss during crashes.
 
-## Naming
+## Logging
 
-- Python standards apply (snake_case for variables/functions, PascalCase for classes).
-- Specific module files prefix tests with `test_` for pytest compatibility.
+- Centralized configuration in `src/logger.py`.
+- Use of a "file_organizer" named logger.
+- Dual logging: Console output for user feedback and file output for auditing.
+- Trace logging: JSON dumps of LLM requests and responses stored in `logs/traces/`.
+
+## Comments
+
+- Module-level docstrings describe the purpose of the file.
+- Complex logic (e.g., the failover loop in `src/llm/llm.py`) is documented with inline comments.
+- Not applicable (Python).
+
+## Function Design
+
+## Module Design
 
 <!-- GSD:conventions-end -->
 
@@ -71,15 +108,82 @@ A high-precision document processing pipeline that currently ingests housing-rel
 
 ## Architecture
 
-## System Pattern & Layers
+## System Overview
+
+```text
+
+```
+
+## Component Responsibilities
+
+| Component | Responsibility | File |
+|-----------|----------------|------|
+| CLI Controller | Validates environment and coordinates the multi-pass pipeline | `src/organize.py` |
+| Pipeline | Manages the flow from cleaning $ightarrow$ grouping $ightarrow$ routing | `src/processing/pipeline.py` |
+| Cleaning Phase | Standardizes extracted data and resolves tenants | `src/cleaning.py` |
+| Grouping Logic | Uses LLM to find boundaries between different documents | `src/processing/grouping.py` |
+| Routing Logic | Assigns final folder paths to grouped documents | `src/processing/routing.py` |
+| LLM Client | Orchestrates requests across Gemini, OpenRouter, and Groq with failover | `src/llm/llm.py` |
+| Schemas | Defines Pydantic models for structured LLM I/O | `src/core/schemas.py` |
+| Cache | Prevents redundant LLM calls using local JSON storage | `src/core/cache.py` |
+
+## Pattern Overview
+
+- **Multi-Pass Architecture:** Separates individual page classification (Pass 1) from document boundary detection (Pass 2).
+- **Robust LLM Routing:** Implements a provider sequence with automatic failover and rate-limit cooldowns.
+- **Structured I/O:** Heavily relies on Pydantic schemas to ensure LLM responses match expected data formats.
+- **Checkpointing:** Saves intermediate results (`_cleaned.json`, `_grouped.json`) to allow resumption after failure.
+
+## Layers
+
+- Purpose: Shared utilities, configuration, and data models.
+- Location: `src/core/`
+- Contains: `schemas.py`, `config.py`, `cache.py`, `utils.py`.
+- Depends on: Pydantic.
+- Used by: All other layers.
+- Purpose: Abstracting LLM provider details and providing resilient API access.
+- Location: `src/llm/`
+- Contains: `llm.py`, `providers.py`.
+- Depends on: `google-genai`, `openai`.
+- Used by: `src/processing/` and `src/cleaning.py`.
+- Purpose: Implementing the domain logic for document organization.
+- Location: `src/processing/`
+- Contains: `pipeline.py`, `grouping.py`, `routing.py`, `organizer.py`.
+- Depends on: `src/llm/`, `src/core/`.
+- Used by: `src/organize.py`.
 
 ## Data Flow
 
-## Abstractions
+### Primary Request Path
 
-- `PageClassification`: Data schema representing a single page's metadata (category, date, residents).
-- `DocumentGroup`: Data schema representing a contiguous sequence of pages logically belonging together.
-- `LLMClient`: Wrapper around LLM APIs to isolate the core logic from specific provider implementations.
+## Key Abstractions
+
+- Purpose: A high-level wrapper for multiple LLM providers that handles retries, failovers, and structured output.
+- Examples: `src/llm/llm.py`
+- Pattern: Strategy Pattern (via `LLMProvider` subclasses).
+- Purpose: Represents a cohesive set of pages that form a single document.
+- Examples: `src/core/schemas.py`
+- Pattern: Data Transfer Object (DTO).
+
+## Entry Points
+
+- Location: `src/organize.py`
+- Triggers: Manual execution via `python src/organize.py [target_dir]`.
+- Responsibilities: Environment validation, pipeline coordination, and final PDF generation.
+
+## Architectural Constraints
+
+- **API Rate Limits:** The pipeline is throttled by LLM API limits, necessitating the `delay_between_pages` and cooldown logic in `src/llm/llm.py`.
+- **Sequential Processing:** Most stages are sequential, though some LLM calls use `ThreadPoolExecutor` for concurrency.
+- **Local State:** The application is stateless between runs except for the local JSON checkpoints and cache.
+
+## Error Handling
+
+- **Provider Failover:** If Gemini fails, it tries OpenRouter, then Groq.
+- **Atomic Writes:** Uses a temporary file pattern to prevent corrupting checkpoints (`src/fs_utils.py`).
+- **Global Error Limit:** Aborts the pipeline if too many consecutive 500 errors occur.
+
+## Cross-Cutting Concerns
 
 <!-- GSD:architecture-end -->
 

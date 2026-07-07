@@ -38,8 +38,8 @@
 
 **Coverage:**
 - v1 requirements: 4 total
-- Mapped to phases: 0 (pending roadmap creation)
-- Unmapped: 4 ⚠️
+- Mapped to phases: 4
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-07-07*
