@@ -87,44 +87,17 @@ def _write_jsonl_trace(run_id: str, trace_type: str, payload: dict):
 
 def log_llm_api_call(request: dict, response: dict, run_id: str):
     """
-    Append an LLM API request and response to llm_audit.jsonl.
+    Append an LLM API request and response to traces.jsonl.
     """
-    log_dir = _run_directories.get(run_id)
-    if not log_dir:
-        # Fallback if log_llm_api_call is called without setup_logging
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        dir_name = f"{timestamp}_{run_id}"
-        log_dir = os.path.join(LOGS_DIR, dir_name)
-        os.makedirs(log_dir, exist_ok=True)
-        _run_directories[run_id] = log_dir
-        
-    audit_file = os.path.join(log_dir, "llm_audit.jsonl")
-    
-    record = {
-        "timestamp": datetime.now().isoformat(),
+    payload = {
         "request": request,
         "response": response
     }
-    
-    # Append as valid JSON line
-    with open(audit_file, "a", encoding="utf-8") as f:
-        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    _write_jsonl_trace(run_id, "llm_api", payload)
 
 def log_decision_trace(decision_type: str, payload: dict, run_id: str = None):
     """
-    Append a structured JSON audit log for a pipeline decision.
+    Append a structured JSON audit log for a pipeline decision to traces.jsonl.
     """
-    log_dir = _run_directories.get(run_id)
-    if not log_dir:
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        dir_name = f"{timestamp}_{run_id}" if run_id else f"{timestamp}_unknown"
-        log_dir = os.path.join(LOGS_DIR, dir_name)
-        os.makedirs(log_dir, exist_ok=True)
-        os.makedirs(os.path.join(log_dir, "traces"), exist_ok=True)
-        _run_directories[run_id] = log_dir
-
-    trace_file = os.path.join(log_dir, "traces", f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{decision_type}.json")
-    
-    with open(trace_file, "w", encoding="utf-8") as f:
-        json.dump(payload, f, ensure_ascii=False, indent=2)
+    _write_jsonl_trace(run_id, f"decision_{decision_type}", payload)
 
