@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.1
-milestone_name: "Legacy Code Cleanup"
-status: Milestone complete
-stopped_at: Phase 16 cleanup complete
-last_updated: "2026-07-06T12:00:00.000Z"
+milestone: v1.2
+milestone_name: Logging System Overhaul
+status: Active
+stopped_at: Phase 16 complete
+last_updated: "2026-07-07T04:29:01.362Z"
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 5
-  completed_plans: 5
+  total_phases: 2
+  completed_phases: 2
+  total_plans: 4
+  completed_plans: 4
   percent: 100
 ---
 
@@ -17,10 +17,10 @@ progress:
 
 ## Project Reference
 
-See .planning/PROJECT.md (updated 2026-07-06)
+See .planning/PROJECT.md
 
 **Core value:** Automatically transform a flat, pre-categorized PDF into a perfectly organized folder structure per tenant, with zero manual sorting.
-**Current focus:** None (Milestone v1.1 complete)
+**Current focus:** Milestone v1.2 - Logging System Overhaul (Signal vs Noise)
 
 ## Current Status
 
@@ -72,7 +72,7 @@ See .planning/PROJECT.md (updated 2026-07-06)
 
 ## Session
 
-**Last session:** 2026-07-06T09:43:19.238Z
+**Last session:** 2026-07-07T04:29:01.336Z
 **Stopped at:** Phase 16 cleanup complete
 
 ### Roadmap Evolution
