@@ -61,6 +61,30 @@ def setup_logging(run_id: str = None, verbose: bool = False) -> str:
     
     return full_dir
 
+def _write_jsonl_trace(run_id: str, trace_type: str, payload: dict):
+    """
+    Write a structured JSON trace to traces.jsonl in the run directory.
+    """
+    log_dir = _run_directories.get(run_id)
+    if not log_dir:
+        # Fallback if _write_jsonl_trace is called without setup_logging
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+        dir_name = f"{timestamp}_{run_id}"
+        log_dir = os.path.join(LOGS_DIR, dir_name)
+        os.makedirs(log_dir, exist_ok=True)
+        _run_directories[run_id] = log_dir
+        
+    trace_file = os.path.join(log_dir, "traces.jsonl")
+    
+    record = {
+        "timestamp": datetime.now().isoformat(),
+        "trace_type": trace_type,
+        "payload": payload
+    }
+    
+    with open(trace_file, "a", encoding="utf-8") as f:
+        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+
 def log_llm_api_call(request: dict, response: dict, run_id: str):
     """
     Append an LLM API request and response to llm_audit.jsonl.
