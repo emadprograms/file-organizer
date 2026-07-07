@@ -1,32 +1,59 @@
-# Project: File Organizer Post-Processor
+# File Organizer Refactoring
 
-**Current State:** v1.1 Shipped (2026-07-06)
-The system is now a streamlined, high-precision PDF organization post-processor. It has been fully pruned of all legacy extraction and YAML configuration logic, ensuring a clean, maintainable codebase focused exclusively on transforming JSON reports into physical directory structures.
+## What This Is
 
-## Core Capabilities
-- **Automatic Organization:** House $ightarrow$ Tenant (Timeline) $ightarrow$ Topic hierarchy.
-- **High Precision:** 0-indexed PDF splitting and strict output validation.
-- **Resilience:** Global circuit breaker for LLM failures and atomic checkpointing.
-- **Preview:** Rich-based dry-run visualization.
-- **Streamlined Architecture:** Pure post-processing pipeline with no redundant extractor logic.
+A technical debt cleanup and refactoring effort for the file organizer project. The goal is to remove unused legacy code by tracing imports from the main entry point, and to break down bloated functions and files into smaller, more focused modules to improve maintainability.
 
-## Next Milestone Goals
-**Goal: Generalization & External Configuration**
-The next phase of the project is to transition from hardcoded routing rules to a general-purpose, configuration-driven tool. This will involve:
-- Implementing a new, robust configuration schema (JSON/YAML) for AI instructions.
-- Allowing users to define custom extraction and routing logic via config.
-- Decoupling the pipeline from specific housing-related categories.
+## Core Value
+
+Keep the codebase lean and maintainable without altering the existing correct functionality.
+
+## Requirements
+
+### Validated
+
+- ✓ The application successfully cleans, groups, routes, and organizes PDF documents.
+- ✓ The core pipeline components (`organize.py`, `cleaning.py`, `grouping.py`, `routing.py`, etc.) work as expected.
+
+### Active
+
+- [ ] Identify and remove all unreachable legacy code that is not imported or used by the main application flow.
+- [ ] Refactor bloated files into separate focused modules.
+- [ ] Refactor oversized functions into smaller, single-purpose functions.
+
+### Out of Scope
+
+- Adding new features or altering existing behavior (pure refactoring).
+- Changing the underlying runtime or infrastructure.
+
+## Context
+
+- There is significant legacy code not used by the main application flow (often referred to via `organizer.py` / `organize.py`).
+- We are taking an aggressive refactoring approach by breaking code into separate modules rather than just splitting functions within the same files.
+- The project has a codebase map outlining the existing architecture and pipeline.
+
+## Constraints
+
+- **Functional Parity**: The refactoring must not break existing functionality or change the output format.
+- **Maintainability**: The new modules should have clear, single responsibilities.
+
+## Key Decisions
+
+| Decision | Rationale | Outcome |
+|----------|-----------|---------|
+| Break bloated code into new modules | Improves maintainability and file sizes over keeping them in the same file. | — Pending |
+| Trace imports from entry point | Safest way to identify truly unused legacy code without false positives. | — Pending |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 **After each phase transition** (via `/gsd-transition`):
-1. Requirements invalidated? $ightarrow$ Move to Out of Scope with reason
-2. Requirements validated? $ightarrow$ Move to Validated with phase reference
-3. New requirements emerged? $ightarrow$ Add to Active
-4. Decisions to log? $ightarrow$ Add to Key Decisions
-5. "What This Is" still accurate? $ightarrow$ Update if drifted
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
 
 **After each milestone** (via `/gsd-complete-milestone`):
 1. Full review of all sections
@@ -35,14 +62,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-<details>
-<summary>Archive: Previous Project Context (v1.0 & v1.1)</summary>
-
-**Core Value:** Automatically transform a flat, pre-categorized PDF into a perfectly organized folder structure per tenant, with zero manual sorting — driven entirely by the JSON report data, LLM intelligence, and configurable routing rules.
-
-### Constraints
-- **Model**: Gemma 4 26B A4B IT
-- **Rate Limit**: 7 seconds between LLM requests
-- **Failure Threshold**: Pipeline aborts after 5 consecutive global 500/Timeout errors
-- **Language**: Arabic output filenames and summaries
-</details>
+*Last updated: 2026-07-07 after initialization*
