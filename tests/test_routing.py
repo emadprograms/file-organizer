@@ -1,7 +1,7 @@
 """Tests for the routing engine."""
 
 import pytest
-from src.processing.routing import route_document, SINGLE_MATCH, MULTI_MATCH, FOLDER_ROUTING, CATEGORY_TO_FOLDERS
+from src.processing.routing import route_document, SINGLE_MATCH, FOLDER_ROUTING, CATEGORY_TO_FOLDERS
 from src.core.schemas import DocumentGroup
 from unittest.mock import patch, MagicMock
 

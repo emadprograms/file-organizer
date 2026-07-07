@@ -85,15 +85,6 @@ def _write_jsonl_trace(run_id: str, trace_type: str, payload: dict):
     with open(trace_file, "a", encoding="utf-8") as f:
         f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
-def log_llm_api_call(request: dict, response: dict, run_id: str):
-    """
-    Append an LLM API request and response to traces.jsonl.
-    """
-    payload = {
-        "request": request,
-        "response": response
-    }
-    _write_jsonl_trace(run_id, "llm_api", payload)
 
 def log_decision_trace(decision_type: str, payload: dict, run_id: str = None):
     """

@@ -21,11 +21,7 @@ from google import genai
 from google.genai import types
 import openai
 
-from src.core.schemas import (
-    EntityResolutionMapping,
-    BulkSemanticMatchResult,
-    DateOutlierDetectionResult
-)
+
 
 log = logging.getLogger(__name__)
 
@@ -129,7 +125,20 @@ class LLMClient:
         """
         if getattr(self, "skip_llm", False):
             if response_schema is None:
-                return "mock plain text response"
+                # Handle name canonicalization requests by returning an identity map
+                for content in contents:
+                    if isinstance(content, str) and "Raw names:" in content:
+                        try:
+                            # Extract the JSON list of names from the prompt
+                            start_idx = content.find("[")
+                            end_idx = content.rfind("]") + 1
+                            if start_idx != -1 and end_idx != -1:
+                                names = json.loads(content[start_idx:end_idx])
+                                if isinstance(names, list):
+                                    return json.dumps({name: name for name in names}, ensure_ascii=False)
+                        except Exception:
+                            pass
+                return "{}"
             schema_name = response_schema.__name__
             if schema_name == "GroupingResponse":
                 import re
@@ -301,202 +310,3 @@ class LLMClient:
 
         raise RuntimeError("LLM routing failed across all providers")
 
-    def cluster_names(self, anchor_names: list[str], other_names: list[str], prompt_template: str) -> dict[str, str]:
-        """Group other names into anchor names using a Two-Tier Hybrid approach.
-        
-        Tier 1: Fast local string matching (thefuzz) to collapse severe OCR typos into anchors.
-        Tier 2: LLM (Plain Text mode) to link the remaining other names to anchors.
-        """
-        if not anchor_names or not other_names:
-            return {}
-            
-        # Tier 1: Fast Phonetic Clustering against anchor names
-        import difflib
-        try:
-            from thefuzz import fuzz
-        except ImportError:
-            fuzz = None
-
-        final_mapping = {}
-        unmatched_other_names = []
-        
-        for other in other_names:
-            matched_anchor = None
-            if fuzz:
-                # First check exact token_set_ratio with 70 threshold for OCR misspellings
-                for anchor in anchor_names:
-                    if fuzz.token_set_ratio(other, anchor) > 70:
-                        matched_anchor = anchor
-                        break
-                # If still not matched, try phonetic/ratio on normalized names
-                if not matched_anchor:
-                    for anchor in anchor_names:
-                        if fuzz.ratio(other.replace(" ", ""), anchor.replace(" ", "")) > 70:
-                            matched_anchor = anchor
-                            break
-            else:
-                matches = difflib.get_close_matches(other, anchor_names, n=1, cutoff=0.70)
-                if matches:
-                    matched_anchor = matches[0]
-                    
-            if matched_anchor:
-                final_mapping[other] = matched_anchor
-            else:
-                unmatched_other_names.append(other)
-
-        log.info(f"Tier 1 (Local) matched {len(final_mapping)} names directly to anchors. {len(unmatched_other_names)} remaining for LLM.")
-        
-        if not unmatched_other_names:
-            return final_mapping
-
-        # Tier 2: LLM Cross-Lingual Linking
-        log.info(f"Tier 2 (LLM) matching {len(unmatched_other_names)} names to anchors (Plain Text mode)...")
-        
-        system_prompt = prompt_template
-        
-        user_prompt = "Official Anchor Names:\n" + "\n".join(f"- {n}" for n in anchor_names) + "\n\nOther Names:\n" + "\n".join(f"- {n}" for n in unmatched_other_names)
-        
-        try:
-            result_text = self._route_llm_call(
-                model=GEMINI_MODEL,
-                contents=[system_prompt, user_prompt],
-                response_schema=None,
-                log_prefix="NameClusteringText"
-            )
-            
-            for line in result_text.splitlines():
-                if "->" in line:
-                    parts = line.split("->")
-                    raw = parts[0].strip()
-                    canonical = parts[1].strip()
-                    if raw and canonical and canonical != "NONE" and canonical in anchor_names:
-                        final_mapping[raw] = canonical
-                        
-            return final_mapping
-        except Exception as e:
-            log.error(f"[NameClusteringText] LLM failed: {e}. Returning only Tier 1 mapping.")
-            return final_mapping
-
-
-
-
-
-    def classify_page_direct(self, image_bytes: bytes, extracted_footer: Optional[str], prompt_template: str, fields: list) -> Any:
-        """Classify a document page using the LLM based on its image content.
-        
-        Args:
-            image_bytes (bytes): PNG image data of the page.
-            extracted_footer (Optional[str]): Text previously OCR'd from the footer.
-            prompt_template (str): The instructions for extraction.
-            fields (list): The list of field definitions.
-            
-        Returns:
-            Any: The classification result (dynamic model).
-        """
-        from pydantic import create_model, Field
-        from typing import Any
-        
-        with self._cached_schema_lock:
-            if self._cached_schema is None:
-                type_mapping = {
-                    "str": str,
-                    "list[str]": list[str],
-                    "int": int,
-                    "bool": bool
-                }
-                
-                model_fields = {}
-                for f in fields:
-                    t = type_mapping.get(f.type, Any)
-                    model_fields[f.name] = (t, Field(description=f.description))
-                    
-                self._cached_schema = create_model('DynamicClassification', **model_fields)
-            
-            DynamicSchema = self._cached_schema
-
-        system_prompt = prompt_template
-        user_prompt = "Classify this scanned document page."
-        if extracted_footer:
-            user_prompt += f"\n\nExtracted Footer Text: {extracted_footer}"
-            
-        contents = [
-            system_prompt,
-            user_prompt,
-            types.Part.from_bytes(data=image_bytes, mime_type='image/png')
-        ]
-        
-        attempts = 100
-        result = self._route_llm_call(
-            model=GEMINI_MODEL,
-            contents=contents,
-            response_schema=DynamicSchema,
-            log_prefix="DirectCloud",
-            max_attempts=attempts
-        )
-        return result
-
-
-
-    def detect_date_outliers(self, date_pairs: list[tuple[int, str]], prompt_template: str) -> list[int]:
-        """Identify page indices whose dates are chronological outliers.
-        
-        Args:
-            date_pairs (list[tuple[int, str]]): List of tuples containing page indices and dates.
-            prompt_template (str): The instructions for LLM.
-            
-        Returns:
-            list[int]: List of page indices identified as outliers.
-        """
-        from src.core.schemas import DateOutlierDetectionResult
-        
-        system_prompt = prompt_template
-        
-        # Format the input for the LLM
-        pairs_str = "\n".join([f"Page {idx}: {date}" for idx, date in date_pairs])
-        user_prompt = f"Identify the outlier page indices from this list:\n\n{pairs_str}"
-        
-        try:
-            result = self._route_llm_call(
-                model=GEMINI_MODEL,
-                contents=[system_prompt, user_prompt],
-                response_schema=DateOutlierDetectionResult,
-                log_prefix="DateOutlierDetection"
-            )
-            return result.outlier_page_indices # type: ignore
-        except Exception as e:
-            log.info(f"[DateOutlierDetection] Error during LLM call: {e}")
-            return []
-
-    def check_bulk_semantic_grouping(self, pages_data: list, prompt_template: str) -> BulkSemanticMatchResult:
-        """Group pages logically based on semantic content.
-        
-        Args:
-            pages_data (list): List of page data tuples (page_number, names, summary).
-            prompt_template (str): The instructions for LLM.
-            
-        Returns:
-            BulkSemanticMatchResult: The grouping of page indices.
-        """
-        system_prompt = prompt_template
-        user_prompt = f"Group these pages logically:\n{json.dumps(pages_data, ensure_ascii=False, indent=2)}"
-        
-        try:
-            log.info(" Running bulk semantic grouping using Cloud Model...")
-            contents = [
-                system_prompt,
-                user_prompt
-            ]
-            attempts = 100
-            result = self._route_llm_call(
-                model=GEMINI_MODEL,
-                contents=contents,
-                response_schema=BulkSemanticMatchResult,
-                log_prefix="BulkSemanticCloud",
-                max_attempts=attempts
-            )
-            return result
-        except Exception as e:
-            log.info(f"WARNING: Direct Cloud bulk grouping failed: {e}")
-            self.activate_cooldown()
-            default_groups = [[p[0]] for p in pages_data]
-            return BulkSemanticMatchResult(groups=default_groups)

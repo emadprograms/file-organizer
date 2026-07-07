@@ -7,13 +7,12 @@ This module acts as the core orchestrator. It manages the two-pass architecture:
 """
 from typing import Optional, Any
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from src.llm.llm import LLMClient, LLMFailureError, InvalidResponseError
+from concurrent.futures import ThreadPoolExecutor
+from src.llm.llm import LLMClient, LLMFailureError
 from src.core.schemas import DocumentGroup
 
 logger = logging.getLogger(__name__)
 
-from src.core.cache import SimpleCache
 from types import SimpleNamespace
 
 class PageData(SimpleNamespace):

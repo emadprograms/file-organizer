@@ -7,7 +7,7 @@ import unicodedata
 from rapidfuzz import fuzz
 import logging
 
-from src.llm_client import LLMClient
+from src.llm.llm import LLMClient
 from google.genai import types
 
 logger = logging.getLogger("file_organizer")

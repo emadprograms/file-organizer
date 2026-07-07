@@ -1,5 +1,5 @@
 import pytest
-from src.core.indexing import to_0_based, to_1_based, validate_bounds
+from src.core.indexing import to_0_based, validate_bounds
 
 def test_to_0_based():
     assert to_0_based(1) == 0
@@ -7,10 +7,6 @@ def test_to_0_based():
     assert to_0_based(0) == 0  # safe fallback
     assert to_0_based(-5) == 0 # safe fallback
 
-def test_to_1_based():
-    assert to_1_based(0) == 1
-    assert to_1_based(1) == 2
-    assert to_1_based(-1) == 1 # safe fallback
 
 def test_validate_bounds_normal():
     assert validate_bounds(0, 10) == 0

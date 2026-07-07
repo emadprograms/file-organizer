@@ -1,0 +1,238 @@
+{
+    "1": {
+        "category": "forms",
+        "telemetry": {},
+        "content_explanation": "This document is a form titled 'OCCUPANT' in English and 'الساكن' (Al-Sakin) in Arabic, which is used to record details of a person occupying a residential unit. It contains several fields for personal and administrative information: 'NUMBER' (الرقم), filled as '1743'; 'RANK' (الرتبة), filled as 'رئيس عرفاء' (Chief Sergeant); 'NAME' (الاسم), filled as 'يونس محمد ملات' (Younis Mohammed Mallat); 'FORMATION' (الإدارة/القسم), filled as 'إدارة النقل / متقاعد' (Transport Administration / Retired); 'ALLOTMENT DATE' (تاريخ التخصيص), filled as '1986/1/25'; 'VACATION DATE' (تاريخ الإخلاء), filled as '2007/6/19'; 'TELEPHONE' (هاتف), filled as '3966.76'; and 'MONTHLY RENMT' (الإيجار الشهري), filled as 'عشرة دينار' (Ten Dinars). The document serves as a record of residency and housing allocation for a retired member of a specific organization, likely military or governmental.",
+        "expected_tenant_name": "يونس محمد ملات",
+        "expected_house_number": "1743"
+    },
+    "2": {
+        "category": "letters",
+        "telemetry": {},
+        "content_explanation": "This is an official letter from the Kingdom of Bahrain, Ministry of Interior, specifically from the Supply and Provisioning Directorate. The letter is addressed to the Director of Customer Services at the Electricity and Water Authority (EWA). The subject of the letter is 'Electricity, Water, and Municipal Fees Invoices for the year 2023'. The body of the text states that the Supply and Provisioning Directorate is sending a list of residents and addresses of housing units affiliated with the Ministry of Interior. They are requesting the EWA to provide them with the invoices for these units for a general period (for one year) to determine their current status, and to send these invoices via email to MOIHOUSING@INTERIOR.GOV.BH. The letter is signed by the Director of the Supply and Provisioning Directorate. Copies are sent to the Assistant Undersecretary for Administrative Affairs and the Director of the Office of the Undersecretary of the Ministry of Interior. There are also attachments mentioned: a list of residents in housing units belonging to the Ministry of Interior. The document includes contact information for the Ministry of Interior in Bahrain, including telephone numbers, fax, and P.O. Box 13 Manama. The watermark at the bottom indicates the document is for security and privacy reasons and is not to be copied or distributed.",
+        "sender": "مدير إدارة الإمداد والتموين, وزارة الداخلية, Kingdom of Bahrain",
+        "receiver": "مدير إدارة خدمات المشتركين, هيئة الكهرباء والماء",
+        "subject": "فواتير الكهرباء والماء ورسوم البلدية للعام 2023م",
+        "date": "5 مارس 2024م",
+        "expected_tenant_name": null,
+        "expected_house_number": null
+    },
+    "3": {
+        "category": "letters",
+        "telemetry": {},
+        "content_explanation": "This document is an official administrative letter from the Ministry of Interior of the Kingdom of Bahrain, specifically from the Office of the Assistant Undersecretary for Administrative Affairs. The letter is addressed to the Director of the Supply and Provisioning Department. The subject of the letter is 'Instructions for the Housing Services Committee'. It references a previous letter numbered 2832/24/5/2/1 dated February 28, 2024. The core content of the letter states that the Assistant Undersecretary for Administrative Affairs has directed the recipient to review the content of the referred letter concerning communication with the subscribers' services management of the Electricity and Water Authority. The letter concludes with a request for the recipient to take the necessary actions. It is signed by Khalifa Ali Al-Sharouq, Head of the Administrative Affairs and Coordination Division. The document contains official headings, a reference number (1838/24/5/21), and dates in both Hijri (29 Sha'ban 1445 AH) and Gregorian (29 February 2024 AD) calendars. There is a confidentiality notice at the bottom of the page.",
+        "sender": "Khalifa Ali Al-Sharouq, Head of the Administrative Affairs and Coordination Division, Office of the Assistant Undersecretary for Administrative Affairs, Ministry of Interior",
+        "receiver": "Director of the Supply and Provisioning Department, Ministry of Interior",
+        "subject": "Instructions for the Housing Services Committee (توجيهات لجنة الخدمات الإسكانية)",
+        "date": "29 February 2024",
+        "expected_tenant_name": null,
+        "expected_house_number": null
+    },
+    "4": {
+        "category": "letters",
+        "telemetry": {},
+        "content_explanation": "This is an official letter from the Ministry of Interior of the Kingdom of Bahrain, issued by the Supply and Provisioning Department. The letter is addressed to the Assistant Undersecretary for Administrative Affairs. The subject of the letter is 'Directives for the Facilities Services Committee'. The content of the letter expresses gratitude for the directives that contribute to developing work in the Supply and Provisioning Department and expresses the request for permission to contact the Electricity and Water Authority (EWA) regarding the subscribers' services for the residential units belonging to the ministry for a period of one year, to determine the legal status of these units and present it to the recipient for review. The letter is signed by the Director of the Supply and Provisioning Department, Abdullah Mohammed Al-Dosari. A copy of the letter is carbon copied (CC) to the Head of the Police Housing Branch. The document includes official stamps, the emblem of Bahrain, and a date of 28 February 2024 (corresponding to 18 Sha'ban 1445 AH).",
+        "sender": "Abdullah Mohammed Al-Dosari, Director of the Supply and Provisioning Department, Ministry of Interior",
+        "receiver": "Assistant Undersecretary for Administrative Affairs, Ministry of Interior",
+        "subject": "Directives for the Facilities Services Committee",
+        "date": "28 February 2024",
+        "expected_tenant_name": null,
+        "expected_house_number": null
+    },
+    "5": {
+        "category": "forms",
+        "telemetry": {},
+        "content_explanation": "This is a document containing a table with data related to property units. The table consists of five columns: 'الرقم' (Number), 'الاسم' (Name), 'الرقم التسلسلي' (Serial Number), 'رقم الوحدة' (Unit Number), 'المبنى' (Building), and 'المنطقة' (Area). The data is listed for ten entries. The names listed include: صالح احمد ناجي (Saleh Ahmed Naji), يوسف احمد محمد جمال (Youssef Ahmed Mohamed Gamal), محمد اسلم عبد الرحيم (Mohamed Aslam Abdel Rahim), خالد الإقناش رباحي (Khaled Al-Eqnash Rabahi), يونس محمد ملاك (Younis Mohamed Malak), محمد يوسف عبد الرشيد (Mohamed Youssef Abdel Rashid), صالح محمد خليفة الزبيد (Saleh Mohamed Khalifa Al-Zubaid), ناجي صالح محمد الصيداري (Naji Saleh Mohamed Al-Saydari), محمد ابراهيم اسماعيل (Mohamed Ibrahim Ismail), and عمر محمد خالد (Omar Mohamed Khalid). Each entry is associated with a specific unit number and building number. The overall purpose of the document appears to be a tracking or registry of residents or owners of property units within a specific area (possibly associated with building 944).",
+        "expected_tenant_name": null,
+        "expected_house_number": null
+    },
+    "6": {
+        "category": "letters",
+        "telemetry": {},
+        "content_explanation": "This is an official letter from the Kingdom of Bahrain, Ministry of the Interior, Public Security Housing Department. The document serves as a formal notice for the immediate evacuation of a residential unit affiliated with the Ministry of the Interior. \n\nThe letter is addressed to an individual named Younis Mohammed Malik (يونس محمد ملك). \nKey details provided in a table include:\n- Subject: Immediate evacuation from the residential unit affiliated with the Ministry of the Interior.\n- Address details: Building 1273, Road 4425, Complex 944, Safra-J (سافرة- ج).\n- Person's Name: Younis Mohammed Malik.\n- Personal ID: 501101608.\n- Military Number: 1743.\n- Rank: M.M.S (م.م.ث).\n- Job Status: Retired (متقاعد).\n- Allocation Date: 25/8/1986.\n- Reason for Evacuation: Retirement + End of Contract.\n\nThe body of the letter informs the recipient that the contract for the residential unit has ended, and they must evacuate the unit by July 31, 2010. It warns that legal measures will be taken if the evacuation is not completed by the specified date, as per the directives of the Assistant Undersecretary for Administrative Affairs.\n\nThe document is signed by Captain (النقيب) / A.A / Head of the Public Security Housing Branch, Hamad Abdulla Al-Dosari. \nCopies are sent to the Head of the Coordination and Follow-up Branch in the Office of the Assistant Undersecretary for Administrative Affairs.\n\nThe document is dated 29 Rajab 1431 AH, corresponding to July 11, 2010 AD.",
+        "sender": "Captain Hamad Abdulla Al-Dosari, Head of the Public Security Housing Branch, Ministry of the Interior",
+        "receiver": "Younis Mohammed Malik",
+        "subject": "Immediate evacuation from the residential unit affiliated with the Ministry of the Interior",
+        "date": "July 11, 2010",
+        "expected_tenant_name": "Younis Mohammed Malik",
+        "expected_house_number": "1273"
+    },
+    "7": {
+        "category": "letters",
+        "telemetry": {},
+        "content_explanation": "This is an official document from the Kingdom of Bahrain, Ministry of the Interior, Public Security Housing Department. The document, dated April 2010 (and Rabi' al-Thani 1431 AH), serves as a notification regarding the inspection of residential units belonging to the Ministry of Interior. It states that, per the directives of the Assistant Undersecretary for Administrative Affairs, representatives will visit specific residential units on a particular day from 9:00 AM to 12:00 PM. The document includes a table listing individuals to be visited, their military numbers (some marked as retired), their ranks, the unit numbers (house numbers), and the road numbers. The table lists 17 individuals across road 4425 and 4426. Below the table, there are handwritten notes by an inspector and a signature from Major / 1 Ibrahim Mohammed Foulad, Head of the Police Housing Branch. The handwritten notes appear to be specific observations made during the inspection of one of the units, mentioning things like door covers, room partitions, and the use of the unit for purposes other than residential.",
+        "sender": "Major / 1 Ibrahim Mohammed Foulad, Head of the Police Housing Branch, Public Security Housing Department, Ministry of the Interior, Kingdom of Bahrain",
+        "receiver": null,
+        "subject": "Inspection of residential units belonging to the Ministry of Interior (تفتيش الوحدات السكنية التابعة لوزارة الداخلية)",
+        "date": "April 2010 / Rabi' al-Thani 1431 AH",
+        "expected_tenant_name": null,
+        "expected_house_number": null
+    },
+    "8": {
+        "category": "pictures",
+        "telemetry": {},
+        "content_explanation": "The image consists of four separate monochrome photographs arranged in a grid. The top-left image shows a close-up of a house numbering sign. The sign is divided into two sections: a larger section on the right displaying the number '1273' and a smaller section on the left displaying '44253' followed by Arabic text that appears to be 'م. م. ج' (which might be part of an address or administrative division). There is a timestamp '12 4 2010' on the left edge of this photo. The top-right image shows a white door or gate with a small window above it, set within a wall. The bottom-left image shows a corridor or alleyway with a vehicle parked on the left and a wall with some pipes or conduits on the right. The bottom-right image shows a close-up of a structure, possibly a wall or a fence, with some foliage visible in the background. All images are high-contrast black and white, appearing to be evidence or documentation photos.",
+        "image_contents": "A collection of four black and white photographs showing a house number sign (1273), a door, a narrow alleyway, and a wall/fence area.",
+        "expected_tenant_name": null,
+        "expected_house_number": "1273"
+    },
+    "9": {
+        "category": "pictures",
+        "telemetry": {},
+        "content_explanation": "The provided image consists of four black and white photographs, likely taken as part of a property survey or evidence gathering. The images show various views of a residential or industrial area, focusing on a building's exterior and surroundings. The bottom right image shows a building with a house number '76' clearly visible on a sign above a window. The other images show clutter, construction materials, and an outdoor space with a fence and a door. A date stamp '12 4 2010' is visible on the left side of two of the images, suggesting the photographs were taken on April 12, 2010.",
+        "image_contents": "Four black and white photographs of a building and its surroundings, showing a house number '76' and various outdoor areas with clutter and construction materials.",
+        "expected_tenant_name": null,
+        "expected_house_number": "76"
+    },
+    "10": {
+        "category": "letters",
+        "telemetry": {},
+        "content_explanation": "This is an official letter from the Kingdom of Bahrain, Ministry of Interior, Estate Management Office. The letter is addressed to the Director of Legal Affairs. The subject of the letter is 'Residential units belonging to the Ministry of Interior'. It references a previous communication (letter number 2/3038/ق ش/2007/8/1/3 dated 11 Shaban 1428 AH, corresponding to 23 September 2007). The body of the letter states that a group of signed contracts between the mentioned parties (Ministry of Interior, represented by the Police Housing Management Office, and the owners of the residential units) are being attached. It also notes that many contracts are ready and cannot be sent yet. The letter is signed by Captain Ibrahim Muhammad Fawlad, on behalf of the Police Housing Management Office. The document includes official stamps and contact information for the office at the bottom.",
+        "sender": "Captain Ibrahim Muhammad Fawlad, Police Housing Management Office, Ministry of Interior",
+        "receiver": "Director of Legal Affairs, Ministry of Interior",
+        "subject": "Residential units belonging to the Ministry of Interior",
+        "date": "25 September 2007",
+        "expected_tenant_name": null,
+        "expected_house_number": null
+    },
+    "11": {
+        "category": "forms",
+        "telemetry": {},
+        "content_explanation": "This document is a list of individuals, likely employees or pensioners, as indicated by the term '(متقاعد)' meaning 'retired' following each name. The list is dated 25/09/2007. The table contains four columns: a sequence number (الرقم), the person's name (الإسم), a personal identification number (الرقم الشخصي), and nationality (الجنسية). All listed individuals are marked as 'Bahraini' (بحريني) except for one person, Mohammed Nasser, who is listed as 'Pakistani' (باكستاني). There are 20 entries in total, ranging from Mahmoud Khalid to Taj Mohammed.",
+        "expected_tenant_name": null,
+        "expected_house_number": null
+    },
+    "12": {
+        "category": "letters",
+        "telemetry": {},
+        "content_explanation": "This document is an official letter from the Kingdom of Bahrain Ministry of the Interior, specifically from the Legal Affairs department. The letter is addressed to the Police Housing Administration Office. The subject of the letter is 'Housing Units affiliated with the Ministry of Interior'. It references a previous communication dated September 2, 2007. The main purpose of the letter is to address the issue of evacuating residential units provided by the Ministry of Interior to residents who refuse to leave, including retirees or those whose lease terms have ended. The Legal Affairs department states that it is difficult to find legal solutions to evacuate these units without having the actual lease agreements signed by the residents. Therefore, the letter requests the Police Housing Administration to provide a set of the contracts signed with the residents in question so that a legal basis can be established to retrieve the residential units from them. The document is signed and stamped by the Director of the Legal Affairs Directorate.",
+        "sender": "Director of the Legal Affairs Directorate, Ministry of Interior, Kingdom of Bahrain",
+        "receiver": "Office of the Police Housing Administration",
+        "subject": "Housing Units affiliated with the Ministry of Interior",
+        "date": "September 27, 2007 (11 Sha'ban 1428 AH)",
+        "expected_tenant_name": null,
+        "expected_house_number": null
+    },
+    "13": {
+        "category": "letters",
+        "telemetry": {},
+        "content_explanation": "This is an official letter from the Estate Management Office of the Ministry of the Interior in the Kingdom of Bahrain. The letter is addressed to the Director of the Legal Affairs Department and is dated September 3, 2007. The main subject of the letter is the housing units belonging to the Ministry of the Interior. The sender, Captain Ibrahim Mohammed Fouad from the Estate Management Office, expresses concern regarding the non-compliance of individuals residing in housing units belonging to the Ministry of the Interior with the terms of the agreements signed between them and the Ministry. Specifically, the issue is whether these residents are vacating the units after the designated period has ended, regardless of whether they are retiring or their housing duration has expired. The sender states that all negotiation attempts have failed. He then asks the Director of the Legal Affairs Department for the legal basis and procedures that can be taken to evict these units. The document includes official stamps from both the Estate Management Office and the Legal Affairs Department, as well as the signature of the Captain.",
+        "sender": "Captain Ibrahim Mohammed Fouad, Estate Management Office, Ministry of the Interior",
+        "receiver": "Director of the Legal Affairs Department, Ministry of the Interior",
+        "subject": "Housing units belonging to the Ministry of the Interior",
+        "date": "3 SEP 2007",
+        "expected_tenant_name": null,
+        "expected_house_number": null
+    },
+    "14": {
+        "category": "letters",
+        "telemetry": {},
+        "content_explanation": "This is an official letter from the Ministry of Interior, Estate Management Office, of the Kingdom of Bahrain. The letter is dated April 18, 2006 (corresponding to Rabi' al-Awwal 1427 AH) and bears the reference number 7109/1/3/12/إش/م إ/ق أع. The letter is addressed to the Director of the Financial Affairs Department. The subject of the letter is the 'monthly rent deduction for retirees'. The letter requests that the necessary steps be taken to deduct the monthly rent from the pensions of the Ministry of Interior's retired personnel who reside in the residential units belonging to the Ministry. The specified rent amount is 60 Bahraini Dinars, starting from June 1, 2006. The letter specifically references 'House No. 1273 Safra - J' in relation to 'Younis Muhammad Malik'. The letter is signed by Captain Ibrahim Muhammad Fawlad from the Police Housing Management Office. A copy is also sent to the Police Housing File.",
+        "sender": "Captain Ibrahim Muhammad Fawlad, Police Housing Management Office, Ministry of Interior",
+        "receiver": "Director of the Financial Affairs Department, Ministry of Interior",
+        "subject": "Monthly rent deduction for retirees",
+        "date": "April 18, 2006",
+        "expected_tenant_name": "Younis Muhammad Malik",
+        "expected_house_number": "1273"
+    },
+    "15": {
+        "category": "forms",
+        "telemetry": {},
+        "content_explanation": "This is an Arabic document titled 'Personal Data for the Resident of the Residential Unit'. It is a form used to gather detailed information about a resident, their family members, and any other people living in the same residential unit. The form is divided into several sections: 1. Personal Information: This section collects the basic details of the primary resident, such as their personal ID number (provided as 0.1.1.7.8...), their nationality (Bahraini), and dates of birth and joining (1950/1/12 and 1971/1/18, respectively). It also includes their name, which appears to be 'Rifaat Suleiman Mahmoud', and their workplace ('Administration of Transport'). 2. Address Information: This section collects the. house/apartment number (1848), street/road (25), and the city name. 3. Family Data: This section lists the number of wives (1) and the number of children over 18 years old. It contains a table for family members' names, gender, relationship, date of birth, employment status, and marital status. One entry is listed: 'Aliyah' (relationship: wife), female, born on 50/8/12. 4. Other Residents: A table is provided for individuals living in the home who are not part of the same nuclear family, other residents' names, gender, relationship, and whether they have housing permission and are employed. 5. Finalization: The form ends with a signature and a date (11/1/10).",
+        "expected_tenant_name": "Rifaat Suleiman Mahmoud",
+        "expected_house_number": "1848"
+    },
+    "16": {
+        "category": "forms",
+        "telemetry": {},
+        "content_explanation": "This document is a 'Regular Inspection Details' form, likely from a military or government housing authority in Bahrain (as indicated by the 'Nationality: BAH' field). The form is bilingual in English and Arabic. It is divided into several sections: 'Married Quarter Address' (عنوان البيت), which contains handwritten entries for the Flat/House number (76), Building number (1273 B/C 668), Block number (944), Road/Avenue (4425), and Town (SAFRA). There is a header note 'SAFRA-C'. The 'Occupant Details' (بيانات الساكن) section lists the Service Number (1743), Rank (B/O), Nationality (BAH), Name (YOUNIS MOHD. MAYYAN), and Formation (MTD). There is a 'Inspector Name' section listing two inspectors: ALI HASSAN ALI and ABDULLA ALI. The 'Inspection Date' is handwritten as 7/1/2004. The bottom section contains space for signatures for Inspector 1, Inspector 2, and the Occupant, with handwritten signatures present for the inspectors.",
+        "expected_tenant_name": "YOUNIS MOHD. MAYYAN",
+        "expected_house_number": "76"
+    },
+    "17": {
+        "category": "letters",
+        "telemetry": {},
+        "content_explanation": "This document is an official memorandum from the Kingdom of Bahrain Ministry of the Interior, Public Security Headquarters (PSHQs). The memorandum, dated 04/01/2004, is titled 'MARRIED QUARTER INSPECTION' and informs the recipients that a Married Quarter Inspection team will visit 'Safra C' on 07/01/2004. The purpose of the memorandum is to notify specific personnel to be present at their respective houses during the inspection. The document includes a table listing six individuals to be inspected, providing their employee number (No.), rank, name, house number, bar code, scheduled time of inspection, and their formation. The listed personnel are: Rashid Mohamed Ali (House 1279), Abood Ajham Anfoos (House 1277), Shamas Parvaiz Moh'd (House 1275), Yonis Moh'd Mayan (House 1273), Mohamed Hamza Faqir (House 1271), and Abdul Sattar Baraza (House 1267). The document is signed by the Director of the Personnel Affairs Directorate and is copied to FMO and the MQs File.",
+        "sender": "Director, Personnel Affairs Directorate, Public Security Headquarters, Ministry of the Interior, Kingdom of Bahrain",
+        "receiver": "Personnel concern, General Directorate / Directorate / Formation",
+        "subject": "MARRIED QUARTER INSPECTION",
+        "date": "04/01/2004",
+        "expected_tenant_name": null,
+        "expected_house_number": null
+    },
+    "18": {
+        "category": "forms",
+        "telemetry": {},
+        "content_explanation": "This document is a 'Regular Inspection Details' form, likely from a military or government housing authority in a Bahraini context (indicated by the Arabic text and 'Married Quarter Address'). The form is divided into several sections. The 'Married Quarter Address' section specifies the house details: Flat/House number '1275', Building number '667', Block '944', Road/Avenue '4425', and the Town 'SAFRA-C'. The 'Occupant Details' section contains information about the resident: Service No. '1684', Rank 'R/ORAFA', Nationality 'Pakistani', Name 'SHAMAS DARWEZ', and Formation 'SIS'. Other fields like CPR No., D.O.B, and T.O.S. are left blank. The 'Inspector Name' is listed as 'ALI HASSAN ALI' and the 'Inspection Date' is '19/3/02'. The 'Inspection Details' section contains a handwritten 'ok' and some signatures. The bottom section lists spaces for signatures from Inspector 1, Inspector 2, and the Occupant, with Inspector 1's name and signature being the most prominent. The overall purpose of the document is to record the results of a periodic inspection of a married quarter residential unit.",
+        "expected_tenant_name": "SHAMAS DARWEZ",
+        "expected_house_number": "1275"
+    },
+    "19": {
+        "category": "letters",
+        "telemetry": {},
+        "content_explanation": "This is an official memorandum from the State of Bahrain's Ministry of the Interior, General Directorate for Police Affairs, Personnel Affairs Directorate, dated March 9, 2002. The purpose of the document is to notify personnel about the 'MARRIED QUARTER INSPECTION' for the Married Quarters Safra - C. The memorandum states that an inspection team will visit these quarters on March 19, 2002, at specific times. The document includes a table listing the personnel to be inspected, including their service number (No.), rank (Rank), name (Name), house number (House No.), bar code, visit time (Time), and their formation (Formation). The listed individuals include Moh'd Hassan, Moh'd Shafiq, Shams Parwez, Ahmed Moh'd, Abdul Qayum, Munir Ahmed, Eissa Moh'd, Naser Moh'd, Hassan Allah dad, and Abdul Rehman. The memorandum is signed by the Director of Personnel Affairs and is copied to the FMO and MQs P/File.",
+        "sender": "Director Personnel Affairs, Personnel Affairs Directorate, General Directorate for Police Affairs, Ministry of the Interior, State of Bahrain",
+        "receiver": "General Directorate/Directorate/Formation",
+        "subject": "MARRIED QUARTER INSPECTION",
+        "date": "09/03/2002",
+        "expected_tenant_name": null,
+        "expected_house_number": null
+    },
+    "20": {
+        "category": "letters",
+        "telemetry": {},
+        "content_explanation": "This document is an official memorandum from the Ministry of the Interior of the State of Bahrain, specifically issued by the Personnel Affairs Directorate within the General Directorate for Police Affairs. Dated March 9, 2002, the memorandum serves as a notification for a 'MARRIED QUARTER INSPECTION' scheduled for March 18, 2002, at the quarters in Safra - C. It informs the personnel concerned that an inspection team will visit several married quarters. The document contains a table listing eleven personnel members, each with their associated number, rank, name, house number (with a corresponding number in parentheses), house bar code, scheduled visit time, and their formation. The personnel listed include Aughan A. Rehman, Khan Mohammed, Abdul Sattar, Abdul Sattar, Younus Mohammed, Noor Mohammed, Mohammed Ali, Ali Saleh Munassar, Mirza Shaukat, Moh'd Hamza, and Ghulam Qader. The memorandum is signed by the Director of Personnel Affairs and is copied to FMO and MQs P/File.",
+        "sender": "Director Personnel Affairs, Personnel Affairs Directorate, General Directorate for Police Affairs, Ministry of the Interior, State of Bahrain",
+        "receiver": "Personnel concern",
+        "subject": "MARRIED QUARTER INSPECTION",
+        "date": "09/03/2002",
+        "expected_tenant_name": null,
+        "expected_house_number": null
+    },
+    "21": {
+        "category": "forms",
+        "telemetry": {},
+        "content_explanation": "This document is a 'Regular Inspection Details' form, written in both English and Arabic. Its purpose is to record the details of a residential inspection, likely within a military or government housing complex (given the terms 'Married Quarter', 'Service No.', 'Rank', and 'Formation'). The form is divided into three main sections: 'Married Quarter Address', 'Married Quarter Address', and a bottom section for signatures. \n\nIn the 'Married Quarter Address' section, the Flat/House number is listed as '1273', the Building (Bldg.) is '668' (with a handwritten note 'Bar code'), the Block is '944', the Road/Avenue is '4425', and the Town is 'SAFRA-C'.\n\nIn the 'Occupant Details' section, the Service Number is '1743', the Rank is 'PJORAFA' (or similar handwritten script), the Nationality is 'INDIAN', the Name of the occupant is 'YOUNUS MOHAMMAD', the Formation is 'MTD', and other fields like CPR No., D.O.B, and T.O.S are left blank.\n\nBelow this, the inspection specifics are listed: Inspector Name 'ALI HASSAN ALI' is recorded for inspector 1, and the Inspection Date is '18/3/02'. The 'Inspection Details' section contains a handwritten 'OK', indicating the inspection result was satisfactory. \n\nAt the bottom, there are signature lines for Inspector 1, Inspector 2, and the Occupant, with some handwritten signatures present. A field for 'Next Inspection Date' remains blank.",
+        "expected_tenant_name": "YOUNUS MOHAMMAD",
+        "expected_house_number": "1273"
+    },
+    "22": {
+        "category": "letters",
+        "telemetry": {},
+        "content_explanation": "This is an official letter from the State of Bahrain Ministry of the Interior, Public Security Headquarters, addressed to an employee regarding their stay in Married Quarters. The document is written in both English and Arabic. It specifies that according to regulations dated 4/12/99, residency in Married Quarters is generally limited to 10 years. However, based on instructions from the Minister of Interior in a letter dated 9/6/2001, personnel who have already occupied Married Quarters for five years or more are granted a five-year extension. Consequently, the recipient's stay in the Married Quarters is extended until 9/6/2006, unless they retire or are discharged from service before that date. The letter warns that the Directorate of Personnel Affairs will take necessary action if the quarters are not vacated by June 9, 2006. The document contains personal details of the recipient: Service Number (S. No) 1743, Rank AREBF (possibly an abbreviation), Name Yunis Mohamed Mayan Malek, and Formation MTO. The date of allotment was 25-08-1986. The letter is signed by the Director of Personnel Affairs.",
+        "sender": "Director Personnel Affairs, Ministry of the Interior, Public Security Headquarters, State of Bahrain",
+        "receiver": "Yunis Mohamed Mayan Malek (S. No: 1743, Rank: AREBF, Formation: MTO)",
+        "subject": "Extension of stay in Married Quarters",
+        "date": "8/9/2000",
+        "expected_tenant_name": "Yunis Mohamed Mayan Malek",
+        "expected_house_number": null
+    },
+    "23": {
+        "category": "forms",
+        "telemetry": {},
+        "content_explanation": "This is a formal form, likely a transaction or account record, containing both English and Arabic labels. The document captures specific details including an 'Account No.' (filled as '23 / 86 / 2'), a 'Name' (filled as 'YOUNIS MOHMMED MALIK'), 'Type of Application' (written in Arabic), 'Reference No.' (left blank), 'Date and Time' (filled as '17/4/2001'), and a 'Staff Signature' (which contains a handwritten signature). The overall purpose of the document is to record a specific transaction or application tied to an account and a person's name, dated April 17, 2001.",
+        "expected_tenant_name": "YOUNIS MOHMMED MALIK",
+        "expected_house_number": null
+    },
+    "24": {
+        "category": "forms",
+        "telemetry": {},
+        "content_explanation": "This document is an 'AGREEMENT - ELECTRICITY, WATER & MUNICIPAL RATES' form from the 'STATE OF BAHRAIN, MINISTRY OF ELECTRICITY AND WATER, CUSTOMER SERVICES DIRECTORATE'. The form is designed to capture customer account information, personal identity details, and property details for utility services. \n\nKey sections include:\n- **Customer Information**: The 'CUSTOMER ACCOUNT NO.' is 1318612. The 'IDENTITY NO.' is 50110101608. \n- **Section 2 (English)**: The applicant's name is listed as 'YOUNIS MOHAMMED MALIK'. The property details are specified as 'HOUSE', with building number '1273', road number '4425', and block number '944', located in 'SAFRA'.\n- **Agreement Acceptance**: There is a signed declaration stating that the applicant has read and accepted the general terms and conditions of the Ministry. It is signed by the customer and dated '14 APR 2001'.\n- **Official Use Section**: This section includes fields for 'LANDLORD NAME', 'Electricity capital contribution details', 'Water capital contribution details', 'GUARANTEE OR DEPOSIT DETAILS', and 'MUNICIPAL RATES DETAILS', though these are mostly blank or not filled by the customer.\n- **Other Notations**: There is a handwritten note 'Area 1743 MTD' and a number '756862' at the bottom of the page.",
+        "expected_tenant_name": "YOUNIS MOHAMMED MALIK",
+        "expected_house_number": "1273"
+    },
+    "25": {
+        "category": "forms",
+        "telemetry": {},
+        "content_explanation": "This document is a 'Guarantee Form for Electricity, Water and Municipal Rates Account' from the State of Bahrain, Ministry of Electricity and Water, Customer Services Directorate. The form is designed to ensure payment for utility services. It is divided into three main sections: 'Guarantor customer details', 'Guarantee Customer details', and 'For official use'. In the the 'Guarantee Customer details' section, the customer's name is listed as 'YOUNIS MOHAMMED MALIK', their C.P.R./C.R. No is '501101608', and their address is specified as 'HOUSE - 1273, ROAD- 4405, BLOCK- 944, SAFRA'. The Electricity, Water & Rates A/c No is '1318612'. The guarantor section is mostly blank, but it contains a stamp from the Ministry of Interior and a date of '14 APR 2001'. The bottom section for official use remains empty of specific entries, besides the form code 'C.S 003'.",
+        "expected_tenant_name": "YOUNIS MOHAMMED MALIK",
+        "expected_house_number": "1273"
+    },
+    "26": {
+        "category": "forms",
+        "telemetry": {},
+        "content_explanation": "This document is a 'Personnel Details of Married Quarter Occupants' form, used to register the details of service members and their families residing in married quarters. The form is filled out for an individual named YOUNIS MOHAMMED MALIK, with Service No. 1743, Rank AREEF, and Nationality INDIAN. His CPR number is 501101608 and date of birth is 9-11-1950. He is stationed in the M.T.D. SAFRA formation. The married quarter address provided is Flat/House 1273, Block 944, Road/Avenue 4425, and Town SAFRA. The family details section lists two family members: himself (YOUNIS MOHAMMED MALIK, Husband, born 9/11/1950) and his wife, ALIYA MALIK (Wife, born 12/08/1952), with a family joining date of 26-4-1978. The non-family members section is left blank. The document is signed by YOUNIS and dated 12-1-2000.",
+        "expected_tenant_name": "YOUNIS MOHAMMED MALIK",
+        "expected_house_number": "1273"
+    }
+}

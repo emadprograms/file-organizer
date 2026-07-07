@@ -3,7 +3,6 @@ import logging
 from src.core.schemas import GroupEntry, DocumentGroup, GroupingResponse
 from src.core.config import GEMINI_MODEL
 from src.llm.llm import LLMFailureError
-from src.llm_client import LLMChunkShrinkRequiredError
 
 log = logging.getLogger(__name__)
 
@@ -142,7 +141,6 @@ def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup
         
         try:
             response = llm_client.generate_content(
-                model=GEMINI_MODEL,
                 contents=[prompt],
                 response_schema=GroupingResponse,
                 is_boundary_call=True
@@ -196,11 +194,6 @@ def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup
                 chunk_size_idx = min(chunk_size_idx + 1, len(CHUNK_SIZES) - 1)
                 consecutive_failures = 0
                 log.warning(f"Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
-        except LLMChunkShrinkRequiredError as e:
-            total_failures += 1
-            chunk_size_idx = min(chunk_size_idx + 1, len(CHUNK_SIZES) - 1)
-            consecutive_failures = 0
-            log.warning(f"Boundary call failed: {e}. Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
         except LLMFailureError:
             raise
         except Exception as e:

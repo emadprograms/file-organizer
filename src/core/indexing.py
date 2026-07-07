@@ -6,9 +6,7 @@ def to_0_based(index: int) -> int:
     """
     return max(0, index - 1)
 
-def to_1_based(index: int) -> int:
-    """Convert a 0-based index to 1-based."""
-    return max(1, index + 1)
+
 
 def validate_bounds(index: int, max_len: int) -> int:
     """Validate that a 0-based index is within bounds [0, max_len - 1].

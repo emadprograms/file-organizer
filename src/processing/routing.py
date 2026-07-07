@@ -32,7 +32,6 @@ for folder, cats in FOLDER_ROUTING.items():
         CATEGORY_TO_FOLDERS.setdefault(cat, []).append(folder)
 
 SINGLE_MATCH = {cat for cat, folders in CATEGORY_TO_FOLDERS.items() if len(folders) == 1}
-MULTI_MATCH = {cat for cat, folders in CATEGORY_TO_FOLDERS.items() if len(folders) > 1}
 
 class RoutingResponse(BaseModel):
     selected_folder: str = Field(description="The exact name of the selected folder from the allowed list")
@@ -105,7 +104,6 @@ Respond only with a valid JSON matching the requested schema. The selected_folde
     for attempt in range(2): # Try once, and retry once
         try:
             result = llm_client.generate_content(
-                model=GEMINI_MODEL,
                 contents=contents,
                 response_schema=RoutingResponse
             )

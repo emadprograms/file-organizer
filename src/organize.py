@@ -59,7 +59,7 @@ def get_parser():
         "--model", 
         type=str, 
         default="gemma-4-26b-a4b-it", 
-        choices=["gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemini-2.5-flash", "gemini-3.5-flash"],
+        choices=["gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"],
         help="LLM model to use"
     )
     parser.add_argument(
