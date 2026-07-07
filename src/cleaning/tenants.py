@@ -1,7 +1,8 @@
 import re
 import unicodedata
-from rapidfuzz import fuzz
 import logging
+import json
+from rapidfuzz import fuzz
 from src.llm.llm import LLMClient
 from src.cleaning.models import PageData, TenantTimeline
 
@@ -80,7 +81,6 @@ Respond ONLY with a JSON dictionary where keys are the raw names and values are 
         response_text = response_text[3:-3].strip()
         
     try:
-        import json
         result_map = json.loads(response_text)
     except json.JSONDecodeError as e:
         raise RuntimeError(f"LLM returned malformed JSON: {e}
