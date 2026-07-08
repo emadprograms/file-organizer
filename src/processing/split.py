@@ -128,7 +128,7 @@ def compress_pdf(input_path: str, output_path: str):
         if os.path.exists(temp_output_path):
             try:
                 os.remove(temp_output_path)
-            except:
+            except OSError:
                 pass
         if input_path != output_path:
             shutil.copy2(input_path, output_path)

@@ -49,8 +49,8 @@ def setup_logging(run_id: str = None, verbose: bool = False) -> str:
         if hasattr(sys.stdout, 'reconfigure'):
             try:
                 sys.stdout.reconfigure(encoding='utf-8')
-            except Exception:
-                pass
+            except (AttributeError, OSError) as e:
+                logger.debug(f"Failed to reconfigure stdout to utf-8: {e}")
         stream_handler = logging.StreamHandler(sys.stdout)
         stream_handler.setFormatter(formatter)
         if verbose:
