@@ -23,17 +23,30 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 
 ### Active
 
-- None.
+- [ ] Rate Limiting & Router Safety Net (RES)
+- [ ] Chunk State Management (GRP)
+- [ ] "True Until Proven Guilty" Grouping Logic (PRMPT)
+- [ ] Anti-Hallucination Schema Enforcement (SCHM)
 
 ### Out of Scope
 
 - Adding new features or altering existing behavior (pure refactoring).
 - Changing the underlying runtime or infrastructure.
 
+## Current Milestone: v1.2 Pipeline Resilience & Grouping Overhaul
+
+**Goal:** Stop the app from silently destroying the folder structure under rate limits and fix the LLM grouping logic to assume page continuation.
+
+**Target features:**
+- Rate Limiting & Router Safety Net (RES)
+- Chunk State Management (GRP)
+- "True Until Proven Guilty" Grouping Logic (PRMPT)
+- Anti-Hallucination Schema Enforcement (SCHM)
+
 ## Context
 
-- Shipped v1.0.
-- Shipped v1.1.
+- ✅ Shipped v1.0.
+- ✅ Shipped v1.1.
 - The codebase has been successfully cleaned of legacy code and refactored into a modular, maintainable structure.
 - All processing logic is now decomposed into single-responsibility modules in `src/cleaning/` and `src/processing/`.
 - Error handling is standardized via a custom exception hierarchy in `src/core/exceptions.py`.
