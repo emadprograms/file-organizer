@@ -13,7 +13,7 @@
 
 - [ ] **REF-01**: Refactor `src/cleaning.py` into separate focused modules based on responsibility.
 - [ ] **REF-02**: Identify and refactor bloated files in `src/processing/` into smaller, single-responsibility modules.
-- [ ] **REF-03**: Split oversized functions across the application into smaller functions.
+- [x] **REF-03**: Split oversized functions across the application into smaller functions.
 
 ## v2 Requirements
 
@@ -34,7 +34,7 @@
 | CLN-01 | Phase 1 | Complete |
 | REF-01 | Phase 2 | Pending |
 | REF-02 | Phase 3 | Pending |
-| REF-03 | Phase 3 | Pending |
+| REF-03 | Phase 3 | Complete |
 
 **Coverage:**
 
