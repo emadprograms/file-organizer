@@ -86,6 +86,7 @@ class LLMClient:
         model: Optional[str] = None,
         is_boundary_call: bool = False,
         response_schema: type | None = None,
+        validation_context: dict | None = None,
         **kwargs
     ) -> Any:
         """
@@ -99,10 +100,11 @@ class LLMClient:
             model=model,
             contents=contents,
             response_schema=response_schema,
+            validation_context=validation_context,
             log_prefix=log_prefix
         )
 
-    def _route_llm_call(self, model: str, contents: list, response_schema: type | None = None, log_prefix: str = "Retry", max_attempts: Optional[int] = None) -> Any:
+    def _route_llm_call(self, model: str, contents: list, response_schema: type | None = None, validation_context: dict | None = None, log_prefix: str = "Retry", max_attempts: Optional[int] = None) -> Any:
         """Route an LLM call through configured providers with failover using tenacity."""
         if getattr(self, "skip_llm", False):
             from src.llm.mock import MockLLMProvider
@@ -157,7 +159,8 @@ class LLMClient:
                         provider_obj.generate,
                         model=model,
                         contents=contents,
-                        response_schema=response_schema
+                        response_schema=response_schema,
+                        validation_context=validation_context
                     )
                     response_parsed = future.result(timeout=300)
                     

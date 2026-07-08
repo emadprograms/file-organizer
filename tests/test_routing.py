@@ -1,10 +1,21 @@
 """Tests for the routing engine."""
 
 import pytest
-from src.processing.routing import route_document
+from src.processing.routing.router import route_document, RoutingValidationError
 from src.processing.routing.config import SINGLE_MATCH, FOLDER_ROUTING, CATEGORY_TO_FOLDERS
 from src.core.schemas import DocumentGroup
 from unittest.mock import patch, MagicMock
+import pytest
+
+class MockParsedResponse:
+    def __init__(self, selected_folder, reason="mock reason"):
+        if isinstance(selected_folder, tuple):
+            self.selected_folder = selected_folder[0]
+            self.reason = selected_folder[1]
+        else:
+            self.selected_folder = selected_folder
+            self.reason = reason
+
 
 class MockParsedResponse:
     def __init__(self, selected_folder, reason="mock reason"):
@@ -23,15 +34,24 @@ class MockLLMClient:
     def __init__(self, responses=None):
         self.responses = responses or []
         self.call_count = 0
+        self.calls = []
         
     def generate_content(self, contents, model=None, response_schema=None, config=None, **kwargs):
+        self.calls.append(contents)
         if self.call_count < len(self.responses):
             resp = self.responses[self.call_count]
             self.call_count += 1
             if isinstance(resp, Exception):
                 raise resp
             if response_schema:
-                return MockParsedResponse(resp)
+                # If resp is a tuple (folder, reason), use it. Otherwise assume it's the folder.
+                if isinstance(resp, tuple):
+                    data = {"selected_folder": resp[0], "reason": resp[1]}
+                else:
+                    data = {"selected_folder": resp, "reason": "mock reason"}
+                
+                # Use model_validate with context to trigger Pydantic validators
+                return response_schema.model_validate(data, context=kwargs.get('validation_context', {}))
             return MockResponse(resp)
         raise Exception("No more mock responses")
 
@@ -99,31 +119,73 @@ def test_multi_match_llm(monkeypatch):
         assert args[1]["reason"] == "Explicit explanation for routing"
 
 def test_multi_match_llm_retry_on_invalid():
-    """Test that if the LLM returns an invalid folder, it retries and then falls back."""
+    """Test that if the LLM returns an invalid folder, it retries 3 times and then raises RoutingValidationError."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
         category="letters", dates=["2023-01-01"]
     )
-    # Both attempts return invalid folders
-    llm = MockLLMClient(["invalid_folder_1", "invalid_folder_2"])
+    # 3 attempts return invalid folders
+    llm = MockLLMClient(["invalid_folder_1", "invalid_folder_2", "invalid_folder_3"])
+    
+    with pytest.raises(RoutingValidationError):
+        route_document(group, llm)
+    
+    assert llm.call_count == 3
+
+def test_multi_match_llm_retry_success():
+    """Test that if the LLM returns invalid folders but then a valid one, it succeeds."""
+    group = DocumentGroup(
+        start_page=0, end_page=1, primary_tenant="Test",
+        category="letters", dates=["2023-01-01"]
+    )
+    # 2 invalid, 1 valid
+    llm = MockLLMClient(["invalid_1", "invalid_2", "8_complaints_and_violations"])
+    
     folder, direct = route_document(group, llm)
     
-    assert folder == "13_others"
+    assert folder == "8_complaints_and_violations"
     assert direct is False
+    assert llm.call_count == 3
+
+def test_multi_match_llm_feedback_prompt():
+    """Test that the feedback prompt is correctly constructed and passed to the LLM on retries."""
+    group = DocumentGroup(
+        start_page=0, end_page=1, primary_tenant="Test",
+        category="letters", dates=["2023-01-01"]
+    )
+    # 1 invalid, then 1 valid
+    llm = MockLLMClient(["invalid_folder_xyz", "8_complaints_and_violations"])
+    
+    route_document(group, llm)
+    
     assert llm.call_count == 2
+    # The second call should contain the feedback about the first invalid folder
+    second_call_contents = llm.calls[1]
+    # We check if any of the content parts contain the feedback message
+    feedback_found = False
+    if isinstance(second_call_contents, list):
+        for part in second_call_contents:
+            if "invalid_folder_xyz" in str(part) and "not in the allowed list" in str(part):
+                feedback_found = True
+                break
+    elif "invalid_folder_xyz" in str(second_call_contents) and "not in the allowed list" in str(second_call_contents):
+        feedback_found = True
+        
+    assert feedback_found, "Feedback prompt for invalid folder was not found in the retry call"
 
 def test_multi_match_llm_exception_fallback():
-    """Test that if the LLM throws exceptions, it falls back to 13_others."""
+    """Test that if the LLM throws exceptions, it retries 3 times and then raises RoutingValidationError."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
         category="forms", dates=["2023-01-01"]
     )
-    llm = MockLLMClient([Exception("API error"), Exception("API error 2")])
-    folder, direct = route_document(group, llm)
+    llm = MockLLMClient([Exception("API error"), Exception("API error 2"), Exception("API error 3")])
     
-    assert folder == "13_others"
-    assert direct is False
-    assert llm.call_count == 2
+    with pytest.raises(RoutingValidationError):
+        route_document(group, llm)
+    
+    assert llm.call_count == 3
+
 
 def test_unknown_category_fallback():
     """Test that an unknown category falls back."""

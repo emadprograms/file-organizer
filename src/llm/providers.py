@@ -25,13 +25,14 @@ class LLMProvider(Protocol):
         """The identifier name of the provider."""
         ...
 
-    def generate(self, model: str, contents: list, response_schema: type | None = None) -> Any:
+    def generate(self, model: str, contents: list, response_schema: type | None = None, validation_context: dict | None = None) -> Any:
         """Generate a structured response from the LLM.
         
         Args:
             model (str): The model identifier to use.
             contents (list): The list of prompt contents (text or images).
             response_schema (type): A Pydantic BaseModel class for structured output.
+            validation_context (dict | None): Optional context for Pydantic validation.
             
         Returns:
             Any: An instance of the response_schema populated with the LLM's output.
@@ -55,13 +56,14 @@ class GeminiProvider:
         """str: The identifier name of the provider ('gemini')."""
         return self._name
 
-    def generate(self, model: str, contents: list, response_schema: type | None = None) -> Any:
+    def generate(self, model: str, contents: list, response_schema: type | None = None, validation_context: dict | None = None) -> Any:
         """Generate a structured response using the Gemini API.
         
         Args:
             model (str): The model identifier to use.
             contents (list): The list of prompt contents.
             response_schema (type | None): A Pydantic BaseModel class for structured output, or None for raw text.
+            validation_context (dict | None): Optional context for Pydantic validation.
             
         Returns:
             Any: An instance of the response_schema, or raw text if schema is None.
@@ -86,13 +88,16 @@ class GeminiProvider:
             
         try:
             if response.parsed is not None:
+                # Even if parsed, we want to apply validation_context if available
+                if validation_context:
+                    return response_schema.model_validate(response.parsed.model_dump(), context=validation_context)
                 return response.parsed
             text = response.text.strip() # type: ignore
             json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
             if json_match:
                 text = json_match.group(1)
             data = json.loads(text)
-            return response_schema(**data)
+            return response_schema.model_validate(data, context=validation_context)
         except Exception as e:
             raw_text = getattr(response, 'text', 'No text available')
             raise ValueError(f"LLM parsing error. Raw output: {raw_text}. Error: {e}")
@@ -114,13 +119,14 @@ class OpenRouterProvider:
         """str: The identifier name of the provider ('openrouter')."""
         return self._name
 
-    def generate(self, model: str, contents: list, response_schema: type | None = None) -> Any:
+    def generate(self, model: str, contents: list, response_schema: type | None = None, validation_context: dict | None = None) -> Any:
         """Generate a structured response using the OpenRouter API.
         
         Args:
             model (str): The model identifier to use.
             contents (list): The list of prompt contents.
             response_schema (type | None): A Pydantic BaseModel class for structured output.
+            validation_context (dict | None): Optional context for Pydantic validation.
             
         Returns:
             Any: An instance of the response_schema or raw text.
@@ -149,7 +155,7 @@ class OpenRouterProvider:
             if json_match:
                 text = json_match.group(1)
             data = json.loads(text)
-            return response_schema(**data)
+            return response_schema.model_validate(data, context=validation_context)
         except Exception as e:
             raise ValueError(f"LLM parsing error. Raw output: {text}. Error: {e}")
 
@@ -170,13 +176,14 @@ class GroqProvider:
         """str: The identifier name of the provider ('groq')."""
         return self._name
 
-    def generate(self, model: str, contents: list, response_schema: type | None = None) -> Any:
+    def generate(self, model: str, contents: list, response_schema: type | None = None, validation_context: dict | None = None) -> Any:
         """Generate a structured response using the Groq API.
         
         Args:
             model (str): The model identifier to use.
             contents (list): The list of prompt contents.
             response_schema (type | None): A Pydantic BaseModel class for structured output.
+            validation_context (dict | None): Optional context for Pydantic validation.
             
         Returns:
             Any: An instance of the response_schema or text.
@@ -205,6 +212,6 @@ class GroqProvider:
             if json_match:
                 text = json_match.group(1)
             data = json.loads(text)
-            return response_schema(**data)
+            return response_schema.model_validate(data, context=validation_context)
         except Exception as e:
             raise ValueError(f"LLM parsing error. Raw output: {text}. Error: {e}")

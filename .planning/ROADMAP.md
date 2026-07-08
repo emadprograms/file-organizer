@@ -35,13 +35,18 @@
 
 ### v1.2 Pipeline Resilience & Grouping Overhaul (Current)
 
-- [ ] **Phase 7: Anti-Hallucination Schema Enforcement**
+- [x] **Phase 7: Anti-Hallucination Schema Enforcement**
   - Depends on: None
   - Requirements: SCHM-01
   - Success Criteria:
-    - [ ] System rejects router responses that contain invalid folder paths automatically.
-    - [ ] Router uses Pydantic literal types based on the user's specific folder structure instead of arbitrary strings.
-    - [ ] Pipeline logs validation errors correctly when avoiding mis-routed documents.
+    - [x] System rejects router responses that contain invalid folder paths automatically.
+    - [x] Router uses Pydantic literal types based on the user's specific folder structure instead of arbitrary strings.
+    - [x] Pipeline logs validation errors correctly when avoiding mis-routed documents.
+
+  Plans:
+  - [x] 07-01-PLAN.md — Implement dynamic routing schema enforcement using Pydantic create_model
+  - [x] 07-02-PLAN.md — Integrate dynamic schema and implement feedback-driven retry loop
+  - [x] 07-03-PLAN.md — Integration audit and test suite update
 
 - [ ] **Phase 8: "True Until Proven Guilty" Grouping Logic**
   - Depends on: None
@@ -78,7 +83,7 @@
 | 4. Logging Infrastructure Refactor | v1.1 | 1/1 | Complete | 2026-07-08 |
 | 5. Global Logger Migration | v1.1 | 4/4 | Complete | 2026-07-08 |
 | 6. Validation and Audit | v1.1 | 1/1 | Complete | 2026-07-08 |
-| 7. Anti-Hallucination Schema Enforcement | v1.2 | 0/0 | Pending | — |
+| 7. Anti-Hallucination Schema Enforcement | v1.2 | 3/3 | Complete | 2026-07-08 |
 | 8. "True Until Proven Guilty" Grouping Logic | v1.2 | 0/0 | Pending | — |
 | 9. Rate Limiting & Router Safety Net | v1.2 | 0/0 | Pending | — |
 | 10. Chunk State Management | v1.2 | 0/0 | Pending | — |
