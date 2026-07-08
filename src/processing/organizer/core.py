@@ -6,13 +6,12 @@ filesystem hierarchy based on house numbers, residents, and categories.
 import logging
 import os
 import re
-import json
 from pathlib import Path
 from collections import defaultdict
 from typing import Any
 
 from src.core.schemas import DocumentGroup
-from src.processing.split import extract_pdf_segment
+from src.processing.pdf import extract_pdf_segment
 import src.core.utils as utils
 
 logger = logging.getLogger(__name__)
@@ -20,24 +19,8 @@ logger = logging.getLogger(__name__)
 class FileOrganizer:
     """Organizer responsible for writing documents to disk in a structured hierarchy."""
 
-    def organize(self, documents: list[DocumentGroup], source_pdf: str, house_id: str, output_base_dir: Path, config: Any = None, dry_run: bool = False) -> list[dict]:
-        """Organize the extracted documents into a structured directory hierarchy.
-        
-        Args:
-            documents (list[DocumentGroup]): The grouped documents from the pipeline.
-            source_pdf (str): Path to the source PDF.
-            house_id (str): The house ID to set the house-level root dir.
-            output_base_dir (Path): The root output directory.
-            config: User configuration (unused here).
-            
-        Returns:
-            list[dict]: A per-page mapping of page_index to relative output_file.
-        """
-        if not documents:
-            logger.warning("⚠ No documents to organize. Exiting.")
-            return []
-
-        # 1. Aggregation pass to compute (min_year, max_year) per tenant
+    def compute_tenant_folders(self, documents: list[DocumentGroup]) -> dict[str, str]:
+        """Compute the tenant folder names based on document dates."""
         tenant_years: dict[str, set[Any]] = defaultdict(set)
         for doc in documents:
             tenant = doc.primary_tenant
@@ -48,7 +31,6 @@ class FileOrganizer:
             else:
                 group_tenant = tenant
             
-            # Ensure the group_tenant exists in the dictionary even if it has no dates
             tenant_years[group_tenant]
             
             for d in doc.dates:
@@ -62,7 +44,6 @@ class FileOrganizer:
                         if year_match:
                             tenant_years[group_tenant].add(int(year_match.group(1)))
 
-        # 2. Build tenant folder names
         tenant_folder_names = {}
         for tenant, years in tenant_years.items():
             if years:
@@ -79,21 +60,21 @@ class FileOrganizer:
                 else:
                     safe_name = utils.sanitize_filename(tenant)
                     tenant_folder_names[tenant] = f"{safe_name}"
+                    
+        return tenant_folder_names
 
-        from src.logger import log_decision_trace
-        log_decision_trace("tenant_resolution", {"tenant_folders": tenant_folder_names})
-        logger.info(f"Tenant resolution complete. Folders: {tenant_folder_names}")
+    def ensure_target_directories(self, tenant_folder_names: dict[str, str], house_id: str, output_base_dir: Path):
+        """Proactively create all subdirectories for each tenant."""
+        from src.processing.routing.config import FOLDER_ROUTING
+        house_dir = output_base_dir / house_id
+        for folder_name in tenant_folder_names.values():
+            for topic in FOLDER_ROUTING.keys():
+                target_dir = (house_dir / folder_name / topic).resolve()
+                if str(target_dir).startswith(str(output_base_dir.resolve())):
+                    os.makedirs(target_dir, exist_ok=True)
 
-        # Proactively create all 13 subdirectories for each tenant
-        if not dry_run:
-            from src.processing.routing import FOLDER_ROUTING
-            house_dir = output_base_dir / house_id
-            for folder_name in tenant_folder_names.values():
-                for topic in FOLDER_ROUTING.keys():
-                    target_dir = (house_dir / folder_name / topic).resolve()
-                    if str(target_dir).startswith(str(output_base_dir.resolve())):
-                        os.makedirs(target_dir, exist_ok=True)
-
+    def process_documents(self, documents: list[DocumentGroup], source_pdf: str, house_id: str, output_base_dir: Path, tenant_folder_names: dict[str, str], dry_run: bool = False) -> list[dict]:
+        """Extract and save document segments."""
         per_page = []
         used_names_per_dir: dict[str, set[str]] = defaultdict(set)
         tree_data = defaultdict(lambda: defaultdict(list))
@@ -177,54 +158,22 @@ class FileOrganizer:
                     for f in files:
                         topic_node.add(f)
             console.print(tree)
-
+            
         return per_page
 
-def run_reconciliation(summary: dict, per_page: list, total_input_pages: int, house_id: str, output_dir: Path, dry_run: bool = False):
-    """Write reconciliation manifest and assert page counts."""
-    unaccounted_pages = []
-    accounted_page_indices = {p["page_index"] for p in per_page}
-    for i in range(total_input_pages):
-        if i not in accounted_page_indices:
-            unaccounted_pages.append(i)
-            
-    manifest = {
-        "summary": {
-            "house_id": house_id,
-            "total_input_pages": total_input_pages,
-            "total_output_pages": summary.get("total_output_pages", len(per_page)),
-            "output_file_count": summary.get("output_file_count", len({p["output_file"] for p in per_page})),
-            "unaccounted_pages": unaccounted_pages
-        },
-        "per_page": per_page
-    }
-    
-    if not dry_run:
-        from src.fs_utils import atomic_write
-        manifest_path = output_dir / f"{house_id}_manifest.json"
-        with atomic_write(str(manifest_path)) as tmp_path:
-            with open(tmp_path, 'w', encoding='utf-8') as f:
-                json.dump(manifest, f, ensure_ascii=False, indent=2)
-    else:
-        logger.info(f"  [DRY RUN] Would write manifest to {output_dir / f'{house_id}_manifest.json'}")
-    
-    from rich.console import Console
-    from rich.table import Table
-    console = Console()
-    table = Table(title="Reconciliation Report")
-    table.add_column("House ID")
-    table.add_column("Total Input Pages")
-    table.add_column("Total Output Pages")
-    table.add_column("Output File Count")
-    table.add_column("Unaccounted Pages")
-    table.add_row(
-        str(manifest["summary"]["house_id"]),
-        str(manifest["summary"]["total_input_pages"]),
-        str(manifest["summary"]["total_output_pages"]),
-        str(manifest["summary"]["output_file_count"]),
-        str(len(manifest["summary"]["unaccounted_pages"]))
-    )
-    console.print(table)
-    
-    if total_input_pages != manifest["summary"]["total_output_pages"]:
-        raise RuntimeError("Reconciliation failed: total input pages != total output pages")
+    def organize(self, documents: list[DocumentGroup], source_pdf: str, house_id: str, output_base_dir: Path, config: Any = None, dry_run: bool = False) -> list[dict]:
+        """Organize the extracted documents into a structured directory hierarchy."""
+        if not documents:
+            logger.warning("⚠ No documents to organize. Exiting.")
+            return []
+
+        tenant_folder_names = self.compute_tenant_folders(documents)
+        
+        from src.logger import log_decision_trace
+        log_decision_trace("tenant_resolution", {"tenant_folders": tenant_folder_names})
+        logger.info(f"Tenant resolution complete. Folders: {tenant_folder_names}")
+
+        if not dry_run:
+            self.ensure_target_directories(tenant_folder_names, house_id, output_base_dir)
+
+        return self.process_documents(documents, source_pdf, house_id, output_base_dir, tenant_folder_names, dry_run)

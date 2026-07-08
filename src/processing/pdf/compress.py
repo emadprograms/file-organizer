@@ -1,63 +1,13 @@
-"""PDF segment extraction and compression utilities.
-
-This module handles extracting specific page ranges from a PDF and 
-compressing the resulting files by downscaling images.
-"""
-import logging
-import fitz
+"""PDF compression utilities."""
 import os
 import shutil
-import io
+import fitz
+import logging
 
 logger = logging.getLogger(__name__)
 
-# Suppress harmless mupdf C-level syntax warnings
-fitz.TOOLS.mupdf_display_errors(False)
-
-from src.core.indexing import to_0_based, validate_bounds
-
-def extract_pdf_segment(source_pdf: str, start_page: int, end_page: int, output_path: str):
-    """Extract a segment of pages from a PDF and save to a new file.
-    
-    Extracts the specified page range (0-indexed, inclusive) into a temporary
-    file, applies compression, and saves the final result to `output_path`.
-    
-    Args:
-        source_pdf (str): Path to the source PDF file.
-        start_page (int): The starting page index (0-indexed, inclusive).
-        end_page (int): The ending page index (0-indexed, inclusive).
-        output_path (str): Path where the extracted PDF segment should be saved.
-    """
-    start_0 = to_0_based(start_page + 1)
-    end_0 = to_0_based(end_page + 1)
-    tmp_path = output_path + ".uncompressed.pdf"
-    
-    with fitz.open(source_pdf) as src_doc:
-        max_len = len(src_doc)
-        start_idx = validate_bounds(start_0, max_len)
-        end_idx = validate_bounds(end_0, max_len)
-        
-        with fitz.open() as dst_doc:
-            dst_doc.insert_pdf(src_doc, from_page=start_idx, to_page=end_idx)
-            dst_doc.save(tmp_path)
-    
-    # Compress it
-    compress_pdf(tmp_path, output_path)
-    if os.path.exists(tmp_path):
-        os.remove(tmp_path)
-
-
 def compress_pdf(input_path: str, output_path: str):
-    """Compress a PDF file by downscaling and compressing embedded images.
-    
-    Extracts large images, resizes them (max dimension 1500px), compresses
-    them to JPEG, and replaces the original images. Uses a
-    fallback to a simple copy if compression fails or increases file size.
-    
-    Args:
-        input_path (str): Path to the input PDF file to compress.
-        output_path (str): Path where the compressed PDF should be saved.
-    """
+    """Compress a PDF file by downscaling and compressing embedded images."""
     temp_output_path = output_path + ".tmp.pdf"
     original_size = os.path.getsize(input_path)
     
