@@ -4,6 +4,7 @@
 
 - ✅ **v1.0 MVP** — Phases 1-3 (shipped 2026-07-08)
 - ✅ **v1.1 Logging Overhaul** — Phase 4-6 (shipped 2026-07-08) [Archive: .planning/milestones/v1.1-ROADMAP.md]
+- 🔄 **v1.2 Pipeline Resilience & Grouping Overhaul** — Phases 7-10 (Current)
 
 ## Phases
 
@@ -32,6 +33,41 @@
 
 </details>
 
+### v1.2 Pipeline Resilience & Grouping Overhaul (Current)
+
+- [ ] **Phase 7: Anti-Hallucination Schema Enforcement**
+  - Depends on: None
+  - Requirements: SCHM-01
+  - Success Criteria:
+    - [ ] System rejects router responses that contain invalid folder paths automatically.
+    - [ ] Router uses Pydantic literal types based on the user's specific folder structure instead of arbitrary strings.
+    - [ ] Pipeline logs validation errors correctly when avoiding mis-routed documents.
+
+- [ ] **Phase 8: "True Until Proven Guilty" Grouping Logic**
+  - Depends on: None
+  - Requirements: PRMPT-01, PRMPT-02, PRMPT-03
+  - Success Criteria:
+    - [ ] Documents containing continuation letters across page boundaries are correctly grouped together.
+    - [ ] Un-headered tables and appendices spanning multiple pages are not incorrectly split.
+    - [ ] System groups chunks into larger logical files unless explicit proof of distinct topics is found.
+
+- [ ] **Phase 9: Rate Limiting & Router Safety Net**
+  - Depends on: 7
+  - Requirements: RES-01, RES-02, RES-03
+  - Success Criteria:
+    - [ ] System pauses and gracefully retries upon encountering rate limiting, instead of crashing.
+    - [ ] Critical runtime errors immediately halt the pipeline.
+    - [ ] A single routing failure does not cause a permanent lockout for subsequent routing requests.
+
+- [ ] **Phase 10: Chunk State Management**
+  - Depends on: 8, 9
+  - Requirements: GRP-01, GRP-02, GRP-03, GRP-04
+  - Success Criteria:
+    - [ ] Grouping mechanism processes pages in chunks of 5, 3, then 2 upon consecutive failures.
+    - [ ] Exhausting grouping attempts gracefully halts the pipeline, enabling checkpoint resuming.
+    - [ ] Chunk success correctly resets the chunk size index to 0.
+    - [ ] Merged documents respect logical boundaries without arbitrary overlap merging.
+
 ## Progress
 
 | Phase             | Milestone | Plans Complete | Status      | Completed  |
@@ -42,3 +78,7 @@
 | 4. Logging Infrastructure Refactor | v1.1 | 1/1 | Complete | 2026-07-08 |
 | 5. Global Logger Migration | v1.1 | 4/4 | Complete | 2026-07-08 |
 | 6. Validation and Audit | v1.1 | 1/1 | Complete | 2026-07-08 |
+| 7. Anti-Hallucination Schema Enforcement | v1.2 | 0/0 | Pending | — |
+| 8. "True Until Proven Guilty" Grouping Logic | v1.2 | 0/0 | Pending | — |
+| 9. Rate Limiting & Router Safety Net | v1.2 | 0/0 | Pending | — |
+| 10. Chunk State Management | v1.2 | 0/0 | Pending | — |
