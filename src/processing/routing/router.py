@@ -7,7 +7,7 @@ from src.core.schemas import DocumentGroup
 from src.llm.llm import LLMFailureError
 from src.processing.routing.config import CATEGORY_TO_FOLDERS, SINGLE_MATCH
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 consecutive_routing_failures = 0
 
@@ -29,7 +29,7 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
     
     global consecutive_routing_failures
     if consecutive_routing_failures >= 5:
-        log.warning("Skipping LLM routing due to 5 consecutive failures.")
+        logger.warning("Skipping LLM routing due to 5 consecutive failures.")
         return "13_others", False
         
     if category in SINGLE_MATCH:
@@ -38,12 +38,12 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
             folder = CATEGORY_TO_FOLDERS[category][0]
             return folder, True
         except IndexError:
-            log.error(f"IndexError: No folder mapping found for SINGLE_MATCH category '{category}'. Falling back.")
+            logger.exception(f"IndexError: No folder mapping found for SINGLE_MATCH category '{category}'. Falling back.")
             return "Unassigned", False
         
     allowed_folders = CATEGORY_TO_FOLDERS.get(category, []).copy()
     if not allowed_folders:
-        log.warning(f"Category '{category}' has no mapping, falling back to 13_others")
+        logger.warning(f"Category '{category}' has no mapping, falling back to 13_others")
         return "13_others", False
         
     if "13_others" not in allowed_folders:
@@ -86,25 +86,25 @@ Respond only with a valid JSON matching the requested schema. The selected_folde
                 response_schema=RoutingResponse
             )
             if result is None:
-                log.warning("LLM routing returned None (likely skipped due to errors).")
+                logger.warning("LLM routing returned None (likely skipped due to errors).")
                 continue
                 
             selected = result.selected_folder
             reason = result.reason
             if selected in allowed_folders:
                 consecutive_routing_failures = 0
-                log.info(f"Routed category '{category}' to '{selected}'. Reason: {reason}")
+                logger.info(f"Routed category '{category}' to '{selected}'. Reason: {reason}")
                 from src.logger import log_decision_trace
                 log_decision_trace("routing", {"category": category, "selected": selected, "reason": reason})
                 return selected, False
             else:
-                log.warning(f"LLM selected invalid folder: {selected}. Expected one of {allowed_folders}")
+                logger.warning(f"LLM selected invalid folder: {selected}. Expected one of {allowed_folders}")
         except LLMFailureError:
             raise
         except Exception as e:
-            log.warning(f"LLM routing failed on attempt {attempt+1}: {e}")
+            logger.warning(f"LLM routing failed on attempt {attempt+1}: {e}")
             
     # Fallback after two failures
-    log.warning(f"LLM routing failed twice for category {category}. Falling back to 13_others.")
+    logger.warning(f"LLM routing failed twice for category {category}. Falling back to 13_others.")
     consecutive_routing_failures += 1
     return "13_others", False

@@ -45,6 +45,11 @@ class JSONLFormatter(logging.Formatter):
             "filename": record.filename,
             "lineno": record.lineno,
         }
+        if record.exc_info:
+            log_record["exception"] = self.formatException(record.exc_info)
+        if record.stack_info:
+            log_record["stack_trace"] = self.formatStack(record.stack_info)
+            
         return json.dumps(log_record, ensure_ascii=False)
 
 def setup_logging(run_id: str = None, verbose: bool = False) -> str:

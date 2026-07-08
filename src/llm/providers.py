@@ -13,6 +13,9 @@ from google import genai
 from google.genai import types
 import openai
 from src.core.config import OPENROUTER_MODEL, GROQ_MODEL
+import logging
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 class LLMProvider(Protocol):
     """Protocol defining the interface for an LLM provider strategy."""
@@ -76,8 +79,7 @@ class GeminiProvider:
         
         if hasattr(response, "usage_metadata") and response.usage_metadata is not None:
             if hasattr(response.usage_metadata, "total_token_count"):
-                import logging
-                logging.getLogger(__name__).info(f"Gemini API Token Usage: {response.usage_metadata.total_token_count} total tokens")
+                logger.info(f"Gemini API Token Usage: {response.usage_metadata.total_token_count} total tokens")
 
         if not response_schema:
             return getattr(response, "text", "")

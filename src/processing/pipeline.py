@@ -11,7 +11,7 @@ from concurrent.futures import ThreadPoolExecutor
 from src.llm.llm import LLMClient, LLMFailureError
 from src.core.schemas import DocumentGroup
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 from types import SimpleNamespace
 

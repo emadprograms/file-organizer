@@ -1,7 +1,10 @@
 """Utility functions for grouping documents."""
 
+import logging
 from typing import Any
 from src.core.schemas import GroupEntry, DocumentGroup
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def category_presplit(pages: list[Any]) -> list[list[Any]]:
     """

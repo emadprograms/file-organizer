@@ -1,6 +1,9 @@
 import pytest
 import json
+import logging
 from unittest.mock import patch
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 from pathlib import Path
 from src.cleaning.models import PageData, TenantTimeline

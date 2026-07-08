@@ -16,13 +16,14 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 - ✓ Refactor `src/cleaning.py` into separate focused modules based on responsibility. (Phase 02) — v1.0
 - ✓ Refactor bloated files in `src/processing/` into smaller, single-responsibility modules. (Phase 03) — v1.0
 - ✓ Split oversized functions across the application into smaller functions. (Phase 03) — v1.0
+- ✓ Implement isolated application logging to remove third-party library noise. (Phase 04) — v1.1
+- ✓ Establish a unified `LogContext` to prevent fragmented run directories. (Phase 04) — v1.1
+- ✓ Implement dual-format logging: Plain Text for `app.log` and JSON for `debug.log`. (Phase 04) — v1.1
+- ✓ Update all modules to use hierarchical logger naming (`file_organizer.module`). (Phase 05) — v1.1
 
-### Active (v1.1)
+### Active
 
-- [ ] Implement isolated application logging to remove third-party library noise.
-- [ ] Establish a unified `LogContext` to prevent fragmented run directories.
-- [ ] Implement dual-format logging: Plain Text for `app.log` and JSON for `debug.log`.
-- [ ] Update all modules to use hierarchical logger naming (`file_organizer.module`).
+- None.
 
 ### Out of Scope
 
@@ -32,10 +33,12 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 ## Context
 
 - Shipped v1.0.
+- Shipped v1.1.
 - The codebase has been successfully cleaned of legacy code and refactored into a modular, maintainable structure.
 - All processing logic is now decomposed into single-responsibility modules in `src/cleaning/` and `src/processing/`.
 - Error handling is standardized via a custom exception hierarchy in `src/core/exceptions.py`.
 - LLM resilience improved using `tenacity` for exponential backoff.
+- The system now has a unified, hierarchical logging infrastructure with structured JSONL telemetry for LLM decisions.
 
 ## Constraints
 
@@ -48,11 +51,11 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 |----------|-----------|---------|
 | Break bloated code into new modules | Improves maintainability and file sizes over keeping them in the same file. | ✓ Completed (Phases 2, 3). Codebase is modular. |
 | Trace imports from entry point | Safest way to identify truly unused legacy code without false positives. | ✓ Completed (Phase 1). Legacy and unused code removed. |
-| Use dual-format logging | balances human readability in app.log with machine-searchability in debug.log. | Pending |
+| Use dual-format logging | balances human readability in app.log with machine-searchability in debug.log. | ✓ Completed (Phase 4). |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-07-08 starting v1.1*
+*Last updated: 2026-07-08 completed v1.1*

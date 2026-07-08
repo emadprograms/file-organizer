@@ -1,4 +1,7 @@
 import re
+import logging
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 # --- Date parsing constants (module-level to avoid re-creation per call) ---
 

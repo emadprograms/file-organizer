@@ -1,6 +1,5 @@
-"""Organizer package for file structure output."""
+import logging
+from .core import FileOrganizer
+from .reconciliation import run_reconciliation
 
-from src.processing.organizer.core import FileOrganizer
-from src.processing.organizer.reconciliation import run_reconciliation
-
-__all__ = ["FileOrganizer", "run_reconciliation"]
+logger = logging.getLogger(f"file_organizer.{__name__}")

@@ -1,5 +1,8 @@
 import pytest
 import json
+import logging
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 @pytest.fixture
 def mock_page_data_dict():

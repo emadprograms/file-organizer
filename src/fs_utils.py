@@ -3,6 +3,9 @@ import re
 import unicodedata
 from contextlib import contextmanager
 import uuid
+import logging
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 @contextmanager
 def atomic_write(filepath: str):

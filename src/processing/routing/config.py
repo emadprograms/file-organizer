@@ -1,4 +1,7 @@
 """Configuration for routing logic."""
+import logging
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 FOLDER_ROUTING: dict[str, list[str]] = {
     "1_requests_and_applications": ["forms"],

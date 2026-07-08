@@ -10,7 +10,7 @@ from src.cleaning.tenants import (
 )
 from src.llm.llm import LLMClient
 
-logger = logging.getLogger("file_organizer")
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def load_and_parse_json(json_path: Path) -> list[PageData]:
     with open(json_path, 'r', encoding='utf-8') as f:

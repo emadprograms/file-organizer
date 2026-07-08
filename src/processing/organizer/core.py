@@ -14,7 +14,7 @@ from src.core.schemas import DocumentGroup
 from src.processing.pdf import extract_pdf_segment
 import src.core.utils as utils
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 class FileOrganizer:
     """Organizer responsible for writing documents to disk in a structured hierarchy."""
@@ -148,8 +148,7 @@ class FileOrganizer:
             
         if dry_run:
             from rich.tree import Tree
-            from rich.console import Console
-            console = Console()
+            from src.core.ui import vprint
             tree = Tree(f"[bold blue]{house_id}[/bold blue]")
             for t_folder, topics in tree_data.items():
                 t_node = tree.add(f"[bold green]{t_folder}[/bold green]")
@@ -157,7 +156,7 @@ class FileOrganizer:
                     topic_node = t_node.add(f"[bold yellow]{topic}[/bold yellow]")
                     for f in files:
                         topic_node.add(f)
-            console.print(tree)
+            vprint(tree)
             
         return per_page
 

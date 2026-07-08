@@ -1,8 +1,12 @@
 import sys
 import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
-
 import pytest
+import logging
+from pathlib import Path
+from unittest.mock import patch
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
+
 from fs_utils import atomic_write
 from core.utils import sanitize_filename
 

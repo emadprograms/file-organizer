@@ -6,7 +6,7 @@ from rapidfuzz import fuzz
 from src.llm.llm import LLMClient
 from src.cleaning.models import PageData, TenantTimeline
 
-logger = logging.getLogger("file_organizer")
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def normalize_arabic_text(text: str) -> str:
     text = unicodedata.normalize('NFKC', text)

@@ -128,3 +128,29 @@ def test_log_decision_trace_fallback(tmp_path):
             line = f.readline()
             data = json.loads(line)
             assert data["trace_type"] == "decision_fallback_type"
+
+def test_hierarchical_logger_naming():
+    """Verify that sample modules in src/ use the standard logger naming and variable."""
+    import importlib
+    
+    # Sample of modules to check
+    modules_to_check = [
+        "src.organize",
+        "src.core.config",
+        "src.core.ui",
+        "src.llm.llm",
+        "src.processing.pipeline",
+    ]
+    
+    for mod_name in modules_to_check:
+        mod = importlib.import_module(mod_name)
+        
+        # Verify variable name is 'logger'
+        assert hasattr(mod, "logger"), f"Module {mod_name} is missing the 'logger' variable"
+        
+        # Verify logger name matches hierarchical pattern
+        logger = getattr(mod, "logger")
+        # The actual __name__ will be 'src.module', so logger name will be 'file_organizer.src.module'
+        expected_name = f"file_organizer.{mod_name}"
+        assert logger.name == expected_name, f"Module {mod_name} logger name {logger.name} does not match expected {expected_name}"
+

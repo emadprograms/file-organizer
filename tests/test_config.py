@@ -1,6 +1,9 @@
 import os
 import pytest
+import logging
 from src.core.config import record_successful_call, TRACKING_DIR, LOG_FILE
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def test_record_successful_call_creates_dir_and_file(tmp_path, monkeypatch):
     # Mock TRACKING_DIR and LOG_FILE to use tmp_path

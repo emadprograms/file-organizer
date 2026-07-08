@@ -13,9 +13,12 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from dotenv import load_dotenv
 
 from src.logger import setup_logging
+from src.core.ui import set_verbosity
 from src.llm.llm import LLMClient
 from src.cleaning import process_cleaning_phase
 from src.core.exceptions import ConfigurationError, ValidationError, FileOrganizerError
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def validate_environment():
     load_dotenv()
@@ -179,8 +182,8 @@ def main():
     
     if args.dry_run and sys.platform == 'win32':
         if sys.stdout.encoding.lower() != 'utf-8':
-            print("WARNING: Terminal encoding is not UTF-8. Arabic characters may not render correctly.", file=sys.stderr)
-            print("Recommend setting environment variable: PYTHONIOENCODING=utf8", file=sys.stderr)
+            logger.warning("Terminal encoding is not UTF-8. Arabic characters may not render correctly.")
+            logger.warning("Recommend setting environment variable: PYTHONIOENCODING=utf8")
         try:
             sys.stdout.reconfigure(encoding='utf-8')
         except AttributeError:
@@ -200,7 +203,7 @@ def main():
         output_dir.mkdir(parents=True, exist_ok=True)
 
         log_dir = setup_logging(verbose=getattr(args, 'verbose', False))
-        logger = logging.getLogger("file_organizer")
+        set_verbosity(getattr(args, 'verbose', False))
         
         logger.info(f"Starting File Organizer Post-Processor for house ID: {house_id}")
         logger.info(f"Target directory: {args.target_dir}")
@@ -224,16 +227,10 @@ def main():
         
         return 0
     except FileOrganizerError as e:
-        if 'logger' in locals():
-            logger.error(f"File Organizer failed: {e}")
-        else:
-            print(f"ERROR: {e}", file=sys.stderr)
+        logger.exception(f"File Organizer failed: {e}")
         return 1
     except Exception as e:
-        if 'logger' in locals():
-            logger.error(f"Unexpected error: {e}", exc_info=True)
-        else:
-            print(f"UNEXPECTED ERROR: {e}", file=sys.stderr)
+        logger.exception(f"Unexpected error: {e}")
         return 1
 
 if __name__ == "__main__":

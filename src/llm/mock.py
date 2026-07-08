@@ -1,7 +1,10 @@
 """Mock LLM Provider for local testing."""
 import json
 import re
+import logging
 from typing import Any
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 class MockLLMProvider:
     """Concrete LLM provider implementation for mocking responses."""

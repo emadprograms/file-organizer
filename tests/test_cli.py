@@ -1,8 +1,12 @@
 import os
 import sys
 import pytest
+import logging
 from pathlib import Path
 from unittest.mock import patch
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
+
 from src.organize import get_parser, validate_environment, main
 
 def test_parser_default_model():

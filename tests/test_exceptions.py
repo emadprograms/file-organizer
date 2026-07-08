@@ -1,5 +1,8 @@
 import pytest
+import logging
 from src.core.exceptions import FileOrganizerError, ConfigurationError, ValidationError
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def test_exception_hierarchy():
     """Verify that custom exceptions inherit from the base class."""

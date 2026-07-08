@@ -1,5 +1,8 @@
 ﻿from typing import Optional
 from pydantic import BaseModel
+import logging
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 class PageData(BaseModel):
     category: str

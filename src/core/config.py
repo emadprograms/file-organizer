@@ -2,11 +2,14 @@
 
 import os
 import time
+import logging
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 TRACKING_DIR = PROJECT_ROOT / ".tracking"
 LOG_FILE = TRACKING_DIR / "api_calls.log"
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemma-4-26b-a4b-it")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen/qwen3.6-27b")
@@ -23,4 +26,4 @@ def record_successful_call() -> None:
         with open(LOG_FILE, "a") as f:
             f.write(f"{time.time()}\n")
     except Exception as e:
-        print(f"Warning: Failed to record API call to quota log: {e}")
+        logger.warning(f"Failed to record API call to quota log: {e}")

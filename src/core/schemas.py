@@ -2,6 +2,10 @@
 
 These schemas leverage Pydantic for validation and structured data representation.
 """
+import logging
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
+
 from dataclasses import dataclass
 from pydantic import BaseModel, Field
 

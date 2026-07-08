@@ -1,5 +1,4 @@
-"""Routing package for document folder assignment."""
+import logging
+from .router import route_document
 
-from src.processing.routing.router import route_document, RoutingResponse
-
-__all__ = ["route_document", "RoutingResponse"]
+logger = logging.getLogger(f"file_organizer.{__name__}")

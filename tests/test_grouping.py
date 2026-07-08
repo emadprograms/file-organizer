@@ -1,9 +1,11 @@
 import pytest
+import logging
 from src.processing.grouping.utils import verify_groups, merge_chunks
 from src.processing.grouping.core import process_with_shrink, GROUPING_PROMPT
 from src.core.schemas import GroupEntry, DocumentGroup
 from types import SimpleNamespace
 
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def test_verification_logic():
     # Valid

@@ -4,7 +4,7 @@ import shutil
 import fitz
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def compress_pdf(input_path: str, output_path: str):
     """Compress a PDF file by downscaling and compressing embedded images."""
@@ -59,7 +59,7 @@ def compress_pdf(input_path: str, output_path: str):
                 shutil.copy2(input_path, output_path)
 
     except Exception as e:
-        logger.error(f"Compression failed for {input_path}: {e}")
+        logger.exception(f"Compression failed for {input_path}: {e}")
         if os.path.exists(temp_output_path):
             try:
                 os.remove(temp_output_path)

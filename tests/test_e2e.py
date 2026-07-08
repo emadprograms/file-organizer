@@ -11,7 +11,10 @@ import json
 import shutil
 import subprocess
 import sys
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 import pytest
 

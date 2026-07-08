@@ -5,7 +5,7 @@ from src.core.schemas import DocumentGroup, GroupingResponse
 from src.llm.llm import LLMFailureError
 from src.processing.grouping.utils import verify_groups, merge_chunks
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 GROUPING_PROMPT = """You are an expert Arabic document analyst.
 Your task is to identify logical multi-page document boundaries within a chunk of pages.
@@ -52,7 +52,7 @@ def _process_chunk(pages: list[Any], current_page_index: int, end_index: int, ll
         g_pages = pages[g.start_page : g.end_page + 1]
         primary_tenant = getattr(g_pages[0], "canonical_tenant", "Unassigned")
         if primary_tenant == "Unassigned":
-            log.warning("Tenant could not be resolved for group. Falling back to Unassigned.")
+            logger.warning("Tenant could not be resolved for group. Falling back to Unassigned.")
         category = getattr(g_pages[0], "category", "UNKNOWN")
         dates = []
         for p in g_pages:
@@ -114,11 +114,11 @@ def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup
         except ValueError as e:
             consecutive_failures += 1
             total_failures += 1
-            log.warning(f"Validation Error: {e}")
+            logger.warning(f"Validation Error: {e}")
             if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
                 chunk_size_idx = min(chunk_size_idx + 1, len(CHUNK_SIZES) - 1)
                 consecutive_failures = 0
-                log.warning(f"Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
+                logger.warning(f"Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
         except LLMFailureError:
             raise
         except Exception as e:
@@ -126,11 +126,11 @@ def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup
             if isinstance(e, (RuntimeError, TimeoutError)) or "500" in error_str or "503" in error_str or "servererror" in error_str or "llm routing failed" in error_str:
                 consecutive_failures += 1
                 total_failures += 1
-                log.warning(f"Server Error: {e}")
+                logger.warning(f"Server Error: {e}")
                 if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
                     chunk_size_idx = min(chunk_size_idx + 1, len(CHUNK_SIZES) - 1)
                     consecutive_failures = 0
-                    log.warning(f"Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
+                    logger.warning(f"Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
             else:
                 raise e
     
@@ -141,5 +141,5 @@ def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup
         payload_groups = []
         
     log_decision_trace("grouping", {"final_groups": payload_groups})
-    log.info(f"Grouping complete. Identified {len(final_groups)} groups.")
+    logger.info(f"Grouping complete. Identified {len(final_groups)} groups.")
     return final_groups

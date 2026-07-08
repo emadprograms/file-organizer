@@ -5,6 +5,7 @@ provider strategies (defined in `providers.py`). It implements resilient API rou
 error handling, rate-limit backoffs, and cloud failover for robust document processing.
 """
 from src.core.config import record_successful_call, OPENROUTER_MODEL, GROQ_MODEL, GEMINI_MODEL
+from src.logger import log_decision_trace
 import concurrent.futures
 import os
 import time
@@ -21,9 +22,7 @@ from google import genai
 from google.genai import types
 import openai
 
-
-
-log = logging.getLogger(__name__)
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 
 class LLMFailureError(Exception):
@@ -163,55 +162,42 @@ class LLMClient:
                     response_parsed = future.result(timeout=300)
                     
                     # Trace logging for successful calls
-                    import uuid
-                    from datetime import datetime
-                    from src.logger import LOGS_DIR
-                    run_id = str(uuid.uuid4())[:8]
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    traces_dir = os.path.join(LOGS_DIR, "traces")
-                    os.makedirs(traces_dir, exist_ok=True)
-                    trace_path = os.path.join(traces_dir, f"{run_id}_{timestamp}.json")
                     try:
-                        payload = {"model": model, "provider": provider_name}
+                        payload = {"model": model, "provider": provider_name, "prompt": contents}
                         if hasattr(response_parsed, "model_dump"):
                             payload["response"] = response_parsed.model_dump()
                         else:
                             payload["response"] = str(response_parsed)
-                        with open(trace_path, "w", encoding="utf-8") as f:
-                            json.dump(payload, f, ensure_ascii=False, indent=2)
+                        log_decision_trace("llm_success", payload)
                     except Exception as trace_err:
-                        log.debug(f"Failed to write trace: {trace_err}")
+                        logger.debug(f"Failed to write trace: {trace_err}")
                         
                     record_successful_call()
                     self.total_requests += 1
                     self.global_consecutive_500_errors = 0
                     
                     if getattr(self, "verbose", False):
-                        log.debug(f"[{log_prefix}] Prompt: {contents}")
-                        log.debug(f"[{log_prefix}] Response: {response_parsed}")
+                        logger.debug(f"[{log_prefix}] Prompt: {contents}")
+                        logger.debug(f"[{log_prefix}] Response: {response_parsed}")
 
                     return response_parsed
 
                 except Exception as e:
                     # Trace logging for errors
-                    import uuid
-                    from datetime import datetime
-                    from src.logger import LOGS_DIR
-                    run_id = str(uuid.uuid4())[:8]
-                    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    traces_dir = os.path.join(LOGS_DIR, "traces")
-                    os.makedirs(traces_dir, exist_ok=True)
-                    error_trace_path = os.path.join(traces_dir, f"{run_id}_{timestamp}.error.json")
                     try:
-                        with open(error_trace_path, "w", encoding="utf-8") as f:
-                            json.dump({"error": str(e), "model": model, "provider": provider_name}, f, ensure_ascii=False, indent=2)
+                        log_decision_trace("llm_error", {
+                            "error": str(e), 
+                            "model": model, 
+                            "provider": provider_name,
+                            "prompt": contents
+                        })
                     except Exception as trace_err:
-                        log.debug(f"Failed to write error trace: {trace_err}")
+                        logger.debug(f"Failed to write error trace: {trace_err}")
                         
                     if isinstance(e, concurrent.futures.TimeoutError):
                         raise TimeoutError("LLM API call hung and timed out after 300 seconds.")
                     
-                    log.warning(f"[{log_prefix} - {provider_name}] LLM call failed: {e}")
+                    logger.warning(f"[{log_prefix} - {provider_name}] LLM call failed: {e}")
                     raise e
                     
             try:
@@ -220,7 +206,7 @@ class LLMClient:
                 error_str = str(e).lower()
                 is_auth = "401" in error_str or "403" in error_str or "400" in error_str or "api key not valid" in error_str or "invalid_api_key" in error_str
                 if is_auth:
-                    log.warning(f"[{log_prefix}] Auth/Bad Request error on {provider_name}: fail fast. Error: {e}")
+                    logger.warning(f"[{log_prefix}] Auth/Bad Request error on {provider_name}: fail fast. Error: {e}")
                     raise e
                 
                 is_5xx = "500" in error_str or "503" in error_str or "internal error" in error_str or "timeout" in error_str
@@ -230,7 +216,7 @@ class LLMClient:
                     if self.global_consecutive_500_errors >= 5:
                         raise LLMFailureError("Global 500 error limit reached. Aborting pipeline.")
                 
-                log.warning(f"[Cloud Fallback] {provider_name} exhausted retries. Failing over to next provider.")
+                logger.warning(f"[Cloud Fallback] {provider_name} exhausted retries. Failing over to next provider.")
                 continue
 
         raise RuntimeError("LLM routing failed across all providers")

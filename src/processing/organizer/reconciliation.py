@@ -3,7 +3,7 @@ import logging
 import json
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def run_reconciliation(summary: dict, per_page: list, total_input_pages: int, house_id: str, output_dir: Path, dry_run: bool = False):
     """Write reconciliation manifest and assert page counts."""
@@ -33,9 +33,8 @@ def run_reconciliation(summary: dict, per_page: list, total_input_pages: int, ho
     else:
         logger.info(f"  [DRY RUN] Would write manifest to {output_dir / f'{house_id}_manifest.json'}")
     
-    from rich.console import Console
+    from src.core.ui import vprint
     from rich.table import Table
-    console = Console()
     table = Table(title="Reconciliation Report")
     table.add_column("House ID")
     table.add_column("Total Input Pages")
@@ -49,7 +48,7 @@ def run_reconciliation(summary: dict, per_page: list, total_input_pages: int, ho
         str(manifest["summary"]["output_file_count"]),
         str(len(manifest["summary"]["unaccounted_pages"]))
     )
-    console.print(table)
+    vprint(table)
     
     if total_input_pages != manifest["summary"]["total_output_pages"]:
         raise RuntimeError("Reconciliation failed: total input pages != total output pages")

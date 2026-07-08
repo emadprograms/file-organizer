@@ -1,8 +1,11 @@
 import pytest
+import logging
 from unittest.mock import MagicMock, patch
 from src.llm.llm import LLMClient
 from src.llm.providers import GeminiProvider, OpenRouterProvider, GroqProvider
 from pydantic import BaseModel
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 class DummyResponse(BaseModel):
     success: bool

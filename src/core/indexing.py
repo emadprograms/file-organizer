@@ -1,4 +1,7 @@
 """Indexing utilities for 0-based and 1-based alignment and bounds checking."""
+import logging
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def to_0_based(index: int) -> int:
     """Convert a 1-based index to 0-based. 

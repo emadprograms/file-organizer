@@ -1,6 +1,9 @@
 import pytest
+import logging
 from unittest.mock import MagicMock, patch
 from src.llm.llm import LLMClient, LLMFailureError
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 class MockProvider:
     def __init__(self, name):

@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
+
 class FileOrganizerError(Exception):
     """Base exception for all File Organizer errors."""
     pass

@@ -1,8 +1,11 @@
 """PDF extraction utilities."""
 import os
 import fitz
+import logging
 from src.core.indexing import to_0_based, validate_bounds
 from src.processing.pdf.compress import compress_pdf
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def extract_pdf_segment(source_pdf: str, start_page: int, end_page: int, output_path: str):
     """Extract a segment of pages from a PDF and save to a new file."""

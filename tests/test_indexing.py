@@ -1,5 +1,8 @@
 import pytest
+import logging
 from src.core.indexing import to_0_based, validate_bounds
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def test_to_0_based():
     assert to_0_based(1) == 0

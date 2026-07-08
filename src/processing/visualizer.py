@@ -1,15 +1,18 @@
-from rich.console import Console
+import logging
 from rich.table import Table
 from rich.tree import Tree
 from typing import Any
 from src.core.schemas import DocumentGroup
+from src.core.ui import console, vprint
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 class Visualizer:
     def __init__(self):
-        self.console = Console()
+        pass
 
     def print_summary(self, house_id: str, summary: dict, per_page: list, documents: list[DocumentGroup]):
-        self.console.print("\n[bold cyan]=== Dry Run Output Preview ===[/bold cyan]\n")
+        vprint("\n[bold cyan]=== Dry Run Output Preview ===[/bold cyan]\n")
         
         # Table
         table = Table(show_header=True, header_style="bold magenta")
@@ -19,8 +22,8 @@ class Visualizer:
         table.add_row("Total Output Pages", str(summary.get("total_output_pages", 0)))
         table.add_row("Total Output Files", str(summary.get("output_file_count", 0)))
         
-        self.console.print(table)
-        self.console.print()
+        vprint(table)
+        vprint()
         
         # Tree: House ID -> Tenant -> Category -> PDFs
         tree = Tree(f"🏠 [bold blue]{house_id}[/bold blue]")
@@ -46,5 +49,5 @@ class Visualizer:
                 for filename in sorted(list(structure[tenant][category])):
                     cat_node.add(f"📄 {filename}")
                     
-        self.console.print(tree)
-        self.console.print()
+        vprint(tree)
+        vprint()

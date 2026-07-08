@@ -2,8 +2,11 @@
 
 import os
 import re
+import logging
 from typing import Optional
 import unicodedata
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def sanitize_filename(name: str, max_length: int = 200) -> str:
     """Sanitize a string to be used as a valid filename.
