@@ -1,5 +1,7 @@
 import re
 
+# --- Date parsing constants (module-level to avoid re-creation per call) ---
+
 # English month name -> month number (all lowercase)
 _ENGLISH_MONTH_MAP: dict[str, str] = {
     "january": "01", "jan": "01",

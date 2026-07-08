@@ -1,5 +1,6 @@
 import pytest
-from src.processing.grouping import verify_groups, merge_chunks
+from src.processing.grouping.utils import verify_groups, merge_chunks
+from src.processing.grouping.core import process_with_shrink, GROUPING_PROMPT
 from src.core.schemas import GroupEntry, DocumentGroup
 from types import SimpleNamespace
 
@@ -60,7 +61,7 @@ def test_overlap_merge():
     assert merged[2].start_page == 13
     assert merged[2].end_page == 15
 
-from src.processing.grouping import process_with_shrink, GROUPING_PROMPT
+from src.processing.grouping.core import process_with_shrink, GROUPING_PROMPT
 from src.core.schemas import GroupingResponse
 
 class MockGroup:

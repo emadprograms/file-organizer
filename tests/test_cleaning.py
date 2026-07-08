@@ -1,17 +1,19 @@
 import pytest
+import json
 from unittest.mock import patch
 
 from pathlib import Path
-from src.cleaning import (
-    PageData,
-    TenantTimeline,
-    parse_flexible_date,
-    load_and_parse_json,
-    infer_missing_dates,
+from src.cleaning.models import PageData, TenantTimeline
+from src.cleaning.dates import parse_flexible_date
+from src.cleaning.tenants import (
     normalize_arabic_text,
     cluster_names_fuzzily,
     canonicalize_with_llm,
-    build_tenant_timelines,
+    build_tenant_timelines
+)
+from src.cleaning.phase import (
+    load_and_parse_json,
+    infer_missing_dates,
     assign_pages_to_tenants,
     process_cleaning_phase
 )
@@ -88,6 +90,45 @@ def test_build_tenant_timelines():
     assert timelines[0].canonical_name == "احمد محمد"
     assert timelines[0].min_date == "2020-01-01"
     assert timelines[0].max_date == "2020-01-20"
+
+def test_build_tenant_timelines_boundaries():
+    """Verify thresholds: >=1 anchor AND >=5 pages, and must have dates."""
+    
+    # Case 1: Exactly 1 anchor, 5 pages -> PASS
+    pages_pass = [
+        PageData(category="contract", content_explanation="e", expected_tenant_name="T1", sender="s", receiver="r", subject="sub", original_index=0, resolved_date="2020-01-01", date=None),
+        PageData(category="other", content_explanation="e", expected_tenant_name="T1", sender="s", receiver="r", subject="sub", original_index=1, resolved_date="2020-01-02", date=None),
+        PageData(category="other", content_explanation="e", expected_tenant_name="T1", sender="s", receiver="r", subject="sub", original_index=2, resolved_date="2020-01-03", date=None),
+        PageData(category="other", content_explanation="e", expected_tenant_name="T1", sender="s", receiver="r", subject="sub", original_index=3, resolved_date="2020-01-04", date=None),
+        PageData(category="other", content_explanation="e", expected_tenant_name="T1", sender="s", receiver="r", subject="sub", original_index=4, resolved_date="2020-01-05", date=None),
+    ]
+    assert len(build_tenant_timelines(pages_pass, {})) == 1
+
+    # Case 2: 0 anchors, 10 pages -> FAIL
+    pages_no_anchor = [
+        PageData(category="other", content_explanation="e", expected_tenant_name="T2", sender="s", receiver="r", subject="sub", original_index=i, resolved_date="2020-01-01", date=None)
+        for i in range(10)
+    ]
+    assert len(build_tenant_timelines(pages_no_anchor, {})) == 0
+
+    # Case 3: 1 anchor, 4 pages -> FAIL
+    pages_too_few = [
+        PageData(category="contract", content_explanation="e", expected_tenant_name="T3", sender="s", receiver="r", subject="sub", original_index=0, resolved_date="2020-01-01", date=None),
+        PageData(category="other", content_explanation="e", expected_tenant_name="T3", sender="s", receiver="r", subject="sub", original_index=1, resolved_date="2020-01-02", date=None),
+        PageData(category="other", content_explanation="e", expected_tenant_name="T3", sender="s", receiver="r", subject="sub", original_index=2, resolved_date="2020-01-03", date=None),
+        PageData(category="other", content_explanation="e", expected_tenant_name="T3", sender="s", receiver="r", subject="sub", original_index=3, resolved_date="2020-01-04", date=None),
+    ]
+    assert len(build_tenant_timelines(pages_too_few, {})) == 0
+
+    # Case 4: 1 anchor, 5 pages, NO dates -> FAIL
+    pages_no_dates = [
+        PageData(category="contract", content_explanation="e", expected_tenant_name="T4", sender="s", receiver="r", subject="sub", original_index=0, resolved_date=None, date=None),
+        PageData(category="other", content_explanation="e", expected_tenant_name="T4", sender="s", receiver="r", subject="sub", original_index=1, resolved_date=None, date=None),
+        PageData(category="other", content_explanation="e", expected_tenant_name="T4", sender="s", receiver="r", subject="sub", original_index=2, resolved_date=None, date=None),
+        PageData(category="other", content_explanation="e", expected_tenant_name="T4", sender="s", receiver="r", subject="sub", original_index=3, resolved_date=None, date=None),
+        PageData(category="other", content_explanation="e", expected_tenant_name="T4", sender="s", receiver="r", subject="sub", original_index=4, resolved_date=None, date=None),
+    ]
+    assert len(build_tenant_timelines(pages_no_dates, {})) == 0
 
 def test_assign_pages_to_tenants():
     pages = [
@@ -273,12 +314,66 @@ def test_canonicalize_with_llm_missing_keys():
     with pytest.raises(RuntimeError, match="LLM dropped names from the mapping"):
         canonicalize_with_llm(["احمد", "محمد"], MissingKeyLLMClient())
 
-def test_process_cleaning_phase_missing_tenant(tmp_path, monkeypatch):
-    json_path = tmp_path / "test_report.json"
-    json_path.write_text("""[
-        {"category": "other", "content_explanation": "test", "expected_tenant_name": "احمد", "date": "2023-05-01", "sender": "s", "receiver": "r", "subject": "Subj"}
-    ]""", encoding="utf-8")
+def test_process_cleaning_phase_integration(tmp_path):
+    """Full integration test for the cleaning phase pipeline."""
+    json_path = tmp_path / "integration_report.json"
     
-    monkeypatch.setattr("src.cleaning.assign_pages_to_tenants", lambda p, t: None)
-    with pytest.raises(RuntimeError, match="Page is missing canonical_tenant"):
-        process_cleaning_phase(json_path, MockLLMClient())
+    # Data for 2 tenants: 
+    # T1: Qualifies (1 anchor, 5 pages, mixed dates)
+    # T2: Fails (0 anchors, 10 pages)
+    # T3: Fails (1 anchor, 3 pages)
+    data = []
+    # T1: Qualified
+    for i in range(5):
+        cat = "contract" if i == 0 else "other"
+        data.append({
+            "category": cat,
+            "content_explanation": "T1 page",
+            "expected_tenant_name": "Ahmed Mohamed",
+            "date": "2023-01-01" if i == 0 else (None if i == 1 else "2023-01-05"),
+            "sender": "S", "receiver": "R", "subject": "Sub"
+        })
+    # T2: Unqualified (No anchor)
+    for i in range(10):
+        data.append({
+            "category": "other",
+            "content_explanation": "T2 page",
+            "expected_tenant_name": "Tenant Two",
+            "date": "2023-02-01",
+            "sender": "S", "receiver": "R", "subject": "Sub"
+        })
+    # T3: Unqualified (Too few pages)
+    for i in range(3):
+        data.append({
+            "category": "contract",
+            "content_explanation": "T3 page",
+            "expected_tenant_name": "Tenant Three",
+            "date": "2023-03-01",
+            "sender": "S", "receiver": "R", "subject": "Sub"
+        })
+    
+    json_path.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    
+    # Mock LLM to return identities as-is
+    class IdentityMockLLM(MockLLMClient):
+        def _route_llm_call(self, *args, **kwargs):
+            # Extract names from prompt
+            import re
+            prompt = kwargs.get('contents', [''])[0]
+            names = re.findall(r'"([^"]*)"', prompt)
+            # Return a mapping of name -> name (mocking normalization)
+            mapping = {n: n for n in names if n}
+            return json.dumps(mapping, ensure_ascii=False)
+
+    pages = process_cleaning_phase(json_path, IdentityMockLLM())
+    
+    # T1 should be mapped to a canonical tenant
+    t1_pages = [p for p in pages if "Ahmed Mohamed" in p.expected_tenant_name]
+    assert all(p.canonical_tenant == "Ahmed Mohamed" for p in t1_pages)
+    
+    # T2 and T3 should be unassigned
+    t2_pages = [p for p in pages if "Tenant Two" in p.expected_tenant_name]
+    assert all("Unassigned" in p.canonical_tenant for p in t2_pages)
+    
+    t3_pages = [p for p in pages if "Tenant Three" in p.expected_tenant_name]
+    assert all("Unassigned" in p.canonical_tenant for p in t3_pages)

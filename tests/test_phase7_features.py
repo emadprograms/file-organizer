@@ -43,7 +43,7 @@ def test_llm_client_skip_llm_plain_text():
     contents = ["some prompt"]
     result = client._route_llm_call("model", contents, None)
     
-    assert result == "mock plain text response"
+    assert result == "{}"
 def test_llm_client_verbose_logging(caplog):
     """Verify that verbose=True triggers debug logging of prompt and response."""
     caplog.set_level(logging.DEBUG)

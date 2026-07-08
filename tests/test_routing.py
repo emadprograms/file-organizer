@@ -1,7 +1,8 @@
 """Tests for the routing engine."""
 
 import pytest
-from src.processing.routing import route_document, SINGLE_MATCH, FOLDER_ROUTING, CATEGORY_TO_FOLDERS
+from src.processing.routing import route_document
+from src.processing.routing.config import SINGLE_MATCH, FOLDER_ROUTING, CATEGORY_TO_FOLDERS
 from src.core.schemas import DocumentGroup
 from unittest.mock import patch, MagicMock
 
@@ -23,7 +24,7 @@ class MockLLMClient:
         self.responses = responses or []
         self.call_count = 0
         
-    def generate_content(self, model, contents, response_schema=None, config=None, **kwargs):
+    def generate_content(self, contents, model=None, response_schema=None, config=None, **kwargs):
         if self.call_count < len(self.responses):
             resp = self.responses[self.call_count]
             self.call_count += 1
@@ -140,10 +141,18 @@ from src.processing.organizer import FileOrganizer
 from pathlib import Path
 
 def test_filename_format(monkeypatch, tmp_path):
-    monkeypatch.setattr("src.processing.organizer.extract_pdf_segment", lambda s, st, e, t: None)
+    # Create a dummy PDF so fitz.open doesn't fail
+    import fitz
+    dummy_pdf = tmp_path / "dummy.pdf"
+    doc = fitz.open()
+    doc.new_page()
+    doc.save(str(dummy_pdf))
+    doc.close()
+
+    monkeypatch.setattr("src.processing.pdf.extract.extract_pdf_segment", lambda s, st, e, t: None)
     
     group = DocumentGroup(
-        start_page=0, end_page=1, primary_tenant="TestTenant",
+        start_page=0, end_page=0, primary_tenant="TestTenant",
         category="letters", dates=["2023-05-10"],
         brief_arabic_title="TestTitle", folder_path="12_tenant_correspondence",
         is_direct_routed=False,
@@ -153,17 +162,25 @@ def test_filename_format(monkeypatch, tmp_path):
     organizer = FileOrganizer()
     output_base = tmp_path / "dummy_out"
     output_base.mkdir()
-    summary = organizer.organize([group], "dummy.pdf", "dummy_house", output_base)
+    summary = organizer.organize([group], str(dummy_pdf), "dummy_house", output_base)
     
     paths = list(set([item["output_file"] for item in summary]))
     assert len(paths) == 1
     assert "2023-05-10 - TestTitle.pdf" in paths[0]
 
 def test_dateless_filename(monkeypatch, tmp_path):
-    monkeypatch.setattr("src.processing.organizer.extract_pdf_segment", lambda s, st, e, t: None)
+    # Create a dummy PDF so fitz.open doesn't fail
+    import fitz
+    dummy_pdf = tmp_path / "dummy.pdf"
+    doc = fitz.open()
+    doc.new_page()
+    doc.save(str(dummy_pdf))
+    doc.close()
+
+    monkeypatch.setattr("src.processing.pdf.extract.extract_pdf_segment", lambda s, st, e, t: None)
     
     group = DocumentGroup(
-        start_page=0, end_page=1, primary_tenant="TestTenant",
+        start_page=0, end_page=0, primary_tenant="TestTenant",
         category="letters", dates=[],
         brief_arabic_title="TestTitle", folder_path="12_tenant_correspondence",
         is_direct_routed=False,
@@ -173,7 +190,7 @@ def test_dateless_filename(monkeypatch, tmp_path):
     organizer = FileOrganizer()
     output_base = tmp_path / "dummy_out"
     output_base.mkdir()
-    summary = organizer.organize([group], "dummy.pdf", "dummy_house", output_base)
+    summary = organizer.organize([group], str(dummy_pdf), "dummy_house", output_base)
     
     paths = list(set([item["output_file"] for item in summary]))
     assert len(paths) == 1

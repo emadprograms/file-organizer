@@ -12,14 +12,17 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 
 ### Validated
 
-- ✓ The application successfully cleans, groups, routes, and organizes PDF documents.
-- ✓ The core pipeline components (`organize.py`, `cleaning.py`, `grouping.py`, `routing.py`, etc.) work as expected.
-- ✓ Identify and remove all unreachable legacy code that is not imported or used by the main application flow. (Validated in Phase 01: legacy-code-cleanup)
+- ✓ Identify and remove all unreachable legacy code that is not imported or used by the main application flow. (Phase 01) — v1.0
+- ✓ Refactor `src/cleaning.py` into separate focused modules based on responsibility. (Phase 02) — v1.0
+- ✓ Refactor bloated files in `src/processing/` into smaller, single-responsibility modules. (Phase 03) — v1.0
+- ✓ Split oversized functions across the application into smaller functions. (Phase 03) — v1.0
 
-### Active
+### Active (v1.1)
 
-- [ ] Refactor bloated files into separate focused modules.
-- [ ] Refactor oversized functions into smaller, single-purpose functions.
+- [ ] Implement isolated application logging to remove third-party library noise.
+- [ ] Establish a unified `LogContext` to prevent fragmented run directories.
+- [ ] Implement dual-format logging: Plain Text for `app.log` and JSON for `debug.log`.
+- [ ] Update all modules to use hierarchical logger naming (`file_organizer.module`).
 
 ### Out of Scope
 
@@ -28,10 +31,11 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 
 ## Context
 
-- There is significant legacy code not used by the main application flow (often referred to via `organizer.py` / `organize.py`).
-- We are taking an aggressive refactoring approach by breaking code into separate modules rather than just splitting functions within the same files.
-- The project has a codebase map outlining the existing architecture and pipeline.
-- Phase 01 successfully removed all unused code by tracing imports.
+- Shipped v1.0.
+- The codebase has been successfully cleaned of legacy code and refactored into a modular, maintainable structure.
+- All processing logic is now decomposed into single-responsibility modules in `src/cleaning/` and `src/processing/`.
+- Error handling is standardized via a custom exception hierarchy in `src/core/exceptions.py`.
+- LLM resilience improved using `tenacity` for exponential backoff.
 
 ## Constraints
 
@@ -42,25 +46,13 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Break bloated code into new modules | Improves maintainability and file sizes over keeping them in the same file. | — Pending |
-| Trace imports from entry point | Safest way to identify truly unused legacy code without false positives. | — Completed (Phase 01) |
+| Break bloated code into new modules | Improves maintainability and file sizes over keeping them in the same file. | ✓ Completed (Phases 2, 3). Codebase is modular. |
+| Trace imports from entry point | Safest way to identify truly unused legacy code without false positives. | ✓ Completed (Phase 1). Legacy and unused code removed. |
+| Use dual-format logging | balances human readability in app.log with machine-searchability in debug.log. | Pending |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
-**After each phase transition** (via `/gsd-transition`):
-1. Requirements invalidated? → Move to Out of Scope with reason
-2. Requirements validated? → Move to Validated with phase reference
-3. New requirements emerged? → Add to Active
-4. Decisions to log? → Add to Key Decisions
-5. "What This Is" still accurate? → Update if drifted
-
-**After each milestone** (via `/gsd-complete-milestone`):
-1. Full review of all sections
-2. Core Value check — still the right priority?
-3. Audit Out of Scope — reasons still valid?
-4. Update Context with current state
-
 ---
-*Last updated: 2026-07-07 after Phase 01 completion*
+*Last updated: 2026-07-08 starting v1.1*

@@ -1,37 +1,37 @@
 # Roadmap: File Organizer Refactoring
 
-## Phase 1: Legacy Code Cleanup
+## Milestones
 
-**Requirements:** CLN-01
+- ✅ **v1.0 MVP** — Phases 1-3 (shipped 2026-07-08)
+- 🚀 **v1.1 Logging Overhaul** — Phase 4 (In Progress)
 
-Identify and remove unreachable legacy code by tracing imports from the entry point (`src/organize.py`).
+## Phases
 
-**Success Criteria:**
+<details>
+<summary>✅ v1.0 MVP (Phases 1-3) — SHIPPED 2026-07-08</summary>
 
-1. Unreachable code not in the `src/organize.py` dependency graph is removed.
-2. All test suites pass, verifying no active code was deleted.
-3. Total codebase size or file count is reduced.
+- [x] Phase 1: Legacy Code Cleanup (1/1 plans) — completed 2026-07-07
+- [x] Phase 2: Refactor src/cleaning.py (1/1 plans) — completed 2026-07-08
+- [x] Phase 3: Refactor Processing and Oversized Functions (5/5 plans) — completed 2026-07-08
 
-## Phase 2: Refactor src/cleaning.py
+</details>
 
-**Requirements:** REF-01
+<details>
+<summary>🚀 v1.1 Logging Overhaul (Phase 4) — IN PROGRESS</summary>
 
-Refactor `src/cleaning.py` into separate focused modules based on responsibility.
+- [ ] Phase 4: Logging Infrastructure Refactor (1/1 plans)
+- [ ] Phase 5: Global Logger Migration (0/1 plans)
+- [ ] Phase 6: Validation and Audit (0/1 plans)
 
-**Success Criteria:**
+</details>
 
-1. `src/cleaning.py` is split into smaller files based on distinct cleaning tasks.
-2. Functionality and output of cleaning processes remain identical.
-3. References in pipeline components are updated and functioning correctly.
+## Progress
 
-## Phase 3: Refactor Processing and Oversized Functions
-
-**Requirements:** REF-02, REF-03
-
-Identify and refactor bloated files in `src/processing/` into smaller modules, and split oversized functions across the app.
-
-**Success Criteria:**
-
-1. Bloated files in `src/processing/` are replaced by single-responsibility modules.
-2. Oversized functions (e.g., > 50 lines) are broken down into smaller helper functions.
-3. The core pipeline runs end-to-end without errors.
+| Phase             | Milestone | Plans Complete | Status      | Completed  |
+| ----------------- | --------- | -------------- | ----------- | ---------- |
+| 1. Legacy Code Cleanup | v1.0 | 1/1 | Complete | 2026-07-07 |
+| 2. Refactor src/cleaning.py | v1.0 | 1/1 | Complete | 2026-07-08 |
+| 3. Refactor Processing and Oversized Functions | v1.0 | 5/5 | Complete | 2026-07-08 |
+| 4. Logging Infrastructure Refactor | v1.1 | 0/1 | Pending | - |
+| 5. Global Logger Migration | v1.1 | 0/1 | Pending | - |
+| 6. Validation and Audit | v1.1 | 0/1 | Pending | - |

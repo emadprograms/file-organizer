@@ -1,62 +1,130 @@
-import sys
 import os
 import json
 import logging
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
-
 import pytest
-from logger import setup_logging, log_decision_trace
+from unittest.mock import patch
+from src.logger import LogContext, JSONLFormatter, setup_logging, log_decision_trace
 
-def test_setup_logging(tmp_path, monkeypatch):
-    # Mock the logs directory to point to tmp_path
-    monkeypatch.setattr("logger.LOGS_DIR", str(tmp_path))
-    
-    # Clear handlers so setup_logging creates new ones
-    logging.getLogger().handlers.clear()
-    
-    # Run setup
-    log_dir = setup_logging(run_id="test_run_123")
-    
-    # Assert directory exists
-    assert os.path.exists(log_dir)
-    assert "test_run_123" in log_dir
-    
-    # Check if we can log
-    logger = logging.getLogger("file_organizer")
-    logger.info("Test message 123")
-    
-    # Assert log file is created and written in UTF-8
-    app_log = os.path.join(log_dir, "app.log")
-    assert os.path.exists(app_log)
-    with open(app_log, "r", encoding="utf-8") as f:
-        content = f.read()
-        assert "Test message 123" in content
+@pytest.fixture(autouse=True)
+def reset_log_context():
+    """Resets the LogContext singleton before each test."""
+    LogContext._instance = None
 
-def test_setup_logging_no_run_id(tmp_path, monkeypatch):
-    monkeypatch.setattr("logger.LOGS_DIR", str(tmp_path))
-    log_dir = setup_logging()
-    assert os.path.exists(log_dir)
-    assert "_" in os.path.basename(log_dir) # Timestamp has underscore
+def test_log_context_singleton():
+    """Verify LogContext is a singleton and maintains state."""
+    ctx1 = LogContext.get_instance()
+    ctx2 = LogContext.get_instance()
+    assert ctx1 is ctx2
+    
+    ctx1.initialize("test_dir", "test_id")
+    assert ctx2.run_dir == "test_dir"
+    assert ctx2.run_id == "test_id"
 
-def test_log_decision_trace(tmp_path, monkeypatch):
-    monkeypatch.setattr("logger.LOGS_DIR", str(tmp_path))
+def test_log_context_init_restriction():
+    """Verify that LogContext cannot be instantiated directly."""
+    LogContext.get_instance() # Ensure instance exists
+    with pytest.raises(RuntimeError, match="Use LogContext.get_instance"):
+        LogContext()
+
+def test_jsonl_formatter():
+    """Verify JSONLFormatter produces valid JSON with required keys."""
+    formatter = JSONLFormatter()
+    logger = logging.getLogger("test_logger")
+    record = logger.makeRecord(
+        name="test_logger", 
+        level=logging.INFO, 
+        fn="test_file.py", 
+        lno=10, 
+        msg="Test message", 
+        args=None, 
+        exc_info=None
+    )
     
-    # Setup logging to create the run directory
-    run_id = "test_trace_123"
-    log_dir = setup_logging(run_id=run_id)
+    formatted_json = formatter.format(record)
+    data = json.loads(formatted_json)
     
-    decision_type = "routing"
-    # Added Arabic text to verify ensure_ascii=False
-    payload = {"category": "forms", "selected": "1_requests", "reason": "test"}
-    
-    log_decision_trace(decision_type, payload, run_id)
-    
-    trace_file = os.path.join(log_dir, "traces.jsonl")
-    assert os.path.exists(trace_file)
-    
-    with open(trace_file, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-        assert len(lines) == 1
-        data = json.loads(lines[0])
-        assert data["trace_type"] == "decision_routing"
-        assert data["payload"] == payload
+    required_keys = {"timestamp", "level", "name", "message", "filename", "lineno"}
+    assert required_keys.issubset(data.keys())
+    assert data["message"] == "Test message"
+    assert data["name"] == "test_logger"
+    assert data["level"] == "INFO"
+
+def test_setup_logging_basic(tmp_path):
+    """Verify setup_logging initializes context and creates log files."""
+    with patch("src.logger.LOGS_DIR", str(tmp_path)):
+        run_id = "test_run"
+        run_dir = setup_logging(run_id=run_id, verbose=False)
+        
+        # Verify LogContext
+        ctx = LogContext.get_instance()
+        assert ctx.run_id == run_id
+        assert ctx.run_dir == run_dir
+        
+        # Verify files created
+        assert os.path.exists(os.path.join(run_dir, "app.log"))
+        assert os.path.exists(os.path.join(run_dir, "debug.log"))
+
+def test_setup_logging_noise_suppression_blacklist(tmp_path):
+    """Verify permissive blacklist when verbose=False."""
+    with patch("src.logger.LOGS_DIR", str(tmp_path)):
+        setup_logging(verbose=False)
+        
+        # Blacklisted libraries should be WARNING
+        for library in ["openai", "google-genai", "urllib3", "httpcore"]:
+            assert logging.getLogger(library).level == logging.WARNING
+            
+        # Root should be DEBUG
+        assert logging.getLogger().level == logging.DEBUG
+
+def test_setup_logging_noise_suppression_whitelist(tmp_path):
+    """Verify strict whitelist when verbose=True."""
+    with patch("src.logger.LOGS_DIR", str(tmp_path)):
+        setup_logging(verbose=True)
+        
+        # Root should be WARNING
+        assert logging.getLogger().level == logging.WARNING
+        # file_organizer should be DEBUG
+        assert logging.getLogger("file_organizer").level == logging.DEBUG
+        
+        # Any other library should effectively be WARNING (inherited from root)
+        assert logging.getLogger("some_random_lib").level == logging.NOTSET # NOTSET inherits WARNING from root
+
+def test_log_decision_trace(tmp_path):
+    """Verify structured trace logging."""
+    with patch("src.logger.LOGS_DIR", str(tmp_path)):
+        # Initialize context first
+        run_id = "trace_run"
+        run_dir = setup_logging(run_id=run_id)
+        
+        payload = {"decision": "A", "reason": "B"}
+        log_decision_trace("test_type", payload)
+        
+        trace_file = os.path.join(run_dir, "traces.jsonl")
+        assert os.path.exists(trace_file)
+        
+        with open(trace_file, "r", encoding="utf-8") as f:
+            line = f.readline()
+            data = json.loads(line)
+            assert data["trace_type"] == "decision_test_type"
+            assert data["payload"] == payload
+
+def test_log_decision_trace_fallback(tmp_path):
+    """Verify fallback directory behavior when called before setup_logging."""
+    LogContext._instance = None # Ensure no context
+    with patch("src.logger.LOGS_DIR", str(tmp_path)):
+        payload = {"decision": "fallback"}
+        log_decision_trace("fallback_type", payload)
+        
+        # Check if a fallback directory was created in LOGS_DIR
+        entries = os.listdir(tmp_path)
+        fallback_dirs = [e for e in entries if e.startswith("fallback_")]
+        assert len(fallback_dirs) == 1
+        
+        # Verify the content
+        trace_file = os.path.join(tmp_path, fallback_dirs[0], "traces.jsonl")
+        assert os.path.exists(trace_file)
+        
+        with open(trace_file, "r", encoding="utf-8") as f:
+            line = f.readline()
+            data = json.loads(line)
+            assert data["trace_type"] == "decision_fallback_type"
