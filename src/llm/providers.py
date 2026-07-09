@@ -144,7 +144,7 @@ class OpenRouterProvider:
                 prompt_content.append({"type": "image_url", "image_url": {"url": f"data:{part.mime_type};base64,{b64}"}})
         
         messages = [{"role": "user", "content": prompt_content}]
-        kwargs = {"model": OPENROUTER_MODEL, "messages": messages, "temperature": 0, "max_tokens": 8000} # type: ignore
+        kwargs = {"model": OPENROUTER_MODEL, "messages": messages, "temperature": 0, "max_tokens": 4096} # type: ignore
         if response_schema:
             kwargs["response_format"] = {"type": "json_object"} # type: ignore
             
@@ -201,7 +201,7 @@ class GroqProvider:
                 prompt_content.append({"type": "image_url", "image_url": {"url": f"data:{part.mime_type};base64,{b64}"}})
         
         messages = [{"role": "user", "content": prompt_content}]
-        kwargs = {"model": GROQ_MODEL, "messages": messages, "temperature": 0, "max_tokens": 8000} # type: ignore
+        kwargs = {"model": GROQ_MODEL, "messages": messages, "temperature": 0, "max_tokens": 4096} # type: ignore
         if response_schema:
             kwargs["response_format"] = {"type": "json_object"} # type: ignore
             
