@@ -86,9 +86,8 @@ def test_single_match_index_error():
     original_mapping = CATEGORY_TO_FOLDERS.get("contract")
     CATEGORY_TO_FOLDERS["contract"] = []
     try:
-        folder, direct = route_document(group, llm)
-        assert folder == "Unassigned"
-        assert direct is False
+        with pytest.raises(RoutingValidationError):
+            route_document(group, llm)
     finally:
         CATEGORY_TO_FOLDERS["contract"] = original_mapping
 def test_multi_match_llm(monkeypatch):
@@ -194,10 +193,8 @@ def test_unknown_category_fallback():
         category="unknown_cat", dates=["2023-01-01"]
     )
     llm = MockLLMClient([])
-    folder, direct = route_document(group, llm)
-    assert folder == "13_others"
-    assert direct is False
-    assert llm.call_count == 0
+    with pytest.raises(RoutingValidationError):
+        route_document(group, llm)
 
 from src.processing.organizer import FileOrganizer
 from pathlib import Path

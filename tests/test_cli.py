@@ -8,6 +8,7 @@ from unittest.mock import patch
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
 from src.organize import get_parser, validate_environment, main
+from src.core.exceptions import ConfigurationError, ValidationError
 
 def test_parser_default_model():
     parser = get_parser()
@@ -34,11 +35,9 @@ def test_validate_environment_success():
 @patch("src.organize.load_dotenv")
 @patch.dict(os.environ, {}, clear=True)
 def test_validate_environment_missing_key(mock_load_dotenv, capsys):
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(ConfigurationError) as exc_info:
         validate_environment()
-    assert exc_info.value.code == 1
-    captured = capsys.readouterr()
-    assert "ERROR: GEMINI_API_KEY is missing from the environment." in captured.err
+    assert "GEMINI_API_KEY is missing" in str(exc_info.value)
 
 @patch("src.processing.organizer.FileOrganizer")
 @patch("src.processing.pipeline.Pipeline")
@@ -90,11 +89,9 @@ def test_validate_target_directory_missing_pdf(tmp_path, capsys):
     (target_dir / "1273_report.json").touch()
     
     from src.organize import validate_target_directory
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(ValidationError) as exc_info:
         validate_target_directory(target_dir)
-    assert exc_info.value.code == 1
-    captured = capsys.readouterr()
-    assert "ERROR: No *_categorized.pdf found" in captured.err
+    assert "No *_categorized.pdf found" in str(exc_info.value)
 
 def test_validate_target_directory_mismatch_id(tmp_path, capsys):
     target_dir = tmp_path / "1273"
@@ -103,11 +100,9 @@ def test_validate_target_directory_mismatch_id(tmp_path, capsys):
     (target_dir / "1274_report.json").touch()
     
     from src.organize import validate_target_directory
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(ValidationError) as exc_info:
         validate_target_directory(target_dir)
-    assert exc_info.value.code == 1
-    captured = capsys.readouterr()
-    assert "ERROR: ID mismatch between PDF (1273) and JSON (1274)" in captured.err
+    assert "ID mismatch" in str(exc_info.value)
 
 def test_validate_target_directory_missing_json(tmp_path, capsys):
     """Missing _report.json is gracefully caught and exits with code 1."""
@@ -117,9 +112,7 @@ def test_validate_target_directory_missing_json(tmp_path, capsys):
     (target_dir / "1273_categorized.pdf").touch()
 
     from src.organize import validate_target_directory
-    with pytest.raises(SystemExit) as exc_info:
+    with pytest.raises(ValidationError) as exc_info:
         validate_target_directory(target_dir)
-    assert exc_info.value.code == 1
-    captured = capsys.readouterr()
-    assert "ERROR: No *_report.json found" in captured.err
+    assert "No *_report.json found" in str(exc_info.value)
 

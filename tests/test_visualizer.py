@@ -1,8 +1,10 @@
 import pytest
 from src.processing.visualizer import Visualizer
+from src.core.ui import set_verbosity
 
 def test_visualizer_print_summary_empty(capsys):
     """Test that Visualizer handles empty summary and per_page lists gracefully."""
+    set_verbosity(True)
     visualizer = Visualizer()
     
     visualizer.print_summary(
@@ -25,6 +27,7 @@ def test_visualizer_print_summary_empty(capsys):
 
 def test_visualizer_print_summary_populated(capsys):
     """Test that Visualizer correctly builds the tree from a populated per_page manifest."""
+    set_verbosity(True)
     visualizer = Visualizer()
     
     summary = {
@@ -65,6 +68,7 @@ def test_visualizer_print_summary_populated(capsys):
 
 def test_visualizer_print_summary_path_normalization(capsys):
     """Test that Visualizer normalizes Windows backslashes to forward slashes for tree construction."""
+    set_verbosity(True)
     visualizer = Visualizer()
     
     per_page = [

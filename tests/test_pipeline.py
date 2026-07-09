@@ -24,7 +24,9 @@ def test_malformed_json_graceful_failure(tmp_path):
         env={**os.environ, "PYTHONIOENCODING": "utf8", "GEMINI_API_KEY": "dummy"},
         cwd=str(Path(__file__).parent.parent),
     )
+    stdout = result.stdout.decode("utf-8", errors="replace") if result.stdout else ""
     stderr = result.stderr.decode("utf-8", errors="replace") if result.stderr else ""
+    combined_output = stdout + stderr
 
     # Must exit non-zero
     assert result.returncode != 0, (
@@ -34,10 +36,10 @@ def test_malformed_json_graceful_failure(tmp_path):
     # Should not produce an unhandled stack trace leading to an unexpected error type
     # The error should be a JSONDecodeError or ValueError, not AttributeError/KeyError etc.
     assert any(
-        keyword in stderr
+        keyword in combined_output
         for keyword in ["JSONDecodeError", "json.decoder", "ValueError", "JSON", "parse"]
     ), (
-        f"Expected a JSON error indication in stderr, got: {stderr}"
+        f"Expected a JSON error indication in combined_output, got: {combined_output}"
     )
 
 def test_pipeline_out_of_bounds_routing(tmp_path):

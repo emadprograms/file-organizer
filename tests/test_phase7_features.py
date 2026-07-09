@@ -30,7 +30,8 @@ def test_llm_client_skip_llm_routing():
     contents = ["some routing prompt"]
     response_schema = RoutingResponse
     
-    result = client._route_llm_call("model", contents, response_schema)
+    # Provide a mock validation context to satisfy the RoutingResponse validator
+    result = client._route_llm_call("model", contents, response_schema, validation_context={'allowed_folders': ['13_others']})
     
     assert isinstance(result, RoutingResponse)
     assert result.selected_folder == "13_others"

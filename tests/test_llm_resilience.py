@@ -2,6 +2,7 @@ import pytest
 from unittest.mock import MagicMock, patch, call
 from src.llm.llm import LLMClient, LLMFailureError
 from src.llm.providers import LLMProvider
+from src.core.exceptions import ProviderRotationExhaustedError
 
 class MockProvider(LLMProvider):
     def __init__(self, name, behavior=None):
@@ -49,7 +50,7 @@ def test_resilience_429_retry_limit(llm_client):
     llm_client.providers[0].behavior = [raise_http_error(429)] * 10
     
     with patch('time.sleep') as mock_sleep:
-        with pytest.raises(LLMFailureError):
+        with pytest.raises(ProviderRotationExhaustedError):
             llm_client._route_llm_call(model="test-model", contents=["test"])
         
         # Expecting 3 attempts on first provider before giving up or rotating.
@@ -75,7 +76,7 @@ def test_resilience_500_rotation(llm_client):
         p.behavior = [raise_http_error(500)] * 10
         
     with patch('time.sleep') as mock_sleep:
-        with pytest.raises(LLMFailureError):
+        with pytest.raises(ProviderRotationExhaustedError):
             llm_client._route_llm_call(model="test-model", contents=["test"])
         
         # Rotation: Gemini -> S1 -> Gemini -> S2

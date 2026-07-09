@@ -63,7 +63,7 @@ def test_logging_e2e_verbose_flag_false(tmp_path):
             # In --no-verbose, blacklisted libs (openai, google-genai, etc) should be missing
             assert data["name"] not in ["openai", "google-genai", "urllib3", "httpcore"], f"Blacklisted logger {data['name']} found in debug.log with --no-verbose"
 
-    shutil.rmtree(latest_log_dir)
+    shutil.rmtree(latest_log_dir, ignore_errors=True)
 
 def test_logging_e2e_verbose_flag_true(tmp_path):
     """
@@ -87,4 +87,4 @@ def test_logging_e2e_verbose_flag_true(tmp_path):
             # In strict whitelist, ONLY file_organizer should be here
             assert data["name"].startswith("file_organizer"), f"Unexpected logger {data['name']} found in debug.log with --verbose"
 
-    shutil.rmtree(latest_log_dir)
+    shutil.rmtree(latest_log_dir, ignore_errors=True)

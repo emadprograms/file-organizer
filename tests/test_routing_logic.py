@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 from src.core.schemas import DocumentGroup
-from src.processing.routing.router import route_document, RoutingResponse
+from src.processing.routing.router import route_document, RoutingResponse, RoutingValidationError
 
 def test_route_document_single_match():
     # 'id_cards' is a SINGLE_MATCH (mapped only to '2_personal_details')
@@ -25,10 +25,8 @@ def test_route_document_no_mapping():
     )
     llm_client = MagicMock()
     
-    folder, is_direct = route_document(group, llm_client)
-    
-    assert folder == "13_others"
-    assert is_direct is False
+    with pytest.raises(RoutingValidationError):
+        route_document(group, llm_client)
 
 def test_route_document_multi_match_success():
     # 'forms' can be routed to multiple folders
@@ -39,7 +37,7 @@ def test_route_document_multi_match_success():
     llm_client = MagicMock()
     
     # Mock LLM to return a valid RoutingResponse
-    mock_response = RoutingResponse(selected_folder="1_requests_and_applications", reason="Matches application form")
+    mock_response = RoutingResponse.model_construct(selected_folder="1_requests_and_applications", reason="Matches application form")
     llm_client.generate_content.return_value = mock_response
     
     folder, is_direct = route_document(group, llm_client)
@@ -56,13 +54,11 @@ def test_route_document_multi_match_invalid_folder():
     llm_client = MagicMock()
     
     # LLM returns a folder NOT in the allowed list for 'forms'
-    mock_response = RoutingResponse(selected_folder="invalid_folder", reason="Oops")
-    llm_client.generate_content.return_value = mock_response
+    from pydantic import ValidationError
+    llm_client.generate_content.side_effect = ValueError("Invalid folder")
     
-    folder, is_direct = route_document(group, llm_client)
-    
-    assert folder == "13_others"
-    assert is_direct is False
+    with pytest.raises(RoutingValidationError):
+        route_document(group, llm_client)
 
 def test_route_document_llm_failure_fallback():
     group = DocumentGroup(
@@ -72,7 +68,5 @@ def test_route_document_llm_failure_fallback():
     llm_client = MagicMock()
     llm_client.generate_content.side_effect = Exception("API Error")
     
-    folder, is_direct = route_document(group, llm_client)
-    
-    assert folder == "13_others"
-    assert is_direct is False
+    with pytest.raises(RoutingValidationError):
+        route_document(group, llm_client)

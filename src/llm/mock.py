@@ -16,7 +16,7 @@ class MockLLMProvider:
     def name(self) -> str:
         return self._name
 
-    def generate(self, model: str, contents: list, response_schema: type | None = None) -> Any:
+    def generate(self, model: str, contents: list, response_schema: type | None = None, validation_context: dict | None = None) -> Any:
         if response_schema is None:
             for content in contents:
                 if isinstance(content, str) and "Raw names:" in content:
@@ -40,11 +40,11 @@ class MockLLMProvider:
                 start, end = int(m.group(1)), int(m.group(2))
             else:
                 start, end = 0, 0
-            return GroupingResponse(groups=[GroupEntry(start_page=start, end_page=end, reason="mock skip-llm", brief_arabic_title="عنوان تجريبي")])
+            return GroupingResponse.model_construct(groups=[GroupEntry(start_page=start, end_page=end, reason="mock skip-llm", brief_arabic_title="عنوان تجريبي")])
         elif schema_name == "RoutingResponse":
             try:
                 from src.processing.routing.router import RoutingResponse
-                return RoutingResponse(selected_folder="13_others", reason="mock skip-llm")
+                return RoutingResponse.model_construct(selected_folder="13_others", reason="mock skip-llm")
             except ImportError:
                 pass
         
