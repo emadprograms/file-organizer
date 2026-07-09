@@ -65,11 +65,13 @@ class FileOrganizer:
 
     def ensure_target_directories(self, tenant_folder_names: dict[str, str], house_id: str, output_base_dir: Path):
         """Proactively create all subdirectories for each tenant."""
-        from src.processing.routing.config import FOLDER_ROUTING
+        from src.processing.routing.config import FOLDER_ROUTING, FOLDER_PREFIXES
         house_dir = output_base_dir / house_id
         for folder_name in tenant_folder_names.values():
             for topic in FOLDER_ROUTING.keys():
-                target_dir = (house_dir / folder_name / topic).resolve()
+                prefix = FOLDER_PREFIXES.get(topic, "")
+                topic_folder_name = f"{prefix}_{topic}" if prefix else topic
+                target_dir = (house_dir / folder_name / topic_folder_name).resolve()
                 if str(target_dir).startswith(str(output_base_dir.resolve())):
                     os.makedirs(target_dir, exist_ok=True)
 
@@ -92,7 +94,10 @@ class FileOrganizer:
                 
             tenant_folder = tenant_folder_names.get(group_tenant, utils.sanitize_filename(group_tenant))
             
-            topic_folder = doc.folder_path if doc.folder_path else "رسائل متنوعة"
+            from src.processing.routing.config import FOLDER_PREFIXES
+            raw_topic_folder = doc.folder_path if doc.folder_path else "رسائل متنوعة"
+            prefix = FOLDER_PREFIXES.get(raw_topic_folder, "")
+            topic_folder = f"{prefix}_{raw_topic_folder}" if prefix else raw_topic_folder
             
             target_dir = (house_dir / tenant_folder / topic_folder).resolve()
             if not str(target_dir).startswith(str(output_base_dir.resolve())):
