@@ -5,7 +5,16 @@ from typing import Any
 from pydantic import BaseModel, Field, field_validator, ValidationInfo, ValidationError
 from src.core.schemas import DocumentGroup
 from src.llm.llm import LLMFailureError
-from src.processing.routing.config import CATEGORY_TO_FOLDERS, SINGLE_MATCH
+from src.processing.routing.config import (
+    CATEGORY_TO_FOLDERS, 
+    SINGLE_MATCH, 
+    DIRECT_ROUTED_CATEGORIES, 
+    FORM_CATEGORIES, 
+    FORM_FOLDERS, 
+    LETTER_CATEGORIES, 
+    LETTER_FOLDERS,
+    FOLDER_ROUTING
+)
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
@@ -27,6 +36,84 @@ class RoutingResponse(BaseModel):
             raise ValueError(f"Selected folder '{v}' is not in the allowed list: {allowed}")
         return v
 
+def double_check_others(group: DocumentGroup, llm_client: Any) -> str:
+    """Double-check routing for documents categorized as others or hitting the escape hatch.
+    
+    Implements a two-step verification to reduce 'Miscellaneous' dumping and handle hallucinations.
+    """
+    all_folders = list(FOLDER_ROUTING.keys())
+    folder_meanings = "\n".join([f"- {f}: {FOLDER_ROUTING[f]['desc']}" for f in all_folders])
+    
+    # Step 1: Initial pick from all folders
+    prompt = f"""You are an expert document routing assistant.
+The document was initially categorized as 'Miscellaneous' or 'Other'. 
+Please re-evaluate if it fits into any of the following specific folders.
+
+Allowed Folders:
+{"\n".join(f"- {f}" for f in all_folders)}
+
+Folder meanings:
+{folder_meanings}
+
+Document Summary: {group.brief_arabic_title or 'N/A'}
+Reasoning: {group.reason or 'N/A'}
+
+Respond only with a valid JSON matching the requested schema.
+"""
+    try:
+        result = llm_client.generate_content(
+            contents=[prompt],
+            response_schema=RoutingResponse,
+            validation_context={'allowed_folders': all_folders}
+        )
+        if not result:
+            return "رسائل متنوعة"
+            
+        initial_pick = result.selected_folder
+        if initial_pick == "رسائل متنوعة":
+            logger.info("Double-check Step 1: LLM confirmed 'رسائل متنوعة'.")
+            return "رسائل متنوعة"
+            
+        # Step 2: Confirmation call if a specific folder was picked
+        logger.info(f"Double-check Step 1: LLM suggested '{initial_pick}'. Confirming...")
+        
+        confirm_prompt = f"""You previously selected '{initial_pick}' for this document.
+Are you sure this is the best fit, or should it be 'رسائل متنوعة' (Miscellaneous Letters)?
+
+Document Summary: {group.brief_arabic_title or 'N/A'}
+
+Allowed Folders for this confirmation:
+- {initial_pick}
+- رسائل متنوعة
+
+Respond only with a valid JSON.
+"""
+        confirm_result = llm_client.generate_content(
+            contents=[confirm_prompt],
+            response_schema=RoutingResponse,
+            validation_context={'allowed_folders': [initial_pick, "رسائل متنوعة"]}
+        )
+        
+        if not confirm_result:
+            logger.warning("Double-check Step 2: Confirmation call returned None. Falling back to 'رسائل متنوعة'.")
+            return "رسائل متنوعة"
+            
+        final_pick = confirm_result.selected_folder
+        
+        if final_pick == initial_pick:
+            logger.info(f"Double-check Step 2: LLM confirmed '{initial_pick}'.")
+            return initial_pick
+        elif final_pick == "رسائل متنوعة":
+            logger.info("Double-check Step 2: LLM changed mind to 'رسائل متنوعة'.")
+            return "رسائل متنوعة"
+        else:
+            logger.warning(f"Double-check Step 2: LLM returned unexpected value '{final_pick}'. Falling back to 'رسائل متنوعة'.")
+            return "رسائل متنوعة"
+            
+    except Exception as e:
+        logger.error(f"Error during double-check others: {e}. Falling back to 'رسائل متنوعة'.")
+        return "رسائل متنوعة"
+
 def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
     """Route a document group to the appropriate folder.
     
@@ -39,6 +126,20 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
     """
     category = group.category
     
+    # Trigger double-check for OTHER_LETTERS immediately
+    if category == "OTHER_LETTERS":
+        logger.info(f"Category '{category}' detected. Triggering double-check flow.")
+        folder = double_check_others(group, llm_client)
+        return folder, False
+
+    if category in DIRECT_ROUTED_CATEGORIES:
+        try:
+            folder = CATEGORY_TO_FOLDERS[category][0]
+            return folder, True
+        except (IndexError, KeyError):
+            logger.error(f"Direct routing failed: No folder mapping found for category '{category}'.")
+            raise RoutingValidationError(f"No folder mapping found for direct-routed category '{category}'.")
+
     if category in SINGLE_MATCH:
         # Should have exactly one
         try:
@@ -48,17 +149,34 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
             logger.error(f"IndexError: No folder mapping found for SINGLE_MATCH category '{category}'.")
             raise RoutingValidationError(f"No folder mapping found for SINGLE_MATCH category '{category}'.")
         
-    allowed_folders = CATEGORY_TO_FOLDERS.get(category, []).copy()
+    # --- Constrained Prompting Logic ---
+    if category in FORM_CATEGORIES:
+        allowed_folders = list(FORM_FOLDERS)
+    elif category in LETTER_CATEGORIES:
+        allowed_folders = list(LETTER_FOLDERS)
+    else:
+        allowed_folders = CATEGORY_TO_FOLDERS.get(category, []).copy()
+    
     if not allowed_folders:
         logger.error(f"Category '{category}' has no mapping. Routing cannot proceed.")
         raise RoutingValidationError(f"Category '{category}' has no mapping. Routing cannot proceed.")
         
-    if "13_others" not in allowed_folders:
-        allowed_folders.append("13_others")
+    # Escape hatch
+    ESCAPE_HATCH = "None of the above"
+    if ESCAPE_HATCH not in allowed_folders:
+        allowed_folders.append(ESCAPE_HATCH)
         
+    # Generate folder meanings from FOLDER_ROUTING for the prompt
+    folder_meanings = []
+    for folder in allowed_folders:
+        if folder == ESCAPE_HATCH:
+            folder_meanings.append(f"- {ESCAPE_HATCH}: Use this if the document does not fit any of the other options")
+        elif folder in FOLDER_ROUTING:
+            folder_meanings.append(f"- {folder}: {FOLDER_ROUTING[folder]['desc']}")
+        else:
+            folder_meanings.append(f"- {folder}: Document related to {folder}")
+            
     # Multi-match routing via LLM
-    from src.core.config import GEMINI_MODEL
-    
     prompt_template = """You are an expert document routing assistant.
 Your task is to assign a document to the most appropriate folder based on its summary, and explain why the document fits into the selected folder based on the summary.
 
@@ -66,21 +184,15 @@ Allowed Folders for this document type:
 {allowed_folders}
 
 Folder meanings:
-- 1_requests_and_applications: Forms requesting something (e.g. housing application, loan request)
-- 3_housing_committee_decisions: Letters detailing committee decisions
-- 4_financial_details: Letters or forms about payments, loans, installments, financial statements
-- 6_ewa_related_letters: Electricity and water authority correspondence
-- 7_maintenance: Letters or forms regarding house repairs and maintenance
-- 8_complaints_and_violations: Letters or forms about complaints, violations, warnings
-- 9_legal_correspondence: Court orders, legal notices
-- 10_ministry_internal_memos: Memos within the ministry
-- 12_tenant_correspondence: General letters to/from the tenant
-- 13_others: Anything that does not clearly fit into the specific folders above
+{folder_meanings}
 
 Respond only with a valid JSON matching the requested schema. The selected_folder MUST be exactly one of the allowed folders.
 """
     
-    formatted_prompt = prompt_template.format(allowed_folders="\n".join(f"- {f}" for f in allowed_folders))
+    formatted_prompt = prompt_template.format(
+        allowed_folders="\n".join(f"- {f}" for f in allowed_folders),
+        folder_meanings="\n".join(folder_meanings)
+    )
     
     user_prompt = f"Document Category: {category}\nDocument Title/Summary: {group.brief_arabic_title or 'N/A'}\nReasoning for group: {group.reason or 'N/A'}"
     
@@ -103,9 +215,16 @@ Respond only with a valid JSON matching the requested schema. The selected_folde
             selected = result.selected_folder
             reason = result.reason
             
+            # Handle Escape Hatch
+            if selected == ESCAPE_HATCH:
+                logger.info(f"Document routed to escape hatch '{ESCAPE_HATCH}'. Triggering double-check flow.")
+                selected = double_check_others(group, llm_client)
+                reason = "Routed via escape hatch -> Double-check"
+            
             logger.info(f"Routed category '{category}' to '{selected}'. Reason: {reason}")
             from src.logger import log_decision_trace
             log_decision_trace("routing", {"category": category, "selected": selected, "reason": reason})
+            
             return selected, False
             
         except (ValidationError, ValueError) as e:

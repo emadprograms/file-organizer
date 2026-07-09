@@ -44,7 +44,7 @@ class MockLLMProvider:
         elif schema_name == "RoutingResponse":
             try:
                 from src.processing.routing.router import RoutingResponse
-                return RoutingResponse.model_construct(selected_folder="13_others", reason="mock skip-llm")
+                return RoutingResponse.model_construct(selected_folder="رسائل متنوعة", reason="mock skip-llm")
             except ImportError:
                 pass
         

@@ -1,27 +1,42 @@
 """Configuration for routing logic."""
 import logging
+from typing import Any
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-FOLDER_ROUTING: dict[str, list[str]] = {
-    "1_requests_and_applications": ["forms"],
-    "2_personal_details": ["id_cards"],
-    "3_housing_committee_decisions": ["letters"],
-    "4_financial_details": ["forms", "letters"],
-    "5_contract": ["contract"],
-    "6_ewa_related_letters": ["utility_bills"],
-    "7_maintenance": ["forms", "letters"],
-    "8_complaints_and_violations": ["letters", "forms"],
-    "9_legal_correspondence": ["letters"],
-    "10_ministry_internal_memos": ["letters"],
-    "11_inspection_and_pictures": ["pictures"],
-    "12_tenant_correspondence": ["letters"],
-    "13_others": ["others", "forms", "letters"],  # catch-all
+FOLDER_ROUTING: dict[str, dict[str, Any]] = {
+    "بيانات أساسية": {"cats": ["BASIC_DETAILS"], "desc": "Forms requesting basic details or personal info"},
+    "بيانات شخصية": {"cats": ["PERSONAL_DETAILS"], "desc": "Personal details documents"},
+    "أمر تخصيص": {"cats": ["AMAR_TAKHSEES"], "desc": "Letters detailing housing allocation decisions"},
+    "محضر تسليم مفتاح": {"cats": ["KEY_HANDOVER"], "desc": "Forms for key handover"},
+    "عقود": {"cats": ["CONTRACT"], "desc": "Contracts and agreements"},
+    "كهرباء وماء": {"cats": ["EWA_LETTERS"], "desc": "Electricity and water authority correspondence"},
+    "استقطاع إيجار": {"cats": ["RENT_DEDUCTION"], "desc": "Letters or forms about rent deductions"},
+    "وقف استقطاع بدل": {"cats": ["ALLOWANCE_DEDUCTION"], "desc": "Letters or forms about stopping allowance deductions"},
+    "إشعارات": {"cats": ["NOTIFICATIONS"], "desc": "Notifications and warnings"},
+    "صيانة": {"cats": ["MAINTENANCE"], "desc": "Letters or forms regarding house repairs and maintenance"},
+    "صور ومعاينات": {"cats": ["INSPECTION_PICTURES"], "desc": "Inspection pictures and reports"},
+    "تعديلات": {"cats": ["MODIFICATIONS"], "desc": "Modification requests or approvals"},
+    "رسائل متنوعة": {"cats": ["OTHER_LETTERS"], "desc": "Anything that does not clearly fit into the specific folders above"},
 }
 
 CATEGORY_TO_FOLDERS: dict[str, list[str]] = {}
-for folder, cats in FOLDER_ROUTING.items():
-    for cat in cats:
+for folder, data in FOLDER_ROUTING.items():
+    for cat in data["cats"]:
         CATEGORY_TO_FOLDERS.setdefault(cat, []).append(folder)
 
+# Groupings for constrained routing
+FORM_CATEGORIES = {"BASIC_DETAILS", "KEY_HANDOVER", "MAINTENANCE", "MODIFICATIONS"}
+FORM_FOLDERS = {"بيانات أساسية", "محضر تسليم مفتاح", "صيانة", "تعديلات", "رسائل متنوعة"}
+
+LETTER_CATEGORIES = {"AMAR_TAKHSEES", "RENT_DEDUCTION", "ALLOWANCE_DEDUCTION", "NOTIFICATIONS"}
+LETTER_FOLDERS = {"أمر تخصيص", "استقطاع إيجار", "وقف استقطاع بدل", "إشعارات", "كهرباء وماء", "رسائل متنوعة"}
+
 SINGLE_MATCH = {cat for cat, folders in CATEGORY_TO_FOLDERS.items() if len(folders) == 1}
+
+DIRECT_ROUTED_CATEGORIES = {
+    "PERSONAL_DETAILS",
+    "CONTRACT",
+    "EWA_LETTERS",
+    "INSPECTION_PICTURES",
+}

@@ -204,12 +204,12 @@ def test_resilient_loop_success(tmp_path):
     
     def llm_side_effect(contents, **kwargs):
         prompt = contents[0]
-        if "Page 0 to Page 4" in prompt:
-            return GroupingResponse(groups=[GroupEntry(start_page=0, end_page=4, reason="R", brief_arabic_title="T")])
-        if "Page 4 to Page 8" in prompt:
-            return GroupingResponse(groups=[GroupEntry(start_page=4, end_page=8, reason="R", brief_arabic_title="T")])
-        if "Page 8 to Page 9" in prompt:
-            return GroupingResponse(groups=[GroupEntry(start_page=8, end_page=9, reason="R", brief_arabic_title="T")])
+        if "Page 0 to Page 3" in prompt:
+            return GroupingResponse(groups=[GroupEntry(start_page=0, end_page=3, reason="R", brief_arabic_title="T")])
+        if "Page 3 to Page 6" in prompt:
+            return GroupingResponse(groups=[GroupEntry(start_page=3, end_page=6, reason="R", brief_arabic_title="T")])
+        if "Page 6 to Page 9" in prompt:
+            return GroupingResponse(groups=[GroupEntry(start_page=6, end_page=9, reason="R", brief_arabic_title="T")])
         return GroupingResponse(groups=[])
 
     llm_client.generate_content.side_effect = llm_side_effect
@@ -237,8 +237,8 @@ def test_resilient_loop_shrink(tmp_path):
         start = int(match.group(1))
         end = int(match.group(2))
         
-        # Force shrink at the beginning
-        if start == 0 and (end == 4): # Size 5
+        # Force shrink at the beginning (size 4)
+        if start == 0 and (end == 3): # Size 4
             raise ProviderRotationExhaustedError("Rotation failed")
             
         return GroupingResponse(groups=[GroupEntry(start_page=start, end_page=end, reason="R", brief_arabic_title="T")])
@@ -249,12 +249,14 @@ def test_resilient_loop_shrink(tmp_path):
     groups = process_with_shrink(pages, llm_client, state_manager=manager)
     
     assert len(groups) > 0
-    # Verify shrink happened
+    # Verify shrink happened after 3 failures
     calls = llm_client.generate_content.call_args_list
     first_prompt = calls[0].args[0][0] if calls[0].args else calls[0].kwargs['contents'][0]
-    second_prompt = calls[1].args[0][0] if calls[1].args else calls[1].kwargs['contents'][0]
-    assert "Page 0 to Page 4" in first_prompt
-    assert "Page 0 to Page 2" in second_prompt
+    third_prompt = calls[2].args[0][0] if calls[2].args else calls[2].kwargs['contents'][0]
+    fourth_prompt = calls[3].args[0][0] if calls[3].args else calls[3].kwargs['contents'][0]
+    assert "Page 0 to Page 3" in first_prompt
+    assert "Page 0 to Page 3" in third_prompt
+    assert "Page 0 to Page 2" in fourth_prompt
 
 def test_resilient_loop_halt(tmp_path):
     state_file = tmp_path / "halt.state.json"
@@ -311,12 +313,12 @@ def test_resilient_loop_partial_success(tmp_path):
     
     def llm_side_effect(contents, **kwargs):
         prompt = contents[0]
-        if "Page 0 to Page 4" in prompt:
-            return GroupingResponse(groups=[GroupEntry(start_page=0, end_page=4, reason="R", brief_arabic_title="T")])
-        if "Page 4 to Page 8" in prompt:
-            return GroupingResponse(groups=[GroupEntry(start_page=4, end_page=8, reason="R", brief_arabic_title="T")])
-        if "Page 8 to Page 9" in prompt:
-            return GroupingResponse(groups=[GroupEntry(start_page=8, end_page=9, reason="R", brief_arabic_title="T")])
+        if "Page 0 to Page 3" in prompt:
+            return GroupingResponse(groups=[GroupEntry(start_page=0, end_page=3, reason="R", brief_arabic_title="T")])
+        if "Page 3 to Page 6" in prompt:
+            return GroupingResponse(groups=[GroupEntry(start_page=3, end_page=6, reason="R", brief_arabic_title="T")])
+        if "Page 6 to Page 9" in prompt:
+            return GroupingResponse(groups=[GroupEntry(start_page=6, end_page=9, reason="R", brief_arabic_title="T")])
         return GroupingResponse(groups=[])
 
     llm_client.generate_content.side_effect = llm_side_effect
@@ -349,17 +351,16 @@ def test_grouping_e2e_scenario():
     # We'll need a side_effect for generate_content to return different things
     def llm_side_effect(contents, **kwargs):
         prompt = contents[0]
-        if "Page 0 to Page 4" in prompt or "Page 0 to Page 2" in prompt:
-            # First chunk (0-4). Must end at 4.
+        if "Page 0 to Page 3" in prompt or "Page 0 to Page 2" in prompt:
+            # First chunk (0-3). Must end at 3.
             return GroupingResponse(groups=[
                 GroupEntry(start_page=0, end_page=2, reason="Letter", brief_arabic_title="L"),
-                GroupEntry(start_page=3, end_page=4, reason="Forms", brief_arabic_title="F")
+                GroupEntry(start_page=3, end_page=3, reason="Forms", brief_arabic_title="F")
             ])
         if "Page 3 to Page 4" in prompt:
-            # Overlap chunk (3-4). Must end at 4.
+            # Overlap chunk.
             return GroupingResponse(groups=[
-                GroupEntry(start_page=3, end_page=3, reason="Form1", brief_arabic_title="F1"),
-                GroupEntry(start_page=4, end_page=4, reason="Form2", brief_arabic_title="F2"),
+                GroupEntry(start_page=3, end_page=4, reason="Forms", brief_arabic_title="F")
             ])
         return GroupingResponse(groups=[])
 

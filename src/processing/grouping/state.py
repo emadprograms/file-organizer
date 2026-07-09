@@ -14,6 +14,7 @@ class GroupingState(BaseModel):
     """
     current_page_index: int = Field(default=0, description="The index of the first page in the current processing chunk.")
     chunk_size_index: int = Field(default=0, description="The index of the current chunk size being used from the available sizes list.")
+    current_chunk_failure_count: int = Field(default=0, description="Number of consecutive failures at the current chunk size.")
     failure_count: int = Field(default=0, description="Total number of processing failures encountered so far.")
     processed_groups: List[dict] = Field(default_factory=list, description="List of groups already finalized and committed to the result set.")
 

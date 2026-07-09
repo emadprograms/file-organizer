@@ -92,7 +92,7 @@ class FileOrganizer:
                 
             tenant_folder = tenant_folder_names.get(group_tenant, utils.sanitize_filename(group_tenant))
             
-            topic_folder = doc.folder_path if doc.folder_path else "13_others"
+            topic_folder = doc.folder_path if doc.folder_path else "رسائل متنوعة"
             
             target_dir = (house_dir / tenant_folder / topic_folder).resolve()
             if not str(target_dir).startswith(str(output_base_dir.resolve())):

@@ -71,14 +71,14 @@
   - Depends on: 8, 9
   - Requirements: GRP-01, GRP-02, GRP-03, GRP-04
   - Success Criteria:
-    - [ ] Grouping mechanism processes pages in chunks of 5, 3, then 2 upon consecutive failures.
+    - [ ] Grouping mechanism processes pages in chunks of 4, 3, then 2 upon 3 consecutive failures.
     - [ ] Exhausting grouping attempts gracefully halts the pipeline, enabling checkpoint resuming.
-    - [ ] Chunk success correctly resets the chunk size index to 0.
+    - [ ] Chunk success correctly resets the chunk size index and failure counter to 0.
     - [ ] Merged documents respect logical boundaries without arbitrary overlap merging.
 
   Plans:
   - [ ] 10-01-PLAN.md — Implement GroupingStateManager for atomic state persistence
-  - [ ] 10-02-PLAN.md — Refactor process_with_shrink for resilient [5, 3, 2] chunking
+  - [ ] 10-02-PLAN.md — Refactor process_with_shrink for resilient [4, 3, 2] chunking
   - [ ] 10-03-PLAN.md — Implement LLM-validated Anchor Page merging logic
   - [ ] 10-04-PLAN.md — Final verification of resilience and adaptive chunking
 

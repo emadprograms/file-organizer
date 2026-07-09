@@ -16,7 +16,7 @@ def mock_config():
 @patch('src.processing.organizer.core.extract_pdf_segment')
 def test_create_house_directory(mock_extract, organizer, mock_config, tmp_path):
     docs = [
-        DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="1_requests_and_applications", is_direct_routed=True),
+        DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]
     summary = organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
     assert (tmp_path / "HOUSE_123").exists()
@@ -25,8 +25,8 @@ def test_create_house_directory(mock_extract, organizer, mock_config, tmp_path):
 @patch('src.processing.organizer.core.extract_pdf_segment')
 def test_tenant_directories_timeline(mock_extract, organizer, mock_config, tmp_path):
     docs = [
-        DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2020-01-01"], folder_path="1_requests_and_applications", is_direct_routed=True),
-        DocumentGroup(start_page=2, end_page=3, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="1_requests_and_applications", is_direct_routed=True),
+        DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2020-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
+        DocumentGroup(start_page=2, end_page=3, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]
     summary = organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
     assert (tmp_path / "HOUSE_123" / "Resident A 2020-2023").exists()
@@ -34,25 +34,25 @@ def test_tenant_directories_timeline(mock_extract, organizer, mock_config, tmp_p
 @patch('src.processing.organizer.core.extract_pdf_segment')
 def test_on_demand_topic_creation(mock_extract, organizer, mock_config, tmp_path):
     docs = [
-        DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2020-01-01"], folder_path="1_requests_and_applications", is_direct_routed=True),
+        DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2020-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]
     organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
-    assert (tmp_path / "HOUSE_123" / "Resident A 2020-2020" / "1_requests_and_applications").exists()
-    assert (tmp_path / "HOUSE_123" / "Resident A 2020-2020" / "2_personal_details").exists()
+    assert (tmp_path / "HOUSE_123" / "Resident A 2020-2020" / "بيانات أساسية").exists()
+    assert (tmp_path / "HOUSE_123" / "Resident A 2020-2020" / "بيانات شخصية").exists()
 
 @patch('src.processing.organizer.core.extract_pdf_segment')
 def test_hardcoded_routing(mock_extract, organizer, mock_config, tmp_path):
     docs = [
-        DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="OTHER_LETTERS", dates=[], folder_path="13_others", is_direct_routed=False, brief_arabic_title="رسالة"),
+        DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="OTHER_LETTERS", dates=[], folder_path="رسائل متنوعة", is_direct_routed=False, brief_arabic_title="رسالة"),
     ]
     organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
-    mock_extract.assert_any_call("123.pdf", 0, 1, str(tmp_path / "HOUSE_123" / "Resident A" / "13_others" / "nodate - رسالة.pdf"))
+    mock_extract.assert_any_call("123.pdf", 0, 1, str(tmp_path / "HOUSE_123" / "Resident A" / "رسائل متنوعة" / "nodate - رسالة.pdf"))
 
 @patch('src.processing.organizer.core.extract_pdf_segment')
 def test_unassigned_folder_period(mock_extract, organizer, mock_config, tmp_path):
     docs = [
-        DocumentGroup(start_page=0, end_page=1, primary_tenant="Unassigned (2020-05)", category="BASIC_DETAILS", dates=["2020-01-01", "2021-01-01"], folder_path="1_requests_and_applications", is_direct_routed=True),
-        DocumentGroup(start_page=2, end_page=3, primary_tenant="Unassigned (2021-05)", category="BASIC_DETAILS", dates=["2023-01-01", "2023-01-01"], folder_path="1_requests_and_applications", is_direct_routed=True),
+        DocumentGroup(start_page=0, end_page=1, primary_tenant="Unassigned (2020-05)", category="BASIC_DETAILS", dates=["2020-01-01", "2021-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
+        DocumentGroup(start_page=2, end_page=3, primary_tenant="Unassigned (2021-05)", category="BASIC_DETAILS", dates=["2023-01-01", "2023-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]
     organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
     assert (tmp_path / "HOUSE_123" / "غير مخصص (فترة مستنتجة) 2020-01 to 2023-01").exists()
@@ -60,7 +60,7 @@ def test_unassigned_folder_period(mock_extract, organizer, mock_config, tmp_path
 @patch('src.processing.organizer.core.extract_pdf_segment')
 def test_unassigned_folder_fallback(mock_extract, organizer, mock_config, tmp_path):
     docs = [
-        DocumentGroup(start_page=0, end_page=1, primary_tenant="Unassigned", category="BASIC_DETAILS", dates=["NONE", "NONE"], folder_path="1_requests_and_applications", is_direct_routed=True),
+        DocumentGroup(start_page=0, end_page=1, primary_tenant="Unassigned", category="BASIC_DETAILS", dates=["NONE", "NONE"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]
     organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
     assert (tmp_path / "HOUSE_123" / "غير مخصص").exists()
@@ -129,7 +129,7 @@ def test_organize_empty_documents(mock_extract, organizer, mock_config, tmp_path
 @patch('src.processing.organizer.core.extract_pdf_segment')
 def test_organize_dry_run(mock_extract, mock_makedirs, organizer, mock_config, tmp_path):
     docs = [
-        DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="1_requests_and_applications", is_direct_routed=True),
+        DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]
     summary = organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config, dry_run=True)
     mock_makedirs.assert_not_called()
@@ -139,8 +139,8 @@ def test_organize_dry_run(mock_extract, mock_makedirs, organizer, mock_config, t
 @patch('src.processing.organizer.core.extract_pdf_segment')
 def test_organize_filename_conflict(mock_extract, organizer, mock_config, tmp_path):
     docs = [
-        DocumentGroup(start_page=0, end_page=0, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="1_requests_and_applications", is_direct_routed=True),
-        DocumentGroup(start_page=1, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="1_requests_and_applications", is_direct_routed=True),
+        DocumentGroup(start_page=0, end_page=0, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
+        DocumentGroup(start_page=1, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]
     organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
     

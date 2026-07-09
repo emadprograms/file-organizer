@@ -110,11 +110,11 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
             prompt_template = OTHER_PROMPT
             content_field = "content_explanation"
         elif category == "letters":
-            CHUNK_SIZES = [5, 3, 2]
+            CHUNK_SIZES = [4, 3, 2]
             prompt_template = LETTER_PROMPT
             content_field = "subject"
         else:
-            CHUNK_SIZES = [5, 3, 2]
+            CHUNK_SIZES = [4, 3, 2]
             prompt_template = FORM_PROMPT
             content_field = "content_explanation"
 
@@ -123,12 +123,14 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
             state = state_manager.load_state()
             current_page_index = state.current_page_index
             chunk_size_idx = state.chunk_size_index
+            current_chunk_failure_count = state.current_chunk_failure_count
             total_failures = state.failure_count
             for g_dict in state.processed_groups:
                 final_groups.append(DocumentGroup(**g_dict))
         else:
             current_page_index = 0
             chunk_size_idx = 0
+            current_chunk_failure_count = 0
             total_failures = 0
         
         while current_page_index < len(pages):
@@ -150,41 +152,53 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
                 overlap = 1 if end_index < len(pages) else 0
                 current_page_index = end_index - overlap
                 
-                # SUCCESS: Reset chunk size index
+                # SUCCESS: Reset chunk size index and failure counters
                 chunk_size_idx = 0
+                current_chunk_failure_count = 0
                 
                 if state_manager:
                     state_manager.save_state(GroupingState(
                         current_page_index=current_page_index,
                         chunk_size_index=chunk_size_idx,
+                        current_chunk_failure_count=current_chunk_failure_count,
                         failure_count=total_failures,
                         processed_groups=[g.model_dump() for g in final_groups]
                     ))
                 
             except ProviderRotationExhaustedError as e:
                 total_failures += 1
+                current_chunk_failure_count += 1
                 logger.warning(f"Rotation failure at size {CHUNK_SIZES[chunk_size_idx]}: {e}")
                 
-                if chunk_size_idx < len(CHUNK_SIZES) - 1:
-                    chunk_size_idx += 1
-                    logger.warning(f"Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
+                if current_chunk_failure_count >= 3:
+                    if chunk_size_idx < len(CHUNK_SIZES) - 1:
+                        chunk_size_idx += 1
+                        current_chunk_failure_count = 0
+                        logger.warning(f"Threshold reached. Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
+                    else:
+                        # GRACEFUL HALT: minimum size failed 3 times
+                        if state_manager:
+                            state_manager.save_state(GroupingState(
+                                current_page_index=current_page_index,
+                                chunk_size_index=chunk_size_idx,
+                                current_chunk_failure_count=current_chunk_failure_count,
+                                failure_count=total_failures,
+                                processed_groups=[g.model_dump() for g in final_groups]
+                            ))
+                        raise GracefulHaltException(f"Grouping failed at minimum chunk size {CHUNK_SIZES[-1]} after 3 attempts. Halting gracefully.") from e
                 else:
-                    # GRACEFUL HALT: size 2 failed
-                    if state_manager:
-                        state_manager.save_state(GroupingState(
-                            current_page_index=current_page_index,
-                            chunk_size_index=chunk_size_idx,
-                            failure_count=total_failures,
-                            processed_groups=[g.model_dump() for g in final_groups]
-                        ))
-                    raise GracefulHaltException(f"Grouping failed at minimum chunk size {CHUNK_SIZES[-1]}. Halting gracefully.") from e
+                    logger.info(f"Failure {current_chunk_failure_count}/3 at size {CHUNK_SIZES[chunk_size_idx]}. Retrying same size.")
             
             except (ValueError, LLMFailureError) as e:
                 total_failures += 1
+                current_chunk_failure_count += 1
                 logger.warning(f"Processing Error (not rotation exhausted): {e}")
-                if chunk_size_idx < len(CHUNK_SIZES) - 1:
-                    chunk_size_idx += 1
-                    logger.warning(f"Shrinking chunk size due to error to {CHUNK_SIZES[chunk_size_idx]}")
+                
+                if current_chunk_failure_count >= 3:
+                    if chunk_size_idx < len(CHUNK_SIZES) - 1:
+                        chunk_size_idx += 1
+                        current_chunk_failure_count = 0
+                        logger.warning(f"Shrinking chunk size due to error to {CHUNK_SIZES[chunk_size_idx]}")
                 continue
             except Exception as e:
                 raise e
