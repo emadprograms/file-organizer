@@ -9,9 +9,9 @@ from src.processing.routing.config import CATEGORY_TO_FOLDERS, SINGLE_MATCH
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-consecutive_routing_failures = 0
+from src.core.exceptions import PipelineHaltError
 
-class RoutingValidationError(Exception):
+class RoutingValidationError(PipelineHaltError):
     """Exception raised when LLM fails to provide a valid folder after multiple attempts."""
     pass
 
@@ -39,24 +39,19 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
     """
     category = group.category
     
-    global consecutive_routing_failures
-    if consecutive_routing_failures >= 5:
-        logger.warning("Skipping LLM routing due to 5 consecutive failures.")
-        return "13_others", False
-        
     if category in SINGLE_MATCH:
         # Should have exactly one
         try:
             folder = CATEGORY_TO_FOLDERS[category][0]
             return folder, True
         except IndexError:
-            logger.exception(f"IndexError: No folder mapping found for SINGLE_MATCH category '{category}'. Falling back.")
-            return "Unassigned", False
+            logger.error(f"IndexError: No folder mapping found for SINGLE_MATCH category '{category}'.")
+            raise RoutingValidationError(f"No folder mapping found for SINGLE_MATCH category '{category}'.")
         
     allowed_folders = CATEGORY_TO_FOLDERS.get(category, []).copy()
     if not allowed_folders:
-        logger.warning(f"Category '{category}' has no mapping, falling back to 13_others")
-        return "13_others", False
+        logger.error(f"Category '{category}' has no mapping. Routing cannot proceed.")
+        raise RoutingValidationError(f"Category '{category}' has no mapping. Routing cannot proceed.")
         
     if "13_others" not in allowed_folders:
         allowed_folders.append("13_others")
@@ -108,7 +103,6 @@ Respond only with a valid JSON matching the requested schema. The selected_folde
             selected = result.selected_folder
             reason = result.reason
             
-            consecutive_routing_failures = 0
             logger.info(f"Routed category '{category}' to '{selected}'. Reason: {reason}")
             from src.logger import log_decision_trace
             log_decision_trace("routing", {"category": category, "selected": selected, "reason": reason})
@@ -150,4 +144,3 @@ Respond only with a valid JSON matching the requested schema. The selected_folde
                 raise RoutingValidationError(f"Unexpected error during routing after {attempts} attempts: {e}")
             
     # This part is theoretically unreachable due to the raise in the loop
-    return "13_others", False

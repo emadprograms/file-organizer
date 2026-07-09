@@ -1,0 +1,391 @@
+You are a Senior Software Architect performing a rigorous peer review of a development plan.
+
+# Phase: 09 - Rate Limiting & Router Safety Net
+
+## Objective
+Implement a "Correctness First" safety net for LLM interactions.
+- Deterministic handling of 429 (Rate Limit) and 500/503 (Server Errors).
+- Elimination of all "graceful" fallbacks (no more routing to '13_others' on failure).
+- Hard stop on unrecoverable errors (Auth errors or retry exhaustion).
+- Provider rotation (Gemini -> Sec1 -> Gemini -> Sec2) alternating per request.
+
+## Provided Context
+### 09-CONTEXT.md
+"""
+# Phase 09: Rate Limiting & Router Safety Net - Context
+
+**Gathered:** 2026-07-09
+**Status:** Ready for planning
+
+<domain>
+## Phase Boundary
+The goal of this phase is to implement a "Correctness First" safety net for all LLM interactions. The system must handle rate limits and server errors deterministically, eliminate all "graceful" fallbacks that lead to mis-routed documents, and ensure the program halts immediately upon unrecoverable errors to prevent data corruption.
+
+</domain>
+
+<decisions>
+## Implementation Decisions
+
+### 1. Global LLM Resilience Logic (Deterministic)
+All LLM calls in the system must follow this strict logic:
+- **Error 429 (Rate Limit):** 
+  - Action: Wait exactly **65 seconds**.
+  - Retries: Up to **3 times**.
+  - Switching: Do NOT switch providers.
+  - Termination: If 3 retries fail, **HALT PIPELINE immediately**.
+- **Error 500/503 (Server Errors):** 
+  - Action: Wait exactly **15 seconds**.
+  - Switching: **Switch provider** immediately using the Alternating Cycle (see below).
+  - Retries: Up to **3 times**.
+  - Termination: If 3 retries fail, **HALT PIPELINE immediately**.
+- **Error 401/403 (Auth/API Key):** 
+  - Action: **HALT PIPELINE immediately** (no retries).
+
+### 2. Provider Rotation (Triggered by 500s ONLY)
+When a 500 error occurs, the system rotates through providers to balance load and avoid downtime.
+- **The Sequence:** Gemini $ightarrow$ [Secondary] $ightarrow$ Gemini $ightarrow$ [Other Secondary].
+- **The Alternation:** The "Secondary" provider alternates between **Groq** and **OpenRouter** for every new request.
+  - Request 1: Gemini $ightarrow$ Groq $ightarrow$ Gemini $ightarrow$ OpenRouter
+  - Request 2: Gemini $ightarrow$ OpenRouter $ightarrow$ Gemini $ightarrow$ Groq
+
+### 3. "Correctness First" Failure Model
+- **Remove Lockout Behavior:** Completely remove the `consecutive_routing_failures` logic in `src/processing/routing/router.py`.
+- **No Fallbacks:** Delete all logic that routes documents to `13_others` as a "fallback" when the LLM fails.
+- **Hard Stop:** The system must not "skip" a document or "gracefully" fail. Any unrecoverable error must trigger an immediate stop of the application.
+
+### 4. Continuity and Checkpoints
+- **Halt Strategy:** The pipeline must halt immediately on error to protect the current state.
+- **Future Resumption:** While the state-saving (Checkpointing) is the primary focus of Phase 10, Phase 09 must ensure that errors are raised as hard exceptions that can be caught by a future checkpoint manager.
+
+</decisions>
+
+<canonical_refs>
+## Canonical References
+
+**Downstream agents MUST read these before planning or implementing.**
+
+### Roadmap & Requirements
+- `.planning/ROADMAP.md` — Phase 09 success criteria.
+- `.planning/REQUIREMENTS.md` — Requirements RES-01, RES-02, RES-03.
+
+### Existing Implementation
+- `src/llm/llm.py` — Current `LLMClient` and retry logic.
+- `src/processing/routing/router.py` — Current routing logic and lockout mechanism.
+
+</canonical_refs>
+
+<code_context>
+## Existing Code Insights
+
+### Reusable Assets
+- `LLMClient` in `src/llm/llm.py` is the central point for all LLM requests. Modifying this class will apply the new resilience logic globally.
+- `tenacity` library is already integrated; it should be updated from exponential backoff to fixed-time waits.
+
+### Integration Points
+- The removal of the `consecutive_routing_failures` lockout in the router is a surgical edit to `src/processing/routing/router.py`.
+
+</code_context>
+
+<specifics>
+## Specific Ideas
+- **Rotation Logic:** The rotation state (which secondary provider to use first) should be tracked in the `LLMClient` to persist across requests.
+- **Exception Hierarchy:** Ensure that the `LLMFailureError` or a new `CriticalPipelineError` is raised when a halt is required, to prevent the pipeline from continuing to the next document.
+
+</specifics>
+
+<deferred>
+## Deferred Ideas
+- **State-based Resumption:** Detailed implementation of saving and loading state to resume from a specific page is deferred to Phase 10.
+
+</deferred>
+
+---
+*Phase: 09-Rate Limiting & Router Safety Net*
+*Context gathered: 2026-07-09*
+"""
+
+### 09-01-PLAN.md (Deterministic LLM Resilience)
+"""
+---
+phase: 09-rate-limiting-router-safety-net
+plan: 01
+type: tdd
+wave: 1
+depends_on: []
+files_modified:
+  - src/llm/llm.py
+  - tests/test_llm.py
+autonomous: true
+requirements:
+  - RES-01
+  - RES-02
+user_setup: []
+
+must_haves:
+  truths:
+    - "429 errors trigger a 65s wait and retry on the SAME provider"
+    - "500/503 errors trigger a 15s wait and immediate switch to the NEXT provider in sequence"
+    - "401/403 auth errors trigger an immediate HALT (exception raised)"
+    - "Exhausting 4 total attempts (1 initial + 3 retries) triggers an immediate HALT"
+  artifacts:
+    - "src/llm/llm.py modified to use deterministic resilience loop"
+  key_links:
+    - "LLMClient._route_llm_call -> Provider Rotation Logic"
+---
+
+<objective>
+Implement deterministic LLM resilience logic in `LLMClient`. Replace the nested tenacity/provider loops with a single resilience loop that handles 429s (wait, no switch), 500s (wait, switch), and 401s (halt) exactly as specified.
+
+Purpose: To eliminate non-deterministic "graceful" behavior and ensure "Correctness First" stability.
+Output: A tested `LLMClient` that halts the pipeline on unrecoverable errors.
+</objective>
+
+<feature>
+  <name>Deterministic LLM Resilience Loop</name>
+  <files>src/llm/llm.py, tests/test_llm.py</files>
+  <behavior>
+    - Case 1 (Rate Limit): Mock 429 error -> verify system sleeps ~65s -> verify next call uses SAME provider.
+    - Case 2 (Server Error): Mock 500 error -> verify system sleeps ~15s -> verify next call uses DIFFERENT provider.
+    - Case 3 (Auth Error): Mock 401/403 error -> verify immediate exception raise without retry.
+    - Case 4 (Exhaustion): Mock 4 consecutive 500 errors -> verify `LLMFailureError` is raised after the 4th attempt.
+    - Case 5 (Rotation): Verify provider sequence Gemini -> Sec1 -> Gemini -> Sec2 is respected during 500-driven switches.
+  </behavior>
+  <implementation>
+    1. In `src/llm/llm.py`, rewrite `_route_llm_call` to remove the nested `@tenacity.retry` loop.
+    2. Implement a `while` loop that tracks `retry_count` (up to 3 retries, 4 total attempts) and `current_provider_idx`.
+    3. Use a helper to identify error types (429, 5xx, 401/403) from the exception string/type.
+    4. On 429: `time.sleep(65)`, keep `current_provider_idx`.
+    5. On 500/503: `time.sleep(15)`, increment `current_provider_idx` (modulo sequence length).
+    6. On 401/403: Immediately raise the exception.
+    7. If `retry_count` reaches 4, raise `LLMFailureError`.
+    8. Implement request-level alternation for secondary providers: Add a class-level state variable (e.g., `_secondary_provider_index`) to `LLMClient` to track which secondary provider was last used, ensuring that each new request starts with the other secondary provider (per D-2).
+  </implementation>
+</feature>
+
+<tasks>
+<task type="tdd">
+  <name>Task 1: Implement failing tests for resilience logic</name>
+  <files>tests/test_llm.py</files>
+  <action>
+    Create a test suite that mocks LLM providers to return 429, 500, and 401 errors. 
+    Write tests that assert the specific wait times and provider switching behavior.
+    The tests must FAIL initially because the current `LLMClient` uses exponential backoff and nested loops.
+  </action>
+  <verify>
+    <automated>pytest tests/test_llm.py</automated>
+  </verify>
+  <done>Tests for 429, 500, and 401 failure modes are implemented and failing.</done>
+</task>
+
+<task type="tdd">
+  <name>Task 2: Implement Deterministic Resilience Loop</name>
+  <files>src/llm/llm.py</files>
+  <action>
+    Implement the resilience loop in `_route_llm_call` as described in the implementation section. 
+    Ensure `time.sleep` is used for exact waits and the provider index is managed correctly.
+  </action>
+  <verify>
+    <automated>pytest tests/test_llm.py</automated>
+  </verify>
+  <done>All resilience tests pass; 429s wait/stay, 500s wait/switch, 401s halt.</done>
+</task>
+</tasks>
+
+<threat_model>
+## Trust Boundaries
+| Boundary | Description |
+|----------|-------------|
+| LLM API -> LLMClient | Untrusted API responses/errors enter the resilience loop |
+
+## STRIDE Threat Register
+| Threat ID | Category | Component | Severity | Disposition | Mitigation Plan |
+|-----------|----------|-----------|----------|-------------|-----------------|
+| T-09-01 | Denial of Service | LLMClient | medium | mitigate | Exact sleep timers prevent tight-loop hammering of APIs |
+| T-09-02 | Information Disclosure | LLMClient | low | accept | API error messages are logged internally for debugging |
+</threat_model>
+
+<verification>
+Verify that the LLM client no longer "switches providers" on a 429, but DOES switch on a 500.
+</verification>
+
+<success_criteria>
+LLMClient behavior is 100% deterministic regarding rate limits and server errors.
+</success_criteria>
+
+<output>
+Create `.planning/phases/09-rate-limiting-router-safety-net/09-01-SUMMARY.md` when done
+</output>
+"""
+
+### 09-02-PLAN.md (Router Safety Net)
+"""
+---
+phase: 09-rate-limiting-router-safety-net
+plan: 02
+type: execute
+wave: 2
+depends_on: [09-01]
+files_modified:
+  - src/processing/routing/router.py
+autonomous: true
+requirements:
+  - RES-03
+user_setup: []
+
+must_haves:
+  truths:
+    - "No lockout occurs after 5 routing failures"
+    - "Routing failures do not trigger fallback to 13_others"
+    - "Unrecoverable routing errors propagate as exceptions to halt the pipeline"
+  artifacts:
+    - "src/processing/routing/router.py modified to remove lockout and fallbacks"
+  key_links:
+    - "route_document -> LLM resilience loop"
+---
+
+<objective>
+Surgically remove the "graceful" failure logic from the router. This includes deleting the consecutive failure lockout and the fallback to `13_others` when the LLM fails, ensuring that errors instead bubble up to the pipeline.
+
+Purpose: To prevent mis-routing of documents as a side effect of LLM instability.
+Output: A "Correctness First" router that either routes correctly or halts.
+</objective>
+
+<execution_context>
+@/Users/emadarshadalam/Documents/GitHub/File-Categorizer/.gemini/gsd-core/workflows/execute-plan.md
+@/Users/emadarshadalam/Documents/GitHub/File-Categorizer/.gemini/templates/summary.md
+</execution_context>
+
+<context>
+@.planning/PROJECT.md
+@.planning/ROADMAP.md
+@.planning/STATE.md
+@src/processing/routing/router.py
+</context>
+
+<tasks>
+<task type="auto">
+  <name>Task 1: Remove Routing Lockout Logic</name>
+  <files>src/processing/routing/router.py</files>
+  <action>
+    1. Delete the global `consecutive_routing_failures` counter.
+    2. Remove the check `if consecutive_routing_failures >= 5:` and the corresponding early return of `("13_others", False)`.
+    3. Remove the line `consecutive_routing_failures = 0` inside the successful routing block.
+  </action>
+  <verify>
+    <automated>[ $(grep -v '^#' src/processing/routing/router.py | grep -c "consecutive_routing_failures") -eq 0 ]</automated>
+  </verify>
+  <done>Lockout mechanism is completely removed from the router.</done>
+</task>
+
+<task type="auto">
+  <name>Task 2: Remove LLM Routing Fallbacks</name>
+  <files>src/processing/routing/router.py</files>
+  <action>
+    1. Remove the fallback `return "13_others", False` at the end of the `route_document` function.
+    2. Ensure that `RoutingValidationError` and `LLMFailureError` are not caught and suppressed, allowing them to bubble up to the main pipeline.
+    3. Verify that the logic does not silently return "13_others" upon reaching the end of the retry loop.
+  </action>
+  <verify>
+    <automated>[ $(grep 'return "13_others", False' src/processing/routing/router.py | grep -v "fallback to 13_others" | grep -c "return") -eq 0 ]</automated>
+  </verify>
+  <done>The router no longer provides a "safe" fallback folder when the LLM fails; it raises an exception.</done>
+</task>
+</tasks>
+
+<threat_model>
+## Trust Boundaries
+| Boundary | Description |
+|----------|-------------|
+| Router -> Pipeline | Exceptions now cross this boundary instead of "others" folder labels |
+
+## STRIDE Threat Register
+| Threat ID | Category | Component | Severity | Disposition | Mitigation Plan |
+|-----------|----------|-----------|----------|-------------|-----------------|
+| T-09-03 | Denial of Service | Router | low | accept | Halting the pipeline is the intended safety behavior to prevent data corruption |
+</threat_model>
+
+<verification>
+Run a routing test with a mocked LLM that always fails; verify the pipeline halts with an exception rather than routing to `13_others`.
+</verification>
+
+<success_criteria>
+Zero instances of "graceful" fallback to `13_others` in `src/processing/routing/router.py` during LLM failure.
+</success_criteria>
+
+<output>
+Create `.planning/phases/09-rate-limiting-router-safety-net/09-02-SUMMARY.md` when done
+</output>
+"""
+
+### VALIDATION.md
+"""
+# Phase 09 Validation: Rate Limiting & Router Safety Net
+
+## 1. Validation Strategy
+The validation strategy for Phase 09 focuses on **Deterministic Behavior Verification**. Because this phase replaces "graceful" (probabilistic) error handling with "Correctness First" (deterministic) handling, validation relies on simulating specific failure modes using mocks and verifying the system's reaction against strict time and state constraints.
+
+**Key Validation Pillars:**
+- **Temporal Verification:** Ensuring wait times are exactly 65s for 429s and 15s for 500s.
+- **State Transition Verification:** Ensuring providers are NOT switched on 429s but ARE switched on 500s.
+- **Halt Verification:** Ensuring that auth errors (401/403) and retry exhaustion trigger immediate process termination (exceptions) rather than fallback values.
+- **Static Analysis:** Using grep to prove the total removal of the "lockout" and "fallback" mechanisms in the router.
+
+## 2. Requirement Mapping
+
+| Req ID | Requirement | Verification Method | Test Case / File |
+| :--- | :--- | :--- | :--- |
+| **RES-01** | 429 Rate Limit: 65s wait, same provider, 3 retries $ightarrow$ Halt | Mocked API Response $ightarrow$ Time/Provider Check | `tests/test_llm.py` (Case 1) |
+| **RES-02** | 500/503 Server Error: 15s wait, switch provider, 3 retries $ightarrow$ Halt | Mocked API Response $ightarrow$ Time/Provider Check | `tests/test_llm.py` (Case 2 & 5) |
+| **RES-03** | Correctness First: Remove lockout & fallbacks, Hard Stop | Static Analysis + Functional Halt Test | `src/processing/routing/router.py` |
+| **CRIT-01** | Auth Errors (401/403): Immediate Halt | Mocked API Response $ightarrow$ Exception Check | `tests/test_llm.py` (Case 3) |
+| **CRIT-02** | Exhaustion: 4 total failed attempts $ightarrow$ Halt | Mocked API Response $ightarrow$ Exception Check | `tests/test_llm.py` (Case 4) |
+
+## 3. Validation Execution
+
+### A. Automated Test Suite
+Run the LLM resilience tests to verify the deterministic loop:
+```bash
+pytest tests/test_llm.py
+```
+
+### B. Static Analysis (Safety Net Audit)
+Verify that the "graceful" failure logic has been surgically removed from the router:
+
+**Check 1: Removal of Lockout Counter**
+```bash
+grep -v '^#' src/processing/routing/router.py | grep -c "consecutive_routing_failures" == 0
+```
+
+**Check 2: Removal of 13_others Fallbacks**
+```bash
+grep "return "13_others", False" src/processing/routing/router.py | grep -v "fallback to 13_others" | grep -c "return" == 0
+```
+
+### C. Functional Halt Test
+Run a routing operation with a mocked LLM that is configured to fail all 4 attempts. Verify that the application raises a `LLMFailureError` and terminates the pipeline rather than assigning the document to a fallback folder.
+
+## 4. Pass Criteria
+
+The phase is considered **PASSED** when:
+1. [ ] **Deterministic Resilience:** All tests in `tests/test_llm.py` pass, confirming exact sleep timings and provider switching logic.
+2. [ ] **Zero Graceful Fallbacks:** Static analysis confirms `consecutive_routing_failures` and fallback returns to `"13_others"` are completely absent from `src/processing/routing/router.py`.
+3. [ ] **Hard Stop Enforcement:** Unrecoverable LLM errors (Auth errors or Retry exhaustion) result in a raised exception that halts the pipeline execution.
+"""
+
+# Review Requirements
+Please analyze these plans and provide feedback in the following structured format:
+
+## 1. Critical Gaps (Blockers)
+List any logical flaws, missing edge cases, or contradictions with the context that would cause the implementation to fail or violate the "Correctness First" mandate.
+
+## 2. Design Improvements (Warnings)
+Suggest optimizations or more robust patterns. Specifically, look at:
+- The provider rotation state management.
+- The exception hierarchy.
+- The robustness of the TDD cases.
+
+## 3. Verification Audit
+Are the verification steps in the plans and VALIDATION.md sufficient to PROVE that the goals are met? Are there any "false positive" tests?
+
+## 4. Verdict
+[PASS / PASS WITH SUGGESTIONS / FAIL]

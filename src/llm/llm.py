@@ -25,7 +25,9 @@ import openai
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
 
-class LLMFailureError(Exception):
+from src.core.exceptions import PipelineHaltError
+
+class LLMFailureError(PipelineHaltError):
     """Exception raised when an LLM API call fails repeatedly."""
     pass
 
@@ -74,7 +76,6 @@ class LLMClient:
         self._cached_schema = None
         self._cached_schema_lock = threading.Lock()
         self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=10)
-        self.global_consecutive_500_errors = 0
 
     def activate_cooldown(self) -> None:
         """Activate a long sleep to recover from severe rate limits (e.g., 429)."""
@@ -105,122 +106,123 @@ class LLMClient:
         )
 
     def _route_llm_call(self, model: str, contents: list, response_schema: type | None = None, validation_context: dict | None = None, log_prefix: str = "Retry", max_attempts: Optional[int] = None) -> Any:
-        """Route an LLM call through configured providers with failover using tenacity."""
+        """Route an LLM call through configured providers with deterministic resilience and failover."""
         if getattr(self, "skip_llm", False):
             from src.llm.mock import MockLLMProvider
             self.providers = [MockLLMProvider()]
 
-        provider_sequence = [self.providers[0]]
+        # 1. Determine Provider Sequence: [Gemini, S1, Gemini, S2]
+        primary = self.providers[0]
         or_provider = next((p for p in self.providers if p.name == "openrouter"), None)
         groq_provider = next((p for p in self.providers if p.name == "groq"), None)
-        
+
         secondary_1, secondary_2 = None, None
         with self._fallback_toggle_lock:
             if not self._fallback_toggle:
                 secondary_1, secondary_2 = or_provider, groq_provider
             else:
                 secondary_1, secondary_2 = groq_provider, or_provider
-                
             self._fallback_toggle = not self._fallback_toggle
-        
-        if secondary_1:
-            provider_sequence.append(secondary_1)
-            provider_sequence.append(self.providers[0])
-        if secondary_2:
-            provider_sequence.append(secondary_2)
 
-        import tenacity
+        # Sequence: Gemini -> S1 -> Gemini -> S2
+        sequence = [primary]
+        if secondary_1: sequence.append(secondary_1)
+        sequence.append(primary)
+        if secondary_2: sequence.append(secondary_2)
 
-        def should_retry(retry_state):
-            if retry_state.outcome.failed:
-                e = retry_state.outcome.exception()
-                error_str = str(e).lower()
-                is_auth = "401" in error_str or "403" in error_str or "400" in error_str or "api key not valid" in error_str or "invalid_api_key" in error_str
-                if is_auth:
-                    return False
-                return True
-            return False
+        # Filter out Nones
+        provider_sequence = [p for p in sequence if p is not None]
 
-        last_error_is_5xx = False
-        
-        for provider_obj in provider_sequence:
+        # 2. Resilience Loop
+        max_retries = max_attempts or 3
+        current_provider_idx = 0
+
+        for attempt in range(max_retries + 1): # 1 initial + max_retries
+            if current_provider_idx >= len(provider_sequence):
+                break
+
+            provider_obj = provider_sequence[current_provider_idx]
             provider_name = provider_obj.name
-            
-            # Use tenacity for backoff on this provider
-            @tenacity.retry(
-                wait=tenacity.wait_exponential(multiplier=1, min=2, max=65),
-                stop=tenacity.stop_after_attempt(3),
-                retry=tenacity.retry_if_exception(should_retry),
-                reraise=True
-            )
-            def _call_provider():
-                try:
-                    future = self._executor.submit(
-                        provider_obj.generate,
-                        model=model,
-                        contents=contents,
-                        response_schema=response_schema,
-                        validation_context=validation_context
-                    )
-                    response_parsed = future.result(timeout=300)
-                    
-                    # Trace logging for successful calls
-                    try:
-                        payload = {"model": model, "provider": provider_name, "prompt": contents}
-                        if hasattr(response_parsed, "model_dump"):
-                            payload["response"] = response_parsed.model_dump()
-                        else:
-                            payload["response"] = str(response_parsed)
-                        log_decision_trace("llm_success", payload)
-                    except Exception as trace_err:
-                        logger.debug(f"Failed to write trace: {trace_err}")
-                        
-                    record_successful_call()
-                    self.total_requests += 1
-                    self.global_consecutive_500_errors = 0
-                    
-                    if getattr(self, "verbose", False):
-                        logger.debug(f"[{log_prefix}] Prompt: {contents}")
-                        logger.debug(f"[{log_prefix}] Response: {response_parsed}")
 
-                    return response_parsed
-
-                except Exception as e:
-                    # Trace logging for errors
-                    try:
-                        log_decision_trace("llm_error", {
-                            "error": str(e), 
-                            "model": model, 
-                            "provider": provider_name,
-                            "prompt": contents
-                        })
-                    except Exception as trace_err:
-                        logger.debug(f"Failed to write error trace: {trace_err}")
-                        
-                    if isinstance(e, concurrent.futures.TimeoutError):
-                        raise TimeoutError("LLM API call hung and timed out after 300 seconds.")
-                    
-                    logger.warning(f"[{log_prefix} - {provider_name}] LLM call failed: {e}")
-                    raise e
-                    
             try:
-                return _call_provider()
+                future = self._executor.submit(
+                    provider_obj.generate,
+                    model=model,
+                    contents=contents,
+                    response_schema=response_schema,
+                    validation_context=validation_context
+                )
+                response_parsed = future.result(timeout=300)
+
+                # Success path
+                try:
+                    payload = {"model": model, "provider": provider_name, "prompt": contents}
+                    if hasattr(response_parsed, "model_dump"):
+                        payload["response"] = response_parsed.model_dump()
+                    else:
+                        payload["response"] = str(response_parsed)
+                    log_decision_trace("llm_success", payload)
+                except Exception as trace_err:
+                    logger.debug(f"Failed to write trace: {trace_err}")
+
+                record_successful_call()
+                self.total_requests += 1
+
+                if getattr(self, "verbose", False):
+                    logger.debug(f"[{log_prefix}] Prompt: {contents}")
+                    logger.debug(f"[{log_prefix}] Response: {response_parsed}")
+
+                return response_parsed
+
             except Exception as e:
+                # Trace error
+                try:
+                    log_decision_trace("llm_error", {
+                        "error": str(e), 
+                        "model": model, 
+                        "provider": provider_name,
+                        "prompt": contents
+                    })
+                except Exception as trace_err:
+                    logger.debug(f"Failed to write error trace: {trace_err}")
+
                 error_str = str(e).lower()
-                is_auth = "401" in error_str or "403" in error_str or "400" in error_str or "api key not valid" in error_str or "invalid_api_key" in error_str
-                if is_auth:
-                    logger.warning(f"[{log_prefix}] Auth/Bad Request error on {provider_name}: fail fast. Error: {e}")
-                    raise e
-                
-                is_5xx = "500" in error_str or "503" in error_str or "internal error" in error_str or "timeout" in error_str
-                last_error_is_5xx = is_5xx or isinstance(e, TimeoutError)
-                if last_error_is_5xx:
-                    self.global_consecutive_500_errors += 1
-                    if self.global_consecutive_500_errors >= 5:
-                        raise LLMFailureError("Global 500 error limit reached. Aborting pipeline.")
-                
-                logger.warning(f"[Cloud Fallback] {provider_name} exhausted retries. Failing over to next provider.")
-                continue
 
-        raise RuntimeError("LLM routing failed across all providers")
+                # Case A: Immediate Halt (400, 401, 403, or Auth errors)
+                is_auth_fail = any(x in error_str for x in ["401", "403", "400", "api key not valid", "invalid_api_key"])
+                if is_auth_fail:
+                    logger.error(f"[{log_prefix}] Critical Auth/Request error on {provider_name}: {e}. Halting pipeline.")
+                    raise LLMFailureError(f"Critical LLM API error: {e}")
 
+                # Case B: Rate Limit (429) -> Sleep 65s, Retry SAME provider
+                if "429" in error_str:
+                    if attempt < max_retries:
+                        logger.warning(f"[{log_prefix} - {provider_name}] Rate limited (429). Sleeping 65s before retry {attempt+1}/{max_retries}...")
+                        time.sleep(65)
+                        continue # Retry same provider (index doesn't advance)
+                    else:
+                        logger.error(f"[{log_prefix} - {provider_name}] Rate limit retries exhausted.")
+                        break
+
+                # Case C: Server Error (500, 503, Timeout) -> Sleep 15s, Rotate provider
+                is_server_err = any(x in error_str for x in ["500", "503", "internal error"]) or isinstance(e, (TimeoutError, concurrent.futures.TimeoutError))
+                if is_server_err:
+                    if attempt < max_retries:
+                        logger.warning(f"[{log_prefix} - {provider_name}] Server error/timeout. Sleeping 15s and rotating provider...")
+                        time.sleep(15)
+                        current_provider_idx += 1
+                        continue
+                    else:
+                        logger.error(f"[{log_prefix} - {provider_name}] Server error retries exhausted.")
+                        break
+
+                # Case D: Unexpected error
+                logger.error(f"[{log_prefix} - {provider_name}] Unexpected LLM error: {e}")
+                if attempt < max_retries:
+                    time.sleep(2) # Minimal backoff for unknown errors
+                    current_provider_idx += 1
+                    continue
+                else:
+                    break
+
+        raise LLMFailureError(f"LLM orchestration failed after {max_retries} retries across available providers. Last error: {error_str if 'error_str' in locals() else 'Unknown'}")
