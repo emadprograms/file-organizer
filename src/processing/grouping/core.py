@@ -4,40 +4,14 @@ from typing import Any
 from src.core.schemas import DocumentGroup, GroupingResponse
 from src.llm.llm import LLMFailureError
 from src.processing.grouping.utils import verify_groups, merge_chunks
+from src.processing.grouping.config import LETTER_PROMPT, FORM_PROMPT, OTHER_PROMPT
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-GROUPING_PROMPT = """You are an expert Arabic document analyst.
-Your task is to identify logical multi-page document boundaries within a chunk of pages.
-
-CRITICAL RULES:
-1. Boundaries ONLY on subject/content shift. DO NOT split on date changes or sender changes.
-2. Every page MUST be part of exactly one group. No gaps, no overlaps.
-3. The first group must start at the first page of the chunk.
-4. The last group must end at the last page of the chunk.
-5. You MUST provide a "reason" string for every group explaining why you grouped these pages together, based on what you saw and didn't see.
-
-FEW-SHOT EXAMPLES:
-
-Example 1 (Date change without boundary):
-Pages:
-- Page 5: Letter to Ministry requesting maintenance on roof. Date: 2023-01-05
-- Page 6: Reply from Ministry approving maintenance on roof. Date: 2023-02-10
-Expected output: These pages belong to the SAME document group because the subject (roof maintenance) is the same, despite the date and sender changing.
-
-Example 2 (Subject shift resulting in boundary):
-Pages:
-- Page 8: EWA Utility bill for electricity.
-- Page 9: Letter regarding a completely separate housing allocation request.
-Expected output: These pages belong to DIFFERENT document groups because the subject shifted from a utility bill to a housing allocation. Boundary between Page 8 and 9.
-
-Identify the document groups and provide a brief Arabic title for each group.
-"""
-
-def _process_chunk(pages: list[Any], current_page_index: int, end_index: int, llm_client: Any) -> list[DocumentGroup]:
+def _process_chunk(pages: list[Any], current_page_index: int, end_index: int, llm_client: Any, prompt_template: str, content_field: str = "content_explanation") -> list[DocumentGroup]:
     chunk_pages = pages[current_page_index:end_index]
-    pages_text = "\n".join([f"Page {current_page_index + i}: {getattr(p, 'content_explanation', '')}" for i, p in enumerate(chunk_pages)])
-    prompt = f"{GROUPING_PROMPT}\n\nChunk range: Page {current_page_index} to Page {end_index - 1}\n\nPages Data:\n{pages_text}"
+    pages_text = "\n".join([f"Page {current_page_index + i}: {getattr(p, content_field, getattr(p, 'content_explanation', ''))}" for i, p in enumerate(chunk_pages)])
+    prompt = f"{prompt_template}\n\nChunk range: Page {current_page_index} to Page {end_index - 1}\n\nPages Data:\n{pages_text}"
     
     response = llm_client.generate_content(
         contents=[prompt],
@@ -80,59 +54,110 @@ def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup
     if not pages:
         return []
 
-    CHUNK_SIZES = [10, 5, 3]
-    MAX_CONSECUTIVE_FAILURES = 5
-    MAX_TOTAL_FAILURES = 10
-
-    consecutive_failures = 0
-    total_failures = 0
-    chunk_size_idx = 0
-    
-    current_page_index = 0
+    category = getattr(pages[0], 'category', 'unknown').lower()
     final_groups: list[DocumentGroup] = []
-    
-    while current_page_index < len(pages):
-        if total_failures >= MAX_TOTAL_FAILURES:
-            raise RuntimeError("Hard fail: 10 total failures in grouping boundary detection.")
-            
-        chunk_size = CHUNK_SIZES[chunk_size_idx]
-        end_index = min(current_page_index + chunk_size, len(pages))
+
+    # Deterministic Bypass Paths
+    if category in ["contract", "id_cards"]:
+        start_page = getattr(pages[0], "original_index", 0)
+        end_page = getattr(pages[-1], "original_index", len(pages) - 1)
+        primary_tenant = getattr(pages[0], "canonical_tenant", "Unassigned")
+        dates = []
+        for p in pages:
+            d = getattr(p, "resolved_date", getattr(p, "date", None))
+            if d and d != "NONE":
+                dates.append(d)
         
-        try:
-            chunk_groups = _process_chunk(pages, current_page_index, end_index, llm_client)
-            
-            if final_groups and current_page_index > 0:
-                overlap_original_idx = getattr(pages[current_page_index], "original_index", current_page_index)
-                final_groups = merge_chunks(final_groups, chunk_groups, overlap_original_idx)
-            else:
-                final_groups.extend(chunk_groups)
+        final_groups.append(DocumentGroup(
+            start_page=start_page,
+            end_page=end_page,
+            primary_tenant=primary_tenant,
+            category=category,
+            dates=dates,
+            reason="Deterministic bypass: Category identified as cohesive document.",
+            brief_arabic_title=None
+        ))
+        # Jump to telemetry (by skipping the while loop)
+    elif category == "utility_bills":
+        for i, page in enumerate(pages):
+            d = getattr(page, "resolved_date", getattr(page, "date", None))
+            dates = [d] if d and d != "NONE" else []
+            final_groups.append(DocumentGroup(
+                start_page=getattr(page, "original_index", i),
+                end_page=getattr(page, "original_index", i),
+                primary_tenant=getattr(page, "canonical_tenant", "Unassigned"),
+                category=category,
+                dates=dates,
+                reason="Deterministic bypass: Each utility bill page is a separate document.",
+                brief_arabic_title=None
+            ))
+        # Jump to telemetry (by skipping the while loop)
+    else:
+        # Dynamic Routing Paths
+        if category == "others":
+            CHUNK_SIZES = [2]
+            prompt_template = OTHER_PROMPT
+            content_field = "content_explanation"
+        elif category == "letters":
+            CHUNK_SIZES = [10, 5, 3]
+            prompt_template = LETTER_PROMPT
+            content_field = "subject"
+        else:
+            CHUNK_SIZES = [10, 5, 3]
+            prompt_template = FORM_PROMPT
+            content_field = "content_explanation"
+
+        MAX_CONSECUTIVE_FAILURES = 5
+        MAX_TOTAL_FAILURES = 10
+
+        consecutive_failures = 0
+        total_failures = 0
+        chunk_size_idx = 0
+        
+        current_page_index = 0
+        
+        while current_page_index < len(pages):
+            if total_failures >= MAX_TOTAL_FAILURES:
+                raise RuntimeError("Hard fail: 10 total failures in grouping boundary detection.")
                 
-            overlap = 1 if end_index < len(pages) else 0
-            current_page_index = end_index - overlap
-            consecutive_failures = 0
+            chunk_size = CHUNK_SIZES[chunk_size_idx]
+            end_index = min(current_page_index + chunk_size, len(pages))
             
-        except ValueError as e:
-            consecutive_failures += 1
-            total_failures += 1
-            logger.warning(f"Validation Error: {e}")
-            if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
-                chunk_size_idx = min(chunk_size_idx + 1, len(CHUNK_SIZES) - 1)
+            try:
+                chunk_groups = _process_chunk(pages, current_page_index, end_index, llm_client, prompt_template, content_field)
+                
+                if final_groups and current_page_index > 0:
+                    overlap_original_idx = getattr(pages[current_page_index], "original_index", current_page_index)
+                    final_groups = merge_chunks(final_groups, chunk_groups, overlap_original_idx)
+                else:
+                    final_groups.extend(chunk_groups)
+                    
+                overlap = 1 if end_index < len(pages) else 0
+                current_page_index = end_index - overlap
                 consecutive_failures = 0
-                logger.warning(f"Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
-        except LLMFailureError:
-            raise
-        except Exception as e:
-            error_str = str(e).lower()
-            if isinstance(e, (RuntimeError, TimeoutError)) or "500" in error_str or "503" in error_str or "servererror" in error_str or "llm routing failed" in error_str:
+                
+            except ValueError as e:
                 consecutive_failures += 1
                 total_failures += 1
-                logger.warning(f"Server Error: {e}")
+                logger.warning(f"Validation Error: {e}")
                 if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
                     chunk_size_idx = min(chunk_size_idx + 1, len(CHUNK_SIZES) - 1)
                     consecutive_failures = 0
                     logger.warning(f"Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
-            else:
-                raise e
+            except LLMFailureError:
+                raise
+            except Exception as e:
+                error_str = str(e).lower()
+                if isinstance(e, (RuntimeError, TimeoutError)) or "500" in error_str or "503" in error_str or "servererror" in error_str or "llm routing failed" in error_str:
+                    consecutive_failures += 1
+                    total_failures += 1
+                    logger.warning(f"Server Error: {e}")
+                    if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
+                        chunk_size_idx = min(chunk_size_idx + 1, len(CHUNK_SIZES) - 1)
+                        consecutive_failures = 0
+                        logger.warning(f"Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
+                else:
+                    raise e
     
     from src.logger import log_decision_trace
     try:

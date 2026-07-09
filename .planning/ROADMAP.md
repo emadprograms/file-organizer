@@ -48,13 +48,13 @@
   - [x] 07-02-PLAN.md — Integrate dynamic schema and implement feedback-driven retry loop
   - [x] 07-03-PLAN.md — Integration audit and test suite update
 
-- [ ] **Phase 8: "True Until Proven Guilty" Grouping Logic**
+- [x] **Phase 8: "True Until Proven Guilty" Grouping Logic**
   - Depends on: None
   - Requirements: PRMPT-01, PRMPT-02, PRMPT-03
   - Success Criteria:
-    - [ ] Documents containing continuation letters across page boundaries are correctly grouped together.
-    - [ ] Un-headered tables and appendices spanning multiple pages are not incorrectly split.
-    - [ ] System groups chunks into larger logical files unless explicit proof of distinct topics is found.
+    - [x] Documents containing continuation letters across page boundaries are correctly grouped together.
+    - [x] Un-headered tables and appendices spanning multiple pages are not incorrectly split.
+    - [x] System groups chunks into larger logical files unless explicit proof of distinct topics is found.
 
 - [ ] **Phase 9: Rate Limiting & Router Safety Net**
   - Depends on: 7

@@ -1,11 +1,25 @@
 import pytest
 import logging
+from unittest.mock import MagicMock, patch
 from src.processing.grouping.utils import verify_groups, merge_chunks
-from src.processing.grouping.core import process_with_shrink, GROUPING_PROMPT
-from src.core.schemas import GroupEntry, DocumentGroup
+from src.processing.grouping.core import process_with_shrink, _process_chunk
+from src.processing.grouping.config import FORM_PROMPT, LETTER_PROMPT, OTHER_PROMPT
+from src.core.schemas import GroupEntry, DocumentGroup, GroupingResponse
 from types import SimpleNamespace
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
+
+class MockPage:
+    def __init__(self, index, category, tenant="Test Tenant", date="2023-01-01", content_explanation="Some content", subject="Some subject"):
+        self.original_index = index
+        self.category = category
+        self.canonical_tenant = tenant
+        self.resolved_date = date
+        self.date = date
+        self.content_explanation = content_explanation
+        self.subject = subject
+
+# --- Utils Tests ---
 
 def test_verification_logic():
     # Valid
@@ -63,57 +77,137 @@ def test_overlap_merge():
     assert merged[2].start_page == 13
     assert merged[2].end_page == 15
 
-from src.processing.grouping.core import process_with_shrink, GROUPING_PROMPT
-from src.core.schemas import GroupingResponse
+# --- Core Unit Tests ---
 
-class MockGroup:
-    def __init__(self, start, end, reason, brief):
-        self.start_page = start
-        self.end_page = end
-        self.reason = reason
-        self.brief_arabic_title = brief
+def test_process_chunk_metadata_extraction():
+    pages = [
+        MockPage(index=100, category="forms", tenant="Tenant A", date="2023-05-01"),
+        MockPage(index=101, category="forms", tenant="Tenant A", date="2023-05-02"),
+    ]
+    llm_client = MagicMock()
+    llm_client.generate_content.return_value = GroupingResponse(
+        groups=[GroupEntry(start_page=0, end_page=1, reason="Grouped", brief_arabic_title="Title")]
+    )
+    
+    groups = _process_chunk(pages, 0, 2, llm_client, FORM_PROMPT)
+    
+    assert len(groups) == 1
+    g = groups[0]
+    assert g.start_page == 100
+    assert g.end_page == 101
+    assert g.primary_tenant == "Tenant A"
+    assert g.category == "forms"
+    assert "2023-05-01" in g.dates
+    assert "2023-05-02" in g.dates
+    assert g.reason == "Grouped"
 
-class MockResponse:
-    def __init__(self, groups):
-        self.groups = groups
+def test_process_with_shrink_deterministic_bypasses():
+    llm_client = MagicMock()
+    
+    # Contract: 1 group
+    pages_contract = [MockPage(0, "contract"), MockPage(1, "contract")]
+    groups_contract = process_with_shrink(pages_contract, llm_client)
+    assert len(groups_contract) == 1
+    assert groups_contract[0].start_page == 0
+    assert groups_contract[0].end_page == 1
+    
+    # ID Cards: 1 group
+    pages_id = [MockPage(0, "id_cards"), MockPage(1, "id_cards")]
+    groups_id = process_with_shrink(pages_id, llm_client)
+    assert len(groups_id) == 1
+    assert groups_id[0].start_page == 0
+    assert groups_id[0].end_page == 1
 
-class MockLLMForOverlap:
-    def __init__(self):
-        self.calls = []
-        self.chunk_ranges = []
+    # Utility Bills: 1 group per page
+    pages_bills = [MockPage(0, "utility_bills"), MockPage(1, "utility_bills")]
+    groups_bills = process_with_shrink(pages_bills, llm_client)
+    assert len(groups_bills) == 2
+    assert groups_bills[0].start_page == 0 and groups_bills[0].end_page == 0
+    assert groups_bills[1].start_page == 1 and groups_bills[1].end_page == 1
+    
+    llm_client.generate_content.assert_not_called()
 
-    def generate_content(self, model, contents, response_schema=None, is_boundary_call=False, config=None, **kwargs):
-        self.calls.append(contents)
-        import re
-        match = re.search(r"Chunk range: Page (\d+) to Page (\d+)", contents[0])
-        if match:
-            start = int(match.group(1))
-            end = int(match.group(2))
-            self.chunk_ranges.append((start, end))
-            return MockResponse([MockGroup(start, end, "reason", "title")])
-        raise ValueError("Prompt doesn't match")
+def test_process_with_shrink_default_routing():
+    llm_client = MagicMock()
+    llm_client.generate_content.return_value = GroupingResponse(
+        groups=[GroupEntry(start_page=0, end_page=0, reason="R", brief_arabic_title="T")]
+    )
+    
+    # "unknown" category should route to FORM_PROMPT
+    pages = [MockPage(0, "unknown")]
+    process_with_shrink(pages, llm_client)
+    
+    # Verify prompt used in generate_content call
+    args, kwargs = llm_client.generate_content.call_args
+    prompt = kwargs['contents'][0] if 'contents' in kwargs else args[0][0]
+    assert FORM_PROMPT in prompt
 
+def test_process_with_shrink_adaptive_chunking():
+    llm_client = MagicMock()
+    # Simulate validation errors to trigger shrinking
+    llm_client.generate_content.side_effect = ValueError("Validation failed")
+    
+    pages = [MockPage(i, "forms") for i in range(20)]
+    
+    with pytest.raises(RuntimeError, match="Hard fail: 10 total failures"):
+        process_with_shrink(pages, llm_client)
+    
+    # Check if shrinking happened: if it started at 10, it should have tried shrinking
+    # Total failures = 10. Consecutive = 5 -> shrink. Consecutive = 5 -> shrink.
+    # We can't easily check internal chunk_size_idx, but we can verify the call count.
+    assert llm_client.generate_content.call_count == 10
+
+@patch("src.logger.log_decision_trace")
+def test_process_with_shrink_telemetry(mock_log):
+    llm_client = MagicMock()
+    llm_client.generate_content.return_value = GroupingResponse(
+        groups=[GroupEntry(start_page=0, end_page=0, reason="R", brief_arabic_title="T")]
+    )
+    
+    pages = [MockPage(0, "forms")]
+    process_with_shrink(pages, llm_client)
+    
+    mock_log.assert_called_once()
+    args = mock_log.call_args[0]
+    assert args[0] == "grouping"
+    assert "final_groups" in args[1]
+
+def test_grouping_e2e_scenario():
+    llm_client = MagicMock()
+    
+    # Scenario: Pages 0-2 are a letter (1 group), Pages 3-4 are a form (2 groups)
+    # We'll need a side_effect for generate_content to return different things
+    def llm_side_effect(contents, **kwargs):
+        prompt = contents[0]
+        if "Page 0 to Page 4" in prompt or "Page 0 to Page 2" in prompt:
+            # First chunk (0-4). Must end at 4.
+            return GroupingResponse(groups=[
+                GroupEntry(start_page=0, end_page=2, reason="Letter", brief_arabic_title="L"),
+                GroupEntry(start_page=3, end_page=4, reason="Forms", brief_arabic_title="F")
+            ])
+        if "Page 3 to Page 4" in prompt:
+            # Overlap chunk (3-4). Must end at 4.
+            return GroupingResponse(groups=[
+                GroupEntry(start_page=3, end_page=3, reason="Form1", brief_arabic_title="F1"),
+                GroupEntry(start_page=4, end_page=4, reason="Form2", brief_arabic_title="F2"),
+            ])
+        return GroupingResponse(groups=[])
+
+    llm_client.generate_content.side_effect = llm_side_effect
+    
+    # 5 pages total. 0-2 letters, 3-4 forms.
+    # But process_with_shrink takes category from pages[0].
+    # If we want mixed categories, we'd need to use category_presplit first,
+    # but process_with_shrink assumes a single category for the whole list.
+    # Let's test it with one category "forms" and see how it groups.
+
+    pages = [MockPage(i, "forms") for i in range(5)]
+    groups = process_with_shrink(pages, llm_client)
+
+    assert len(groups) == 2
+    assert groups[0].start_page == 0 and groups[0].end_page == 2
+    assert groups[1].start_page == 3 and groups[1].end_page == 4
 
 def test_boundary_signals():
-    assert "subject/content shift" in GROUPING_PROMPT
-    assert "DO NOT split on date changes" in GROUPING_PROMPT
-
-def test_response_has_reasoning():
-    from src.core.schemas import GroupEntry
-    assert "reason" in GroupEntry.model_fields
-    assert "brief_arabic_title" in GroupEntry.model_fields
-
-def test_schema_validation():
-    data = {
-        "groups": [
-            {
-                "start_page": 0,
-                "end_page": 2,
-                "reason": "Because",
-                "brief_arabic_title": "Test"
-            }
-        ]
-    }
-    obj = GroupingResponse(**data)
-    assert len(obj.groups) == 1
-    assert obj.groups[0].reason == "Because"
+    assert "subject/content shift" in FORM_PROMPT
+    assert "DO NOT split on date changes" in FORM_PROMPT
