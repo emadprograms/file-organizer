@@ -14,7 +14,7 @@
 - [ ] **RES-03**: Remove the global consecutive routing failures permanent lockout in the router. [Mapped to Phase 9]
 
 ### Chunk State Management
-- [ ] **GRP-01**: Decrease grouping chunk sizes to [4, 3, 2] and set consecutive failures limit to 3. [Mapped to Phase 10]
+- [ ] **GRP-01**: Decrease grouping chunk sizes to [4, 3, 2] and dynamic failure thresholds (e.g. immediate drop for fatal errors, 5 full loops for minimum size). [Mapped to Phase 10]
 - [ ] **GRP-02**: Ensure the chunk size index and failure counter are properly reset to 0 upon processing a successful chunk. [Mapped to Phase 10]
 - [ ] **GRP-03**: Restructure the failure counter so that exhausting the chunk limit gracefully halts the pipeline instead of crashing blindly, enabling the checkpoint system. [Mapped to Phase 10]
 - [ ] **GRP-04**: Prevent the overlap merging logic from blindly merging chunks mathematically; ensure it respects LLM boundaries. [Mapped to Phase 10]

@@ -71,7 +71,7 @@
   - Depends on: 8, 9
   - Requirements: GRP-01, GRP-02, GRP-03, GRP-04
   - Success Criteria:
-    - [ ] Grouping mechanism processes pages in chunks of 4, 3, then 2 upon 3 consecutive failures.
+    - [ ] Grouping mechanism processes pages in chunks of 4, 3, then 2 with immediate drop on fatal errors, and up to 5 loop failures tolerated at size 2.
     - [ ] Exhausting grouping attempts gracefully halts the pipeline, enabling checkpoint resuming.
     - [ ] Chunk success correctly resets the chunk size index and failure counter to 0.
     - [ ] Merged documents respect logical boundaries without arbitrary overlap merging.

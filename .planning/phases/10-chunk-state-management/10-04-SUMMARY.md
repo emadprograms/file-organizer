@@ -13,7 +13,7 @@ All requirements have been mapped to passing test cases in `tests/test_grouping.
 - **GRP-04 (Anchor Merge):** Verified by `test_anchor_page_merging` and `test_overlap_merge`.
 
 ### Resilience Audit
-The "Hard Halt" scenario was verified by simulating process interruptions and confirming that the system recovers `current_page_index` and `chunk_size_index` from `grouping_state.json`. The shrink sequence (5 -> 3 -> 2) was also verified to function correctly across restarts.
+The "Hard Halt" scenario was verified by simulating process interruptions and confirming that the system recovers `current_page_index` and `chunk_size_index` from `grouping_state.json`. The shrink sequence (4 -> 3 -> 2) was also verified to function correctly across restarts.
 
 ## Artifacts Created/Updated
 - `.planning/phases/10-chunk-state-management/VALIDATION.md`: Updated to "Pass" for all items.

@@ -16,9 +16,14 @@ The primary goal is to transition from a volatile, index-based shrinking system 
 
 ### Locked Decisions
 - **Chunk Size Sequence:** The system will process pages in chunks of **5, 3, then 2**.
-- **Failure Definition:** One "fail" is defined as a **full rotation through the provider cycle** (Gemini $ightarrow$ Secondary $ightarrow$ Gemini $ightarrow$ Secondary).
-- **Shrink Trigger:** If a full provider rotation fails, reduce chunk size (5 $ightarrow$ 3 $ightarrow$ 2).
-- **Reset Logic:** Upon success, reset chunk size index to **0** (size 5).
+- **Failure Definition:** One "fail" is defined as a **full rotation through the provider cycle** (Gemini $
+ightarrow$ Secondary $
+ightarrow$ Gemini $
+ightarrow$ Secondary).
+- **Shrink Trigger:** If a full provider rotation fails, reduce chunk size (5 $
+ightarrow$ 3 $
+ightarrow$ 2).
+- **Reset Logic:** Upon success, reset chunk size index to **0** (size 4).
 - **Persistent Failure State:** `current_chunk_size_index` and `failure_count` must be persisted to disk to survive "Hard Halts".
 - **Checkpointing Frequency:** Save a checkpoint **after every single LLM response**.
 - **Halt Behavior:** When chunk size 2 fails, trigger a graceful halt and save state.
@@ -93,7 +98,8 @@ A `GroupingStateManager` should be introduced to encapsulate state operations.
     - **Trigger Atomic Checkpoint.**
 - **After Provider Rotation Failure:**
     - Increment `failure_count`.
-    - If rotation complete $ightarrow$ increment `chunk_size_index`.
+    - If rotation complete $
+ightarrow$ increment `chunk_size_index`.
     - **Trigger Atomic Checkpoint.**
 
 ### 2. Anchor Page Merging Logic
@@ -120,8 +126,12 @@ The failure logic must be tied to the `LLMClient`'s rotation.
 
 **Logic Flow:**
 - Call `_process_chunk`.
-- If it fails $ightarrow$ catch `LLMFailureError` (or the specific rotation failure).
-- Track if the `LLMClient` has completed a full cycle (Gemini $ightarrow$ Sec $ightarrow$ Gemini $ightarrow$ Sec).
+- If it fails $
+ightarrow$ catch `LLMFailureError` (or the specific rotation failure).
+- Track if the `LLMClient` has completed a full cycle (Gemini $
+ightarrow$ Sec $
+ightarrow$ Gemini $
+ightarrow$ Sec).
 - Only when the cycle is complete, increment the `chunk_size_index`.
 - If `chunk_size_index` reaches the end of `[5, 3, 2]`, raise a `GracefulHaltException`.
 
@@ -156,10 +166,13 @@ The failure logic must be tied to the `LLMClient`'s rotation.
 - **Framework:** `pytest`
 - **Focus:** Mocking `LLMClient` to simulate failures and verifying that the `grouping_state.json` is updated correctly.
 
-### Phase Requirements $ightarrow$ Test Map
+### Phase Requirements $
+ightarrow$ Test Map
 | Req ID | Behavior | Test Type | Automated Command |
 |--------|----------|-----------|-------------------|
-| GRP-01 | Chunk size shrinks 5 $ightarrow$ 3 $ightarrow$ 2 | unit | `pytest tests/test_grouping.py::test_shrink_logic` |
+| GRP-01 | Chunk size shrinks 5 $
+ightarrow$ 3 $
+ightarrow$ 2 | unit | `pytest tests/test_grouping.py::test_shrink_logic` |
 | GRP-02 | Resume from state file | integration | `pytest tests/test_grouping.py::test_resume_from_state` |
 | GRP-03 | Merge on anchor page | unit | `pytest tests/test_grouping.py::test_anchor_merge` |
 | GRP-04 | Halt at size 2 failure | unit | `pytest tests/test_grouping.py::test_graceful_halt` |
