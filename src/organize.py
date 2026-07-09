@@ -114,6 +114,7 @@ def run_grouping_pass(cleaned_pages: list, house_id: str, output_dir: Path, llm_
     checkpoint_dir = output_dir / "checkpoints"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     grouped_checkpoint_path = checkpoint_dir / f"{house_id}_grouped.json"
+    run_checkpoint_path = checkpoint_dir / f"{house_id}_runs_checkpoint.json"
     
     if grouped_checkpoint_path.exists():
         logger.info(f"Skipping Pass 2 (found {grouped_checkpoint_path}). Loading grouped documents.")
@@ -126,7 +127,7 @@ def run_grouping_pass(cleaned_pages: list, house_id: str, output_dir: Path, llm_
     pipeline = Pipeline(api_key=os.getenv("GEMINI_API_KEY"))
     pipeline.client = llm_client
     
-    documents = pipeline._group_and_route_documents(raw_pages)
+    documents = pipeline._group_and_route_documents(raw_pages, str(run_checkpoint_path))
     
     if not dry_run:
         from src.fs_utils import atomic_write
