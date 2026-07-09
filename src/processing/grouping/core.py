@@ -141,6 +141,10 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
             end_index = min(current_page_index + chunk_size, len(pages))
             
             try:
+                start_orig = getattr(pages[current_page_index], "original_index", current_page_index)
+                end_orig = getattr(pages[end_index - 1], "original_index", end_index - 1)
+                logger.info(f"Processing chunk for category '{category}'. Chunk size: {chunk_size}. Pages: [{start_orig}-{end_orig}]")
+                
                 chunk_groups = _process_chunk(pages, current_page_index, end_index, llm_client, prompt_template, content_field)
                 
                 if final_groups and current_page_index > 0:
@@ -148,6 +152,9 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
                     final_groups = merge_chunks(final_groups, chunk_groups, overlap_original_idx)
                 else:
                     final_groups.extend(chunk_groups)
+                    
+                group_details = [f"Group {idx+1} (pages {g.start_page}-{g.end_page})" for idx, g in enumerate(chunk_groups)]
+                logger.info(f"Grouping complete for chunk. Identified {len(chunk_groups)} groups: {', '.join(group_details)}")
                     
                 overlap = 1 if end_index < len(pages) else 0
                 current_page_index = end_index - overlap
@@ -243,5 +250,5 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
         payload_groups = []
         
     log_decision_trace("grouping", {"final_groups": payload_groups})
-    logger.info(f"Grouping complete. Identified {len(final_groups)} groups.")
+    logger.info(f"Run complete for category '{category}'. Total groups identified: {len(final_groups)}")
     return final_groups

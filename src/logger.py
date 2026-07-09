@@ -83,7 +83,7 @@ def setup_logging(run_id: str = None, verbose: bool = False) -> str:
     else:
         # Permissive Blacklist: Root DEBUG, block noisy libraries
         root_logger.setLevel(logging.DEBUG)
-        for library in ["openai", "google-genai", "urllib3", "httpcore"]:
+        for library in ["openai", "google_genai", "google_genai.models", "urllib3", "httpcore"]:
             logging.getLogger(library).setLevel(logging.WARNING)
     
     # Formatters
