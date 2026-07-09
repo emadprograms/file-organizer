@@ -135,7 +135,8 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
     DIRECT_ROUTING_MAP = {
         "contract": "عقود",
         "id_cards": "بيانات شخصية",
-        "utility_bills": "كهرباء وماء"
+        "utility_bills": "كهرباء وماء",
+        "pictures": "صور ومعاينات"
     }
 
     if category in DIRECT_ROUTING_MAP:
