@@ -249,14 +249,12 @@ def test_resilient_loop_shrink(tmp_path):
     groups = process_with_shrink(pages, llm_client, state_manager=manager)
     
     assert len(groups) > 0
-    # Verify shrink happened after 3 failures
+    # Verify shrink happened after 1 failure
     calls = llm_client.generate_content.call_args_list
     first_prompt = calls[0].args[0][0] if calls[0].args else calls[0].kwargs['contents'][0]
-    third_prompt = calls[2].args[0][0] if calls[2].args else calls[2].kwargs['contents'][0]
-    fourth_prompt = calls[3].args[0][0] if calls[3].args else calls[3].kwargs['contents'][0]
+    second_prompt = calls[1].args[0][0] if calls[1].args else calls[1].kwargs['contents'][0]
     assert "Page 0 to Page 3" in first_prompt
-    assert "Page 0 to Page 3" in third_prompt
-    assert "Page 0 to Page 2" in fourth_prompt
+    assert "Page 0 to Page 2" in second_prompt
 
 def test_resilient_loop_halt(tmp_path):
     state_file = tmp_path / "halt.state.json"

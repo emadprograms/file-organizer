@@ -171,7 +171,7 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
                 logger.warning(f"Rotation failure at size {CHUNK_SIZES[chunk_size_idx]}: {e}")
                 
                 if CHUNK_SIZES[chunk_size_idx] == 4:
-                    threshold = 3
+                    threshold = 1
                 elif CHUNK_SIZES[chunk_size_idx] == 3:
                     threshold = 1
                 elif CHUNK_SIZES[chunk_size_idx] == 2:
