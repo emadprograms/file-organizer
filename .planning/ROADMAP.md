@@ -23,6 +23,7 @@
 - [x] Phase 4: Logging Infrastructure Refactor (1/1 plans)
 - [x] Phase 5: Global Logger Migration (4/4 plans)
   Plans:
+
   - [x] 05-01-PLAN.md — Standardize hierarchical loggers and variable names
   - [x] 05-02-PLAN.md — Convert telemetry print() statements to loggers
   - [x] 05-03-PLAN.md — Separate UI (Rich) from telemetry and sync verbosity
@@ -44,6 +45,7 @@
     - [x] Pipeline logs validation errors correctly when avoiding mis-routed documents.
 
   Plans:
+
   - [x] 07-01-PLAN.md — Implement dynamic routing schema enforcement using Pydantic create_model
   - [x] 07-02-PLAN.md — Integrate dynamic schema and implement feedback-driven retry loop
   - [x] 07-03-PLAN.md — Integration audit and test suite update
@@ -56,7 +58,7 @@
     - [x] Un-headered tables and appendices spanning multiple pages are not incorrectly split.
     - [x] System groups chunks into larger logical files unless explicit proof of distinct topics is found.
 
-- [ ] **Phase 9: Rate Limiting & Router Safety Net**
+- [x] **Phase 9: Rate Limiting & Router Safety Net** (completed 2026-07-09)
   - Depends on: 7
   - Requirements: RES-01, RES-02, RES-03
   - Success Criteria:
@@ -85,5 +87,5 @@
 | 6. Validation and Audit | v1.1 | 1/1 | Complete | 2026-07-08 |
 | 7. Anti-Hallucination Schema Enforcement | v1.2 | 3/3 | Complete | 2026-07-08 |
 | 8. "True Until Proven Guilty" Grouping Logic | v1.2 | 0/0 | Pending | — |
-| 9. Rate Limiting & Router Safety Net | v1.2 | 0/0 | Pending | — |
+| 9. Rate Limiting & Router Safety Net | v1.2 | 3/2 | Complete    | 2026-07-09 |
 | 10. Chunk State Management | v1.2 | 0/0 | Pending | — |
