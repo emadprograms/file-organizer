@@ -134,8 +134,8 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
             total_failures = 0
         
         while current_page_index < len(pages):
-            if total_failures >= 10:
-                raise RuntimeError("Hard fail: 10 total failures in grouping boundary detection.")
+            if total_failures >= 20:
+                raise RuntimeError("Hard fail: 20 total failures in grouping boundary detection.")
                 
             chunk_size = CHUNK_SIZES[chunk_size_idx]
             end_index = min(current_page_index + chunk_size, len(pages))
@@ -170,7 +170,15 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
                 current_chunk_failure_count += 1
                 logger.warning(f"Rotation failure at size {CHUNK_SIZES[chunk_size_idx]}: {e}")
                 
-                threshold = 3 if chunk_size_idx == 0 else 1
+                if CHUNK_SIZES[chunk_size_idx] == 4:
+                    threshold = 3
+                elif CHUNK_SIZES[chunk_size_idx] == 3:
+                    threshold = 1
+                elif CHUNK_SIZES[chunk_size_idx] == 2:
+                    threshold = 5
+                else:
+                    threshold = 1
+                    
                 if current_chunk_failure_count >= threshold:
                     if chunk_size_idx < len(CHUNK_SIZES) - 1:
                         chunk_size_idx += 1
@@ -195,12 +203,35 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
                 current_chunk_failure_count += 1
                 logger.warning(f"Processing Error (not rotation exhausted): {e}")
                 
-                threshold = 3 if chunk_size_idx == 0 else 1
+                error_str = str(e).lower()
+                is_fatal_error = any(term in error_str for term in ["500", "503", "parse", "parsing", "token", "8000", "too large"])
+
+                if CHUNK_SIZES[chunk_size_idx] == 4:
+                    threshold = 1 if is_fatal_error else 3
+                elif CHUNK_SIZES[chunk_size_idx] == 3:
+                    threshold = 1
+                elif CHUNK_SIZES[chunk_size_idx] == 2:
+                    threshold = 3
+                else:
+                    threshold = 1
+                    
                 if current_chunk_failure_count >= threshold:
                     if chunk_size_idx < len(CHUNK_SIZES) - 1:
                         chunk_size_idx += 1
                         current_chunk_failure_count = 0
                         logger.warning(f"Shrinking chunk size due to error to {CHUNK_SIZES[chunk_size_idx]}")
+                    else:
+                        if state_manager:
+                            state_manager.save_state(GroupingState(
+                                current_page_index=current_page_index,
+                                chunk_size_index=chunk_size_idx,
+                                current_chunk_failure_count=current_chunk_failure_count,
+                                failure_count=total_failures,
+                                processed_groups=[g.model_dump() for g in final_groups]
+                            ))
+                        raise GracefulHaltException(f"Grouping failed at minimum chunk size {CHUNK_SIZES[-1]} due to repeated processing errors. Halting gracefully.") from e
+                else:
+                    logger.info(f"Error {current_chunk_failure_count}/{threshold} at size {CHUNK_SIZES[chunk_size_idx]}. Retrying same size.")
                 continue
             except Exception as e:
                 raise e
