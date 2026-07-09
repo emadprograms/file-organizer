@@ -25,8 +25,8 @@ class RoutingValidationError(PipelineHaltError):
     pass
 
 class RoutingResponse(BaseModel):
-    selected_folder: str = Field(description="The exact name of the selected folder from the allowed list")
     reason: str = Field(description="Explanation of why this folder was selected")
+    selected_folder: str = Field(description="The exact name of the selected folder from the allowed list")
 
     @field_validator('selected_folder')
     @classmethod
@@ -128,7 +128,7 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
     
     # Trigger double-check for others immediately
     if category == "others":
-        logger.info(f"Category '{category}' detected. Triggering double-check flow.")
+        logger.info(f"Category '{category}' detected for pages {group.start_page}-{group.end_page}. Triggering double-check flow.")
         folder = double_check_others(group, llm_client)
         return folder, False
 
@@ -213,11 +213,11 @@ Respond only with a valid JSON matching the requested schema. The selected_folde
             
             # Handle Escape Hatch
             if selected == ESCAPE_HATCH:
-                logger.info(f"Document routed to escape hatch '{ESCAPE_HATCH}'. Triggering double-check flow.")
+                logger.info(f"Document (pages {group.start_page}-{group.end_page}) routed to escape hatch '{ESCAPE_HATCH}'. Triggering double-check flow.")
                 selected = double_check_others(group, llm_client)
                 reason = "Routed via escape hatch -> Double-check"
             
-            logger.info(f"Routed category '{category}' to '{selected}'. Reason: {reason}")
+            logger.info(f"Routed category '{category}' (pages {group.start_page}-{group.end_page}) to '{selected}'. Reason: {reason}")
             from src.logger import log_decision_trace
             log_decision_trace("routing", {"category": category, "selected": selected, "reason": reason})
             

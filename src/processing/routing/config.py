@@ -25,25 +25,9 @@ for folder, data in FOLDER_ROUTING.items():
     for cat in data["cats"]:
         CATEGORY_TO_FOLDERS.setdefault(cat, []).append(folder)
 
-FOLDER_PREFIXES: dict[str, str] = {
-    "بيانات أساسية": "1",
-    "بيانات شخصية": "2",
-    "أمر تخصيص": "3",
-    "محضر تسليم مفتاح": "4",
-    "عقود": "5",
-    "كهرباء وماء": "6",
-    "استقطاع إيجار": "7",
-    "وقف استقطاع بدل": "8",
-    "إشعارات": "9",
-    "صيانة": "10",
-    "صور ومعاينات": "11",
-    "تعديلات": "12",
-    "رسائل متنوعة": "13",
-}
-
 # Groupings for constrained routing
 FORM_CATEGORIES = {"BASIC_DETAILS", "KEY_HANDOVER", "MAINTENANCE", "MODIFICATIONS"}
-FORM_FOLDERS = {"بيانات أساسية", "محضر تسليم مفتاح", "صيانة", "تعديلات", "رسائل متنوعة"}
+FORM_FOLDERS = {"بيانات أساسية", "محضر تسليم مفتاح", "صيانة", "تعديلات", "كهرباء وماء", "صور ومعاينات", "رسائل متنوعة"}
 
 LETTER_CATEGORIES = {"AMAR_TAKHSEES", "RENT_DEDUCTION", "ALLOWANCE_DEDUCTION", "NOTIFICATIONS"}
 LETTER_FOLDERS = {"أمر تخصيص", "استقطاع إيجار", "وقف استقطاع بدل", "إشعارات", "كهرباء وماء", "رسائل متنوعة"}
