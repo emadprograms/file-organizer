@@ -7,7 +7,7 @@ import logging
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
 from dataclasses import dataclass
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, AliasChoices
 
 class DocumentGroup(BaseModel):
     """A group of consecutive pages belonging to the same document segment."""
@@ -26,9 +26,11 @@ class GroupEntry(BaseModel):
     start_page: int = Field(description="First page index of this document group (0-indexed)")
     end_page: int = Field(description="Last page index of this document group (0-indexed, inclusive)")
     reason: str = Field(description="Why these pages belong together — what subject/content connects them")
-    brief_arabic_title: str = Field(description="Short Arabic title describing this document group")
+    brief_arabic_title: str = Field(
+        description="Short Arabic title describing this document group",
+        validation_alias=AliasChoices('brief_arabic_title', 'title', 'arabic_title')
+    )
 
-from pydantic import AliasChoices
 class GroupingResponse(BaseModel):
     """The structured response from the LLM for a single boundary detection chunk."""
     groups: list[GroupEntry] = Field(
