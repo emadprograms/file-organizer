@@ -66,6 +66,7 @@
     - [x] Critical runtime errors immediately halt the pipeline.
     - [x] A single routing failure does not cause a permanent lockout for subsequent routing requests.
 
+
 - [ ] **Phase 10: Chunk State Management**
   - Depends on: 8, 9
   - Requirements: GRP-01, GRP-02, GRP-03, GRP-04
@@ -82,6 +83,18 @@
   - [ ] 10-04-PLAN.md — Final verification of resilience and adaptive chunking
 
 
+- [ ] **Phase 11: Conditional LLM Folder Routing and Folder Renaming**
+  - Depends on: 10
+  - Requirements: TBD
+  - Success Criteria:
+    - [ ] Folder mappings are updated across the application to match the Arabic folder names.
+    - [ ] Strict 1:1 mapping is established between English YAML categories and Arabic target folders.
+    - [ ] ID, Contract, Utility Bills, and Pictures are routed entirely in Python without an LLM call.
+    - [ ] Forms and Letters dynamically constrain the LLM routing prompt to only allowed sub-folders.
+    - [ ] 'Others' classification utilizes a two-step LLM double-check with fallback to Miscellaneous.
+    - [ ] Tests are added/updated to verify this new constrained routing schema.
+
+
 ## Progress
 
 | Phase             | Milestone | Plans Complete | Status      | Completed  |
@@ -96,3 +109,4 @@
 | 8. "True Until Proven Guilty" Grouping Logic | v1.2 | 0/0 | Pending | — |
 | 9. Rate Limiting & Router Safety Net | v1.2 | 3/2 | Complete    | 2026-07-09 |
 | 10. Chunk State Management | v1.2 | 0/0 | Pending | — |
+| 11. Conditional LLM Folder Routing and Folder Renaming | v1.2 | 0/0 | Pending | — |

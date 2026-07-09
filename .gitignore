@@ -40,3 +40,7 @@ node_modules/
 /detect_*.ps1
 /commit_reviews.ps1
 
+# Misc
+sample-config.yaml
+Screenshot 2026-06-23 113046.png
+
