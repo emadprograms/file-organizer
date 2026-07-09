@@ -2,7 +2,7 @@
 
 import logging
 from typing import Any
-from pydantic import BaseModel, Field, field_validator, ValidationInfo, ValidationError
+from pydantic import BaseModel, Field, field_validator, ValidationInfo, ValidationError, AliasChoices
 from src.core.schemas import DocumentGroup
 from src.llm.llm import LLMFailureError
 from src.processing.routing.config import (
@@ -25,7 +25,10 @@ class RoutingValidationError(PipelineHaltError):
     pass
 
 class RoutingResponse(BaseModel):
-    reason: str = Field(description="Explanation of why this folder was selected")
+    reason: str = Field(
+        validation_alias=AliasChoices('reason', 'reasoning'),
+        description="Explanation of why this folder was selected"
+    )
     selected_folder: str = Field(description="The exact name of the selected folder from the allowed list")
 
     @field_validator('selected_folder')

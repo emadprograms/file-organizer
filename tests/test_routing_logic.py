@@ -3,11 +3,16 @@ from unittest.mock import MagicMock
 from src.core.schemas import DocumentGroup
 from src.processing.routing.router import route_document, RoutingResponse, RoutingValidationError
 
+import pytest
+from unittest.mock import MagicMock
+from src.core.schemas import DocumentGroup
+from src.processing.routing.router import route_document, RoutingResponse, RoutingValidationError
+
 def test_route_document_single_match():
-    # 'PERSONAL_DETAILS' is a SINGLE_MATCH (mapped only to 'بيانات شخصية')
+    # 'id_cards' is mapped directly to 'بيانات شخصية'
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="T1", 
-        category="PERSONAL_DETAILS", dates=[], reason="R1"
+        category="id_cards", dates=[], reason="R1"
     )
     llm_client = MagicMock()
     
@@ -18,21 +23,22 @@ def test_route_document_single_match():
     llm_client.generate_content.assert_not_called()
 
 def test_route_document_no_mapping():
-    # 'unknown_cat' is not in CATEGORY_TO_FOLDERS
+    # 'unknown_cat' falls back to 'forms' and will try LLM. We mock LLM to fail.
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="T1", 
         category="unknown_cat", dates=[], reason="R1"
     )
     llm_client = MagicMock()
+    llm_client.generate_content.side_effect = Exception("API Error")
     
     with pytest.raises(RoutingValidationError):
         route_document(group, llm_client)
 
 def test_route_document_multi_match_success():
-    # 'BASIC_DETAILS' is currently a SINGLE_MATCH (mapped only to 'بيانات أساسية')
+    # 'forms' requires LLM to route
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="T1", 
-        category="BASIC_DETAILS", dates=[], reason="R1", brief_arabic_title="Application"
+        category="forms", dates=[], reason="R1", brief_arabic_title="Application"
     )
     llm_client = MagicMock()
     
@@ -43,20 +49,17 @@ def test_route_document_multi_match_success():
     folder, is_direct = route_document(group, llm_client)
     
     assert folder == "بيانات أساسية"
-    assert is_direct is True
-    # Note: since it's SINGLE_MATCH, llm_client.generate_content is NOT called.
-    # If we wanted to test LLM, we'd need a category with multiple mappings.
+    assert is_direct is False
+    assert llm_client.generate_content.called
 
 def test_route_document_multi_match_invalid_folder():
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="T1", 
-        category="OTHER_LETTERS", dates=[], reason="R1"
+        category="others", dates=[], reason="R1"
     )
     llm_client = MagicMock()
     
-    # LLM returns a folder NOT in the allowed list for 'OTHER_LETTERS'
-    # In double_check_others, the allowed list is all folders.
-    from pydantic import ValidationError
+    # LLM returns a ValueError on double_check_others
     llm_client.generate_content.side_effect = ValueError("Invalid folder")
     
     # double_check_others falls back to 'رسائل متنوعة' instead of raising RoutingValidationError
@@ -66,7 +69,7 @@ def test_route_document_multi_match_invalid_folder():
 def test_route_document_llm_failure_fallback():
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="T1", 
-        category="OTHER_LETTERS", dates=[], reason="R1"
+        category="others", dates=[], reason="R1"
     )
     llm_client = MagicMock()
     llm_client.generate_content.side_effect = Exception("API Error")
