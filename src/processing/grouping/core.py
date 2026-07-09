@@ -141,9 +141,10 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
             end_index = min(current_page_index + chunk_size, len(pages))
             
             try:
+                actual_chunk_size = end_index - current_page_index
                 start_orig = getattr(pages[current_page_index], "original_index", current_page_index)
                 end_orig = getattr(pages[end_index - 1], "original_index", end_index - 1)
-                logger.info(f"Processing chunk for category '{category}'. Chunk size: {chunk_size}. Pages: [{start_orig}-{end_orig}]")
+                logger.info(f"Processing chunk for category '{category}'. Chunk size: {actual_chunk_size}. Pages: [{start_orig}-{end_orig}]")
                 
                 chunk_groups = _process_chunk(pages, current_page_index, end_index, llm_client, prompt_template, content_field)
                 
