@@ -170,13 +170,14 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
                 current_chunk_failure_count += 1
                 logger.warning(f"Rotation failure at size {CHUNK_SIZES[chunk_size_idx]}: {e}")
                 
-                if current_chunk_failure_count >= 3:
+                threshold = 3 if chunk_size_idx == 0 else 1
+                if current_chunk_failure_count >= threshold:
                     if chunk_size_idx < len(CHUNK_SIZES) - 1:
                         chunk_size_idx += 1
                         current_chunk_failure_count = 0
                         logger.warning(f"Threshold reached. Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
                     else:
-                        # GRACEFUL HALT: minimum size failed 3 times
+                        # GRACEFUL HALT: minimum size failed
                         if state_manager:
                             state_manager.save_state(GroupingState(
                                 current_page_index=current_page_index,
@@ -185,16 +186,17 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
                                 failure_count=total_failures,
                                 processed_groups=[g.model_dump() for g in final_groups]
                             ))
-                        raise GracefulHaltException(f"Grouping failed at minimum chunk size {CHUNK_SIZES[-1]} after 3 attempts. Halting gracefully.") from e
+                        raise GracefulHaltException(f"Grouping failed at minimum chunk size {CHUNK_SIZES[-1]}. Halting gracefully.") from e
                 else:
-                    logger.info(f"Failure {current_chunk_failure_count}/3 at size {CHUNK_SIZES[chunk_size_idx]}. Retrying same size.")
+                    logger.info(f"Failure {current_chunk_failure_count}/{threshold} at size {CHUNK_SIZES[chunk_size_idx]}. Retrying same size.")
             
             except (ValueError, LLMFailureError) as e:
                 total_failures += 1
                 current_chunk_failure_count += 1
                 logger.warning(f"Processing Error (not rotation exhausted): {e}")
                 
-                if current_chunk_failure_count >= 3:
+                threshold = 3 if chunk_size_idx == 0 else 1
+                if current_chunk_failure_count >= threshold:
                     if chunk_size_idx < len(CHUNK_SIZES) - 1:
                         chunk_size_idx += 1
                         current_chunk_failure_count = 0
