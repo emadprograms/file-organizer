@@ -92,6 +92,10 @@ class GeminiProvider:
                 if validation_context:
                     return response_schema.model_validate(response.parsed.model_dump(), context=validation_context)
                 return response.parsed
+            
+            if not response.text:
+                raise ValueError("Gemini returned empty text and no parsed object. Output may have been blocked or truncated.")
+                
             text = response.text.strip() # type: ignore
             json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
             if json_match:
@@ -140,7 +144,7 @@ class OpenRouterProvider:
                 prompt_content.append({"type": "image_url", "image_url": {"url": f"data:{part.mime_type};base64,{b64}"}})
         
         messages = [{"role": "user", "content": prompt_content}]
-        kwargs = {"model": OPENROUTER_MODEL, "messages": messages, "temperature": 0} # type: ignore
+        kwargs = {"model": OPENROUTER_MODEL, "messages": messages, "temperature": 0, "max_tokens": 8000} # type: ignore
         if response_schema:
             kwargs["response_format"] = {"type": "json_object"} # type: ignore
             
@@ -197,7 +201,7 @@ class GroqProvider:
                 prompt_content.append({"type": "image_url", "image_url": {"url": f"data:{part.mime_type};base64,{b64}"}})
         
         messages = [{"role": "user", "content": prompt_content}]
-        kwargs = {"model": GROQ_MODEL, "messages": messages, "temperature": 0} # type: ignore
+        kwargs = {"model": GROQ_MODEL, "messages": messages, "temperature": 0, "max_tokens": 8000} # type: ignore
         if response_schema:
             kwargs["response_format"] = {"type": "json_object"} # type: ignore
             

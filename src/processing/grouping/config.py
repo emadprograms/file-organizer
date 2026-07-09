@@ -27,6 +27,7 @@ Example (Hard Reset):
 Expected output: Split between Page 1 and 2. This is a Hard Reset of the subject.
 
 Identify the document groups and provide a brief Arabic title for each group.
+Respond in JSON format.
 """
 
 FORM_PROMPT = """You are an expert Arabic document analyst.
@@ -41,6 +42,7 @@ CRITICAL RULES:
 6. INDEXING: Crucially, use the absolute page numbers provided in the 'Pages Data' section for your `start_page` and `end_page`. Do NOT use relative indexing (starting from 0).
 
 Identify the document groups and provide a brief Arabic title for each group.
+Respond in JSON format.
 """
 
 OTHER_PROMPT = """You are an expert Arabic document analyst.
@@ -54,4 +56,5 @@ CRITICAL RULES:
 5. INDEXING: Crucially, use the absolute page numbers provided in the 'Pages Data' section for your `start_page` and `end_page`. Do NOT use relative indexing (starting from 0).
 
 Identify the document groups and provide a brief Arabic title for each group.
+Respond in JSON format.
 """

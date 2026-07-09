@@ -182,7 +182,9 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
             except (ValueError, LLMFailureError) as e:
                 total_failures += 1
                 logger.warning(f"Processing Error (not rotation exhausted): {e}")
-                # We retry same size, hoping for a different LLM response
+                if chunk_size_idx < len(CHUNK_SIZES) - 1:
+                    chunk_size_idx += 1
+                    logger.warning(f"Shrinking chunk size due to error to {CHUNK_SIZES[chunk_size_idx]}")
                 continue
             except Exception as e:
                 raise e

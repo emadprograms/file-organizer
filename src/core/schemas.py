@@ -28,6 +28,10 @@ class GroupEntry(BaseModel):
     reason: str = Field(description="Why these pages belong together — what subject/content connects them")
     brief_arabic_title: str = Field(description="Short Arabic title describing this document group")
 
+from pydantic import AliasChoices
 class GroupingResponse(BaseModel):
     """The structured response from the LLM for a single boundary detection chunk."""
-    groups: list[GroupEntry] = Field(description="Array of document groups found in this chunk")
+    groups: list[GroupEntry] = Field(
+        description="Array of document groups found in this chunk",
+        validation_alias=AliasChoices('groups', 'document_groups')
+    )
