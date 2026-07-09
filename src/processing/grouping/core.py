@@ -10,7 +10,18 @@ logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def _process_chunk(pages: list[Any], current_page_index: int, end_index: int, llm_client: Any, prompt_template: str, content_field: str = "content_explanation") -> list[DocumentGroup]:
     chunk_pages = pages[current_page_index:end_index]
-    pages_text = "\n".join([f"Page {current_page_index + i}: {getattr(p, content_field, getattr(p, 'content_explanation', ''))}" for i, p in enumerate(chunk_pages)])
+    
+    page_descriptions = []
+    for i, p in enumerate(chunk_pages):
+        main_text = getattr(p, content_field, getattr(p, 'content_explanation', ''))
+        if content_field == "subject":
+            context = getattr(p, 'content_explanation', '')
+            text = f"Subject: {main_text}\nContext: {context}" if context else main_text
+        else:
+            text = main_text
+        page_descriptions.append(f"Page {current_page_index + i}: {text}")
+        
+    pages_text = "\n".join(page_descriptions)
     prompt = f"{prompt_template}\n\nChunk range: Page {current_page_index} to Page {end_index - 1}\n\nPages Data:\n{pages_text}"
     
     response = llm_client.generate_content(

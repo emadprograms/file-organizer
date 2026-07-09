@@ -13,6 +13,7 @@ CRITICAL RULES:
 4. No splitting on date changes, sender changes, or page breaks unless a Hard Reset occurs.
 5. Every page MUST be part of exactly one group. No gaps, no overlaps.
 6. You MUST provide a "reason" string for every group explaining why you grouped these pages together, referencing the "True Until Proven Guilty" logic where applicable.
+7. INDEXING: Crucially, use the absolute page numbers provided in the 'Pages Data' section for your `start_page` and `end_page`. Do NOT use relative indexing (starting from 0).
 
 Example (Continuation):
 - Page 1: Letter regarding Property A dispute.
@@ -37,6 +38,7 @@ CRITICAL RULES:
 3. The first group must start at the first page of the chunk.
 4. The last group must end at the last page of the chunk.
 5. You MUST provide a "reason" string for every group explaining why you grouped these pages together.
+6. INDEXING: Crucially, use the absolute page numbers provided in the 'Pages Data' section for your `start_page` and `end_page`. Do NOT use relative indexing (starting from 0).
 
 Identify the document groups and provide a brief Arabic title for each group.
 """
@@ -49,6 +51,7 @@ CRITICAL RULES:
 2. Every page MUST be part of exactly one group. No gaps, no overlaps.
 3. You MUST provide a "reason" string for every group explaining the boundary decision.
 4. Be extremely strict about boundaries; if there is a clear shift in document type or subject, split.
+5. INDEXING: Crucially, use the absolute page numbers provided in the 'Pages Data' section for your `start_page` and `end_page`. Do NOT use relative indexing (starting from 0).
 
 Identify the document groups and provide a brief Arabic title for each group.
 """
