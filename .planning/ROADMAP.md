@@ -75,6 +75,13 @@
     - [ ] Chunk success correctly resets the chunk size index to 0.
     - [ ] Merged documents respect logical boundaries without arbitrary overlap merging.
 
+  Plans:
+  - [ ] 10-01-PLAN.md — Implement GroupingStateManager for atomic state persistence
+  - [ ] 10-02-PLAN.md — Refactor process_with_shrink for resilient [5, 3, 2] chunking
+  - [ ] 10-03-PLAN.md — Implement LLM-validated Anchor Page merging logic
+  - [ ] 10-04-PLAN.md — Final verification of resilience and adaptive chunking
+
+
 ## Progress
 
 | Phase             | Milestone | Plans Complete | Status      | Completed  |
