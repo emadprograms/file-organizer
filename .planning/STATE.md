@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Pipeline Resilience & Grouping Overhaul
-current_phase: 10 — chunk state management
-current_phase_name: rate-limiting-router-safety-net
+current_phase: 11 — conditional llm folder routing and folder renaming
+current_phase_name: conditional-llm-folder-routing-and-folder-renaming
 status: planning
 last_updated: "2026-07-09T08:53:28.399Z"
 last_activity: 2026-07-09
 last_activity_desc: Phase 09 complete, transitioned to Phase 10
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 3
   total_plans: 6
   completed_plans: 7
@@ -19,7 +19,7 @@ stopped_at: Phase 08 closed
 
 # Project State
 
-**Current Phase:** 10 — chunk state management
+**Current Phase:** 11 — conditional llm folder routing and folder renaming
 **Status:** Ready to plan
 
 ## Phase Progress
@@ -34,6 +34,7 @@ stopped_at: Phase 08 closed
 - [x] Phase 8: "True Until Proven Guilty" Grouping Logic
 - [ ] Phase 9: Rate Limiting & Router Safety Net
 - [ ] Phase 10: Chunk State Management
+- [ ] Phase 11: Conditional LLM Folder Routing and Folder Renaming
 
 ## Open Issues / Blockers
 
@@ -42,7 +43,7 @@ stopped_at: Phase 08 closed
 ## Session
 
 **Last session:** 2026-07-09T08:53:28.382Z
-**Resume file:** .planning/phases/10-chunk-state-management/10-CONTEXT.md
+**Resume file:** .planning/phases/11-conditional-llm-folder-routing-and-folder-renaming/11-CONTEXT.md
 
 ## Performance Metrics
 
