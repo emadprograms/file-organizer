@@ -25,7 +25,7 @@ import openai
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
 
-from src.core.exceptions import PipelineHaltError
+from src.core.exceptions import PipelineHaltError, ProviderRotationExhaustedError
 
 class LLMFailureError(PipelineHaltError):
     """Exception raised when an LLM API call fails repeatedly."""
@@ -225,4 +225,4 @@ class LLMClient:
                 else:
                     break
 
-        raise LLMFailureError(f"LLM orchestration failed after {max_retries} retries across available providers. Last error: {error_str if 'error_str' in locals() else 'Unknown'}")
+        raise ProviderRotationExhaustedError(f"LLM orchestration failed after {max_retries} retries across available providers. Last error: {error_str if 'error_str' in locals() else 'Unknown'}")

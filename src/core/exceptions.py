@@ -18,3 +18,11 @@ class ConfigurationError(FileOrganizerError):
 class ValidationError(FileOrganizerError):
     """Raised when a validation check fails."""
     pass
+
+class ProviderRotationExhaustedError(FileOrganizerError):
+    """Raised when all LLM providers in the rotation sequence have failed."""
+    pass
+
+class GracefulHaltException(FileOrganizerError):
+    """Raised to signal a graceful halt of the process, allowing for state persistence."""
+    pass

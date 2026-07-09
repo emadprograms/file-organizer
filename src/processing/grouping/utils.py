@@ -58,29 +58,63 @@ def verify_groups(groups: list[GroupEntry], chunk_start_idx: int, chunk_end_idx:
 def merge_chunks(chunk1_groups: list[DocumentGroup], chunk2_groups: list[DocumentGroup], overlap_page_idx: int) -> list[DocumentGroup]:
     """
     Merge two lists of groups from adjacent chunks that share an overlap page.
-    Trust Chunk 1's metadata for the merged group.
+    Uses an 'Anchor Page' strategy: merging occurs only if the anchor page is 
+    a consistent continuation in both chunks. If decisions conflict, it splits at the boundary.
     """
     if not chunk1_groups or not chunk2_groups:
         return chunk1_groups + chunk2_groups
         
-    last_g1 = chunk1_groups[-1]
-    first_g2 = chunk2_groups[0]
-    
     def contains_page(group: DocumentGroup, page_idx: int) -> bool:
         return group.start_page <= page_idx <= group.end_page
 
-    if contains_page(last_g1, overlap_page_idx) and contains_page(first_g2, overlap_page_idx):
+    # Find the groups containing the anchor page
+    group_prev = next((g for g in chunk1_groups if contains_page(g, overlap_page_idx)), None)
+    group_curr = next((g for g in chunk2_groups if contains_page(g, overlap_page_idx)), None)
+    
+    if not group_prev or not group_curr:
+        # This should not happen with proper overlap, but for safety:
+        return chunk1_groups + chunk2_groups
+
+    # Boundary Validation: Check if it's a continuation in both or a boundary in both.
+    # Merge if they agree on the 'continuity' of the anchor page.
+    # Continuation means: (starts before anchor) AND (ends after anchor).
+    # We use a simplified logic: merge if they are both continuing or both boundaries.
+    is_prev_continuing = group_prev.start_page < overlap_page_idx
+    is_curr_continuing = group_curr.end_page > overlap_page_idx
+    
+    if is_prev_continuing == is_curr_continuing:
+        # SUCCESS: They agree on the nature of the anchor page (both continuing or both single-page/boundary).
         merged_group = DocumentGroup(
-            start_page=last_g1.start_page,
-            end_page=max(last_g1.end_page, first_g2.end_page),
-            primary_tenant=last_g1.primary_tenant,
-            category=last_g1.category,
-            dates=last_g1.dates,
-            reason=last_g1.reason,
-            brief_arabic_title=last_g1.brief_arabic_title,
-            folder_path=last_g1.folder_path,
-            is_direct_routed=last_g1.is_direct_routed
+            start_page=group_prev.start_page,
+            end_page=max(group_prev.end_page, group_curr.end_page),
+            primary_tenant=group_prev.primary_tenant,
+            category=group_prev.category,
+            dates=group_prev.dates,
+            reason=group_prev.reason,
+            brief_arabic_title=group_prev.brief_arabic_title,
+            folder_path=group_prev.folder_path,
+            is_direct_routed=group_prev.is_direct_routed
         )
-        return chunk1_groups[:-1] + [merged_group] + chunk2_groups[1:]
         
-    return chunk1_groups + chunk2_groups
+        # Construct result: everything before group_prev, the merged group, everything after group_curr.
+        prev_part = [g for g in chunk1_groups if g != group_prev]
+        curr_part = [g for g in chunk2_groups if g != group_curr]
+        return prev_part + [merged_group] + curr_part
+
+    # CONFLICT: One sees it as a continuation, the other as a boundary.
+    # Default to SPLIT: trust Chunk 2 for the start of the new segment.
+    # Truncate Chunk 1's group to end just before the anchor page.
+    truncated_prev = None
+    if group_prev.start_page < overlap_page_idx:
+        truncated_prev = DocumentGroup(
+            **{**group_prev.model_dump(), "end_page": overlap_page_idx - 1}
+        )
+        
+    prev_part = [g for g in chunk1_groups if g != group_prev]
+    if truncated_prev:
+        prev_part.append(truncated_prev)
+    
+    # To ensure chronological order, we sort the prev_part (since we appended)
+    prev_part.sort(key=lambda x: x.start_page)
+    
+    return prev_part + chunk2_groups

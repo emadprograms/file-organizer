@@ -1,11 +1,17 @@
 import pytest
 import logging
+import os
+import json
 from unittest.mock import MagicMock, patch
 from src.processing.grouping.utils import verify_groups, merge_chunks
 from src.processing.grouping.core import process_with_shrink, _process_chunk
 from src.processing.grouping.config import FORM_PROMPT, LETTER_PROMPT, OTHER_PROMPT
+from src.processing.grouping.state import GroupingState, GroupingStateManager
+from src.core.exceptions import ProviderRotationExhaustedError, GracefulHaltException
 from src.core.schemas import GroupEntry, DocumentGroup, GroupingResponse
 from types import SimpleNamespace
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
@@ -77,6 +83,55 @@ def test_overlap_merge():
     assert merged[2].start_page == 13
     assert merged[2].end_page == 15
 
+def test_anchor_page_merging():
+    # overlap_page_idx = 9
+    
+    # Scenario A: Continuation (MERGE)
+    chunk1_a = [DocumentGroup(start_page=6, end_page=9, primary_tenant="T1", category="forms", dates=[])]
+    chunk2_a = [DocumentGroup(start_page=9, end_page=12, primary_tenant="T1", category="forms", dates=[])]
+    merged_a = merge_chunks(chunk1_a, chunk2_a, 9)
+    assert len(merged_a) == 1
+    assert merged_a[0].start_page == 6
+    assert merged_a[0].end_page == 12
+
+    # Scenario B: End of Doc 1 and Start of Doc 2 (SPLIT)
+    chunk1_b = [
+        DocumentGroup(start_page=6, end_page=8, primary_tenant="T1", category="forms", dates=[]),
+        DocumentGroup(start_page=9, end_page=9, primary_tenant="T1", category="forms", dates=[])
+    ]
+    chunk2_b = [
+        DocumentGroup(start_page=9, end_page=9, primary_tenant="T1", category="forms", dates=[]),
+        DocumentGroup(start_page=10, end_page=12, primary_tenant="T1", category="forms", dates=[])
+    ]
+    merged_b = merge_chunks(chunk1_b, chunk2_b, 9)
+    assert len(merged_b) == 3
+    assert merged_b[0].end_page == 8
+    assert merged_b[1].start_page == 9 and merged_b[1].end_page == 9
+    assert merged_b[2].start_page == 10
+
+    # Scenario C: Fragment / Not a continuing document (SPLIT)
+    chunk1_c = [DocumentGroup(start_page=6, end_page=9, primary_tenant="T1", category="forms", dates=[])]
+    chunk2_c = [
+        DocumentGroup(start_page=9, end_page=9, primary_tenant="T1", category="forms", dates=[]),
+        DocumentGroup(start_page=10, end_page=12, primary_tenant="T1", category="forms", dates=[])
+    ]
+    merged_c = merge_chunks(chunk1_c, chunk2_c, 9)
+    assert len(merged_c) == 3
+    assert merged_c[0].end_page == 8 # Trust Chunk 2 for page 9, so Chunk 1 ends at 8
+    assert merged_c[1].start_page == 9 and merged_c[1].end_page == 9
+
+    # Scenario D: Conflict on Anchor Page decisions (SPLIT)
+    chunk1_d = [
+        DocumentGroup(start_page=6, end_page=8, primary_tenant="T1", category="forms", dates=[]),
+        DocumentGroup(start_page=9, end_page=9, primary_tenant="T1", category="forms", dates=[])
+    ]
+    chunk2_d = [DocumentGroup(start_page=9, end_page=12, primary_tenant="T1", category="forms", dates=[])]
+    merged_d = merge_chunks(chunk1_d, chunk2_d, 9)
+    assert len(merged_d) == 2
+    assert merged_d[0].end_page == 8
+    assert merged_d[1].start_page == 9
+
+
 # --- Core Unit Tests ---
 
 def test_process_chunk_metadata_extraction():
@@ -142,20 +197,135 @@ def test_process_with_shrink_default_routing():
     prompt = kwargs['contents'][0] if 'contents' in kwargs else args[0][0]
     assert FORM_PROMPT in prompt
 
-def test_process_with_shrink_adaptive_chunking():
+def test_resilient_loop_success(tmp_path):
+    state_file = tmp_path / "success.state.json"
+    manager = GroupingStateManager(str(state_file))
     llm_client = MagicMock()
-    # Simulate validation errors to trigger shrinking
-    llm_client.generate_content.side_effect = ValueError("Validation failed")
     
-    pages = [MockPage(i, "forms") for i in range(20)]
+    def llm_side_effect(contents, **kwargs):
+        prompt = contents[0]
+        if "Page 0 to Page 4" in prompt:
+            return GroupingResponse(groups=[GroupEntry(start_page=0, end_page=4, reason="R", brief_arabic_title="T")])
+        if "Page 4 to Page 8" in prompt:
+            return GroupingResponse(groups=[GroupEntry(start_page=4, end_page=8, reason="R", brief_arabic_title="T")])
+        if "Page 8 to Page 9" in prompt:
+            return GroupingResponse(groups=[GroupEntry(start_page=8, end_page=9, reason="R", brief_arabic_title="T")])
+        return GroupingResponse(groups=[])
+
+    llm_client.generate_content.side_effect = llm_side_effect
     
-    with pytest.raises(RuntimeError, match="Hard fail: 10 total failures"):
-        process_with_shrink(pages, llm_client)
+    pages = [MockPage(i, "forms") for i in range(10)]
+    groups = process_with_shrink(pages, llm_client, state_manager=manager)
     
-    # Check if shrinking happened: if it started at 10, it should have tried shrinking
-    # Total failures = 10. Consecutive = 5 -> shrink. Consecutive = 5 -> shrink.
-    # We can't easily check internal chunk_size_idx, but we can verify the call count.
-    assert llm_client.generate_content.call_count == 10
+    assert len(groups) > 0
+    state = manager.load_state()
+    assert state.chunk_size_index == 0
+
+def test_resilient_loop_shrink(tmp_path):
+    state_file = tmp_path / "shrink.state.json"
+    manager = GroupingStateManager(str(state_file))
+    llm_client = MagicMock()
+    
+    def llm_side_effect(contents, **kwargs):
+        prompt = contents[0]
+        # Extract range from prompt: "Page X to Page Y"
+        import re
+        match = re.search(r"Page (\d+) to Page (\d+)", prompt)
+        if not match:
+            return GroupingResponse(groups=[])
+        
+        start = int(match.group(1))
+        end = int(match.group(2))
+        
+        # Force shrink at the beginning
+        if start == 0 and (end == 4): # Size 5
+            raise ProviderRotationExhaustedError("Rotation failed")
+            
+        return GroupingResponse(groups=[GroupEntry(start_page=start, end_page=end, reason="R", brief_arabic_title="T")])
+
+    llm_client.generate_content.side_effect = llm_side_effect
+    
+    pages = [MockPage(i, "forms") for i in range(10)]
+    groups = process_with_shrink(pages, llm_client, state_manager=manager)
+    
+    assert len(groups) > 0
+    # Verify shrink happened
+    calls = llm_client.generate_content.call_args_list
+    first_prompt = calls[0].args[0][0] if calls[0].args else calls[0].kwargs['contents'][0]
+    second_prompt = calls[1].args[0][0] if calls[1].args else calls[1].kwargs['contents'][0]
+    assert "Page 0 to Page 4" in first_prompt
+    assert "Page 0 to Page 2" in second_prompt
+
+def test_resilient_loop_halt(tmp_path):
+    state_file = tmp_path / "halt.state.json"
+    manager = GroupingStateManager(str(state_file))
+    llm_client = MagicMock()
+    
+    llm_client.generate_content.side_effect = ProviderRotationExhaustedError("Rotation failed")
+    
+    pages = [MockPage(i, "forms") for i in range(10)]
+    
+    with pytest.raises(GracefulHaltException):
+        process_with_shrink(pages, llm_client, state_manager=manager)
+    
+    state = manager.load_state()
+    assert state.chunk_size_index == 2
+    assert state.current_page_index == 0
+
+def test_resilient_loop_resume(tmp_path):
+    state_file = tmp_path / "resume.state.json"
+    manager = GroupingStateManager(str(state_file))
+    
+    initial_state = GroupingState(
+        current_page_index=5,
+        chunk_size_index=1,
+        failure_count=1,
+        processed_groups=[{"start_page": 0, "end_page": 4, "primary_tenant": "T1", "category": "forms", "dates": [], "reason": "R", "brief_arabic_title": "T"}]
+    )
+    manager.save_state(initial_state)
+    
+    llm_client = MagicMock()
+    
+    def llm_side_effect(contents, **kwargs):
+        prompt = contents[0]
+        if "Page 5 to Page 7" in prompt:
+            return GroupingResponse(groups=[GroupEntry(start_page=5, end_page=7, reason="R", brief_arabic_title="T")])
+        if "Page 7 to Page 9" in prompt:
+            return GroupingResponse(groups=[GroupEntry(start_page=7, end_page=9, reason="R", brief_arabic_title="T")])
+        return GroupingResponse(groups=[])
+
+    llm_client.generate_content.side_effect = llm_side_effect
+    
+    pages = [MockPage(i, "forms") for i in range(10)]
+    groups = process_with_shrink(pages, llm_client, state_manager=manager)
+    
+    assert len(groups) >= 2
+    assert groups[0].start_page == 0 and groups[0].end_page == 4
+    # After resume, 5-7 and 7-9 are merged because they share page 7 and same metadata
+    assert groups[1].start_page == 5 and groups[1].end_page == 9
+
+def test_resilient_loop_partial_success(tmp_path):
+    state_file = tmp_path / "partial.state.json"
+    manager = GroupingStateManager(str(state_file))
+    llm_client = MagicMock()
+    
+    def llm_side_effect(contents, **kwargs):
+        prompt = contents[0]
+        if "Page 0 to Page 4" in prompt:
+            return GroupingResponse(groups=[GroupEntry(start_page=0, end_page=4, reason="R", brief_arabic_title="T")])
+        if "Page 4 to Page 8" in prompt:
+            return GroupingResponse(groups=[GroupEntry(start_page=4, end_page=8, reason="R", brief_arabic_title="T")])
+        if "Page 8 to Page 9" in prompt:
+            return GroupingResponse(groups=[GroupEntry(start_page=8, end_page=9, reason="R", brief_arabic_title="T")])
+        return GroupingResponse(groups=[])
+
+    llm_client.generate_content.side_effect = llm_side_effect
+    
+    pages = [MockPage(i, "forms") for i in range(10)]
+    process_with_shrink(pages, llm_client, state_manager=manager)
+    
+    state = manager.load_state()
+    assert state.chunk_size_index == 0
 
 @patch("src.logger.log_decision_trace")
 def test_process_with_shrink_telemetry(mock_log):
@@ -211,3 +381,75 @@ def test_grouping_e2e_scenario():
 def test_boundary_signals():
     assert "subject/content shift" in FORM_PROMPT
     assert "DO NOT split on date changes" in FORM_PROMPT
+
+# --- State Manager Tests ---
+
+def test_grouping_state_persistence(tmp_path):
+    state_file = tmp_path / "grouping.state.json"
+    manager = GroupingStateManager(str(state_file))
+    
+    # Initial load should be default
+    state = manager.load_state()
+    assert state.current_page_index == 0
+    assert state.failure_count == 0
+    
+    # Save modified state
+    new_state = GroupingState(
+        current_page_index=10,
+        chunk_size_index=2,
+        failure_count=5,
+        processed_groups=[{"start": 0, "end": 9}]
+    )
+    manager.save_state(new_state)
+    
+    # Load and verify
+    loaded_state = manager.load_state()
+    assert loaded_state.current_page_index == 10
+    assert loaded_state.chunk_size_index == 2
+    assert loaded_state.failure_count == 5
+    assert loaded_state.processed_groups == [{"start": 0, "end": 9}]
+
+def test_grouping_state_corrupted_fallback(tmp_path):
+    state_file = tmp_path / "grouping.state.json"
+    manager = GroupingStateManager(str(state_file))
+    
+    # 1. Create a valid state and save it twice to ensure a backup exists
+    valid_state = GroupingState(current_page_index=5)
+    manager.save_state(valid_state)
+    # Second save creates the .bak of the first save
+    manager.save_state(valid_state)
+    
+    # 2. Corrupt the main state file
+    with open(state_file, "w", encoding="utf-8") as f:
+        f.write("NOT JSON")
+    
+    # 3. Load state - should fallback to .bak
+    loaded_state = manager.load_state()
+    assert loaded_state.current_page_index == 5
+
+def test_grouping_state_missing_files():
+    # Manager with non-existent files should return default state
+    manager = GroupingStateManager("non_existent_file.json")
+    state = manager.load_state()
+    assert isinstance(state, GroupingState)
+    assert state.current_page_index == 0
+
+def test_grouping_state_atomic_write_simulation(tmp_path):
+    state_file = tmp_path / "grouping.state.json"
+    manager = GroupingStateManager(str(state_file))
+    
+    # Save initial state
+    initial_state = GroupingState(current_page_index=1)
+    manager.save_state(initial_state)
+    
+    # Simulate a crash during save_state by mocking os.replace to fail
+    # We want to ensure the original state_file is untouched if replace fails
+    with patch("os.replace", side_effect=OSError("Disk full")):
+        try:
+            manager.save_state(GroupingState(current_page_index=2))
+        except OSError:
+            pass
+    
+    # Original state should still be loadable
+    loaded_state = manager.load_state()
+    assert loaded_state.current_page_index == 1

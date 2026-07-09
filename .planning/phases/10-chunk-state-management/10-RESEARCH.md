@@ -131,8 +131,8 @@ The failure logic must be tied to the `LLMClient`'s rotation.
 |--------|----------|------------------------|
 | **GRP-01** | Dynamic Chunking (5, 3, 2) | Update `CHUNK_SIZES` to `[5, 3, 2]`. Implement `chunk_size_idx` reset on success and increment on full rotation failure. |
 | **GRP-02** | State Persistence | Create `GroupingStateManager`. Add `save_state()` calls after every LLM response and failure update. |
-| **GRP-03** | Overlap Merging (Anchor Page) | Refactor `merge_chunks` to explicitly use the overlap page as an anchor for LLM-validated boundaries. |
-| **GRP-04** | Graceful Halt | Add check: if `chunk_size_idx == len(CHUNK_SIZES) - 1` and failure occurs, save final state and exit cleanly. |
+| **GRP-03** | Graceful Halt | Add check: if `chunk_size_idx == len(CHUNK_SIZES) - 1` and failure occurs, save final state and exit cleanly. |
+| **GRP-04** | Overlap Merging (Anchor Page) | Refactor `merge_chunks` to explicitly use the overlap page as an anchor for LLM-validated boundaries. |
 
 ## Risks and Edge Cases
 

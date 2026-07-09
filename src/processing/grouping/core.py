@@ -1,10 +1,12 @@
 """Core grouping logic."""
 import logging
-from typing import Any
+from typing import Any, Optional
 from src.core.schemas import DocumentGroup, GroupingResponse
+from src.core.exceptions import ProviderRotationExhaustedError, GracefulHaltException
 from src.llm.llm import LLMFailureError
 from src.processing.grouping.utils import verify_groups, merge_chunks
 from src.processing.grouping.config import LETTER_PROMPT, FORM_PROMPT, OTHER_PROMPT
+from src.processing.grouping.state import GroupingStateManager, GroupingState
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
@@ -60,7 +62,7 @@ def _process_chunk(pages: list[Any], current_page_index: int, end_index: int, ll
         chunk_groups.append(doc_group)
     return chunk_groups
 
-def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup]:
+def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Optional[GroupingStateManager] = None) -> list[DocumentGroup]:
     """Process pages to detect document boundaries, shrinking chunk size on failures."""
     if not pages:
         return []
@@ -88,7 +90,6 @@ def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup
             reason="Deterministic bypass: Category identified as cohesive document.",
             brief_arabic_title=None
         ))
-        # Jump to telemetry (by skipping the while loop)
     elif category == "utility_bills":
         for i, page in enumerate(pages):
             d = getattr(page, "resolved_date", getattr(page, "date", None))
@@ -102,7 +103,6 @@ def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup
                 reason="Deterministic bypass: Each utility bill page is a separate document.",
                 brief_arabic_title=None
             ))
-        # Jump to telemetry (by skipping the while loop)
     else:
         # Dynamic Routing Paths
         if category == "others":
@@ -110,25 +110,29 @@ def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup
             prompt_template = OTHER_PROMPT
             content_field = "content_explanation"
         elif category == "letters":
-            CHUNK_SIZES = [10, 5, 3]
+            CHUNK_SIZES = [5, 3, 2]
             prompt_template = LETTER_PROMPT
             content_field = "subject"
         else:
-            CHUNK_SIZES = [10, 5, 3]
+            CHUNK_SIZES = [5, 3, 2]
             prompt_template = FORM_PROMPT
             content_field = "content_explanation"
 
-        MAX_CONSECUTIVE_FAILURES = 5
-        MAX_TOTAL_FAILURES = 10
-
-        consecutive_failures = 0
-        total_failures = 0
-        chunk_size_idx = 0
-        
-        current_page_index = 0
+        # State Initialization
+        if state_manager:
+            state = state_manager.load_state()
+            current_page_index = state.current_page_index
+            chunk_size_idx = state.chunk_size_index
+            total_failures = state.failure_count
+            for g_dict in state.processed_groups:
+                final_groups.append(DocumentGroup(**g_dict))
+        else:
+            current_page_index = 0
+            chunk_size_idx = 0
+            total_failures = 0
         
         while current_page_index < len(pages):
-            if total_failures >= MAX_TOTAL_FAILURES:
+            if total_failures >= 10:
                 raise RuntimeError("Hard fail: 10 total failures in grouping boundary detection.")
                 
             chunk_size = CHUNK_SIZES[chunk_size_idx]
@@ -145,30 +149,43 @@ def process_with_shrink(pages: list[Any], llm_client: Any) -> list[DocumentGroup
                     
                 overlap = 1 if end_index < len(pages) else 0
                 current_page_index = end_index - overlap
-                consecutive_failures = 0
                 
-            except ValueError as e:
-                consecutive_failures += 1
+                # SUCCESS: Reset chunk size index
+                chunk_size_idx = 0
+                
+                if state_manager:
+                    state_manager.save_state(GroupingState(
+                        current_page_index=current_page_index,
+                        chunk_size_index=chunk_size_idx,
+                        failure_count=total_failures,
+                        processed_groups=[g.model_dump() for g in final_groups]
+                    ))
+                
+            except ProviderRotationExhaustedError as e:
                 total_failures += 1
-                logger.warning(f"Validation Error: {e}")
-                if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
-                    chunk_size_idx = min(chunk_size_idx + 1, len(CHUNK_SIZES) - 1)
-                    consecutive_failures = 0
+                logger.warning(f"Rotation failure at size {CHUNK_SIZES[chunk_size_idx]}: {e}")
+                
+                if chunk_size_idx < len(CHUNK_SIZES) - 1:
+                    chunk_size_idx += 1
                     logger.warning(f"Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
-            except LLMFailureError:
-                raise
-            except Exception as e:
-                error_str = str(e).lower()
-                if isinstance(e, (RuntimeError, TimeoutError)) or "500" in error_str or "503" in error_str or "servererror" in error_str or "llm routing failed" in error_str:
-                    consecutive_failures += 1
-                    total_failures += 1
-                    logger.warning(f"Server Error: {e}")
-                    if consecutive_failures >= MAX_CONSECUTIVE_FAILURES:
-                        chunk_size_idx = min(chunk_size_idx + 1, len(CHUNK_SIZES) - 1)
-                        consecutive_failures = 0
-                        logger.warning(f"Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
                 else:
-                    raise e
+                    # GRACEFUL HALT: size 2 failed
+                    if state_manager:
+                        state_manager.save_state(GroupingState(
+                            current_page_index=current_page_index,
+                            chunk_size_index=chunk_size_idx,
+                            failure_count=total_failures,
+                            processed_groups=[g.model_dump() for g in final_groups]
+                        ))
+                    raise GracefulHaltException(f"Grouping failed at minimum chunk size {CHUNK_SIZES[-1]}. Halting gracefully.") from e
+            
+            except (ValueError, LLMFailureError) as e:
+                total_failures += 1
+                logger.warning(f"Processing Error (not rotation exhausted): {e}")
+                # We retry same size, hoping for a different LLM response
+                continue
+            except Exception as e:
+                raise e
     
     from src.logger import log_decision_trace
     try:
