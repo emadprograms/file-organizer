@@ -7,8 +7,8 @@ from unittest.mock import patch
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-from fs_utils import atomic_write
-from core.utils import sanitize_filename
+from src.fs_utils import atomic_write
+from src.core.utils import sanitize_filename
 
 def test_sanitize_filename():
     assert sanitize_filename("test") == "test"
