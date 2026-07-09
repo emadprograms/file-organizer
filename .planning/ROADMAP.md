@@ -62,9 +62,9 @@
   - Depends on: 7
   - Requirements: RES-01, RES-02, RES-03
   - Success Criteria:
-    - [ ] System pauses and gracefully retries upon encountering rate limiting, instead of crashing.
-    - [ ] Critical runtime errors immediately halt the pipeline.
-    - [ ] A single routing failure does not cause a permanent lockout for subsequent routing requests.
+    - [x] System pauses and gracefully retries upon encountering rate limiting, instead of crashing.
+    - [x] Critical runtime errors immediately halt the pipeline.
+    - [x] A single routing failure does not cause a permanent lockout for subsequent routing requests.
 
 - [ ] **Phase 10: Chunk State Management**
   - Depends on: 8, 9

@@ -17,7 +17,10 @@
 | UAT-09-09 | Explicit '13_others' | Route to '13_others' ONLY if explicitly chosen | PASS | |
 
 ## Findings & Diagnostics
-(Empty)
+- **2026-07-09**: Ran an interactive verification of all UAT scenarios.
+- Created `tests/verify_phase_09.py` to allow the user to step through each test pass interactively.
+- Found and fixed a minor off-by-one error in the `MockProvider` logic of `tests/test_uat_09_01.py` and `tests/test_uat_09_02.py` which was causing exceptions to be swallowed on single-item response arrays. The logic has been corrected, and UAT-09-02 correctly halts execution when encountering a 401 error.
+- Lockout removal was verified visually; the system continuously throws `RoutingValidationError` instead of failing open to `13_others`.
 
 ## Fix Plan
-(Empty)
+(Empty - all UAT criteria passed successfully)

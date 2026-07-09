@@ -98,12 +98,16 @@ def test_lockout_removal_verification():
         mock_llm.generate_content.side_effect = ValueError("Fail")
 
         # Fail 5 times
-        for _ in range(5):
+        for i in range(5):
+            print(f"Attempting routing for document {i+1}...")
             with pytest.raises(RoutingValidationError): 
                 route_document(group, mock_llm)
+            print(f"Document {i+1} correctly raised RoutingValidationError. No lockout.")
 
         # The 6th call should still attempt routing and raise an error, 
         # NOT return "13_others", False
+        print(f"Attempting routing for document 6 (Should NOT be locked out)...")
         with pytest.raises(RoutingValidationError):
              route_document(group, mock_llm)
+        print(f"Document 6 correctly raised RoutingValidationError! Lockout mechanism is confirmed removed.")
 
