@@ -124,38 +124,33 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
     Returns:
         tuple[str, bool]: (folder_name, is_direct_routed)
     """
-    category = group.category
+    category = group.category.lower() if group.category else "unknown"
     
-    # Trigger double-check for OTHER_LETTERS immediately
-    if category == "OTHER_LETTERS":
+    # Trigger double-check for others immediately
+    if category == "others":
         logger.info(f"Category '{category}' detected. Triggering double-check flow.")
         folder = double_check_others(group, llm_client)
         return folder, False
 
-    if category in DIRECT_ROUTED_CATEGORIES:
-        try:
-            folder = CATEGORY_TO_FOLDERS[category][0]
-            return folder, True
-        except (IndexError, KeyError):
-            logger.error(f"Direct routing failed: No folder mapping found for category '{category}'.")
-            raise RoutingValidationError(f"No folder mapping found for direct-routed category '{category}'.")
+    DIRECT_ROUTING_MAP = {
+        "contract": "عقود",
+        "id_cards": "بيانات شخصية",
+        "utility_bills": "كهرباء وماء"
+    }
 
-    if category in SINGLE_MATCH:
-        # Should have exactly one
-        try:
-            folder = CATEGORY_TO_FOLDERS[category][0]
-            return folder, True
-        except IndexError:
-            logger.error(f"IndexError: No folder mapping found for SINGLE_MATCH category '{category}'.")
-            raise RoutingValidationError(f"No folder mapping found for SINGLE_MATCH category '{category}'.")
+    if category in DIRECT_ROUTING_MAP:
+        folder = DIRECT_ROUTING_MAP[category]
+        return folder, True
         
     # --- Constrained Prompting Logic ---
-    if category in FORM_CATEGORIES:
+    if category == "forms":
         allowed_folders = list(FORM_FOLDERS)
-    elif category in LETTER_CATEGORIES:
+    elif category == "letters":
         allowed_folders = list(LETTER_FOLDERS)
     else:
-        allowed_folders = CATEGORY_TO_FOLDERS.get(category, []).copy()
+        # If the category is somehow unknown but reached here, fallback to others
+        logger.warning(f"Unknown category '{category}' mapping to 'forms'. Routing cannot proceed deterministically.")
+        allowed_folders = list(FORM_FOLDERS) # Default fallback
     
     if not allowed_folders:
         logger.error(f"Category '{category}' has no mapping. Routing cannot proceed.")
