@@ -50,9 +50,9 @@ LETTER_FOLDERS = {"أمر تخصيص", "استقطاع إيجار", "وقف اس
 
 SINGLE_MATCH = {cat for cat, folders in CATEGORY_TO_FOLDERS.items() if len(folders) == 1}
 
-DIRECT_ROUTED_CATEGORIES = {
-    "PERSONAL_DETAILS",
-    "CONTRACT",
-    "EWA_LETTERS",
-    "INSPECTION_PICTURES",
+DIRECT_ROUTING_MAP = {
+    "contract": "عقود",
+    "id_cards": "بيانات شخصية",
+    "utility_bills": "كهرباء وماء",
+    "pictures": "صور ومعاينات",
 }

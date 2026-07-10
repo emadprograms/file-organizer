@@ -8,7 +8,7 @@ from src.llm.llm import LLMFailureError
 from src.processing.routing.config import (
     CATEGORY_TO_FOLDERS, 
     SINGLE_MATCH, 
-    DIRECT_ROUTED_CATEGORIES, 
+    DIRECT_ROUTING_MAP, 
     FORM_CATEGORIES, 
     FORM_FOLDERS, 
     LETTER_CATEGORIES, 
@@ -128,6 +128,7 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
         tuple[str, bool]: (folder_name, is_direct_routed)
     """
     category = group.category.lower() if group.category else "unknown"
+    category_upper = category.upper()
     
     # Trigger double-check for others immediately
     if category in ("others", "other_letters"):
@@ -135,21 +136,20 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
         folder = double_check_others(group, llm_client)
         return folder, False
 
-    DIRECT_ROUTING_MAP = {
-        "contract": "عقود",
-        "id_cards": "بيانات شخصية",
-        "utility_bills": "كهرباء وماء",
-        "pictures": "صور ومعاينات"
-    }
+    # 1. Try Direct Routing via Formal Categories (SINGLE_MATCH)
+    if category_upper in SINGLE_MATCH:
+        folder = CATEGORY_TO_FOLDERS[category_upper][0]
+        return folder, True
 
+    # 2. Try Direct Routing via Aliases (DIRECT_ROUTING_MAP)
     if category in DIRECT_ROUTING_MAP:
         folder = DIRECT_ROUTING_MAP[category]
         return folder, True
         
     # --- Constrained Prompting Logic ---
-    if category == "forms":
+    if category_upper in FORM_CATEGORIES:
         allowed_folders = list(FORM_FOLDERS)
-    elif category == "letters":
+    elif category_upper in LETTER_CATEGORIES:
         allowed_folders = list(LETTER_FOLDERS)
     else:
         logger.error(f"Unknown category '{category}'. Routing cannot proceed deterministically.")
