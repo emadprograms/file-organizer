@@ -80,6 +80,11 @@ class LLMClient:
     def activate_cooldown(self) -> None:
         """Activate a long sleep to recover from severe rate limits (e.g., 429)."""
         time.sleep(65)
+        
+    def close(self) -> None:
+        """Gracefully shut down the thread pool executor to prevent hangs."""
+        if hasattr(self, '_executor') and self._executor:
+            self._executor.shutdown(wait=False)
 
     def generate_content(
         self,

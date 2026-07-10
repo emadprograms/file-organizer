@@ -190,6 +190,7 @@ def main():
         except AttributeError:
             pass
             
+    llm_client = None
     try:
         validate_environment()
         house_id = validate_target_directory(args.target_dir)
@@ -233,6 +234,9 @@ def main():
     except Exception as e:
         logger.exception(f"Unexpected error: {e}")
         return 1
+    finally:
+        if llm_client:
+            llm_client.close()
 
 if __name__ == "__main__":
     sys.exit(main())
