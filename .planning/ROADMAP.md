@@ -5,7 +5,7 @@
 - ✅ **v1.0 MVP** — Phases 1-3 (shipped 2026-07-08)
 - ✅ **v1.1 Logging Overhaul** — Phase 4-6 (shipped 2026-07-08) [Archive: .planning/milestones/v1.1-ROADMAP.md]
 - ✅ **v1.2 Pipeline Resilience & Grouping Overhaul** — Phases 7-10 (shipped 2026-07-10) [Archive: .planning/milestones/v1.2-ROADMAP.md]
-- 🚧 **v1.3 Future** — Phase 11 (planned)
+- 🚧 **v1.3 Routing Decoupling & Checkpointing** — Phases 11-13 (planned)
 
 ## Phases
 
@@ -45,9 +45,11 @@
 
 </details>
 
-### 🚧 v1.3 Future (Planned)
+### 🚧 v1.3 Routing Decoupling & Checkpointing
 
-- [ ] Phase 11: Conditional LLM Folder Routing and Folder Renaming (0 plans)
+- [x] Phase 11: Conditional LLM Folder Routing and Folder Renaming
+- [ ] Phase 12: Finalize Conditional LLM Folder Routing and Folder Renaming (0 plans)
+- [ ] Phase 13: Routing Checkpoints & Architecture Decoupling (0 plans)
 
 ## Progress
 
@@ -63,4 +65,6 @@
 | 8. "True Until Proven Guilty" Grouping Logic | v1.2 | 4/4 | Complete | 2026-07-10 |
 | 9. Rate Limiting & Router Safety Net | v1.2 | 2/2 | Complete    | 2026-07-09 |
 | 10. Chunk State Management | v1.2 | 4/4 | Complete | 2026-07-10 |
-| 11. Conditional LLM Folder Routing and Folder Renaming | v1.3 | 0/0 | Pending | — |
+| 11. Conditional LLM Folder Routing and Folder Renaming | v1.3 | -/- | Complete | 2026-07-10 |
+| 12. Finalize Conditional LLM Folder Routing and Folder Renaming | v1.3 | 0/0 | Pending | — |
+| 13. Routing Checkpoints & Architecture Decoupling | v1.3 | 0/0 | Pending | — |

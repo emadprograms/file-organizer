@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: Pipeline Resilience & Grouping Overhaul
-current_phase: 11 — conditional llm folder routing and folder renaming
-status: completed
+milestone: v1.3
+milestone_name: Routing Decoupling & Checkpointing
+current_phase: 12 — finalize conditional llm folder routing and folder renaming
+status: active
 last_updated: "2026-07-10T13:02:41.065Z"
 last_activity: 2026-07-10
 last_activity_desc: Milestone v1.2 completed and archived
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 13
-  completed_plans: 14
+  total_phases: 3
+  completed_phases: 1
+  total_plans: 0
+  completed_plans: 0
   percent: 100
 stopped_at: None
 current_phase_name: conditional-llm-folder-routing-and-folder-renaming
@@ -19,8 +19,8 @@ current_phase_name: conditional-llm-folder-routing-and-folder-renaming
 
 # Project State
 
-**Current Phase:** 11 — conditional llm folder routing and folder renaming
-**Status:** v1.2 milestone complete
+**Current Phase:** 12 — finalize conditional llm folder routing and folder renaming
+**Status:** v1.3 milestone active
 
 ## Phase Progress
 
@@ -35,6 +35,8 @@ current_phase_name: conditional-llm-folder-routing-and-folder-renaming
 - [x] Phase 9: Rate Limiting & Router Safety Net
 - [x] Phase 10: Chunk State Management
 - [x] Phase 11: Conditional LLM Folder Routing and Folder Renaming
+- [ ] Phase 12: Finalize Conditional LLM Folder Routing and Folder Renaming
+- [ ] Phase 13: Routing Checkpoints & Architecture Decoupling
 
 ## Open Issues / Blockers
 

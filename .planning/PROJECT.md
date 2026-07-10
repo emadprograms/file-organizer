@@ -33,20 +33,21 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 - Adding new features or altering existing behavior (pure refactoring).
 - Changing the underlying runtime or infrastructure.
 
-## Current Milestone: v1.2 Pipeline Resilience & Grouping Overhaul
+## Current Milestone: v1.3 Routing Decoupling & Checkpointing
 
-**Goal:** Stop the app from silently destroying the folder structure under rate limits and fix the LLM grouping logic to assume page continuation.
+**Goal:** Decouple the routing step from grouping to improve pipeline resilience, enable independent LLM model configuration, support resuming routing on failure, and implement conditional LLM folder routing constraints.
 
 **Target features:**
-- Rate Limiting & Router Safety Net (RES)
-- Chunk State Management (GRP)
-- "True Until Proven Guilty" Grouping Logic (PRMPT)
-- Anti-Hallucination Schema Enforcement (SCHM)
+- Pipeline architecture decoupling for Grouping vs Routing (ARCH)
+- Routing specific checkpointing for resilience (RES)
+- Granular LLM model configuration for routing (CFG)
+- Conditional LLM Folder Routing and Folder Renaming (ROUT)
 
 ## Context
 
 - ✅ Shipped v1.0.
 - ✅ Shipped v1.1.
+- ✅ Shipped v1.2.
 - The codebase has been successfully cleaned of legacy code and refactored into a modular, maintainable structure.
 - All processing logic is now decomposed into single-responsibility modules in `src/cleaning/` and `src/processing/`.
 - Error handling is standardized via a custom exception hierarchy in `src/core/exceptions.py`.
