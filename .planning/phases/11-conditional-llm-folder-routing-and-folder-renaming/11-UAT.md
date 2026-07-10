@@ -1,3 +1,6 @@
+---
+status: "passed"
+---
 # Phase 11 UAT: Conditional LLM Folder Routing and Folder Renaming
 
 ## Objective
@@ -19,3 +22,4 @@ Verify that the conditional routing system correctly handles direct routing, con
 
 ## Execution Log
 (Detailed results of each test run will be added here)
+
