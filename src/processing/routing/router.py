@@ -1,7 +1,7 @@
 """Router logic for assigning document groups to folders."""
 
 import logging
-from typing import Any
+from typing import Any, Optional
 from pydantic import BaseModel, Field, field_validator, ValidationInfo, ValidationError, AliasChoices
 from src.core.schemas import DocumentGroup
 from src.llm.llm import LLMFailureError
@@ -39,7 +39,7 @@ class RoutingResponse(BaseModel):
             raise ValueError(f"Selected folder '{v}' is not in the allowed list: {allowed}")
         return v
 
-def double_check_others(group: DocumentGroup, llm_client: Any) -> str:
+def double_check_others(group: DocumentGroup, llm_client: Any, model: Optional[str] = None) -> str:
     """Double-check routing for documents categorized as others or hitting the escape hatch.
     
     Implements a two-step verification to reduce 'Miscellaneous' dumping and handle hallucinations.
@@ -67,7 +67,8 @@ Respond only with a valid JSON matching the requested schema.
         result = llm_client.generate_content(
             contents=[prompt],
             response_schema=RoutingResponse,
-            validation_context={'allowed_folders': all_folders}
+            validation_context={'allowed_folders': all_folders},
+            model=model
         )
         if not result:
             return "رسائل متنوعة"
@@ -94,7 +95,8 @@ Respond only with a valid JSON.
         confirm_result = llm_client.generate_content(
             contents=[confirm_prompt],
             response_schema=RoutingResponse,
-            validation_context={'allowed_folders': [initial_pick, "رسائل متنوعة"]}
+            validation_context={'allowed_folders': [initial_pick, "رسائل متنوعة"]},
+            model=model
         )
         
         if not confirm_result:
@@ -117,12 +119,13 @@ Respond only with a valid JSON.
         logger.error(f"Error during double-check others: {e}. Falling back to 'رسائل متنوعة'.")
         return "رسائل متنوعة"
 
-def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
+def route_document(group: DocumentGroup, llm_client: Any, model: Optional[str] = None) -> tuple[str, bool]:
     """Route a document group to the appropriate folder.
     
     Args:
         group: The document group to route.
         llm_client: The LLM client to use for multi-match resolution.
+        model: Optional LLM model to use for routing.
         
     Returns:
         tuple[str, bool]: (folder_name, is_direct_routed)
@@ -133,7 +136,7 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
     # Trigger double-check for others immediately
     if category in ("others", "other_letters"):
         logger.info(f"Category '{category}' detected for pages {group.start_page}-{group.end_page}. Triggering double-check flow.")
-        folder = double_check_others(group, llm_client)
+        folder = double_check_others(group, llm_client, model=model)
         return folder, False
 
     # 1. Try Direct Routing via Formal Categories (SINGLE_MATCH)
@@ -203,7 +206,8 @@ Respond only with a valid JSON matching the requested schema. The selected_folde
             result = llm_client.generate_content(
                 contents=contents,
                 response_schema=RoutingResponse,
-                validation_context={'allowed_folders': allowed_folders}
+                validation_context={'allowed_folders': allowed_folders},
+                model=model
             )
             
             if result is None:
@@ -216,7 +220,7 @@ Respond only with a valid JSON matching the requested schema. The selected_folde
             # Handle Escape Hatch
             if selected == ESCAPE_HATCH:
                 logger.info(f"Document (pages {group.start_page}-{group.end_page}) routed to escape hatch '{ESCAPE_HATCH}'. Triggering double-check flow.")
-                selected = double_check_others(group, llm_client)
+                selected = double_check_others(group, llm_client, model=model)
                 reason = "Routed via escape hatch -> Double-check"
             
             logger.info(f"Routed category '{category}' (pages {group.start_page}-{group.end_page}) to '{selected}'. Reason: {reason}")

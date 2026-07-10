@@ -7,6 +7,7 @@ This module acts as the core orchestrator. It manages the two-pass architecture:
 """
 from typing import Optional, Any
 import logging
+import hashlib
 from concurrent.futures import ThreadPoolExecutor
 from src.llm.llm import LLMClient, LLMFailureError
 from src.core.schemas import DocumentGroup
@@ -129,20 +130,52 @@ class Pipeline:
                 except Exception as e:
                     logger.warning(f"Failed to save run checkpoint: {e}")
             
-        # 3. Route each document
-        # We only route documents that haven't been routed yet (just in case we ever checkpoint routing).
-        # Currently, routing is fast enough to just re-run if it fails, but we'll apply it to all docs here.
+        # 3. Route each document with checkpoints
+        # Compute grouping checksum for sanity check to ensure we don't resume routing on changed grouping
+        hasher = hashlib.sha256()
         for doc in documents:
-            if not hasattr(doc, 'folder_path') or not doc.folder_path:
-                folder, is_direct = route_document(doc, self.client)
-                doc.folder_path = folder
-                doc.is_direct_routed = is_direct
+            hasher.update(f"{doc.start_page}:{doc.end_page}:{doc.category}".encode("utf-8"))
+        current_checksum = hasher.hexdigest()
+
+        from src.processing.routing.state import RoutingStateManager, RoutingState
+        
+        routing_state_manager = None
+        state = RoutingState()
+
+        if run_checkpoint_path:
+            routing_checkpoint_path = run_checkpoint_path.replace('.json', '_routing.json')
+            routing_state_manager = RoutingStateManager(routing_checkpoint_path)
+            state = routing_state_manager.load_state()
             
-        # Clean up run checkpoint since grouping and routing completed successfully
-        if run_checkpoint_path and os.path.exists(run_checkpoint_path):
+            if state.grouping_checksum and state.grouping_checksum != current_checksum:
+                logger.warning("Grouping has changed since last routing checkpoint. Restarting routing from scratch.")
+                state = RoutingState()
+        
+        state.grouping_checksum = current_checksum
+
+        for i, doc in enumerate(documents):
+            if i in state.processed_indices:
+                continue
+                
+            folder, is_direct = route_document(doc, self.client)
+            doc.folder_path = folder
+            doc.is_direct_routed = is_direct
+            
+            state.processed_indices.append(i)
+            if routing_state_manager:
+                routing_state_manager.save_state(state)
+            
+        # Clean up run checkpoint and routing checkpoint since everything completed successfully
+        if run_checkpoint_path:
             try:
-                os.remove(run_checkpoint_path)
+                if os.path.exists(run_checkpoint_path):
+                    os.remove(run_checkpoint_path)
+                routing_checkpoint_path = run_checkpoint_path.replace('.json', '_routing.json')
+                if os.path.exists(routing_checkpoint_path):
+                    os.remove(routing_checkpoint_path)
+                if os.path.exists(routing_checkpoint_path + ".bak"):
+                    os.remove(routing_checkpoint_path + ".bak")
             except Exception as e:
-                logger.debug(f"Failed to remove run checkpoint: {e}")
+                logger.debug(f"Failed to remove checkpoints: {e}")
 
         return documents

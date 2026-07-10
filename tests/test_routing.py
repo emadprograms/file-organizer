@@ -14,7 +14,7 @@ class MockLLMClient:
         self.calls = []
         
     def generate_content(self, contents, model=None, response_schema=None, config=None, **kwargs):
-        self.calls.append(contents)
+        self.calls.append({"contents": contents, "model": model})
         if self.call_count < len(self.responses):
             resp = self.responses[self.call_count]
             self.call_count += 1
@@ -34,7 +34,7 @@ def test_constrained_routing_success():
     """Test that a category in FORM_CATEGORIES is constrained to FORM_FOLDERS."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
-        category="forms", dates=["2023-01-01"],
+        category="BASIC_DETAILS", dates=["2023-01-01"],
         brief_arabic_title="Test Form", reason="Form test"
     )
     # Force it to not be in SINGLE_MATCH for this test to exercise LLM
@@ -49,7 +49,7 @@ def test_constrained_routing_invalid_retry():
     """Test that LLM returning a folder OUTSIDE constrained list triggers retry."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
-        category="forms", dates=["2023-01-01"]
+        category="BASIC_DETAILS", dates=["2023-01-01"]
     )
     with patch("src.processing.routing.router.SINGLE_MATCH", set()):
         # 1st: folder not in FORM_FOLDERS, 2nd: valid folder
@@ -62,7 +62,7 @@ def test_constrained_routing_escape_hatch():
     """Test that 'None of the above' triggers the double-check flow."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
-        category="forms", dates=["2023-01-01"],
+        category="BASIC_DETAILS", dates=["2023-01-01"],
         brief_arabic_title="Edge Case Form"
     )
     with patch("src.processing.routing.router.SINGLE_MATCH", set()):
@@ -139,7 +139,7 @@ def test_constrained_routing_max_retries():
     """Test that constrained routing fails after 3 unsuccessful attempts."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
-        category="forms", dates=["2023-01-01"]
+        category="BASIC_DETAILS", dates=["2023-01-01"]
     )
     with patch("src.processing.routing.router.SINGLE_MATCH", set()):
         # 3 invalid responses
@@ -147,3 +147,27 @@ def test_constrained_routing_max_retries():
         with pytest.raises(RoutingValidationError):
             route_document(group, llm)
         assert llm.call_count == 3
+
+def test_routing_model_propagation():
+    """Test that the 'model' parameter is passed to the LLM client in route_document."""
+    group = DocumentGroup(
+        start_page=0, end_page=1, primary_tenant="Test",
+        category="BASIC_DETAILS", dates=["2023-01-01"]
+    )
+    test_model = "gpt-4o-mini"
+    with patch("src.processing.routing.router.SINGLE_MATCH", set()):
+        llm = MockLLMClient([("بيانات أساسية", "Correct folder")])
+        route_document(group, llm, model=test_model)
+        assert llm.calls[0]["model"] == test_model
+
+def test_double_check_model_propagation():
+    """Test that the 'model' parameter is passed to the LLM client in double_check_others."""
+    group = DocumentGroup(
+        start_page=0, end_page=1, primary_tenant="Test",
+        category="others", dates=["2023-01-01"]
+    )
+    test_model = "claude-3-5-sonnet"
+    llm = MockLLMClient([("صيانة", "fits"), ("صيانة", "confirmed")])
+    double_check_others(group, llm, model=test_model)
+    assert llm.calls[0]["model"] == test_model
+    assert llm.calls[1]["model"] == test_model
