@@ -3,24 +3,24 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: Pipeline Resilience & Grouping Overhaul
 current_phase: 11 — conditional llm folder routing and folder renaming
-current_phase_name: conditional-llm-folder-routing-and-folder-renaming
-status: executing
-last_updated: "2026-07-09T12:00:00.000Z"
-last_activity: 2026-07-09
-last_activity_desc: Completing Plan 11-03
+status: completed
+last_updated: "2026-07-10T13:02:41.065Z"
+last_activity: 2026-07-10
+last_activity_desc: Milestone v1.2 completed and archived
 progress:
-  total_phases: 11
-  completed_phases: 10
-  total_plans: 3
-  completed_plans: 3
-  percent: 91
+  total_phases: 5
+  completed_phases: 5
+  total_plans: 13
+  completed_plans: 14
+  percent: 100
 stopped_at: None
+current_phase_name: conditional-llm-folder-routing-and-folder-renaming
 ---
 
 # Project State
 
 **Current Phase:** 11 — conditional llm folder routing and folder renaming
-**Status:** Executing
+**Status:** v1.2 milestone complete
 
 ## Phase Progress
 
@@ -57,7 +57,23 @@ stopped_at: None
 
 ## Current Position
 
-Phase: 11 (conditional-llm-folder-routing-and-folder-renaming) — COMPLETED
-Plan: 11-03
-Status: Completed Plan 11-03
-Last activity: 2026-07-09 — System-Wide Integration and Validation complete.
+Phase: Milestone v1.2 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-07-10 — Milestone v1.2 completed and archived
+
+## Deferred Items
+
+Items acknowledged and deferred at milestone close on 2026-07-10:
+
+| Category | Item | Status |
+|----------|------|--------|
+| uat_gaps | Phase 07 (07-UAT.md) | passed (0 pending) |
+| uat_gaps | Phase 08 (08-UAT.md) | passed (0 pending) |
+| uat_gaps | Phase 09 (09-UAT.md) | passed (0 pending) |
+| uat_gaps | Phase 10 (10-UAT.md) | passed (0 pending) |
+| uat_gaps | Phase 11 (11-UAT.md) | passed (0 pending) |
+
+## Operator Next Steps
+
+- Start the next milestone with /gsd-new-milestone

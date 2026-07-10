@@ -1,5 +1,16 @@
 # Milestones
 
+## v1.2 Pipeline Resilience & Grouping Overhaul (Shipped: 2026-07-10)
+
+**Phases completed:** 5 phases, 13 plans, 0 tasks
+
+**Key accomplishments:**
+
+- PASSED
+- Final validation of Arabic folder routing across all integration tests and E2E flow.
+
+---
+
 ## v1.0 MVP (Shipped: 2026-07-08)
 
 **Phases completed:** 3 phases, 7 plans, 3 tasks
