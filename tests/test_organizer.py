@@ -37,8 +37,8 @@ def test_on_demand_topic_creation(mock_extract, organizer, mock_config, tmp_path
         DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2020-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]
     organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
-    assert (tmp_path / "HOUSE_123" / "Resident A 2020-2020" / "بيانات أساسية").exists()
-    assert (tmp_path / "HOUSE_123" / "Resident A 2020-2020" / "بيانات شخصية").exists()
+    assert (tmp_path / "HOUSE_123" / "Resident A 2020-2020" / "01_بيانات أساسية").exists()
+    assert (tmp_path / "HOUSE_123" / "Resident A 2020-2020" / "02_بيانات شخصية").exists()
 
 @patch('src.processing.organizer.core.extract_pdf_segment')
 def test_hardcoded_routing(mock_extract, organizer, mock_config, tmp_path):
@@ -46,7 +46,7 @@ def test_hardcoded_routing(mock_extract, organizer, mock_config, tmp_path):
         DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="OTHER_LETTERS", dates=[], folder_path="رسائل متنوعة", is_direct_routed=False, brief_arabic_title="رسالة"),
     ]
     organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
-    mock_extract.assert_any_call("123.pdf", 0, 1, str(tmp_path / "HOUSE_123" / "Resident A" / "رسائل متنوعة" / "nodate - رسالة.pdf"))
+    mock_extract.assert_any_call("123.pdf", 0, 1, str(tmp_path / "HOUSE_123" / "Resident A" / "13_رسائل متنوعة" / "nodate - رسالة.pdf"))
 
 @patch('src.processing.organizer.core.extract_pdf_segment')
 def test_unassigned_folder_period(mock_extract, organizer, mock_config, tmp_path):

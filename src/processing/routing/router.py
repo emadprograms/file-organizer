@@ -130,7 +130,7 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
     category = group.category.lower() if group.category else "unknown"
     
     # Trigger double-check for others immediately
-    if category == "others":
+    if category in ("others", "other_letters"):
         logger.info(f"Category '{category}' detected for pages {group.start_page}-{group.end_page}. Triggering double-check flow.")
         folder = double_check_others(group, llm_client)
         return folder, False
@@ -152,9 +152,8 @@ def route_document(group: DocumentGroup, llm_client: Any) -> tuple[str, bool]:
     elif category == "letters":
         allowed_folders = list(LETTER_FOLDERS)
     else:
-        # If the category is somehow unknown but reached here, fallback to others
-        logger.warning(f"Unknown category '{category}' mapping to 'forms'. Routing cannot proceed deterministically.")
-        allowed_folders = list(FORM_FOLDERS) # Default fallback
+        logger.error(f"Unknown category '{category}'. Routing cannot proceed deterministically.")
+        allowed_folders = []
     
     if not allowed_folders:
         logger.error(f"Category '{category}' has no mapping. Routing cannot proceed.")

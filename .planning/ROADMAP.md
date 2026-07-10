@@ -82,6 +82,7 @@
   - [ ] 10-03-PLAN.md — Implement LLM-validated Anchor Page merging logic
   - [ ] 10-04-PLAN.md — Final verification of resilience and adaptive chunking
 
+### v1.3 Future
 
 - [ ] **Phase 11: Conditional LLM Folder Routing and Folder Renaming**
   - Depends on: 10
@@ -93,7 +94,6 @@
     - [ ] Forms and Letters dynamically constrain the LLM routing prompt to only allowed sub-folders.
     - [ ] 'Others' classification utilizes a two-step LLM double-check with fallback to Miscellaneous.
     - [ ] Tests are added/updated to verify this new constrained routing schema.
-
 
 ## Progress
 
@@ -109,4 +109,4 @@
 | 8. "True Until Proven Guilty" Grouping Logic | v1.2 | 0/0 | Pending | — |
 | 9. Rate Limiting & Router Safety Net | v1.2 | 3/2 | Complete    | 2026-07-09 |
 | 10. Chunk State Management | v1.2 | 0/0 | Pending | — |
-| 11. Conditional LLM Folder Routing and Folder Renaming | v1.2 | 0/0 | Pending | — |
+| 11. Conditional LLM Folder Routing and Folder Renaming | v1.3 | 0/0 | Pending | — |

@@ -42,6 +42,7 @@ class Pipeline:
             list[DocumentGroup]: The final grouped and routed documents.
         """
         from src.processing.grouping import process_with_shrink
+        from src.processing.grouping.state import GroupingStateManager
         from src.processing.routing import route_document
         import json
         import os
@@ -93,9 +94,27 @@ class Pipeline:
             if i in processed_run_indices:
                 continue
                 
-            groups = process_with_shrink(run, self.client)
+            chunk_state_path = None
+            state_manager = None
+            if run_checkpoint_path:
+                chunk_state_path = run_checkpoint_path.replace('.json', f'_chunk_{i}.json')
+                state_manager = GroupingStateManager(chunk_state_path)
+                
+            groups = process_with_shrink(run, self.client, state_manager=state_manager)
             documents.extend(groups)
             processed_run_indices.add(i)
+            
+            # Clean up chunk state since this run completed successfully
+            if chunk_state_path and os.path.exists(chunk_state_path):
+                try:
+                    os.remove(chunk_state_path)
+                except Exception as e:
+                    logger.debug(f"Failed to remove chunk state checkpoint: {e}")
+            if chunk_state_path and os.path.exists(chunk_state_path + ".bak"):
+                try:
+                    os.remove(chunk_state_path + ".bak")
+                except Exception as e:
+                    pass
             
             # Save Midway Checkpoint
             if run_checkpoint_path:

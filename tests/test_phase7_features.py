@@ -31,10 +31,10 @@ def test_llm_client_skip_llm_routing():
     response_schema = RoutingResponse
     
     # Provide a mock validation context to satisfy the RoutingResponse validator
-    result = client._route_llm_call("model", contents, response_schema, validation_context={'allowed_folders': ['13_others']})
+    result = client._route_llm_call("model", contents, response_schema, validation_context={'allowed_folders': ['رسائل متنوعة']})
     
     assert isinstance(result, RoutingResponse)
-    assert result.selected_folder == "13_others"
+    assert result.selected_folder == "رسائل متنوعة"
 
 def test_llm_client_skip_llm_plain_text():
     """Verify that skip_llm returns a mock string when no schema is provided."""

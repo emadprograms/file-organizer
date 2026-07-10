@@ -34,7 +34,7 @@ def test_constrained_routing_success():
     """Test that a category in FORM_CATEGORIES is constrained to FORM_FOLDERS."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
-        category="BASIC_DETAILS", dates=["2023-01-01"],
+        category="forms", dates=["2023-01-01"],
         brief_arabic_title="Test Form", reason="Form test"
     )
     # Force it to not be in SINGLE_MATCH for this test to exercise LLM
@@ -49,7 +49,7 @@ def test_constrained_routing_invalid_retry():
     """Test that LLM returning a folder OUTSIDE constrained list triggers retry."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
-        category="BASIC_DETAILS", dates=["2023-01-01"]
+        category="forms", dates=["2023-01-01"]
     )
     with patch("src.processing.routing.router.SINGLE_MATCH", set()):
         # 1st: folder not in FORM_FOLDERS, 2nd: valid folder
@@ -62,7 +62,7 @@ def test_constrained_routing_escape_hatch():
     """Test that 'None of the above' triggers the double-check flow."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
-        category="BASIC_DETAILS", dates=["2023-01-01"],
+        category="forms", dates=["2023-01-01"],
         brief_arabic_title="Edge Case Form"
     )
     with patch("src.processing.routing.router.SINGLE_MATCH", set()):
@@ -139,7 +139,7 @@ def test_constrained_routing_max_retries():
     """Test that constrained routing fails after 3 unsuccessful attempts."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
-        category="BASIC_DETAILS", dates=["2023-01-01"]
+        category="forms", dates=["2023-01-01"]
     )
     with patch("src.processing.routing.router.SINGLE_MATCH", set()):
         # 3 invalid responses

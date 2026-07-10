@@ -70,7 +70,7 @@ def test_setup_logging_noise_suppression_blacklist(tmp_path):
         setup_logging(verbose=False)
         
         # Blacklisted libraries should be WARNING
-        for library in ["openai", "google-genai", "urllib3", "httpcore"]:
+        for library in ["openai", "google_genai", "urllib3", "httpcore"]:
             assert logging.getLogger(library).level == logging.WARNING
             
         # Root should be DEBUG
