@@ -167,10 +167,24 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
     if not dry_run:
         if output_json_path.exists():
             output_json_path.unlink()
-        if grouped_checkpoint_path.exists():
-            grouped_checkpoint_path.unlink()
-        if runs_checkpoint_path.exists():
-            runs_checkpoint_path.unlink()
+            
+        import shutil
+        checkpoints_dir = output_dir / "checkpoints"
+        if checkpoints_dir.exists():
+            shutil.rmtree(checkpoints_dir, ignore_errors=True)
+            
+        source_files_dir = output_dir / house_id / "source_files"
+        source_files_dir.mkdir(parents=True, exist_ok=True)
+        
+        report_json_path = target_dir / f"{house_id}_report.json"
+        manifest_path = output_dir / f"{house_id}_manifest.json"
+        
+        if pdf_path.exists():
+            shutil.move(str(pdf_path), str(source_files_dir / pdf_path.name))
+        if report_json_path.exists():
+            shutil.move(str(report_json_path), str(source_files_dir / report_json_path.name))
+        if manifest_path.exists():
+            shutil.move(str(manifest_path), str(source_files_dir / manifest_path.name))
             
     if dry_run:
         from src.processing.visualizer import Visualizer

@@ -147,7 +147,8 @@ class FileOrganizer:
                     "tenant": doc.primary_tenant,
                     "date": doc_date,
                     "output_file": relative_path,
-                    "page_in_output": page_in_output
+                    "page_in_output": page_in_output,
+                    "target_folder": f"{tenant_folder}/{topic_folder}"
                 })
                 page_in_output += 1
             
