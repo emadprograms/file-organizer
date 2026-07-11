@@ -3,11 +3,9 @@
 These schemas leverage Pydantic for validation and structured data representation.
 """
 import logging
+from pydantic import BaseModel, Field, AliasChoices
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
-
-from dataclasses import dataclass
-from pydantic import BaseModel, Field, AliasChoices
 
 class DocumentGroup(BaseModel):
     """A group of consecutive pages belonging to the same document segment."""

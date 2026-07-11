@@ -3,7 +3,6 @@ import os
 import json
 import shutil
 import logging
-from typing import List
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(f"file_organizer.{__name__}")

@@ -4,6 +4,7 @@ import logging
 from typing import Any, Optional
 from pydantic import BaseModel, Field, field_validator, ValidationInfo, ValidationError, AliasChoices
 from src.core.schemas import DocumentGroup
+from src.core.exceptions import PipelineHaltError
 from src.llm.llm import LLMFailureError
 from src.processing.routing.config import (
     CATEGORY_TO_FOLDERS, 
@@ -17,8 +18,6 @@ from src.processing.routing.config import (
 )
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
-
-from src.core.exceptions import PipelineHaltError
 
 class RoutingValidationError(PipelineHaltError):
     """Exception raised when LLM fails to provide a valid folder after multiple attempts."""
@@ -154,6 +153,8 @@ def route_document(group: DocumentGroup, llm_client: Any, model: Optional[str] =
         allowed_folders = list(FORM_FOLDERS)
     elif category_upper in LETTER_CATEGORIES:
         allowed_folders = list(LETTER_FOLDERS)
+    elif category_upper in CATEGORY_TO_FOLDERS:
+        allowed_folders = CATEGORY_TO_FOLDERS[category_upper]
     else:
         logger.error(f"Unknown category '{category}'. Routing cannot proceed deterministically.")
         allowed_folders = []

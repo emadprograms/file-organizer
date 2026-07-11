@@ -37,11 +37,12 @@ def sanitize_filename(name: str, max_length: int = 200) -> str:
     encoded = sanitized.encode('utf-8')
     if len(encoded) > max_length:
         root, ext = os.path.splitext(sanitized)
-        max_root_len = max(0, max_length - len(ext))
+        ext_len = len(ext.encode('utf-8'))
+        max_root_len = max(0, max_length - ext_len)
         if max_root_len > 0:
-            sanitized = root[:max_root_len] + ext
+            sanitized = root.encode('utf-8')[:max_root_len].decode('utf-8', 'ignore') + ext
         else:
-            sanitized = sanitized[:max_length]
+            sanitized = sanitized.encode('utf-8')[:max_length].decode('utf-8', 'ignore')
             
     return sanitized
 

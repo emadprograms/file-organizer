@@ -5,16 +5,14 @@ This module acts as the core orchestrator. It manages the two-pass architecture:
 2. Pass 1.5: Date outlier detection, global interpolation, and semantic name clustering.
 3. Pass 2: Grouping pages logically into cohesive document segments based on category, tenant, and date timelines.
 """
-from typing import Optional, Any
 import logging
 import hashlib
-from concurrent.futures import ThreadPoolExecutor
-from src.llm.llm import LLMClient, LLMFailureError
+from types import SimpleNamespace
+
+from src.llm.llm import LLMClient
 from src.core.schemas import DocumentGroup
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
-
-from types import SimpleNamespace
 
 class PageData(SimpleNamespace):
     def model_dump(self):
@@ -116,8 +114,8 @@ class Pipeline:
             if chunk_state_path and os.path.exists(chunk_state_path + ".bak"):
                 try:
                     os.remove(chunk_state_path + ".bak")
-                except Exception as e:
-                    pass
+                except OSError as e:
+                    logger.warning(f"Failed to remove backup: {e}")
             
             # Save Midway Checkpoint
             if run_checkpoint_path:

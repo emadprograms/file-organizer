@@ -73,6 +73,8 @@ def setup_logging(run_id: str = None, verbose: bool = False) -> str:
     
     # Reset handlers to avoid duplication on re-initialization
     if root_logger.hasHandlers():
+        for handler in root_logger.handlers:
+            handler.close()
         root_logger.handlers.clear()
 
     # Configuration based on verbose flag (Decision D-03)

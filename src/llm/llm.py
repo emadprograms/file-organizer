@@ -4,28 +4,21 @@ This module provides the `LLMClient` which orchestrates LLM requests across mult
 provider strategies (defined in `providers.py`). It implements resilient API routing,
 error handling, rate-limit backoffs, and cloud failover for robust document processing.
 """
-from src.core.config import record_successful_call, OPENROUTER_MODEL, GROQ_MODEL, GEMINI_MODEL
+from src.core.config import record_successful_call, GEMINI_MODEL
 from src.logger import log_decision_trace
 import concurrent.futures
 import os
 import time
-import json
-from typing import Optional, Any, Deque, Protocol
+from typing import Optional, Any
 
-import re
-import random
 import threading
 import logging
-import base64
-from collections import deque
-from google import genai
-from google.genai import types
-import openai
+
+from src.core.exceptions import PipelineHaltError, ProviderRotationExhaustedError
+from src.llm.providers import LLMProvider, GeminiProvider, OpenRouterProvider, GroqProvider
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-
-from src.core.exceptions import PipelineHaltError, ProviderRotationExhaustedError
 
 class LLMFailureError(PipelineHaltError):
     """Exception raised when an LLM API call fails repeatedly."""
@@ -35,8 +28,6 @@ class InvalidResponseError(Exception):
     """Exception raised when an LLM returns a malformed or unparsable response."""
     pass
 
-
-from src.llm.providers import LLMProvider, GeminiProvider, OpenRouterProvider, GroqProvider
 
 class LLMClient:
     """Client for orchestrating LLM requests across multiple providers.
@@ -131,9 +122,11 @@ class LLMClient:
 
         # Sequence: Gemini -> S1 -> Gemini -> S2
         sequence = [primary]
-        if secondary_1: sequence.append(secondary_1)
+        if secondary_1:
+            sequence.append(secondary_1)
         sequence.append(primary)
-        if secondary_2: sequence.append(secondary_2)
+        if secondary_2:
+            sequence.append(secondary_2)
 
         # Filter out Nones
         provider_sequence = [p for p in sequence if p is not None]

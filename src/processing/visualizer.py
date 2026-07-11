@@ -1,9 +1,8 @@
 import logging
 from rich.table import Table
 from rich.tree import Tree
-from typing import Any
 from src.core.schemas import DocumentGroup
-from src.core.ui import console, vprint
+from src.core.ui import vprint
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 

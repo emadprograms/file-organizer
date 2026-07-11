@@ -42,8 +42,8 @@ def validate_target_directory(target_dir: Path) -> str:
     if len(json_files) > 1:
         raise ValidationError("Multiple *_report.json files found in the target directory.")
         
-    pdf_id = pdf_files[0].name.split('_categorized.pdf')[0]
-    json_id = json_files[0].name.split('_report.json')[0]
+    pdf_id = pdf_files[0].name.removesuffix('_categorized.pdf')
+    json_id = json_files[0].name.removesuffix('_report.json')
     
     if pdf_id != json_id:
         raise ValidationError(f"ID mismatch between PDF ({pdf_id}) and JSON ({json_id}).")
@@ -162,12 +162,15 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
     
     output_json_path = output_dir / f"{house_id}_cleaned.json"
     grouped_checkpoint_path = output_dir / "checkpoints" / f"{house_id}_grouped.json"
+    runs_checkpoint_path = output_dir / "checkpoints" / f"{house_id}_runs_checkpoint.json"
     
     if not dry_run:
         if output_json_path.exists():
             output_json_path.unlink()
         if grouped_checkpoint_path.exists():
             grouped_checkpoint_path.unlink()
+        if runs_checkpoint_path.exists():
+            runs_checkpoint_path.unlink()
             
     if dry_run:
         from src.processing.visualizer import Visualizer

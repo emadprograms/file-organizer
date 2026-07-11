@@ -81,7 +81,7 @@ def assign_pages_to_tenants(pages: list[PageData], timelines: list[TenantTimelin
 
 def process_cleaning_phase(json_path: Path, llm_client: LLMClient) -> list[PageData]:
     logger.info("==================================================")
-    logger.info(f"           PHASE 1: DOCUMENT CLEANING             ")
+    logger.info("           PHASE 1: DOCUMENT CLEANING             ")
     logger.info("==================================================")
     
     pages = load_and_parse_json(json_path)
