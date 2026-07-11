@@ -14,6 +14,7 @@ logger = logging.getLogger(f"file_organizer.{__name__}")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "google/gemma-4-26b-a4b-it")
 GROQ_MODEL = os.getenv("GROQ_MODEL", "qwen/qwen3.6-27b")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemma-4-31b-it")
+ROUTING_MODEL = os.getenv("ROUTING_MODEL", "google/gemma-4-26b-a4b-it")
 
 def record_successful_call() -> None:
     """Record a successful API call for quota tracking.

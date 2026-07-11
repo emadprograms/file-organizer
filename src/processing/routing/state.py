@@ -11,9 +11,11 @@ logger = logging.getLogger(f"file_organizer.{__name__}")
 class RoutingState(BaseModel):
     """
     Represents the state of the routing process to allow resuming after interruption.
+    Stores the actual routing results (index -> folder path) and the grouping checksum
+    active when these results were computed.
     """
-    processed_indices: List[int] = Field(default_factory=list, description="Indices of documents that have already been routed.")
-    grouping_checksum: str = Field(default="", description="Checksum of the grouping results to ensure they haven't changed since routing started.")
+    results: dict[int, str] = Field(default_factory=dict, description="Mapping of document index to assigned folder path.")
+    grouping_checksum: str | None = Field(default=None, description="Checksum of the grouping results to ensure they haven't changed since routing started.")
 
 class RoutingStateManager:
     """

@@ -1,20 +1,19 @@
-# Summary: Routing State and Dynamic Model (13-01)
+# Summary: Refactor Routing State Schema and Configuration
 
-## Objectives
-- Implement `RoutingStateManager` for atomic state persistence.
-- Update routing functions (`route_document` and `double_check_others`) to support a dynamic `model` parameter.
+## Objective
+Refactor the routing state schema and global configuration to support persistence of actual routing results (folder paths) instead of just tracking processed indices, and to allow explicit model selection for the routing process.
 
 ## Changes
-### 1. State Management
-- Created `src/processing/routing/state.py` implementing `RoutingState` (Pydantic) and `RoutingStateManager`.
-- `RoutingState` tracks `processed_indices` and `grouping_checksum`.
-- `RoutingStateManager` uses atomic writes (temp file + `os.replace`) and maintains a `.bak` file for recovery.
-
-### 2. Dynamic Model Support
-- Updated `double_check_others` in `src/processing/routing/router.py` to accept an optional `model: Optional[str] = None` and pass it to `llm_client.generate_content`.
-- Updated `route_document` in `src/processing/routing/router.py` to accept an optional `model: Optional[str] = None` and propagate it to `double_check_others` and `llm_client.generate_content`.
+- **Configuration**: Added `ROUTING_MODEL` constant to `src/core/config.py` with a default value of `google/gemma-4-26b-a4b-it`, supporting environment variable overrides.
+- **State Schema**: Refactored `RoutingState` in `src/processing/routing/state.py`:
+    - Removed `processed_indices: List[int]`.
+    - Added `results: dict[int, str]` to map document indices to their assigned folder paths.
+    - Updated `grouping_checksum: str | None` to be optional and persist the checksum active during routing.
+    - Updated class docstring for clarity.
 
 ## Verification Results
-- **Unit Tests:** Added `tests/test_routing_state.py` to verify atomic save/load and backup recovery.
-- **Regression/Feature Tests:** Updated `tests/test_routing.py` to verify that the `model` parameter is correctly propagated to the LLM client.
-- **Test Result:** All 14 tests in `tests/test_routing.py` and `tests/test_routing_state.py` passed.
+- **Automated Checks**: Verified existence of `ROUTING_MODEL` in `config.py` and `results` dictionary in `state.py` using `Select-String`.
+- **Functional Test**: Created and executed a temporary persistence test (`tests/test_routing_state_persistence_tmp.py`) verifying that `RoutingState` can be initialized, updated, saved, and loaded without data loss.
+
+## Outcome
+The routing state now correctly tracks the actual results of the routing process, preventing data loss and enabling efficient resumption. The routing model is now configurable via global settings.

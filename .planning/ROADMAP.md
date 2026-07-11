@@ -49,7 +49,13 @@
 
 - [x] Phase 11: Conditional LLM Folder Routing and Folder Renaming
 - [ ] Phase 12: Finalize Conditional LLM Folder Routing and Folder Renaming (0 plans)
-- [ ] Phase 13: Routing Checkpoints & Architecture Decoupling (0 plans)
+- [ ] Phase 13: Routing Checkpoints & Architecture Decoupling
+  **Goal:** Fix the routing result data loss bug, resolve implicit model propagation, and complete the architecture decoupling of routing from grouping.
+  **Plans:** 3 plans
+  Plans:
+  - [ ] 13-01-PLAN.md — Refactor state schema and config for result persistence
+  - [ ] 13-02-PLAN.md — Decouple pipeline and fix routing resumption bug
+  - [ ] 13-03-PLAN.md — Implement E2E verification for resilience and model propagation
 
 ## Progress
 

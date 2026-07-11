@@ -1,19 +1,27 @@
-# Summary: Pipeline Decoupling and Routing Checkpoints (13-02)
+# Summary: Task 13-02 - Pipeline Decoupling and Routing Fix
 
-## Objectives
-- Refactor `Pipeline._group_and_route_documents` to decouple grouping and routing into distinct stages.
-- Implement granular checkpointing for the routing stage.
-- Add a sanity check using a checksum of grouping results to prevent routing resumption on inconsistent state.
+## Objective
+Decouple the pipeline architecture and fix the routing resumption bug by restoring state into document objects.
 
 ## Changes
-### 1. Pipeline Refactoring (`src/processing/pipeline.py`)
-- **Decoupled Routing Loop:** Routing is now a separate loop that iterates over the final list of `documents` after all grouping runs have finished.
-- **Grouping Checksum:** Implemented a checksum based on the `start_page`, `end_page`, and `category` of all documents to uniquely identify the current grouping state.
-- **Routing Checkpoints:** Integrated `RoutingStateManager` using a dedicated `_routing.json` checkpoint file. The state is saved atomically after each individual document is routed.
-- **Sanity Check:** Added logic to compare the current grouping checksum with the one stored in `RoutingState`. If they mismatch, the routing state is cleared to ensure consistency.
-- **Checkpoint Cleanup:** The pipeline now removes both the grouping run checkpoint and the routing checkpoint upon successful completion of the entire process.
+- **Pipeline Initialization**: Updated `Pipeline.__init__` to explicitly track `routing_model`, defaulting to `src.core.config.ROUTING_MODEL`.
+- **Architectural Decoupling**: 
+    - Extracted grouping logic into `_group_documents`.
+    - Extracted routing logic into `_route_documents`.
+    - Refactored `_group_and_route_documents` to orchestrate these two private methods.
+- **Routing Resumption Fix**:
+    - Replaced `processed_indices` with `state.results` for tracking progress.
+    - Implemented the "Skip-and-Forget" fix: documents are now restored with their `folder_path` from `state.results` upon resumption.
+- **Robustness**:
+    - Implemented a pre-route sanity check that resets `state.results` if the grouping checksum has changed, preventing incorrect routing assignments.
+- **Model Propagation**:
+    - Ensured `route_document` is called with the explicitly tracked `self.routing_model`.
 
 ## Verification Results
-- **Feature Tests:** Created and verified `tests/test_pipeline_routing.py` which specifically tests routing resumption from checkpoints and the checksum-based restart logic.
-- **Regression Tests:** Verified that `tests/test_pipeline.py` continues to pass.
-- **Test Result:** All tests in `tests/test_pipeline_routing.py` and `tests/test_pipeline.py` passed.
+- `self.routing_model` is correctly initialized and used.
+- `_group_documents` and `_route_documents` are implemented and called by the main pipeline method.
+- Resumption logic restores `folder_path` from `state.results`.
+- Sanity check for grouping checksum is implemented.
+
+## Artifacts
+- Modified: `src/processing/pipeline.py`

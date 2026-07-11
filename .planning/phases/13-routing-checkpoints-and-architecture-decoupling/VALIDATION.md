@@ -11,9 +11,10 @@ Phase 13 implemented atomic state management for the routing process and decoupl
 | **RES-01** | Atomic State Persistence | `tests/test_routing_state.py::test_routing_state_manager_atomic_backup` | ✅ | PASS |
 | **CFG-01** | Dynamic Model Support | `tests/test_routing.py::test_routing_model_propagation` | ✅ | PASS |
 | **CFG-01** | Dynamic Model Support | `tests/test_routing.py::test_double_check_model_propagation` | ✅ | PASS |
-| **ARCH-01** | Routing Decoupling | `tests/test_pipeline_routing.py::test_routing_checkpointing_and_resumption` | ✅ | PASS |
-| **ARCH-01** | Routing Checkpoints | `tests/test_pipeline_routing.py::test_routing_checkpointing_and_resumption` | ✅ | PASS |
-| **ARCH-01** | Checksum Sanity Check | `tests/test_pipeline_routing.py::test_routing_sanity_check_checksum_mismatch` | ✅ | PASS |
+| **CFG-01** | Dynamic Model Support | `tests/test_pipeline_routing.py::test_model_parameter_passed` | ✅ | PASS |
+| **ARCH-01** | Routing Decoupling | `tests/test_pipeline_routing.py::test_resumption_persistence` | ✅ | PASS |
+| **ARCH-01** | Routing Checkpoints | `tests/test_pipeline_routing.py::test_resumption_persistence` | ✅ | PASS |
+| **ARCH-01** | Checksum Sanity Check | `tests/test_pipeline_routing.py::test_routing_sanity_check_grouping_mismatch` | ✅ | PASS |
 
 ## Detailed Validation Results
 
