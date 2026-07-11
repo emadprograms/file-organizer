@@ -42,10 +42,10 @@ FOLDER_PREFIXES: dict[str, str] = {
 }
 
 # Groupings for constrained routing
-FORM_CATEGORIES = {"BASIC_DETAILS", "KEY_HANDOVER", "MAINTENANCE", "MODIFICATIONS"}
+FORM_CATEGORIES = {"FORMS"}
 FORM_FOLDERS = {"بيانات أساسية", "محضر تسليم مفتاح", "صيانة", "تعديلات", "كهرباء وماء", "صور ومعاينات", "رسائل متنوعة"}
 
-LETTER_CATEGORIES = {"AMAR_TAKHSEES", "RENT_DEDUCTION", "ALLOWANCE_DEDUCTION", "NOTIFICATIONS"}
+LETTER_CATEGORIES = {"LETTERS"}
 LETTER_FOLDERS = {"أمر تخصيص", "استقطاع إيجار", "وقف استقطاع بدل", "إشعارات", "كهرباء وماء", "صور ومعاينات", "صيانة", "تعديلات", "رسائل متنوعة"}
 
 SINGLE_MATCH = {cat for cat, folders in CATEGORY_TO_FOLDERS.items() if len(folders) == 1}

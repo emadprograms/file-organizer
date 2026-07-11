@@ -18,7 +18,7 @@ class MockLLMClient:
         self.response_value = response_value
         self.call_count = 0
 
-    def generate_content(self, contents, response_schema, validation_context=None):
+    def generate_content(self, contents, response_schema, validation_context=None, **kwargs):
         self.call_count += 1
         if self.response_value is None:
             return None

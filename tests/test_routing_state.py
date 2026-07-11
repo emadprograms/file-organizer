@@ -8,11 +8,11 @@ def test_routing_state_manager_save_load(tmp_path):
     state_file = str(tmp_path / "routing_state.json")
     manager = RoutingStateManager(state_file)
     
-    initial_state = RoutingState(processed_indices=[1, 2, 3], grouping_checksum="abc-123")
+    initial_state = RoutingState(results={1: "f1", 2: "f2", 3: "f3"}, grouping_checksum="abc-123")
     manager.save_state(initial_state)
     
     loaded_state = manager.load_state()
-    assert loaded_state.processed_indices == [1, 2, 3]
+    assert loaded_state.results == {1: "f1", 2: "f2", 3: "f3"}
     assert loaded_state.grouping_checksum == "abc-123"
 
 def test_routing_state_manager_atomic_backup(tmp_path):
@@ -21,11 +21,11 @@ def test_routing_state_manager_atomic_backup(tmp_path):
     manager = RoutingStateManager(state_file)
     
     # 1. Save first state
-    state1 = RoutingState(processed_indices=[1], grouping_checksum="sum1")
+    state1 = RoutingState(results={1: "f1"}, grouping_checksum="sum1")
     manager.save_state(state1)
     
     # 2. Save second state (this should create a backup of state1)
-    state2 = RoutingState(processed_indices=[1, 2], grouping_checksum="sum2")
+    state2 = RoutingState(results={1: "f1", 2: "f2"}, grouping_checksum="sum2")
     manager.save_state(state2)
     
     # 3. Corrupt the main state file
@@ -40,7 +40,7 @@ def test_routing_state_manager_atomic_backup(tmp_path):
     # So bak_file contains state1.
     
     loaded_state = manager.load_state()
-    assert loaded_state.processed_indices == [1]
+    assert loaded_state.results == {1: "f1"}
     assert loaded_state.grouping_checksum == "sum1"
 
 def test_routing_state_manager_default_state(tmp_path):
@@ -49,5 +49,5 @@ def test_routing_state_manager_default_state(tmp_path):
     manager = RoutingStateManager(state_file)
     
     loaded_state = manager.load_state()
-    assert loaded_state.processed_indices == []
-    assert loaded_state.grouping_checksum == ""
+    assert loaded_state.results == {}
+    assert loaded_state.grouping_checksum is None

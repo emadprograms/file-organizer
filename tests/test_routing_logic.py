@@ -34,11 +34,14 @@ def test_route_document_no_mapping():
     with pytest.raises(RoutingValidationError):
         route_document(group, llm_client)
 
+from unittest.mock import patch
+
+@patch('src.processing.routing.router.SINGLE_MATCH', set())
 def test_route_document_multi_match_success():
-    # 'forms' requires LLM to route
+    # 'BASIC_DETAILS' requires LLM to route when not in SINGLE_MATCH
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="T1", 
-        category="forms", dates=[], reason="R1", brief_arabic_title="Application"
+        category="BASIC_DETAILS", dates=[], reason="R1", brief_arabic_title="Application"
     )
     llm_client = MagicMock()
     
