@@ -75,6 +75,11 @@ Archived to proceed with v2.0 Refactoring.
   **Goal:** Create logic to find the root folder "source files" and extract primary tenant names.
 - [x] Phase 18: Refactor Pipeline to use YAML (grouping, timeline, routing)
   **Goal:** Remove anchor logic and use YAML tenant names for Pass 1 LLM extraction. Connect the rest of the existing modules.
+- [x] Phase 18.5: Finalize PDF Output, Compression, and Metadata
+  **Goal:** Compress the original `_categorized` PDF to normal quality. Ensure the final routed PDF is both compressed and labeled `_finalized` (instead of `_categorized`). Update the PDF metadata to explicitly show "Tenant - Folder Name" (e.g., "1273 - folder_name") rather than just the category.
+  **Plans:** 1 plan
+  Plans:
+  - [x] 18.5-01-PLAN.md — Finalize PDF Output, Compression, and Metadata
 - [ ] Phase 19: End-to-End Testing and Verification
   **Goal:** Ensure the pipeline produces the exact same end-to-end results using the new architecture.
 
@@ -101,4 +106,5 @@ Archived to proceed with v2.0 Refactoring.
 | 16.1. Cleanup Checkpoints System | v2.0 | 1/1 | Complete | 2026-07-15 |
 | 17. Implement YAML Configuration Loading | v2.0 | 1/1 | Complete | 2026-07-15 |
 | 18. Refactor Pipeline to use YAML | v2.0 | 2/2 | Complete | 2026-07-15 |
+| 18.5. Finalize PDF Output, Compression, and Metadata | v2.0 | 1/1 | Complete | 2026-07-15 |
 | 19. End-to-End Testing and Verification | v2.0 | 0/0 | Pending | — |

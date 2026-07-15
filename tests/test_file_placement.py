@@ -41,7 +41,8 @@ def test_file_placement_logic(tmp_path):
     
     with patch('src.timeline.FileOrganizer') as MockOrganizer, \
          patch('src.timeline.run_reconciliation') as mock_reconciliation, \
-         patch('src.main.fitz.open') as mock_fitz_open:
+         patch('src.main.fitz.open') as mock_fitz_open, \
+         patch('src.pdf.compress.compress_pdf') as mock_compress_pdf:
         
         mock_organizer_instance = MockOrganizer.return_value
         mock_organizer_instance.organize.side_effect = organize_side_effect
@@ -49,6 +50,12 @@ def test_file_placement_logic(tmp_path):
         mock_doc = MagicMock()
         mock_doc.page_count = 10
         mock_fitz_open.return_value.__enter__.return_value = mock_doc
+        
+        def simulate_compress(tmp, final):
+            Path(final).touch()
+            # Also touch tmp so os.remove doesn't fail
+            Path(tmp).touch()
+        mock_compress_pdf.side_effect = simulate_compress
         
         logger = logging.getLogger("test")
         
@@ -58,10 +65,13 @@ def test_file_placement_logic(tmp_path):
     source_files_dir = output_dir / house_id / ".source_files"
     assert source_files_dir.exists(), ".source_files directory should exist"
     
-    # D-01: *_categorized.pdf is moved to house_dir and NOT into .source_files
+    # D-01: *_categorized.pdf is moved to .source_files
     expected_pdf_path = output_dir / house_id / pdf_path.name
-    assert expected_pdf_path.exists(), "Categorized PDF should be moved to house_dir"
-    assert not (source_files_dir / pdf_path.name).exists(), "Categorized PDF should not be in .source_files"
+    assert not expected_pdf_path.exists(), "Categorized PDF should be moved out of house_dir root"
+    assert (source_files_dir / pdf_path.name).exists(), "Categorized PDF should be in .source_files"
+    
+    finalized_pdf_path = output_dir / house_id / f"{house_id}_finalized.pdf"
+    assert finalized_pdf_path.exists(), "Finalized PDF should be created in house_dir"
     
     # D-03: *_report.json is correctly moved to .source_files/
     assert not report_json.exists(), "Report JSON should be moved from target_dir"
