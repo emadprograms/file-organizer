@@ -96,7 +96,7 @@ def get_parser():
     return parser
 
 def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, logger: logging.Logger, dry_run: bool, house_id: str, target_dir: Path) -> tuple[list, list[dict] | None]:
-    yaml_cache_path = output_json_path.parent / f"{house_id}_1_yaml.json"
+    yaml_cache_path = output_json_path.parent / f"{house_id}_1_yaml.yaml"
     
     if output_json_path.exists():
         logger.info(f"Skipping Pass 1 (found {output_json_path}). Loading cleaned data.")
@@ -105,8 +105,9 @@ def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, 
             cleaned_pages = [PageData(**p) for p in json.load(f)]
         yaml_data = None
         if yaml_cache_path.exists():
+            import yaml
             with open(yaml_cache_path, 'r', encoding='utf-8') as f:
-                yaml_data = json.load(f)
+                yaml_data = yaml.safe_load(f)
         return cleaned_pages, yaml_data
             
     logger.info("Starting Pass 1 — Document Cleaning")
@@ -122,9 +123,10 @@ def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, 
             with open(tmp_path, 'w', encoding='utf-8') as f:
                 json.dump([p.model_dump() for p in cleaned_pages], f, ensure_ascii=False, indent=2)
         if yaml_data:
+            import yaml
             with atomic_write(str(yaml_cache_path)) as tmp_path:
                 with open(tmp_path, 'w', encoding='utf-8') as f:
-                    json.dump(yaml_data, f, ensure_ascii=False, indent=2)
+                    yaml.dump(yaml_data, f, allow_unicode=True, sort_keys=False)
         logger.info(f"Wrote cleaned data to {output_json_path}")
     else:
         logger.info(f"  [DRY RUN] Would write cleaned data to {output_json_path}")
