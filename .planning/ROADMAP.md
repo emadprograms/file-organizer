@@ -69,6 +69,8 @@ Archived to proceed with v2.0 Refactoring.
 
 - [ ] Phase 16: Setup New Directory Structure
   **Goal:** Reorganize `src/` into logical folders (core, utils, tenant_config, grouping, timeline, routing) preserving all existing files.
+- [ ] Phase 16.1: Cleanup Checkpoints System
+  **Goal:** Refactor the confusing checkpoint system (checkpoints folder, cleaned json, manifest.json).
 - [ ] Phase 17: Implement YAML Configuration Loading (tenant_config)
   **Goal:** Create logic to find the root folder "source files" and extract primary tenant names.
 - [ ] Phase 18: Refactor Pipeline to use YAML (grouping, timeline, routing)
@@ -96,6 +98,7 @@ Archived to proceed with v2.0 Refactoring.
 | 14. Parallel Pipeline Refactoring | v1.4 | 0/0 | Archived | — |
 | 15. LLM Client Resilience & Failover Fixes | v1.4 | 0/0 | Archived | — |
 | 16. Setup New Directory Structure | v2.0 | 0/0 | Pending | — |
+| 16.1. Cleanup Checkpoints System | v2.0 | 1/1 | Complete | 2026-07-15 |
 | 17. Implement YAML Configuration Loading | v2.0 | 0/0 | Pending | — |
 | 18. Refactor Pipeline to use YAML | v2.0 | 0/0 | Pending | — |
 | 19. End-to-End Testing and Verification | v2.0 | 0/0 | Pending | — |

@@ -120,27 +120,26 @@ def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, 
         
     return cleaned_pages
 
-def run_grouping_pass(cleaned_pages: list, house_id: str, output_dir: Path, llm_client: Any, logger: logging.Logger, dry_run: bool, routing_model: str | None = None) -> list:
+def run_grouping_pass(cleaned_pages: list, house_id: str, output_dir: Path, llm_client: Any, logger: logging.Logger, dry_run: bool) -> list:
     from src.pipeline.pipeline import Pipeline
     from src.core.schemas import DocumentGroup
     
-    checkpoint_dir = output_dir / "checkpoints"
+    checkpoint_dir = output_dir / ".run_cache"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
-    grouped_checkpoint_path = checkpoint_dir / f"{house_id}_grouped.json"
-    run_checkpoint_path = checkpoint_dir / f"{house_id}_runs_checkpoint.json"
+    grouped_checkpoint_path = checkpoint_dir / f"{house_id}_2_grouped.json"
     
     if grouped_checkpoint_path.exists():
-        logger.info(f"Skipping Pass 2 (found {grouped_checkpoint_path}). Loading grouped documents.")
+        logger.info(f"Skipping Pass 2 Grouping (found {grouped_checkpoint_path}). Loading grouped documents.")
         with open(grouped_checkpoint_path, 'r', encoding='utf-8') as f:
             return [DocumentGroup(**d) for d in json.load(f)]
             
-    logger.info("Starting Pass 2 — Grouping and Routing")
+    logger.info("Starting Pass 2 — Grouping")
     raw_pages = [(p.original_index, p) for p in cleaned_pages]
     
-    pipeline = Pipeline(api_key=os.getenv("GEMINI_API_KEY"), routing_model=routing_model)
+    pipeline = Pipeline(api_key=os.getenv("GEMINI_API_KEY"))
     pipeline.client = llm_client
     
-    documents = pipeline._group_and_route_documents(raw_pages, str(run_checkpoint_path))
+    documents = pipeline._group_documents(raw_pages, str(grouped_checkpoint_path))
     
     if not dry_run:
         from src.utils.fs import atomic_write
@@ -151,6 +150,20 @@ def run_grouping_pass(cleaned_pages: list, house_id: str, output_dir: Path, llm_
     else:
         logger.info(f"  [DRY RUN] Would write grouped documents to {grouped_checkpoint_path}")
         
+    return documents
+
+def run_routing_pass(documents: list, house_id: str, output_dir: Path, llm_client: Any, logger: logging.Logger, dry_run: bool, routing_model: str | None = None) -> list:
+    from src.pipeline.pipeline import Pipeline
+    
+    checkpoint_dir = output_dir / ".run_cache"
+    checkpoint_dir.mkdir(parents=True, exist_ok=True)
+    routing_checkpoint_path = checkpoint_dir / f"{house_id}_3_routed_and_finalized.json"
+    
+    logger.info("Starting Pass 2.5 — Routing")
+    pipeline = Pipeline(api_key=os.getenv("GEMINI_API_KEY"), routing_model=routing_model)
+    pipeline.client = llm_client
+    
+    documents = pipeline._route_documents(documents, str(routing_checkpoint_path))
     return documents
 
 def run_generation_pass(documents: list, target_dir: Path, house_id: str, output_dir: Path, logger: logging.Logger, dry_run: bool):
@@ -173,31 +186,34 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
     logger.info("Running reconciliation...")
     run_reconciliation(summary, per_page, total_input_pages, house_id, output_dir, dry_run=dry_run)
     
-    output_json_path = output_dir / f"{house_id}_cleaned.json"
-    grouped_checkpoint_path = output_dir / "checkpoints" / f"{house_id}_grouped.json"
-    runs_checkpoint_path = output_dir / "checkpoints" / f"{house_id}_runs_checkpoint.json"
+    cleaned_path = output_dir / ".run_cache" / f"{house_id}_1_cleaned.json"
+    grouped_path = output_dir / ".run_cache" / f"{house_id}_2_grouped.json"
+    routed_path = output_dir / ".run_cache" / f"{house_id}_3_routed_and_finalized.json"
     
     if not dry_run:
-        if output_json_path.exists():
-            output_json_path.unlink()
-            
         import shutil
-        checkpoints_dir = output_dir / "checkpoints"
-        if checkpoints_dir.exists():
-            shutil.rmtree(checkpoints_dir, ignore_errors=True)
             
         source_files_dir = output_dir / house_id / "source_files"
         source_files_dir.mkdir(parents=True, exist_ok=True)
         
         report_json_path = target_dir / f"{house_id}_report.json"
-        manifest_path = output_dir / f"{house_id}_manifest.json"
         
         if pdf_path.exists():
             shutil.move(str(pdf_path), str(source_files_dir / pdf_path.name))
         if report_json_path.exists():
             shutil.move(str(report_json_path), str(source_files_dir / report_json_path.name))
-        if manifest_path.exists():
-            shutil.move(str(manifest_path), str(source_files_dir / manifest_path.name))
+            
+        # Move checkpoints instead of deleting them
+        if cleaned_path.exists():
+            shutil.move(str(cleaned_path), str(source_files_dir / cleaned_path.name))
+        if grouped_path.exists():
+            shutil.move(str(grouped_path), str(source_files_dir / grouped_path.name))
+        if routed_path.exists():
+            shutil.move(str(routed_path), str(source_files_dir / routed_path.name))
+            
+        run_cache_dir = output_dir / ".run_cache"
+        if run_cache_dir.exists():
+            shutil.rmtree(run_cache_dir, ignore_errors=True)
             
     if dry_run:
         from src.pipeline.visualizer import Visualizer
@@ -251,10 +267,11 @@ def main():
         logger.info("Initialization and validation successful.")
         
         json_path = list(args.target_dir.glob("*_report.json"))[0]
-        output_json_path = output_dir / f"{house_id}_cleaned.json"
+        output_json_path = output_dir / ".run_cache" / f"{house_id}_1_cleaned.json"
         
         cleaned_pages = run_cleaning_pass(json_path, output_json_path, llm_client, logger, args.dry_run)
-        documents = run_grouping_pass(cleaned_pages, house_id, output_dir, llm_client, logger, args.dry_run, args.routing_model)
+        documents = run_grouping_pass(cleaned_pages, house_id, output_dir, llm_client, logger, args.dry_run)
+        documents = run_routing_pass(documents, house_id, output_dir, llm_client, logger, args.dry_run, args.routing_model)
         run_generation_pass(documents, args.target_dir, house_id, output_dir, logger, args.dry_run)
         
         return 0

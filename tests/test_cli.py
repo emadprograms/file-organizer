@@ -14,7 +14,7 @@ def test_parser_default_model():
     parser = get_parser()
     args = parser.parse_args(["./pdfs/1273"])
     assert args.target_dir == Path("./pdfs/1273")
-    assert args.model == "gemma-4-26b-a4b-it"
+    assert args.model == "gemma-4-31b-it"
 
 def test_parser_custom_model():
     parser = get_parser()
@@ -54,7 +54,8 @@ def test_main_success(mock_validate_env, mock_validate_target, mock_setup_loggin
     mock_process_cleaning.return_value = []
     
     mock_pipeline_inst = mock_pipeline.return_value
-    mock_pipeline_inst._group_pages_into_documents.return_value = []
+    mock_pipeline_inst._group_documents.return_value = []
+    mock_pipeline_inst._route_documents.return_value = []
     
     mock_organizer_inst = mock_organizer.return_value
     mock_organizer_inst.organize.return_value = []
@@ -70,7 +71,12 @@ def test_main_success(mock_validate_env, mock_validate_target, mock_setup_loggin
     mock_validate_target.assert_called_once_with(Path("./pdfs/1273"))
     mock_setup_logging.assert_called_once()
     mock_llm_client.assert_called_once()
-    mock_pipeline.assert_called_once_with(api_key="test_key", routing_model=None)
+    assert mock_pipeline.call_count == 2
+    from unittest.mock import call
+    mock_pipeline.assert_has_calls([
+        call(api_key="test_key"),
+        call(api_key="test_key", routing_model=None)
+    ], any_order=True)
     mock_organizer_inst.organize.assert_called_once()
 
 def test_validate_target_directory_success(tmp_path):

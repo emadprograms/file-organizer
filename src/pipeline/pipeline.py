@@ -78,13 +78,16 @@ class Pipeline:
         documents: list[DocumentGroup] = []
         processed_run_indices = set()
         
-        # Load Midway Checkpoint if it exists
         if run_checkpoint_path and os.path.exists(run_checkpoint_path):
             try:
                 with open(run_checkpoint_path, 'r', encoding='utf-8') as f:
                     checkpoint_data = json.load(f)
-                    processed_run_indices = set(checkpoint_data.get('processed_run_indices', []))
-                    docs_data = checkpoint_data.get('documents', [])
+                    if isinstance(checkpoint_data, list):
+                        docs_data = checkpoint_data
+                        processed_run_indices = set(range(len(runs)))
+                    else:
+                        processed_run_indices = set(checkpoint_data.get('processed_run_indices', []))
+                        docs_data = checkpoint_data.get('documents', [])
                     documents = [DocumentGroup(**d) for d in docs_data]
                 logger.info(f"Resuming from run checkpoint. Skipping {len(processed_run_indices)} already processed runs.")
             except Exception as e:
@@ -187,30 +190,8 @@ class Pipeline:
             if routing_state_manager:
                 routing_state_manager.save_state(state)
             
-        # Clean up checkpoints if everything completed successfully
-        if run_checkpoint_path:
-            try:
-                if os.path.exists(run_checkpoint_path):
-                    os.remove(run_checkpoint_path)
-                routing_checkpoint_path = run_checkpoint_path.replace('.json', '_routing.json')
-                if os.path.exists(routing_checkpoint_path):
-                    os.remove(routing_checkpoint_path)
-                if os.path.exists(routing_checkpoint_path + ".bak"):
-                    os.remove(routing_checkpoint_path + ".bak")
-            except Exception as e:
-                logger.debug(f"Failed to remove checkpoints: {e}")
+        # We no longer delete checkpoints here. main.py will move them to source_files/
 
         return documents
 
-    def _group_and_route_documents(self, raw_pages: list[tuple[int, PageData]], run_checkpoint_path: str | None = None) -> list[DocumentGroup]:
-        """Group classified pages into cohesive document blocks using LLM boundary detection, then route them.
-        
-        Args:
-            raw_pages (list[tuple[int, PageData]]): The sequence of classified pages.
-            run_checkpoint_path (str | None): Optional path to save midway grouping progress.
-            
-        Returns:
-            list[DocumentGroup]: The final grouped and routed documents.
-        """
-        documents = self._group_documents(raw_pages, run_checkpoint_path)
-        return self._route_documents(documents, run_checkpoint_path)
+

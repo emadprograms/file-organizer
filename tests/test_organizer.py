@@ -85,10 +85,10 @@ def test_reconciliation_manifest(tmp_path):
     summary = {"total_output_pages": 1, "output_file_count": 1}
     run_reconciliation(summary, per_page, 1, "HOUSE_123", tmp_path)
     
-    manifest_file = tmp_path / "HOUSE_123_manifest.json"
+    manifest_file = tmp_path / ".run_cache" / "HOUSE_123_3_routed_and_finalized.json"
     assert manifest_file.exists()
     
-    with open(manifest_file, "r", encoding="utf-8") as f:
+    with open(manifest_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
 
 
