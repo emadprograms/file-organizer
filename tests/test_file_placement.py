@@ -31,12 +31,20 @@ def test_file_placement_logic(tmp_path):
     routed_path.touch()
     
     # Mock dependencies inside run_generation_pass
+    # Simulate what organize() does: renames target_dir to house_dir
+    house_dir = output_dir / house_id
+    def organize_side_effect(*args, **kwargs):
+        # organize() calls ensure_target_directories which renames target_dir -> house_dir
+        if target_dir.exists() and not house_dir.exists():
+            target_dir.rename(house_dir)
+        return ([{"output_file": "mock_output.pdf"}], house_id)
+    
     with patch('src.timeline.FileOrganizer') as MockOrganizer, \
          patch('src.timeline.run_reconciliation') as mock_reconciliation, \
          patch('src.main.fitz.open') as mock_fitz_open:
         
         mock_organizer_instance = MockOrganizer.return_value
-        mock_organizer_instance.organize.return_value = [{"output_file": "mock_output.pdf"}]
+        mock_organizer_instance.organize.side_effect = organize_side_effect
         
         mock_doc = MagicMock()
         mock_doc.page_count = 10

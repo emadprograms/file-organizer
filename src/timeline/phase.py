@@ -131,12 +131,13 @@ def process_cleaning_phase(json_path: Path, llm_client: LLMClient, house_dir: Pa
     logger.debug(f"Sending representative names to LLM: {representatives}")
     
     # YAML check
-    yaml_path = house_dir / "tenants.yaml"
+    house_id = house_dir.name.split(" - ")[0]
+    yaml_path = house_dir / f"{house_id}_tenants.yaml"
     allowed_tenants = None
     yaml_timelines = []
     
     if yaml_path.exists():
-        logger.info(f"Found tenants.yaml at {yaml_path}. Skipping strict anchor logic.")
+        logger.info(f"Found {yaml_path.name} at {yaml_path}. Skipping strict anchor logic.")
         with open(yaml_path, 'r', encoding='utf-8') as f:
             yaml_data = yaml.safe_load(f) or []
         allowed_tenants = [t["name"] for t in yaml_data]
@@ -149,7 +150,7 @@ def process_cleaning_phase(json_path: Path, llm_client: LLMClient, house_dir: Pa
                 max_date=max_d
             ))
     else:
-        logger.info(f"Didn't find {yaml_path}, using the anchor method.")
+        logger.info(f"Didn't find {yaml_path.name}, using the anchor method.")
     
     llm_map = canonicalize_with_llm(representatives, llm_client, allowed_tenants=allowed_tenants)
     for rep, canon in llm_map.items():
@@ -176,7 +177,7 @@ def process_cleaning_phase(json_path: Path, llm_client: LLMClient, house_dir: Pa
                 "end_date": end_d
             })
         if yaml_out:
-            logger.info(f"Auto-generating {yaml_path}")
+            logger.info(f"Auto-generating {yaml_path.name}")
             yaml_path.parent.mkdir(parents=True, exist_ok=True)
             with open(yaml_path, 'w', encoding='utf-8') as f:
                 yaml.dump(yaml_out, f, allow_unicode=True, sort_keys=False)

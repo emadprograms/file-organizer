@@ -176,7 +176,7 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
     pdf_path = list(target_dir.glob("*_categorized.pdf"))[0]
     
     organizer = FileOrganizer()
-    per_page = organizer.organize(documents, str(pdf_path), house_id, output_dir, None, dry_run=dry_run)
+    per_page, full_house_id = organizer.organize(documents, str(pdf_path), house_id, output_dir, None, dry_run=dry_run)
     
     with fitz.open(str(pdf_path)) as pdf_doc:
         total_input_pages = pdf_doc.page_count
@@ -188,38 +188,41 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
     }
     
     logger.info("Running reconciliation...")
-    run_reconciliation(summary, per_page, total_input_pages, house_id, output_dir, dry_run=dry_run)
+    run_reconciliation(summary, per_page, total_input_pages, full_house_id, output_dir, dry_run=dry_run)
     
     cleaned_path = output_dir / ".run_cache" / f"{house_id}_1_cleaned.json"
     grouped_path = output_dir / ".run_cache" / f"{house_id}_2_grouped.json"
-    routed_path = output_dir / ".run_cache" / f"{house_id}_3_routed_and_finalized.json"
+    routed_path = output_dir / ".run_cache" / f"{full_house_id}_3_routed_and_finalized.json"
     
+    house_dir = output_dir / full_house_id
+    original_target_dir = target_dir
+    
+    if not dry_run and target_dir != house_dir:
+        pdf_path = house_dir / pdf_path.name
+        target_dir = house_dir
+        
     if not dry_run:
         import shutil
-            
-        house_dir = output_dir / house_id
         source_files_dir = house_dir / ".source_files"
         source_files_dir.mkdir(parents=True, exist_ok=True)
         
-        report_json_path = target_dir / f"{house_id}_report.json"
-        
-        if report_json_path.exists():
-            shutil.move(str(report_json_path), str(source_files_dir / report_json_path.name))
-            
-        if pdf_path.exists() and pdf_path.parent != house_dir:
-            shutil.move(str(pdf_path), str(house_dir / pdf_path.name))
-            
-        yaml_path = target_dir / "tenants.yaml"
-        if yaml_path.exists() and yaml_path.parent != house_dir:
-            shutil.move(str(yaml_path), str(house_dir / yaml_path.name))
-            
-        # Move checkpoints instead of deleting them
+        # Move checkpoints
         if cleaned_path.exists():
             shutil.move(str(cleaned_path), str(source_files_dir / cleaned_path.name))
         if grouped_path.exists():
             shutil.move(str(grouped_path), str(source_files_dir / grouped_path.name))
         if routed_path.exists():
             shutil.move(str(routed_path), str(source_files_dir / routed_path.name))
+            
+        # Move JSON files from original source directory to source_files_dir
+        move_dir = original_target_dir if original_target_dir.exists() else target_dir
+        for json_f in move_dir.glob("*.json"):
+            shutil.move(str(json_f), str(source_files_dir / json_f.name))
+        # Also move any JSON files from house_dir if different
+        if move_dir != target_dir:
+            for json_f in target_dir.glob("*.json"):
+                if not (source_files_dir / json_f.name).exists():
+                    shutil.move(str(json_f), str(source_files_dir / json_f.name))
             
         run_cache_dir = output_dir / ".run_cache"
         if run_cache_dir.exists():
@@ -229,9 +232,9 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
         from src.pipeline.visualizer import Visualizer
         logger.info("Invoking visualizer for dry run output...")
         visualizer = Visualizer()
-        visualizer.print_summary(house_id, summary, per_page, documents)
+        visualizer.print_summary(full_house_id, summary, per_page, documents)
         
-    logger.info(f"Successfully generated {summary['output_file_count']} PDFs in {output_dir / house_id}")
+    logger.info(f"Successfully generated {summary['output_file_count']} PDFs in {output_dir / full_house_id}")
 
 def main():
     parser = get_parser()
@@ -276,7 +279,7 @@ def main():
                 house_id = validate_target_directory(target_dir)
                 if args.output_dir:
                     output_dir = args.output_dir
-                elif target_dir.name == house_id:
+                elif target_dir.name == house_id or target_dir.name.startswith(f"{house_id} -"):
                     output_dir = target_dir.parent
                 else:
                     output_dir = target_dir
@@ -291,7 +294,7 @@ def main():
                 json_path = list(target_dir.glob("*_report.json"))[0]
                 output_json_path = output_dir / ".run_cache" / f"{house_id}_1_cleaned.json"
                 
-                cleaned_pages = run_cleaning_pass(json_path, output_json_path, llm_client, logger, args.dry_run, house_dir)
+                cleaned_pages = run_cleaning_pass(json_path, output_json_path, llm_client, logger, args.dry_run, target_dir)
                 documents = run_grouping_pass(cleaned_pages, house_id, output_dir, llm_client, logger, args.dry_run)
                 documents = run_routing_pass(documents, house_id, output_dir, llm_client, logger, args.dry_run, args.routing_model)
                 run_generation_pass(documents, target_dir, house_id, output_dir, logger, args.dry_run)

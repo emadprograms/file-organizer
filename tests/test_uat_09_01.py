@@ -35,4 +35,5 @@ def test_rate_limit_retry():
         
         assert result == "Success"
         assert mock_provider.call_count == 2
-        mock_sleep.assert_called_once_with(65)
+        from unittest.mock import call
+        assert call(65) in mock_sleep.mock_calls

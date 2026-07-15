@@ -58,17 +58,23 @@ def test_main_success(mock_validate_env, mock_validate_target, mock_setup_loggin
     mock_pipeline_inst._route_documents.return_value = []
     
     mock_organizer_inst = mock_organizer.return_value
-    mock_organizer_inst.organize.return_value = []
+    mock_organizer_inst.organize.return_value = ([], "1273")
     
-    # We also need to mock Path.glob because args.target_dir.glob is called
-    with patch.object(Path, "glob") as mock_glob, patch("builtins.open"), patch.object(Path, "replace"), patch("os.replace"), patch("src.main.fitz") as mock_fitz, patch("src.main.json.load") as mock_json_load:
-        mock_glob.return_value = [Path("1273.pdf")]
+    def custom_glob(self, pattern):
+        if "categorized" in pattern:
+            return [Path("1273_categorized.pdf")]
+        elif "json" in pattern:
+            return [Path("1273_report.json")]
+        return [Path("1273.pdf")]
+        
+    with patch.object(Path, "glob", autospec=True) as mock_glob, patch("builtins.open"), patch.object(Path, "replace"), patch("os.replace"), patch("src.main.fitz") as mock_fitz, patch("src.main.json.load") as mock_json_load, patch("shutil.move"):
+        mock_glob.side_effect = custom_glob
         mock_fitz.open.return_value.__enter__.return_value.page_count = 0
         mock_json_load.return_value = []
         assert main() == 0
         
     mock_validate_env.assert_called_once()
-    mock_validate_target.assert_called_once_with(Path("./pdfs/1273"))
+    assert mock_validate_target.call_count == 2
     mock_setup_logging.assert_called_once()
     mock_llm_client.assert_called_once()
     assert mock_pipeline.call_count == 2

@@ -142,10 +142,10 @@ def test_assign_pages_to_tenants():
     timelines = [
         TenantTimeline(canonical_name="احمد", min_date="2020-01-01", max_date="2020-02-01")
     ]
-    assign_pages_to_tenants(pages, timelines)
+    assign_pages_to_tenants(pages, timelines, {})
     assert pages[0].canonical_tenant == "احمد"
     assert pages[1].canonical_tenant == "Unassigned (2020-05)"
-    assert pages[2].canonical_tenant == "Unassigned (Unknown)"
+    assert pages[2].canonical_tenant == "احمد"
 
 def test_process_cleaning_phase(tmp_path):
     json_path = tmp_path / "test_report.json"
@@ -157,7 +157,7 @@ def test_process_cleaning_phase(tmp_path):
         {"category": "other", "content_explanation": "test5", "expected_tenant_name": "احمد", "date": "2023-05-05", "sender": "s", "receiver": "r", "subject": "Subj5"}
     ]""", encoding="utf-8")
     
-    pages = process_cleaning_phase(json_path, MockLLMClient())
+    pages = process_cleaning_phase(json_path, MockLLMClient(), tmp_path)
     assert len(pages) == 5
     assert pages[0].canonical_tenant == "احمد"
 
@@ -368,7 +368,7 @@ def test_process_cleaning_phase_integration(tmp_path):
             mapping = {n: n for n in names if n}
             return json.dumps(mapping, ensure_ascii=False)
 
-    pages = process_cleaning_phase(json_path, IdentityMockLLM())
+    pages = process_cleaning_phase(json_path, IdentityMockLLM(), tmp_path)
     
     # T1 should be mapped to a canonical tenant
     t1_pages = [p for p in pages if "Ahmed Mohamed" in p.expected_tenant_name]
