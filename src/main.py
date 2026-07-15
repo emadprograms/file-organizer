@@ -135,7 +135,7 @@ def run_grouping_pass(cleaned_pages: list, house_id: str, output_dir: Path, llm_
     from src.pipeline.pipeline import Pipeline
     from src.core.schemas import DocumentGroup
     
-    checkpoint_dir = output_dir / ".run_cache"
+    checkpoint_dir = output_dir / ".source_files"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     grouped_checkpoint_path = checkpoint_dir / f"{house_id}_2_grouped.json"
     
@@ -170,7 +170,7 @@ def run_grouping_pass(cleaned_pages: list, house_id: str, output_dir: Path, llm_
 def run_routing_pass(documents: list, house_id: str, output_dir: Path, llm_client: Any, logger: logging.Logger, dry_run: bool, routing_model: str | None = None) -> list:
     from src.pipeline.pipeline import Pipeline
     
-    checkpoint_dir = output_dir / ".run_cache"
+    checkpoint_dir = output_dir / ".source_files"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     routing_checkpoint_path = checkpoint_dir / f"{house_id}_3_routed_and_finalized.json"
     
@@ -201,10 +201,7 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
     logger.info("Running reconciliation...")
     run_reconciliation(summary, per_page, total_input_pages, full_house_id, output_dir, dry_run=dry_run)
     
-    cleaned_path = output_dir / ".run_cache" / f"{house_id}_1_cleaned.json"
-    yaml_cache_path = output_dir / ".run_cache" / f"{house_id}_1_yaml.json"
-    grouped_path = output_dir / ".run_cache" / f"{house_id}_2_grouped.json"
-    routed_path = output_dir / ".run_cache" / f"{house_id}_3_routed_and_finalized.json"
+
     
     house_dir = output_dir / full_house_id
     original_target_dir = target_dir
@@ -254,22 +251,14 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
         except Exception as e:
             logger.error(f"Failed to create finalized PDF: {e}")
         
-        source_files_dir = house_dir / ".source_files"
+        source_files_dir = output_dir / ".source_files"
         source_files_dir.mkdir(parents=True, exist_ok=True)
         
         # Move the original categorized PDF to .source_files
         if pdf_path.exists():
             shutil.move(str(pdf_path), str(source_files_dir / pdf_path.name))
         
-        # Move checkpoints
-        if cleaned_path.exists():
-            shutil.move(str(cleaned_path), str(source_files_dir / cleaned_path.name))
-        if yaml_cache_path.exists():
-            shutil.move(str(yaml_cache_path), str(source_files_dir / yaml_cache_path.name))
-        if grouped_path.exists():
-            shutil.move(str(grouped_path), str(source_files_dir / grouped_path.name))
-        if routed_path.exists():
-            shutil.move(str(routed_path), str(source_files_dir / routed_path.name))
+
             
         # Move JSON and YAML files from original source directory to source_files_dir
         move_dir = original_target_dir if original_target_dir.exists() else target_dir
@@ -283,9 +272,7 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
                     if not (source_files_dir / f.name).exists():
                         shutil.move(str(f), str(source_files_dir / f.name))
             
-        run_cache_dir = output_dir / ".run_cache"
-        if run_cache_dir.exists():
-            shutil.rmtree(run_cache_dir, ignore_errors=True)
+
             
     if dry_run:
         from src.pipeline.visualizer import Visualizer
@@ -351,7 +338,7 @@ def main():
                 house_dir = output_dir / house_id
                 
                 json_path = list(target_dir.glob("*_report.json"))[0]
-                output_json_path = output_dir / ".run_cache" / f"{house_id}_1_cleaned.json"
+                output_json_path = output_dir / ".source_files" / f"{house_id}_1_cleaned.json"
                 
                 cleaned_pages, yaml_data = run_cleaning_pass(json_path, output_json_path, llm_client, logger, args.dry_run, house_id, target_dir)
                 documents = run_grouping_pass(cleaned_pages, house_id, output_dir, llm_client, logger, args.dry_run)
