@@ -51,7 +51,7 @@ def test_validate_environment_missing_key(mock_load_dotenv, capsys):
 def test_main_success(mock_validate_env, mock_validate_target, mock_setup_logging, mock_llm_client, mock_process_cleaning, mock_pipeline, mock_organizer):
     mock_validate_target.return_value = "1273"
     mock_setup_logging.return_value = "/tmp/logs"
-    mock_process_cleaning.return_value = []
+    mock_process_cleaning.return_value = ([], None)
     
     mock_pipeline_inst = mock_pipeline.return_value
     mock_pipeline_inst._group_documents.return_value = []

@@ -157,7 +157,7 @@ def test_process_cleaning_phase(tmp_path):
         {"category": "other", "content_explanation": "test5", "expected_tenant_name": "احمد", "date": "2023-05-05", "sender": "s", "receiver": "r", "subject": "Subj5"}
     ]""", encoding="utf-8")
     
-    pages = process_cleaning_phase(json_path, MockLLMClient(), tmp_path)
+    pages, _ = process_cleaning_phase(json_path, MockLLMClient(), "TEST_HOUSE", tmp_path)
     assert len(pages) == 5
     assert pages[0].canonical_tenant == "احمد"
 
@@ -368,7 +368,7 @@ def test_process_cleaning_phase_integration(tmp_path):
             mapping = {n: n for n in names if n}
             return json.dumps(mapping, ensure_ascii=False)
 
-    pages = process_cleaning_phase(json_path, IdentityMockLLM(), tmp_path)
+    pages, _ = process_cleaning_phase(json_path, IdentityMockLLM(), "TEST_HOUSE", tmp_path)
     
     # T1 should be mapped to a canonical tenant
     t1_pages = [p for p in pages if "Ahmed Mohamed" in p.expected_tenant_name]

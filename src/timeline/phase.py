@@ -99,7 +99,7 @@ def assign_pages_to_tenants(pages: list[PageData], timelines: list[TenantTimelin
             month_str = page.resolved_date[:7]
             page.canonical_tenant = f"Unassigned ({month_str})"
 
-def process_cleaning_phase(json_path: Path, llm_client: LLMClient, house_dir: Path) -> list[PageData]:
+def process_cleaning_phase(json_path: Path, llm_client: LLMClient, house_id: str, target_dir: Path) -> tuple[list[PageData], list[dict]]:
     logger.info("==================================================")
     logger.info("           PHASE 1: DOCUMENT CLEANING             ")
     logger.info("==================================================")
@@ -131,8 +131,7 @@ def process_cleaning_phase(json_path: Path, llm_client: LLMClient, house_dir: Pa
     logger.debug(f"Sending representative names to LLM: {representatives}")
     
     # YAML check
-    house_id = house_dir.name.split(" - ")[0]
-    yaml_path = house_dir / f"{house_id}_tenants.yaml"
+    yaml_path = target_dir / f"{house_id}_tenants.yaml"
     allowed_tenants = None
     yaml_timelines = []
     
@@ -161,26 +160,26 @@ def process_cleaning_phase(json_path: Path, llm_client: LLMClient, house_dir: Pa
         final_mapping[raw] = llm_map.get(rep, rep)
         
     logger.info("\n>>> TIMELINE BUILDING")
+    yaml_data = None
     if yaml_timelines:
         timelines = yaml_timelines
+        # yaml_data was already loaded from the user-provided YAML
+        yaml_data = yaml.safe_load(open(yaml_path, 'r', encoding='utf-8')) if yaml_path.exists() else None
     else:
         timelines = build_tenant_timelines(pages, final_mapping, allowed_tenants=allowed_tenants)
-        # Auto-generate tenants.yaml
-        yaml_out = []
+        # Build yaml_data in memory from computed timelines
+        yaml_data = []
         for t in timelines:
             # Check if this is the latest timeline
             is_latest = (t == sorted(timelines, key=lambda x: x.max_date)[-1]) if timelines else False
             end_d = "present" if is_latest else t.max_date
-            yaml_out.append({
+            yaml_data.append({
                 "name": t.canonical_name,
                 "start_date": t.min_date,
                 "end_date": end_d
             })
-        if yaml_out:
-            logger.info(f"Auto-generating {yaml_path.name}")
-            yaml_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(yaml_path, 'w', encoding='utf-8') as f:
-                yaml.dump(yaml_out, f, allow_unicode=True, sort_keys=False)
+        if yaml_data:
+            logger.info(f"Auto-generated tenant config with {len(yaml_data)} tenant(s)")
     
     logger.info("\n>>> FINAL OUTPUT FOR EACH DOCUMENT")
     assign_pages_to_tenants(pages, timelines, final_mapping)
@@ -201,4 +200,4 @@ def process_cleaning_phase(json_path: Path, llm_client: LLMClient, house_dir: Pa
     logger.info("\n==================================================")
     logger.info("           CLEANING PHASE COMPLETE                ")
     logger.info("==================================================")
-    return pages
+    return pages, yaml_data

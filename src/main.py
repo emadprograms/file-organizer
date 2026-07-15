@@ -95,15 +95,22 @@ def get_parser():
     )
     return parser
 
-def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, logger: logging.Logger, dry_run: bool, house_dir: Path) -> list:
+def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, logger: logging.Logger, dry_run: bool, house_id: str, target_dir: Path) -> tuple[list, list[dict] | None]:
+    yaml_cache_path = output_json_path.parent / f"{house_id}_1_yaml.json"
+    
     if output_json_path.exists():
         logger.info(f"Skipping Pass 1 (found {output_json_path}). Loading cleaned data.")
         with open(output_json_path, 'r', encoding='utf-8') as f:
             from src.core.models import PageData
-            return [PageData(**p) for p in json.load(f)]
+            cleaned_pages = [PageData(**p) for p in json.load(f)]
+        yaml_data = None
+        if yaml_cache_path.exists():
+            with open(yaml_cache_path, 'r', encoding='utf-8') as f:
+                yaml_data = json.load(f)
+        return cleaned_pages, yaml_data
             
     logger.info("Starting Pass 1 — Document Cleaning")
-    cleaned_pages = process_cleaning_phase(json_path, llm_client, house_dir)
+    cleaned_pages, yaml_data = process_cleaning_phase(json_path, llm_client, house_id, target_dir)
     
     unique_tenants = len(set(p.canonical_tenant for p in cleaned_pages))
     logger.info(f"Cleaned {len(cleaned_pages)} pages successfully. Resolved {unique_tenants} unique tenant(s).")
@@ -114,11 +121,15 @@ def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, 
         with atomic_write(str(output_json_path)) as tmp_path:
             with open(tmp_path, 'w', encoding='utf-8') as f:
                 json.dump([p.model_dump() for p in cleaned_pages], f, ensure_ascii=False, indent=2)
+        if yaml_data:
+            with atomic_write(str(yaml_cache_path)) as tmp_path:
+                with open(tmp_path, 'w', encoding='utf-8') as f:
+                    json.dump(yaml_data, f, ensure_ascii=False, indent=2)
         logger.info(f"Wrote cleaned data to {output_json_path}")
     else:
         logger.info(f"  [DRY RUN] Would write cleaned data to {output_json_path}")
         
-    return cleaned_pages
+    return cleaned_pages, yaml_data
 
 def run_grouping_pass(cleaned_pages: list, house_id: str, output_dir: Path, llm_client: Any, logger: logging.Logger, dry_run: bool) -> list:
     from src.pipeline.pipeline import Pipeline
@@ -170,13 +181,13 @@ def run_routing_pass(documents: list, house_id: str, output_dir: Path, llm_clien
     documents = pipeline._route_documents(documents, str(routing_checkpoint_path))
     return documents
 
-def run_generation_pass(documents: list, target_dir: Path, house_id: str, output_dir: Path, logger: logging.Logger, dry_run: bool):
+def run_generation_pass(documents: list, target_dir: Path, house_id: str, output_dir: Path, logger: logging.Logger, dry_run: bool, yaml_data: list[dict] | None = None):
     from src.timeline import FileOrganizer, run_reconciliation
     
     pdf_path = list(target_dir.glob("*_categorized.pdf"))[0]
     
     organizer = FileOrganizer()
-    per_page, full_house_id = organizer.organize(documents, str(pdf_path), house_id, output_dir, None, dry_run=dry_run)
+    per_page, full_house_id = organizer.organize(documents, str(pdf_path), house_id, output_dir, yaml_data=yaml_data, dry_run=dry_run)
     
     with fitz.open(str(pdf_path)) as pdf_doc:
         total_input_pages = pdf_doc.page_count
@@ -191,14 +202,23 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
     run_reconciliation(summary, per_page, total_input_pages, full_house_id, output_dir, dry_run=dry_run)
     
     cleaned_path = output_dir / ".run_cache" / f"{house_id}_1_cleaned.json"
+    yaml_cache_path = output_dir / ".run_cache" / f"{house_id}_1_yaml.json"
     grouped_path = output_dir / ".run_cache" / f"{house_id}_2_grouped.json"
-    routed_path = output_dir / ".run_cache" / f"{full_house_id}_3_routed_and_finalized.json"
+    routed_path = output_dir / ".run_cache" / f"{house_id}_3_routed_and_finalized.json"
     
     house_dir = output_dir / full_house_id
     original_target_dir = target_dir
     
     if not dry_run and target_dir != house_dir:
-        pdf_path = house_dir / pdf_path.name
+        import shutil
+        new_pdf_path = house_dir / pdf_path.name
+        # If the file hasn't been moved yet, move it now
+        if pdf_path.exists() and not new_pdf_path.exists():
+            shutil.move(str(pdf_path), str(new_pdf_path))
+        elif not pdf_path.exists() and new_pdf_path.exists():
+            # It was already moved/renamed by organizer
+            pass
+        pdf_path = new_pdf_path
         target_dir = house_dir
         
     if not dry_run:
@@ -244,20 +264,24 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
         # Move checkpoints
         if cleaned_path.exists():
             shutil.move(str(cleaned_path), str(source_files_dir / cleaned_path.name))
+        if yaml_cache_path.exists():
+            shutil.move(str(yaml_cache_path), str(source_files_dir / yaml_cache_path.name))
         if grouped_path.exists():
             shutil.move(str(grouped_path), str(source_files_dir / grouped_path.name))
         if routed_path.exists():
             shutil.move(str(routed_path), str(source_files_dir / routed_path.name))
             
-        # Move JSON files from original source directory to source_files_dir
+        # Move JSON and YAML files from original source directory to source_files_dir
         move_dir = original_target_dir if original_target_dir.exists() else target_dir
-        for json_f in move_dir.glob("*.json"):
-            shutil.move(str(json_f), str(source_files_dir / json_f.name))
-        # Also move any JSON files from house_dir if different
+        for ext in ("*.json", "*.yaml", "*.yml"):
+            for f in move_dir.glob(ext):
+                shutil.move(str(f), str(source_files_dir / f.name))
+        # Also move any JSON/YAML files from house_dir if different
         if move_dir != target_dir:
-            for json_f in target_dir.glob("*.json"):
-                if not (source_files_dir / json_f.name).exists():
-                    shutil.move(str(json_f), str(source_files_dir / json_f.name))
+            for ext in ("*.json", "*.yaml", "*.yml"):
+                for f in target_dir.glob(ext):
+                    if not (source_files_dir / f.name).exists():
+                        shutil.move(str(f), str(source_files_dir / f.name))
             
         run_cache_dir = output_dir / ".run_cache"
         if run_cache_dir.exists():
@@ -329,10 +353,10 @@ def main():
                 json_path = list(target_dir.glob("*_report.json"))[0]
                 output_json_path = output_dir / ".run_cache" / f"{house_id}_1_cleaned.json"
                 
-                cleaned_pages = run_cleaning_pass(json_path, output_json_path, llm_client, logger, args.dry_run, target_dir)
+                cleaned_pages, yaml_data = run_cleaning_pass(json_path, output_json_path, llm_client, logger, args.dry_run, house_id, target_dir)
                 documents = run_grouping_pass(cleaned_pages, house_id, output_dir, llm_client, logger, args.dry_run)
                 documents = run_routing_pass(documents, house_id, output_dir, llm_client, logger, args.dry_run, args.routing_model)
-                run_generation_pass(documents, target_dir, house_id, output_dir, logger, args.dry_run)
+                run_generation_pass(documents, target_dir, house_id, output_dir, logger, args.dry_run, yaml_data)
             except Exception as e:
                 logger.exception(f"Failed processing {target_dir}: {e}")
                 has_errors = True

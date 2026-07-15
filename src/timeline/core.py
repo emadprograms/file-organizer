@@ -216,82 +216,6 @@ class FileOrganizer:
             
         return per_page
 
-    def organize(self, documents: list[DocumentGroup], source_pdf: str, house_id: str, output_base_dir: Path, config: Any = None, dry_run: bool = False) -> list[dict]:
-        """Organize the extracted documents into a structured directory hierarchy."""
-        if not documents:
-            logger.warning("⚠ No documents to organize. Exiting.")
-            return []
-
-        import yaml
-        yaml_data = None
-        target_dir = Path(source_pdf).parent
-        yaml_path = target_dir / f"{house_id}_tenants.yaml"
-            
-        if yaml_path.exists():
-            logger.info(f"Loading {yaml_path.name} from {yaml_path}")
-            try:
-                with open(yaml_path, 'r', encoding='utf-8') as f:
-                    yaml_data = yaml.safe_load(f)
-            except Exception as e:
-                logger.warning(f"Failed to read {yaml_path}: {e}")
-        else:
-            logger.warning(f"Could not find {yaml_path.name} at {yaml_path}")
-
-        tenant_folder_names, latest_tenant = self.compute_tenant_folders(documents, yaml_data)
-        
-        from src.utils.logger import log_decision_trace
-        log_decision_trace("tenant_resolution", {"tenant_folders": tenant_folder_names})
-        logger.info(f"Tenant resolution complete. Folders: {tenant_folder_names}")
-
-        if yaml_tenant_map:
-            for t_name, t_info in yaml_tenant_map.items():
-                if t_info.get("end_date") == "present":
-                    latest_tenant = t_name
-                    break
-                    
-        if not latest_tenant:
-            global_max_year = -1
-            
-            for tenant, years in tenant_years.items():
-                if tenant != "Unassigned" and years:
-                    try:
-                        max_yr = max(int(y) for y in years)
-                        if max_yr > global_max_year:
-                            global_max_year = max_yr
-                            latest_tenant = tenant
-                    except ValueError:
-                        pass
-
-        tenant_folder_names = {}
-        for tenant, years in tenant_years.items():
-            if tenant == "Unassigned":
-                if years:
-                    min_val = min(years)
-                    max_val = max(years)
-                    tenant_folder_names[tenant] = f"غير مخصص (فترة مستنتجة) {min_val} to {max_val}"
-                else:
-                    tenant_folder_names[tenant] = "غير مخصص"
-            else:
-                safe_name = utils.sanitize_filename(tenant)
-                if tenant in yaml_tenant_map:
-                    t_info = yaml_tenant_map[tenant]
-                    # Format: start_year-end_year
-                    start_yr = t_info.get("start_date", "").split("-")[0] if t_info.get("start_date") else (min(years) if years else "unknown")
-                    end_yr = t_info.get("end_date", "present")
-                    if end_yr != "present":
-                        end_yr = end_yr.split("-")[0]
-                    tenant_folder_names[tenant] = f"{safe_name} {start_yr}-{end_yr}"
-                else:
-                    # Fallback if tenant not in yaml
-                    if years:
-                        min_val = min(years)
-                        max_val = max(years)
-                        tenant_folder_names[tenant] = f"{safe_name} {min_val}-{max_val}"
-                    else:
-                        tenant_folder_names[tenant] = f"{safe_name}"
-                    
-        return tenant_folder_names, latest_tenant
-
     def ensure_target_directories(self, target_dir: Path, tenant_folder_names: dict[str, str], full_house_id: str, output_base_dir: Path) -> Path:
         """Create target directories for organization."""
         house_dir = output_base_dir / full_house_id
@@ -411,26 +335,13 @@ class FileOrganizer:
             
         return per_page
 
-    def organize(self, documents: list[DocumentGroup], source_pdf: str, house_id: str, output_base_dir: Path, config: Any = None, dry_run: bool = False) -> list[dict]:
+    def organize(self, documents: list[DocumentGroup], source_pdf: str, house_id: str, output_base_dir: Path, yaml_data: list[dict] = None, dry_run: bool = False) -> tuple[list[dict], str]:
         """Organize the extracted documents into a structured directory hierarchy."""
         if not documents:
             logger.warning("⚠ No documents to organize. Exiting.")
             return []
 
-        import yaml
-        yaml_data = None
         target_dir = Path(source_pdf).parent
-        yaml_path = target_dir / f"{house_id}_tenants.yaml"
-            
-        if yaml_path.exists():
-            logger.info(f"Loading {yaml_path.name} from {yaml_path}")
-            try:
-                with open(yaml_path, 'r', encoding='utf-8') as f:
-                    yaml_data = yaml.safe_load(f)
-            except Exception as e:
-                logger.warning(f"Failed to read {yaml_path}: {e}")
-        else:
-            logger.warning(f"Could not find {yaml_path.name} at {yaml_path}")
 
         tenant_folder_names, latest_tenant = self.compute_tenant_folders(documents, yaml_data)
         
