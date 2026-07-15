@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-from src.organize import get_parser, validate_environment, main
+from src.main import get_parser, validate_environment, main
 from src.core.exceptions import ConfigurationError, ValidationError
 
 def test_parser_default_model():
@@ -32,22 +32,22 @@ def test_validate_environment_success():
     # Should not exit
     validate_environment()
 
-@patch("src.organize.load_dotenv")
+@patch("src.main.load_dotenv")
 @patch.dict(os.environ, {}, clear=True)
 def test_validate_environment_missing_key(mock_load_dotenv, capsys):
     with pytest.raises(ConfigurationError) as exc_info:
         validate_environment()
     assert "GEMINI_API_KEY is missing" in str(exc_info.value)
 
-@patch("src.processing.organizer.FileOrganizer")
-@patch("src.processing.pipeline.Pipeline")
-@patch("src.organize.process_cleaning_phase")
-@patch("src.organize.LLMClient")
-@patch("src.organize.setup_logging")
-@patch("src.organize.validate_target_directory")
-@patch("src.organize.validate_environment")
+@patch("src.timeline.FileOrganizer")
+@patch("src.pipeline.pipeline.Pipeline")
+@patch("src.main.process_cleaning_phase")
+@patch("src.main.LLMClient")
+@patch("src.main.setup_logging")
+@patch("src.main.validate_target_directory")
+@patch("src.main.validate_environment")
 @patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"}, clear=True)
-@patch("sys.argv", ["organize.py", "./pdfs/1273"])
+@patch("sys.argv", ["main.py", "./pdfs/1273"])
 def test_main_success(mock_validate_env, mock_validate_target, mock_setup_logging, mock_llm_client, mock_process_cleaning, mock_pipeline, mock_organizer):
     mock_validate_target.return_value = "1273"
     mock_setup_logging.return_value = "/tmp/logs"
@@ -60,7 +60,7 @@ def test_main_success(mock_validate_env, mock_validate_target, mock_setup_loggin
     mock_organizer_inst.organize.return_value = []
     
     # We also need to mock Path.glob because args.target_dir.glob is called
-    with patch.object(Path, "glob") as mock_glob, patch("builtins.open"), patch.object(Path, "replace"), patch("os.replace"), patch("src.organize.fitz") as mock_fitz, patch("src.organize.json.load") as mock_json_load:
+    with patch.object(Path, "glob") as mock_glob, patch("builtins.open"), patch.object(Path, "replace"), patch("os.replace"), patch("src.main.fitz") as mock_fitz, patch("src.main.json.load") as mock_json_load:
         mock_glob.return_value = [Path("1273.pdf")]
         mock_fitz.open.return_value.__enter__.return_value.page_count = 0
         mock_json_load.return_value = []
@@ -70,7 +70,7 @@ def test_main_success(mock_validate_env, mock_validate_target, mock_setup_loggin
     mock_validate_target.assert_called_once_with(Path("./pdfs/1273"))
     mock_setup_logging.assert_called_once()
     mock_llm_client.assert_called_once()
-    mock_pipeline.assert_called_once_with(api_key="test_key")
+    mock_pipeline.assert_called_once_with(api_key="test_key", routing_model=None)
     mock_organizer_inst.organize.assert_called_once()
 
 def test_validate_target_directory_success(tmp_path):
@@ -79,7 +79,7 @@ def test_validate_target_directory_success(tmp_path):
     (target_dir / "1273_categorized.pdf").touch()
     (target_dir / "1273_report.json").touch()
     
-    from src.organize import validate_target_directory
+    from src.main import validate_target_directory
     house_id = validate_target_directory(target_dir)
     assert house_id == "1273"
 
@@ -88,7 +88,7 @@ def test_validate_target_directory_missing_pdf(tmp_path, capsys):
     target_dir.mkdir()
     (target_dir / "1273_report.json").touch()
     
-    from src.organize import validate_target_directory
+    from src.main import validate_target_directory
     with pytest.raises(ValidationError) as exc_info:
         validate_target_directory(target_dir)
     assert "No *_categorized.pdf found" in str(exc_info.value)
@@ -99,7 +99,7 @@ def test_validate_target_directory_mismatch_id(tmp_path, capsys):
     (target_dir / "1273_categorized.pdf").touch()
     (target_dir / "1274_report.json").touch()
     
-    from src.organize import validate_target_directory
+    from src.main import validate_target_directory
     with pytest.raises(ValidationError) as exc_info:
         validate_target_directory(target_dir)
     assert "ID mismatch" in str(exc_info.value)
@@ -111,7 +111,7 @@ def test_validate_target_directory_missing_json(tmp_path, capsys):
     # Provide a PDF but NO matching _report.json
     (target_dir / "1273_categorized.pdf").touch()
 
-    from src.organize import validate_target_directory
+    from src.main import validate_target_directory
     with pytest.raises(ValidationError) as exc_info:
         validate_target_directory(target_dir)
     assert "No *_report.json found" in str(exc_info.value)

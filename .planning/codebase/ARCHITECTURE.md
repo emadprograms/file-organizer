@@ -7,7 +7,7 @@ The `file-organizer` repository is a Python-based pipeline designed to categoriz
 
 ## System Components
 
-1. **CLI Entry Point (`src/organize.py`)**
+1. **CLI Entry Point (`src/main.py`)**
    - The main orchestrator of the post-processing step.
    - Validates input directories, loads categorized JSON reports, initializes the LLM client, and orchestrates Pass 1 (Cleaning) and Pass 2 (Grouping, Routing, Splitting).
 
@@ -36,7 +36,7 @@ The `file-organizer` repository is a Python-based pipeline designed to categoriz
 
 ```mermaid
 flowchart TD
-    A[Input: _categorized.pdf & _report.json] --> B(organize.py)
+    A[Input: _categorized.pdf & _report.json] --> B(main.py)
     B --> C[Pass 1: cleaning.py]
     
     subgraph Pass 1: Cleaning

@@ -24,7 +24,7 @@ class GroupEntry(BaseModel):
     reason: str = Field(description="Why these pages belong together — what subject/content connects them")
     brief_arabic_title: str = Field(
         description="Short Arabic title describing this document group",
-        validation_alias=AliasChoices('brief_arabic_title', 'title', 'arabic_title')
+        validation_alias=AliasChoices('brief_arabic_title', 'title', 'arabic_title', 'title_ar')
     )
     start_page: int = Field(description="First page index of this document group (0-indexed)")
     end_page: int = Field(description="Last page index of this document group (0-indexed, inclusive)")

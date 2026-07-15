@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import MagicMock, patch
-from src.processing.routing.router import route_document, RoutingValidationError
+from src.routing.router import route_document, RoutingValidationError
 from src.llm.llm import LLMFailureError
 from src.core.schemas import DocumentGroup
 
@@ -9,7 +9,7 @@ def test_unmapped_category_raises_error():
     Verify RoutingValidationError is raised instead of returning '13_others'."""
     
     # Mock CATEGORY_TO_FOLDERS to ensure the category is missing
-    with patch('src.processing.routing.router.CATEGORY_TO_FOLDERS', {}):
+    with patch('src.routing.router.CATEGORY_TO_FOLDERS', {}):
         group = DocumentGroup(
             start_page=0,
             end_page=1,
@@ -26,7 +26,7 @@ def test_unmapped_category_raises_error():
         
         assert "has no mapping" in str(excinfo.value)
 
-@patch('src.processing.routing.router.SINGLE_MATCH', set())
+@patch('src.routing.router.SINGLE_MATCH', set())
 def test_llm_exhaustion_raises_error():
     """Test Case 2: Mock LLMClient to raise LLMFailureError. 
     Verify that the error propagates and halts the router."""
@@ -46,13 +46,13 @@ def test_llm_exhaustion_raises_error():
     with pytest.raises(RoutingValidationError):
         route_document(group, mock_llm)
 
-@patch('src.processing.routing.router.SINGLE_MATCH', set())
+@patch('src.routing.router.SINGLE_MATCH', set())
 def test_validation_failure_raises_error():
     """Test Case 3: Mock LLMClient to return an invalid folder. 
     Verify that after 3 attempts, RoutingValidationError is raised."""
 
     # Ensure category is mapped to something specific
-    with patch('src.processing.routing.router.CATEGORY_TO_FOLDERS', {"BASIC_DETAILS": ["بيانات أساسية"]}):
+    with patch('src.routing.router.CATEGORY_TO_FOLDERS', {"BASIC_DETAILS": ["بيانات أساسية"]}):
         group = DocumentGroup(
             start_page=0,
             end_page=1,
@@ -76,7 +76,7 @@ def test_validation_failure_raises_error():
 
         assert "Failed to route document to valid folder after 3 attempts" in str(excinfo.value)
 
-@patch('src.processing.routing.router.SINGLE_MATCH', set())
+@patch('src.routing.router.SINGLE_MATCH', set())
 def test_lockout_removal_verification():
     """Test Case 4: Verify that multiple sequential failures do not trigger a 'lockout' or skip routing.
     This test ensures that the logic for consecutive_routing_failures is gone.
@@ -85,7 +85,7 @@ def test_lockout_removal_verification():
     # We will call route_document multiple times with failure scenarios
     # and ensure that the 6th call doesn't return '13_others' silently.
 
-    with patch('src.processing.routing.router.CATEGORY_TO_FOLDERS', {"BASIC_DETAILS": ["بيانات أساسية"]}):
+    with patch('src.routing.router.CATEGORY_TO_FOLDERS', {"BASIC_DETAILS": ["بيانات أساسية"]}):
         group = DocumentGroup(
             start_page=0,
             end_page=1,

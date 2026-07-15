@@ -19,5 +19,5 @@
 
 ## 4. Coverage and Assertions
 - **Assertion Style**: Standard `assert` statements are used, enriched with detailed error messages (e.g., `assert result.returncode == 0, f"Exited with {result.returncode}. stdout:..."`).
-- **CLI Output Validation**: Subprocess executions of the main CLI (`organize.py`) validate system behavior by asserting on process return codes and inspecting captured `stdout`/`stderr` strings for expected phrases.
+- **CLI Output Validation**: Subprocess executions of the main CLI (`main.py`) validate system behavior by asserting on process return codes and inspecting captured `stdout`/`stderr` strings for expected phrases.
 - **Resiliency Verification**: Dedicated tests ensure the system handles invalid input gracefully. Examples include tests verifying that malformed JSON payloads lead to clean non-zero exits rather than unhandled stack traces, and tests verifying fallback routing behavior when out-of-bound references occur.

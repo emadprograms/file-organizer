@@ -3,7 +3,7 @@ import os
 import fitz
 import logging
 from src.core.indexing import to_0_based, validate_bounds
-from src.processing.pdf.compress import compress_pdf
+from src.pdf.compress import compress_pdf
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 

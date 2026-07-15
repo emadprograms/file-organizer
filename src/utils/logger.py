@@ -5,7 +5,7 @@ import uuid
 import logging
 from datetime import datetime
 
-LOGS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'logs'))
+LOGS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'logs'))
 
 class LogContext:
     """
@@ -79,14 +79,16 @@ def setup_logging(run_id: str = None, verbose: bool = False) -> str:
 
     # Configuration based on verbose flag (Decision D-03)
     if verbose:
-        # Strict Whitelist: Root WARNING, only file_organizer DEBUG
-        root_logger.setLevel(logging.WARNING)
-        logging.getLogger("file_organizer").setLevel(logging.DEBUG)
-    else:
-        # Permissive Blacklist: Root DEBUG, block noisy libraries
+        # User wants maximum info: Root DEBUG, block extremely noisy network libraries to INFO
         root_logger.setLevel(logging.DEBUG)
-        for library in ["openai", "google_genai", "google_genai.models", "urllib3", "httpcore"]:
-            logging.getLogger(library).setLevel(logging.WARNING)
+        for library in ["urllib3", "httpcore"]:
+            logging.getLogger(library).setLevel(logging.INFO)
+    else:
+        # Normal mode: Root WARNING
+        root_logger.setLevel(logging.WARNING)
+        
+    # file_organizer should always generate DEBUG logs for the debug.log handler
+    logging.getLogger("file_organizer").setLevel(logging.DEBUG)
     
     # Formatters
     text_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -118,26 +120,28 @@ def setup_logging(run_id: str = None, verbose: bool = False) -> str:
     stream_handler.setLevel(logging.DEBUG if verbose else logging.INFO)
     root_logger.addHandler(stream_handler)
     
+    # Trace log - JSONL (Dedicated logger to keep file handle open)
+    trace_log_file = os.path.join(full_dir, "traces.jsonl")
+    trace_logger = logging.getLogger("traces")
+    trace_logger.setLevel(logging.INFO)
+    trace_logger.propagate = False
+    
+    # Avoid duplicating handlers if setup_logging is called multiple times
+    if trace_logger.hasHandlers():
+        trace_logger.handlers.clear()
+        
+    trace_handler = logging.FileHandler(trace_log_file, encoding='utf-8')
+    trace_handler.setFormatter(logging.Formatter('%(message)s'))
+    trace_logger.addHandler(trace_handler)
+    
     return full_dir
 
 def _write_jsonl_trace(trace_type: str, payload: dict):
     """
     Write a structured JSON trace to traces.jsonl in the run directory.
+    Uses a dedicated logger with an open file handler for performance.
     """
     ctx = LogContext.get_instance()
-    log_dir = ctx.run_dir
-    
-    if not log_dir:
-        # Fallback if _write_jsonl_trace is called without setup_logging
-        # We cannot reasonably recover the run_id here without it being passed,
-        # so we create a fallback directory.
-        timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
-        dir_name = f"fallback_{timestamp}"
-        log_dir = os.path.join(LOGS_DIR, dir_name)
-        os.makedirs(log_dir, exist_ok=True)
-        ctx.initialize(log_dir, "fallback")
-        
-    trace_file = os.path.join(log_dir, "traces.jsonl")
     
     record = {
         "timestamp": datetime.now().isoformat(),
@@ -145,8 +149,22 @@ def _write_jsonl_trace(trace_type: str, payload: dict):
         "payload": payload
     }
     
-    with open(trace_file, "a", encoding="utf-8") as f:
-        f.write(json.dumps(record, ensure_ascii=False) + "\n")
+    trace_logger = logging.getLogger("traces")
+    if trace_logger.hasHandlers():
+        trace_logger.info(json.dumps(record, ensure_ascii=False))
+    else:
+        # Fallback if _write_jsonl_trace is called without setup_logging
+        log_dir = ctx.run_dir
+        if not log_dir:
+            timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+            dir_name = f"fallback_{timestamp}"
+            log_dir = os.path.join(LOGS_DIR, dir_name)
+            os.makedirs(log_dir, exist_ok=True)
+            ctx.initialize(log_dir, "fallback")
+            
+        trace_file = os.path.join(log_dir, "traces.jsonl")
+        with open(trace_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
 def log_decision_trace(decision_type: str, payload: dict):

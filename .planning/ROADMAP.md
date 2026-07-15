@@ -5,7 +5,9 @@
 - ✅ **v1.0 MVP** — Phases 1-3 (shipped 2026-07-08)
 - ✅ **v1.1 Logging Overhaul** — Phase 4-6 (shipped 2026-07-08) [Archive: .planning/milestones/v1.1-ROADMAP.md]
 - ✅ **v1.2 Pipeline Resilience & Grouping Overhaul** — Phases 7-10 (shipped 2026-07-10) [Archive: .planning/milestones/v1.2-ROADMAP.md]
-- 🚧 **v1.3 Routing Decoupling & Checkpointing** — Phases 11-13 (planned)
+- ✅ **v1.3 Routing Decoupling & Checkpointing** — Phases 11-13 (shipped 2026-07-10) [Archive: .planning/milestones/v1.3-ROADMAP.md]
+- 🛑 **v1.4 LLM Performance & Optimization** — Phases 14-15 (Archived)
+- 🚧 **v2.0 Logic-Based Modular Refactoring** — Phases 16-19 (planned)
 
 ## Phases
 
@@ -45,17 +47,34 @@
 
 </details>
 
-### 🚧 v1.3 Routing Decoupling & Checkpointing
+<details>
+<summary>✅ v1.3 Routing Decoupling & Checkpointing (Phases 11-13) — SHIPPED 2026-07-10</summary>
 
 - [x] Phase 11: Conditional LLM Folder Routing and Folder Renaming
-- [ ] Phase 12: Finalize Conditional LLM Folder Routing and Folder Renaming (0 plans)
-- [ ] Phase 13: Routing Checkpoints & Architecture Decoupling
+- [x] Phase 12: Finalize Conditional LLM Folder Routing and Folder Renaming (0 plans)
+- [x] Phase 13: Routing Checkpoints & Architecture Decoupling
   **Goal:** Fix the routing result data loss bug, resolve implicit model propagation, and complete the architecture decoupling of routing from grouping.
   **Plans:** 3 plans
   Plans:
-  - [ ] 13-01-PLAN.md — Refactor state schema and config for result persistence
-  - [ ] 13-02-PLAN.md — Decouple pipeline and fix routing resumption bug
-  - [ ] 13-03-PLAN.md — Implement E2E verification for resilience and model propagation
+  - [x] 13-01-PLAN.md — Refactor state schema and config for result persistence
+  - [x] 13-02-PLAN.md — Decouple pipeline and fix routing resumption bug
+  - [x] 13-03-PLAN.md — Implement E2E verification for resilience and model propagation
+
+</details>
+
+### 🛑 v1.4 LLM Performance & Optimization (Archived)
+Archived to proceed with v2.0 Refactoring.
+
+### 🚧 v2.0 Logic-Based Modular Refactoring
+
+- [ ] Phase 16: Setup New Directory Structure
+  **Goal:** Reorganize `src/` into logical folders (core, utils, tenant_config, grouping, timeline, routing) preserving all existing files.
+- [ ] Phase 17: Implement YAML Configuration Loading (tenant_config)
+  **Goal:** Create logic to find the root folder "source files" and extract primary tenant names.
+- [ ] Phase 18: Refactor Pipeline to use YAML (grouping, timeline, routing)
+  **Goal:** Remove anchor logic and use YAML tenant names for Pass 1 LLM extraction. Connect the rest of the existing modules.
+- [ ] Phase 19: End-to-End Testing and Verification
+  **Goal:** Ensure the pipeline produces the exact same end-to-end results using the new architecture.
 
 ## Progress
 
@@ -72,5 +91,11 @@
 | 9. Rate Limiting & Router Safety Net | v1.2 | 2/2 | Complete    | 2026-07-09 |
 | 10. Chunk State Management | v1.2 | 4/4 | Complete | 2026-07-10 |
 | 11. Conditional LLM Folder Routing and Folder Renaming | v1.3 | -/- | Complete | 2026-07-10 |
-| 12. Finalize Conditional LLM Folder Routing and Folder Renaming | v1.3 | 0/0 | Pending | — |
-| 13. Routing Checkpoints & Architecture Decoupling | v1.3 | 0/0 | Pending | — |
+| 12. Finalize Conditional LLM Folder Routing and Folder Renaming | v1.3 | 0/0 | Complete | 2026-07-10 |
+| 13. Routing Checkpoints & Architecture Decoupling | v1.3 | 3/3 | Complete | 2026-07-10 |
+| 14. Parallel Pipeline Refactoring | v1.4 | 0/0 | Archived | — |
+| 15. LLM Client Resilience & Failover Fixes | v1.4 | 0/0 | Archived | — |
+| 16. Setup New Directory Structure | v2.0 | 0/0 | Pending | — |
+| 17. Implement YAML Configuration Loading | v2.0 | 0/0 | Pending | — |
+| 18. Refactor Pipeline to use YAML | v2.0 | 0/0 | Pending | — |
+| 19. End-to-End Testing and Verification | v2.0 | 0/0 | Pending | — |

@@ -22,7 +22,10 @@ def atomic_write(filepath: str):
             except PermissionError:
                 time.sleep(0.1)
         else:
-            os.replace(tmp_filepath, filepath)
+            raise PermissionError(
+                f"Could not atomically write to {filepath} after 10 attempts. "
+                "The file might be locked by another process (e.g., Antivirus, OneDrive)."
+            )
     except Exception:
         if os.path.exists(tmp_filepath):
             os.remove(tmp_filepath)

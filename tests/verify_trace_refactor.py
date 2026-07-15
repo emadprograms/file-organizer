@@ -1,7 +1,7 @@
 import os
 import shutil
 import json
-from src.logger import setup_logging, log_llm_api_call, log_decision_trace
+from src.utils.logger import setup_logging, log_llm_api_call, log_decision_trace
 
 def test_trace_refactor():
     run_id = "test_trace_refactor"

@@ -1,5 +1,5 @@
 import pytest
-from src.processing.visualizer import Visualizer
+from src.pipeline.visualizer import Visualizer
 from src.core.ui import set_verbosity
 
 def test_visualizer_print_summary_empty(capsys):

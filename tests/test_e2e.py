@@ -103,7 +103,7 @@ def test_dry_run_end_to_end(tmp_path):
     env = {**os.environ, "PYTHONIOENCODING": "utf8"}
 
     result = subprocess.run(
-        [sys.executable, "-m", "src.organize", str(house_dir), "--output-dir", str(house_dir / "output"), "--dry-run", "--verbose"],
+        [sys.executable, "-m", "src.main", str(house_dir), "--output-dir", str(house_dir / "output"), "--dry-run", "--verbose"],
         capture_output=True,
         env=env,
         cwd=str(Path(__file__).parent.parent),  # project root

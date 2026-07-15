@@ -1,7 +1,7 @@
 import logging
 import sys
 from pydantic import ValidationError
-from src.processing.routing.router import route_document, RoutingResponse, RoutingValidationError
+from src.routing.router import route_document, RoutingResponse, RoutingValidationError
 from src.core.schemas import DocumentGroup
 
 # Setup logging to see the retry feedback in the console

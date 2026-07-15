@@ -1,6 +1,6 @@
 import pytest
 import re
-from src.processing.routing.config import FOLDER_ROUTING, FORM_FOLDERS, LETTER_FOLDERS
+from src.routing.config import FOLDER_ROUTING, FORM_FOLDERS, LETTER_FOLDERS
 
 def is_arabic(text):
     # Regex to check if a string contains at least one Arabic character

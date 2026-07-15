@@ -1,8 +1,8 @@
 """Tests for the routing engine including constrained routing and double-check logic."""
 
 import pytest
-from src.processing.routing.router import route_document, RoutingValidationError, double_check_others
-from src.processing.routing.config import SINGLE_MATCH, FOLDER_ROUTING, CATEGORY_TO_FOLDERS, FORM_CATEGORIES, LETTER_CATEGORIES
+from src.routing.router import route_document, RoutingValidationError, double_check_others
+from src.routing.config import SINGLE_MATCH, FOLDER_ROUTING, CATEGORY_TO_FOLDERS, FORM_CATEGORIES, LETTER_CATEGORIES
 from src.core.schemas import DocumentGroup
 from unittest.mock import patch, MagicMock
 from pydantic import ValidationError
@@ -38,7 +38,7 @@ def test_constrained_routing_success():
         brief_arabic_title="Test Form", reason="Form test"
     )
     # Force it to not be in SINGLE_MATCH for this test to exercise LLM
-    with patch("src.processing.routing.router.SINGLE_MATCH", set()):
+    with patch("src.routing.router.SINGLE_MATCH", set()):
         llm = MockLLMClient([("بيانات أساسية", "Correct form folder")])
         folder, direct = route_document(group, llm)
         assert folder == "بيانات أساسية"
@@ -51,7 +51,7 @@ def test_constrained_routing_invalid_retry():
         start_page=0, end_page=1, primary_tenant="Test",
         category="BASIC_DETAILS", dates=["2023-01-01"]
     )
-    with patch("src.processing.routing.router.SINGLE_MATCH", set()):
+    with patch("src.routing.router.SINGLE_MATCH", set()):
         # 1st: folder not in FORM_FOLDERS, 2nd: valid folder
         llm = MockLLMClient([("أمر تخصيص", "Wrong category folder"), ("بيانات أساسية", "Correct folder")])
         folder, direct = route_document(group, llm)
@@ -65,7 +65,7 @@ def test_constrained_routing_escape_hatch():
         category="BASIC_DETAILS", dates=["2023-01-01"],
         brief_arabic_title="Edge Case Form"
     )
-    with patch("src.processing.routing.router.SINGLE_MATCH", set()):
+    with patch("src.routing.router.SINGLE_MATCH", set()):
         # 1st: Escape hatch, 2nd: Double-check initial, 3rd: Double-check confirmation
         llm = MockLLMClient([
             ("None of the above", "Doesn't fit"),
@@ -141,7 +141,7 @@ def test_constrained_routing_max_retries():
         start_page=0, end_page=1, primary_tenant="Test",
         category="BASIC_DETAILS", dates=["2023-01-01"]
     )
-    with patch("src.processing.routing.router.SINGLE_MATCH", set()):
+    with patch("src.routing.router.SINGLE_MATCH", set()):
         # 3 invalid responses
         llm = MockLLMClient([("invalid_1", "wrong"), ("invalid_2", "wrong"), ("invalid_3", "wrong")])
         with pytest.raises(RoutingValidationError):
@@ -155,7 +155,7 @@ def test_routing_model_propagation():
         category="BASIC_DETAILS", dates=["2023-01-01"]
     )
     test_model = "gpt-4o-mini"
-    with patch("src.processing.routing.router.SINGLE_MATCH", set()):
+    with patch("src.routing.router.SINGLE_MATCH", set()):
         llm = MockLLMClient([("بيانات أساسية", "Correct folder")])
         route_document(group, llm, model=test_model)
         assert llm.calls[0]["model"] == test_model

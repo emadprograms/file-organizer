@@ -1,6 +1,6 @@
 import pytest
 from pydantic import ValidationError
-from src.processing.routing.router import RoutingResponse
+from src.routing.router import RoutingResponse
 
 def test_routing_response_valid_folder():
     """Verify that RoutingResponse succeeds when selected_folder is in the allowed list."""

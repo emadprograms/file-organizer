@@ -1,12 +1,12 @@
 import pytest
 from unittest.mock import MagicMock
 from src.core.schemas import DocumentGroup
-from src.processing.routing.router import route_document, RoutingResponse, RoutingValidationError
+from src.routing.router import route_document, RoutingResponse, RoutingValidationError
 
 import pytest
 from unittest.mock import MagicMock
 from src.core.schemas import DocumentGroup
-from src.processing.routing.router import route_document, RoutingResponse, RoutingValidationError
+from src.routing.router import route_document, RoutingResponse, RoutingValidationError
 
 def test_route_document_single_match():
     # 'id_cards' is mapped directly to 'بيانات شخصية'
@@ -36,7 +36,7 @@ def test_route_document_no_mapping():
 
 from unittest.mock import patch
 
-@patch('src.processing.routing.router.SINGLE_MATCH', set())
+@patch('src.routing.router.SINGLE_MATCH', set())
 def test_route_document_multi_match_success():
     # 'BASIC_DETAILS' requires LLM to route when not in SINGLE_MATCH
     group = DocumentGroup(

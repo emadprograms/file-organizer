@@ -3,9 +3,9 @@ import os
 import hashlib
 import json
 from unittest.mock import MagicMock, patch, call
-from src.processing.pipeline import Pipeline, PageData
+from src.pipeline.pipeline import Pipeline, PageData
 from src.core.schemas import DocumentGroup
-from src.processing.routing.state import RoutingState
+from src.routing.state import RoutingState
 
 def compute_checksum(documents: list[DocumentGroup]) -> str:
     """Helper to compute checksum based on document boundaries and categories."""
@@ -18,7 +18,7 @@ def compute_checksum(documents: list[DocumentGroup]) -> str:
 
 @pytest.fixture
 def mock_llm_client():
-    with patch("src.processing.pipeline.LLMClient") as mock:
+    with patch("src.pipeline.pipeline.LLMClient") as mock:
         yield mock.return_value
 
 @pytest.fixture
@@ -38,7 +38,7 @@ def test_resumption_persistence(tmp_path, pipeline, sample_docs):
     checkpoint_path = str(tmp_path / "run_checkpoint.json")
     
     # 1. Run routing for only a subset of documents
-    with patch("src.processing.routing.route_document") as mock_route:
+    with patch("src.routing.route_document") as mock_route:
         # Only return results for the first 2 documents, then simulate an interruption
         mock_route.side_effect = [
             ("folder/1", False),
@@ -58,7 +58,7 @@ def test_resumption_persistence(tmp_path, pipeline, sample_docs):
     # 2. Resume routing with a new pipeline instance
     new_pipeline = Pipeline(api_key="test_key")
     
-    with patch("src.processing.routing.route_document") as mock_route_resumed:
+    with patch("src.routing.route_document") as mock_route_resumed:
         mock_route_resumed.return_value = ("folder/3", False)
         
         # Re-run routing. The first 2 should be restored from state, the 3rd should be routed.
@@ -79,7 +79,7 @@ def test_model_parameter_passed(tmp_path, mock_llm_client):
     
     doc = DocumentGroup(start_page=0, end_page=0, category="cat1", primary_tenant="tenant1", dates=[], canonical_tenant="tenant1")
     
-    with patch("src.processing.routing.route_document") as mock_route:
+    with patch("src.routing.route_document") as mock_route:
         # Mock the return value of route_document
         mock_route.return_value = ("folder/path", False)
         
@@ -95,7 +95,7 @@ def test_routing_sanity_check_grouping_mismatch(tmp_path, pipeline, sample_docs)
     routing_checkpoint = checkpoint_path.replace(".json", "_routing.json")
     
     # 1. Run routing for a subset and create a checkpoint
-    with patch("src.processing.routing.route_document") as mock_route:
+    with patch("src.routing.route_document") as mock_route:
         mock_route.side_effect = [
             ("folder/1", False),
             Exception("Interrupted!"),
@@ -112,7 +112,7 @@ def test_routing_sanity_check_grouping_mismatch(tmp_path, pipeline, sample_docs)
     sample_docs[0].category = "NEW_CATEGORY"
     
     # 3. Resume routing
-    with patch("src.processing.routing.route_document") as mock_route_resumed:
+    with patch("src.routing.route_document") as mock_route_resumed:
         mock_route_resumed.return_value = ("folder/reset", False)
         
         pipeline._route_documents(sample_docs, run_checkpoint_path=checkpoint_path)

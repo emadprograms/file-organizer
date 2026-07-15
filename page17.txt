@@ -1,0 +1,13 @@
+{
+  "category": "forms",
+  "content_explanation": "This document is a 'Regular Inspection Details' form regarding a Married Quarter Address. It documents an inspection conducted on March 19, 2002, by an inspector named 'Ali Hassan Ali'. The form provides details for the quarter located at Flat/House 1275, Building 667, Block 944, Road/Avenue 4425, in the town of Safra. It also includes occupant information: the tenant is identified as 'Shamas Darwez', whose service number is 1684 and rank is R/ORAFA. The nationality is noted as Pakistani, and the formation is listed as SIS. The inspection outcome is simply marked as 'ok'. The bottom of the form provides spaces for signatures from two inspectors and the occupant.",
+  "expected_tenant_name": "Shamas Darwez",
+  "expected_house_number": "1275",
+  "date": null,
+  "sender": null,
+  "receiver": null,
+  "subject": null,
+  "canonical_tenant": "\u064a\u0648\u0646\u0633 \u0645\u062d\u0645\u062f \u0645\u0644\u0643",
+  "resolved_date": "2004-01-04",
+  "original_index": 17
+}

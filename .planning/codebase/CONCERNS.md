@@ -25,7 +25,7 @@ This document outlines technical debt, known issues, security concerns, and perf
 - **Impact**: Clutters production routing logic and makes the LLM client fragile if prompt schemas change.
 - **Recommendation**: Implement a `MockLLMProvider` that conforms to the `LLMProvider` protocol instead of polluting the core client.
 
-### 1.5 Deep `sys.exit()` Calls (`src/organize.py`)
+### 1.5 Deep `sys.exit()` Calls (`src/main.py`)
 - **Issue**: Utility functions like `validate_environment` and `validate_target_directory` call `sys.exit(1)` directly on failure.
 - **Impact**: Prevents these functions from being reused or properly tested without patching `sys.exit`. 
 - **Recommendation**: Raise custom exceptions (e.g., `ConfigurationError`, `ValidationError`) and catch them in `main()` to exit gracefully.

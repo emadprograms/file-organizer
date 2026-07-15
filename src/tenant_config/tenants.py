@@ -4,7 +4,7 @@ import logging
 import json
 from rapidfuzz import fuzz
 from src.llm.llm import LLMClient
-from src.cleaning.models import PageData, TenantTimeline
+from src.core.models import PageData, TenantTimeline
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 

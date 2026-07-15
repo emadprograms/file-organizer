@@ -1,7 +1,7 @@
 
 import unittest
 from unittest.mock import MagicMock, patch
-from src.processing.grouping.core import process_with_shrink
+from src.grouping.core import process_with_shrink
 from src.core.schemas import DocumentGroup
 
 class MockPage:
@@ -15,7 +15,7 @@ class MockPage:
         self.subject = "Some other subject"
 
 class TestUAT08PrecisionWindow(unittest.TestCase):
-    @patch('src.processing.grouping.core._process_chunk')
+    @patch('src.grouping.core._process_chunk')
     def test_others_precision_window(self, mock_process_chunk):
         # Mock _process_chunk to return a valid group so it doesn't fail validation
         mock_process_chunk.return_value = [

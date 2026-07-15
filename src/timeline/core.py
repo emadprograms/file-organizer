@@ -11,7 +11,7 @@ from collections import defaultdict
 from typing import Any
 
 from src.core.schemas import DocumentGroup
-from src.processing.pdf import extract_pdf_segment
+from src.pdf import extract_pdf_segment
 import src.core.utils as utils
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
@@ -65,7 +65,7 @@ class FileOrganizer:
 
     def ensure_target_directories(self, tenant_folder_names: dict[str, str], house_id: str, output_base_dir: Path):
         """Proactively create all subdirectories for each tenant."""
-        from src.processing.routing.config import FOLDER_ROUTING, FOLDER_PREFIXES
+        from src.routing.config import FOLDER_ROUTING, FOLDER_PREFIXES
         house_dir = output_base_dir / house_id
         for folder_name in tenant_folder_names.values():
             for topic in FOLDER_ROUTING.keys():
@@ -94,7 +94,7 @@ class FileOrganizer:
                 
             tenant_folder = tenant_folder_names.get(group_tenant, utils.sanitize_filename(group_tenant))
             
-            from src.processing.routing.config import FOLDER_PREFIXES
+            from src.routing.config import FOLDER_PREFIXES
             raw_topic_folder = doc.folder_path if doc.folder_path else "رسائل متنوعة"
             prefix = FOLDER_PREFIXES.get(raw_topic_folder, "")
             topic_folder = f"{prefix}_{raw_topic_folder}" if prefix else raw_topic_folder
@@ -174,7 +174,7 @@ class FileOrganizer:
 
         tenant_folder_names = self.compute_tenant_folders(documents)
         
-        from src.logger import log_decision_trace
+        from src.utils.logger import log_decision_trace
         log_decision_trace("tenant_resolution", {"tenant_folders": tenant_folder_names})
         logger.info(f"Tenant resolution complete. Folders: {tenant_folder_names}")
 

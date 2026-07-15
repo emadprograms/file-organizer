@@ -2,7 +2,7 @@
 import json
 import os
 from dotenv import load_dotenv
-from src.processing.grouping.core import process_with_shrink
+from src.grouping.core import process_with_shrink
 from src.llm.llm import LLMClient
 from src.core.schemas import DocumentGroup
 

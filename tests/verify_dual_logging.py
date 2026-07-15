@@ -1,7 +1,7 @@
 import os
 import shutil
 import logging
-from src.logger import setup_logging
+from src.utils.logger import setup_logging
 
 def test_dual_logging():
     run_id = "test_dual_logs"

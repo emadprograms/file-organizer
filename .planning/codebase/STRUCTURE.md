@@ -31,7 +31,7 @@ file-organizer/
 │   ├── cleaning.py          # Pass 1: Date normalization and tenant clustering
 │   ├── fs_utils.py          # File system utilities (atomic writes, etc.)
 │   ├── logger.py            # Custom logging setup (rich console formatting)
-│   └── organize.py          # CLI entry point
+│   └── main.py          # CLI entry point
 ├── tests/                   # Test suite for unit and integration testing
 ├── logs/                    # Execution logs
 ├── pdfs/                    # Output or sample PDF directory
@@ -47,7 +47,7 @@ file-organizer/
 
 ## Key Locations
 
-- **Entry Point:** `src/organize.py` is the main script that orchestrates the workflow.
+- **Entry Point:** `src/main.py` is the main script that orchestrates the workflow.
 - **Pass 1 Logic:** `src/cleaning.py` handles parsing and canonicalization.
 - **Pass 2 Logic:** `src/processing/pipeline.py` orchestrates boundary detection and routing.
 - **Core Abstractions:** `src/core/schemas.py` defines the fundamental data types.

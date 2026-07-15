@@ -25,7 +25,7 @@ def run_reconciliation(summary: dict, per_page: list, total_input_pages: int, ho
     }
     
     if not dry_run:
-        from src.fs_utils import atomic_write
+        from src.utils.fs import atomic_write
         manifest_path = output_dir / f"{house_id}_manifest.json"
         with atomic_write(str(manifest_path)) as tmp_path:
             with open(tmp_path, 'w', encoding='utf-8') as f:

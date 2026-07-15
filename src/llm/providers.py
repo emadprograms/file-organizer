@@ -49,7 +49,7 @@ class GeminiProvider:
             api_key (str): The Google GenAI API key.
         """
         self._name = "gemini"
-        self.client = genai.Client(api_key=api_key)
+        self.client = genai.Client(api_key=api_key, http_options={'timeout': 60000})
 
     @property
     def name(self) -> str:
@@ -73,8 +73,9 @@ class GeminiProvider:
             kwargs["response_mime_type"] = "application/json"
             kwargs["response_schema"] = response_schema
             
+        actual_model = model.replace("google/", "") if model.startswith("google/") else model
         response = self.client.models.generate_content(
-            model=model,
+            model=actual_model,
             contents=contents,
             config=types.GenerateContentConfig(**kwargs)
         )
@@ -106,116 +107,4 @@ class GeminiProvider:
             raw_text = getattr(response, 'text', 'No text available')
             raise ValueError(f"LLM parsing error. Raw output: {raw_text}. Error: {e}")
 
-class OpenRouterProvider:
-    """Concrete LLM provider implementation for OpenRouter."""
-    
-    def __init__(self, api_key: str):
-        """Initialize the OpenRouterProvider.
-        
-        Args:
-            api_key (str): The OpenRouter API key.
-        """
-        self._name = "openrouter"
-        self.client = openai.Client(api_key=api_key, base_url="https://openrouter.ai/api/v1")
 
-    @property
-    def name(self) -> str:
-        """str: The identifier name of the provider ('openrouter')."""
-        return self._name
-
-    def generate(self, model: str, contents: list, response_schema: type | None = None, validation_context: dict | None = None) -> Any:
-        """Generate a structured response using the OpenRouter API.
-        
-        Args:
-            model (str): The model identifier to use.
-            contents (list): The list of prompt contents.
-            response_schema (type | None): A Pydantic BaseModel class for structured output.
-            validation_context (dict | None): Optional context for Pydantic validation.
-            
-        Returns:
-            Any: An instance of the response_schema or raw text.
-        """
-        prompt_content = []
-        for part in contents:
-            if isinstance(part, str):
-                prompt_content.append({"type": "text", "text": part})
-            elif hasattr(part, "data") and hasattr(part, "mime_type"):
-                b64 = base64.b64encode(part.data).decode("utf-8")
-                prompt_content.append({"type": "image_url", "image_url": {"url": f"data:{part.mime_type};base64,{b64}"}})
-        
-        messages = [{"role": "user", "content": prompt_content}]
-        kwargs = {"model": OPENROUTER_MODEL, "messages": messages, "temperature": 0, "max_tokens": 4096} # type: ignore
-        if response_schema:
-            kwargs["response_format"] = {"type": "json_object"} # type: ignore
-            
-        response = self.client.chat.completions.create(**kwargs)
-        text = ""
-        try:
-            text = response.choices[0].message.content.strip() # type: ignore
-            if not response_schema:
-                return text
-                
-            json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
-            if json_match:
-                text = json_match.group(1)
-            data = json.loads(text)
-            return response_schema.model_validate(data, context=validation_context)
-        except Exception as e:
-            raise ValueError(f"LLM parsing error. Raw output: {text}. Error: {e}")
-
-class GroqProvider:
-    """Concrete LLM provider implementation for Groq."""
-    
-    def __init__(self, api_key: str):
-        """Initialize the GroqProvider.
-        
-        Args:
-            api_key (str): The Groq API key.
-        """
-        self._name = "groq"
-        self.client = openai.Client(api_key=api_key, base_url="https://api.groq.com/openai/v1")
-
-    @property
-    def name(self) -> str:
-        """str: The identifier name of the provider ('groq')."""
-        return self._name
-
-    def generate(self, model: str, contents: list, response_schema: type | None = None, validation_context: dict | None = None) -> Any:
-        """Generate a structured response using the Groq API.
-        
-        Args:
-            model (str): The model identifier to use.
-            contents (list): The list of prompt contents.
-            response_schema (type | None): A Pydantic BaseModel class for structured output.
-            validation_context (dict | None): Optional context for Pydantic validation.
-            
-        Returns:
-            Any: An instance of the response_schema or text.
-        """
-        prompt_content = []
-        for part in contents:
-            if isinstance(part, str):
-                prompt_content.append({"type": "text", "text": part})
-            elif hasattr(part, "data") and hasattr(part, "mime_type"):
-                b64 = base64.b64encode(part.data).decode("utf-8")
-                prompt_content.append({"type": "image_url", "image_url": {"url": f"data:{part.mime_type};base64,{b64}"}})
-        
-        messages = [{"role": "user", "content": prompt_content}]
-        kwargs = {"model": GROQ_MODEL, "messages": messages, "temperature": 0, "max_tokens": 4096} # type: ignore
-        if response_schema:
-            kwargs["response_format"] = {"type": "json_object"} # type: ignore
-            
-        response = self.client.chat.completions.create(**kwargs)
-        text = ""
-        try:
-            text = response.choices[0].message.content.strip() # type: ignore
-            if not response_schema:
-                return text
-                
-            json_match = re.search(r"(\{.*\}|\[.*\])", text, re.DOTALL)
-            if json_match:
-                text = json_match.group(1)
-            data = json.loads(text)
-            return response_schema.model_validate(data, context=validation_context)
-        except Exception as e:
-            raise ValueError(f"LLM parsing error. Raw output: {text}. Error: {e}")

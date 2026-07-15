@@ -33,21 +33,21 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 - Adding new features or altering existing behavior (pure refactoring).
 - Changing the underlying runtime or infrastructure.
 
-## Current Milestone: v1.3 Routing Decoupling & Checkpointing
+## Current Milestone: v2.0 Logic-Based Modular Refactoring
 
-**Goal:** Decouple the routing step from grouping to improve pipeline resilience, enable independent LLM model configuration, support resuming routing on failure, and implement conditional LLM folder routing constraints.
+**Goal:** Overhaul the `src` directory structure into a logical, modular monolith. Remove legacy anchor-based tenant discovery and replace it with YAML-driven tenant configuration, ensuring all existing correct functionality is preserved.
 
 **Target features:**
-- Pipeline architecture decoupling for Grouping vs Routing (ARCH)
-- Routing specific checkpointing for resilience (RES)
-- Granular LLM model configuration for routing (CFG)
-- Conditional LLM Folder Routing and Folder Renaming (ROUT)
+- Modular restructuring (`core`, `utils`, `tenant_config`, `grouping`, `timeline`, `routing`) (ARCH)
+- YAML loading and tenant name extraction (YAML)
+- Replace anchor logic with YAML-based LLM Name Matching in Pass 1 (PIPE)
 
 ## Context
 
 - ✅ Shipped v1.0.
 - ✅ Shipped v1.1.
 - ✅ Shipped v1.2.
+- ✅ Shipped v1.3.
 - The codebase has been successfully cleaned of legacy code and refactored into a modular, maintainable structure.
 - All processing logic is now decomposed into single-responsibility modules in `src/cleaning/` and `src/processing/`.
 - Error handling is standardized via a custom exception hierarchy in `src/core/exceptions.py`.

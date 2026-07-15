@@ -2,8 +2,8 @@ import unittest
 from unittest.mock import MagicMock
 from pydantic import ValidationError
 from src.core.schemas import DocumentGroup
-from src.processing.routing.router import route_document, RoutingValidationError
-from src.processing.routing.config import (
+from src.routing.router import route_document, RoutingValidationError
+from src.routing.config import (
     SINGLE_MATCH, 
     DIRECT_ROUTING_MAP, 
     FORM_CATEGORIES, 
@@ -78,7 +78,7 @@ class TestPhase12Finalization(unittest.TestCase):
         group = self.base_group.model_copy(update={"category": cat.lower()})
         
         # Force the category to NOT be a single match for this test
-        with unittest.mock.patch('src.processing.routing.router.SINGLE_MATCH', set()):
+        with unittest.mock.patch('src.routing.router.SINGLE_MATCH', set()):
             valid_folder = list(FORM_FOLDERS)[0]
             self.llm_client.response_value = {"selected_folder": valid_folder, "reason": "Valid"}
             
@@ -92,7 +92,7 @@ class TestPhase12Finalization(unittest.TestCase):
         cat = list(FORM_CATEGORIES)[0]
         group = self.base_group.model_copy(update={"category": cat.lower()})
         
-        with unittest.mock.patch('src.processing.routing.router.SINGLE_MATCH', set()):
+        with unittest.mock.patch('src.routing.router.SINGLE_MATCH', set()):
             all_folders = set(FOLDER_ROUTING.keys())
             invalid_folder = list(all_folders - FORM_FOLDERS)[0]
             
@@ -106,7 +106,7 @@ class TestPhase12Finalization(unittest.TestCase):
         cat = list(LETTER_CATEGORIES)[0]
         group = self.base_group.model_copy(update={"category": cat.lower()})
         
-        with unittest.mock.patch('src.processing.routing.router.SINGLE_MATCH', set()):
+        with unittest.mock.patch('src.routing.router.SINGLE_MATCH', set()):
             valid_folder = list(LETTER_FOLDERS)[0]
             self.llm_client.response_value = {"selected_folder": valid_folder, "reason": "Valid"}
             
@@ -120,7 +120,7 @@ class TestPhase12Finalization(unittest.TestCase):
         cat = list(LETTER_CATEGORIES)[0]
         group = self.base_group.model_copy(update={"category": cat.lower()})
         
-        with unittest.mock.patch('src.processing.routing.router.SINGLE_MATCH', set()):
+        with unittest.mock.patch('src.routing.router.SINGLE_MATCH', set()):
             all_folders = set(FOLDER_ROUTING.keys())
             invalid_folder = list(all_folders - LETTER_FOLDERS)[0]
             

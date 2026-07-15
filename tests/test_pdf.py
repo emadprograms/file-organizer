@@ -1,7 +1,7 @@
 import pytest
 import os
 import fitz
-from src.processing.pdf import extract_pdf_segment, compress_pdf
+from src.pdf import extract_pdf_segment, compress_pdf
 
 def test_compress_pdf_reduces_size(tmp_path):
     """

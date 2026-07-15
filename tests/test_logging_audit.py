@@ -53,7 +53,7 @@ def test_jsonl_log_integrity():
     """
     Verify that log entries in debug.log are valid JSON.
     """
-    from src.logger import setup_logging
+    from src.utils.logger import setup_logging
     
     # Setup logging to a temporary directory for the test
     log_dir = setup_logging(run_id="test_audit", verbose=True)

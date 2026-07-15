@@ -4,13 +4,13 @@ from typing import Any, Optional
 from src.core.schemas import DocumentGroup, GroupingResponse
 from src.core.exceptions import ProviderRotationExhaustedError, GracefulHaltException
 from src.llm.llm import LLMFailureError
-from src.processing.grouping.utils import verify_groups, merge_chunks
-from src.processing.grouping.config import LETTER_PROMPT, FORM_PROMPT, OTHER_PROMPT
-from src.processing.grouping.state import GroupingStateManager, GroupingState
+from src.grouping.utils import verify_groups, merge_chunks
+from src.grouping.config import LETTER_PROMPT, FORM_PROMPT, OTHER_PROMPT
+from src.grouping.state import GroupingStateManager, GroupingState
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-def _process_chunk(pages: list[Any], current_page_index: int, end_index: int, llm_client: Any, prompt_template: str, content_field: str = "content_explanation") -> list[DocumentGroup]:
+def _process_chunk(pages: list[Any], current_page_index: int, end_index: int, llm_client: Any, prompt_template: str, content_field: str = "content_explanation", model: Optional[str] = None) -> list[DocumentGroup]:
     chunk_pages = pages[current_page_index:end_index]
     
     page_descriptions = []
@@ -29,7 +29,8 @@ def _process_chunk(pages: list[Any], current_page_index: int, end_index: int, ll
     response = llm_client.generate_content(
         contents=[prompt],
         response_schema=GroupingResponse,
-        is_boundary_call=True
+        is_boundary_call=True,
+        model=model
     )
     
     verify_groups(response.groups, current_page_index, end_index)
@@ -132,6 +133,9 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
             chunk_size_idx = 0
             current_chunk_failure_count = 0
             total_failures = 0
+            
+        fallback_model_idx = -1
+        FALLBACK_MODELS = ["gemini-3.5-flash", "gemini-3-flash", "gemini-2.5-flash"]
         
         while current_page_index < len(pages):
             if total_failures >= 20:
@@ -144,9 +148,20 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
                 actual_chunk_size = end_index - current_page_index
                 start_orig = getattr(pages[current_page_index], "original_index", current_page_index)
                 end_orig = getattr(pages[end_index - 1], "original_index", end_index - 1)
-                logger.info(f"Processing chunk for category '{category}'. Chunk size: {actual_chunk_size}. Pages: [{start_orig}-{end_orig}]")
                 
-                chunk_groups = _process_chunk(pages, current_page_index, end_index, llm_client, prompt_template, content_field)
+                current_model = FALLBACK_MODELS[fallback_model_idx] if fallback_model_idx >= 0 else None
+                model_log = f" [Model: {current_model}]" if current_model else ""
+                logger.info(f"Processing chunk for category '{category}'. Chunk size: {actual_chunk_size}. Pages: [{start_orig}-{end_orig}]{model_log}")
+                
+                chunk_groups = _process_chunk(
+                    pages, 
+                    current_page_index, 
+                    end_index, 
+                    llm_client, 
+                    prompt_template, 
+                    content_field,
+                    model=current_model
+                )
                 
                 if final_groups and current_page_index > 0:
                     overlap_original_idx = getattr(pages[current_page_index], "original_index", current_page_index)
@@ -157,12 +172,13 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
                 group_details = [f"Group {idx+1} (pages {g.start_page}-{g.end_page})" for idx, g in enumerate(chunk_groups)]
                 logger.info(f"Grouping complete for chunk. Identified {len(chunk_groups)} groups: {', '.join(group_details)}")
                     
-                overlap = 1 if end_index < len(pages) else 0
+                overlap = 1 if (end_index < len(pages) and actual_chunk_size > 1) else 0
                 current_page_index = end_index - overlap
                 
                 # SUCCESS: Reset chunk size index and failure counters
                 chunk_size_idx = 0
                 current_chunk_failure_count = 0
+                fallback_model_idx = -1
                 
                 if state_manager:
                     state_manager.save_state(GroupingState(
@@ -183,26 +199,35 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
                 elif CHUNK_SIZES[chunk_size_idx] == 3:
                     threshold = 1
                 elif CHUNK_SIZES[chunk_size_idx] == 2:
-                    threshold = 5
+                    threshold = 3
                 else:
                     threshold = 1
                     
                 if current_chunk_failure_count >= threshold:
                     if chunk_size_idx < len(CHUNK_SIZES) - 1:
-                        chunk_size_idx += 1
+                        while chunk_size_idx < len(CHUNK_SIZES) - 1:
+                            chunk_size_idx += 1
+                            if CHUNK_SIZES[chunk_size_idx] < actual_chunk_size:
+                                break
                         current_chunk_failure_count = 0
                         logger.warning(f"Threshold reached. Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
                     else:
-                        # GRACEFUL HALT: minimum size failed
-                        if state_manager:
-                            state_manager.save_state(GroupingState(
-                                current_page_index=current_page_index,
-                                chunk_size_index=chunk_size_idx,
-                                current_chunk_failure_count=current_chunk_failure_count,
-                                failure_count=total_failures,
-                                processed_groups=[g.model_dump() for g in final_groups]
-                            ))
-                        raise GracefulHaltException(f"Grouping failed at minimum chunk size {CHUNK_SIZES[-1]}. Halting gracefully.") from e
+                        # Minimum size failed, check fallback models
+                        if fallback_model_idx < len(FALLBACK_MODELS) - 1:
+                            fallback_model_idx += 1
+                            current_chunk_failure_count = 0
+                            logger.warning(f"Threshold reached. Falling back to model: {FALLBACK_MODELS[fallback_model_idx]}")
+                        else:
+                            # GRACEFUL HALT: all fallbacks exhausted
+                            if state_manager:
+                                state_manager.save_state(GroupingState(
+                                    current_page_index=current_page_index,
+                                    chunk_size_index=chunk_size_idx,
+                                    current_chunk_failure_count=current_chunk_failure_count,
+                                    failure_count=total_failures,
+                                    processed_groups=[g.model_dump() for g in final_groups]
+                                ))
+                            raise GracefulHaltException(f"Grouping failed at minimum chunk size {CHUNK_SIZES[-1]} and all fallback models exhausted. Halting gracefully.") from e
                 else:
                     logger.info(f"Failure {current_chunk_failure_count}/{threshold} at size {CHUNK_SIZES[chunk_size_idx]}. Retrying same size.")
             
@@ -215,36 +240,45 @@ def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Option
                 is_fatal_error = any(term in error_str for term in ["500", "503", "parse", "parsing", "token", "8000", "too large"])
 
                 if CHUNK_SIZES[chunk_size_idx] == 4:
-                    threshold = 1 if is_fatal_error else 3
+                    threshold = 1 if is_fatal_error else 1 # User requested 4 -> 3 immediately on failure
                 elif CHUNK_SIZES[chunk_size_idx] == 3:
                     threshold = 1
                 elif CHUNK_SIZES[chunk_size_idx] == 2:
-                    threshold = 5
+                    threshold = 3
                 else:
                     threshold = 1
                     
                 if current_chunk_failure_count >= threshold:
                     if chunk_size_idx < len(CHUNK_SIZES) - 1:
-                        chunk_size_idx += 1
+                        while chunk_size_idx < len(CHUNK_SIZES) - 1:
+                            chunk_size_idx += 1
+                            if CHUNK_SIZES[chunk_size_idx] < actual_chunk_size:
+                                break
                         current_chunk_failure_count = 0
                         logger.warning(f"Shrinking chunk size due to error to {CHUNK_SIZES[chunk_size_idx]}")
                     else:
-                        if state_manager:
-                            state_manager.save_state(GroupingState(
-                                current_page_index=current_page_index,
-                                chunk_size_index=chunk_size_idx,
-                                current_chunk_failure_count=current_chunk_failure_count,
-                                failure_count=total_failures,
-                                processed_groups=[g.model_dump() for g in final_groups]
-                            ))
-                        raise GracefulHaltException(f"Grouping failed at minimum chunk size {CHUNK_SIZES[-1]} due to repeated processing errors. Halting gracefully.") from e
+                        # Minimum size failed, check fallback models
+                        if fallback_model_idx < len(FALLBACK_MODELS) - 1:
+                            fallback_model_idx += 1
+                            current_chunk_failure_count = 0
+                            logger.warning(f"Error threshold reached. Falling back to model: {FALLBACK_MODELS[fallback_model_idx]}")
+                        else:
+                            if state_manager:
+                                state_manager.save_state(GroupingState(
+                                    current_page_index=current_page_index,
+                                    chunk_size_index=chunk_size_idx,
+                                    current_chunk_failure_count=current_chunk_failure_count,
+                                    failure_count=total_failures,
+                                    processed_groups=[g.model_dump() for g in final_groups]
+                                ))
+                            raise GracefulHaltException(f"Grouping failed at minimum chunk size {CHUNK_SIZES[-1]} due to repeated processing errors. All fallbacks exhausted. Halting gracefully.") from e
                 else:
                     logger.info(f"Error {current_chunk_failure_count}/{threshold} at size {CHUNK_SIZES[chunk_size_idx]}. Retrying same size.")
                 continue
             except Exception as e:
                 raise e
     
-    from src.logger import log_decision_trace
+    from src.utils.logger import log_decision_trace
     try:
         payload_groups = [g.model_dump() if hasattr(g, "model_dump") else g.dict() for g in final_groups]
     except Exception:

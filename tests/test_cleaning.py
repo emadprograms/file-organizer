@@ -6,15 +6,15 @@ from unittest.mock import patch
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
 from pathlib import Path
-from src.cleaning.models import PageData, TenantTimeline
-from src.cleaning.dates import parse_flexible_date
-from src.cleaning.tenants import (
+from src.core.models import PageData, TenantTimeline
+from src.timeline.dates import parse_flexible_date
+from src.tenant_config.tenants import (
     normalize_arabic_text,
     cluster_names_fuzzily,
     canonicalize_with_llm,
     build_tenant_timelines
 )
-from src.cleaning.phase import (
+from src.timeline.phase import (
     load_and_parse_json,
     infer_missing_dates,
     assign_pages_to_tenants,

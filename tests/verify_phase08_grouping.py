@@ -1,8 +1,8 @@
 
 import unittest
 from unittest.mock import MagicMock, patch
-from src.processing.grouping.core import process_with_shrink
-from src.processing.grouping.config import LETTER_PROMPT, FORM_PROMPT, OTHER_PROMPT
+from src.grouping.core import process_with_shrink
+from src.grouping.config import LETTER_PROMPT, FORM_PROMPT, OTHER_PROMPT
 from src.core.schemas import DocumentGroup
 
 class MockPage:
@@ -51,7 +51,7 @@ class TestPhase08Grouping(unittest.TestCase):
         self.assertEqual(groups[1].end_page, 21)
         llm_client.generate_content.assert_not_called()
 
-    @patch('src.processing.grouping.core._process_chunk')
+    @patch('src.grouping.core._process_chunk')
     def test_dynamic_routing_others(self, mock_process_chunk):
         # Mock _process_chunk to return a group
         mock_process_chunk.return_value = [
@@ -70,7 +70,7 @@ class TestPhase08Grouping(unittest.TestCase):
         # First call should be current_page_index=0, end_index=2
         mock_process_chunk.assert_any_call(pages, 0, 2, llm_client, OTHER_PROMPT, "content_explanation")
 
-    @patch('src.processing.grouping.core._process_chunk')
+    @patch('src.grouping.core._process_chunk')
     def test_dynamic_routing_letters(self, mock_process_chunk):
         mock_process_chunk.return_value = [
             DocumentGroup(start_page=0, end_page=0, primary_tenant="T", category="letters", dates=[], reason="R")

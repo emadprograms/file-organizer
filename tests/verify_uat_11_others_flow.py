@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from src.core.schemas import DocumentGroup
-from src.processing.routing.router import route_document
+from src.routing.router import route_document
 from src.llm.llm import LLMClient
 from pydantic import BaseModel
 

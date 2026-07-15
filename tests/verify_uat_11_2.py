@@ -1,6 +1,6 @@
 import pytest
 from src.core.schemas import DocumentGroup
-from src.processing.routing.router import route_document
+from src.routing.router import route_document
 from src.llm.llm import LLMClient
 from unittest.mock import MagicMock
 from pydantic import BaseModel
@@ -31,7 +31,7 @@ def test_constrained_routing_forms():
     )
     
     from unittest.mock import patch
-    with patch('src.processing.routing.router.SINGLE_MATCH', set()):
+    with patch('src.routing.router.SINGLE_MATCH', set()):
         folder, is_direct = route_document(group, mock_llm)
     
     print(f"Category: MAINTENANCE -> Folder: {folder}, Direct: {is_direct}")
@@ -87,7 +87,7 @@ def test_constrained_routing_validation_failure():
     )
     
     from unittest.mock import patch
-    with patch('src.processing.routing.router.SINGLE_MATCH', set()):
+    with patch('src.routing.router.SINGLE_MATCH', set()):
         folder, is_direct = route_document(group, mock_llm)
     
     assert folder == "صيانة"

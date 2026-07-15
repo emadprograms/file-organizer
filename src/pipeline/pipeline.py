@@ -43,11 +43,11 @@ class Pipeline:
         Returns:
             list[DocumentGroup]: The grouped documents.
         """
-        from src.processing.grouping import process_with_shrink
-        from src.processing.grouping.state import GroupingStateManager
+        from src.grouping import process_with_shrink
+        from src.grouping.state import GroupingStateManager
         import json
         import os
-        from src.fs_utils import atomic_write
+        from src.utils.fs import atomic_write
         
         if not raw_pages:
             return []
@@ -142,8 +142,8 @@ class Pipeline:
         Returns:
             list[DocumentGroup]: The routed documents.
         """
-        from src.processing.routing import route_document
-        from src.processing.routing.state import RoutingStateManager, RoutingState
+        from src.routing import route_document
+        from src.routing.state import RoutingStateManager, RoutingState
         import os
         
         if not documents:

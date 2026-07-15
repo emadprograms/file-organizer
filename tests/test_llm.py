@@ -2,7 +2,7 @@ import pytest
 import logging
 from unittest.mock import MagicMock, patch
 from src.llm.llm import LLMClient
-from src.llm.providers import GeminiProvider, OpenRouterProvider, GroqProvider
+from src.llm.providers import GeminiProvider
 from pydantic import BaseModel
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
@@ -18,12 +18,7 @@ def test_llm_trace_files_created(tmp_path):
     with patch('src.llm.llm.log_decision_trace') as mock_trace:
         client = LLMClient("dummy")
         
-        with patch.object(GeminiProvider, 'generate') as mock_gemini, \
-             patch.object(OpenRouterProvider, 'generate') as mock_openrouter, \
-             patch.object(GroqProvider, 'generate') as mock_groq:
-            
-            mock_openrouter.side_effect = Exception("OR Error")
-            mock_groq.side_effect = Exception("Groq Error")
+        with patch.object(GeminiProvider, 'generate') as mock_gemini:
             
             # Test successful trace
             mock_gemini.return_value = DummyResponse(success=True)

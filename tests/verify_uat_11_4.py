@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from src.core.schemas import DocumentGroup
-from src.processing.routing.router import route_document
+from src.routing.router import route_document
 from src.llm.llm import LLMClient
 from pydantic import BaseModel
 
@@ -32,7 +32,7 @@ def test_escape_hatch_none_of_the_above():
     )
     
     # We patch SINGLE_MATCH so MODIFICATIONS goes through the LLM routing
-    with patch('src.processing.routing.router.SINGLE_MATCH', set()):
+    with patch('src.routing.router.SINGLE_MATCH', set()):
         folder, is_direct = route_document(group, mock_llm)
     
     print(f"Category: MODIFICATIONS -> Folder: {folder}, Direct: {is_direct}")

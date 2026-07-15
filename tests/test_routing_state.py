@@ -1,7 +1,7 @@
 import pytest
 import os
 import json
-from src.processing.routing.state import RoutingState, RoutingStateManager
+from src.routing.state import RoutingState, RoutingStateManager
 
 def test_routing_state_manager_save_load(tmp_path):
     """Test that RoutingState is correctly saved and loaded."""

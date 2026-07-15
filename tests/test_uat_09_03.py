@@ -35,7 +35,7 @@ def test_routing_failure_isolation():
     mock_provider.responses = [server_error, "Success"]
     
     client = LLMClient(api_key="fake_key")
-    client.providers = [mock_provider]
+    client.provider = mock_provider
     
     with patch("time.sleep"):
         # First call: should fail after retries or rotate provider

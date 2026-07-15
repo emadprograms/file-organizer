@@ -1,7 +1,7 @@
 import pytest
 import os
 from unittest.mock import MagicMock, patch
-from src.processing.pdf import extract_pdf_segment, compress_pdf
+from src.pdf import extract_pdf_segment, compress_pdf
 
 def test_compress_pdf_fallback(tmp_path):
     """Test that compress_pdf falls back to copy if compression fails or doesn't help."""

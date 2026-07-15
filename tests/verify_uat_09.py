@@ -1,5 +1,5 @@
 import pytest
-from src.processing.routing.router import route_document, RoutingValidationError
+from src.routing.router import route_document, RoutingValidationError
 from src.core.schemas import DocumentGroup
 from unittest.mock import MagicMock
 
@@ -34,7 +34,7 @@ def test_uat_09_01_normal_routing():
 def test_uat_09_09_explicit_others():
     print("\nTesting UAT-09-09: Explicit '13_others'")
     # Ensure 'letters' allows '13_others'
-    from src.processing.routing.config import CATEGORY_TO_FOLDERS
+    from src.routing.config import CATEGORY_TO_FOLDERS
     if "13_others" not in CATEGORY_TO_FOLDERS.get("letters", []):
         CATEGORY_TO_FOLDERS["letters"].append("13_others")
     

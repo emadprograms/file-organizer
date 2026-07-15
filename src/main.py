@@ -7,15 +7,17 @@ import json
 import fitz
 from typing import Any
 
+import re
+
 # Ensure src module is resolvable when run directly
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from dotenv import load_dotenv
 
-from src.logger import setup_logging
+from src.utils.logger import setup_logging
 from src.core.ui import set_verbosity
 from src.llm.llm import LLMClient
-from src.cleaning import process_cleaning_phase
+from src.timeline.phase import process_cleaning_phase
 from src.core.exceptions import ConfigurationError, ValidationError, FileOrganizerError
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
@@ -29,8 +31,9 @@ def validate_target_directory(target_dir: Path) -> str:
     if not target_dir.is_dir():
         raise ValidationError(f"Target directory does not exist or is not a directory: {target_dir}")
         
-    pdf_files = list(target_dir.glob("*_categorized.pdf"))
-    json_files = list(target_dir.glob("*_report.json"))
+    # Make globs more permissive in case of renames (e.g., _categorized (1).pdf)
+    pdf_files = list(target_dir.glob("*_categorized*.pdf"))
+    json_files = list(target_dir.glob("*_report*.json"))
     
     if len(pdf_files) == 0:
         raise ValidationError("No *_categorized.pdf found in the target directory.")
@@ -42,8 +45,12 @@ def validate_target_directory(target_dir: Path) -> str:
     if len(json_files) > 1:
         raise ValidationError("Multiple *_report.json files found in the target directory.")
         
-    pdf_id = pdf_files[0].name.removesuffix('_categorized.pdf')
-    json_id = json_files[0].name.removesuffix('_report.json')
+    # Extract ID robustly using regex to drop everything after _categorized or _report
+    pdf_match = re.search(r'^(.*?)_categorized', pdf_files[0].name)
+    pdf_id = pdf_match.group(1) if pdf_match else pdf_files[0].stem
+    
+    json_match = re.search(r'^(.*?)_report', json_files[0].name)
+    json_id = json_match.group(1) if json_match else json_files[0].stem
     
     if pdf_id != json_id:
         raise ValidationError(f"ID mismatch between PDF ({pdf_id}) and JSON ({json_id}).")
@@ -56,9 +63,15 @@ def get_parser():
     parser.add_argument(
         "--model", 
         type=str, 
-        default="gemma-4-26b-a4b-it", 
+        default="gemma-4-31b-it", 
         choices=["gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"],
-        help="LLM model to use"
+        help="LLM model to use for the main tasks"
+    )
+    parser.add_argument(
+        "--routing-model", 
+        type=str, 
+        choices=["gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"],
+        help="Optional: LLM model to use specifically for routing. Defaults to the main model if not set."
     )
     parser.add_argument(
         "--dry-run",
@@ -86,7 +99,7 @@ def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, 
     if output_json_path.exists():
         logger.info(f"Skipping Pass 1 (found {output_json_path}). Loading cleaned data.")
         with open(output_json_path, 'r', encoding='utf-8') as f:
-            from src.cleaning import PageData
+            from src.core.models import PageData
             return [PageData(**p) for p in json.load(f)]
             
     logger.info("Starting Pass 1 — Document Cleaning")
@@ -96,7 +109,7 @@ def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, 
     logger.info(f"Cleaned {len(cleaned_pages)} pages successfully. Resolved {unique_tenants} unique tenant(s).")
     
     if not dry_run:
-        from src.fs_utils import atomic_write
+        from src.utils.fs import atomic_write
         output_json_path.parent.mkdir(parents=True, exist_ok=True)
         with atomic_write(str(output_json_path)) as tmp_path:
             with open(tmp_path, 'w', encoding='utf-8') as f:
@@ -107,8 +120,8 @@ def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, 
         
     return cleaned_pages
 
-def run_grouping_pass(cleaned_pages: list, house_id: str, output_dir: Path, llm_client: Any, logger: logging.Logger, dry_run: bool) -> list:
-    from src.processing.pipeline import Pipeline
+def run_grouping_pass(cleaned_pages: list, house_id: str, output_dir: Path, llm_client: Any, logger: logging.Logger, dry_run: bool, routing_model: str | None = None) -> list:
+    from src.pipeline.pipeline import Pipeline
     from src.core.schemas import DocumentGroup
     
     checkpoint_dir = output_dir / "checkpoints"
@@ -124,13 +137,13 @@ def run_grouping_pass(cleaned_pages: list, house_id: str, output_dir: Path, llm_
     logger.info("Starting Pass 2 — Grouping and Routing")
     raw_pages = [(p.original_index, p) for p in cleaned_pages]
     
-    pipeline = Pipeline(api_key=os.getenv("GEMINI_API_KEY"))
+    pipeline = Pipeline(api_key=os.getenv("GEMINI_API_KEY"), routing_model=routing_model)
     pipeline.client = llm_client
     
     documents = pipeline._group_and_route_documents(raw_pages, str(run_checkpoint_path))
     
     if not dry_run:
-        from src.fs_utils import atomic_write
+        from src.utils.fs import atomic_write
         with atomic_write(str(grouped_checkpoint_path)) as tmp_path:
             with open(tmp_path, 'w', encoding='utf-8') as f:
                 json.dump([doc.model_dump() for doc in documents], f, ensure_ascii=False, indent=2)
@@ -141,7 +154,7 @@ def run_grouping_pass(cleaned_pages: list, house_id: str, output_dir: Path, llm_
     return documents
 
 def run_generation_pass(documents: list, target_dir: Path, house_id: str, output_dir: Path, logger: logging.Logger, dry_run: bool):
-    from src.processing.organizer import FileOrganizer, run_reconciliation
+    from src.timeline import FileOrganizer, run_reconciliation
     
     pdf_path = list(target_dir.glob("*_categorized.pdf"))[0]
     
@@ -187,7 +200,7 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
             shutil.move(str(manifest_path), str(source_files_dir / manifest_path.name))
             
     if dry_run:
-        from src.processing.visualizer import Visualizer
+        from src.pipeline.visualizer import Visualizer
         logger.info("Invoking visualizer for dry run output...")
         visualizer = Visualizer()
         visualizer.print_summary(house_id, summary, per_page, documents)
@@ -241,7 +254,7 @@ def main():
         output_json_path = output_dir / f"{house_id}_cleaned.json"
         
         cleaned_pages = run_cleaning_pass(json_path, output_json_path, llm_client, logger, args.dry_run)
-        documents = run_grouping_pass(cleaned_pages, house_id, output_dir, llm_client, logger, args.dry_run)
+        documents = run_grouping_pass(cleaned_pages, house_id, output_dir, llm_client, logger, args.dry_run, args.routing_model)
         run_generation_pass(documents, args.target_dir, house_id, output_dir, logger, args.dry_run)
         
         return 0

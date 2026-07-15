@@ -4,7 +4,7 @@ from pathlib import Path
 
 import json
 from unittest.mock import MagicMock, patch
-from src.processing.pipeline import Pipeline
+from src.pipeline.pipeline import Pipeline
 
 def test_malformed_json_graceful_failure(tmp_path):
     """Malformed _report.json causes a graceful non-zero exit, not an unhandled stack trace."""
@@ -19,7 +19,7 @@ def test_malformed_json_graceful_failure(tmp_path):
     (house_dir / "1273_report.json").write_text("{invalid json: !@#", encoding="utf-8")
 
     result = subprocess.run(
-        [sys.executable, "-m", "src.organize", str(house_dir)],
+        [sys.executable, "-m", "src.main", str(house_dir)],
         capture_output=True,
         env={**os.environ, "PYTHONIOENCODING": "utf8", "GEMINI_API_KEY": "dummy"},
         cwd=str(Path(__file__).parent.parent),
@@ -70,7 +70,7 @@ def test_pipeline_out_of_bounds_routing(tmp_path):
     (house_dir / "1274_report.json").write_text(json.dumps(invalid_report), encoding="utf-8")
     
     result = subprocess.run(
-        [sys.executable, "-m", "src.organize", str(house_dir)],
+        [sys.executable, "-m", "src.main", str(house_dir)],
         capture_output=True,
         env={**os.environ, "PYTHONIOENCODING": "utf8", "GEMINI_API_KEY": "dummy"},
         cwd=str(Path(__file__).parent.parent),

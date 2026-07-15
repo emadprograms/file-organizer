@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field, field_validator, ValidationInfo, Validati
 from src.core.schemas import DocumentGroup
 from src.core.exceptions import PipelineHaltError
 from src.llm.llm import LLMFailureError
-from src.processing.routing.config import (
+from src.routing.config import (
     CATEGORY_TO_FOLDERS, 
     SINGLE_MATCH, 
     DIRECT_ROUTING_MAP, 
@@ -225,7 +225,7 @@ Respond only with a valid JSON matching the requested schema. The selected_folde
                 reason = "Routed via escape hatch -> Double-check"
             
             logger.info(f"Routed category '{category}' (pages {group.start_page}-{group.end_page}) to '{selected}'. Reason: {reason}")
-            from src.logger import log_decision_trace
+            from src.utils.logger import log_decision_trace
             log_decision_trace("routing", {"category": category, "selected": selected, "reason": reason})
             
             return selected, False

@@ -3,12 +3,13 @@ import json
 import logging
 import pytest
 from unittest.mock import patch
-from src.logger import LogContext, JSONLFormatter, setup_logging, log_decision_trace
+from src.utils.logger import LogContext, JSONLFormatter, setup_logging, log_decision_trace
 
 @pytest.fixture(autouse=True)
 def reset_log_context():
     """Resets the LogContext singleton before each test."""
     LogContext._instance = None
+    logging.getLogger("traces").handlers.clear()
 
 def test_log_context_singleton():
     """Verify LogContext is a singleton and maintains state."""
@@ -51,7 +52,7 @@ def test_jsonl_formatter():
 
 def test_setup_logging_basic(tmp_path):
     """Verify setup_logging initializes context and creates log files."""
-    with patch("src.logger.LOGS_DIR", str(tmp_path)):
+    with patch("src.utils.logger.LOGS_DIR", str(tmp_path)):
         run_id = "test_run"
         run_dir = setup_logging(run_id=run_id, verbose=False)
         
@@ -66,32 +67,29 @@ def test_setup_logging_basic(tmp_path):
 
 def test_setup_logging_noise_suppression_blacklist(tmp_path):
     """Verify permissive blacklist when verbose=False."""
-    with patch("src.logger.LOGS_DIR", str(tmp_path)):
+    with patch("src.utils.logger.LOGS_DIR", str(tmp_path)):
         setup_logging(verbose=False)
         
-        # Blacklisted libraries should be WARNING
-        for library in ["openai", "google_genai", "urllib3", "httpcore"]:
-            assert logging.getLogger(library).level == logging.WARNING
-            
-        # Root should be DEBUG
-        assert logging.getLogger().level == logging.DEBUG
+        # Root should be WARNING
+        assert logging.getLogger().getEffectiveLevel() == logging.WARNING
+        # file_organizer should be DEBUG
+        assert logging.getLogger("file_organizer").getEffectiveLevel() == logging.DEBUG
 
 def test_setup_logging_noise_suppression_whitelist(tmp_path):
     """Verify strict whitelist when verbose=True."""
-    with patch("src.logger.LOGS_DIR", str(tmp_path)):
+    with patch("src.utils.logger.LOGS_DIR", str(tmp_path)):
         setup_logging(verbose=True)
         
-        # Root should be WARNING
-        assert logging.getLogger().level == logging.WARNING
-        # file_organizer should be DEBUG
-        assert logging.getLogger("file_organizer").level == logging.DEBUG
+        # Root should be DEBUG
+        assert logging.getLogger().getEffectiveLevel() == logging.DEBUG
         
-        # Any other library should effectively be WARNING (inherited from root)
-        assert logging.getLogger("some_random_lib").level == logging.NOTSET # NOTSET inherits WARNING from root
+        # Specific noisy libs should be INFO
+        for library in ["urllib3", "httpcore"]:
+            assert logging.getLogger(library).getEffectiveLevel() == logging.INFO
 
 def test_log_decision_trace(tmp_path):
     """Verify structured trace logging."""
-    with patch("src.logger.LOGS_DIR", str(tmp_path)):
+    with patch("src.utils.logger.LOGS_DIR", str(tmp_path)):
         # Initialize context first
         run_id = "trace_run"
         run_dir = setup_logging(run_id=run_id)
@@ -111,7 +109,8 @@ def test_log_decision_trace(tmp_path):
 def test_log_decision_trace_fallback(tmp_path):
     """Verify fallback directory behavior when called before setup_logging."""
     LogContext._instance = None # Ensure no context
-    with patch("src.logger.LOGS_DIR", str(tmp_path)):
+    logging.getLogger("traces").handlers.clear()
+    with patch("src.utils.logger.LOGS_DIR", str(tmp_path)):
         payload = {"decision": "fallback"}
         log_decision_trace("fallback_type", payload)
         
@@ -135,11 +134,11 @@ def test_hierarchical_logger_naming():
     
     # Sample of modules to check
     modules_to_check = [
-        "src.organize",
+        "src.main",
         "src.core.config",
         "src.core.ui",
         "src.llm.llm",
-        "src.processing.pipeline",
+        "src.pipeline.pipeline",
     ]
     
     for mod_name in modules_to_check:
@@ -153,4 +152,3 @@ def test_hierarchical_logger_naming():
         # The actual __name__ will be 'src.module', so logger name will be 'file_organizer.src.module'
         expected_name = f"file_organizer.{mod_name}"
         assert logger.name == expected_name, f"Module {mod_name} logger name {logger.name} does not match expected {expected_name}"
-

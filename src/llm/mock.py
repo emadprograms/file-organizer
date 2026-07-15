@@ -43,7 +43,7 @@ class MockLLMProvider:
             return GroupingResponse.model_construct(groups=[GroupEntry(start_page=start, end_page=end, reason="mock skip-llm", brief_arabic_title="عنوان تجريبي")])
         elif schema_name == "RoutingResponse":
             try:
-                from src.processing.routing.router import RoutingResponse
+                from src.routing.router import RoutingResponse
                 return RoutingResponse.model_construct(selected_folder="رسائل متنوعة", reason="mock skip-llm")
             except ImportError:
                 pass

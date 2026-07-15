@@ -3,7 +3,7 @@ import logging
 from unittest.mock import MagicMock, patch
 from src.llm.llm import LLMClient
 from src.core.schemas import GroupingResponse, GroupEntry
-from src.processing.routing import RoutingResponse
+from src.routing import RoutingResponse
 
 def test_llm_client_skip_llm_grouping():
     """Verify that skip_llm returns a mocked GroupingResponse with parsed bounds."""
@@ -52,7 +52,7 @@ def test_llm_client_verbose_logging(caplog):
     client.verbose = True
 
     # Mock the first provider's generate method to avoid network calls
-    with patch.object(client.providers[0], 'generate', return_value="mock response"):
+    with patch.object(client.provider, 'generate', return_value="mock response"):
         client._route_llm_call("model", ["test prompt"], None)
 
         assert "Prompt: ['test prompt']" in caplog.text
@@ -65,7 +65,7 @@ def test_llm_client_non_verbose_logging(caplog):
     client.verbose = False
 
     # Mock the first provider's generate method to avoid network calls
-    with patch.object(client.providers[0], 'generate', return_value="mock response"):
+    with patch.object(client.provider, 'generate', return_value="mock response"):
         client._route_llm_call("model", ["test prompt"], None)
 
         assert "Prompt: ['test prompt']" not in caplog.text

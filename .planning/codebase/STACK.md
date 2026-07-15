@@ -11,7 +11,7 @@
 
 ## Frameworks & Libraries
 - **Pydantic**: Extensive use for data validation, typing, and enforcing structured JSON schemas in LLM outputs.
-- **Argparse**: Standard Python library utilized for building the CLI entry points (e.g., `organize.py`).
+- **Argparse**: Standard Python library utilized for building the CLI entry points (e.g., `main.py`).
 - **PyMuPDF (fitz)**: Core library used for PDF manipulation (reading page counts, splitting, organizing pages).
 - **Tenacity**: Provides decorator-based retry logic for handling rate limits and transient errors from LLM providers.
 - **RapidFuzz**: Rapid fuzzy string matching algorithm, used in data reconciliation and cleaning.

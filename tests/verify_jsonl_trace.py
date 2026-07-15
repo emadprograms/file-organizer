@@ -3,7 +3,7 @@ import json
 import shutil
 import logging
 from datetime import datetime
-from src.logger import setup_logging, _write_jsonl_trace
+from src.utils.logger import setup_logging, _write_jsonl_trace
 
 def test_jsonl_trace():
     run_id = "test_jsonl_trace"

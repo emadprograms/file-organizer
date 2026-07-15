@@ -26,5 +26,5 @@
 ## 4. Error Handling
 - **Custom Exceptions**: Uses specific domain exceptions for expected failure modes, such as `LLMFailureError` and `InvalidResponseError`.
 - **Graceful Degradation**: The orchestrator prefers logging warnings and failing over to alternative mechanisms rather than immediately crashing on API failures.
-- **CLI Validation**: Scripts meant to be run directly (like `organize.py`) validate the environment and input directories early, printing clear error messages to `sys.stderr` and exiting with a non-zero code (`sys.exit(1)`) rather than throwing unhandled stack traces.
+- **CLI Validation**: Scripts meant to be run directly (like `main.py`) validate the environment and input directories early, printing clear error messages to `sys.stderr` and exiting with a non-zero code (`sys.exit(1)`) rather than throwing unhandled stack traces.
 - **Trace Logging**: Interactions and errors with LLMs are dumped to JSON trace files in a `.tracking`/`logs` or `logs/` directory for later debugging.

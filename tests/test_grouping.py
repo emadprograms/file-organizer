@@ -3,10 +3,10 @@ import logging
 import os
 import json
 from unittest.mock import MagicMock, patch
-from src.processing.grouping.utils import verify_groups, merge_chunks
-from src.processing.grouping.core import process_with_shrink, _process_chunk
-from src.processing.grouping.config import FORM_PROMPT, LETTER_PROMPT, OTHER_PROMPT
-from src.processing.grouping.state import GroupingState, GroupingStateManager
+from src.grouping.utils import verify_groups, merge_chunks
+from src.grouping.core import process_with_shrink, _process_chunk
+from src.grouping.config import FORM_PROMPT, LETTER_PROMPT, OTHER_PROMPT
+from src.grouping.state import GroupingState, GroupingStateManager
 from src.core.exceptions import ProviderRotationExhaustedError, GracefulHaltException
 from src.core.schemas import GroupEntry, DocumentGroup, GroupingResponse
 from types import SimpleNamespace
@@ -327,7 +327,7 @@ def test_resilient_loop_partial_success(tmp_path):
     state = manager.load_state()
     assert state.chunk_size_index == 0
 
-@patch("src.logger.log_decision_trace")
+@patch("src.utils.logger.log_decision_trace")
 def test_process_with_shrink_telemetry(mock_log):
     llm_client = MagicMock()
     llm_client.generate_content.return_value = GroupingResponse(

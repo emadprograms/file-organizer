@@ -1,7 +1,7 @@
 import os
 import logging
 import pytest
-from src.logger import setup_logging
+from src.utils.logger import setup_logging
 
 def test_exception_logging_traceback(tmp_path):
     """
@@ -75,6 +75,6 @@ if __name__ == "__main__":
     dummy_path = Path("logs/test_exceptions")
     dummy_path.mkdir(parents=True, exist_ok=True)
     
-    # This would require patching src.logger.LOGS_DIR
+    # This would require patching src.utils.logger.LOGS_DIR
     # But we'll run it via pytest for the proper tmp_path integration.
     print("Please run this test via 'pytest tests/test_logging_exceptions.py'")

@@ -1,7 +1,7 @@
 
 import unittest
 from unittest.mock import MagicMock
-from src.processing.grouping.core import process_with_shrink
+from src.grouping.core import process_with_shrink
 from src.core.schemas import DocumentGroup
 
 class MockPage:
