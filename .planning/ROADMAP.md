@@ -80,6 +80,8 @@ Archived to proceed with v2.0 Refactoring.
   **Plans:** 1 plan
   Plans:
   - [x] 18.5-01-PLAN.md — Finalize PDF Output, Compression, and Metadata
+- [x] Phase 18.6: Fix Fallback Model Behavior Across Codebase
+  **Goal:** Update LLM error handling for read timeouts and 429s globally. After 3 failures on the default model, drop down to Gemini 3.5 Flash -> Gemini 3 Flash -> Gemini 2.5 Flash without waiting for multiple retries on the Flash models. Apply this logic uniformly across the codebase.
 - [ ] Phase 19: End-to-End Testing and Verification
   **Goal:** Ensure the pipeline produces the exact same end-to-end results using the new architecture.
 
@@ -107,4 +109,5 @@ Archived to proceed with v2.0 Refactoring.
 | 17. Implement YAML Configuration Loading | v2.0 | 1/1 | Complete | 2026-07-15 |
 | 18. Refactor Pipeline to use YAML | v2.0 | 2/2 | Complete | 2026-07-15 |
 | 18.5. Finalize PDF Output, Compression, and Metadata | v2.0 | 1/1 | Complete | 2026-07-15 |
+| 18.6. Fix Fallback Model Behavior Across Codebase | v2.0 | 0/0 | Complete | 2026-07-15 |
 | 19. End-to-End Testing and Verification | v2.0 | 0/0 | Pending | — |
