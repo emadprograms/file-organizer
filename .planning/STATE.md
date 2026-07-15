@@ -4,16 +4,16 @@ milestone: v2.0
 milestone_name: Logic-Based Modular Refactoring
 current_phase: 16 — Setup New Directory Structure
 status: planned
-stopped_at: Phase 17 context gathered
-last_updated: "2026-07-15T02:24:32.202Z"
+stopped_at: Phase 18 context gathered
+last_updated: "2026-07-15T07:40:41.146Z"
 last_activity: 2026-07-15
 last_activity_desc: Milestone v2.0 planned
 progress:
-  total_phases: 9
+  total_phases: 11
   completed_phases: 6
-  total_plans: 18
+  total_plans: 19
   completed_plans: 16
-  percent: 67
+  percent: 55
 current_phase_name: setup-new-directory-structure
 ---
 
@@ -37,9 +37,9 @@ current_phase_name: setup-new-directory-structure
 
 ## Session
 
-**Last session:** 2026-07-15T02:24:32.183Z
-**Stopped at:** Phase 17 context gathered
-**Resume file:** .planning/phases/17-implement-yaml-configuration-loading/17-CONTEXT.md
+**Last session:** 2026-07-15T07:40:41.102Z
+**Stopped at:** Phase 18 context gathered
+**Resume file:** .planning/phases/18-refactor-pipeline-to-use-yaml/18-CONTEXT.md
 
 ## Current Position
 
