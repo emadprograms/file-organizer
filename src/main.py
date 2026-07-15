@@ -96,7 +96,7 @@ def get_parser():
     return parser
 
 def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, logger: logging.Logger, dry_run: bool, house_id: str, target_dir: Path) -> tuple[list, list[dict] | None]:
-    yaml_cache_path = output_json_path.parent / f"{house_id}_1_yaml.yaml"
+    yaml_cache_path = output_json_path.parent / f"{house_id}_1_tenants.yaml"
     
     if output_json_path.exists():
         logger.info(f"Skipping Pass 1 (found {output_json_path}). Loading cleaned data.")
@@ -262,6 +262,16 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
                 os.remove(str(pdf_path))
             except OSError as e:
                 logger.warning(f"Failed to delete original PDF {pdf_path}: {e}")
+                
+        # Delete temporary routing state files upon completion
+        routing_state_file = source_files_dir / f"{house_id}_3_routed_and_finalized_routing.json"
+        routing_state_bak = source_files_dir / f"{house_id}_3_routed_and_finalized_routing.json.bak"
+        for temp_file in (routing_state_file, routing_state_bak):
+            if temp_file.exists():
+                try:
+                    os.remove(str(temp_file))
+                except Exception:
+                    pass
         
 
             
