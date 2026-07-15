@@ -22,6 +22,9 @@ Create logic to find the root folder "source files" and extract primary tenant n
 ### Validation Strategy
 - **D-03:** Pydantic schema model validation will be used to strictly validate the loaded YAML data, matching the project's existing validation patterns in `src/core/models.py`.
 
+### Translation Strategy
+- **D-04:** The tenant names in the YAML file will be written in English. The application logic is responsible for translating these names to Arabic.
+
 ### Claude's Discretion
 None
 

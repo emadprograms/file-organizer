@@ -11,3 +11,7 @@
 - **Topic**: Validation Strategy
 - **Options**: Raw dictionary parsing vs strict Pydantic schema validation
 - **Decision**: Strict Pydantic schema validation.
+
+- **Topic**: Translation Strategy
+- **Options**: English vs Arabic in YAML
+- **Decision**: Tenant names will be written in English. The application logic is responsible for translating them to Arabic.
