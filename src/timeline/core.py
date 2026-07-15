@@ -73,7 +73,7 @@ class FileOrganizer:
                 if years:
                     min_val = min(years)
                     max_val = max(years)
-                    tenant_folder_names[tenant] = f"غير مخصص (فترة مستنتجة) {min_val} to {max_val}"
+                    tenant_folder_names[tenant] = f"غير مخصص (فترة مستنتجة) \u200E({min_val} - {max_val})\u200E"
                 else:
                     tenant_folder_names[tenant] = "غير مخصص"
             else:
@@ -85,13 +85,17 @@ class FileOrganizer:
                     end_yr = t_info.get("end_date", "present")
                     if end_yr != "present":
                         end_yr = end_yr.split("-")[0]
-                    tenant_folder_names[tenant] = f"{safe_name} {start_yr}-{end_yr}"
+                    else:
+                        end_yr = "الآن"
+                    
+                    # Using \u200E (Left-to-Right Mark) to isolate the date block and prevent RTL scrambling
+                    tenant_folder_names[tenant] = f"{safe_name} \u200E({start_yr} - {end_yr})\u200E"
                 else:
                     # Fallback if tenant not in yaml
                     if years:
                         min_val = min(years)
                         max_val = max(years)
-                        tenant_folder_names[tenant] = f"{safe_name} {min_val}-{max_val}"
+                        tenant_folder_names[tenant] = f"{safe_name} \u200E({min_val} - {max_val})\u200E"
                     else:
                         tenant_folder_names[tenant] = f"{safe_name}"
                     
