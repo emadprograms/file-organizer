@@ -199,7 +199,7 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
     }
     
     logger.info("Running reconciliation...")
-    run_reconciliation(summary, per_page, total_input_pages, full_house_id, output_dir, dry_run=dry_run)
+    run_reconciliation(summary, per_page, total_input_pages, house_id, output_dir, dry_run=dry_run)
     
 
     
@@ -234,8 +234,8 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
             page_index = entry.get("page_index", 0)
             toc.append([1, bookmark_title, page_index + 1])
             
-        finalized_path = house_dir / f"{full_house_id}_finalized.pdf"
-        tmp_path = house_dir / f"{full_house_id}_finalized.tmp.pdf"
+        finalized_path = house_dir / f"{house_id}_finalized.pdf"
+        tmp_path = house_dir / f"{house_id}_finalized.tmp.pdf"
         
         logger.info(f"Generating TOC for {finalized_path.name}...")
         try:
@@ -254,9 +254,12 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
         source_files_dir = output_dir / ".source_files"
         source_files_dir.mkdir(parents=True, exist_ok=True)
         
-        # Move the original categorized PDF to .source_files
+        # Delete the original categorized PDF upon completion
         if pdf_path.exists():
-            shutil.move(str(pdf_path), str(source_files_dir / pdf_path.name))
+            try:
+                os.remove(str(pdf_path))
+            except OSError as e:
+                logger.warning(f"Failed to delete original PDF {pdf_path}: {e}")
         
 
             

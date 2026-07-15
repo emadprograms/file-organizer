@@ -26,14 +26,14 @@ def run_reconciliation(summary: dict, per_page: list, total_input_pages: int, ho
     
     if not dry_run:
         from src.utils.fs import atomic_write
-        run_cache_dir = output_dir / ".run_cache"
-        run_cache_dir.mkdir(parents=True, exist_ok=True)
-        manifest_path = run_cache_dir / f"{house_id}_3_routed_and_finalized.json"
+        source_files_dir = output_dir / ".source_files"
+        source_files_dir.mkdir(parents=True, exist_ok=True)
+        manifest_path = source_files_dir / f"{house_id}_3_routed_and_finalized.json"
         with atomic_write(str(manifest_path)) as tmp_path:
             with open(tmp_path, 'w', encoding='utf-8') as f:
                 json.dump(manifest, f, ensure_ascii=False, indent=2)
     else:
-        logger.info(f"  [DRY RUN] Would write manifest to {output_dir / '.run_cache' / f'{house_id}_3_routed_and_finalized.json'}")
+        logger.info(f"  [DRY RUN] Would write manifest to {output_dir / '.source_files' / f'{house_id}_3_routed_and_finalized.json'}")
     
     from src.core.ui import vprint
     from rich.table import Table
