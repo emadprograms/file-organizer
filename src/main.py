@@ -95,7 +95,7 @@ def get_parser():
     )
     return parser
 
-def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, logger: logging.Logger, dry_run: bool) -> list:
+def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, logger: logging.Logger, dry_run: bool, house_dir: Path) -> list:
     if output_json_path.exists():
         logger.info(f"Skipping Pass 1 (found {output_json_path}). Loading cleaned data.")
         with open(output_json_path, 'r', encoding='utf-8') as f:
@@ -103,7 +103,7 @@ def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, 
             return [PageData(**p) for p in json.load(f)]
             
     logger.info("Starting Pass 1 — Document Cleaning")
-    cleaned_pages = process_cleaning_phase(json_path, llm_client)
+    cleaned_pages = process_cleaning_phase(json_path, llm_client, house_dir)
     
     unique_tenants = len(set(p.canonical_tenant for p in cleaned_pages))
     logger.info(f"Cleaned {len(cleaned_pages)} pages successfully. Resolved {unique_tenants} unique tenant(s).")
@@ -129,9 +129,13 @@ def run_grouping_pass(cleaned_pages: list, house_id: str, output_dir: Path, llm_
     grouped_checkpoint_path = checkpoint_dir / f"{house_id}_2_grouped.json"
     
     if grouped_checkpoint_path.exists():
-        logger.info(f"Skipping Pass 2 Grouping (found {grouped_checkpoint_path}). Loading grouped documents.")
         with open(grouped_checkpoint_path, 'r', encoding='utf-8') as f:
-            return [DocumentGroup(**d) for d in json.load(f)]
+            checkpoint_data = json.load(f)
+            if isinstance(checkpoint_data, list):
+                logger.info(f"Skipping Pass 2 Grouping (found {grouped_checkpoint_path}). Loading grouped documents.")
+                return [DocumentGroup(**d) for d in checkpoint_data]
+            else:
+                logger.info(f"Found midway grouping checkpoint {grouped_checkpoint_path}. Resuming Pass 2.")
             
     logger.info("Starting Pass 2 — Grouping")
     raw_pages = [(p.original_index, p) for p in cleaned_pages]
@@ -193,15 +197,21 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
     if not dry_run:
         import shutil
             
-        source_files_dir = output_dir / house_id / "source_files"
+        house_dir = output_dir / house_id
+        source_files_dir = house_dir / ".source_files"
         source_files_dir.mkdir(parents=True, exist_ok=True)
         
         report_json_path = target_dir / f"{house_id}_report.json"
         
-        if pdf_path.exists():
-            shutil.move(str(pdf_path), str(source_files_dir / pdf_path.name))
         if report_json_path.exists():
             shutil.move(str(report_json_path), str(source_files_dir / report_json_path.name))
+            
+        if pdf_path.exists() and pdf_path.parent != house_dir:
+            shutil.move(str(pdf_path), str(house_dir / pdf_path.name))
+            
+        yaml_path = target_dir / "tenants.yaml"
+        if yaml_path.exists() and yaml_path.parent != house_dir:
+            shutil.move(str(yaml_path), str(house_dir / yaml_path.name))
             
         # Move checkpoints instead of deleting them
         if cleaned_path.exists():
@@ -239,42 +249,57 @@ def main():
     llm_client = None
     try:
         validate_environment()
-        house_id = validate_target_directory(args.target_dir)
         
-        if args.output_dir:
-            output_dir = args.output_dir
-        elif args.target_dir.name == house_id:
-            output_dir = args.target_dir.parent
-        else:
-            output_dir = args.target_dir
-        
-        output_dir.mkdir(parents=True, exist_ok=True)
-
+        try:
+            validate_target_directory(args.target_dir)
+            targets = [args.target_dir]
+        except ValidationError as original_err:
+            targets = [d for d in args.target_dir.iterdir() if d.is_dir() and list(d.glob("*_categorized*.pdf"))]
+            if not targets:
+                raise original_err
+                
         log_dir = setup_logging(verbose=getattr(args, 'verbose', False))
         set_verbosity(getattr(args, 'verbose', False))
         
-        logger.info(f"Starting File Organizer Post-Processor for house ID: {house_id}")
-        logger.info(f"Target directory: {args.target_dir}")
-        logger.info(f"Output directory: {output_dir}")
-        logger.info(f"Using LLM model: {args.model}")
         logger.info(f"Logs will be written to: {log_dir}")
+        logger.info(f"Using LLM model: {args.model}")
         
         llm_client = LLMClient(api_key=os.getenv("GEMINI_API_KEY"))
         llm_client.default_model = args.model
         llm_client.skip_llm = getattr(args, 'skip_llm', False)
         llm_client.verbose = getattr(args, 'verbose', False)
-        
         logger.info("Initialization and validation successful.")
         
-        json_path = list(args.target_dir.glob("*_report.json"))[0]
-        output_json_path = output_dir / ".run_cache" / f"{house_id}_1_cleaned.json"
-        
-        cleaned_pages = run_cleaning_pass(json_path, output_json_path, llm_client, logger, args.dry_run)
-        documents = run_grouping_pass(cleaned_pages, house_id, output_dir, llm_client, logger, args.dry_run)
-        documents = run_routing_pass(documents, house_id, output_dir, llm_client, logger, args.dry_run, args.routing_model)
-        run_generation_pass(documents, args.target_dir, house_id, output_dir, logger, args.dry_run)
-        
-        return 0
+        has_errors = False
+        for target_dir in targets:
+            try:
+                house_id = validate_target_directory(target_dir)
+                if args.output_dir:
+                    output_dir = args.output_dir
+                elif target_dir.name == house_id:
+                    output_dir = target_dir.parent
+                else:
+                    output_dir = target_dir
+                
+                output_dir.mkdir(parents=True, exist_ok=True)
+                logger.info(f"Starting File Organizer Post-Processor for house ID: {house_id}")
+                logger.info(f"Target directory: {target_dir}")
+                logger.info(f"Output directory: {output_dir}")
+                
+                house_dir = output_dir / house_id
+                
+                json_path = list(target_dir.glob("*_report.json"))[0]
+                output_json_path = output_dir / ".run_cache" / f"{house_id}_1_cleaned.json"
+                
+                cleaned_pages = run_cleaning_pass(json_path, output_json_path, llm_client, logger, args.dry_run, house_dir)
+                documents = run_grouping_pass(cleaned_pages, house_id, output_dir, llm_client, logger, args.dry_run)
+                documents = run_routing_pass(documents, house_id, output_dir, llm_client, logger, args.dry_run, args.routing_model)
+                run_generation_pass(documents, target_dir, house_id, output_dir, logger, args.dry_run)
+            except Exception as e:
+                logger.exception(f"Failed processing {target_dir}: {e}")
+                has_errors = True
+                
+        return 1 if has_errors else 0
     except FileOrganizerError as e:
         logger.exception(f"File Organizer failed: {e}")
         return 1

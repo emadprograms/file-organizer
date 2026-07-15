@@ -1,5 +1,6 @@
 import json
 import logging
+import yaml
 from pathlib import Path
 from src.core.models import PageData, TenantTimeline
 from src.timeline.dates import parse_flexible_date
@@ -61,10 +62,28 @@ def infer_missing_dates(pages: list[PageData]) -> None:
     if inferred_count > 0:
         logger.info(f"Successfully inferred {inferred_count} missing dates using closest proximity matching.")
 
-def assign_pages_to_tenants(pages: list[PageData], timelines: list[TenantTimeline]) -> None:
+def assign_pages_to_tenants(pages: list[PageData], timelines: list[TenantTimeline], final_mapping: dict[str, str]) -> None:
+    # Find the tenant marked as "present" or latest overall for D-11 fallback
+    latest_tenant = None
+    if timelines:
+        # Sort by max_date to find the latest
+        sorted_by_max = sorted(timelines, key=lambda t: t.max_date, reverse=True)
+        latest_tenant = sorted_by_max[0].canonical_name
+
+    valid_tenant_names = {t.canonical_name for t in timelines}
+
     for page in pages:
+        if page.expected_tenant_name:
+            mapped_name = final_mapping.get(page.expected_tenant_name)
+            if mapped_name and mapped_name in valid_tenant_names:
+                page.canonical_tenant = mapped_name
+                continue
+                
         if not page.resolved_date:
-            page.canonical_tenant = "Unassigned (Unknown)"
+            if latest_tenant:
+                page.canonical_tenant = latest_tenant
+            else:
+                page.canonical_tenant = "Unassigned (Unknown)"
             continue
             
         covering = []
@@ -73,13 +92,14 @@ def assign_pages_to_tenants(pages: list[PageData], timelines: list[TenantTimelin
                 covering.append(t)
                 
         if covering:
-            covering.sort(key=lambda t: t.min_date)
+            # Sort by min_date descending to get the latest overlapping tenant (D-10)
+            covering.sort(key=lambda t: t.min_date, reverse=True)
             page.canonical_tenant = covering[0].canonical_name
         else:
             month_str = page.resolved_date[:7]
             page.canonical_tenant = f"Unassigned ({month_str})"
 
-def process_cleaning_phase(json_path: Path, llm_client: LLMClient) -> list[PageData]:
+def process_cleaning_phase(json_path: Path, llm_client: LLMClient, house_dir: Path) -> list[PageData]:
     logger.info("==================================================")
     logger.info("           PHASE 1: DOCUMENT CLEANING             ")
     logger.info("==================================================")
@@ -109,7 +129,29 @@ def process_cleaning_phase(json_path: Path, llm_client: LLMClient) -> list[PageD
     logger.info(f"Clustered down to {len(representatives)} representative names via Fuzzy Matching.")
     
     logger.debug(f"Sending representative names to LLM: {representatives}")
-    llm_map = canonicalize_with_llm(representatives, llm_client)
+    
+    # YAML check
+    yaml_path = house_dir / "tenants.yaml"
+    allowed_tenants = None
+    yaml_timelines = []
+    
+    if yaml_path.exists():
+        logger.info(f"Found tenants.yaml at {yaml_path}. Skipping strict anchor logic.")
+        with open(yaml_path, 'r', encoding='utf-8') as f:
+            yaml_data = yaml.safe_load(f) or []
+        allowed_tenants = [t["name"] for t in yaml_data]
+        for t in yaml_data:
+            end_d = t.get("end_date")
+            max_d = "9999-12-31" if end_d == "present" else end_d
+            yaml_timelines.append(TenantTimeline(
+                canonical_name=t["name"],
+                min_date=t["start_date"],
+                max_date=max_d
+            ))
+    else:
+        logger.info(f"Didn't find {yaml_path}, using the anchor method.")
+    
+    llm_map = canonicalize_with_llm(representatives, llm_client, allowed_tenants=allowed_tenants)
     for rep, canon in llm_map.items():
         logger.info(f"LLM normalized representative: '{rep}' -> '{canon}'")
     
@@ -118,10 +160,29 @@ def process_cleaning_phase(json_path: Path, llm_client: LLMClient) -> list[PageD
         final_mapping[raw] = llm_map.get(rep, rep)
         
     logger.info("\n>>> TIMELINE BUILDING")
-    timelines = build_tenant_timelines(pages, final_mapping)
+    if yaml_timelines:
+        timelines = yaml_timelines
+    else:
+        timelines = build_tenant_timelines(pages, final_mapping, allowed_tenants=allowed_tenants)
+        # Auto-generate tenants.yaml
+        yaml_out = []
+        for t in timelines:
+            # Check if this is the latest timeline
+            is_latest = (t == sorted(timelines, key=lambda x: x.max_date)[-1]) if timelines else False
+            end_d = "present" if is_latest else t.max_date
+            yaml_out.append({
+                "name": t.canonical_name,
+                "start_date": t.min_date,
+                "end_date": end_d
+            })
+        if yaml_out:
+            logger.info(f"Auto-generating {yaml_path}")
+            yaml_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(yaml_path, 'w', encoding='utf-8') as f:
+                yaml.dump(yaml_out, f, allow_unicode=True, sort_keys=False)
     
     logger.info("\n>>> FINAL OUTPUT FOR EACH DOCUMENT")
-    assign_pages_to_tenants(pages, timelines)
+    assign_pages_to_tenants(pages, timelines, final_mapping)
     
     logger.info("ΓöîΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö¼ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö¼ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö¼ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÉ")
     logger.info("Γöé Page Γöé Date       Γöé Category   Γöé Tenant                                 Γöé")

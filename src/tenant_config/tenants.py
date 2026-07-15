@@ -49,11 +49,24 @@ def cluster_names_fuzzily(names: set[str]) -> dict[str, str]:
             
     return mapping
 
-def canonicalize_with_llm(unresolved_names: list[str], llm_client: LLMClient) -> dict[str, str]:
+def canonicalize_with_llm(unresolved_names: list[str], llm_client: LLMClient, allowed_tenants: list[str] = None) -> dict[str, str]:
     if not unresolved_names:
         return {}
         
-    prompt = f"""
+    if allowed_tenants:
+        allowed_list = json.dumps(allowed_tenants, ensure_ascii=False)
+        prompt = f"""
+Please map the following raw tenant names to unified canonical identities.
+IMPORTANT: You MUST map each raw name STRICTLY to one of the following known identities:
+{allowed_list}
+
+Raw names:
+{json.dumps(unresolved_names, ensure_ascii=False)}
+
+Respond ONLY with a JSON dictionary where keys are the raw names and values are the canonical Arabic names from the allowed list.
+"""
+    else:
+        prompt = f"""
 Please map the following raw tenant names to unified canonical identities.
 Merge transliterations and OCR errors into a single canonical name.
 IMPORTANT: Output all canonical identities strictly in Arabic.
@@ -94,7 +107,7 @@ Respond ONLY with a JSON dictionary where keys are the raw names and values are 
     
     return result_map
 
-def build_tenant_timelines(pages: list[PageData], canonical_mapping: dict[str, str]) -> list[TenantTimeline]:
+def build_tenant_timelines(pages: list[PageData], canonical_mapping: dict[str, str], allowed_tenants: list[str] = None) -> list[TenantTimeline]:
     anchor_categories = {"contract", "forms", "id_cards"}
     
     tenant_stats = {}
@@ -118,21 +131,40 @@ def build_tenant_timelines(pages: list[PageData], canonical_mapping: dict[str, s
             
     timelines = []
     for name, stats in tenant_stats.items():
-        if stats["anchor_count"] >= 1 and stats["total_count"] >= 5:
-            if stats["dates"]:
-                min_date = min(stats["dates"])
-                max_date = max(stats["dates"])
-                if min_date > max_date:
-                    raise RuntimeError(f"min_date {min_date} > max_date {max_date}")
-                logger.info(f"Qualified Tenant '{name}': {stats['total_count']} pages, {stats['anchor_count']} anchors -> Timeline: {min_date} to {max_date}")
-                timelines.append(TenantTimeline(
-                    canonical_name=name,
-                    min_date=min_date,
-                    max_date=max_date
-                ))
+        if allowed_tenants is not None:
+            # Skip anchor/page threshold logic if allowed_tenants is provided
+            if name in allowed_tenants:
+                if stats["dates"]:
+                    min_date = min(stats["dates"])
+                    max_date = max(stats["dates"])
+                    if min_date > max_date:
+                        raise RuntimeError(f"min_date {min_date} > max_date {max_date}")
+                    logger.info(f"Accepted Tenant '{name}' via allowed_tenants override -> Timeline: {min_date} to {max_date}")
+                    timelines.append(TenantTimeline(
+                        canonical_name=name,
+                        min_date=min_date,
+                        max_date=max_date
+                    ))
+                else:
+                    logger.info(f"Accepted Tenant '{name}' via allowed_tenants override, but missing valid dates.")
             else:
-                logger.info(f"Rejected Tenant '{name}': Missing valid dates.")
+                logger.info(f"Rejected Tenant '{name}': Not in allowed_tenants list.")
         else:
-            logger.info(f"Rejected Tenant '{name}': {stats['total_count']} pages, {stats['anchor_count']} anchors (Failed threshold of >=1 anchors, >=5 pages)")
+            if stats["anchor_count"] >= 1 and stats["total_count"] >= 5:
+                if stats["dates"]:
+                    min_date = min(stats["dates"])
+                    max_date = max(stats["dates"])
+                    if min_date > max_date:
+                        raise RuntimeError(f"min_date {min_date} > max_date {max_date}")
+                    logger.info(f"Qualified Tenant '{name}': {stats['total_count']} pages, {stats['anchor_count']} anchors -> Timeline: {min_date} to {max_date}")
+                    timelines.append(TenantTimeline(
+                        canonical_name=name,
+                        min_date=min_date,
+                        max_date=max_date
+                    ))
+                else:
+                    logger.info(f"Rejected Tenant '{name}': Missing valid dates.")
+            else:
+                logger.info(f"Rejected Tenant '{name}': {stats['total_count']} pages, {stats['anchor_count']} anchors (Failed threshold of >=1 anchors, >=5 pages)")
                 
     return timelines

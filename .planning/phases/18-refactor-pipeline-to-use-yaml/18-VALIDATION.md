@@ -38,10 +38,10 @@ created: 2026-07-15
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 18-01-01 | 01 | 1 | REQ-YAML-01 | — | N/A | unit | `pytest tests/test_yaml_pipeline.py::test_anchor_logic_bypass` | ❌ W0 | ⬜ pending |
-| 18-01-02 | 01 | 1 | REQ-YAML-02 | — | N/A | unit | `pytest tests/test_yaml_pipeline.py::test_timeline_fallback_overlap` | ❌ W0 | ⬜ pending |
-| 18-01-03 | 01 | 1 | REQ-YAML-03 | — | N/A | unit | `pytest tests/test_yaml_pipeline.py::test_timeline_fallback_no_date` | ❌ W0 | ⬜ pending |
-| 18-02-01 | 02 | 2 | REQ-FILES-01 | — | N/A | integration | `pytest tests/test_file_placement.py` | ❌ W0 | ⬜ pending |
+| 18-01-01 | 01 | 1 | REQ-YAML-01 | — | N/A | unit | `pytest tests/test_yaml_pipeline.py::test_anchor_logic_bypass` | ✅ W0 | ✅ green |
+| 18-01-02 | 01 | 1 | REQ-YAML-02 | — | N/A | unit | `pytest tests/test_yaml_pipeline.py::test_timeline_fallback_overlap` | ✅ W0 | ✅ green |
+| 18-01-03 | 01 | 1 | REQ-YAML-03 | — | N/A | unit | `pytest tests/test_yaml_pipeline.py::test_timeline_fallback_no_date` | ✅ W0 | ✅ green |
+| 18-02-01 | 02 | 2 | REQ-FILES-01 | — | N/A | integration | `pytest tests/test_file_placement.py` | ✅ W0 | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -49,9 +49,9 @@ created: 2026-07-15
 
 ## Wave 0 Requirements
 
-- [ ] `tests/test_yaml_pipeline.py` — stubs for YAML loading, anchor bypass, and timeline mapping
-- [ ] `tests/test_file_placement.py` — stubs for `.source_files` hiding and PDF placement checks
-- [ ] `tests/conftest.py` — shared fixtures for mock documents and YAML files
+- [x] `tests/test_yaml_pipeline.py` — stubs for YAML loading, anchor bypass, and timeline mapping
+- [x] `tests/test_file_placement.py` — stubs for `.source_files` hiding and PDF placement checks
+- [x] `tests/conftest.py` — shared fixtures for mock documents and YAML files
 
 ---
 

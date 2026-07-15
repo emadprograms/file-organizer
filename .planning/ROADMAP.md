@@ -73,7 +73,7 @@ Archived to proceed with v2.0 Refactoring.
   **Goal:** Refactor the confusing checkpoint system (checkpoints folder, cleaned json, manifest.json).
 - [x] Phase 17: Implement YAML Configuration Loading (tenant_config) (1/1 plans)
   **Goal:** Create logic to find the root folder "source files" and extract primary tenant names.
-- [ ] Phase 18: Refactor Pipeline to use YAML (grouping, timeline, routing)
+- [x] Phase 18: Refactor Pipeline to use YAML (grouping, timeline, routing)
   **Goal:** Remove anchor logic and use YAML tenant names for Pass 1 LLM extraction. Connect the rest of the existing modules.
 - [ ] Phase 19: End-to-End Testing and Verification
   **Goal:** Ensure the pipeline produces the exact same end-to-end results using the new architecture.
@@ -100,5 +100,5 @@ Archived to proceed with v2.0 Refactoring.
 | 16. Setup New Directory Structure | v2.0 | 0/0 | Complete | 2026-07-15 |
 | 16.1. Cleanup Checkpoints System | v2.0 | 1/1 | Complete | 2026-07-15 |
 | 17. Implement YAML Configuration Loading | v2.0 | 1/1 | Complete | 2026-07-15 |
-| 18. Refactor Pipeline to use YAML | v2.0 | 0/0 | Pending | — |
+| 18. Refactor Pipeline to use YAML | v2.0 | 2/2 | Complete | 2026-07-15 |
 | 19. End-to-End Testing and Verification | v2.0 | 0/0 | Pending | — |
