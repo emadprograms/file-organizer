@@ -15,30 +15,39 @@ def mock_config():
 
 @patch('src.timeline.core.extract_pdf_segment')
 def test_create_house_directory(mock_extract, organizer, mock_config, tmp_path):
+    input_dir = tmp_path / "input"
+    input_dir.mkdir()
+    (input_dir / "123.pdf").touch()
     docs = [
         DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]
-    summary = organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
+    summary = organizer.organize(docs, str(input_dir / "123.pdf"), "HOUSE_123", tmp_path, mock_config)
     assert (tmp_path / "HOUSE_123 - Resident A").exists()
-    assert (tmp_path / "HOUSE_123 - Resident A" / "Resident A 2023-2023").exists()
+    assert (tmp_path / "HOUSE_123 - Resident A" / "Resident A \u200E(2023 - 2023)\u200E").exists()
 
 @patch('src.timeline.core.extract_pdf_segment')
 def test_tenant_directories_timeline(mock_extract, organizer, mock_config, tmp_path):
+    input_dir = tmp_path / "input"
+    input_dir.mkdir(exist_ok=True)
+    (input_dir / "123.pdf").touch(exist_ok=True)
     docs = [
         DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2020-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
         DocumentGroup(start_page=2, end_page=3, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]
-    summary = organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
-    assert (tmp_path / "HOUSE_123 - Resident A" / "Resident A 2020-2023").exists()
+    summary = organizer.organize(docs, str(input_dir / "123.pdf"), "HOUSE_123", tmp_path, mock_config)
+    assert (tmp_path / "HOUSE_123 - Resident A" / "Resident A \u200E(2020 - 2023)\u200E").exists()
 
 @patch('src.timeline.core.extract_pdf_segment')
 def test_on_demand_topic_creation(mock_extract, organizer, mock_config, tmp_path):
+    input_dir = tmp_path / "input"
+    input_dir.mkdir(exist_ok=True)
+    (input_dir / "123.pdf").touch(exist_ok=True)
     docs = [
         DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2020-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]
-    organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
-    assert (tmp_path / "HOUSE_123 - Resident A" / "Resident A 2020-2020" / "01_بيانات أساسية").exists()
-    assert (tmp_path / "HOUSE_123 - Resident A" / "Resident A 2020-2020" / "02_بيانات شخصية").exists()
+    organizer.organize(docs, str(input_dir / "123.pdf"), "HOUSE_123", tmp_path, mock_config)
+    assert (tmp_path / "HOUSE_123 - Resident A" / "Resident A \u200E(2020 - 2020)\u200E" / "01_بيانات أساسية").exists()
+    assert (tmp_path / "HOUSE_123 - Resident A" / "Resident A \u200E(2020 - 2020)\u200E" / "02_بيانات شخصية").exists()
 
 @patch('src.timeline.core.extract_pdf_segment')
 def test_hardcoded_routing(mock_extract, organizer, mock_config, tmp_path):
@@ -50,12 +59,15 @@ def test_hardcoded_routing(mock_extract, organizer, mock_config, tmp_path):
 
 @patch('src.timeline.core.extract_pdf_segment')
 def test_unassigned_folder_period(mock_extract, organizer, mock_config, tmp_path):
+    input_dir = tmp_path / "input"
+    input_dir.mkdir(exist_ok=True)
+    (input_dir / "123.pdf").touch(exist_ok=True)
     docs = [
         DocumentGroup(start_page=0, end_page=1, primary_tenant="Unassigned (2020-05)", category="BASIC_DETAILS", dates=["2020-01-01", "2021-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
         DocumentGroup(start_page=2, end_page=3, primary_tenant="Unassigned (2021-05)", category="BASIC_DETAILS", dates=["2023-01-01", "2023-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]
-    organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
-    assert (tmp_path / "HOUSE_123" / "غير مخصص (فترة مستنتجة) 2020-01 to 2023-01").exists()
+    organizer.organize(docs, str(input_dir / "123.pdf"), "HOUSE_123", tmp_path, mock_config)
+    assert (tmp_path / "HOUSE_123" / "غير مخصص (فترة مستنتجة) \u200E(2020-01 - 2023-01)\u200E").exists()
 
 @patch('src.timeline.core.extract_pdf_segment')
 def test_unassigned_folder_fallback(mock_extract, organizer, mock_config, tmp_path):
@@ -85,7 +97,7 @@ def test_reconciliation_manifest(tmp_path):
     summary = {"total_output_pages": 1, "output_file_count": 1}
     run_reconciliation(summary, per_page, 1, "HOUSE_123", tmp_path)
     
-    manifest_file = tmp_path / ".run_cache" / "HOUSE_123_3_routed_and_finalized.json"
+    manifest_file = tmp_path / ".source_files" / "HOUSE_123_3_routed_and_finalized.json"
     assert manifest_file.exists()
     
     with open(manifest_file, 'r', encoding='utf-8') as f:

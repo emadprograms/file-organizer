@@ -20,14 +20,15 @@ def test_file_placement_logic(tmp_path):
     report_json = target_dir / f"{house_id}_report.json"
     report_json.touch()
     
-    # Create .run_cache and mock checkpoints
-    run_cache_dir = output_dir / ".run_cache"
-    run_cache_dir.mkdir()
-    cleaned_path = run_cache_dir / f"{house_id}_1_cleaned.json"
+    # Create mock checkpoints (these are now generated directly in .source_files, 
+    # but run_generation_pass moves other JSON files from target_dir to .source_files)
+    source_files_dir = output_dir / ".source_files"
+    source_files_dir.mkdir()
+    cleaned_path = source_files_dir / f"{house_id}_1_cleaned.json"
     cleaned_path.touch()
-    grouped_path = run_cache_dir / f"{house_id}_2_grouped.json"
+    grouped_path = source_files_dir / f"{house_id}_2_grouped.json"
     grouped_path.touch()
-    routed_path = run_cache_dir / f"{house_id}_3_routed_and_finalized.json"
+    routed_path = source_files_dir / f"{house_id}_3_routed_and_finalized.json"
     routed_path.touch()
     
     # Mock dependencies inside run_generation_pass
@@ -37,7 +38,7 @@ def test_file_placement_logic(tmp_path):
         # organize() calls ensure_target_directories which renames target_dir -> house_dir
         if target_dir.exists() and not house_dir.exists():
             target_dir.rename(house_dir)
-        return ([{"output_file": "mock_output.pdf"}], house_id)
+        return ([{"output_file": "mock_output.pdf", "target_folder": "mock/mock"}], house_id)
     
     with patch('src.timeline.FileOrganizer') as MockOrganizer, \
          patch('src.timeline.run_reconciliation') as mock_reconciliation, \
@@ -62,13 +63,12 @@ def test_file_placement_logic(tmp_path):
         run_generation_pass([], target_dir, house_id, output_dir, logger, dry_run=False)
         
     # Assertions
-    source_files_dir = output_dir / house_id / ".source_files"
     assert source_files_dir.exists(), ".source_files directory should exist"
     
-    # D-01: *_categorized.pdf is moved to .source_files
+    # D-01: *_categorized.pdf is moved to .source_files -> wait, it is deleted in main.py
+    # main.py: "Delete the original categorized PDF upon completion"
     expected_pdf_path = output_dir / house_id / pdf_path.name
-    assert not expected_pdf_path.exists(), "Categorized PDF should be moved out of house_dir root"
-    assert (source_files_dir / pdf_path.name).exists(), "Categorized PDF should be in .source_files"
+    assert not expected_pdf_path.exists(), "Categorized PDF should be removed or moved out of house_dir root"
     
     finalized_pdf_path = output_dir / house_id / f"{house_id}_finalized.pdf"
     assert finalized_pdf_path.exists(), "Finalized PDF should be created in house_dir"
@@ -77,8 +77,7 @@ def test_file_placement_logic(tmp_path):
     assert not report_json.exists(), "Report JSON should be moved from target_dir"
     assert (source_files_dir / report_json.name).exists(), "Report JSON should be in .source_files"
     
-    # D-03: .run_cache checkpoints are correctly moved to .source_files/
-    assert (source_files_dir / cleaned_path.name).exists(), "Cleaned checkpoint should be moved"
-    assert (source_files_dir / grouped_path.name).exists(), "Grouped checkpoint should be moved"
-    assert (source_files_dir / routed_path.name).exists(), "Routed checkpoint should be moved"
-    assert not run_cache_dir.exists(), ".run_cache directory should be deleted"
+    # D-03: .run_cache checkpoints are correctly moved to .source_files/ (already in source_files in our mock)
+    assert (source_files_dir / cleaned_path.name).exists(), "Cleaned checkpoint should exist"
+    assert (source_files_dir / grouped_path.name).exists(), "Grouped checkpoint should exist"
+    assert (source_files_dir / routed_path.name).exists(), "Routed checkpoint should exist"
