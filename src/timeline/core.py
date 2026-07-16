@@ -361,6 +361,8 @@ class FileOrganizer:
         if not dry_run:
             # Create directories
             house_dir = self.ensure_target_directories(target_dir, tenant_folder_names, full_house_id, output_base_dir)
+            if target_dir != house_dir and not target_dir.exists() and house_dir.exists():
+                source_pdf = str(house_dir / Path(source_pdf).name)
 
         per_page = self.process_documents(documents, source_pdf, full_house_id, output_base_dir, tenant_folder_names, dry_run)
         return per_page, full_house_id
