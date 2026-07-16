@@ -99,7 +99,7 @@ def assign_pages_to_tenants(pages: list[PageData], timelines: list[TenantTimelin
             month_str = page.resolved_date[:7]
             page.canonical_tenant = f"Unassigned ({month_str})"
 
-def process_cleaning_phase(json_path: Path, llm_client: LLMClient, house_id: str, target_dir: Path) -> tuple[list[PageData], list[dict]]:
+def process_cleaning_phase(json_path: Path, llm_client: LLMClient, yaml_data: list[dict] | None) -> tuple[list[PageData], list[dict] | None]:
     logger.info("==================================================")
     logger.info("           PHASE 1: DOCUMENT CLEANING             ")
     logger.info("==================================================")
@@ -131,14 +131,11 @@ def process_cleaning_phase(json_path: Path, llm_client: LLMClient, house_id: str
     logger.debug(f"Sending representative names to LLM: {representatives}")
     
     # YAML check
-    yaml_path = target_dir / f"{house_id}_tenants.yaml"
     allowed_tenants = None
     yaml_timelines = []
     
-    if yaml_path.exists():
-        logger.info(f"Found {yaml_path.name} at {yaml_path}. Skipping strict anchor logic.")
-        with open(yaml_path, 'r', encoding='utf-8') as f:
-            yaml_data = yaml.safe_load(f) or []
+    if yaml_data is not None:
+        logger.info("Found yaml_data. Skipping strict anchor logic.")
         allowed_tenants = [t["name"] for t in yaml_data]
         for t in yaml_data:
             end_d = t.get("end_date")
@@ -149,7 +146,7 @@ def process_cleaning_phase(json_path: Path, llm_client: LLMClient, house_id: str
                 max_date=max_d
             ))
     else:
-        logger.info(f"Didn't find {yaml_path.name}, using the anchor method.")
+        logger.info("Didn't find yaml_data, using the anchor method.")
     
     llm_map = canonicalize_with_llm(representatives, llm_client, allowed_tenants=allowed_tenants)
     for rep, canon in llm_map.items():
@@ -160,11 +157,9 @@ def process_cleaning_phase(json_path: Path, llm_client: LLMClient, house_id: str
         final_mapping[raw] = llm_map.get(rep, rep)
         
     logger.info("\n>>> TIMELINE BUILDING")
-    yaml_data = None
     if yaml_timelines:
         timelines = yaml_timelines
-        # yaml_data was already loaded from the user-provided YAML
-        yaml_data = yaml.safe_load(open(yaml_path, 'r', encoding='utf-8')) if yaml_path.exists() else None
+        # yaml_data is already set from the parameter
     else:
         timelines = build_tenant_timelines(pages, final_mapping, allowed_tenants=allowed_tenants)
         # Build yaml_data in memory from computed timelines
