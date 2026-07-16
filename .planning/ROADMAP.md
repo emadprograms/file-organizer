@@ -56,6 +56,7 @@
   **Goal:** Fix the routing result data loss bug, resolve implicit model propagation, and complete the architecture decoupling of routing from grouping.
   **Plans:** 3 plans
   Plans:
+
   - [x] 13-01-PLAN.md — Refactor state schema and config for result persistence
   - [x] 13-02-PLAN.md — Decouple pipeline and fix routing resumption bug
   - [x] 13-03-PLAN.md — Implement E2E verification for resilience and model propagation
@@ -63,26 +64,33 @@
 </details>
 
 ### 🛑 v1.4 LLM Performance & Optimization (Archived)
+
 Archived to proceed with v2.0 Refactoring.
 
 ### 🚧 v2.0 Logic-Based Modular Refactoring
 
 - [x] Phase 16: Setup New Directory Structure
   **Goal:** Reorganize `src/` into logical folders (core, utils, tenant_config, grouping, timeline, routing) preserving all existing files.
+
 - [ ] Phase 16.1: Cleanup Checkpoints System
   **Goal:** Refactor the confusing checkpoint system (checkpoints folder, cleaned json, manifest.json).
+
 - [x] Phase 17: Implement YAML Configuration Loading (tenant_config) (1/1 plans)
   **Goal:** Create logic to find the root folder "source files" and extract primary tenant names.
+
 - [x] Phase 18: Refactor Pipeline to use YAML (grouping, timeline, routing)
   **Goal:** Remove anchor logic and use YAML tenant names for Pass 1 LLM extraction. Connect the rest of the existing modules.
+
 - [x] Phase 18.5: Finalize PDF Output, Compression, and Metadata
   **Goal:** Compress the original `_categorized` PDF to normal quality. Ensure the final routed PDF is both compressed and labeled `_finalized` (instead of `_categorized`). Update the PDF metadata to explicitly show "Tenant - Folder Name" (e.g., "1273 - folder_name") rather than just the category.
   **Plans:** 1 plan
   Plans:
+
   - [x] 18.5-01-PLAN.md — Finalize PDF Output, Compression, and Metadata
 - [x] Phase 18.6: Fix Fallback Model Behavior Across Codebase
   **Goal:** Update LLM error handling for read timeouts and 429s globally. After 3 failures on the default model, drop down to Gemini 3.5 Flash -> Gemini 3 Flash -> Gemini 2.5 Flash without waiting for multiple retries on the Flash models. Apply this logic uniformly across the codebase.
-- [ ] Phase 19: End-to-End Testing and Verification
+
+- [x] Phase 19: End-to-End Testing and Verification (completed 2026-07-16)
   **Goal:** Ensure the pipeline produces the exact same end-to-end results using the new architecture.
 
 ## Progress
@@ -110,4 +118,4 @@ Archived to proceed with v2.0 Refactoring.
 | 18. Refactor Pipeline to use YAML | v2.0 | 2/2 | Complete | 2026-07-15 |
 | 18.5. Finalize PDF Output, Compression, and Metadata | v2.0 | 1/1 | Complete | 2026-07-15 |
 | 18.6. Fix Fallback Model Behavior Across Codebase | v2.0 | 0/0 | Complete | 2026-07-15 |
-| 19. End-to-End Testing and Verification | v2.0 | 0/0 | Pending | — |
+| 19. End-to-End Testing and Verification | v2.0 | 1/1 | Complete   | 2026-07-16 |
