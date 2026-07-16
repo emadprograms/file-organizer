@@ -8,6 +8,7 @@ This module acts as the core orchestrator. It manages the two-pass architecture:
 import logging
 import hashlib
 from types import SimpleNamespace
+from pathlib import Path
 
 from src.llm.llm import LLMClient
 from src.core.schemas import DocumentGroup
@@ -32,6 +33,14 @@ class Pipeline:
         from src.core.config import ROUTING_MODEL
         self.client = LLMClient(api_key, delay_between_pages)
         self.routing_model = routing_model or ROUTING_MODEL
+
+    def _clean_documents(self, json_path: Path, target_dir: Path, house_id: str) -> tuple[list, list[dict] | None]:
+        """Load tenant configuration and process document cleaning phase."""
+        from src.tenant_config.yaml_loader import load_tenant_config
+        from src.timeline.phase import process_cleaning_phase
+        
+        yaml_data = load_tenant_config(target_dir, house_id)
+        return process_cleaning_phase(json_path, self.client, yaml_data)
 
     def _group_documents(self, raw_pages: list[tuple[int, PageData]], run_checkpoint_path: str | None = None) -> list[DocumentGroup]:
         """Group classified pages into cohesive document blocks using LLM boundary detection.
