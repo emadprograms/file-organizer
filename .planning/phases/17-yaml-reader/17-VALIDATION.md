@@ -1,13 +1,13 @@
 ---
-phase: 16
-slug: setup-new-directory-structure
+phase: 17
+slug: yaml-reader
 status: approved
 nyquist_compliant: true
 wave_0_complete: true
 created: 2026-07-16
 ---
 
-# Phase 16 — Validation Strategy
+# Phase 17 — Validation Strategy
 
 > Per-phase validation contract for feedback sampling during execution.
 
@@ -38,7 +38,7 @@ created: 2026-07-16
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 16-01-01 | 01 | 1 | REQ-ALL | - | N/A | unit | `pytest tests/` | ✅ | ✅ green |
+| 17-01-01 | 01 | 1 | REQ-ALL | - | N/A | unit | `pytest tests/` | ✅ | ✅ green |
 
 ---
 
