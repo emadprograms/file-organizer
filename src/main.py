@@ -191,6 +191,12 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
     organizer = FileOrganizer()
     per_page, full_house_id = organizer.organize(documents, str(pdf_path), house_id, output_dir, yaml_data=yaml_data, dry_run=dry_run)
     
+    house_dir = output_dir / full_house_id
+    if not dry_run and target_dir != house_dir and not pdf_path.exists():
+        new_pdf_path = house_dir / pdf_path.name
+        if new_pdf_path.exists():
+            pdf_path = new_pdf_path
+
     with fitz.open(str(pdf_path)) as pdf_doc:
         total_input_pages = pdf_doc.page_count
     
