@@ -93,6 +93,9 @@ Archived to proceed with v2.0 Refactoring.
 - [x] Phase 19: End-to-End Testing and Verification (completed 2026-07-16)
   **Goal:** Ensure the pipeline produces the exact same end-to-end results using the new architecture.
 
+- [ ] Phase 19.1: Fix YAML Integration Architecture
+  **Goal:** Refactor the pipeline to properly utilize `yaml_loader.py` for configuration loading and remove dead code, properly connecting it to `pipeline.py` instead of bypassing it in `phase.py`.
+
 ## Progress
 
 | Phase             | Milestone | Plans Complete | Status      | Completed  |
@@ -119,3 +122,4 @@ Archived to proceed with v2.0 Refactoring.
 | 18.5. Finalize PDF Output, Compression, and Metadata | v2.0 | 1/1 | Complete | 2026-07-15 |
 | 18.6. Fix Fallback Model Behavior Across Codebase | v2.0 | 0/0 | Complete | 2026-07-15 |
 | 19. End-to-End Testing and Verification | v2.0 | 1/1 | Complete    | 2026-07-16 |
+| 19.1. Fix YAML Integration Architecture | v2.0 | 0/0 | Planned | — |
