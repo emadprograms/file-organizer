@@ -111,7 +111,10 @@ def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, 
         return cleaned_pages, yaml_data
             
     logger.info("Starting Pass 1 — Document Cleaning")
-    cleaned_pages, yaml_data = process_cleaning_phase(json_path, llm_client, house_id, target_dir)
+    from src.pipeline.pipeline import Pipeline
+    pipeline = Pipeline(api_key=os.getenv("GEMINI_API_KEY"))
+    pipeline.client = llm_client
+    cleaned_pages, yaml_data = pipeline._clean_documents(json_path, target_dir, house_id)
     
     unique_tenants = len(set(p.canonical_tenant for p in cleaned_pages))
     logger.info(f"Cleaned {len(cleaned_pages)} pages successfully. Resolved {unique_tenants} unique tenant(s).")

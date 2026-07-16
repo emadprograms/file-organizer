@@ -41,19 +41,18 @@ def test_validate_environment_missing_key(mock_load_dotenv, capsys):
 
 @patch("src.timeline.FileOrganizer")
 @patch("src.pipeline.pipeline.Pipeline")
-@patch("src.main.process_cleaning_phase")
 @patch("src.main.LLMClient")
 @patch("src.main.setup_logging")
 @patch("src.main.validate_target_directory")
 @patch("src.main.validate_environment")
 @patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"}, clear=True)
 @patch("sys.argv", ["main.py", "./pdfs/1273"])
-def test_main_success(mock_validate_env, mock_validate_target, mock_setup_logging, mock_llm_client, mock_process_cleaning, mock_pipeline, mock_organizer):
+def test_main_success(mock_validate_env, mock_validate_target, mock_setup_logging, mock_llm_client, mock_pipeline, mock_organizer):
     mock_validate_target.return_value = "1273"
     mock_setup_logging.return_value = "/tmp/logs"
-    mock_process_cleaning.return_value = ([], None)
     
     mock_pipeline_inst = mock_pipeline.return_value
+    mock_pipeline_inst._clean_documents.return_value = ([], None)
     mock_pipeline_inst._group_documents.return_value = []
     mock_pipeline_inst._route_documents.return_value = []
     
@@ -77,9 +76,10 @@ def test_main_success(mock_validate_env, mock_validate_target, mock_setup_loggin
     assert mock_validate_target.call_count == 2
     mock_setup_logging.assert_called_once()
     mock_llm_client.assert_called_once()
-    assert mock_pipeline.call_count == 2
+    assert mock_pipeline.call_count == 3
     from unittest.mock import call
     mock_pipeline.assert_has_calls([
+        call(api_key="test_key"),
         call(api_key="test_key"),
         call(api_key="test_key", routing_model=None)
     ], any_order=True)
