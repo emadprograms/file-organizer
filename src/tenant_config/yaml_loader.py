@@ -5,37 +5,43 @@ from src.core.exceptions import ConfigurationError
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-def load_tenant_config(target_dir: Path) -> list[str]:
+def load_tenant_config(target_dir: Path, house_id: str) -> list[dict] | None:
     """
-    Loads tenant names from a tenants.yaml file located in the target directory.
+    Loads tenant names and timelines from a {house_id}_tenants.yaml file located in the target directory.
     
     Args:
-        target_dir (Path): The directory where tenants.yaml is expected.
+        target_dir (Path): The directory where the yaml is expected.
+        house_id (str): The house ID to prefix the yaml file name.
         
     Returns:
-        list[str]: A list of primary tenant names.
+        list[dict] | None: A list of dictionaries representing tenant configuration, or None if the file is missing.
         
     Raises:
-        ConfigurationError: If the YAML file is malformed or missing the 'tenants' key.
+        ConfigurationError: If the YAML file is malformed or invalid.
     """
-    yaml_path = target_dir / "tenants.yaml"
+    yaml_path = target_dir / f"{house_id}_tenants.yaml"
     
     if not yaml_path.exists():
-        logger.warning(f"No tenants.yaml found in {target_dir}. Falling back to empty tenant list.")
-        return []
+        logger.info(f"No {yaml_path.name} found in {target_dir}. Falling back to anchor logic.")
+        return None
         
     try:
         with open(yaml_path, 'r', encoding='utf-8') as f:
-            data = yaml.safe_load(f)
+            data = yaml.safe_load(f) or []
     except yaml.YAMLError as e:
         raise ConfigurationError(f"Malformed YAML in {yaml_path}: {e}") from e
         
-    if not isinstance(data, dict) or "tenants" not in data:
-        raise ConfigurationError(f"Missing 'tenants' key in {yaml_path}")
+    if not isinstance(data, list):
+        raise ConfigurationError(f"YAML must be a list of dictionaries in {yaml_path}")
         
-    tenants = data.get("tenants")
-    if not isinstance(tenants, list):
-        raise ConfigurationError(f"'tenants' must be a list of strings in {yaml_path}")
-        
-    # Ensure all elements are strings
-    return [str(t) for t in tenants]
+    for idx, item in enumerate(data):
+        if not isinstance(item, dict):
+            raise ConfigurationError(f"Item at index {idx} in {yaml_path} must be a dictionary.")
+        if "name" not in item:
+            raise ConfigurationError(f"Missing 'name' in item at index {idx} in {yaml_path}")
+        if "start_date" not in item:
+            raise ConfigurationError(f"Missing 'start_date' in item at index {idx} in {yaml_path}")
+        if "end_date" not in item:
+            raise ConfigurationError(f"Missing 'end_date' in item at index {idx} in {yaml_path}")
+            
+    return data
