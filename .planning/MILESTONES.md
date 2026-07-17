@@ -15,6 +15,20 @@
 
 ---
 
+## v1.3 Routing Decoupling & Checkpointing (Shipped: 2026-07-10)
+
+**Phases completed:** 3 phases, 3 plans
+
+**Key accomplishments:**
+
+- **Arabic Folder Mapping**: Implemented strict 1:1 mapping of categories to Arabic folder names.
+- **System-Wide Renaming**: Migrated all destination folder paths from English to Arabic across the codebase.
+- **Pipeline Decoupling**: Refactored `src/processing/pipeline.py` to separate the routing process into its own loop.
+- **Granular Checkpointing**: Implemented `RoutingStateManager` to save state atomically.
+- **Dynamic Model Configuration**: Updated the routing API to support independent LLM model selection.
+
+---
+
 ## v1.2 Pipeline Resilience & Grouping Overhaul (Shipped: 2026-07-10)
 
 **Phases completed:** 5 phases, 13 plans, 0 tasks
