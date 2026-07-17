@@ -1,5 +1,20 @@
 # Milestones
 
+## v2.0 Logic-Based Modular Refactoring (Shipped: 2026-07-17)
+
+**Phases completed:** 20 phases, 28 plans, 14 tasks
+
+**Key accomplishments:**
+
+- PASSED
+- Final validation of Arabic folder routing across all integration tests and E2E flow.
+- Overhauled test suite by standardizing naming, structuring deterministic golden fixtures, and isolating E2E tests using function-level mocking.
+- Refactored tenant matching and timeline building logic into dedicated modules to align with Phase 16 architecture
+- Refactored tenant matching and timeline building logic into dedicated modules to align with Phase 16 architecture
+- Updated YAML loader to check the `.source_files/` directory for `{house_id}_tenants.yaml` configuration.
+
+---
+
 ## v1.2 Pipeline Resilience & Grouping Overhaul (Shipped: 2026-07-10)
 
 **Phases completed:** 5 phases, 13 plans, 0 tasks
