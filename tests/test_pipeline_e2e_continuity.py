@@ -17,7 +17,7 @@ class Page:
         self.subject = data.get("subject", "")
 
 def test_e2e_continuity():
-    json_path = "tests/fixtures/uat_08_continuity_data.json"
+    json_path = "tests/fixtures/continuity_test_state.json"
     if not os.path.exists(json_path):
         pytest.skip(f"Fixture file not found at {json_path}")
 
@@ -25,10 +25,8 @@ def test_e2e_continuity():
         data = json.load(f)
 
     all_pages = []
-    for i in range(1, 11):
-        page_data = data.get(str(i))
-        if page_data:
-            all_pages.append(Page(i, page_data))
+    for item in data:
+        all_pages.append(Page(item["original_index"], item))
     
     pages = [p for p in all_pages if p.category == "letters"]
     
