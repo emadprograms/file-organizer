@@ -7,10 +7,10 @@ logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def load_tenant_config(target_dir: Path, house_id: str) -> list[dict] | None:
     """
-    Loads tenant names and timelines from a {house_id}_tenants.yaml file located in the target directory.
+    Loads tenant names and timelines from a {house_id}_tenants.yaml file located in the .source_files directory of the target directory.
     
     Args:
-        target_dir (Path): The directory where the yaml is expected.
+        target_dir (Path): The directory containing the .source_files folder where the yaml is expected.
         house_id (str): The house ID to prefix the yaml file name.
         
     Returns:
@@ -19,10 +19,10 @@ def load_tenant_config(target_dir: Path, house_id: str) -> list[dict] | None:
     Raises:
         ConfigurationError: If the YAML file is malformed or invalid.
     """
-    yaml_path = target_dir / f"{house_id}_tenants.yaml"
+    yaml_path = target_dir / ".source_files" / f"{house_id}_tenants.yaml"
     
     if not yaml_path.exists():
-        logger.info(f"No {yaml_path.name} found in {target_dir}. Falling back to anchor logic.")
+        logger.info(f"No {yaml_path.name} found in {target_dir / '.source_files'}. Falling back to anchor logic.")
         return None
         
     try:
