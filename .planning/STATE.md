@@ -2,24 +2,24 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Logic-Based Modular Refactoring
-current_phase: 19.1
+current_phase: 19.1.1.1
 current_phase_name: fix-yaml-integration-architecture
 status: completed
 stopped_at: Phase 19.1 context gathered
-last_updated: "2026-07-17T02:55:12.160Z"
+last_updated: "2026-07-17T03:20:40.159Z"
 last_activity: 2026-07-17
 last_activity_desc: Phase 19.1 complete
 progress:
-  total_phases: 15
+  total_phases: 17
   completed_phases: 10
   total_plans: 23
   completed_plans: 22
-  percent: 67
+  percent: 59
 ---
 
 # Project State
 
-**Current Phase:** 19.1
+**Current Phase:** 19.1.1.1
 **Status:** Milestone complete
 
 ## Phase Progress
@@ -51,3 +51,10 @@ Last activity: 2026-07-17 — Phase 19.1 complete
 ## Operator Next Steps
 
 - Start planning Phase 16 with `/gsd-plan-phase 16`
+
+## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 19.1.1 inserted after Phase 19.1: Close gap: PIPE-02 — Refactor tenant matching logic from tenants.py to grouping/name_matcher.py (URGENT)
+- Phase 19.1.1.1 inserted after Phase 19.1.1: Close gap: YAML-01 — Update yaml_loader.py to check root folder .source_files/ for YAML (URGENT)

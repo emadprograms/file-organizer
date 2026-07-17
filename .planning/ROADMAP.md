@@ -94,6 +94,8 @@ Archived to proceed with v2.0 Refactoring.
   **Goal:** Ensure the pipeline produces the exact same end-to-end results using the new architecture.
 
 - [x] Phase 19.1: Fix YAML Integration Architecture (completed 2026-07-16)
+- [ ] Phase 19.1.1: Close gap: PIPE-02 — Refactor tenant matching logic from tenants.py to grouping/name_matcher.py
+- [ ] Phase 19.1.1.1: Close gap: YAML-01 — Update yaml_loader.py to check root folder .source_files/ for YAML
   **Goal:** Refactor the pipeline to properly utilize `yaml_loader.py` for configuration loading and remove dead code, properly connecting it to `pipeline.py` instead of bypassing it in `phase.py`.
 
 ## Progress
