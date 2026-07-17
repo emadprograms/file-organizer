@@ -10,12 +10,13 @@ Refactor the `src/` directory into a clean, logic-based modular monolith. The ex
 - **Test Coverage**: All pipeline behaviors — including YAML loading, routing, dry-run, and fallback — must be covered by structured `test_[module].py` tests using function-level LLM mocking with saved responses.
 
 ## Epic: Test Suite Quality (TEST)
-- [ ] **TEST-01**: All test files in `tests/` must follow the strict `test_[module].py` naming convention AND have names that clearly describe what they test. **Not yet done.** Current violations:
-  - `uat_08_*.py` (6 files) — not prefixed with `test_`, not picked up by pytest, completely opaque (e.g. `uat_08_precision_window.py`)
-  - `verify_*.py` (12 files) — not prefixed with `test_`, purpose is unclear (e.g. `verify_uat_11_1.py` tells you nothing)
-  - `test_phase12_finalization.py`, `test_phase7_features.py`, `test_phase7_uat.py`, `test_uat_09_01.py` etc. — phase numbers in test names are meaningless to anyone reading the suite cold
-  - `create_continuity_fixture.py` — a utility script living in the test folder with no clear identity
-  - All files must be renamed to `test_[what_it_actually_tests].py` (e.g. `verify_uat_11_1.py` → `test_routing_conditional_llm.py`)
+- [ ] **TEST-01**: All test files in `tests/` must be converted into proper `pytest` test modules with the `test_[module].py` naming convention AND names that clearly describe what they test. **Not yet done.** This means:
+  - Read every `uat_08_*.py` and `verify_*.py` file, understand what it actually tests, and rewrite it as a proper `pytest` module with `def test_*()` functions
+  - Rename to a descriptive `test_[what_it_actually_tests].py` name (e.g. `verify_uat_11_1.py` → `test_routing_conditional_llm.py`)
+  - `create_continuity_fixture.py` — convert to a pytest fixture or helper, not a standalone script
+  - Phase-numbered names like `test_phase7_features.py`, `test_phase7_uat.py`, `test_uat_09_01.py` must be renamed to describe the behavior they test, not the phase they were written in
+  - All resulting files must be discoverable and runnable by `pytest` with no extra flags
+  - The existing 179 passing tests must still pass after conversion
 - [ ] **TEST-02**: The `tests/fixtures/golden_1273/` fixture must have a clear `input/` folder (containing the `1273` house directory with `.source_files/` inside it) and an `expected_output/` folder (the exact expected final directory and file structure).
 - [ ] **TEST-03**: `.source_files/` must be placed exactly inside the target house directory (`golden_1273/input/1273/.source_files/`) so the YAML loader path resolves correctly — matching production behavior.
 - [ ] **TEST-04**: Intermediate pipeline state files (`1273_cleaned.json`, `1273_grouped.json`, `1273_3_routed_and_finalized.json`) must exist in the golden fixture so dry-run E2E tests can load pre-computed state without calling the LLM.

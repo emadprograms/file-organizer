@@ -14,7 +14,7 @@ Fixing the testing structure, golden datasets, E2E routing verification, and dry
 ## Implementation Decisions
 
 ### Test Suite Structure & Naming
-- **D-01:** Keep test files flat in the `tests/` directory but strictly enforce a `test_[module].py` naming convention (renaming existing uneven tests like `uat_08_contracts.py` or `verify_dual_logging.py`).
+- **D-01:** Keep test files flat in the `tests/` directory but strictly enforce `test_[module].py` naming convention. Every `uat_08_*.py`, `verify_*.py`, phase-numbered test, and opaque script must be **read, understood, and rewritten as a proper `pytest` module** with descriptive `def test_*()` functions — not just renamed. The new name must describe the behavior being tested, not the phase it was written in.
 
 ### Golden Dataset Input/Output Validation
 - **D-02:** Retain the name `golden_1273`.
