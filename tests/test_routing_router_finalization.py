@@ -53,7 +53,8 @@ class TestPhase12Finalization(unittest.TestCase):
     def test_single_match_direct_routing(self):
         """Verify that categories in SINGLE_MATCH route directly without LLM."""
         # Pick a category that is in SINGLE_MATCH (e.g., CONTRACT usually is)
-        cat = list(SINGLE_MATCH)[0]
+        valid_cats = [c for c in SINGLE_MATCH if c.lower() not in ("others", "other_letters")]
+        cat = valid_cats[0]
         group = self.base_group.model_copy(update={"category": cat})
         
         folder, is_direct = route_document(group, self.llm_client)
@@ -140,7 +141,8 @@ class TestPhase12Finalization(unittest.TestCase):
         """Verify the priority: SINGLE_MATCH -> DIRECT_ROUTING_MAP -> Constrained."""
         # 1. Category in both SINGLE_MATCH and DIRECT_ROUTING_MAP (if any)
         # Let's use a category that we know is in SINGLE_MATCH
-        cat = list(SINGLE_MATCH)[0]
+        valid_cats = [c for c in SINGLE_MATCH if c.lower() not in ("others", "other_letters")]
+        cat = valid_cats[0]
         group = self.base_group.model_copy(update={"category": cat.lower()})
         
         folder, is_direct = route_document(group, self.llm_client)
