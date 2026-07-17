@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Logic-Based Modular Refactoring
-current_phase: 19.1.1.1
-current_phase_name: close-gap-yaml-01-update-yaml-loader-py-to-check-root-folder
-status: completed
-stopped_at: Phase 19 context gathered
-last_updated: "2026-07-17T07:00:43.861Z"
+current_phase: 19
+current_phase_name: end-to-end-testing-and-verification
+status: in_progress
+stopped_at: Phase 19 replanning — test suite overhaul
+last_updated: "2026-07-17T07:06:00.000Z"
 last_activity: 2026-07-17
-last_activity_desc: Phase 19.1.1.1 complete
+last_activity_desc: Phase 19 reopened for test suite overhaul (TEST-01 through TEST-06)
 progress:
   total_phases: 17
   completed_phases: 12
@@ -33,24 +33,30 @@ progress:
 
 ## Open Issues / Blockers
 
-- None.
+- **Phase 19 reopened** — Test suite overhaul required. New requirements TEST-01 through TEST-06 must be implemented:
+  - TEST-02: Restructure `golden_1273` fixture with clear `input/` and `expected_output/` folders
+  - TEST-03: Fix `.source_files/` placement inside the house directory (data loss bug)
+  - TEST-04: Add intermediate JSON state files to the golden fixture
+  - TEST-05: Implement function-level LLM mocking using saved real responses
+  - TEST-06: Add E2E routing destination assertions
 
 ## Session
 
-**Last session:** 2026-07-17T07:00:43.856Z
-**Stopped at:** Phase 19 context gathered
+**Last session:** 2026-07-17T07:06:00.000Z
+**Stopped at:** Phase 19 replanning — test suite overhaul
 **Resume file:** .planning/phases/19-end-to-end-testing-and-verification/19-CONTEXT.md
 
 ## Current Position
 
-Phase: 19.1.1.1 (close-gap-yaml-01-update-yaml-loader-py-to-check-root-folder) — EXECUTING
-Plan: Not started
-Status: Executing Phase 19.1.1.1
-Last activity: 2026-07-17 — Phase 19.1.1.1 complete
+Phase: 19 (end-to-end-testing-and-verification) — REPLANNING
+Plan: Planner running
+Status: Phase 19 reopened for test suite overhaul (TEST-01 through TEST-06)
+Last activity: 2026-07-17 — Phase 19 test suite overhaul discussion completed, replanning in progress
 
 ## Operator Next Steps
 
-- Start planning Phase 16 with `/gsd-plan-phase 16`
+- Wait for planner to finish, then run `/gsd-execute-phase 19` to implement the test suite overhaul
+- After execution: run `/gsd-audit-milestone 2.0` to re-verify milestone with updated test requirements
 
 ## Accumulated Context
 
@@ -58,9 +64,16 @@ Last activity: 2026-07-17 — Phase 19.1.1.1 complete
 
 - Phase 19.1.1 inserted after Phase 19.1: Close gap: PIPE-02 — Refactor tenant matching logic from tenants.py to grouping/name_matcher.py (URGENT)
 - Phase 19.1.1.1 inserted after Phase 19.1.1: Close gap: YAML-01 — Update yaml_loader.py to check root folder .source_files/ for YAML (URGENT)
+- Phase 19 reopened 2026-07-17: Test suite overhaul (TEST-01–TEST-06) — naming convention enforcement, golden_1273 fixture restructure, .source_files placement bug, LLM mocking, E2E routing destination assertions
+
+### Key Decisions (Phase 19 Replan)
+- Test files kept flat in `tests/` with strict `test_[module].py` naming
+- `golden_1273` fixture restructured with `input/1273/.source_files/` and `expected_output/` subfolders
+- LLM responses captured once from a real run, saved in fixtures, and used as deterministic mocks
+- Dry run tests load intermediate JSON state files to bypass LLM calls
 
 ## Performance Metrics
 
 | Phase | Plan | Duration | Notes |
-|-------|------|----------|-------|
+|-------|------|----------|-----------|
 | Phase 19.1.1 P1 | 10 min | 3 tasks | 6 files |
