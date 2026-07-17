@@ -79,6 +79,21 @@ def test_canonicalize_with_llm():
     res = canonicalize_with_llm(["احمد", "محمد"], client)
     assert res == {"احمد": "احمد", "محمد": "محمد"}
 
+def test_canonicalize_with_llm_with_allowed_tenants():
+    class CapturingLLMClient:
+        default_model = "test_model"
+        def __init__(self):
+            self.captured_prompt = None
+            
+        def _route_llm_call(self, *args, **kwargs):
+            self.captured_prompt = kwargs.get('contents', [''])[0]
+            return '{"احمد": "احمد"}'
+            
+    client = CapturingLLMClient()
+    res = canonicalize_with_llm(["احمد"], client, allowed_tenants=["احمد"])
+    assert res == {"احمد": "احمد"}
+    assert "Is this name similar to any of the names here?" in client.captured_prompt
+
 def test_build_tenant_timelines():
     pages = [
         PageData(category="contract", content_explanation="e", expected_tenant_name="احمد", sender="s", receiver="r", subject="sub", original_index=0, resolved_date="2020-01-01", date=None),
