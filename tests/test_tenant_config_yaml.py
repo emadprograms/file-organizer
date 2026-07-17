@@ -7,8 +7,9 @@ from src.core.exceptions import ConfigurationError
 
 def test_load_tenant_config_success(tmp_path: Path):
     target_dir = tmp_path / "pdfs" / "123"
-    target_dir.mkdir(parents=True)
-    yaml_file = target_dir / "123_tenants.yaml"
+    source_files_dir = target_dir / ".source_files"
+    source_files_dir.mkdir(parents=True, exist_ok=True)
+    yaml_file = source_files_dir / "123_tenants.yaml"
     
     config_data = [
         {"name": "Tenant A", "start_date": "2023-01-01", "end_date": "2023-12-31"},
@@ -22,7 +23,8 @@ def test_load_tenant_config_success(tmp_path: Path):
 
 def test_load_tenant_config_missing_file(tmp_path: Path, caplog):
     target_dir = tmp_path / "pdfs" / "123"
-    target_dir.mkdir(parents=True)
+    source_files_dir = target_dir / ".source_files"
+    source_files_dir.mkdir(parents=True, exist_ok=True)
     
     # Do not create 123_tenants.yaml
     with caplog.at_level(logging.INFO):
@@ -33,8 +35,9 @@ def test_load_tenant_config_missing_file(tmp_path: Path, caplog):
 
 def test_load_tenant_config_malformed_yaml(tmp_path: Path):
     target_dir = tmp_path / "pdfs" / "123"
-    target_dir.mkdir(parents=True)
-    yaml_file = target_dir / "123_tenants.yaml"
+    source_files_dir = target_dir / ".source_files"
+    source_files_dir.mkdir(parents=True, exist_ok=True)
+    yaml_file = source_files_dir / "123_tenants.yaml"
     
     # Write invalid yaml
     with open(yaml_file, "w", encoding="utf-8") as f:
@@ -45,8 +48,9 @@ def test_load_tenant_config_malformed_yaml(tmp_path: Path):
 
 def test_load_tenant_config_missing_keys(tmp_path: Path):
     target_dir = tmp_path / "pdfs" / "123"
-    target_dir.mkdir(parents=True)
-    yaml_file = target_dir / "123_tenants.yaml"
+    source_files_dir = target_dir / ".source_files"
+    source_files_dir.mkdir(parents=True, exist_ok=True)
+    yaml_file = source_files_dir / "123_tenants.yaml"
     
     config_data = [{"name": "Tenant A", "start_date": "2023-01-01"}] # missing end_date
     with open(yaml_file, "w", encoding="utf-8") as f:
@@ -57,8 +61,9 @@ def test_load_tenant_config_missing_keys(tmp_path: Path):
 
 def test_load_tenant_config_not_a_list(tmp_path: Path):
     target_dir = tmp_path / "pdfs" / "123"
-    target_dir.mkdir(parents=True)
-    yaml_file = target_dir / "123_tenants.yaml"
+    source_files_dir = target_dir / ".source_files"
+    source_files_dir.mkdir(parents=True, exist_ok=True)
+    yaml_file = source_files_dir / "123_tenants.yaml"
     
     config_data = {"tenants": "Not a list"}
     with open(yaml_file, "w", encoding="utf-8") as f:
