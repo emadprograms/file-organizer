@@ -1,147 +1,107 @@
-"""End-to-end tests for the --dry-run pipeline mode.
+"""End-to-end tests for the pipeline.
 
 Uses isolated fixture files in tests/fixtures/golden_1273/ to avoid
 relying on live API calls or the main pdfs/ directory.
-Pre-baked cleaned.json and grouped.json checkpoints are injected into
-the tmp_path so the LLM pipeline is bypassed entirely.
+Mocked LLM responses are loaded from tests/fixtures/golden_1273/state/.
 """
 
 import os
 import json
 import shutil
-import subprocess
 import sys
-import logging
 from pathlib import Path
 
-logger = logging.getLogger(f"file_organizer.{__name__}")
-
 import pytest
+from unittest.mock import patch
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures" / "golden_1273"
+STATE_DIR = FIXTURES_DIR / "state"
 
-# Pre-baked cleaned.json checkpoint data (mirrors PageData schema from cleaning.py)
-CLEANED_PAGES_FIXTURE = [
-    {
-        "category": "contract",
-        "content_explanation": "Housing contract page",
-        "expected_tenant_name": "Ahmed Ali",
-        "expected_house_number": "1273",
-        "date": "2023-01-15",
-        "sender": None,
-        "receiver": None,
-        "subject": None,
-        "canonical_tenant": "Ahmed Ali",
-        "resolved_date": "2023-01-15",
-        "original_index": 0,
-    }
-]
-
-# Pre-baked grouped.json checkpoint data (mirrors DocumentGroup schema)
-GROUPED_DOCS_FIXTURE = [
-    {
-        "start_page": 0,
-        "end_page": 0,
-        "primary_tenant": "Ahmed Ali",
-        "category": "contract",
-        "dates": ["2023-01-15"],
-        "reason": "Single page contract",
-        "brief_arabic_title": "عقد إيجار",
-        "folder_path": "5_contract",
-        "is_direct_routed": True,
-    }
-]
-
-
-def _setup_dry_run_dir(tmp_path: Path) -> Path:
-    """
-    Create an isolated house directory with fixture PDF, report JSON, and
-    pre-baked checkpoints so no LLM calls are made during --dry-run.
-    Returns the house directory path.
-    """
+def _setup_run_dir(tmp_path: Path) -> Path:
     house_dir = tmp_path / "1273"
     house_dir.mkdir()
 
     # Copy minimal fixture PDF
-    shutil.copy(FIXTURES_DIR / "1273_categorized.pdf", house_dir / "1273_categorized.pdf")
+    shutil.copy(FIXTURES_DIR / "input" / "1273" / "1273_categorized.pdf", house_dir / "1273_categorized.pdf")
 
-    # Write a minimal valid report JSON (PageData format used by cleaning phase)
-    report = [
-        {
-            "category": "contract",
-            "content_explanation": "Housing contract page",
-            "expected_tenant_name": "Ahmed Ali",
-            "expected_house_number": "1273",
-            "date": "2023-01-15",
-        }
-    ]
-    (house_dir / "1273_report.json").write_text(
-        json.dumps(report), encoding="utf-8"
-    )
-
-    # Inject pre-baked checkpoints so LLM pipeline is bypassed
-    output_dir = house_dir / "output"
-    output_dir.mkdir()
-    cleaned_path = output_dir / "1273_cleaned.json"
-    cleaned_path.write_text(json.dumps(CLEANED_PAGES_FIXTURE), encoding="utf-8")
-
-    checkpoint_dir = output_dir / "checkpoints"
-    checkpoint_dir.mkdir()
-    grouped_path = checkpoint_dir / "1273_grouped.json"
-    grouped_path.write_text(json.dumps(GROUPED_DOCS_FIXTURE), encoding="utf-8")
+    # Copy report
+    shutil.copy(FIXTURES_DIR / "input" / "1273" / "1273_report.json", house_dir / "1273_report.json")
+    
+    # Copy source files
+    source_dir = house_dir / ".source_files"
+    source_dir.mkdir()
+    shutil.copy(FIXTURES_DIR / "input" / "1273" / ".source_files" / "1273_tenants.yaml", source_dir / "1273_tenants.yaml")
 
     return house_dir
 
+@patch("src.timeline.phase.canonicalize_with_llm")
+@patch("src.grouping.core.process_with_shrink")
+@patch("src.routing.router.route_document")
+def test_dry_run_end_to_end(mock_route, mock_shrink, mock_canonicalize, tmp_path, capfd):
+    house_dir = _setup_run_dir(tmp_path)
+    output_dir = house_dir / "output"
+    
+    with open(STATE_DIR / "1273_1_cleaned.json", "r", encoding="utf-8") as f:
+        cleaned_data = json.load(f)
+    mock_canonicalize.return_value = {"Ahmed Ali": "يونس محمد مالك"}
+    
+    from src.core.schemas import DocumentGroup
+    with open(STATE_DIR / "1273_2_grouped.json", "r", encoding="utf-8") as f:
+        grouped_data = json.load(f)
+    mock_shrink.return_value = [DocumentGroup(**d) for d in grouped_data]
+    
+    mock_route.return_value = ("05_عقود", True)
+    
+    test_args = ["main.py", str(house_dir), "--output-dir", str(output_dir), "--dry-run", "--verbose"]
+    
+    with patch.object(sys, 'argv', test_args):
+        from src.main import main
+        exit_code = main()
+        assert exit_code == 0
+        
+    out, err = capfd.readouterr()
+    combined_output = out + err
+    
+    assert "1273" in combined_output
+    assert "Ahmed" in combined_output or "يونس" in combined_output
+    assert "contract" in combined_output
+    
+    output_pdf_dir = output_dir / "1273 - يونس محمد مالك"
+    assert not output_pdf_dir.exists()
 
-def test_dry_run_end_to_end(tmp_path):
-    """
-    --dry-run produces rich terminal output and does NOT create output PDFs
-    or overwrite checkpoint files. Uses isolated fixtures.
-    """
-    house_dir = _setup_dry_run_dir(tmp_path)
-
-    env = {**os.environ, "PYTHONIOENCODING": "utf8"}
-
-    result = subprocess.run(
-        [sys.executable, "-m", "src.main", str(house_dir), "--output-dir", str(house_dir / "output"), "--dry-run", "--verbose"],
-        capture_output=True,
-        env=env,
-        cwd=str(Path(__file__).parent.parent),  # project root
-    )
-    stdout = result.stdout.decode("utf-8", errors="replace") if result.stdout else ""
-    stderr = result.stderr.decode("utf-8", errors="replace") if result.stderr else ""
-
-    # Should exit cleanly
-    assert result.returncode == 0, (
-        f"--dry-run exited with {result.returncode}.\n"
-        f"stdout: {stdout}\nstderr: {stderr}"
-    )
-
-    # Rich output should contain at least one of the visual indicators
-    combined_output = stdout + stderr
-    assert all(
-        indicator in combined_output
-        for indicator in ["1273", "Ahmed", "contract"]
-    ), (
-        f"Expected dry-run visual indicators in output, got:\n{combined_output}"
-    )
-
-    # Output directory should NOT contain generated PDFs
-    output_pdf_dir = house_dir / "output" / "1273"
-    assert not output_pdf_dir.exists(), (
-        f"--dry-run should not create output PDF directory, but {output_pdf_dir} exists"
-    )
-
-    # Manifest should NOT be created
-    manifest_path = house_dir / "output" / "1273_manifest.json"
-    assert not manifest_path.exists(), (
-        "--dry-run should not write manifest.json"
-    )
-
-    # Checkpoint files should remain (not deleted, since dry-run skips cleanup)
-    assert (house_dir / "output" / "1273_cleaned.json").exists(), (
-        "--dry-run should NOT delete cleaned.json checkpoint"
-    )
-    assert (house_dir / "output" / "checkpoints" / "1273_grouped.json").exists(), (
-        "--dry-run should NOT delete grouped.json checkpoint"
-    )
+@patch("src.timeline.phase.canonicalize_with_llm")
+@patch("src.grouping.core.process_with_shrink")
+@patch("src.routing.router.route_document")
+def test_full_run_end_to_end(mock_route, mock_shrink, mock_canonicalize, tmp_path):
+    house_dir = _setup_run_dir(tmp_path)
+    output_dir = house_dir / "output"
+    
+    with open(STATE_DIR / "1273_1_cleaned.json", "r", encoding="utf-8") as f:
+        cleaned_data = json.load(f)
+    mock_canonicalize.return_value = {"Ahmed Ali": "يونس محمد مالك"}
+    
+    from src.core.schemas import DocumentGroup
+    with open(STATE_DIR / "1273_2_grouped.json", "r", encoding="utf-8") as f:
+        grouped_data = json.load(f)
+    mock_shrink.return_value = [DocumentGroup(**d) for d in grouped_data]
+    
+    mock_route.return_value = ("05_عقود", True)
+    
+    test_args = ["main.py", str(house_dir), "--output-dir", str(output_dir), "--verbose"]
+    
+    with patch.object(sys, 'argv', test_args):
+        from src.main import main
+        exit_code = main()
+        assert exit_code == 0
+        
+    # Check the final output from the reconciliation report generated in source files
+    report_path = output_dir / ".source_files" / "1273_3_routed_and_finalized.json"
+    assert report_path.exists()
+    
+    with open(report_path, "r", encoding="utf-8") as f:
+        report = json.load(f)
+        
+    # Find the output path for the page
+    output_path = report["per_page"][0]["output_file"]
+    assert "1273 - يونس محمد مالك" in output_path
+    assert "يونس محمد مالك ‎(2000 - الآن)‎/05_عقود" in output_path

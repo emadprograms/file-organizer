@@ -1,0 +1,19 @@
+{
+  "summary": {
+    "house_id": "1273",
+    "total_input_pages": 1,
+    "total_output_pages": 1,
+    "output_file_count": 1,
+    "unaccounted_pages": []
+  },
+  "per_page": [
+    {
+      "page_index": 0,
+      "tenant": "يونس محمد مالك",
+      "date": "2023-01-15",
+      "output_file": "1273 - يونس محمد مالك/يونس محمد مالك ‎(2000 - الآن)‎/05_عقود/2023-01-15.pdf",
+      "page_in_output": 1,
+      "target_folder": "يونس محمد مالك ‎(2000 - الآن)‎/05_عقود"
+    }
+  ]
+}
