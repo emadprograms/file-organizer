@@ -4,6 +4,17 @@
 
 A technical debt cleanup and refactoring effort for the file organizer project. The goal is to remove unused legacy code by tracing imports from the main entry point, break down bloated functions and files into smaller, more focused modules to improve maintainability, and implement logic-based modular refactoring (v2.0) utilizing YAML configuration instead of legacy anchor-based logic.
 
+## Current Milestone: v3.0 Unified File-System UI & Append Mode
+
+**Goal:** Integrate categorization logic into the main repository, enforce strict maintainability (types/docstrings), and introduce a "File-System UI" (FS-UI) allowing users to file documents purely by renaming files in an Inbox folder.
+
+**Target features:**
+- Codebase maintainability sweep (types, docstrings)
+- System unification (port file-categorizer LLM logic)
+- Configuration & explicit CLI modes (Create vs Append)
+- Space-separated syntax parser for filenames
+- File-System UI orchestration (rename loop)
+
 ## Core Value
 
 Keep the codebase lean and maintainable without altering the existing correct functionality.
@@ -30,7 +41,11 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 
 ### Active
 
-(Planning next milestone)
+- Add type hinting and docstrings across all v2.0 modules (MAINT-01)
+- Port file-categorizer OCR and Gemini 3.1 FL logic to main repository (CAT-01)
+- Implement `config.yaml` for inbox/area mapping and explicit CLI modes (CONF-01)
+- Build space-separated syntax parser for FS-UI (PARS-01)
+- Implement FS-UI Append loop (`_Proposed` -> ` OK` -> Finalize) (FSUI-01)
 
 ### Out of Scope
 
@@ -75,4 +90,4 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-07-17 after v2.0 milestone*
+*Last updated: 2026-07-17 starting v3.0 milestone*
