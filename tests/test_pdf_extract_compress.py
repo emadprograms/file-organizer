@@ -74,3 +74,62 @@ def test_extract_pdf_segment_invalid_range(tmp_path):
     # Based on current implementation, it might just fail inside PyMuPDF
     with pytest.raises(Exception):
         extract_pdf_segment(str(source_pdf), 1, 0, str(out))
+
+def test_compress_pdf_with_image(tmp_path):
+    """Verify compress_pdf correctly handles downscaling and compressing embedded images."""
+    import io
+    try:
+        from PIL import Image
+    except ImportError:
+        pytest.skip("Pillow required for this test")
+        
+    input_pdf = tmp_path / "input_img.pdf"
+    output_pdf = tmp_path / "output_img.pdf"
+    
+    doc = fitz.open()
+    page = doc.new_page()
+    
+    # Create a large image to embed
+    # 2000x2000 RGB image should exceed the 1500 max_dim and trigger shrinking
+    img = Image.new('RGB', (2000, 2000), color='red')
+    buf = io.BytesIO()
+    img.save(buf, format='JPEG')
+    image_bytes = buf.getvalue()
+    
+    page.insert_image(page.rect, stream=image_bytes)
+    
+    doc.save(str(input_pdf))
+    doc.close()
+    
+    original_size = os.path.getsize(input_pdf)
+    
+    compress_pdf(str(input_pdf), str(output_pdf))
+    
+    assert os.path.exists(output_pdf)
+    new_size = os.path.getsize(output_pdf)
+    
+    # The new size should be smaller due to max_dim shrinking and JPEG compression
+    assert new_size > 0
+    assert new_size < original_size
+
+def test_compress_pdf_exception_handling(tmp_path, monkeypatch):
+    """Verify compress_pdf catches exceptions and falls back to simple copy."""
+    input_pdf = tmp_path / "input.pdf"
+    output_pdf = tmp_path / "output.pdf"
+    
+    doc = fitz.open()
+    doc.new_page()
+    doc.save(str(input_pdf))
+    doc.close()
+    
+    # Force fitz.open to fail
+    def mock_fitz_open(*args, **kwargs):
+        raise RuntimeError("Mocked PDF opening failure")
+        
+    monkeypatch.setattr(fitz, "open", mock_fitz_open)
+    
+    compress_pdf(str(input_pdf), str(output_pdf))
+    
+    # It should fall back to just copying the file
+    assert os.path.exists(output_pdf)
+    assert os.path.getsize(output_pdf) == os.path.getsize(input_pdf)
