@@ -8,7 +8,7 @@ File Organizer is a post-processor utility that organizes categorized PDFs into 
 1. Clone the repository:
 ```bash
 git clone <repository-url>
-cd file-organizer
+cd <repository-name>
 ```
 
 2. Set up a Python virtual environment:

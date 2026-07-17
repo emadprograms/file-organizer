@@ -43,3 +43,5 @@ node_modules/
 sample-config.yaml
 Screenshot 2026-06-23 113046.png
 
+# GSD planning tmp
+.planning/tmp/
