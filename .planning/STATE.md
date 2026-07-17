@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Logic-Based Modular Refactoring
-current_phase: 19
+current_phase: 19.1 — fix yaml integration architecture
 current_phase_name: end-to-end-testing-and-verification
-status: in_progress
+status: planning
 stopped_at: Phase 19 replanning — test suite overhaul
-last_updated: "2026-07-17T07:06:00.000Z"
+last_updated: "2026-07-17T07:27:55.263Z"
 last_activity: 2026-07-17
-last_activity_desc: Phase 19 reopened for test suite overhaul (TEST-01 through TEST-06)
+last_activity_desc: Phase 19 complete, transitioned to Phase 19.1
 progress:
   total_phases: 17
   completed_phases: 12
@@ -19,8 +19,8 @@ progress:
 
 # Project State
 
-**Current Phase:** 19.1.1.1
-**Status:** Milestone complete
+**Current Phase:** 19.1 — fix yaml integration architecture
+**Status:** Ready to plan
 
 ## Phase Progress
 
@@ -49,9 +49,9 @@ progress:
 ## Current Position
 
 Phase: 19 (end-to-end-testing-and-verification) — REPLANNING
-Plan: Planner running
+Plan: Not started
 Status: Phase 19 reopened for test suite overhaul (TEST-01 through TEST-06)
-Last activity: 2026-07-17 — Phase 19 test suite overhaul discussion completed, replanning in progress
+Last activity: 2026-07-17 — Phase 19 complete, transitioned to Phase 19.1
 
 ## Operator Next Steps
 
@@ -67,6 +67,7 @@ Last activity: 2026-07-17 — Phase 19 test suite overhaul discussion completed,
 - Phase 19 reopened 2026-07-17: Test suite overhaul (TEST-01–TEST-06) — naming convention enforcement, golden_1273 fixture restructure, .source_files placement bug, LLM mocking, E2E routing destination assertions
 
 ### Key Decisions (Phase 19 Replan)
+
 - Test files kept flat in `tests/` with strict `test_[module].py` naming
 - `golden_1273` fixture restructured with `input/1273/.source_files/` and `expected_output/` subfolders
 - LLM responses captured once from a real run, saved in fixtures, and used as deterministic mocks
