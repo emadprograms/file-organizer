@@ -4,11 +4,8 @@ import yaml
 from pathlib import Path
 from src.core.models import PageData, TenantTimeline
 from src.timeline.dates import parse_flexible_date
-from src.tenant_config.tenants import (
-    cluster_names_fuzzily, 
-    canonicalize_with_llm, 
-    build_tenant_timelines
-)
+from src.grouping.name_matcher import cluster_names_fuzzily, canonicalize_with_llm
+from src.timeline.timeline_builder import build_tenant_timelines
 from src.llm.llm import LLMClient
 
 logger = logging.getLogger(f"file_organizer.{__name__}")

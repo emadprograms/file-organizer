@@ -1,6 +1,6 @@
 import pytest
 from src.core.models import PageData, TenantTimeline
-from src.tenant_config.tenants import build_tenant_timelines
+from src.timeline.timeline_builder import build_tenant_timelines
 from src.timeline.phase import assign_pages_to_tenants
 
 def test_anchor_logic_bypass():

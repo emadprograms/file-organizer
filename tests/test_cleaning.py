@@ -8,12 +8,12 @@ logger = logging.getLogger(f"file_organizer.{__name__}")
 from pathlib import Path
 from src.core.models import PageData, TenantTimeline
 from src.timeline.dates import parse_flexible_date
-from src.tenant_config.tenants import (
+from src.grouping.name_matcher import (
     normalize_arabic_text,
     cluster_names_fuzzily,
     canonicalize_with_llm,
-    build_tenant_timelines
 )
+from src.timeline.timeline_builder import build_tenant_timelines
 from src.timeline.phase import (
     load_and_parse_json,
     infer_missing_dates,
