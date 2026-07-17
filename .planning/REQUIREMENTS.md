@@ -10,7 +10,12 @@ Refactor the `src/` directory into a clean, logic-based modular monolith. The ex
 - **Test Coverage**: All pipeline behaviors — including YAML loading, routing, dry-run, and fallback — must be covered by structured `test_[module].py` tests using function-level LLM mocking with saved responses.
 
 ## Epic: Test Suite Quality (TEST)
-- [x] **TEST-01**: All test files in `tests/` must follow the strict `test_[module].py` naming convention. Files like `uat_08_contracts.py`, `verify_dual_logging.py`, `verify_phase08_grouping.py` must be renamed or incorporated into proper test modules.
+- [ ] **TEST-01**: All test files in `tests/` must follow the strict `test_[module].py` naming convention AND have names that clearly describe what they test. **Not yet done.** Current violations:
+  - `uat_08_*.py` (6 files) — not prefixed with `test_`, not picked up by pytest, completely opaque (e.g. `uat_08_precision_window.py`)
+  - `verify_*.py` (12 files) — not prefixed with `test_`, purpose is unclear (e.g. `verify_uat_11_1.py` tells you nothing)
+  - `test_phase12_finalization.py`, `test_phase7_features.py`, `test_phase7_uat.py`, `test_uat_09_01.py` etc. — phase numbers in test names are meaningless to anyone reading the suite cold
+  - `create_continuity_fixture.py` — a utility script living in the test folder with no clear identity
+  - All files must be renamed to `test_[what_it_actually_tests].py` (e.g. `verify_uat_11_1.py` → `test_routing_conditional_llm.py`)
 - [ ] **TEST-02**: The `tests/fixtures/golden_1273/` fixture must have a clear `input/` folder (containing the `1273` house directory with `.source_files/` inside it) and an `expected_output/` folder (the exact expected final directory and file structure).
 - [ ] **TEST-03**: `.source_files/` must be placed exactly inside the target house directory (`golden_1273/input/1273/.source_files/`) so the YAML loader path resolves correctly — matching production behavior.
 - [ ] **TEST-04**: Intermediate pipeline state files (`1273_cleaned.json`, `1273_grouped.json`, `1273_3_routed_and_finalized.json`) must exist in the golden fixture so dry-run E2E tests can load pre-computed state without calling the LLM.
