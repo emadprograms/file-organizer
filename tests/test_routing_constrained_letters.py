@@ -21,7 +21,7 @@ def test_constrained_routing_letters():
     )
     
     group = DocumentGroup(
-        category="NOTIFICATIONS",
+        category="LETTERS",
         brief_arabic_title="Warning Notice",
         reason="Warning for unpaid bills",
         start_page=1,

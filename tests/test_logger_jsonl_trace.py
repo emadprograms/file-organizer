@@ -25,7 +25,7 @@ def test_jsonl_trace():
     ]
 
     for trace in traces:
-        _write_jsonl_trace(run_id, trace["type"], trace["payload"])
+        _write_jsonl_trace(trace["type"], trace["payload"])
 
     trace_file_path = os.path.join(run_dir, "traces.jsonl")
     
@@ -47,15 +47,23 @@ def test_jsonl_trace():
     # Clear the run directory cache just for this test if we could, 
     # but instead we just use a new ID that isn't in _run_directories.
     
-    _write_jsonl_trace(run_id_fallback, "fallback_test", {"msg": "working"})
+    # We must force the fallback by clearing handlers and LogContext
+    import logging
+    from src.utils.logger import LogContext
+    trace_logger = logging.getLogger("traces")
+    trace_logger.handlers.clear()
+    LogContext._instance = None
+    
+    _write_jsonl_trace("fallback_test", {"msg": "working"})
     
     # Find the directory created for the fallback
     found_dir = None
     if os.path.exists("logs"):
-        for d in os.listdir("logs"):
-            if "test_fallback_trace" in d:
-                found_dir = os.path.join("logs", d)
-                break
+        fallback_dirs = [d for d in os.listdir("logs") if d.startswith("fallback_")]
+        if fallback_dirs:
+            # Sort to get the latest
+            fallback_dirs.sort(reverse=True)
+            found_dir = os.path.join("logs", fallback_dirs[0])
     
     assert found_dir is not None, "Fallback directory should have been created"
     assert os.path.exists(os.path.join(found_dir, "traces.jsonl")), "Fallback traces.jsonl should exist"

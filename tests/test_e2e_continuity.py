@@ -34,19 +34,35 @@ def test_e2e_continuity():
     
     # Mock LLM Client
     mock_llm_client = MagicMock()
-    # Mock the return values for _process_chunk if necessary or let process_with_shrink run.
-    # Wait, process_with_shrink uses the LLM if CHUNK_SIZES requires it. For letters, CHUNK_SIZES is [10].
-    # So it calls LLM once for all pages. We need to mock generate_content to return a GroupingResponse.
     from src.core.schemas import GroupingResponse, GroupEntry
-    
-    mock_response = GroupingResponse(
-        groups=[
-            GroupEntry(start_page=1, end_page=3, primary_tenant="Tenant A", dates=[], reason="Story 1"),
-            GroupEntry(start_page=4, end_page=6, primary_tenant="Tenant A", dates=[], reason="Story 2"),
-            GroupEntry(start_page=8, end_page=8, primary_tenant="Tenant B", dates=[], reason="Hard Reset")
-        ]
-    )
-    mock_llm_client.generate_content.return_value = mock_response
+
+    def mock_generate_content(*args, **kwargs):
+        prompt = kwargs.get('contents', [])[0]
+        import re
+        match = re.search(r"Chunk range: Page (\d+) to Page (\d+)", prompt)
+        if match:
+            start_idx = int(match.group(1))
+            end_idx = int(match.group(2))
+            # Just create a single group covering the whole chunk for simplicity,
+            # or split based on actual logic. We want Story 1 (pages 1-3), Story 2 (4-6), Hard Reset (8).
+            # The actual indexes in `pages` array: 
+            # Original indexes: [1, 2, 3, 4, 5, 6, 8]
+            # Array indexes:     0, 1, 2, 3, 4, 5, 6
+            # Story 1: array idx 0-2 (orig 1-3)
+            # Story 2: array idx 3-5 (orig 4-6)
+            # Hard Reset: array idx 6 (orig 8)
+            groups = []
+            if start_idx <= 2:
+                groups.append(GroupEntry(start_page=max(start_idx, 0), end_page=min(end_idx, 2), primary_tenant="Tenant A", dates=[], reason="Story 1", brief_arabic_title="Test"))
+            if end_idx >= 3 and start_idx <= 5:
+                groups.append(GroupEntry(start_page=max(start_idx, 3), end_page=min(end_idx, 5), primary_tenant="Tenant A", dates=[], reason="Story 2", brief_arabic_title="Test"))
+            if end_idx >= 6:
+                groups.append(GroupEntry(start_page=max(start_idx, 6), end_page=min(end_idx, 6), primary_tenant="Tenant B", dates=[], reason="Hard Reset", brief_arabic_title="Test"))
+            
+            return GroupingResponse(groups=groups)
+        return GroupingResponse(groups=[GroupEntry(start_page=0, end_page=len(pages)-1, primary_tenant="Tenant A", dates=[], reason="Fallback", brief_arabic_title="Test")])
+
+    mock_llm_client.generate_content.side_effect = mock_generate_content
 
     groups = process_with_shrink(pages, mock_llm_client)
 

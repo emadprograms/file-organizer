@@ -39,10 +39,10 @@ def run_routing_scenario(responses, expected_folder=None, expect_error=False):
             pytest.fail(f"Unexpected RoutingValidationError: {e}")
 
 def test_routing_hallucination_clean_route():
-    run_routing_scenario(["8_complaints_and_violations"], expected_folder="8_complaints_and_violations")
+    run_routing_scenario(["إشعارات"], expected_folder="إشعارات")
 
 def test_routing_hallucination_recoverable():
-    run_routing_scenario(["hallucinated_folder_123", "8_complaints_and_violations"], expected_folder="8_complaints_and_violations")
+    run_routing_scenario(["hallucinated_folder_123", "إشعارات"], expected_folder="إشعارات")
 
 def test_routing_hallucination_terminal():
     run_routing_scenario(["bad_1", "bad_2", "bad_3"], expect_error=True)

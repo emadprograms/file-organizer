@@ -1,7 +1,7 @@
 import os
 import shutil
 import json
-from src.utils.logger import setup_logging, log_llm_api_call, log_decision_trace
+from src.utils.logger import setup_logging, log_decision_trace, _write_jsonl_trace
 
 def test_trace_refactor():
     run_id = "test_trace_refactor"
@@ -14,14 +14,14 @@ def test_trace_refactor():
 
     run_dir = setup_logging(run_id=run_id)
     
-    # Test LLM API call logging
+    # Test LLM API call logging via _write_jsonl_trace
     req = {"prompt": "hello"}
     res = {"text": "hi"}
-    log_llm_api_call(req, res, run_id)
+    _write_jsonl_trace("llm_api", {"request": req, "response": res})
     
     # Test decision trace logging
     payload = {"decision": "route_to_pdf", "score": 0.8}
-    log_decision_trace("routing", payload, run_id)
+    log_decision_trace("routing", payload)
     
     trace_file_path = os.path.join(run_dir, "traces.jsonl")
     

@@ -18,8 +18,15 @@ def run_organizer(target_dir, verbose_flag):
     else:
         cmd.append("--no-verbose")
         
-    subprocess.run(cmd, capture_output=True, text=True)
+    result = subprocess.run(cmd, capture_output=True, text=True)
     
+    import re
+    # The log message looks like: "... - INFO - Logs will be written to: /path/to/logs/2026-..."
+    match = re.search(r"Logs will be written to:\s*([^\n]+)", result.stderr or result.stdout)
+    if match:
+        return Path(match.group(1).strip())
+    
+    # Fallback just in case
     logs_base = Path("logs")
     log_dirs = sorted(
         [d for d in logs_base.iterdir() if d.is_dir() and d.name.startswith("20")], 
@@ -34,7 +41,8 @@ def test_logging_e2e_verbose_flag_false(tmp_path):
     """
     target_dir = tmp_path / "target_false"
     target_dir.mkdir()
-    (target_dir / "test.pdf").write_text("dummy content")
+    (target_dir / "test_categorized.pdf").write_text("dummy content")
+    (target_dir / "test_report.json").write_text("[]")
 
     latest_log_dir = run_organizer(target_dir, verbose_flag=False)
     assert latest_log_dir is not None, "Log directory was not created"
@@ -71,7 +79,8 @@ def test_logging_e2e_verbose_flag_true(tmp_path):
     """
     target_dir = tmp_path / "target_true"
     target_dir.mkdir()
-    (target_dir / "test.pdf").write_text("dummy content")
+    (target_dir / "test_categorized.pdf").write_text("dummy content")
+    (target_dir / "test_report.json").write_text("[]")
 
     latest_log_dir = run_organizer(target_dir, verbose_flag=True)
     assert latest_log_dir is not None, "Log directory was not created"

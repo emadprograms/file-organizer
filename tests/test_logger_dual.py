@@ -19,7 +19,7 @@ def test_dual_logging():
 
     run_dir = setup_logging(run_id=run_id, verbose=False)
     
-    logger = logging.getLogger("test_logger")
+    logger = logging.getLogger("file_organizer.test_logger")
     logger.debug("This is a DEBUG message")
     logger.info("This is an INFO message")
     logger.warning("This is a WARNING message")

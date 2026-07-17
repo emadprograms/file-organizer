@@ -68,7 +68,7 @@ class TestPhase08Grouping(unittest.TestCase):
         
         # For "others", CHUNK_SIZES = [2]
         # First call should be current_page_index=0, end_index=2
-        mock_process_chunk.assert_any_call(pages, 0, 2, llm_client, OTHER_PROMPT, "content_explanation")
+        mock_process_chunk.assert_any_call(pages, 0, 2, llm_client, OTHER_PROMPT, "content_explanation", model=None)
 
     @patch('src.grouping.core._process_chunk')
     def test_dynamic_routing_letters(self, mock_process_chunk):
@@ -83,8 +83,9 @@ class TestPhase08Grouping(unittest.TestCase):
         llm_client = MagicMock()
         process_with_shrink(pages, llm_client)
         
-        # For "letters", prompt=LETTER_PROMPT, content_field="subject"
-        mock_process_chunk.assert_any_call(pages, 0, 10 if len(pages) > 10 else len(pages), llm_client, LETTER_PROMPT, "subject")
+        # For "letters", CHUNK_SIZES = [4, 3, 2]
+        # End index should be min(4, len(pages)=2) = 2
+        mock_process_chunk.assert_any_call(pages, 0, 2, llm_client, LETTER_PROMPT, "subject", model=None)
 
 if __name__ == "__main__":
     unittest.main()

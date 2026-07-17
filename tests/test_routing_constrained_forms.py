@@ -21,7 +21,7 @@ def test_constrained_routing_forms():
     )
     
     group = DocumentGroup(
-        category="MAINTENANCE",
+        category="FORMS",
         brief_arabic_title="Maintenance Request",
         reason="Request for fixing a leak",
         start_page=1,
@@ -77,7 +77,7 @@ def test_constrained_routing_validation_failure():
     ]
     
     group = DocumentGroup(
-        category="MAINTENANCE",
+        category="FORMS",
         brief_arabic_title="Maintenance Request",
         reason="Request for fixing a leak",
         start_page=1,

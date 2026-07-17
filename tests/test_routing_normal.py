@@ -25,26 +25,21 @@ def test_uat_09_01_normal_routing():
         start_page=0, end_page=1, primary_tenant="Test",
         category="letters", dates=["2023-01-01"]
     )
-    llm = MockLLMClient([("8_complaints_and_violations", "reason")])
+    llm = MockLLMClient([("إشعارات", "reason")])
     folder, direct = route_document(group, llm)
-    assert folder == "8_complaints_and_violations"
+    assert folder == "إشعارات"
     assert direct is False
     print("UAT-09-01 PASS")
 
 def test_uat_09_09_explicit_others():
-    print("\nTesting UAT-09-09: Explicit '13_others'")
-    # Ensure 'letters' allows '13_others'
-    from src.routing.config import CATEGORY_TO_FOLDERS
-    if "13_others" not in CATEGORY_TO_FOLDERS.get("letters", []):
-        CATEGORY_TO_FOLDERS["letters"].append("13_others")
-    
+    print("\nTesting UAT-09-09: Explicit 'others'")
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
         category="letters", dates=["2023-01-01"]
     )
-    llm = MockLLMClient([("13_others", "This clearly belongs in others")])
+    llm = MockLLMClient([("رسائل متنوعة", "This clearly belongs in others")])
     folder, direct = route_document(group, llm)
-    assert folder == "13_others"
+    assert folder == "رسائل متنوعة"
     assert direct is False
     print("UAT-09-09 PASS")
 
