@@ -45,3 +45,6 @@ Screenshot 2026-06-23 113046.png
 
 # GSD planning tmp
 .planning/tmp/
+agent_skills.txt
+.gitignore
+init_context.json
