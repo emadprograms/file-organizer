@@ -1,3 +1,4 @@
+from typing import Any
 """Tests for the routing engine including constrained routing and double-check logic."""
 
 import pytest
@@ -8,12 +9,24 @@ from unittest.mock import patch, MagicMock
 from pydantic import ValidationError
 
 class MockLLMClient:
-    def __init__(self, responses=None):
+    def __init__(self, responses=None) -> Any:
+        """
+        Provide the   init   fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         self.responses = responses or []
         self.call_count = 0
         self.calls = []
         
-    def generate_content(self, contents, model=None, response_schema=None, config=None, **kwargs):
+    def generate_content(self, contents, model=None, response_schema=None, config=None, **kwargs) -> Any:
+        """
+        Provide the generate content fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         self.calls.append({"contents": contents, "model": model})
         if self.call_count < len(self.responses):
             resp = self.responses[self.call_count]
@@ -30,7 +43,7 @@ class MockLLMClient:
             return resp
         raise Exception("No more mock responses")
 
-def test_constrained_routing_success():
+def test_constrained_routing_success() -> None:
     """Test that a category in FORM_CATEGORIES is constrained to FORM_FOLDERS."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
@@ -45,7 +58,7 @@ def test_constrained_routing_success():
         assert direct is False
         assert llm.call_count == 1
 
-def test_constrained_routing_invalid_retry():
+def test_constrained_routing_invalid_retry() -> None:
     """Test that LLM returning a folder OUTSIDE constrained list triggers retry."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
@@ -58,7 +71,7 @@ def test_constrained_routing_invalid_retry():
         assert folder == "بيانات أساسية"
         assert llm.call_count == 2
 
-def test_constrained_routing_escape_hatch():
+def test_constrained_routing_escape_hatch() -> None:
     """Test that 'None of the above' triggers the double-check flow."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
@@ -76,7 +89,7 @@ def test_constrained_routing_escape_hatch():
         assert folder == "صيانة"
         assert llm.call_count == 3
 
-def test_others_flow_immediate_misc():
+def test_others_flow_immediate_misc() -> None:
     """Test 'OTHER_LETTERS' category where LLM immediately picks 'رسائل متنوعة'."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
@@ -88,7 +101,7 @@ def test_others_flow_immediate_misc():
     assert folder == "رسائل متنوعة"
     assert llm.call_count == 1
 
-def test_others_flow_confirm_success():
+def test_others_flow_confirm_success() -> None:
     """Test 'OTHER_LETTERS' where LLM picks a folder and confirms it."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
@@ -100,7 +113,7 @@ def test_others_flow_confirm_success():
     assert folder == "صيانة"
     assert llm.call_count == 2
 
-def test_others_flow_confirm_change_mind():
+def test_others_flow_confirm_change_mind() -> None:
     """Test 'OTHER_LETTERS' where LLM picks a folder but changes mind to 'رسائل متنوعة'."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
@@ -112,7 +125,7 @@ def test_others_flow_confirm_change_mind():
     assert folder == "رسائل متنوعة"
     assert llm.call_count == 2
 
-def test_others_flow_hallucination_fallback():
+def test_others_flow_hallucination_fallback() -> None:
     """Test 'OTHER_LETTERS' where LLM returns an invalid folder during confirmation."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
@@ -124,7 +137,7 @@ def test_others_flow_hallucination_fallback():
     assert folder == "رسائل متنوعة"
     assert llm.call_count == 2
 
-def test_others_flow_llm_failure_fallback():
+def test_others_flow_llm_failure_fallback() -> None:
     """Test that double_check_others falls back to 'رسائل متنوعة' on LLM exception."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
@@ -135,7 +148,7 @@ def test_others_flow_llm_failure_fallback():
     assert folder == "رسائل متنوعة"
     assert llm.call_count == 1
 
-def test_constrained_routing_max_retries():
+def test_constrained_routing_max_retries() -> None:
     """Test that constrained routing fails after 3 unsuccessful attempts."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
@@ -148,7 +161,7 @@ def test_constrained_routing_max_retries():
             route_document(group, llm)
         assert llm.call_count == 3
 
-def test_routing_model_propagation():
+def test_routing_model_propagation() -> None:
     """Test that the 'model' parameter is passed to the LLM client in route_document."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
@@ -160,7 +173,7 @@ def test_routing_model_propagation():
         route_document(group, llm, model=test_model)
         assert llm.calls[0]["model"] == test_model
 
-def test_double_check_model_propagation():
+def test_double_check_model_propagation() -> None:
     """Test that the 'model' parameter is passed to the LLM client in double_check_others."""
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",

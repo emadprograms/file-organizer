@@ -1,14 +1,27 @@
+from typing import Any
 import pytest
 from src.routing.router import route_document, RoutingValidationError
 from src.core.schemas import DocumentGroup
 from unittest.mock import MagicMock
 
 class MockLLMClient:
-    def __init__(self, responses=None):
+    def __init__(self, responses=None) -> Any:
+        """
+        Provide the   init   fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         self.responses = responses or []
         self.call_count = 0
         
-    def generate_content(self, contents, model=None, response_schema=None, config=None, **kwargs):
+    def generate_content(self, contents, model=None, response_schema=None, config=None, **kwargs) -> Any:
+        """
+        Provide the generate content fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         if self.call_count < len(self.responses):
             resp = self.responses[self.call_count]
             self.call_count += 1
@@ -19,7 +32,13 @@ class MockLLMClient:
             return response_schema.model_validate(data, context=kwargs.get('validation_context', {}))
         raise Exception("No more mock responses")
 
-def test_uat_09_01_normal_routing():
+def test_uat_09_01_normal_routing() -> None:
+    """
+    Test uat 09 01 normal routing.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     print("\nTesting UAT-09-01: Normal Routing")
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",
@@ -31,7 +50,13 @@ def test_uat_09_01_normal_routing():
     assert direct is False
     print("UAT-09-01 PASS")
 
-def test_uat_09_09_explicit_others():
+def test_uat_09_09_explicit_others() -> None:
+    """
+    Test uat 09 09 explicit others.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     print("\nTesting UAT-09-09: Explicit 'others'")
     group = DocumentGroup(
         start_page=0, end_page=1, primary_tenant="Test",

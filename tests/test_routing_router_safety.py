@@ -1,10 +1,11 @@
+from typing import Any
 import pytest
 from unittest.mock import MagicMock, patch
 from src.routing.router import route_document, RoutingValidationError
 from src.llm.llm import LLMFailureError
 from src.core.schemas import DocumentGroup
 
-def test_unmapped_category_raises_error():
+def test_unmapped_category_raises_error() -> None:
     """Test Case 1: Provide a category with no mapping in CATEGORY_TO_FOLDERS. 
     Verify RoutingValidationError is raised instead of returning '13_others'."""
     
@@ -27,7 +28,7 @@ def test_unmapped_category_raises_error():
         assert "has no mapping" in str(excinfo.value)
 
 @patch('src.routing.router.SINGLE_MATCH', set())
-def test_llm_exhaustion_raises_error():
+def test_llm_exhaustion_raises_error() -> None:
     """Test Case 2: Mock LLMClient to raise LLMFailureError. 
     Verify that the error propagates and halts the router."""
 
@@ -47,7 +48,7 @@ def test_llm_exhaustion_raises_error():
         route_document(group, mock_llm)
 
 @patch('src.routing.router.SINGLE_MATCH', set())
-def test_validation_failure_raises_error():
+def test_validation_failure_raises_error() -> None:
     """Test Case 3: Mock LLMClient to return an invalid folder. 
     Verify that after 3 attempts, RoutingValidationError is raised."""
 
@@ -77,7 +78,7 @@ def test_validation_failure_raises_error():
         assert "Failed to route document to valid folder after 3 attempts" in str(excinfo.value)
 
 @patch('src.routing.router.SINGLE_MATCH', set())
-def test_lockout_removal_verification():
+def test_lockout_removal_verification() -> None:
     """Test Case 4: Verify that multiple sequential failures do not trigger a 'lockout' or skip routing.
     This test ensures that the logic for consecutive_routing_failures is gone.
     """

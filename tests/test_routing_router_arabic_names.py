@@ -1,15 +1,28 @@
+from typing import Any
 import pytest
 import re
 from src.routing.config import FOLDER_ROUTING, FORM_FOLDERS, LETTER_FOLDERS
 
-def is_arabic(text):
+def is_arabic(text) -> Any:
+    """
+    Provide the is arabic fixture/mock.
+
+    Returns:
+    The appropriate fixture or mock value.
+    """
     # Regex to check if a string contains at least one Arabic character
     # and no English alphabet letters.
     if re.search(r'[a-zA-Z]', text):
         return False
     return True
 
-def test_system_wide_arabic_names():
+def test_system_wide_arabic_names() -> None:
+    """
+    Test system wide arabic names.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     # 1. Check FOLDER_ROUTING keys
     for folder in FOLDER_ROUTING.keys():
         assert is_arabic(folder), f"Folder name '{folder}' is not strictly Arabic."

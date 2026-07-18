@@ -1,9 +1,10 @@
+from typing import Any
 import pytest
 import os
 import json
 from src.routing.state import RoutingState, RoutingStateManager
 
-def test_routing_state_manager_save_load(tmp_path):
+def test_routing_state_manager_save_load(tmp_path) -> None:
     """Test that RoutingState is correctly saved and loaded."""
     state_file = str(tmp_path / "routing_state.json")
     manager = RoutingStateManager(state_file)
@@ -15,7 +16,7 @@ def test_routing_state_manager_save_load(tmp_path):
     assert loaded_state.results == {1: "f1", 2: "f2", 3: "f3"}
     assert loaded_state.grouping_checksum == "abc-123"
 
-def test_routing_state_manager_atomic_backup(tmp_path):
+def test_routing_state_manager_atomic_backup(tmp_path) -> None:
     """Test that a backup is created and used if the main file is corrupted."""
     state_file = str(tmp_path / "routing_state.json")
     manager = RoutingStateManager(state_file)
@@ -43,7 +44,7 @@ def test_routing_state_manager_atomic_backup(tmp_path):
     assert loaded_state.results == {1: "f1"}
     assert loaded_state.grouping_checksum == "sum1"
 
-def test_routing_state_manager_default_state(tmp_path):
+def test_routing_state_manager_default_state(tmp_path) -> None:
     """Test that load_state returns a default state if no files exist."""
     state_file = str(tmp_path / "non_existent.json")
     manager = RoutingStateManager(state_file)

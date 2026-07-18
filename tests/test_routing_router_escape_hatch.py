@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 from unittest.mock import MagicMock, patch
 from src.core.schemas import DocumentGroup
@@ -9,7 +10,13 @@ class MockRoutingResponse(BaseModel):
     selected_folder: str
     reason: str
 
-def test_escape_hatch_none_of_the_above():
+def test_escape_hatch_none_of_the_above() -> None:
+    """
+    Test escape hatch none of the above.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     # Setup Mock LLM
     mock_llm = MagicMock(spec=LLMClient)
     

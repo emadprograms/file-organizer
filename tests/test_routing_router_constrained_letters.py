@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 from unittest.mock import MagicMock, patch
 from src.core.schemas import DocumentGroup
@@ -9,7 +10,13 @@ class MockRoutingResponse(BaseModel):
     selected_folder: str
     reason: str
 
-def test_constrained_routing_letters():
+def test_constrained_routing_letters() -> None:
+    """
+    Test constrained routing letters.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     # Setup Mock LLM
     mock_llm = MagicMock(spec=LLMClient)
     

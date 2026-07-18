@@ -1,3 +1,4 @@
+from typing import Any
 import unittest
 from unittest.mock import MagicMock
 from pydantic import ValidationError
@@ -14,11 +15,23 @@ from src.routing.config import (
 )
 
 class MockLLMClient:
-    def __init__(self, response_value=None):
+    def __init__(self, response_value=None) -> Any:
+        """
+        Provide the   init   fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         self.response_value = response_value
         self.call_count = 0
 
-    def generate_content(self, contents, response_schema, validation_context=None, **kwargs):
+    def generate_content(self, contents, response_schema, validation_context=None, **kwargs) -> Any:
+        """
+        Provide the generate content fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         self.call_count += 1
         if self.response_value is None:
             return None
@@ -38,7 +51,13 @@ class MockLLMClient:
         return mock_resp
 
 class TestPhase12Finalization(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> Any:
+        """
+        Provide the setUp fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         self.llm_client = MockLLMClient()
         self.base_group = DocumentGroup(
             category="unknown",
@@ -50,7 +69,7 @@ class TestPhase12Finalization(unittest.TestCase):
             dates=["2023-01-01"]
         )
 
-    def test_single_match_direct_routing(self):
+    def test_single_match_direct_routing(self) -> None:
         """Verify that categories in SINGLE_MATCH route directly without LLM."""
         # Pick a category that is in SINGLE_MATCH (e.g., CONTRACT usually is)
         valid_cats = [c for c in SINGLE_MATCH if c.lower() not in ("others", "other_letters")]
@@ -63,7 +82,7 @@ class TestPhase12Finalization(unittest.TestCase):
         self.assertIn(folder, FOLDER_ROUTING.keys())
         self.assertEqual(len([f for f, d in FOLDER_ROUTING.items() if cat in d['cats']]), 1)
 
-    def test_direct_routing_map_routing(self):
+    def test_direct_routing_map_routing(self) -> None:
         """Verify that categories in DIRECT_ROUTING_MAP route directly."""
         cat = "contract" # Normalized key in DIRECT_ROUTING_MAP
         group = self.base_group.model_copy(update={"category": cat})
@@ -73,7 +92,7 @@ class TestPhase12Finalization(unittest.TestCase):
         self.assertTrue(is_direct)
         self.assertEqual(folder, DIRECT_ROUTING_MAP[cat])
 
-    def test_form_constrained_routing_success(self):
+    def test_form_constrained_routing_success(self) -> None:
         """Verify that categories in FORM_CATEGORIES use constrained routing when NOT in SINGLE_MATCH."""
         cat = list(FORM_CATEGORIES)[0]
         group = self.base_group.model_copy(update={"category": cat.lower()})
@@ -88,7 +107,7 @@ class TestPhase12Finalization(unittest.TestCase):
             self.assertFalse(is_direct)
             self.assertEqual(folder, valid_folder)
 
-    def test_form_constrained_routing_invalid(self):
+    def test_form_constrained_routing_invalid(self) -> None:
         """Verify that categories in FORM_CATEGORIES fail if LLM returns folder outside FORM_FOLDERS."""
         cat = list(FORM_CATEGORIES)[0]
         group = self.base_group.model_copy(update={"category": cat.lower()})
@@ -102,7 +121,7 @@ class TestPhase12Finalization(unittest.TestCase):
             with self.assertRaises(RoutingValidationError):
                 route_document(group, self.llm_client)
 
-    def test_letter_constrained_routing_success(self):
+    def test_letter_constrained_routing_success(self) -> None:
         """Verify that categories in LETTER_CATEGORIES use constrained routing when NOT in SINGLE_MATCH."""
         cat = list(LETTER_CATEGORIES)[0]
         group = self.base_group.model_copy(update={"category": cat.lower()})
@@ -116,7 +135,7 @@ class TestPhase12Finalization(unittest.TestCase):
             self.assertFalse(is_direct)
             self.assertEqual(folder, valid_folder)
 
-    def test_letter_constrained_routing_invalid(self):
+    def test_letter_constrained_routing_invalid(self) -> None:
         """Verify that categories in LETTER_CATEGORIES fail if LLM returns folder outside LETTER_FOLDERS."""
         cat = list(LETTER_CATEGORIES)[0]
         group = self.base_group.model_copy(update={"category": cat.lower()})
@@ -130,14 +149,14 @@ class TestPhase12Finalization(unittest.TestCase):
             with self.assertRaises(RoutingValidationError):
                 route_document(group, self.llm_client)
 
-    def test_unknown_category_failure(self):
+    def test_unknown_category_failure(self) -> None:
         """Verify that a category not matching any known routing path raises RoutingValidationError."""
         group = self.base_group.model_copy(update={"category": "completely_unknown_cat"})
         
         with self.assertRaises(RoutingValidationError):
             route_document(group, self.llm_client)
 
-    def test_routing_priority(self):
+    def test_routing_priority(self) -> None:
         """Verify the priority: SINGLE_MATCH -> DIRECT_ROUTING_MAP -> Constrained."""
         # 1. Category in both SINGLE_MATCH and DIRECT_ROUTING_MAP (if any)
         # Let's use a category that we know is in SINGLE_MATCH

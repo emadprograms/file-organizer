@@ -1,10 +1,17 @@
+from typing import Any
 import pytest
 from src.core.schemas import DocumentGroup
 from src.routing.router import route_document
 from src.llm.llm import LLMClient
 from unittest.mock import MagicMock
 
-def test_direct_routing_scenarios():
+def test_direct_routing_scenarios() -> None:
+    """
+    Test direct routing scenarios.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     # Mock LLMClient since direct routing should NOT use it
     mock_llm = MagicMock(spec=LLMClient)
     

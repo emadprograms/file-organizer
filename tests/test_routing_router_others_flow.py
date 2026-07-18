@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 from unittest.mock import MagicMock, patch
 from src.core.schemas import DocumentGroup
@@ -9,7 +10,13 @@ class MockRoutingResponse(BaseModel):
     selected_folder: str
     reason: str
 
-def get_base_group():
+def get_base_group() -> Any:
+    """
+    Provide the get base group fixture/mock.
+
+    Returns:
+    The appropriate fixture or mock value.
+    """
     return DocumentGroup(
         category="OTHER_LETTERS", # This category immediately triggers double_check_others
         brief_arabic_title="Misc Document",
@@ -20,7 +27,13 @@ def get_base_group():
         dates=[]
     )
 
-def test_uat_11_5_immediate_misc():
+def test_uat_11_5_immediate_misc() -> None:
+    """
+    Test uat 11 5 immediate misc.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     mock_llm = MagicMock(spec=LLMClient)
     # Step 1: LLM picks "رسائل متنوعة" directly
     mock_llm.generate_content.return_value = MockRoutingResponse(
@@ -35,7 +48,13 @@ def test_uat_11_5_immediate_misc():
     assert is_direct is False
     assert mock_llm.generate_content.call_count == 1
 
-def test_uat_11_6_confirmed_match():
+def test_uat_11_6_confirmed_match() -> None:
+    """
+    Test uat 11 6 confirmed match.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     mock_llm = MagicMock(spec=LLMClient)
     # Step 1: LLM picks "صيانة"
     # Step 2: LLM confirms "صيانة"
@@ -51,7 +70,13 @@ def test_uat_11_6_confirmed_match():
     assert is_direct is False
     assert mock_llm.generate_content.call_count == 2
 
-def test_uat_11_7_confirmation_change():
+def test_uat_11_7_confirmation_change() -> None:
+    """
+    Test uat 11 7 confirmation change.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     mock_llm = MagicMock(spec=LLMClient)
     # Step 1: LLM picks "صيانة"
     # Step 2: LLM changes mind to "رسائل متنوعة"
@@ -67,7 +92,13 @@ def test_uat_11_7_confirmation_change():
     assert is_direct is False
     assert mock_llm.generate_content.call_count == 2
 
-def test_uat_11_8_hallucination_fallback():
+def test_uat_11_8_hallucination_fallback() -> None:
+    """
+    Test uat 11 8 hallucination fallback.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     mock_llm = MagicMock(spec=LLMClient)
     # Step 1: LLM picks "صيانة"
     # Step 2: LLM returns an invalid folder not in the allowed list during confirmation

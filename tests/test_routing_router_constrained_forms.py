@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 from src.core.schemas import DocumentGroup
 from src.routing.router import route_document
@@ -9,7 +10,13 @@ class MockRoutingResponse(BaseModel):
     selected_folder: str
     reason: str
 
-def test_constrained_routing_forms():
+def test_constrained_routing_forms() -> None:
+    """
+    Test constrained routing forms.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     # Setup Mock LLM
     mock_llm = MagicMock(spec=LLMClient)
     
@@ -55,7 +62,13 @@ def test_constrained_routing_forms():
     
     print("Verification successful: Constraints were correctly applied to the prompt.")
 
-def test_constrained_routing_validation_failure():
+def test_constrained_routing_validation_failure() -> None:
+    """
+    Test constrained routing validation failure.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     # Setup Mock LLM to return an invalid folder (outside the constrained list)
     mock_llm = MagicMock(spec=LLMClient)
     
