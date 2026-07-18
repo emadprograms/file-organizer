@@ -57,7 +57,7 @@ Plans:
 ### Phase 24: FS-UI Orchestration
 
 **Goal:** Wire up the rename loop and finalize filing logic
-**Requirements:** FSUI-04, FSUI-05
+**Requirements:** FSUI-04, FSUI-05, FSUI-06
 **Depends on:** Phase 23
 **Plans:** 0 plans
 
