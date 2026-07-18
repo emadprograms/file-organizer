@@ -1,3 +1,4 @@
+from typing import Generator
 import os
 from contextlib import contextmanager
 import uuid
@@ -7,10 +8,18 @@ import time
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
 @contextmanager
-def atomic_write(filepath: str):
-    """
-    Yields a temporary file path, and atomically renames it to filepath
+def atomic_write(filepath: str) -> Generator[str, None, None]:
+    """Yields a temporary file path, and atomically renames it to filepath
     upon successful completion.
+    
+    Args:
+        filepath (str): The final destination file path.
+        
+    Yields:
+        str: The temporary file path to write to.
+        
+    Raises:
+        PermissionError: If the file cannot be renamed after 10 attempts.
     """
     tmp_filepath = filepath + f".{uuid.uuid4().hex}.tmp"
     try:

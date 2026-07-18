@@ -4,39 +4,57 @@ import json
 import uuid
 import logging
 from datetime import datetime
+from typing import Any
 
 LOGS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'logs'))
 
 class LogContext:
-    """
-    Singleton to manage the current run context (run_dir and run_id).
-    """
+    """Singleton to manage the current run context (run_dir and run_id)."""
     _instance = None
 
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the LogContext singleton."""
         if LogContext._instance is not None:
             raise RuntimeError("Use LogContext.get_instance() instead of constructor")
-        self.run_dir = None
-        self.run_id = None
+        self.run_dir: str | None = None
+        self.run_id: str | None = None
 
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls) -> 'LogContext':
+        """Get the singleton instance of LogContext.
+        
+        Returns:
+            LogContext: The singleton instance.
+        """
         if cls._instance is None:
             cls._instance = cls()
         return cls._instance
 
-    def initialize(self, run_dir: str, run_id: str):
-        """
-        Sets the context once at startup.
+    def initialize(self, run_dir: str, run_id: str) -> None:
+        """Sets the context once at startup.
+        
+        Args:
+            run_dir (str): The directory where logs for this run are stored.
+            run_id (str): The unique identifier for this run.
+            
+        Returns:
+            None
         """
         self.run_dir = run_dir
         self.run_id = run_id
 
 class JSONLFormatter(logging.Formatter):
-    """
-    Formatter that outputs log records as JSON strings (JSONL).
-    """
-    def format(self, record):
+    """Formatter that outputs log records as JSON strings (JSONL)."""
+    
+    def format(self, record: logging.LogRecord) -> str:
+        """Format the specified record as JSON string.
+        
+        Args:
+            record (logging.LogRecord): The log record to format.
+            
+        Returns:
+            str: The formatted JSON string.
+        """
         log_record = {
             "timestamp": datetime.fromtimestamp(record.created).isoformat(),
             "level": record.levelname,
@@ -52,9 +70,15 @@ class JSONLFormatter(logging.Formatter):
             
         return json.dumps(log_record, ensure_ascii=False)
 
-def setup_logging(run_id: str = None, verbose: bool = False) -> str:
-    """
-    Provision a timestamped directory and configure logging.
+def setup_logging(run_id: str | None = None, verbose: bool = False) -> str:
+    """Provision a timestamped directory and configure logging.
+    
+    Args:
+        run_id (str | None): Optional run ID. Generated if not provided.
+        verbose (bool): Whether to enable verbose output.
+        
+    Returns:
+        str: The full path to the log directory.
     """
     if run_id is None:
         run_id = str(uuid.uuid4())[:8]
@@ -136,10 +160,17 @@ def setup_logging(run_id: str = None, verbose: bool = False) -> str:
     
     return full_dir
 
-def _write_jsonl_trace(trace_type: str, payload: dict):
-    """
-    Write a structured JSON trace to traces.jsonl in the run directory.
+def _write_jsonl_trace(trace_type: str, payload: dict[str, Any]) -> None:
+    """Write a structured JSON trace to traces.jsonl in the run directory.
+    
     Uses a dedicated logger with an open file handler for performance.
+    
+    Args:
+        trace_type (str): The type of trace being recorded.
+        payload (dict[str, Any]): The payload data to trace.
+        
+    Returns:
+        None
     """
     ctx = LogContext.get_instance()
     
@@ -167,9 +198,15 @@ def _write_jsonl_trace(trace_type: str, payload: dict):
             f.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
-def log_decision_trace(decision_type: str, payload: dict):
-    """
-    Append a structured JSON audit log for a pipeline decision to traces.jsonl.
+def log_decision_trace(decision_type: str, payload: dict[str, Any]) -> None:
+    """Append a structured JSON audit log for a pipeline decision to traces.jsonl.
+    
+    Args:
+        decision_type (str): The type of decision.
+        payload (dict[str, Any]): The trace payload detailing the decision.
+        
+    Returns:
+        None
     """
     _write_jsonl_trace(f"decision_{decision_type}", payload)
 
