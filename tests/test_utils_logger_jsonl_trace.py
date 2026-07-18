@@ -1,3 +1,4 @@
+from typing import Any
 import os
 import json
 import shutil
@@ -5,7 +6,13 @@ import logging
 from datetime import datetime
 from src.utils.logger import setup_logging, _write_jsonl_trace
 
-def test_jsonl_trace():
+def test_jsonl_trace() -> None:
+    """
+    Test jsonl trace.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     run_id = "test_jsonl_trace"
     
     # Cleanup

@@ -1,9 +1,16 @@
+from typing import Any
 import pytest
 from pathlib import Path
 from src.timeline.core import FileOrganizer
 from src.core.schemas import DocumentGroup
 
-def test_file_organizer_yaml_tenant_logic():
+def test_file_organizer_yaml_tenant_logic() -> None:
+    """
+    Test file organizer yaml tenant logic.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     organizer = FileOrganizer()
     
     yaml_data = [
@@ -46,7 +53,13 @@ def test_file_organizer_yaml_tenant_logic():
     assert "John Smith" in tenant_folder_names
     assert "2019" in tenant_folder_names["John Smith"]
 
-def test_file_organizer_unassigned_empty_tenant():
+def test_file_organizer_unassigned_empty_tenant() -> None:
+    """
+    Test file organizer unassigned empty tenant.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     organizer = FileOrganizer()
     
     docs = [
@@ -63,7 +76,13 @@ def test_file_organizer_unassigned_empty_tenant():
     tenant_folder_names, latest_tenant = organizer.compute_tenant_folders(docs, None)
     assert "Unassigned" in tenant_folder_names
 
-def test_file_organizer_filename_collision(tmp_path):
+def test_file_organizer_filename_collision(tmp_path) -> None:
+    """
+    Test file organizer filename collision.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     organizer = FileOrganizer()
     
     docs = [
@@ -103,14 +122,26 @@ def test_file_organizer_filename_collision(tmp_path):
     # Check that collision was resolved (e.g., _2 added)
     assert any("_2" in f for f in filenames)
 
-def test_ensure_target_directories_rename_failure(tmp_path, monkeypatch):
+def test_ensure_target_directories_rename_failure(tmp_path, monkeypatch) -> None:
+    """
+    Test ensure target directories rename failure.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     organizer = FileOrganizer()
     
     target_dir = tmp_path / "original_dir"
     target_dir.mkdir()
     
     # Mock rename to raise an Exception
-    def mock_rename(*args, **kwargs):
+    def mock_rename(*args, **kwargs) -> None:
+        """
+        Provide the mock rename fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         raise OSError("Permission denied")
     
     monkeypatch.setattr(Path, "rename", mock_rename)
@@ -120,7 +151,13 @@ def test_ensure_target_directories_rename_failure(tmp_path, monkeypatch):
     # Rename failed, so it should have fallen back to creating house_dir
     assert house_dir.exists()
 
-def test_file_organizer_organize(tmp_path):
+def test_file_organizer_organize(tmp_path) -> None:
+    """
+    Test file organizer organize.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     organizer = FileOrganizer()
     
     docs = [
@@ -157,7 +194,13 @@ def test_file_organizer_organize(tmp_path):
     empty_res = organizer.organize([], str(dummy_pdf), "123", tmp_path)
     assert empty_res == []
 
-def test_file_organizer_dry_run(tmp_path):
+def test_file_organizer_dry_run(tmp_path) -> None:
+    """
+    Test file organizer dry run.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     organizer = FileOrganizer()
     
     docs = [

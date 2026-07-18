@@ -1,8 +1,9 @@
+from typing import Any
 import pytest
 from src.pipeline.visualizer import Visualizer
 from src.core.ui import set_verbosity
 
-def test_visualizer_print_summary_empty(capsys):
+def test_visualizer_print_summary_empty(capsys) -> None:
     """Test that Visualizer handles empty summary and per_page lists gracefully."""
     set_verbosity(True)
     visualizer = Visualizer()
@@ -25,7 +26,7 @@ def test_visualizer_print_summary_empty(capsys):
     assert "📁" not in output
 
 
-def test_visualizer_print_summary_populated(capsys):
+def test_visualizer_print_summary_populated(capsys) -> None:
     """Test that Visualizer correctly builds the tree from a populated per_page manifest."""
     set_verbosity(True)
     visualizer = Visualizer()
@@ -66,7 +67,7 @@ def test_visualizer_print_summary_populated(capsys):
     assert "2022-05-01 - Test Letter.pdf" in output
 
 
-def test_visualizer_print_summary_path_normalization(capsys):
+def test_visualizer_print_summary_path_normalization(capsys) -> None:
     """Test that Visualizer normalizes Windows backslashes to forward slashes for tree construction."""
     set_verbosity(True)
     visualizer = Visualizer()

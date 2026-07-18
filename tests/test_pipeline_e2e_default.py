@@ -1,3 +1,4 @@
+from typing import Any
 import json
 import os
 import pytest
@@ -7,7 +8,13 @@ from src.core.schemas import DocumentGroup
 
 class Page:
     """Mock Page class that mimics the attributes used by process_with_shrink."""
-    def __init__(self, index, data):
+    def __init__(self, index, data) -> Any:
+        """
+        Provide the   init   fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         self.original_index = int(index)
         self.category = data.get("category", "unknown")
         self.canonical_tenant = data.get("expected_tenant_name", "Unknown Tenant")
@@ -16,7 +23,13 @@ class Page:
         self.content_explanation = data.get("content_explanation", "")
         self.subject = data.get("subject", "")
 
-def test_e2e_default_routing():
+def test_e2e_default_routing() -> None:
+    """
+    Test e2e default routing.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     json_path = "pdfs/1273/567_report.json"
     if not os.path.exists(json_path):
         pytest.skip(f"Report file not found at {json_path}")

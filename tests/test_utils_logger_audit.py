@@ -1,3 +1,4 @@
+from typing import Any
 import os
 import json
 import pytest
@@ -5,10 +6,16 @@ import glob
 import re
 import logging
 
-def get_all_python_files():
+def get_all_python_files() -> Any:
+    """
+    Provide the get all python files fixture/mock.
+
+    Returns:
+    The appropriate fixture or mock value.
+    """
     return glob.glob("src/**/*.py", recursive=True)
 
-def test_no_forbidden_prints():
+def test_no_forbidden_prints() -> None:
     """
     Ensure no print() calls exist in src/, except for console.print().
     """
@@ -25,7 +32,7 @@ def test_no_forbidden_prints():
         msg = "Forbidden print() calls found: " + " | ".join(violations)
         pytest.fail(msg)
 
-def test_canonical_logger_initialization():
+def test_canonical_logger_initialization() -> None:
     """
     Ensure loggers are initialized using: logging.getLogger(f"file_organizer.{__name__}")
     """
@@ -49,7 +56,7 @@ def test_canonical_logger_initialization():
         msg = "Non-canonical logger initializations found: " + " | ".join(violations)
         pytest.fail(msg)
 
-def test_jsonl_log_integrity():
+def test_jsonl_log_integrity() -> None:
     """
     Verify that log entries in debug.log are valid JSON.
     """

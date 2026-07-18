@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 from pathlib import Path
 import yaml
@@ -5,7 +6,13 @@ import logging
 from src.tenant_config.yaml_loader import load_tenant_config
 from src.core.exceptions import ConfigurationError
 
-def test_load_tenant_config_success(tmp_path: Path):
+def test_load_tenant_config_success(tmp_path: Path) -> None:
+    """
+    Test load tenant config success.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     target_dir = tmp_path / "pdfs" / "123"
     source_files_dir = target_dir / ".source_files"
     source_files_dir.mkdir(parents=True, exist_ok=True)
@@ -21,7 +28,13 @@ def test_load_tenant_config_success(tmp_path: Path):
     tenants = load_tenant_config(target_dir, "123")
     assert tenants == config_data
 
-def test_load_tenant_config_missing_file(tmp_path: Path, caplog):
+def test_load_tenant_config_missing_file(tmp_path: Path, caplog) -> None:
+    """
+    Test load tenant config missing file.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     target_dir = tmp_path / "pdfs" / "123"
     source_files_dir = target_dir / ".source_files"
     source_files_dir.mkdir(parents=True, exist_ok=True)
@@ -33,7 +46,13 @@ def test_load_tenant_config_missing_file(tmp_path: Path, caplog):
     assert tenants is None
     assert "No 123_tenants.yaml found" in caplog.text
 
-def test_load_tenant_config_malformed_yaml(tmp_path: Path):
+def test_load_tenant_config_malformed_yaml(tmp_path: Path) -> None:
+    """
+    Test load tenant config malformed yaml.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     target_dir = tmp_path / "pdfs" / "123"
     source_files_dir = target_dir / ".source_files"
     source_files_dir.mkdir(parents=True, exist_ok=True)
@@ -46,7 +65,13 @@ def test_load_tenant_config_malformed_yaml(tmp_path: Path):
     with pytest.raises(ConfigurationError, match="Malformed YAML"):
         load_tenant_config(target_dir, "123")
 
-def test_load_tenant_config_missing_keys(tmp_path: Path):
+def test_load_tenant_config_missing_keys(tmp_path: Path) -> None:
+    """
+    Test load tenant config missing keys.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     target_dir = tmp_path / "pdfs" / "123"
     source_files_dir = target_dir / ".source_files"
     source_files_dir.mkdir(parents=True, exist_ok=True)
@@ -59,7 +84,13 @@ def test_load_tenant_config_missing_keys(tmp_path: Path):
     with pytest.raises(ConfigurationError, match="Missing 'end_date' in item at index 0"):
         load_tenant_config(target_dir, "123")
 
-def test_load_tenant_config_not_a_list(tmp_path: Path):
+def test_load_tenant_config_not_a_list(tmp_path: Path) -> None:
+    """
+    Test load tenant config not a list.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     target_dir = tmp_path / "pdfs" / "123"
     source_files_dir = target_dir / ".source_files"
     source_files_dir.mkdir(parents=True, exist_ok=True)

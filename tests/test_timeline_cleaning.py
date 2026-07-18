@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 import json
 import logging
@@ -21,7 +22,13 @@ from src.timeline.phase import (
     process_cleaning_phase
 )
 
-def test_parse_flexible_date():
+def test_parse_flexible_date() -> None:
+    """
+    Test parse flexible date.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     assert parse_flexible_date("2023") == "2023-01-01"
     assert parse_flexible_date("2023-05") == "2023-05-01"
     assert parse_flexible_date("May 2023") == "2023-05-01"
@@ -31,7 +38,13 @@ def test_parse_flexible_date():
     with pytest.raises(ValueError):
         parse_flexible_date("garbage")
 
-def test_load_and_parse_json(tmp_path):
+def test_load_and_parse_json(tmp_path) -> None:
+    """
+    Test load and parse json.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     json_path = tmp_path / "test_report.json"
     json_path.write_text("""[
         {"category": "contract", "content_explanation": "test", "expected_tenant_name": "احمد", "date": "2023-05", "sender": "Ministry", "receiver": "Tenant", "subject": "Subj"},
@@ -45,7 +58,13 @@ def test_load_and_parse_json(tmp_path):
     assert pages[1].date is None
     assert pages[1].original_index == 1
 
-def test_infer_missing_dates():
+def test_infer_missing_dates() -> None:
+    """
+    Test infer missing dates.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     pages = [
         PageData(category="c", content_explanation="e", sender="s", receiver="r", subject="sub", original_index=0, date="2020-01-01", expected_tenant_name=None),
         PageData(category="c", content_explanation="e", sender="s", receiver="r", subject="sub", original_index=1, date=None, expected_tenant_name=None),
@@ -58,34 +77,76 @@ def test_infer_missing_dates():
     assert pages[2].resolved_date == "2020-01-05"
     assert pages[3].resolved_date == "2020-01-05"
 
-def test_normalize_arabic_text():
+def test_normalize_arabic_text() -> None:
+    """
+    Test normalize arabic text.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     assert normalize_arabic_text('أحمد') == 'احمد'
     assert normalize_arabic_text('مُحَمَّد') == 'محمد'
     assert normalize_arabic_text('فاطمة') == 'فاطمه'
     assert normalize_arabic_text('مستشفى') == 'مستشفي'
 
-def test_cluster_names_fuzzily():
+def test_cluster_names_fuzzily() -> None:
+    """
+    Test cluster names fuzzily.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     names = {'محمد علي', 'محمد على', 'احمد', 'أحمد'}
     res = cluster_names_fuzzily(names)
     assert len(set(res.values())) == 2
 
 class MockLLMClient:
     default_model = "test_model"
-    def _route_llm_call(self, *args, **kwargs):
+    def _route_llm_call(self, *args, **kwargs) -> Any:
+        """
+        Provide the  route llm call fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         return '{"احمد": "احمد", "محمد": "محمد"}'
 
-def test_canonicalize_with_llm():
+def test_canonicalize_with_llm() -> None:
+    """
+    Test canonicalize with llm.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     client = MockLLMClient()
     res = canonicalize_with_llm(["احمد", "محمد"], client)
     assert res == {"احمد": "احمد", "محمد": "محمد"}
 
-def test_canonicalize_with_llm_with_allowed_tenants():
+def test_canonicalize_with_llm_with_allowed_tenants() -> None:
+    """
+    Test canonicalize with llm with allowed tenants.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     class CapturingLLMClient:
         default_model = "test_model"
-        def __init__(self):
+        def __init__(self) -> Any:
+            """
+            Provide the   init   fixture/mock.
+
+            Returns:
+            The appropriate fixture or mock value.
+            """
             self.captured_prompt = None
             
-        def _route_llm_call(self, *args, **kwargs):
+        def _route_llm_call(self, *args, **kwargs) -> Any:
+            """
+            Provide the  route llm call fixture/mock.
+
+            Returns:
+            The appropriate fixture or mock value.
+            """
             self.captured_prompt = kwargs.get('contents', [''])[0]
             return '{"احمد": "احمد"}'
             
@@ -94,7 +155,13 @@ def test_canonicalize_with_llm_with_allowed_tenants():
     assert res == {"احمد": "احمد"}
     assert "Is this name similar to any of the names here?" in client.captured_prompt
 
-def test_build_tenant_timelines():
+def test_build_tenant_timelines() -> None:
+    """
+    Test build tenant timelines.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     pages = [
         PageData(category="contract", content_explanation="e", expected_tenant_name="احمد", sender="s", receiver="r", subject="sub", original_index=0, resolved_date="2020-01-01", date=None),
         PageData(category="forms", content_explanation="e", expected_tenant_name="احمد", sender="s", receiver="r", subject="sub", original_index=1, resolved_date="2020-01-05", date=None),
@@ -109,7 +176,7 @@ def test_build_tenant_timelines():
     assert timelines[0].min_date == "2020-01-01"
     assert timelines[0].max_date == "2020-01-20"
 
-def test_build_tenant_timelines_boundaries():
+def test_build_tenant_timelines_boundaries() -> None:
     """Verify thresholds: >=1 anchor AND >=5 pages, and must have dates."""
     
     # Case 1: Exactly 1 anchor, 5 pages -> PASS
@@ -148,7 +215,13 @@ def test_build_tenant_timelines_boundaries():
     ]
     assert len(build_tenant_timelines(pages_no_dates, {})) == 0
 
-def test_assign_pages_to_tenants():
+def test_assign_pages_to_tenants() -> None:
+    """
+    Test assign pages to tenants.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     pages = [
         PageData(category="contract", content_explanation="e", sender="s", receiver="r", subject="sub", original_index=0, resolved_date="2020-01-10", expected_tenant_name=None, date=None),
         PageData(category="contract", content_explanation="e", sender="s", receiver="r", subject="sub", original_index=1, resolved_date="2020-05-10", expected_tenant_name=None, date=None),
@@ -162,7 +235,13 @@ def test_assign_pages_to_tenants():
     assert pages[1].canonical_tenant == "Unassigned (2020-05)"
     assert pages[2].canonical_tenant == "احمد"
 
-def test_process_cleaning_phase(tmp_path):
+def test_process_cleaning_phase(tmp_path) -> None:
+    """
+    Test process cleaning phase.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     json_path = tmp_path / "test_report.json"
     json_path.write_text("""[
         {"category": "contract", "content_explanation": "test", "expected_tenant_name": "احمد", "date": "2023-05-01", "sender": "s", "receiver": "r", "subject": "Subj"},
@@ -176,13 +255,13 @@ def test_process_cleaning_phase(tmp_path):
     assert len(pages) == 5
     assert pages[0].canonical_tenant == "احمد"
 
-def test_parse_flexible_date_edge_cases():
+def test_parse_flexible_date_edge_cases() -> None:
     """Original edge cases — preserved for regression."""
     assert parse_flexible_date("August 2023") == "2023-08-01"
     assert parse_flexible_date("2023/05/15") == "2023-05-15"
     assert parse_flexible_date("05-2023") == "2023-05-01"
 
-def test_parse_english_dd_month_yyyy():
+def test_parse_english_dd_month_yyyy() -> None:
     """DD MonthName YYYY — full and abbreviated."""
     assert parse_flexible_date("29 February 2024") == "2024-02-29"
     assert parse_flexible_date("28 February 2024") == "2024-02-28"
@@ -193,7 +272,7 @@ def test_parse_english_dd_month_yyyy():
     # "sept" abbreviation
     assert parse_flexible_date("5 Sept 2010") == "2010-09-05"
 
-def test_parse_english_month_dd_yyyy():
+def test_parse_english_month_dd_yyyy() -> None:
     """MonthName DD, YYYY — with and without comma."""
     assert parse_flexible_date("July 11, 2010") == "2010-07-11"
     assert parse_flexible_date("April 18, 2006") == "2006-04-18"
@@ -201,7 +280,7 @@ def test_parse_english_month_dd_yyyy():
     assert parse_flexible_date("December 1, 2023") == "2023-12-01"
     assert parse_flexible_date("January 31, 1990") == "1990-01-31"
 
-def test_parse_english_ordinal_suffixes():
+def test_parse_english_ordinal_suffixes() -> None:
     """Dates with ordinal suffixes: 1st, 2nd, 3rd, 4th, 11th, 21st, etc."""
     assert parse_flexible_date("1st January 2024") == "2024-01-01"
     assert parse_flexible_date("2nd March 2020") == "2020-03-02"
@@ -211,14 +290,14 @@ def test_parse_english_ordinal_suffixes():
     assert parse_flexible_date("March 3rd, 2020") == "2020-03-03"
     assert parse_flexible_date("June 21st 2015") == "2015-06-21"
 
-def test_parse_english_weekday_prefix():
+def test_parse_english_weekday_prefix() -> None:
     """Dates with weekday prefix — strip the weekday."""
     assert parse_flexible_date("Monday, 27 September 2007") == "2007-09-27"
     assert parse_flexible_date("Sunday, January 1, 2023") == "2023-01-01"
     assert parse_flexible_date("Thu 15 March 2018") == "2018-03-15"
     assert parse_flexible_date("Fri, 1 Jan 2000") == "2000-01-01"
 
-def test_parse_arabic_gregorian_months():
+def test_parse_arabic_gregorian_months() -> None:
     """Arabic Gregorian month names (the standard Arabic calendar used in Bahrain)."""
     assert parse_flexible_date("5 مارس 2024م") == "2024-03-05"
     assert parse_flexible_date("مارس 2024") == "2024-03-01"
@@ -229,19 +308,19 @@ def test_parse_arabic_gregorian_months():
     assert parse_flexible_date("يوليو 2010") == "2010-07-01"
     assert parse_flexible_date("10 أكتوبر 2022") == "2022-10-10"
 
-def test_parse_arabic_weekday_prefix():
+def test_parse_arabic_weekday_prefix() -> None:
     """Arabic dates with weekday prefix — strip the weekday."""
     assert parse_flexible_date("الأحد، 5 مارس 2024") == "2024-03-05"
     assert parse_flexible_date("الخميس 15 يناير 2020") == "2020-01-15"
 
-def test_parse_dual_calendar_dates():
+def test_parse_dual_calendar_dates() -> None:
     """Gregorian + Hijri in parentheses or after slash — keep Gregorian only."""
     assert parse_flexible_date("September 27, 2007 (11 Sha'ban 1428 AH)") == "2007-09-27"
     assert parse_flexible_date("April 2010 / Rabi' al-Thani 1431 AH") == "2010-04-01"
     assert parse_flexible_date("15 March 2023 (22 Sha'ban 1444)") == "2023-03-15"
     assert parse_flexible_date("1 January 2000 (24 Ramadan 1420 AH)") == "2000-01-01"
 
-def test_parse_pure_hijri_arabic():
+def test_parse_pure_hijri_arabic() -> None:
     """Pure Hijri dates with Arabic month names → converted to Gregorian."""
     # 11 Sha'ban 1428 AH ≈ 2007-08-24 (approximate, exact depends on sighting)
     result = parse_flexible_date("11 شعبان 1428")
@@ -259,7 +338,7 @@ def test_parse_pure_hijri_arabic():
     result = parse_flexible_date("1 رجب 1445")
     assert result.startswith("2024-01")
 
-def test_parse_pure_hijri_english():
+def test_parse_pure_hijri_english() -> None:
     """Pure Hijri dates with English transliteration → converted to Gregorian."""
     result = parse_flexible_date("11 Sha'ban 1428")
     assert result.startswith("2007-08")
@@ -273,7 +352,7 @@ def test_parse_pure_hijri_english():
     result = parse_flexible_date("15 Shawwal 1443")
     assert result.startswith("2022-05")
 
-def test_parse_hijri_numeric():
+def test_parse_hijri_numeric() -> None:
     """Numeric dates with Hijri year range (1300-1500) → converted to Gregorian."""
     # 1428/08/11 = 11 Sha'ban 1428
     result = parse_flexible_date("1428/08/11")
@@ -283,13 +362,13 @@ def test_parse_hijri_numeric():
     result = parse_flexible_date("1445")
     assert result.startswith("2023-")
 
-def test_parse_dot_separated():
+def test_parse_dot_separated() -> None:
     """European dot-separated format: DD.MM.YYYY."""
     assert parse_flexible_date("15.03.2023") == "2023-03-15"
     assert parse_flexible_date("1.1.2000") == "2000-01-01"
     assert parse_flexible_date("31.12.1999") == "1999-12-31"
 
-def test_parse_trailing_era_markers():
+def test_parse_trailing_era_markers() -> None:
     """Dates with trailing era markers: AH, A.H., AD, A.D., CE, م, هـ."""
     assert parse_flexible_date("15 March 2023 AD") == "2023-03-15"
     assert parse_flexible_date("15 March 2023 A.D.") == "2023-03-15"
@@ -303,13 +382,13 @@ def test_parse_trailing_era_markers():
     result = parse_flexible_date("11 Sha'ban 1428 AH")
     assert result.startswith("2007-08")
 
-def test_parse_whitespace_handling():
+def test_parse_whitespace_handling() -> None:
     """Extra whitespace, leading/trailing spaces."""
     assert parse_flexible_date("  15/03/2023  ") == "2023-03-15"
     assert parse_flexible_date("  May 2023  ") == "2023-05-01"
     assert parse_flexible_date(" 2023 ") == "2023-01-01"
 
-def test_parse_still_raises_on_garbage():
+def test_parse_still_raises_on_garbage() -> None:
     """Still raises ValueError on truly unparseable input."""
     with pytest.raises(ValueError):
         parse_flexible_date("garbage")
@@ -318,21 +397,39 @@ def test_parse_still_raises_on_garbage():
     with pytest.raises(ValueError):
         parse_flexible_date("")
 
-def test_canonicalize_with_llm_empty():
+def test_canonicalize_with_llm_empty() -> None:
+    """
+    Test canonicalize with llm empty.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     client = MockLLMClient()
     res = canonicalize_with_llm([], client)
     assert res == {}
 
-def test_canonicalize_with_llm_missing_keys():
+def test_canonicalize_with_llm_missing_keys() -> None:
+    """
+    Test canonicalize with llm missing keys.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     class MissingKeyLLMClient:
         default_model = "test_model"
-        def _route_llm_call(self, *args, **kwargs):
+        def _route_llm_call(self, *args, **kwargs) -> Any:
+            """
+            Provide the  route llm call fixture/mock.
+
+            Returns:
+            The appropriate fixture or mock value.
+            """
             return '{"احمد": "احمد"}'
     
     with pytest.raises(RuntimeError, match="LLM dropped names from the mapping"):
         canonicalize_with_llm(["احمد", "محمد"], MissingKeyLLMClient())
 
-def test_process_cleaning_phase_integration(tmp_path):
+def test_process_cleaning_phase_integration(tmp_path) -> None:
     """Full integration test for the cleaning phase pipeline."""
     json_path = tmp_path / "integration_report.json"
     
@@ -374,7 +471,13 @@ def test_process_cleaning_phase_integration(tmp_path):
     
     # Mock LLM to return identities as-is
     class IdentityMockLLM(MockLLMClient):
-        def _route_llm_call(self, *args, **kwargs):
+        def _route_llm_call(self, *args, **kwargs) -> Any:
+            """
+            Provide the  route llm call fixture/mock.
+
+            Returns:
+            The appropriate fixture or mock value.
+            """
             # Extract names from prompt
             import re
             prompt = kwargs.get('contents', [''])[0]

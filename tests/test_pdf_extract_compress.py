@@ -1,9 +1,10 @@
+from typing import Any
 import pytest
 import os
 import fitz
 from src.pdf import extract_pdf_segment, compress_pdf
 
-def test_compress_pdf_reduces_size(tmp_path):
+def test_compress_pdf_reduces_size(tmp_path) -> None:
     """
     Verify that compress_pdf actually reduces file size using 
     pure PyMuPDF logic (without Pillow).
@@ -30,13 +31,13 @@ def test_compress_pdf_reduces_size(tmp_path):
     # In some cases, a tiny PDF might actually grow slightly due to overhead,
     # but it should definitely produce a valid PDF.
 
-def test_compress_pdf_invalid_input(tmp_path):
+def test_compress_pdf_invalid_input(tmp_path) -> None:
     """Verify compress_pdf handles non-existent files gracefully."""
     output_pdf = tmp_path / "output.pdf"
     with pytest.raises(FileNotFoundError):
         compress_pdf("non_existent.pdf", str(output_pdf))
 
-def test_extract_pdf_segment_boundaries(tmp_path):
+def test_extract_pdf_segment_boundaries(tmp_path) -> None:
     """Test extract_pdf_segment with various page ranges."""
     source_pdf = tmp_path / "source.pdf"
     doc = fitz.open()
@@ -60,7 +61,7 @@ def test_extract_pdf_segment_boundaries(tmp_path):
     extract_pdf_segment(str(source_pdf), 2, 4, str(out3))
     assert len(fitz.open(out3)) == 3
 
-def test_extract_pdf_segment_invalid_range(tmp_path):
+def test_extract_pdf_segment_invalid_range(tmp_path) -> None:
     """Verify behavior when start > end or range is out of bounds."""
     source_pdf = tmp_path / "source.pdf"
     doc = fitz.open()
@@ -75,7 +76,7 @@ def test_extract_pdf_segment_invalid_range(tmp_path):
     with pytest.raises(Exception):
         extract_pdf_segment(str(source_pdf), 1, 0, str(out))
 
-def test_compress_pdf_with_image(tmp_path):
+def test_compress_pdf_with_image(tmp_path) -> None:
     """Verify compress_pdf correctly handles downscaling and compressing embedded images."""
     import io
     try:
@@ -112,7 +113,7 @@ def test_compress_pdf_with_image(tmp_path):
     assert new_size > 0
     assert new_size < original_size
 
-def test_compress_pdf_exception_handling(tmp_path, monkeypatch):
+def test_compress_pdf_exception_handling(tmp_path, monkeypatch) -> None:
     """Verify compress_pdf catches exceptions and falls back to simple copy."""
     input_pdf = tmp_path / "input.pdf"
     output_pdf = tmp_path / "output.pdf"
@@ -123,7 +124,13 @@ def test_compress_pdf_exception_handling(tmp_path, monkeypatch):
     doc.close()
     
     # Force fitz.open to fail
-    def mock_fitz_open(*args, **kwargs):
+    def mock_fitz_open(*args, **kwargs) -> None:
+        """
+        Provide the mock fitz open fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         raise RuntimeError("Mocked PDF opening failure")
         
     monkeypatch.setattr(fitz, "open", mock_fitz_open)

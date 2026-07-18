@@ -1,3 +1,4 @@
+from typing import Any
 import subprocess
 import os
 import json
@@ -5,7 +6,7 @@ import shutil
 import pytest
 from pathlib import Path
 
-def run_organizer(target_dir, verbose_flag):
+def run_organizer(target_dir, verbose_flag) -> Any:
     """Helper to run organizer and return the resulting log directory."""
     # We use a unique run_id by passing it if the script supports it, 
     # or we just rely on the timestamp and find the newest.
@@ -34,7 +35,7 @@ def run_organizer(target_dir, verbose_flag):
     )
     return log_dirs[0] if log_dirs else None
 
-def test_logging_e2e_verbose_flag_false(tmp_path):
+def test_logging_e2e_verbose_flag_false(tmp_path) -> None:
     """
     E2E test to verify that --no-verbose (Permissive Blacklist) 
     suppresses specified libraries but allows others.
@@ -73,7 +74,7 @@ def test_logging_e2e_verbose_flag_false(tmp_path):
 
     shutil.rmtree(latest_log_dir, ignore_errors=True)
 
-def test_logging_e2e_verbose_flag_true(tmp_path):
+def test_logging_e2e_verbose_flag_true(tmp_path) -> None:
     """
     E2E test to verify that --verbose (Strict Whitelist) suppress all but file_organizer.
     """

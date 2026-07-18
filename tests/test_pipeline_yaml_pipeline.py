@@ -1,9 +1,16 @@
+from typing import Any
 import pytest
 from src.core.models import PageData, TenantTimeline
 from src.timeline.timeline_builder import build_tenant_timelines
 from src.timeline.phase import assign_pages_to_tenants
 
-def test_anchor_logic_bypass():
+def test_anchor_logic_bypass() -> None:
+    """
+    Test anchor logic bypass.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     # Only 1 page, 0 anchors -> Normally rejected
     pages = [
         PageData(
@@ -26,7 +33,13 @@ def test_anchor_logic_bypass():
     assert len(timelines_bypassed) == 1
     assert timelines_bypassed[0].canonical_name == "Tenant A"
 
-def test_timeline_fallback_overlap():
+def test_timeline_fallback_overlap() -> None:
+    """
+    Test timeline fallback overlap.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     pages = [
         PageData(
             original_index=0,
@@ -47,7 +60,13 @@ def test_timeline_fallback_overlap():
     assign_pages_to_tenants(pages, timelines, {})
     assert pages[0].canonical_tenant == "Tenant B"
 
-def test_timeline_fallback_no_date():
+def test_timeline_fallback_no_date() -> None:
+    """
+    Test timeline fallback no date.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     pages = [
         PageData(
             original_index=0,

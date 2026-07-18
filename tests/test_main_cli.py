@@ -1,3 +1,4 @@
+from typing import Any
 import os
 import sys
 import pytest
@@ -10,31 +11,61 @@ logger = logging.getLogger(f"file_organizer.{__name__}")
 from src.main import get_parser, validate_environment, main
 from src.core.exceptions import ConfigurationError, ValidationError
 
-def test_parser_default_model():
+def test_parser_default_model() -> None:
+    """
+    Test parser default model.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     parser = get_parser()
     args = parser.parse_args(["./pdfs/1273"])
     assert args.target_dir == Path("./pdfs/1273")
     assert args.model == "gemma-4-31b-it"
 
-def test_parser_custom_model():
+def test_parser_custom_model() -> None:
+    """
+    Test parser custom model.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     parser = get_parser()
     args = parser.parse_args(["./pdfs/1273", "--model", "gemma-4-31b-it"])
     assert args.model == "gemma-4-31b-it"
 
-def test_parser_flags():
+def test_parser_flags() -> None:
+    """
+    Test parser flags.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     parser = get_parser()
     args = parser.parse_args(["./pdfs/1273", "--verbose", "--skip-llm"])
     assert args.verbose is True
     assert args.skip_llm is True
 
 @patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"}, clear=True)
-def test_validate_environment_success():
+def test_validate_environment_success() -> None:
+    """
+    Test validate environment success.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     # Should not exit
     validate_environment()
 
 @patch("src.main.load_dotenv")
 @patch.dict(os.environ, {}, clear=True)
-def test_validate_environment_missing_key(mock_load_dotenv, capsys):
+def test_validate_environment_missing_key(mock_load_dotenv, capsys) -> None:
+    """
+    Test validate environment missing key.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     with pytest.raises(ConfigurationError) as exc_info:
         validate_environment()
     assert "GEMINI_API_KEY is missing" in str(exc_info.value)
@@ -47,7 +78,13 @@ def test_validate_environment_missing_key(mock_load_dotenv, capsys):
 @patch("src.main.validate_environment")
 @patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"}, clear=True)
 @patch("sys.argv", ["main.py", "./pdfs/1273"])
-def test_main_success(mock_validate_env, mock_validate_target, mock_setup_logging, mock_llm_client, mock_pipeline, mock_organizer):
+def test_main_success(mock_validate_env, mock_validate_target, mock_setup_logging, mock_llm_client, mock_pipeline, mock_organizer) -> None:
+    """
+    Test main success.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     mock_validate_target.return_value = "1273"
     mock_setup_logging.return_value = "/tmp/logs"
     
@@ -59,7 +96,13 @@ def test_main_success(mock_validate_env, mock_validate_target, mock_setup_loggin
     mock_organizer_inst = mock_organizer.return_value
     mock_organizer_inst.organize.return_value = ([], "1273")
     
-    def custom_glob(self, pattern):
+    def custom_glob(self, pattern) -> Any:
+        """
+        Provide the custom glob fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         if "categorized" in pattern:
             return [Path("1273_categorized.pdf")]
         elif "json" in pattern:
@@ -87,7 +130,13 @@ def test_main_success(mock_validate_env, mock_validate_target, mock_setup_loggin
     ], any_order=True)
     mock_organizer_inst.organize.assert_called_once()
 
-def test_validate_target_directory_success(tmp_path):
+def test_validate_target_directory_success(tmp_path) -> None:
+    """
+    Test validate target directory success.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     target_dir = tmp_path / "1273"
     target_dir.mkdir()
     (target_dir / "1273_categorized.pdf").touch()
@@ -97,7 +146,13 @@ def test_validate_target_directory_success(tmp_path):
     house_id = validate_target_directory(target_dir)
     assert house_id == "1273"
 
-def test_validate_target_directory_missing_pdf(tmp_path, capsys):
+def test_validate_target_directory_missing_pdf(tmp_path, capsys) -> None:
+    """
+    Test validate target directory missing pdf.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     target_dir = tmp_path / "1273"
     target_dir.mkdir()
     (target_dir / "1273_report.json").touch()
@@ -107,7 +162,13 @@ def test_validate_target_directory_missing_pdf(tmp_path, capsys):
         validate_target_directory(target_dir)
     assert "No *_categorized.pdf found" in str(exc_info.value)
 
-def test_validate_target_directory_mismatch_id(tmp_path, capsys):
+def test_validate_target_directory_mismatch_id(tmp_path, capsys) -> None:
+    """
+    Test validate target directory mismatch id.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     target_dir = tmp_path / "1273"
     target_dir.mkdir()
     (target_dir / "1273_categorized.pdf").touch()
@@ -118,7 +179,7 @@ def test_validate_target_directory_mismatch_id(tmp_path, capsys):
         validate_target_directory(target_dir)
     assert "ID mismatch" in str(exc_info.value)
 
-def test_validate_target_directory_missing_json(tmp_path, capsys):
+def test_validate_target_directory_missing_json(tmp_path, capsys) -> None:
     """Missing _report.json is gracefully caught and exits with code 1."""
     target_dir = tmp_path / "1273"
     target_dir.mkdir()

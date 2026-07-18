@@ -1,3 +1,4 @@
+from typing import Any
 import sys
 import os
 import pytest
@@ -10,7 +11,13 @@ logger = logging.getLogger(f"file_organizer.{__name__}")
 from src.utils.fs import atomic_write
 from src.core.utils import sanitize_filename
 
-def test_sanitize_filename():
+def test_sanitize_filename() -> None:
+    """
+    Test sanitize filename.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     assert sanitize_filename("test") == "test"
     
     # Replace illegal characters with underscore and collapse
@@ -33,7 +40,13 @@ def test_sanitize_filename():
     assert len(sanitized2) == 200
     assert sanitized2.endswith(".pdf")
 
-def test_atomic_write_success(tmp_path):
+def test_atomic_write_success(tmp_path) -> None:
+    """
+    Test atomic write success.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     target_file = tmp_path / "output.txt"
     with atomic_write(str(target_file)) as tmp_file:
         assert tmp_file.endswith(".tmp")
@@ -44,7 +57,13 @@ def test_atomic_write_success(tmp_path):
     assert target_file.read_text(encoding="utf-8") == "content"
     assert not os.path.exists(str(target_file) + ".tmp")
 
-def test_atomic_write_failure(tmp_path):
+def test_atomic_write_failure(tmp_path) -> None:
+    """
+    Test atomic write failure.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     target_file = tmp_path / "output.txt"
     try:
         with atomic_write(str(target_file)) as tmp_file:
@@ -57,5 +76,11 @@ def test_atomic_write_failure(tmp_path):
     assert not target_file.exists()
     assert not os.path.exists(str(target_file) + ".tmp")
 
-def test_sanitize_filename_empty():
+def test_sanitize_filename_empty() -> None:
+    """
+    Test sanitize filename empty.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     assert sanitize_filename("") == ""

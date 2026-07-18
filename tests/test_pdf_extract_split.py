@@ -1,9 +1,10 @@
+from typing import Any
 import pytest
 import os
 from unittest.mock import MagicMock, patch
 from src.pdf import extract_pdf_segment, compress_pdf
 
-def test_compress_pdf_fallback(tmp_path):
+def test_compress_pdf_fallback(tmp_path) -> None:
     """Test that compress_pdf falls back to copy if compression fails or doesn't help."""
     import fitz
     # Create a simple PDF
@@ -19,7 +20,7 @@ def test_compress_pdf_fallback(tmp_path):
     assert os.path.exists(output_pdf)
     assert os.path.getsize(output_pdf) > 0
 
-def test_extract_pdf_segment(tmp_path):
+def test_extract_pdf_segment(tmp_path) -> None:
     """Test that extract_pdf_segment extracts the correct page range."""
     import fitz
     # Create a 5-page PDF

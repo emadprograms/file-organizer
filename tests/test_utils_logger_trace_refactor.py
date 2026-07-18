@@ -1,9 +1,16 @@
+from typing import Any
 import os
 import shutil
 import json
 from src.utils.logger import setup_logging, log_decision_trace, _write_jsonl_trace
 
-def test_trace_refactor():
+def test_trace_refactor() -> None:
+    """
+    Test trace refactor.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     run_id = "test_trace_refactor"
     
     # Cleanup

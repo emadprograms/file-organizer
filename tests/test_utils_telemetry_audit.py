@@ -1,8 +1,9 @@
+from typing import Any
 import subprocess
 import pytest
 import os
 
-def test_no_telemetry_prints():
+def test_no_telemetry_prints() -> None:
     """
     Audit src/ to ensure no system telemetry print() statements remain.
     Allows 'console.print' and 'vprint'.

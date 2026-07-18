@@ -1,9 +1,10 @@
+from typing import Any
 import os
 import logging
 import pytest
 from src.utils.logger import setup_logging
 
-def test_exception_logging_traceback(tmp_path):
+def test_exception_logging_traceback(tmp_path) -> None:
     """
     Verify that logger.exception() captures the full stack trace in debug.log.
     """

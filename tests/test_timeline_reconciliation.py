@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 import json
 from pathlib import Path
@@ -6,15 +7,33 @@ from src.timeline import FileOrganizer, run_reconciliation
 from src.core.schemas import DocumentGroup
 
 @pytest.fixture
-def organizer():
+def organizer() -> Any:
+    """
+    Provide the organizer fixture/mock.
+
+    Returns:
+    The appropriate fixture or mock value.
+    """
     return FileOrganizer()
 
 @pytest.fixture
-def mock_config():
+def mock_config() -> None:
+    """
+    Provide the mock config fixture/mock.
+
+    Returns:
+    The appropriate fixture or mock value.
+    """
     return None
 
 @patch('src.timeline.core.extract_pdf_segment')
-def test_create_house_directory(mock_extract, organizer, mock_config, tmp_path):
+def test_create_house_directory(mock_extract, organizer, mock_config, tmp_path) -> None:
+    """
+    Test create house directory.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     input_dir = tmp_path / "input"
     input_dir.mkdir()
     (input_dir / "123.pdf").touch()
@@ -26,7 +45,13 @@ def test_create_house_directory(mock_extract, organizer, mock_config, tmp_path):
     assert (tmp_path / "HOUSE_123 - Resident A" / "Resident A \u200E(2023 - 2023)\u200E").exists()
 
 @patch('src.timeline.core.extract_pdf_segment')
-def test_tenant_directories_timeline(mock_extract, organizer, mock_config, tmp_path):
+def test_tenant_directories_timeline(mock_extract, organizer, mock_config, tmp_path) -> None:
+    """
+    Test tenant directories timeline.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     input_dir = tmp_path / "input"
     input_dir.mkdir(exist_ok=True)
     (input_dir / "123.pdf").touch(exist_ok=True)
@@ -38,7 +63,13 @@ def test_tenant_directories_timeline(mock_extract, organizer, mock_config, tmp_p
     assert (tmp_path / "HOUSE_123 - Resident A" / "Resident A \u200E(2020 - 2023)\u200E").exists()
 
 @patch('src.timeline.core.extract_pdf_segment')
-def test_on_demand_topic_creation(mock_extract, organizer, mock_config, tmp_path):
+def test_on_demand_topic_creation(mock_extract, organizer, mock_config, tmp_path) -> None:
+    """
+    Test on demand topic creation.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     input_dir = tmp_path / "input"
     input_dir.mkdir(exist_ok=True)
     (input_dir / "123.pdf").touch(exist_ok=True)
@@ -50,7 +81,13 @@ def test_on_demand_topic_creation(mock_extract, organizer, mock_config, tmp_path
     assert (tmp_path / "HOUSE_123 - Resident A" / "Resident A \u200E(2020 - 2020)\u200E" / "02_بيانات شخصية").exists()
 
 @patch('src.timeline.core.extract_pdf_segment')
-def test_hardcoded_routing(mock_extract, organizer, mock_config, tmp_path):
+def test_hardcoded_routing(mock_extract, organizer, mock_config, tmp_path) -> None:
+    """
+    Test hardcoded routing.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     docs = [
         DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="OTHER_LETTERS", dates=[], folder_path="رسائل متنوعة", is_direct_routed=False, brief_arabic_title="رسالة"),
     ]
@@ -58,7 +95,13 @@ def test_hardcoded_routing(mock_extract, organizer, mock_config, tmp_path):
     mock_extract.assert_any_call("123.pdf", 0, 1, str(tmp_path / "HOUSE_123" / "Resident A" / "13_رسائل متنوعة" / "nodate - رسالة.pdf"))
 
 @patch('src.timeline.core.extract_pdf_segment')
-def test_unassigned_folder_period(mock_extract, organizer, mock_config, tmp_path):
+def test_unassigned_folder_period(mock_extract, organizer, mock_config, tmp_path) -> None:
+    """
+    Test unassigned folder period.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     input_dir = tmp_path / "input"
     input_dir.mkdir(exist_ok=True)
     (input_dir / "123.pdf").touch(exist_ok=True)
@@ -70,14 +113,26 @@ def test_unassigned_folder_period(mock_extract, organizer, mock_config, tmp_path
     assert (tmp_path / "HOUSE_123" / "غير مخصص (فترة مستنتجة) \u200E(2020-01 - 2023-01)\u200E").exists()
 
 @patch('src.timeline.core.extract_pdf_segment')
-def test_unassigned_folder_fallback(mock_extract, organizer, mock_config, tmp_path):
+def test_unassigned_folder_fallback(mock_extract, organizer, mock_config, tmp_path) -> None:
+    """
+    Test unassigned folder fallback.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     docs = [
         DocumentGroup(start_page=0, end_page=1, primary_tenant="Unassigned", category="BASIC_DETAILS", dates=["NONE", "NONE"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]
     organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
     assert (tmp_path / "HOUSE_123" / "غير مخصص").exists()
 
-def test_page_count_reconciliation(tmp_path):
+def test_page_count_reconciliation(tmp_path) -> None:
+    """
+    Test page count reconciliation.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     per_page = [
         {"page_index": 0, "tenant": "A", "date": "2020", "output_file": "file.pdf", "page_in_output": 1},
         {"page_index": 1, "tenant": "A", "date": "2020", "output_file": "file.pdf", "page_in_output": 2},
@@ -90,7 +145,13 @@ def test_page_count_reconciliation(tmp_path):
     with pytest.raises(RuntimeError):
         run_reconciliation(summary, per_page, 3, "HOUSE_123", tmp_path)
 
-def test_reconciliation_manifest(tmp_path):
+def test_reconciliation_manifest(tmp_path) -> None:
+    """
+    Test reconciliation manifest.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     per_page = [
         {"page_index": 0, "tenant": "A", "date": "2020", "output_file": "file.pdf", "page_in_output": 1},
     ]
@@ -105,7 +166,13 @@ def test_reconciliation_manifest(tmp_path):
 
 
 @patch('src.utils.fs.os.replace')
-def test_reconciliation_manifest_generation(mock_replace, tmp_path):
+def test_reconciliation_manifest_generation(mock_replace, tmp_path) -> None:
+    """
+    Test reconciliation manifest generation.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     per_page = [
         {"page_index": 0, "tenant": "A", "date": "2020", "output_file": "file.pdf", "page_in_output": 1},
     ]
@@ -132,14 +199,26 @@ def test_reconciliation_manifest_generation(mock_replace, tmp_path):
         assert data["per_page"][0]["tenant"] == "A"
 
 @patch('src.timeline.core.extract_pdf_segment')
-def test_organize_empty_documents(mock_extract, organizer, mock_config, tmp_path):
+def test_organize_empty_documents(mock_extract, organizer, mock_config, tmp_path) -> None:
+    """
+    Test organize empty documents.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     result = organizer.organize([], "123.pdf", "HOUSE_123", tmp_path, mock_config)
     assert result == []
     mock_extract.assert_not_called()
 
 @patch('src.timeline.core.os.makedirs')
 @patch('src.timeline.core.extract_pdf_segment')
-def test_organize_dry_run(mock_extract, mock_makedirs, organizer, mock_config, tmp_path):
+def test_organize_dry_run(mock_extract, mock_makedirs, organizer, mock_config, tmp_path) -> None:
+    """
+    Test organize dry run.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     docs = [
         DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]
@@ -149,7 +228,13 @@ def test_organize_dry_run(mock_extract, mock_makedirs, organizer, mock_config, t
     assert len(summary) == 2
 
 @patch('src.timeline.core.extract_pdf_segment')
-def test_organize_filename_conflict(mock_extract, organizer, mock_config, tmp_path):
+def test_organize_filename_conflict(mock_extract, organizer, mock_config, tmp_path) -> None:
+    """
+    Test organize filename conflict.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     docs = [
         DocumentGroup(start_page=0, end_page=0, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
         DocumentGroup(start_page=1, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
@@ -161,7 +246,13 @@ def test_organize_filename_conflict(mock_extract, organizer, mock_config, tmp_pa
     assert calls[0][0][3].endswith("2023-01-01.pdf")
     assert calls[1][0][3].endswith("2023-01-01_2.pdf")
 
-def test_organize_path_traversal(organizer, mock_config, tmp_path):
+def test_organize_path_traversal(organizer, mock_config, tmp_path) -> None:
+    """
+    Test organize path traversal.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     docs = [
         DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="../../../../../../../../../malicious", is_direct_routed=True),
     ]
@@ -169,7 +260,13 @@ def test_organize_path_traversal(organizer, mock_config, tmp_path):
         organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
 
 @patch('src.timeline.reconciliation.Path.replace')
-def test_reconciliation_dry_run(mock_replace, tmp_path):
+def test_reconciliation_dry_run(mock_replace, tmp_path) -> None:
+    """
+    Test reconciliation dry run.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     per_page = [
         {"page_index": 0, "tenant": "A", "date": "2020", "output_file": "file.pdf", "page_in_output": 1},
     ]

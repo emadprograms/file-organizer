@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 from pathlib import Path
 import shutil
@@ -5,7 +6,13 @@ import logging
 from src.main import run_generation_pass
 from unittest.mock import patch, MagicMock
 
-def test_file_placement_logic(tmp_path):
+def test_file_placement_logic(tmp_path) -> None:
+    """
+    Test file placement logic.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     target_dir = tmp_path / "target"
     target_dir.mkdir()
     house_id = "test_house"
@@ -34,7 +41,13 @@ def test_file_placement_logic(tmp_path):
     # Mock dependencies inside run_generation_pass
     # Simulate what organize() does: renames target_dir to house_dir
     house_dir = output_dir / house_id
-    def organize_side_effect(*args, **kwargs):
+    def organize_side_effect(*args, **kwargs) -> Any:
+        """
+        Provide the organize side effect fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         # organize() calls ensure_target_directories which renames target_dir -> house_dir
         if target_dir.exists() and not house_dir.exists():
             target_dir.rename(house_dir)
@@ -52,7 +65,13 @@ def test_file_placement_logic(tmp_path):
         mock_doc.page_count = 10
         mock_fitz_open.return_value.__enter__.return_value = mock_doc
         
-        def simulate_compress(tmp, final):
+        def simulate_compress(tmp, final) -> Any:
+            """
+            Provide the simulate compress fixture/mock.
+
+            Returns:
+            The appropriate fixture or mock value.
+            """
             Path(final).touch()
             # Also touch tmp so os.remove doesn't fail
             Path(tmp).touch()

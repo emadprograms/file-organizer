@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 import os
 from pathlib import Path
@@ -6,7 +7,7 @@ import json
 from unittest.mock import MagicMock, patch
 from src.pipeline.pipeline import Pipeline
 
-def test_malformed_json_graceful_failure(tmp_path):
+def test_malformed_json_graceful_failure(tmp_path) -> None:
     """Malformed _report.json causes a graceful non-zero exit, not an unhandled stack trace."""
     import subprocess
     import sys
@@ -42,7 +43,13 @@ def test_malformed_json_graceful_failure(tmp_path):
         f"Expected a JSON error indication in combined_output, got: {combined_output}"
     )
 
-def test_pipeline_out_of_bounds_routing(tmp_path):
+def test_pipeline_out_of_bounds_routing(tmp_path) -> None:
+    """
+    Test pipeline out of bounds routing.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     import subprocess
     import sys
     

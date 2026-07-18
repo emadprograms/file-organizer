@@ -1,3 +1,4 @@
+from typing import Any
 """End-to-end tests for the pipeline.
 
 Uses isolated fixture files in tests/fixtures/golden_1273/ to avoid
@@ -37,7 +38,13 @@ def _setup_run_dir(tmp_path: Path) -> Path:
 @patch("src.timeline.phase.canonicalize_with_llm")
 @patch("src.grouping.core.process_with_shrink")
 @patch("src.routing.router.route_document")
-def test_dry_run_end_to_end(mock_route, mock_shrink, mock_canonicalize, tmp_path, capfd):
+def test_dry_run_end_to_end(mock_route, mock_shrink, mock_canonicalize, tmp_path, capfd) -> None:
+    """
+    Test dry run end to end.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     house_dir = _setup_run_dir(tmp_path)
     output_dir = house_dir / "output"
     
@@ -72,7 +79,13 @@ def test_dry_run_end_to_end(mock_route, mock_shrink, mock_canonicalize, tmp_path
 @patch("src.timeline.phase.canonicalize_with_llm")
 @patch("src.grouping.core.process_with_shrink")
 @patch("src.routing.router.route_document")
-def test_full_run_end_to_end(mock_route, mock_shrink, mock_canonicalize, tmp_path):
+def test_full_run_end_to_end(mock_route, mock_shrink, mock_canonicalize, tmp_path) -> None:
+    """
+    Test full run end to end.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     house_dir = _setup_run_dir(tmp_path)
     output_dir = house_dir / "output"
     

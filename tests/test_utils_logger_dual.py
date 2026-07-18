@@ -1,9 +1,16 @@
+from typing import Any
 import os
 import shutil
 import logging
 from src.utils.logger import setup_logging
 
-def test_dual_logging():
+def test_dual_logging() -> None:
+    """
+    Test dual logging.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     run_id = "test_dual_logs"
     # Cleanup previous tests
     if os.path.exists("logs"):

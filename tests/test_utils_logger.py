@@ -1,3 +1,4 @@
+from typing import Any
 import os
 import json
 import logging
@@ -6,12 +7,12 @@ from unittest.mock import patch
 from src.utils.logger import LogContext, JSONLFormatter, setup_logging, log_decision_trace
 
 @pytest.fixture(autouse=True)
-def reset_log_context():
+def reset_log_context() -> Any:
     """Resets the LogContext singleton before each test."""
     LogContext._instance = None
     logging.getLogger("traces").handlers.clear()
 
-def test_log_context_singleton():
+def test_log_context_singleton() -> None:
     """Verify LogContext is a singleton and maintains state."""
     ctx1 = LogContext.get_instance()
     ctx2 = LogContext.get_instance()
@@ -21,13 +22,13 @@ def test_log_context_singleton():
     assert ctx2.run_dir == "test_dir"
     assert ctx2.run_id == "test_id"
 
-def test_log_context_init_restriction():
+def test_log_context_init_restriction() -> None:
     """Verify that LogContext cannot be instantiated directly."""
     LogContext.get_instance() # Ensure instance exists
     with pytest.raises(RuntimeError, match="Use LogContext.get_instance"):
         LogContext()
 
-def test_jsonl_formatter():
+def test_jsonl_formatter() -> None:
     """Verify JSONLFormatter produces valid JSON with required keys."""
     formatter = JSONLFormatter()
     logger = logging.getLogger("test_logger")
@@ -50,7 +51,7 @@ def test_jsonl_formatter():
     assert data["name"] == "test_logger"
     assert data["level"] == "INFO"
 
-def test_setup_logging_basic(tmp_path):
+def test_setup_logging_basic(tmp_path) -> None:
     """Verify setup_logging initializes context and creates log files."""
     with patch("src.utils.logger.LOGS_DIR", str(tmp_path)):
         run_id = "test_run"
@@ -65,7 +66,7 @@ def test_setup_logging_basic(tmp_path):
         assert os.path.exists(os.path.join(run_dir, "app.log"))
         assert os.path.exists(os.path.join(run_dir, "debug.log"))
 
-def test_setup_logging_noise_suppression_blacklist(tmp_path):
+def test_setup_logging_noise_suppression_blacklist(tmp_path) -> None:
     """Verify permissive blacklist when verbose=False."""
     with patch("src.utils.logger.LOGS_DIR", str(tmp_path)):
         setup_logging(verbose=False)
@@ -75,7 +76,7 @@ def test_setup_logging_noise_suppression_blacklist(tmp_path):
         # file_organizer should be DEBUG
         assert logging.getLogger("file_organizer").getEffectiveLevel() == logging.DEBUG
 
-def test_setup_logging_noise_suppression_whitelist(tmp_path):
+def test_setup_logging_noise_suppression_whitelist(tmp_path) -> None:
     """Verify strict whitelist when verbose=True."""
     with patch("src.utils.logger.LOGS_DIR", str(tmp_path)):
         setup_logging(verbose=True)
@@ -87,7 +88,7 @@ def test_setup_logging_noise_suppression_whitelist(tmp_path):
         for library in ["urllib3", "httpcore"]:
             assert logging.getLogger(library).getEffectiveLevel() == logging.INFO
 
-def test_log_decision_trace(tmp_path):
+def test_log_decision_trace(tmp_path) -> None:
     """Verify structured trace logging."""
     with patch("src.utils.logger.LOGS_DIR", str(tmp_path)):
         # Initialize context first
@@ -106,7 +107,7 @@ def test_log_decision_trace(tmp_path):
             assert data["trace_type"] == "decision_test_type"
             assert data["payload"] == payload
 
-def test_log_decision_trace_fallback(tmp_path):
+def test_log_decision_trace_fallback(tmp_path) -> None:
     """Verify fallback directory behavior when called before setup_logging."""
     LogContext._instance = None # Ensure no context
     logging.getLogger("traces").handlers.clear()
@@ -128,7 +129,7 @@ def test_log_decision_trace_fallback(tmp_path):
             data = json.loads(line)
             assert data["trace_type"] == "decision_fallback_type"
 
-def test_hierarchical_logger_naming():
+def test_hierarchical_logger_naming() -> None:
     """Verify that sample modules in src/ use the standard logger naming and variable."""
     import importlib
     
