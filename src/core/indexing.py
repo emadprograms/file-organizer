@@ -4,8 +4,15 @@ import logging
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def to_0_based(index: int) -> int:
-    """Convert a 1-based index to 0-based. 
+    """Convert a 1-based index to 0-based.
+    
     If already 0-based (or less), returns 0.
+    
+    Args:
+        index (int): The 1-based index.
+        
+    Returns:
+        int: The 0-based index.
     """
     return max(0, index - 1)
 
