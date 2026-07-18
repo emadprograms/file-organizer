@@ -2,11 +2,15 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Unified File-System UI & Append Mode
+current_phase: 19.1 — fix yaml integration architecture
+current_phase_name: defining requirements
 status: planning
-last_updated: "2026-07-17T17:20:40.224Z"
+stopped_at: Phase 20 context gathered
+last_updated: "2026-07-18T10:12:59.413Z"
 last_activity: 2026-07-17
+last_activity_desc: Milestone v3.0 started
 progress:
-  total_phases: 0
+  total_phases: 5
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -38,9 +42,9 @@ progress:
 
 ## Session
 
-**Last session:** 2026-07-17T07:06:00.000Z
-**Stopped at:** Phase 19 replanning — test suite overhaul
-**Resume file:** .planning/phases/19-end-to-end-testing-and-verification/19-CONTEXT.md
+**Last session:** 2026-07-18T10:12:59.408Z
+**Stopped at:** Phase 20 context gathered
+**Resume file:** .planning/phases/20-codebase-maintainability-sweep/20-CONTEXT.md
 
 ## Current Position
 
@@ -67,6 +71,10 @@ Last activity: 2026-07-17 — Milestone v3.0 started
 - `golden_1273` fixture restructured with `input/1273/.source_files/` and `expected_output/` subfolders
 - LLM responses captured once from a real run, saved in fixtures, and used as deterministic mocks
 - Dry run tests load intermediate JSON state files to bypass LLM calls
+
+### Key Decisions (Milestone v3.0)
+
+- Adopt a hybrid architecture: retain the stateless, functional approach for the core document pipeline, but introduce class-based orchestrators for the stateful, long-running FS-UI listener in upcoming phases.
 
 ## Performance Metrics
 
