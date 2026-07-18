@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 from unittest.mock import MagicMock, patch
 from pydantic import BaseModel
@@ -11,11 +12,23 @@ class PageClassification(BaseModel):
     confidence: float
 
 class DummyPart:
-    def __init__(self, data, mime_type):
+    def __init__(self, data, mime_type) -> Any:
+        """
+        Provide the   init   fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         self.data = data
         self.mime_type = mime_type
 
-def test_gemini_provider_generate():
+def test_gemini_provider_generate() -> None:
+    """
+    Test gemini provider generate.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     with patch('src.llm.providers.genai.Client') as mock_client:
         mock_instance = MagicMock()
         mock_client.return_value = mock_instance
@@ -44,7 +57,13 @@ def test_gemini_provider_generate():
         assert call_args["contents"] == contents
         assert call_args["config"].response_schema == PageClassification
 
-def test_gemini_provider_error_handling():
+def test_gemini_provider_error_handling() -> None:
+    """
+    Test gemini provider error handling.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     with patch('src.llm.providers.genai.Client') as mock_client:
         mock_instance = MagicMock()
         mock_client.return_value = mock_instance

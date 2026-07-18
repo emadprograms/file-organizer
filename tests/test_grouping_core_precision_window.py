@@ -1,3 +1,4 @@
+from typing import Any
 
 import unittest
 from unittest.mock import MagicMock, patch
@@ -5,7 +6,13 @@ from src.grouping.core import process_with_shrink
 from src.core.schemas import DocumentGroup
 
 class MockPage:
-    def __init__(self, index, category="others"):
+    def __init__(self, index, category="others") -> Any:
+        """
+        Provide the   init   fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         self.original_index = index
         self.category = category
         self.canonical_tenant = "Test Tenant"
@@ -16,7 +23,13 @@ class MockPage:
 
 class TestUAT08PrecisionWindow(unittest.TestCase):
     @patch('src.grouping.core._process_chunk')
-    def test_others_precision_window(self, mock_process_chunk):
+    def test_others_precision_window(self, mock_process_chunk) -> None:
+        """
+        Test others precision window.
+
+        Expected outcome:
+        The function should execute successfully and meet all assertions.
+        """
         # Mock _process_chunk to return a valid group so it doesn't fail validation
         mock_process_chunk.return_value = [
             DocumentGroup(start_page=0, end_page=1, primary_tenant="T", category="others", dates=[], reason="R")

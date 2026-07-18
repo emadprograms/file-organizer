@@ -1,3 +1,4 @@
+from typing import Any
 
 import unittest
 from unittest.mock import MagicMock
@@ -5,7 +6,13 @@ from src.grouping.core import process_with_shrink
 from src.core.schemas import DocumentGroup
 
 class MockPage:
-    def __init__(self, index, category, tenant="Test Tenant", date="2020-01-16", content_explanation="Contract content", subject="Contract Subject"):
+    def __init__(self, index, category, tenant="Test Tenant", date="2020-01-16", content_explanation="Contract content", subject="Contract Subject") -> Any:
+        """
+        Provide the   init   fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         self.original_index = index
         self.category = category
         self.canonical_tenant = tenant
@@ -15,7 +22,13 @@ class MockPage:
         self.subject = subject
 
 class TestUAT08Contracts(unittest.TestCase):
-    def test_contract_grouping_deterministic(self):
+    def test_contract_grouping_deterministic(self) -> None:
+        """
+        Test contract grouping deterministic.
+
+        Expected outcome:
+        The function should execute successfully and meet all assertions.
+        """
         # Data based on pages 9-15 of file 567
         pages = [
             MockPage(9, "contract"),

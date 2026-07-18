@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 import logging
 from unittest.mock import MagicMock, patch
@@ -11,7 +12,13 @@ class DummyResponse(BaseModel):
     success: bool
 
 @patch.dict('os.environ', {'GEMINI_API_KEY': 'dummy'})
-def test_llm_trace_files_created(tmp_path):
+def test_llm_trace_files_created(tmp_path) -> None:
+    """
+    Test llm trace files created.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     from src.llm.llm import LLMClient
     
     # We verify that the LLMClient calls the trace logging function with correct data

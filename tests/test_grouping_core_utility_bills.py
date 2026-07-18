@@ -1,3 +1,4 @@
+from typing import Any
 
 import unittest
 from unittest.mock import MagicMock
@@ -5,7 +6,13 @@ from src.grouping.core import process_with_shrink
 from src.core.schemas import DocumentGroup
 
 class MockPage:
-    def __init__(self, index, category, tenant="Test Tenant", date="2017-10-15", content_explanation="Utility bill content", subject="Bill Subject"):
+    def __init__(self, index, category, tenant="Test Tenant", date="2017-10-15", content_explanation="Utility bill content", subject="Bill Subject") -> Any:
+        """
+        Provide the   init   fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         self.original_index = index
         self.category = category
         self.canonical_tenant = tenant
@@ -15,7 +22,13 @@ class MockPage:
         self.subject = subject
 
 class TestUAT08UtilityBills(unittest.TestCase):
-    def test_utility_bill_splitting_deterministic(self):
+    def test_utility_bill_splitting_deterministic(self) -> None:
+        """
+        Test utility bill splitting deterministic.
+
+        Expected outcome:
+        The function should execute successfully and meet all assertions.
+        """
         # Data based on extracted utility bills from file 567 (pages 99, 123, 138, 145)
         pages = [
             MockPage(99, "utility_bills"),

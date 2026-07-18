@@ -1,10 +1,17 @@
+from typing import Any
 import pytest
 from unittest.mock import MagicMock, patch
 from src.llm.llm import LLMClient, LLMFailureError
 from src.llm.providers import LLMProvider
 
 class MockProvider:
-    def __init__(self, name="mock"):
+    def __init__(self, name="mock") -> Any:
+        """
+        Provide the   init   fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         self._name = name
         self.call_count = 0
         self.responses = []
@@ -13,7 +20,13 @@ class MockProvider:
     def name(self) -> str:
         return self._name
 
-    def generate(self, model, contents, response_schema=None, validation_context=None):
+    def generate(self, model, contents, response_schema=None, validation_context=None) -> Any:
+        """
+        Provide the generate fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         self.call_count += 1
         if self.call_count <= len(self.responses):
             resp = self.responses[self.call_count - 1]
@@ -22,7 +35,13 @@ class MockProvider:
             return resp
         return "Success"
 
-def test_routing_failure_isolation():
+def test_routing_failure_isolation() -> None:
+    """
+    Test routing failure isolation.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     print("Testing UAT-09-03: Routing failure isolation")
     
     # We want to simulate a scenario where:

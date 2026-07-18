@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 import logging
 import os
@@ -16,7 +17,13 @@ logger = logging.getLogger(f"file_organizer.{__name__}")
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
 class MockPage:
-    def __init__(self, index, category, tenant="Test Tenant", date="2023-01-01", content_explanation="Some content", subject="Some subject"):
+    def __init__(self, index, category, tenant="Test Tenant", date="2023-01-01", content_explanation="Some content", subject="Some subject") -> Any:
+        """
+        Provide the   init   fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         self.original_index = index
         self.category = category
         self.canonical_tenant = tenant
@@ -27,7 +34,13 @@ class MockPage:
 
 # --- Utils Tests ---
 
-def test_verification_logic():
+def test_verification_logic() -> None:
+    """
+    Test verification logic.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     # Valid
     groups = [
         GroupEntry(start_page=0, end_page=2, reason="A", brief_arabic_title="A"),
@@ -59,7 +72,13 @@ def test_verification_logic():
     with pytest.raises(ValueError, match="does not match chunk end boundary"):
         verify_groups(groups, 0, 11)
 
-def test_overlap_merge():
+def test_overlap_merge() -> None:
+    """
+    Test overlap merge.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     # overlap_page_idx = 9
     # Chunk 1: pages 0-9
     chunk1_groups = [
@@ -83,7 +102,13 @@ def test_overlap_merge():
     assert merged[2].start_page == 13
     assert merged[2].end_page == 15
 
-def test_anchor_page_merging():
+def test_anchor_page_merging() -> None:
+    """
+    Test anchor page merging.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     # overlap_page_idx = 9
     
     # Scenario A: Continuation (MERGE)
@@ -134,7 +159,13 @@ def test_anchor_page_merging():
 
 # --- Core Unit Tests ---
 
-def test_process_chunk_metadata_extraction():
+def test_process_chunk_metadata_extraction() -> None:
+    """
+    Test process chunk metadata extraction.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     pages = [
         MockPage(index=100, category="forms", tenant="Tenant A", date="2023-05-01"),
         MockPage(index=101, category="forms", tenant="Tenant A", date="2023-05-02"),
@@ -156,7 +187,13 @@ def test_process_chunk_metadata_extraction():
     assert "2023-05-02" in g.dates
     assert g.reason == "Grouped"
 
-def test_process_with_shrink_deterministic_bypasses():
+def test_process_with_shrink_deterministic_bypasses() -> None:
+    """
+    Test process with shrink deterministic bypasses.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     llm_client = MagicMock()
     
     # Contract: 1 group
@@ -182,7 +219,13 @@ def test_process_with_shrink_deterministic_bypasses():
     
     llm_client.generate_content.assert_not_called()
 
-def test_process_with_shrink_default_routing():
+def test_process_with_shrink_default_routing() -> None:
+    """
+    Test process with shrink default routing.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     llm_client = MagicMock()
     llm_client.generate_content.return_value = GroupingResponse(
         groups=[GroupEntry(start_page=0, end_page=0, reason="R", brief_arabic_title="T")]
@@ -197,12 +240,24 @@ def test_process_with_shrink_default_routing():
     prompt = kwargs['contents'][0] if 'contents' in kwargs else args[0][0]
     assert FORM_PROMPT in prompt
 
-def test_resilient_loop_success(tmp_path):
+def test_resilient_loop_success(tmp_path) -> None:
+    """
+    Test resilient loop success.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     state_file = tmp_path / "success.state.json"
     manager = GroupingStateManager(str(state_file))
     llm_client = MagicMock()
     
-    def llm_side_effect(contents, **kwargs):
+    def llm_side_effect(contents, **kwargs) -> Any:
+        """
+        Provide the llm side effect fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         prompt = contents[0]
         if "Page 0 to Page 3" in prompt:
             return GroupingResponse(groups=[GroupEntry(start_page=0, end_page=3, reason="R", brief_arabic_title="T")])
@@ -221,12 +276,24 @@ def test_resilient_loop_success(tmp_path):
     state = manager.load_state()
     assert state.chunk_size_index == 0
 
-def test_resilient_loop_shrink(tmp_path):
+def test_resilient_loop_shrink(tmp_path) -> None:
+    """
+    Test resilient loop shrink.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     state_file = tmp_path / "shrink.state.json"
     manager = GroupingStateManager(str(state_file))
     llm_client = MagicMock()
     
-    def llm_side_effect(contents, **kwargs):
+    def llm_side_effect(contents, **kwargs) -> Any:
+        """
+        Provide the llm side effect fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         prompt = contents[0]
         # Extract range from prompt: "Page X to Page Y"
         import re
@@ -256,7 +323,13 @@ def test_resilient_loop_shrink(tmp_path):
     assert "Page 0 to Page 3" in first_prompt
     assert "Page 0 to Page 2" in second_prompt
 
-def test_resilient_loop_halt(tmp_path):
+def test_resilient_loop_halt(tmp_path) -> None:
+    """
+    Test resilient loop halt.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     state_file = tmp_path / "halt.state.json"
     manager = GroupingStateManager(str(state_file))
     llm_client = MagicMock()
@@ -272,7 +345,13 @@ def test_resilient_loop_halt(tmp_path):
     assert state.chunk_size_index == 2
     assert state.current_page_index == 0
 
-def test_resilient_loop_resume(tmp_path):
+def test_resilient_loop_resume(tmp_path) -> None:
+    """
+    Test resilient loop resume.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     state_file = tmp_path / "resume.state.json"
     manager = GroupingStateManager(str(state_file))
     
@@ -286,7 +365,13 @@ def test_resilient_loop_resume(tmp_path):
     
     llm_client = MagicMock()
     
-    def llm_side_effect(contents, **kwargs):
+    def llm_side_effect(contents, **kwargs) -> Any:
+        """
+        Provide the llm side effect fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         prompt = contents[0]
         if "Page 5 to Page 7" in prompt:
             return GroupingResponse(groups=[GroupEntry(start_page=5, end_page=7, reason="R", brief_arabic_title="T")])
@@ -304,12 +389,24 @@ def test_resilient_loop_resume(tmp_path):
     # After resume, 5-7 and 7-9 are merged because they share page 7 and same metadata
     assert groups[1].start_page == 5 and groups[1].end_page == 9
 
-def test_resilient_loop_partial_success(tmp_path):
+def test_resilient_loop_partial_success(tmp_path) -> None:
+    """
+    Test resilient loop partial success.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     state_file = tmp_path / "partial.state.json"
     manager = GroupingStateManager(str(state_file))
     llm_client = MagicMock()
     
-    def llm_side_effect(contents, **kwargs):
+    def llm_side_effect(contents, **kwargs) -> Any:
+        """
+        Provide the llm side effect fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         prompt = contents[0]
         if "Page 0 to Page 3" in prompt:
             return GroupingResponse(groups=[GroupEntry(start_page=0, end_page=3, reason="R", brief_arabic_title="T")])
@@ -328,7 +425,13 @@ def test_resilient_loop_partial_success(tmp_path):
     assert state.chunk_size_index == 0
 
 @patch("src.utils.logger.log_decision_trace")
-def test_process_with_shrink_telemetry(mock_log):
+def test_process_with_shrink_telemetry(mock_log) -> None:
+    """
+    Test process with shrink telemetry.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     llm_client = MagicMock()
     llm_client.generate_content.return_value = GroupingResponse(
         groups=[GroupEntry(start_page=0, end_page=0, reason="R", brief_arabic_title="T")]
@@ -342,12 +445,24 @@ def test_process_with_shrink_telemetry(mock_log):
     assert args[0] == "grouping"
     assert "final_groups" in args[1]
 
-def test_grouping_e2e_scenario():
+def test_grouping_e2e_scenario() -> None:
+    """
+    Test grouping e2e scenario.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     llm_client = MagicMock()
     
     # Scenario: Pages 0-2 are a letter (1 group), Pages 3-4 are a form (2 groups)
     # We'll need a side_effect for generate_content to return different things
-    def llm_side_effect(contents, **kwargs):
+    def llm_side_effect(contents, **kwargs) -> Any:
+        """
+        Provide the llm side effect fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         prompt = contents[0]
         if "Page 0 to Page 3" in prompt or "Page 0 to Page 2" in prompt:
             # First chunk (0-3). Must end at 3.
@@ -377,13 +492,25 @@ def test_grouping_e2e_scenario():
     assert groups[0].start_page == 0 and groups[0].end_page == 2
     assert groups[1].start_page == 3 and groups[1].end_page == 4
 
-def test_boundary_signals():
+def test_boundary_signals() -> None:
+    """
+    Test boundary signals.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     assert "subject/content shift" in FORM_PROMPT
     assert "DO NOT split on date changes" in FORM_PROMPT
 
 # --- State Manager Tests ---
 
-def test_grouping_state_persistence(tmp_path):
+def test_grouping_state_persistence(tmp_path) -> None:
+    """
+    Test grouping state persistence.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     state_file = tmp_path / "grouping.state.json"
     manager = GroupingStateManager(str(state_file))
     
@@ -408,7 +535,13 @@ def test_grouping_state_persistence(tmp_path):
     assert loaded_state.failure_count == 5
     assert loaded_state.processed_groups == [{"start": 0, "end": 9}]
 
-def test_grouping_state_corrupted_fallback(tmp_path):
+def test_grouping_state_corrupted_fallback(tmp_path) -> None:
+    """
+    Test grouping state corrupted fallback.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     state_file = tmp_path / "grouping.state.json"
     manager = GroupingStateManager(str(state_file))
     
@@ -426,14 +559,26 @@ def test_grouping_state_corrupted_fallback(tmp_path):
     loaded_state = manager.load_state()
     assert loaded_state.current_page_index == 5
 
-def test_grouping_state_missing_files():
+def test_grouping_state_missing_files() -> None:
+    """
+    Test grouping state missing files.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     # Manager with non-existent files should return default state
     manager = GroupingStateManager("non_existent_file.json")
     state = manager.load_state()
     assert isinstance(state, GroupingState)
     assert state.current_page_index == 0
 
-def test_grouping_state_atomic_write_simulation(tmp_path):
+def test_grouping_state_atomic_write_simulation(tmp_path) -> None:
+    """
+    Test grouping state atomic write simulation.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     state_file = tmp_path / "grouping.state.json"
     manager = GroupingStateManager(str(state_file))
     

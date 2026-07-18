@@ -1,3 +1,4 @@
+from typing import Any
 import os
 import pytest
 import logging
@@ -5,7 +6,13 @@ from src.core.config import record_successful_call, TRACKING_DIR, LOG_FILE
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-def test_record_successful_call_creates_dir_and_file(tmp_path, monkeypatch):
+def test_record_successful_call_creates_dir_and_file(tmp_path, monkeypatch) -> None:
+    """
+    Test record successful call creates dir and file.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     # Mock TRACKING_DIR and LOG_FILE to use tmp_path
     mock_tracking_dir = tmp_path / ".tracking"
     mock_log_file = mock_tracking_dir / "api_calls.log"
@@ -25,7 +32,13 @@ def test_record_successful_call_creates_dir_and_file(tmp_path, monkeypatch):
         # Should be a timestamp (float)
         assert float(lines[0].strip()) > 0
 
-def test_record_successful_call_appends(tmp_path, monkeypatch):
+def test_record_successful_call_appends(tmp_path, monkeypatch) -> None:
+    """
+    Test record successful call appends.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     mock_tracking_dir = tmp_path / ".tracking"
     mock_log_file = mock_tracking_dir / "api_calls.log"
     
@@ -39,13 +52,25 @@ def test_record_successful_call_appends(tmp_path, monkeypatch):
         lines = f.readlines()
         assert len(lines) == 2
 
-def test_record_successful_call_handles_exception(tmp_path, monkeypatch):
+def test_record_successful_call_handles_exception(tmp_path, monkeypatch) -> None:
+    """
+    Test record successful call handles exception.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     # Create a directory where the log file should be, but make it read-only or similar
     # A simpler way is to mock open to raise an exception
     import builtins
     
     original_open = builtins.open
-    def mock_open(*args, **kwargs):
+    def mock_open(*args, **kwargs) -> None:
+        """
+        Provide the mock open fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         if "api_calls.log" in str(args[0]):
             raise IOError("Mocked write failure")
         return original_open(*args, **kwargs)

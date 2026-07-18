@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 import logging
 from unittest.mock import MagicMock, patch
@@ -5,7 +6,7 @@ from src.llm.llm import LLMClient
 from src.core.schemas import GroupingResponse, GroupEntry
 from src.routing import RoutingResponse
 
-def test_llm_client_skip_llm_grouping():
+def test_llm_client_skip_llm_grouping() -> None:
     """Verify that skip_llm returns a mocked GroupingResponse with parsed bounds."""
     client = LLMClient("dummy_key")
     client.skip_llm = True
@@ -22,7 +23,7 @@ def test_llm_client_skip_llm_grouping():
     assert result.groups[0].end_page == 10
     assert result.groups[0].reason == "mock skip-llm"
 
-def test_llm_client_skip_llm_routing():
+def test_llm_client_skip_llm_routing() -> None:
     """Verify that skip_llm returns a mocked RoutingResponse."""
     client = LLMClient("dummy_key")
     client.skip_llm = True
@@ -36,7 +37,7 @@ def test_llm_client_skip_llm_routing():
     assert isinstance(result, RoutingResponse)
     assert result.selected_folder == "رسائل متنوعة"
 
-def test_llm_client_skip_llm_plain_text():
+def test_llm_client_skip_llm_plain_text() -> None:
     """Verify that skip_llm returns a mock string when no schema is provided."""
     client = LLMClient("dummy_key")
     client.skip_llm = True
@@ -45,7 +46,7 @@ def test_llm_client_skip_llm_plain_text():
     result = client._route_llm_call("model", contents, None)
     
     assert result == "{}"
-def test_llm_client_verbose_logging(caplog):
+def test_llm_client_verbose_logging(caplog) -> None:
     """Verify that verbose=True triggers debug logging of prompt and response."""
     caplog.set_level(logging.DEBUG)
     client = LLMClient("dummy_key")
@@ -58,7 +59,7 @@ def test_llm_client_verbose_logging(caplog):
         assert "Prompt: ['test prompt']" in caplog.text
         assert "Response: mock response" in caplog.text
 
-def test_llm_client_non_verbose_logging(caplog):
+def test_llm_client_non_verbose_logging(caplog) -> None:
     """Verify that verbose=False does NOT trigger debug logging of prompt and response."""
     caplog.set_level(logging.DEBUG)
     client = LLMClient("dummy_key")

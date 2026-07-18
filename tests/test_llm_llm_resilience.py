@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 from unittest.mock import MagicMock, patch, call
 from src.llm.llm import LLMClient, LLMFailureError
@@ -5,7 +6,13 @@ from src.llm.providers import LLMProvider
 from src.core.exceptions import ProviderRotationExhaustedError
 
 class MockProvider(LLMProvider):
-    def __init__(self, name, behavior=None):
+    def __init__(self, name, behavior=None) -> Any:
+        """
+        Provide the   init   fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         self._name = name
         self.behavior = behavior if behavior else []
         self.call_count = 0
@@ -14,7 +21,13 @@ class MockProvider(LLMProvider):
     def name(self) -> str:
         return self._name
 
-    def generate(self, model, contents, response_schema=None, validation_context=None):
+    def generate(self, model, contents, response_schema=None, validation_context=None) -> Any:
+        """
+        Provide the generate fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         self.call_count += 1
         if self.behavior and self.call_count <= len(self.behavior):
             result = self.behavior[self.call_count - 1]
@@ -23,20 +36,44 @@ class MockProvider(LLMProvider):
             return result
         return "Success"
 
-def raise_http_error(status_code):
+def raise_http_error(status_code) -> Any:
+    """
+    Provide the raise http error fixture/mock.
+
+    Returns:
+    The appropriate fixture or mock value.
+    """
     class HTTPError(Exception):
-        def __str__(self):
+        def __str__(self) -> Any:
+            """
+            Provide the   str   fixture/mock.
+
+            Returns:
+            The appropriate fixture or mock value.
+            """
             return f"HTTP Error {status_code}: Some error message"
     return HTTPError(status_code)
 
 @pytest.fixture
-def llm_client():
+def llm_client() -> Any:
+    """
+    Provide the llm client fixture/mock.
+
+    Returns:
+    The appropriate fixture or mock value.
+    """
     with patch('src.llm.llm.os.getenv', side_effect=lambda *args, **kwargs: args[0] == "GEMINI_API_KEY" and "fake_key" or ""):
         client = LLMClient(api_key="fake_key")
         client.provider = MockProvider("gemini")
         return client
 
-def test_resilience_429_retry_limit(llm_client):
+def test_resilience_429_retry_limit(llm_client) -> None:
+    """
+    Test resilience 429 retry limit.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     llm_client.provider.behavior = [raise_http_error(429)] * 10
     
     with patch('time.sleep') as mock_sleep:
@@ -50,7 +87,13 @@ def test_resilience_429_retry_limit(llm_client):
         assert all(v == 65 for v in rate_limit_sleeps), f"Rate-limit sleeps should be 65s, got {rate_limit_sleeps}"
         assert all(5 <= v <= 10 for v in inter_call_sleeps), f"Inter-call sleeps should be ~7s, got {inter_call_sleeps}"
 
-def test_resilience_401_immediate_halt(llm_client):
+def test_resilience_401_immediate_halt(llm_client) -> None:
+    """
+    Test resilience 401 immediate halt.
+
+    Expected outcome:
+    The function should execute successfully and meet all assertions.
+    """
     llm_client.provider.behavior = [raise_http_error(401)] * 10
     with patch('time.sleep') as mock_sleep:
         with pytest.raises(LLMFailureError):

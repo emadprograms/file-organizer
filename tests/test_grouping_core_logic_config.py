@@ -1,3 +1,4 @@
+from typing import Any
 
 import unittest
 from unittest.mock import MagicMock, patch
@@ -6,7 +7,13 @@ from src.grouping.config import LETTER_PROMPT, FORM_PROMPT, OTHER_PROMPT
 from src.core.schemas import DocumentGroup
 
 class MockPage:
-    def __init__(self, index, category, tenant="Test Tenant", date="2023-01-01", content_explanation="Some content", subject="Some subject"):
+    def __init__(self, index, category, tenant="Test Tenant", date="2023-01-01", content_explanation="Some content", subject="Some subject") -> Any:
+        """
+        Provide the   init   fixture/mock.
+
+        Returns:
+        The appropriate fixture or mock value.
+        """
         self.original_index = index
         self.category = category
         self.canonical_tenant = tenant
@@ -16,12 +23,24 @@ class MockPage:
         self.subject = subject
 
 class TestPhase08Grouping(unittest.TestCase):
-    def test_config_prompts(self):
+    def test_config_prompts(self) -> None:
+        """
+        Test config prompts.
+
+        Expected outcome:
+        The function should execute successfully and meet all assertions.
+        """
         self.assertIn("True Until Proven Guilty", LETTER_PROMPT)
         self.assertIn("Hard Reset", LETTER_PROMPT)
         self.assertIn("tables", LETTER_PROMPT)
 
-    def test_deterministic_bypass_contracts(self):
+    def test_deterministic_bypass_contracts(self) -> None:
+        """
+        Test deterministic bypass contracts.
+
+        Expected outcome:
+        The function should execute successfully and meet all assertions.
+        """
         pages = [
             MockPage(10, "contract"),
             MockPage(11, "contract"),
@@ -36,7 +55,13 @@ class TestPhase08Grouping(unittest.TestCase):
         self.assertEqual(groups[0].category, "contract")
         llm_client.generate_content.assert_not_called()
 
-    def test_deterministic_bypass_utility_bills(self):
+    def test_deterministic_bypass_utility_bills(self) -> None:
+        """
+        Test deterministic bypass utility bills.
+
+        Expected outcome:
+        The function should execute successfully and meet all assertions.
+        """
         pages = [
             MockPage(20, "utility_bills"),
             MockPage(21, "utility_bills")
@@ -52,7 +77,13 @@ class TestPhase08Grouping(unittest.TestCase):
         llm_client.generate_content.assert_not_called()
 
     @patch('src.grouping.core._process_chunk')
-    def test_dynamic_routing_others(self, mock_process_chunk):
+    def test_dynamic_routing_others(self, mock_process_chunk) -> None:
+        """
+        Test dynamic routing others.
+
+        Expected outcome:
+        The function should execute successfully and meet all assertions.
+        """
         # Mock _process_chunk to return a group
         mock_process_chunk.return_value = [
             DocumentGroup(start_page=0, end_page=1, primary_tenant="T", category="others", dates=[], reason="R")
@@ -71,7 +102,13 @@ class TestPhase08Grouping(unittest.TestCase):
         mock_process_chunk.assert_any_call(pages, 0, 2, llm_client, OTHER_PROMPT, "content_explanation", model=None)
 
     @patch('src.grouping.core._process_chunk')
-    def test_dynamic_routing_letters(self, mock_process_chunk):
+    def test_dynamic_routing_letters(self, mock_process_chunk) -> None:
+        """
+        Test dynamic routing letters.
+
+        Expected outcome:
+        The function should execute successfully and meet all assertions.
+        """
         mock_process_chunk.return_value = [
             DocumentGroup(start_page=0, end_page=0, primary_tenant="T", category="letters", dates=[], reason="R")
         ]
