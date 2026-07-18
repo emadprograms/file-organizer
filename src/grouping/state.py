@@ -3,7 +3,7 @@ import os
 import json
 import shutil
 import logging
-from typing import List
+from typing import Any
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
@@ -16,21 +16,36 @@ class GroupingState(BaseModel):
     chunk_size_index: int = Field(default=0, description="The index of the current chunk size being used from the available sizes list.")
     current_chunk_failure_count: int = Field(default=0, description="Number of consecutive failures at the current chunk size.")
     failure_count: int = Field(default=0, description="Total number of processing failures encountered so far.")
-    processed_groups: List[dict] = Field(default_factory=list, description="List of groups already finalized and committed to the result set.")
+    processed_groups: list[dict[str, Any]] = Field(default_factory=list, description="List of groups already finalized and committed to the result set.")
 
 class GroupingStateManager:
+    """Handles atomic persistence of GroupingState to disk.
+    
+    Attributes:
+        state_file (str): The main state file path.
+        bak_file (str): The backup state file path.
+        tmp_file (str): The temporary state file path.
     """
-    Handles atomic persistence of GroupingState to disk.
-    """
-    def __init__(self, state_file: str):
+    def __init__(self, state_file: str) -> None:
+        """Initialize the GroupingStateManager.
+        
+        Args:
+            state_file (str): The path to the JSON state file.
+        """
         self.state_file = state_file
         self.bak_file = f"{state_file}.bak"
         self.tmp_file = f"{state_file}.tmp"
 
     def save_state(self, state: GroupingState) -> None:
-        """
-        Saves the state atomically using a temporary file and os.replace.
+        """Saves the state atomically using a temporary file and os.replace.
+        
         Maintains a backup of the last known good state.
+
+        Args:
+            state (GroupingState): The current grouping state to persist.
+            
+        Raises:
+            Exception: If an error occurs during file writing or replacement.
         """
         try:
             # 1. Write to temporary file
@@ -51,9 +66,13 @@ class GroupingStateManager:
             raise
 
     def load_state(self) -> GroupingState:
-        """
-        Loads the state from disk. Fallback to .bak if the main state file is corrupted or missing.
+        """Loads the state from disk.
+        
+        Fallbacks to .bak if the main state file is corrupted or missing.
         Returns a default GroupingState if no state files exist.
+
+        Returns:
+            GroupingState: The loaded or newly initialized grouping state.
         """
         for file_path in [self.state_file, self.bak_file]:
             if not os.path.exists(file_path):

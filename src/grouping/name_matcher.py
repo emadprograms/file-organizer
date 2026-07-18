@@ -5,6 +5,17 @@ from rapidfuzz import fuzz
 from src.llm.llm import LLMClient
 
 def normalize_arabic_text(text: str) -> str:
+    """Normalize Arabic text by removing diacritics and unifying characters.
+
+    Strips diacritics, normalizes alef variants to a single alef, teh marbuta to heh, 
+    and alef maksura to yeh. Reduces multiple whitespaces to a single space.
+
+    Args:
+        text (str): The raw Arabic string to normalize.
+
+    Returns:
+        str: The normalized Arabic string.
+    """
     text = unicodedata.normalize('NFKC', text)
     # Strip diacritics
     text = re.sub(r'[\u0617-\u061A\u064B-\u0652]', '', text)
@@ -19,6 +30,14 @@ def normalize_arabic_text(text: str) -> str:
     return text
 
 def cluster_names_fuzzily(names: set[str]) -> dict[str, str]:
+    """Group similar strings together using fuzzy string matching.
+
+    Args:
+        names (set[str]): A set of names to be clustered.
+
+    Returns:
+        dict[str, str]: A dictionary mapping each original name to its clustered representative name.
+    """
     names_list = sorted(list(names))
     normalized_map = {n: normalize_arabic_text(n) for n in names_list}
     
@@ -45,7 +64,24 @@ def cluster_names_fuzzily(names: set[str]) -> dict[str, str]:
             
     return mapping
 
-def canonicalize_with_llm(unresolved_names: list[str], llm_client: LLMClient, allowed_tenants: list[str] = None) -> dict[str, str]:
+def canonicalize_with_llm(
+    unresolved_names: list[str], 
+    llm_client: LLMClient, 
+    allowed_tenants: list[str] | None = None
+) -> dict[str, str]:
+    """Map raw tenant names to canonical identities using an LLM.
+
+    Args:
+        unresolved_names (list[str]): The raw names to canonicalize.
+        llm_client (LLMClient): The LLM client to use for mapping.
+        allowed_tenants (list[str] | None): Optional list of permitted canonical tenant names.
+
+    Returns:
+        dict[str, str]: A dictionary mapping each unresolved name to a canonical name.
+
+    Raises:
+        RuntimeError: If the LLM returns an invalid or incomplete response.
+    """
     if not unresolved_names:
         return {}
         

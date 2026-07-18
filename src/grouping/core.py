@@ -10,7 +10,29 @@ from src.grouping.state import GroupingStateManager, GroupingState
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-def _process_chunk(pages: list[Any], current_page_index: int, end_index: int, llm_client: Any, prompt_template: str, content_field: str = "content_explanation", model: Optional[str] = None) -> list[DocumentGroup]:
+def _process_chunk(
+    pages: list[Any], 
+    current_page_index: int, 
+    end_index: int, 
+    llm_client: Any, 
+    prompt_template: str, 
+    content_field: str = "content_explanation", 
+    model: str | None = None
+) -> list[DocumentGroup]:
+    """Process a chunk of pages using the LLM to identify document boundaries.
+
+    Args:
+        pages (list[Any]): The complete list of pages being processed.
+        current_page_index (int): The starting index of the chunk within the pages list.
+        end_index (int): The exclusive ending index of the chunk.
+        llm_client (Any): The LLM client used for generating boundary decisions.
+        prompt_template (str): The prompt template to use for the LLM call.
+        content_field (str): The field on the page object to extract text from (default: "content_explanation").
+        model (str | None): Optional specific LLM model to use for the call.
+
+    Returns:
+        list[DocumentGroup]: A list of DocumentGroup objects representing the identified documents within the chunk.
+    """
     chunk_pages = pages[current_page_index:end_index]
     
     page_descriptions = []
@@ -63,8 +85,28 @@ def _process_chunk(pages: list[Any], current_page_index: int, end_index: int, ll
         chunk_groups.append(doc_group)
     return chunk_groups
 
-def process_with_shrink(pages: list[Any], llm_client: Any, state_manager: Optional[GroupingStateManager] = None) -> list[DocumentGroup]:
-    """Process pages to detect document boundaries, shrinking chunk size on failures."""
+def process_with_shrink(
+    pages: list[Any], 
+    llm_client: Any, 
+    state_manager: Any | None = None
+) -> list[DocumentGroup]:
+    """Process pages to detect document boundaries, shrinking chunk size on failures.
+
+    Applies deterministic grouping for certain categories and dynamically shrinks 
+    LLM chunk sizes if boundaries cannot be resolved or rate limits are hit.
+
+    Args:
+        pages (list[Any]): The pages to group.
+        llm_client (Any): The LLM client instance.
+        state_manager (Any | None): Optional manager to track and persist progress state.
+
+    Returns:
+        list[DocumentGroup]: The finalized list of document groups.
+
+    Raises:
+        RuntimeError: If the grouping fails repeatedly beyond the hard threshold limit.
+        GracefulHaltException: If all fallback models and chunk shrinking fail.
+    """
     if not pages:
         return []
 

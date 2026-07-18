@@ -7,9 +7,15 @@ from src.core.schemas import GroupEntry, DocumentGroup
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def category_presplit(pages: list[Any]) -> list[list[Any]]:
-    """
-    Split a sequence of pages into contiguous runs of the same category.
+    """Split a sequence of pages into contiguous runs of the same category.
+
     A new sublist is created every time `page.category` changes.
+
+    Args:
+        pages (list[Any]): A list of extracted page objects.
+
+    Returns:
+        list[list[Any]]: A list of page chunks, where each chunk contains pages of the same category.
     """
     if not pages:
         return []
@@ -33,12 +39,21 @@ def category_presplit(pages: list[Any]) -> list[list[Any]]:
     return runs
 
 def verify_groups(groups: list[GroupEntry], chunk_start_idx: int, chunk_end_idx: int) -> bool:
-    """
-    Programmatic verification of LLM grouping output.
-    Returns True if valid, raises ValueError if invalid.
-    - No gaps
-    - No overlaps
-    - No invented pages (starts at chunk_start_idx, ends at chunk_end_idx - 1)
+    """Verify LLM grouping output programmatically.
+
+    Validates that there are no gaps or overlaps between groups, and that the 
+    groups exactly cover the range [chunk_start_idx, chunk_end_idx - 1].
+
+    Args:
+        groups (list[GroupEntry]): The groups returned by the LLM.
+        chunk_start_idx (int): The expected starting page index.
+        chunk_end_idx (int): The expected exclusive ending page index.
+
+    Returns:
+        bool: True if valid.
+
+    Raises:
+        ValueError: If gaps, overlaps, or boundary mismatches are detected.
     """
     if not groups:
         raise ValueError("Groups list is empty")
@@ -55,11 +70,23 @@ def verify_groups(groups: list[GroupEntry], chunk_start_idx: int, chunk_end_idx:
         
     return True
 
-def merge_chunks(chunk1_groups: list[DocumentGroup], chunk2_groups: list[DocumentGroup], overlap_page_idx: int) -> list[DocumentGroup]:
-    """
-    Merge two lists of groups from adjacent chunks that share an overlap page.
+def merge_chunks(
+    chunk1_groups: list[DocumentGroup], 
+    chunk2_groups: list[DocumentGroup], 
+    overlap_page_idx: int
+) -> list[DocumentGroup]:
+    """Merge two lists of groups from adjacent chunks that share an overlap page.
+
     Uses an 'Anchor Page' strategy: merging occurs only if the anchor page is 
     a consistent continuation in both chunks. If decisions conflict, it splits at the boundary.
+
+    Args:
+        chunk1_groups (list[DocumentGroup]): The groups identified in the first chunk.
+        chunk2_groups (list[DocumentGroup]): The groups identified in the second chunk.
+        overlap_page_idx (int): The original index of the page that is shared between chunks.
+
+    Returns:
+        list[DocumentGroup]: The merged list of document groups.
     """
     if not chunk1_groups or not chunk2_groups:
         return chunk1_groups + chunk2_groups
