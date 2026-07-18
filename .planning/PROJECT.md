@@ -38,10 +38,10 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 - ✓ Modular restructuring (`core`, `utils`, `tenant_config`, `grouping`, `timeline`, `routing`) (ARCH) — v2.0
 - ✓ YAML loading and tenant name extraction (YAML) — v2.0
 - ✓ Replace anchor logic with YAML-based LLM Name Matching in Pass 1 (PIPE) — v2.0
+- ✓ Add type hinting and docstrings across all v2.0 modules (MAINT-01) (Phase 20) — v3.0
 
 ### Active
 
-- Add type hinting and docstrings across all v2.0 modules (MAINT-01)
 - Port file-categorizer OCR and Gemini 3.1 FL logic to main repository (CAT-01)
 - Implement `config.yaml` for inbox/area mapping and explicit CLI modes (CONF-01)
 - Build space-separated syntax parser for FS-UI (PARS-01)
@@ -59,6 +59,7 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 - ✅ Shipped v1.2 Pipeline Resilience.
 - ✅ Shipped v1.3 Routing Decoupling.
 - ✅ Shipped v2.0 Logic-Based Modular Refactoring on 2026-07-17.
+- ✅ Phase 20 complete — Codebase Maintainability Sweep (Types & Docs)
 
 ## Context
 
@@ -84,10 +85,11 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 | Use dual-format logging | balances human readability in app.log with machine-searchability in debug.log. | ✓ Completed (Phase 4). |
 | Switch to YAML-based tenant configuration | Allows for better future-proofing over fragile anchor-based legacy code. | ✓ Completed (v2.0). Anchor logic retained as a fallback. |
 | Retain unittest in pytest suite | Avoids unnecessary refactoring churn when tests are functioning perfectly. | ✓ Completed (v2.0). Test suite uses both. |
+| Hybrid functional/class architecture | Core pipeline is stateless (best for functional), FS-UI listener is stateful/long-running (best for OOP). | v3.0 decision: Keep pipeline functional, use classes for FS-UI orchestration (Phases 22-24). |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-07-17 starting v3.0 milestone*
+*Last updated: 2026-07-18*
