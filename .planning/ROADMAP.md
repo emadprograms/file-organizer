@@ -4,7 +4,7 @@
 
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
-| 20 | Codebase Maintainability Sweep | Add type hinting and docstrings to v2.0 modules | MAINT-01 | 1 |
+| 20 | Codebase Maintainability Sweep | 3/3 | Complete   | 2026-07-18 |
 | 21 | System Unification | Port file-categorizer logic for `_report.json` generation | CAT-01, CAT-02 | 2 |
 | 22 | Configuration and CLI Modes | Create config.yaml and setup explicit CLI commands | CONF-01, CONF-02, CONF-03 | 3 |
 | 23 | Inbox Parsing and Syntax | Build parser for space-separated FS-UI commands | FSUI-01, FSUI-02, FSUI-03 | 3 |
@@ -15,11 +15,15 @@
 **Goal:** Add type hinting and docstrings to v2.0 modules
 **Requirements:** MAINT-01
 **Depends on:** Phase 19
-**Plans:** 0 plans
+**Plans:** 3/3 plans complete
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 20 to break down)
+- [x] 1-domain-and-orchestration-PLAN.md
+- [x] 2-pipeline-logic-PLAN.md
+- [x] 3-tests-type-hinting-PLAN.md
+
+- [x] TBD (run /gsd-plan-phase 20 to break down) (completed 2026-07-18)
 
 ### Phase 21: System Unification
 
