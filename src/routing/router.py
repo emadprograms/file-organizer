@@ -24,6 +24,12 @@ class RoutingValidationError(PipelineHaltError):
     pass
 
 class RoutingResponse(BaseModel):
+    """Pydantic model representing the LLM's response for folder routing.
+
+    Attributes:
+        reason (str): Explanation of why the folder was selected.
+        selected_folder (str): The exact name of the selected folder from the allowed list.
+    """
     reason: str = Field(
         validation_alias=AliasChoices('reason', 'reasoning'),
         description="Explanation of why this folder was selected"
@@ -33,15 +39,37 @@ class RoutingResponse(BaseModel):
     @field_validator('selected_folder')
     @classmethod
     def validate_folder(cls, v: str, info: ValidationInfo) -> str:
+        """Validate that the selected folder is within the allowed list.
+
+        Args:
+            v (str): The folder name returned by the LLM.
+            info (ValidationInfo): Pydantic validation context containing allowed folders.
+
+        Returns:
+            str: The validated folder name.
+
+        Raises:
+            ValueError: If the folder name is not in the allowed_folders context.
+        """
         allowed = info.context.get('allowed_folders', []) if info.context else []
         if v not in allowed:
             raise ValueError(f"Selected folder '{v}' is not in the allowed list: {allowed}")
         return v
 
-def double_check_others(group: DocumentGroup, llm_client: Any, model: Optional[str] = None) -> str:
+def double_check_others(group: DocumentGroup, llm_client: Any, model: str | None = None) -> str:
     """Double-check routing for documents categorized as others or hitting the escape hatch.
     
     Implements a two-step verification to reduce 'Miscellaneous' dumping and handle hallucinations.
+    First, it asks the LLM to reconsider all folders. If a specific folder is picked, 
+    it asks the LLM to confirm the choice against the miscellaneous folder.
+
+    Args:
+        group (DocumentGroup): The document group being routed.
+        llm_client (Any): The LLM client used to perform the routing calls.
+        model (str | None): Optional specific LLM model to use.
+
+    Returns:
+        str: The final folder name selected for the document.
     """
     all_folders = list(FOLDER_ROUTING.keys())
     folder_meanings = "\n".join([f"- {f}: {FOLDER_ROUTING[f]['desc']}" for f in all_folders])
@@ -118,16 +146,22 @@ Respond only with a valid JSON.
         logger.error(f"Error during double-check others: {e}. Falling back to 'رسائل متنوعة'.")
         return "رسائل متنوعة"
 
-def route_document(group: DocumentGroup, llm_client: Any, model: Optional[str] = None) -> tuple[str, bool]:
+def route_document(group: DocumentGroup, llm_client: Any, model: str | None = None) -> tuple[str, bool]:
     """Route a document group to the appropriate folder.
     
+    Tries deterministic matching first based on document category, then falls back 
+    to LLM-based multi-match routing with constrained prompting.
+
     Args:
-        group: The document group to route.
-        llm_client: The LLM client to use for multi-match resolution.
-        model: Optional LLM model to use for routing.
+        group (DocumentGroup): The document group to route.
+        llm_client (Any): The LLM client to use for multi-match resolution.
+        model (str | None): Optional specific LLM model to use for routing.
         
     Returns:
-        tuple[str, bool]: (folder_name, is_direct_routed)
+        tuple[str, bool]: A tuple containing the folder name and a boolean indicating whether the routing was direct (True) or via LLM (False).
+
+    Raises:
+        RoutingValidationError: If the document category has no mapping or LLM routing fails repeatedly.
     """
     category = group.category.lower() if group.category else "unknown"
     category_upper = category.upper()

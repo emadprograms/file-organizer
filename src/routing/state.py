@@ -8,27 +8,46 @@ from pydantic import BaseModel, Field
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
 class RoutingState(BaseModel):
-    """
-    Represents the state of the routing process to allow resuming after interruption.
+    """Represents the state of the routing process to allow resuming after interruption.
+    
     Stores the actual routing results (index -> folder path) and the grouping checksum
     active when these results were computed.
+
+    Attributes:
+        results (dict[int, str]): Mapping of document index to assigned folder path.
+        grouping_checksum (str | None): Checksum of the grouping results to ensure they haven't changed since routing started.
     """
     results: dict[int, str] = Field(default_factory=dict, description="Mapping of document index to assigned folder path.")
     grouping_checksum: str | None = Field(default=None, description="Checksum of the grouping results to ensure they haven't changed since routing started.")
 
 class RoutingStateManager:
+    """Handles atomic persistence of RoutingState to disk.
+    
+    Attributes:
+        state_file (str): The main state file path.
+        bak_file (str): The backup state file path.
+        tmp_file (str): The temporary state file path.
     """
-    Handles atomic persistence of RoutingState to disk.
-    """
-    def __init__(self, state_file: str):
+    def __init__(self, state_file: str) -> None:
+        """Initialize the RoutingStateManager.
+        
+        Args:
+            state_file (str): The path to the JSON state file.
+        """
         self.state_file = state_file
         self.bak_file = f"{state_file}.bak"
         self.tmp_file = f"{state_file}.tmp"
 
     def save_state(self, state: RoutingState) -> None:
-        """
-        Saves the state atomically using a temporary file and os.replace.
+        """Saves the routing state atomically using a temporary file and os.replace.
+        
         Maintains a backup of the last known good state.
+
+        Args:
+            state (RoutingState): The current routing state to persist.
+            
+        Raises:
+            Exception: If an error occurs during file writing or replacement.
         """
         try:
             # 1. Write to temporary file
@@ -49,9 +68,13 @@ class RoutingStateManager:
             raise
 
     def load_state(self) -> RoutingState:
-        """
-        Loads the state from disk. Fallback to .bak if the main state file is corrupted or missing.
+        """Loads the routing state from disk.
+        
+        Fallbacks to .bak if the main state file is corrupted or missing.
         Returns a default RoutingState if no state files exist.
+
+        Returns:
+            RoutingState: The loaded or newly initialized routing state.
         """
         for file_path in [self.state_file, self.bak_file]:
             if not os.path.exists(file_path):
