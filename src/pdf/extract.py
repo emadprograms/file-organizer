@@ -7,8 +7,18 @@ from src.pdf.compress import compress_pdf
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-def extract_pdf_segment(source_pdf: str, start_page: int, end_page: int, output_path: str):
-    """Extract a segment of pages from a PDF and save to a new file."""
+def extract_pdf_segment(source_pdf: str, start_page: int, end_page: int, output_path: str) -> None:
+    """Extract a segment of pages from a PDF and save to a new file.
+
+    Extracts a page range (inclusive) from the source PDF, saves it to a 
+    temporary file, and then applies compression before finalizing the output.
+
+    Args:
+        source_pdf (str): Path to the source PDF file.
+        start_page (int): The 0-based index of the starting page.
+        end_page (int): The 0-based index of the ending page.
+        output_path (str): The target path for the extracted PDF segment.
+    """
     start_0 = to_0_based(start_page + 1)
     end_0 = to_0_based(end_page + 1)
     tmp_path = output_path + ".uncompressed.pdf"

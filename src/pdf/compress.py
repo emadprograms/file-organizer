@@ -6,8 +6,17 @@ import logging
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-def compress_pdf(input_path: str, output_path: str):
-    """Compress a PDF file by downscaling and compressing embedded images."""
+def compress_pdf(input_path: str, output_path: str) -> None:
+    """Compress a PDF file by downscaling and compressing embedded images.
+
+    Opens the PDF, identifies large images, scales them down to a maximum 
+    dimension of 1500 pixels, and recompresses them as JPEGs. Replaces the 
+    original file if the new file is smaller.
+
+    Args:
+        input_path (str): The absolute or relative path to the input PDF.
+        output_path (str): The absolute or relative path where the compressed PDF should be saved.
+    """
     temp_output_path = output_path + ".tmp.pdf"
     original_size = os.path.getsize(input_path)
     

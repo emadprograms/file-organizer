@@ -5,19 +5,23 @@ from src.core.exceptions import ConfigurationError
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-def load_tenant_config(target_dir: Path, house_id: str) -> list[dict] | None:
-    """
-    Loads tenant names and timelines from a {house_id}_tenants.yaml file located in the .source_files directory of the target directory.
+from typing import Any
+
+def load_tenant_config(target_dir: Path, house_id: str) -> list[dict[str, Any]] | None:
+    """Load tenant names and timelines from a configuration file.
+    
+    Reads the {house_id}_tenants.yaml file located in the .source_files directory 
+    of the target directory.
     
     Args:
         target_dir (Path): The directory containing the .source_files folder where the yaml is expected.
         house_id (str): The house ID to prefix the yaml file name.
         
     Returns:
-        list[dict] | None: A list of dictionaries representing tenant configuration, or None if the file is missing.
+        list[dict[str, Any]] | None: A list of dictionaries representing tenant configuration, or None if the file is missing.
         
     Raises:
-        ConfigurationError: If the YAML file is malformed or invalid.
+        ConfigurationError: If the YAML file is malformed, invalid, or missing required keys.
     """
     yaml_path = target_dir / ".source_files" / f"{house_id}_tenants.yaml"
     
