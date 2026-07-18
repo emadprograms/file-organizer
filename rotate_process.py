@@ -1,10 +1,16 @@
 import os
 from itertools import cycle
 
-def load_api_keys(env_file_path=".env"):
-    """
-    Loads API keys from a .env file.
+def load_api_keys(env_file_path: str = ".env") -> list[str]:
+    """Loads API keys from a .env file.
+    
     Supports both KEY=VALUE format and raw keys on each line.
+    
+    Args:
+        env_file_path (str): The path to the .env file. Defaults to ".env".
+        
+    Returns:
+        list[str]: A list of extracted API keys.
     """
     keys = []
     if not os.path.exists(env_file_path):
@@ -29,7 +35,12 @@ def load_api_keys(env_file_path=".env"):
                 keys.append(line)
     return keys
 
-def main():
+def main() -> None:
+    """Main execution function to rotate API keys and process directories.
+    
+    Iterates through paired categorized PDFs and report JSONs, groups them into subdirectories,
+    and runs the main categorization script while rotating through available API keys.
+    """
     target_dir = r"D:\\Safra D"
     env_path = ".env" # Change this if your .env is located elsewhere
     

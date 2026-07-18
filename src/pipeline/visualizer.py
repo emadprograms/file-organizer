@@ -4,13 +4,28 @@ from rich.tree import Tree
 from src.core.schemas import DocumentGroup
 from src.core.ui import vprint
 
+from typing import Any
+
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
 class Visualizer:
-    def __init__(self):
+    """Visualizer for rendering dry run output previews."""
+    def __init__(self) -> None:
+        """Initialize the Visualizer."""
         pass
 
-    def print_summary(self, house_id: str, summary: dict, per_page: list, documents: list[DocumentGroup]):
+    def print_summary(self, house_id: str, summary: dict[str, Any], per_page: list[dict[str, Any]], documents: list[DocumentGroup]) -> None:
+        """Print a summary table and tree view of the dry run output.
+        
+        Args:
+            house_id (str): The identifier of the house.
+            summary (dict[str, Any]): Dictionary containing total output pages and file count.
+            per_page (list[dict[str, Any]]): List of metadata describing the output files for each page.
+            documents (list[DocumentGroup]): List of all processed document groups.
+            
+        Returns:
+            None
+        """
         vprint("\n[bold cyan]=== Dry Run Output Preview ===[/bold cyan]\n")
         
         # Table

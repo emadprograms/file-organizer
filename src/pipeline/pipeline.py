@@ -15,27 +15,43 @@ from src.core.schemas import DocumentGroup
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
+from typing import Any
+
 class PageData(SimpleNamespace):
-    def model_dump(self):
+    """Simple namespace object for storing page data."""
+    def model_dump(self) -> dict[str, Any]:
+        """Dump the PageData attributes as a dictionary."""
         return self.__dict__
 
 class Pipeline:
     """Orchestrator for the document processing workflow."""
     
-    def __init__(self, api_key: str, delay_between_pages: float = 1.0, routing_model: str | None = None):
+    def __init__(self, api_key: str, delay_between_pages: float = 1.0, routing_model: str | None = None) -> None:
         """Initialize the pipeline with necessary clients and extractors.
         
         Args:
             api_key (str): The primary API key for the LLM.
             delay_between_pages (float): Delay in seconds between processing pages.
             routing_model (str | None): The model to use for document routing. Defaults to config.ROUTING_MODEL.
+            
+        Returns:
+            None
         """
         from src.core.config import ROUTING_MODEL
         self.client = LLMClient(api_key, delay_between_pages)
         self.routing_model = routing_model or ROUTING_MODEL
 
-    def _clean_documents(self, json_path: Path, target_dir: Path, house_id: str) -> tuple[list, list[dict] | None]:
-        """Load tenant configuration and process document cleaning phase."""
+    def _clean_documents(self, json_path: Path, target_dir: Path, house_id: str) -> tuple[list[Any], dict[str, Any] | None]:
+        """Load tenant configuration and process document cleaning phase.
+        
+        Args:
+            json_path (Path): Path to the input JSON file.
+            target_dir (Path): The target directory to write configuration or load from.
+            house_id (str): The identifier for the current house.
+            
+        Returns:
+            tuple[list[Any], dict[str, Any] | None]: A tuple containing the cleaned pages and optional YAML config data.
+        """
         from src.tenant_config.yaml_loader import load_tenant_config
         from src.timeline.phase import process_cleaning_phase
         

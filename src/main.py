@@ -22,12 +22,28 @@ from src.core.exceptions import ConfigurationError, ValidationError, FileOrganiz
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-def validate_environment():
+def validate_environment() -> None:
+    """Validate that required environment variables are set.
+    
+    Raises:
+        ConfigurationError: If GEMINI_API_KEY is missing.
+    """
     load_dotenv()
     if not os.getenv("GEMINI_API_KEY"):
         raise ConfigurationError("GEMINI_API_KEY is missing from the environment.")
 
 def validate_target_directory(target_dir: Path) -> str:
+    """Validate the target directory contains the required categorized PDF and JSON report.
+    
+    Args:
+        target_dir (Path): The directory to validate.
+        
+    Returns:
+        str: The extracted base ID from the filenames.
+        
+    Raises:
+        ValidationError: If files are missing, duplicates exist, or IDs mismatch.
+    """
     if not target_dir.is_dir():
         raise ValidationError(f"Target directory does not exist or is not a directory: {target_dir}")
         
@@ -57,7 +73,12 @@ def validate_target_directory(target_dir: Path) -> str:
         
     return pdf_id
 
-def get_parser():
+def get_parser() -> argparse.ArgumentParser:
+    """Create and configure the command-line argument parser.
+    
+    Returns:
+        argparse.ArgumentParser: The configured parser object.
+    """
     parser = argparse.ArgumentParser(description="File Organizer Post-Processor")
     parser.add_argument("target_dir", type=Path, help="Path to the target directory containing the categorized PDF and report JSON")
     parser.add_argument(
@@ -95,7 +116,21 @@ def get_parser():
     )
     return parser
 
-def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, logger: logging.Logger, dry_run: bool, house_id: str, target_dir: Path) -> tuple[list, list[dict] | None]:
+def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, logger: logging.Logger, dry_run: bool, house_id: str, target_dir: Path) -> tuple[list[Any], dict[str, Any] | None]:
+    """Run the first pass of the document pipeline: Cleaning.
+    
+    Args:
+        json_path (Path): Path to the input JSON file.
+        output_json_path (Path): Path to save the cleaned JSON output.
+        llm_client (Any): The LLMClient instance.
+        logger (logging.Logger): The logger instance.
+        dry_run (bool): Whether this is a dry run.
+        house_id (str): The identifier for the house.
+        target_dir (Path): The target directory.
+        
+    Returns:
+        tuple[list[Any], dict[str, Any] | None]: The cleaned pages and the loaded tenant configuration data.
+    """
     yaml_cache_path = output_json_path.parent / f"{house_id}_1_tenants.yaml"
     
     if output_json_path.exists():
@@ -136,7 +171,20 @@ def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, 
         
     return cleaned_pages, yaml_data
 
-def run_grouping_pass(cleaned_pages: list, house_id: str, output_dir: Path, llm_client: Any, logger: logging.Logger, dry_run: bool) -> list:
+def run_grouping_pass(cleaned_pages: list[Any], house_id: str, output_dir: Path, llm_client: Any, logger: logging.Logger, dry_run: bool) -> list[Any]:
+    """Run the second pass of the document pipeline: Grouping.
+    
+    Args:
+        cleaned_pages (list[Any]): The list of cleaned page data from pass 1.
+        house_id (str): The identifier for the house.
+        output_dir (Path): The output directory.
+        llm_client (Any): The LLMClient instance.
+        logger (logging.Logger): The logger instance.
+        dry_run (bool): Whether this is a dry run.
+        
+    Returns:
+        list[Any]: The list of grouped documents.
+    """
     from src.pipeline.pipeline import Pipeline
     from src.core.schemas import DocumentGroup
     
@@ -172,7 +220,21 @@ def run_grouping_pass(cleaned_pages: list, house_id: str, output_dir: Path, llm_
         
     return documents
 
-def run_routing_pass(documents: list, house_id: str, output_dir: Path, llm_client: Any, logger: logging.Logger, dry_run: bool, routing_model: str | None = None) -> list:
+def run_routing_pass(documents: list[Any], house_id: str, output_dir: Path, llm_client: Any, logger: logging.Logger, dry_run: bool, routing_model: str | None = None) -> list[Any]:
+    """Run the intermediate pass of the document pipeline: Routing.
+    
+    Args:
+        documents (list[Any]): The list of grouped documents.
+        house_id (str): The identifier for the house.
+        output_dir (Path): The output directory.
+        llm_client (Any): The LLMClient instance.
+        logger (logging.Logger): The logger instance.
+        dry_run (bool): Whether this is a dry run.
+        routing_model (str | None): Optional routing LLM model identifier.
+        
+    Returns:
+        list[Any]: The updated list of routed documents.
+    """
     from src.pipeline.pipeline import Pipeline
     
     checkpoint_dir = output_dir / ".source_files"
@@ -186,7 +248,21 @@ def run_routing_pass(documents: list, house_id: str, output_dir: Path, llm_clien
     documents = pipeline._route_documents(documents, str(routing_checkpoint_path))
     return documents
 
-def run_generation_pass(documents: list, target_dir: Path, house_id: str, output_dir: Path, logger: logging.Logger, dry_run: bool, yaml_data: list[dict] | None = None):
+def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, output_dir: Path, logger: logging.Logger, dry_run: bool, yaml_data: dict[str, Any] | None = None) -> None:
+    """Run the final generation pass to produce categorized PDFs.
+    
+    Args:
+        documents (list[Any]): The routed documents.
+        target_dir (Path): The original target directory.
+        house_id (str): The identifier for the house.
+        output_dir (Path): The final output directory.
+        logger (logging.Logger): The logger instance.
+        dry_run (bool): Whether this is a dry run.
+        yaml_data (dict[str, Any] | None): Optional YAML tenant configuration data.
+        
+    Returns:
+        None
+    """
     from src.timeline import FileOrganizer, run_reconciliation
     
     pdf_path = list(target_dir.glob("*_categorized.pdf"))[0]
@@ -306,7 +382,12 @@ def run_generation_pass(documents: list, target_dir: Path, house_id: str, output
         
     logger.info(f"Successfully generated {summary['output_file_count']} PDFs in {output_dir / full_house_id}")
 
-def main():
+def main() -> int:
+    """The main CLI entry point for the file organizer.
+    
+    Returns:
+        int: The exit status code (0 for success, 1 for failure).
+    """
     parser = get_parser()
     args = parser.parse_args()
     
