@@ -19,8 +19,23 @@ logger = logging.getLogger(f"file_organizer.{__name__}")
 class FileOrganizer:
     """Organizer responsible for writing documents to disk in a structured hierarchy."""
 
-    def compute_tenant_folders(self, documents: list[DocumentGroup], yaml_data: list[dict] = None) -> tuple[dict[str, str], str]:
-        """Compute the tenant folder names based on document dates or yaml data."""
+    def compute_tenant_folders(
+        self, 
+        documents: list[DocumentGroup], 
+        yaml_data: list[dict[str, Any]] | None = None
+    ) -> tuple[dict[str, str], str | None]:
+        """Compute the tenant folder names based on document dates or yaml data.
+
+        Extracts year ranges from document dates and maps them to sanitized tenant 
+        folder names. Prioritizes explicitly provided YAML data if available.
+
+        Args:
+            documents (list[DocumentGroup]): List of grouped documents.
+            yaml_data (list[dict[str, Any]] | None): Optional YAML configuration data.
+
+        Returns:
+            tuple[dict[str, str], str | None]: A dictionary mapping raw tenant names to formatted folder strings, and the canonical name of the most recent tenant.
+        """
         tenant_years: dict[str, set[Any]] = defaultdict(set)
         for doc in documents:
             tenant = doc.primary_tenant
@@ -101,8 +116,27 @@ class FileOrganizer:
                     
         return tenant_folder_names, latest_tenant
 
-    def ensure_target_directories(self, target_dir: Path, tenant_folder_names: dict[str, str], full_house_id: str, output_base_dir: Path) -> Path:
-        """Create target directories for organization."""
+    def ensure_target_directories(
+        self, 
+        target_dir: Path, 
+        tenant_folder_names: dict[str, str], 
+        full_house_id: str, 
+        output_base_dir: Path
+    ) -> Path:
+        """Create target directories for organization.
+
+        Creates the directory hierarchy for the house, tenants, and document categories.
+        Handles renaming existing unsanitized directories to match the canonical house ID.
+
+        Args:
+            target_dir (Path): The original target directory path.
+            tenant_folder_names (dict[str, str]): Mapping of raw tenant names to target subfolder names.
+            full_house_id (str): The combined house identifier and active tenant.
+            output_base_dir (Path): The base output path.
+
+        Returns:
+            Path: The resulting canonical house directory path.
+        """
         house_dir = output_base_dir / full_house_id
         
         # Rename target_dir if it's different from house_dir
@@ -129,8 +163,34 @@ class FileOrganizer:
                     os.makedirs(target_subdir, exist_ok=True)
         return house_dir
 
-    def process_documents(self, documents: list[DocumentGroup], source_pdf: str, house_id: str, output_base_dir: Path, tenant_folder_names: dict[str, str], dry_run: bool = False) -> list[dict]:
-        """Extract and save document segments."""
+    def process_documents(
+        self, 
+        documents: list[DocumentGroup], 
+        source_pdf: str, 
+        house_id: str, 
+        output_base_dir: Path, 
+        tenant_folder_names: dict[str, str], 
+        dry_run: bool = False
+    ) -> list[dict[str, Any]]:
+        """Extract and save document segments.
+
+        Splits the original PDF according to the document groups and places the segments 
+        into the appropriate tenant and category folders. Resolves filename collisions.
+
+        Args:
+            documents (list[DocumentGroup]): The defined document groups.
+            source_pdf (str): Path to the original input PDF.
+            house_id (str): The canonical house identifier.
+            output_base_dir (Path): The base output directory.
+            tenant_folder_names (dict[str, str]): Mapping of tenant names to folder strings.
+            dry_run (bool): If True, computes operations without making filesystem changes.
+
+        Returns:
+            list[dict[str, Any]]: A list of dictionaries tracking per-page mapping details.
+
+        Raises:
+            ValueError: If a target path attempts traversal outside the output directory.
+        """
         per_page = []
         used_names_per_dir: dict[str, set[str]] = defaultdict(set)
         tree_data = defaultdict(lambda: defaultdict(list))
@@ -222,8 +282,30 @@ class FileOrganizer:
 
 
 
-    def organize(self, documents: list[DocumentGroup], source_pdf: str, house_id: str, output_base_dir: Path, yaml_data: list[dict] = None, dry_run: bool = False) -> tuple[list[dict], str]:
-        """Organize the extracted documents into a structured directory hierarchy."""
+    def organize(
+        self, 
+        documents: list[DocumentGroup], 
+        source_pdf: str, 
+        house_id: str, 
+        output_base_dir: Path, 
+        yaml_data: list[dict[str, Any]] | None = None, 
+        dry_run: bool = False
+    ) -> tuple[list[dict[str, Any]], str]:
+        """Organize the extracted documents into a structured directory hierarchy.
+
+        Coordinates tenant resolution, directory creation, and PDF segmentation.
+
+        Args:
+            documents (list[DocumentGroup]): The grouped documents.
+            source_pdf (str): Path to the source PDF.
+            house_id (str): The original house ID.
+            output_base_dir (Path): The root output directory.
+            yaml_data (list[dict[str, Any]] | None): Optional parsed tenant configuration.
+            dry_run (bool): If True, simulate execution without writing files.
+
+        Returns:
+            tuple[list[dict[str, Any]], str]: The per-page mapping results and the full canonical house ID.
+        """
         if not documents:
             logger.warning("⚠ No documents to organize. Exiting.")
             return []

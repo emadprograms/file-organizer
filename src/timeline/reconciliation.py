@@ -5,8 +5,32 @@ from pathlib import Path
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-def run_reconciliation(summary: dict, per_page: list, total_input_pages: int, house_id: str, output_dir: Path, dry_run: bool = False):
-    """Write reconciliation manifest and assert page counts."""
+from typing import Any
+
+def run_reconciliation(
+    summary: dict[str, Any], 
+    per_page: list[dict[str, Any]], 
+    total_input_pages: int, 
+    house_id: str, 
+    output_dir: Path, 
+    dry_run: bool = False
+) -> None:
+    """Write reconciliation manifest and assert page counts.
+
+    Produces a JSON manifest and a terminal report to ensure no pages were 
+    lost during processing.
+
+    Args:
+        summary (dict[str, Any]): High-level summary dictionary.
+        per_page (list[dict[str, Any]]): Detailed mapping of pages.
+        total_input_pages (int): The number of pages processed.
+        house_id (str): The canonical house ID.
+        output_dir (Path): The directory to save the output files.
+        dry_run (bool): If True, skip writing files.
+
+    Raises:
+        RuntimeError: If the input and output page counts do not match.
+    """
     unaccounted_pages = []
     accounted_page_indices = {p["page_index"] for p in per_page}
     for i in range(total_input_pages):

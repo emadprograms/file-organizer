@@ -81,14 +81,30 @@ _ORDINAL_SUFFIX = re.compile(r'(\d+)(?:st|nd|rd|th)\b', re.IGNORECASE)
 
 
 def _hijri_to_gregorian(year: int, month: int, day: int) -> str:
-    """Convert a Hijri date to Gregorian YYYY-MM-DD using hijridate."""
+    """Convert a Hijri date to Gregorian YYYY-MM-DD using hijridate.
+
+    Args:
+        year (int): The Hijri year.
+        month (int): The Hijri month (1-12).
+        day (int): The Hijri day.
+
+    Returns:
+        str: The converted Gregorian date formatted as YYYY-MM-DD.
+    """
     from hijridate import Hijri
     g = Hijri(year, month, day).to_gregorian()
     return f"{g.year}-{g.month:02d}-{g.day:02d}"
 
 
 def _is_hijri_year(year: int) -> bool:
-    """Heuristic: Hijri years fall roughly in 1300-1500 range for modern dates."""
+    """Determine if a year is likely a Hijri year based on a heuristic range.
+
+    Args:
+        year (int): The year to evaluate.
+
+    Returns:
+        bool: True if the year falls roughly in the 1300-1500 range, False otherwise.
+    """
     return 1300 <= year <= 1500
 
 
@@ -108,6 +124,15 @@ def parse_flexible_date(date_str: str) -> str:
       "11 شعبان 1428 هـ" or "11 Sha'ban 1428 AH" → converted to Gregorian
     - Hijri numeric dates where the year is in the 1300-1500 range:
       "1428/08/11" → converted to Gregorian
+
+    Args:
+        date_str (str): The raw date string to parse.
+
+    Returns:
+        str: The normalized Gregorian date formatted as YYYY-MM-DD.
+
+    Raises:
+        ValueError: If the date cannot be parsed by any known pattern.
     """
     date_str_clean = date_str.strip()
 

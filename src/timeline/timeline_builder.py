@@ -3,7 +3,27 @@ from src.core.models import PageData, TenantTimeline
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-def build_tenant_timelines(pages: list[PageData], canonical_mapping: dict[str, str], allowed_tenants: list[str] = None) -> list[TenantTimeline]:
+def build_tenant_timelines(
+    pages: list[PageData], 
+    canonical_mapping: dict[str, str], 
+    allowed_tenants: list[str] | None = None
+) -> list[TenantTimeline]:
+    """Build chronological timelines for each tenant based on extracted page data.
+
+    Qualifies tenants based on minimum page counts and anchor documents. If 
+    allowed_tenants is provided, standard qualification rules are bypassed.
+
+    Args:
+        pages (list[PageData]): The parsed pages with dates and tenant names.
+        canonical_mapping (dict[str, str]): Mapping from raw names to canonical names.
+        allowed_tenants (list[str] | None): Optional explicit list of allowed tenants.
+
+    Returns:
+        list[TenantTimeline]: The generated timelines for qualified tenants.
+
+    Raises:
+        RuntimeError: If a timeline has a minimum date later than its maximum date.
+    """
     anchor_categories = {"contract", "forms", "id_cards"}
     
     tenant_stats = {}

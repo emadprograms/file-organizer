@@ -2,6 +2,7 @@ import json
 import logging
 import yaml
 from pathlib import Path
+from typing import Any
 from src.core.models import PageData, TenantTimeline
 from src.timeline.dates import parse_flexible_date
 from src.grouping.name_matcher import cluster_names_fuzzily, canonicalize_with_llm
@@ -11,6 +12,20 @@ from src.llm.llm import LLMClient
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def load_and_parse_json(json_path: Path) -> list[PageData]:
+    """Load and parse page data from a JSON file.
+
+    Reads the JSON file, normalizes the dates using flexible parsing, 
+    and initializes PageData models.
+
+    Args:
+        json_path (Path): Path to the input JSON file.
+
+    Returns:
+        list[PageData]: The parsed list of PageData objects.
+
+    Raises:
+        RuntimeError: If the parsed pages count does not match the source data length.
+    """
     with open(json_path, 'r', encoding='utf-8') as f:
         data = json.load(f)
     
@@ -39,6 +54,14 @@ def load_and_parse_json(json_path: Path) -> list[PageData]:
     return pages
 
 def infer_missing_dates(pages: list[PageData]) -> None:
+    """Infer missing dates on pages by applying the date from the nearest neighbor.
+
+    Scans the pages, finds all valid dates, and assigns the closest date
+    (by page index) to pages lacking a resolved date.
+
+    Args:
+        pages (list[PageData]): The list of pages to update in-place.
+    """
     # Get all indices with a valid date
     valid_dates = [(p.original_index, p.date) for p in pages if p.date is not None]
     logger.info(f"Found {len(valid_dates)} pages with valid dates out of {len(pages)} total pages.")
@@ -59,7 +82,22 @@ def infer_missing_dates(pages: list[PageData]) -> None:
     if inferred_count > 0:
         logger.info(f"Successfully inferred {inferred_count} missing dates using closest proximity matching.")
 
-def assign_pages_to_tenants(pages: list[PageData], timelines: list[TenantTimeline], final_mapping: dict[str, str]) -> None:
+def assign_pages_to_tenants(
+    pages: list[PageData], 
+    timelines: list[TenantTimeline], 
+    final_mapping: dict[str, str]
+) -> None:
+    """Assign pages to canonical tenants based on extracted names and resolved dates.
+
+    Matches the page to a tenant timeline. If the page has an expected name, it is 
+    mapped via the canonical mapping. Otherwise, the date is used to find the corresponding 
+    tenant timeline. If no timeline matches, falls back to the most recent tenant or marks unassigned.
+
+    Args:
+        pages (list[PageData]): The list of pages to update in-place.
+        timelines (list[TenantTimeline]): The generated timelines for tenants.
+        final_mapping (dict[str, str]): Mapping from raw names to canonical tenant names.
+    """
     # Find the tenant marked as "present" or latest overall for D-11 fallback
     latest_tenant = None
     if timelines:
@@ -96,7 +134,25 @@ def assign_pages_to_tenants(pages: list[PageData], timelines: list[TenantTimelin
             month_str = page.resolved_date[:7]
             page.canonical_tenant = f"Unassigned ({month_str})"
 
-def process_cleaning_phase(json_path: Path, llm_client: LLMClient, yaml_data: list[dict] | None) -> tuple[list[PageData], list[dict] | None]:
+def process_cleaning_phase(
+    json_path: Path, 
+    llm_client: LLMClient, 
+    yaml_data: list[dict[str, Any]] | None
+) -> tuple[list[PageData], list[dict[str, Any]] | None]:
+    """Execute the data cleaning and timeline generation phase.
+
+    Orchestrates the process of loading the page data, inferring dates, cleaning 
+    and resolving tenant names, building chronological timelines, and finally 
+    assigning each page to the correct tenant.
+
+    Args:
+        json_path (Path): Path to the extracted data JSON file.
+        llm_client (LLMClient): The LLM client for tenant name resolution.
+        yaml_data (list[dict[str, Any]] | None): Optional provided YAML config.
+
+    Returns:
+        tuple[list[PageData], list[dict[str, Any]] | None]: The updated pages list and the resulting or provided yaml data configuration.
+    """
     logger.info("==================================================")
     logger.info("           PHASE 1: DOCUMENT CLEANING             ")
     logger.info("==================================================")
