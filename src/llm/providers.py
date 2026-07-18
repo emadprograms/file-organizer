@@ -25,14 +25,14 @@ class LLMProvider(Protocol):
         """The identifier name of the provider."""
         ...
 
-    def generate(self, model: str, contents: list, response_schema: type | None = None, validation_context: dict | None = None) -> Any:
+    def generate(self, model: str, contents: list[dict[str, Any]], response_schema: type | None = None, validation_context: dict[str, Any] | None = None) -> Any:
         """Generate a structured response from the LLM.
         
         Args:
             model (str): The model identifier to use.
-            contents (list): The list of prompt contents (text or images).
-            response_schema (type): A Pydantic BaseModel class for structured output.
-            validation_context (dict | None): Optional context for Pydantic validation.
+            contents (list[dict[str, Any]]): The list of prompt contents (text or images).
+            response_schema (type | None): A Pydantic BaseModel class for structured output.
+            validation_context (dict[str, Any] | None): Optional context for Pydantic validation.
             
         Returns:
             Any: An instance of the response_schema populated with the LLM's output.
@@ -56,14 +56,14 @@ class GeminiProvider:
         """str: The identifier name of the provider ('gemini')."""
         return self._name
 
-    def generate(self, model: str, contents: list, response_schema: type | None = None, validation_context: dict | None = None) -> Any:
+    def generate(self, model: str, contents: list[dict[str, Any]], response_schema: type | None = None, validation_context: dict[str, Any] | None = None) -> Any:
         """Generate a structured response using the Gemini API.
         
         Args:
             model (str): The model identifier to use.
-            contents (list): The list of prompt contents.
+            contents (list[dict[str, Any]]): The list of prompt contents.
             response_schema (type | None): A Pydantic BaseModel class for structured output, or None for raw text.
-            validation_context (dict | None): Optional context for Pydantic validation.
+            validation_context (dict[str, Any] | None): Optional context for Pydantic validation.
             
         Returns:
             Any: An instance of the response_schema, or raw text if schema is None.

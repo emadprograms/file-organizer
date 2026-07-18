@@ -9,14 +9,27 @@ logger = logging.getLogger(f"file_organizer.{__name__}")
 class MockLLMProvider:
     """Concrete LLM provider implementation for mocking responses."""
     
-    def __init__(self):
+    def __init__(self) -> None:
+        """Initialize the MockLLMProvider."""
         self._name = "mock"
 
     @property
     def name(self) -> str:
+        """str: The identifier name of the provider."""
         return self._name
 
-    def generate(self, model: str, contents: list, response_schema: type | None = None, validation_context: dict | None = None) -> Any:
+    def generate(self, model: str, contents: list[dict[str, Any]], response_schema: type | None = None, validation_context: dict[str, Any] | None = None) -> Any:
+        """Generate a structured response using the mock provider.
+        
+        Args:
+            model (str): The model identifier to use.
+            contents (list[dict[str, Any]]): The list of prompt contents.
+            response_schema (type | None): A Pydantic BaseModel class for structured output.
+            validation_context (dict[str, Any] | None): Optional context for Pydantic validation.
+            
+        Returns:
+            Any: An instance of the response_schema, or raw text if schema is None.
+        """
         if response_schema is None:
             for content in contents:
                 if isinstance(content, str) and "Raw names:" in content:

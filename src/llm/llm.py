@@ -61,16 +61,27 @@ class LLMClient:
 
     def generate_content(
         self,
-        contents: Any,
-        model: Optional[str] = None,
+        contents: list[dict[str, Any]],
+        model: str | None = None,
         is_boundary_call: bool = False,
         response_schema: type | None = None,
-        validation_context: dict | None = None,
-        **kwargs
+        validation_context: dict[str, Any] | None = None,
+        **kwargs: Any
     ) -> Any:
-        """
-        Compatibility wrapper for the LLM interface.
+        """Compatibility wrapper for the LLM interface.
+        
         Delegates to the robust _route_llm_call method.
+        
+        Args:
+            contents (list[dict[str, Any]]): The messages payload to be routed to the LLM.
+            model (str | None): Optional model string to use instead of the default.
+            is_boundary_call (bool): Whether this is a boundary detection call (skips retries).
+            response_schema (type | None): Optional Pydantic model type for structured output validation.
+            validation_context (dict[str, Any] | None): Optional context dictionary for Pydantic field validators.
+            **kwargs (Any): Additional keyword arguments.
+            
+        Returns:
+            Any: A validated Pydantic object if response_schema is provided, otherwise raw text/dict.
         """
         model = model or getattr(self, "default_model", GEMINI_MODEL)
         log_prefix = "BoundaryCall" if is_boundary_call else "GenerateContent"
@@ -84,8 +95,34 @@ class LLMClient:
             max_attempts=0 if is_boundary_call else 3
         )
 
-    def _route_llm_call(self, model: str, contents: list, response_schema: type | None = None, validation_context: dict | None = None, log_prefix: str = "Retry", max_attempts: Optional[int] = None) -> Any:
-        """Route an LLM call through the provider with deterministic resilience and fallbacks."""
+    def _route_llm_call(
+        self, 
+        model: str, 
+        contents: list[dict[str, Any]], 
+        response_schema: type | None = None, 
+        validation_context: dict[str, Any] | None = None, 
+        log_prefix: str = "Retry", 
+        max_attempts: int | None = None
+    ) -> Any:
+        """Route an LLM call through the provider with deterministic resilience and fallbacks.
+
+        Handles rotation between providers, exponential backoffs, and tracking of request rates.
+        This internal method ensures fail-safety without leaking exceptions unnecessarily.
+
+        Args:
+            model (str): The primary LLM model string to use (e.g., 'gemini-1.5-flash').
+            contents (list[dict[str, Any]]): The messages payload to be routed to the LLM.
+            response_schema (type | None): Optional Pydantic model type for structured output validation.
+            validation_context (dict[str, Any] | None): Optional context dictionary for Pydantic field validators.
+            log_prefix (str): Prefix used for log tracking (default: "Retry").
+            max_attempts (int | None): Number of times to retry the primary model before fallback.
+
+        Returns:
+            Any: A validated Pydantic object if response_schema is provided, otherwise raw text/dict.
+            
+        Raises:
+            ProviderRotationExhaustedError: If all configured models and fallbacks fail.
+        """
         if getattr(self, "skip_llm", False):
             from src.llm.mock import MockLLMProvider
             self.provider = MockLLMProvider()
