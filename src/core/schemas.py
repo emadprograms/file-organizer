@@ -35,3 +35,18 @@ class GroupingResponse(BaseModel):
         description="Array of document groups found in this chunk",
         validation_alias=AliasChoices('groups', 'document_groups')
     )
+
+class CategorizationResult(BaseModel):
+    """The structured extraction result from the file categorization pass."""
+    category: str = Field(description="The determined document category")
+    content_explanation: str = Field(description="Detailed explanation of the document contents")
+    expected_tenant_name: str | None = Field(None, description="The person living in or responsible for the house")
+    expected_house_number: str | None = Field(None, description="The house number associated with the tenant")
+    
+    # Conditional fields based on category
+    image_contents: str | None = Field(None, description="Core subject matter (for pictures)")
+    sender: str | None = Field(None, description="Sender information (for letters)")
+    receiver: str | None = Field(None, description="Recipient information (for letters)")
+    subject: str | None = Field(None, description="Subject line (for letters)")
+    date: str | None = Field(None, description="Date issued (for letters)")
+    brief_summary: str | None = Field(None, description="Brief summary (for others)")

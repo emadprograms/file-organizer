@@ -61,7 +61,7 @@ class LLMClient:
 
     def generate_content(
         self,
-        contents: list[dict[str, Any]],
+        contents: list[Any],
         model: str | None = None,
         is_boundary_call: bool = False,
         response_schema: type | None = None,
@@ -73,7 +73,7 @@ class LLMClient:
         Delegates to the robust _route_llm_call method.
         
         Args:
-            contents (list[dict[str, Any]]): The messages payload to be routed to the LLM.
+            contents (list[Any]): The messages payload to be routed to the LLM.
             model (str | None): Optional model string to use instead of the default.
             is_boundary_call (bool): Whether this is a boundary detection call (skips retries).
             response_schema (type | None): Optional Pydantic model type for structured output validation.
@@ -98,7 +98,7 @@ class LLMClient:
     def _route_llm_call(
         self, 
         model: str, 
-        contents: list[dict[str, Any]], 
+        contents: list[Any], 
         response_schema: type | None = None, 
         validation_context: dict[str, Any] | None = None, 
         log_prefix: str = "Retry", 
@@ -111,7 +111,7 @@ class LLMClient:
 
         Args:
             model (str): The primary LLM model string to use (e.g., 'gemini-1.5-flash').
-            contents (list[dict[str, Any]]): The messages payload to be routed to the LLM.
+            contents (list[Any]): The messages payload to be routed to the LLM.
             response_schema (type | None): Optional Pydantic model type for structured output validation.
             validation_context (dict[str, Any] | None): Optional context dictionary for Pydantic field validators.
             log_prefix (str): Prefix used for log tracking (default: "Retry").
