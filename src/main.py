@@ -19,6 +19,7 @@ from src.core.ui import set_verbosity
 from src.llm.llm import LLMClient
 from src.timeline.phase import process_cleaning_phase
 from src.core.exceptions import ConfigurationError, ValidationError, FileOrganizerError
+from src.categorization import process_unclassified_pdf
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
@@ -32,14 +33,14 @@ def validate_environment() -> None:
     if not os.getenv("GEMINI_API_KEY"):
         raise ConfigurationError("GEMINI_API_KEY is missing from the environment.")
 
-def validate_target_directory(target_dir: Path) -> str:
+def validate_target_directory(target_dir: Path) -> list[str]:
     """Validate the target directory contains the required categorized PDF and JSON report.
     
     Args:
         target_dir (Path): The directory to validate.
         
     Returns:
-        str: The extracted base ID from the filenames.
+        list[str]: The extracted base IDs from the filenames.
         
     Raises:
         ValidationError: If files are missing, duplicates exist, or IDs mismatch.
@@ -53,25 +54,28 @@ def validate_target_directory(target_dir: Path) -> str:
     
     if len(pdf_files) == 0:
         raise ValidationError("No *_categorized.pdf found in the target directory.")
-    if len(pdf_files) > 1:
-        raise ValidationError("Multiple *_categorized.pdf files found in the target directory.")
         
     if len(json_files) == 0:
         raise ValidationError("No *_report.json found in the target directory.")
-    if len(json_files) > 1:
-        raise ValidationError("Multiple *_report.json files found in the target directory.")
         
-    # Extract ID robustly using regex to drop everything after _categorized or _report
-    pdf_match = re.search(r'^(.*?)_categorized', pdf_files[0].name)
-    pdf_id = pdf_match.group(1) if pdf_match else pdf_files[0].stem
+    ids = []
     
-    json_match = re.search(r'^(.*?)_report', json_files[0].name)
-    json_id = json_match.group(1) if json_match else json_files[0].stem
-    
-    if pdf_id != json_id:
-        raise ValidationError(f"ID mismatch between PDF ({pdf_id}) and JSON ({json_id}).")
+    for pdf_file in pdf_files:
+        pdf_match = re.search(r'^(.*?)_categorized', pdf_file.name)
+        pdf_id = pdf_match.group(1) if pdf_match else pdf_file.stem
         
-    return pdf_id
+        # Check if there's a matching JSON report
+        matching_jsons = [j for j in json_files if j.name.startswith(f"{pdf_id}_report")]
+        if not matching_jsons:
+            logger.warning(f"ID mismatch: PDF ({pdf_id}) has no matching JSON report.")
+            continue
+            
+        ids.append(pdf_id)
+        
+    if not ids:
+        raise ValidationError("No matching PDF and JSON pairs found.")
+        
+    return ids
 
 def get_parser() -> argparse.ArgumentParser:
     """Create and configure the command-line argument parser.
@@ -265,7 +269,7 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
     """
     from src.timeline import FileOrganizer, run_reconciliation
     
-    pdf_path = list(target_dir.glob("*_categorized.pdf"))[0]
+    pdf_path = list(target_dir.glob(f"{house_id}_categorized*.pdf"))[0]
     
     organizer = FileOrganizer()
     per_page, full_house_id = organizer.organize(documents, str(pdf_path), house_id, output_dir, yaml_data=yaml_data, dry_run=dry_run)
@@ -427,28 +431,35 @@ def main() -> int:
         has_errors = False
         for target_dir in targets:
             try:
-                house_id = validate_target_directory(target_dir)
-                if args.output_dir:
-                    output_dir = args.output_dir
-                elif target_dir.name == house_id or target_dir.name.startswith(f"{house_id} -"):
-                    output_dir = target_dir.parent
-                else:
-                    output_dir = target_dir
+                # 1. Process unclassified PDFs
+                process_unclassified_pdf(target_dir, llm_client)
                 
-                output_dir.mkdir(parents=True, exist_ok=True)
-                logger.info(f"Starting File Organizer Post-Processor for house ID: {house_id}")
-                logger.info(f"Target directory: {target_dir}")
-                logger.info(f"Output directory: {output_dir}")
+                # 2. Validate and get list of house_ids
+                house_ids = validate_target_directory(target_dir)
                 
-                house_dir = output_dir / house_id
-                
-                json_path = list(target_dir.glob("*_report.json"))[0]
-                output_json_path = output_dir / ".source_files" / f"{house_id}_1_cleaned.json"
-                
-                cleaned_pages, yaml_data = run_cleaning_pass(json_path, output_json_path, llm_client, logger, args.dry_run, house_id, target_dir)
-                documents = run_grouping_pass(cleaned_pages, house_id, output_dir, llm_client, logger, args.dry_run)
-                documents = run_routing_pass(documents, house_id, output_dir, llm_client, logger, args.dry_run, args.routing_model)
-                run_generation_pass(documents, target_dir, house_id, output_dir, logger, args.dry_run, yaml_data)
+                for house_id in house_ids:
+                    if args.output_dir:
+                        output_dir = args.output_dir
+                    elif target_dir.name == house_id or target_dir.name.startswith(f"{house_id} -"):
+                        output_dir = target_dir.parent
+                    else:
+                        output_dir = target_dir
+                    
+                    output_dir.mkdir(parents=True, exist_ok=True)
+                    
+                    logger.info(f"Starting File Organizer Post-Processor for house ID: {house_id}")
+                    logger.info(f"Target directory: {target_dir}")
+                    logger.info(f"Output directory: {output_dir}")
+                    
+                    house_dir = output_dir / house_id
+                    
+                    json_path = list(target_dir.glob(f"{house_id}_report*.json"))[0]
+                    output_json_path = output_dir / ".source_files" / f"{house_id}_1_cleaned.json"
+                    
+                    cleaned_pages, yaml_data = run_cleaning_pass(json_path, output_json_path, llm_client, logger, args.dry_run, house_id, target_dir)
+                    documents = run_grouping_pass(cleaned_pages, house_id, output_dir, llm_client, logger, args.dry_run)
+                    documents = run_routing_pass(documents, house_id, output_dir, llm_client, logger, args.dry_run, args.routing_model)
+                    run_generation_pass(documents, target_dir, house_id, output_dir, logger, args.dry_run, yaml_data)
             except Exception as e:
                 logger.exception(f"Failed processing {target_dir}: {e}")
                 has_errors = True
