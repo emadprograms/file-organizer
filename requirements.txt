@@ -9,3 +9,5 @@ hijridate
 rapidfuzz
 rich
 PyYAML
+opencv-python
+numpy

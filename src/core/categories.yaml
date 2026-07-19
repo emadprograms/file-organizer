@@ -1,0 +1,80 @@
+forms:
+  description: "Standardized documents with fillable fields, tables, or checkboxes used for data collection."
+  identification_rules:
+    - "Act as the eyes of the system: Look carefully for checkboxes, empty lines, grids, or tabular structures meant for data entry."
+    - "CRITICAL EXCEPTION: Do NOT classify documents from the 'Office of the Undersecretary' (مكتب وكيل الوزارة) as forms, even if they contain tables and checkboxes. They must be classified as letters."
+  extract:
+    - "content_explanation: Act like the eyes of the system. First, provide a highly detailed, comprehensive explanation of all the contents within the document. Focus on reading and summarizing the text, the overall purpose of the document, the data presented, and the context, rather than just describing the visual layout."
+
+    - "expected_tenant_name: The person living in or responsible for the house during this document's timeline. E.g., for letters, if it mentions someone living in the current house. For forms, the person it is filled about. For utility bills, the person associated. IMPORTANT: Not every document will have a tenant name. Do not force an extraction. If you cannot find them, return null."
+    - "expected_house_number: The house number associated with the expected tenant or mentioned in the document. IMPORTANT: Not every document will have a house number. Do not force an extraction. If you cannot find them, return null."
+
+id_cards:
+  description: "Personal identification documents like national IDs, passports, or driver's licenses."
+  identification_rules:
+    - "Act as the eyes of the system: Look for a personal photo, ID numbers, barcodes, and official state emblems or watermarks."
+  extract:
+    - "content_explanation: Act like the eyes of the system. First, provide a highly detailed, comprehensive explanation of all the contents within the document. Focus on reading and summarizing the text, the overall purpose of the document, the data presented, and the context, rather than just describing the visual layout."
+
+    - "expected_tenant_name: The person living in or responsible for the house during this document's timeline. E.g., for letters, if it mentions someone living in the current house. For forms, the person it is filled about. For utility bills, the person associated. IMPORTANT: Not every document will have a tenant name. Do not force an extraction. If you cannot find them, return null."
+    - "expected_house_number: The house number associated with the expected tenant or mentioned in the document. IMPORTANT: Not every document will have a house number. Do not force an extraction. If you cannot find them, return null."
+
+pictures:
+  description: "Standalone photographs, images without significant text, or attachments that are purely visual."
+  identification_rules:
+    - "Act as the eyes of the system: Confirm the document is primarily an image or photograph with little to no structured text."
+  extract:
+    - "content_explanation: Act like the eyes of the system. First, provide a highly detailed, comprehensive explanation of all the contents within the document. Focus on reading and summarizing the text, the overall purpose of the document, the data presented, and the context, rather than just describing the visual layout."
+    - "image_contents: Describe the core subject matter of the photograph or image."
+    - "expected_tenant_name: The person living in or responsible for the house during this document's timeline. E.g., for letters, if it mentions someone living in the current house. For forms, the person it is filled about. For utility bills, the person associated. IMPORTANT: Not every document will have a tenant name. Do not force an extraction. If you cannot find them, return null."
+    - "expected_house_number: The house number associated with the expected tenant or mentioned in the document. IMPORTANT: Not every document will have a house number. Do not force an extraction. If you cannot find them, return null."
+
+letters:
+  description: "Formal correspondence, memos, and official communications."
+  identification_rules:
+    - "Act as the eyes of the system: Look for the 'Kingdom of Bahrain Ministry of Interior' (or 'وزارة الداخلية') in the header with a logo."
+    - "CRITICAL RULE: Anything from the 'Office of the Undersecretary' (مكتب وكيل الوزارة) is ALWAYS a letter."
+  extract:
+    - "content_explanation: Act like the eyes of the system. First, provide a highly detailed, comprehensive explanation of all the contents within the document. Focus on reading and summarizing the text, the overall purpose of the document, the data presented, and the context, rather than just describing the visual layout."
+    - "sender: Extract the full name, title, and department of the sender."
+    - "receiver: Extract the full name, title, and department of the recipient."
+    - "subject: Extract the subject line (الموضوع) or main purpose of the letter."
+    - "date: Extract the date the letter was issued."
+    - "expected_tenant_name: The person living in or responsible for the house during this document's timeline. E.g., for letters, if it mentions someone living in the current house. For forms, the person it is filled about. For utility bills, the person associated. IMPORTANT: Not every document will have a tenant name. Do not force an extraction. If you cannot find them, return null."
+    - "expected_house_number: The house number associated with the expected tenant or mentioned in the document. IMPORTANT: Not every document will have a house number. Do not force an extraction. If you cannot find them, return null."
+
+utility_bills:
+  description: "Bills for electricity, water, internet, or other municipal services."
+  identification_rules:
+    - "Act as the eyes of the system: Look for account numbers, billing periods, utility provider logos, and a breakdown of usage/charges."
+  extract:
+    - "content_explanation: Act like the eyes of the system. First, provide a highly detailed, comprehensive explanation of all the contents within the document. Focus on reading and summarizing the text, the overall purpose of the document, the data presented, and the context, rather than just describing the visual layout."
+
+    - "expected_tenant_name: The person living in or responsible for the house during this document's timeline. E.g., for letters, if it mentions someone living in the current house. For forms, the person it is filled about. For utility bills, the person associated. IMPORTANT: Not every document will have a tenant name. Do not force an extraction. If you cannot find them, return null."
+    - "expected_house_number: The house number associated with the expected tenant or mentioned in the document. IMPORTANT: Not every document will have a house number. Do not force an extraction. If you cannot find them, return null."
+
+contract:
+  description: "Legal agreements, employment contracts, and terms of service."
+  identification_rules:
+    - "Act as the eyes of the system: Look for explicit contract language (e.g., 'عقد' or 'Agreement'), numbered legal clauses, terms and conditions, and multiple signature blocks at the end indicating a binding agreement between two or more parties."
+  extract:
+    - "content_explanation: Act like the eyes of the system. First, provide a highly detailed, comprehensive explanation of all the contents within the document. Focus on reading and summarizing the text, the overall purpose of the document, the data presented, and the context, rather than just describing the visual layout."
+
+    - "expected_tenant_name: The person living in or responsible for the house during this document's timeline. E.g., for letters, if it mentions someone living in the current house. For forms, the person it is filled about. For utility bills, the person associated. IMPORTANT: Not every document will have a tenant name. Do not force an extraction. If you cannot find them, return null."
+    - "expected_house_number: The house number associated with the expected tenant or mentioned in the document. IMPORTANT: Not every document will have a house number. Do not force an extraction. If you cannot find them, return null."
+
+others:
+  description: "Any document that does not clearly fit into the predefined categories."
+  identification_rules:
+    - "Use this category only if the document cannot be classified as any of the above."
+  extract:
+    - "content_explanation: Act like the eyes of the system. First, provide a highly detailed, comprehensive explanation of all the contents within the document. Focus on reading and summarizing the text, the overall purpose of the document, the data presented, and the context, rather than just describing the visual layout."
+    - "brief_summary: Extract a brief summary of what the document appears to be."
+    - "expected_tenant_name: The person living in or responsible for the house during this document's timeline. E.g., for letters, if it mentions someone living in the current house. For forms, the person it is filled about. For utility bills, the person associated. IMPORTANT: Not every document will have a tenant name. Do not force an extraction. If you cannot find them, return null."
+    - "expected_house_number: The house number associated with the expected tenant or mentioned in the document. IMPORTANT: Not every document will have a house number. Do not force an extraction. If you cannot find them, return null."
+
+# Local LLM configuration (used when --local flag is passed to the CLI)
+local_llm:
+  model: qwen3.5:9b-mlx
+  endpoint: http://localhost:11434
+  delay: 0
