@@ -29,7 +29,7 @@ def test_llm_trace_files_created(tmp_path) -> None:
             
             # Test successful trace
             mock_gemini.return_value = DummyResponse(success=True)
-            client._route_llm_call("model", ["test"], DummyResponse)
+            client._route_llm_call("model", ["test"], DummyResponse, max_attempts=1)
             
             # Verify success trace was called
             mock_trace.assert_any_call("llm_success", {
@@ -42,7 +42,7 @@ def test_llm_trace_files_created(tmp_path) -> None:
             # Test error trace
             mock_gemini.side_effect = Exception("Test Parse Error")
             with pytest.raises(Exception):
-                client._route_llm_call("model", ["test"], DummyResponse)
+                client._route_llm_call("model", ["test"], DummyResponse, max_attempts=1)
             
             # Verify error trace was called
             mock_trace.assert_any_call("llm_error", {

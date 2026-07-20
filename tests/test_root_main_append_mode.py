@@ -3,35 +3,36 @@ import sys
 from unittest.mock import patch, MagicMock
 from pathlib import Path
 from src.main import run_append_mode
-from filelock import FileLock, Timeout
+from src.fs_ui.lock import LockExistsError
 
 def test_run_append_mode_success(caplog, tmp_path):
     caplog.set_level("INFO")
     config = MagicMock()
     config.inbox_path = str(tmp_path)
     
-    with patch("src.main.FileLock") as mock_filelock, patch("src.llm.llm.LLMClient"), patch("time.sleep", side_effect=KeyboardInterrupt):
-        lock_instance = MagicMock()
-        mock_filelock.return_value = lock_instance
+    with patch("src.fs_ui.lock.acquire_lock") as mock_acquire, \
+         patch("src.fs_ui.lock.release_lock") as mock_release, \
+         patch("src.llm.llm.LLMClient"), \
+         patch("src.fs_ui.orchestrator.FSUIOrchestrator") as mock_orchestrator:
+         
+        mock_orch_instance = MagicMock()
+        mock_orchestrator.return_value = mock_orch_instance
         
-        try:
-            run_append_mode(config)
-        except KeyboardInterrupt:
-            pass
+        run_append_mode(config)
         
-        mock_filelock.assert_called_once_with(str(tmp_path / ".inbox.lock"), timeout=0)
-        lock_instance.__enter__.assert_called_once()
-        
+        mock_acquire.assert_called_once_with(tmp_path / ".inbox.lock")
+        mock_release.assert_called_once_with(tmp_path / ".inbox.lock")
+        mock_orch_instance.process_inbox.assert_called_once()
         assert "Listener started..." in caplog.text
 
 def test_run_append_mode_already_locked(caplog, tmp_path):
     config = MagicMock()
     config.inbox_path = str(tmp_path)
     
-    with patch("src.main.FileLock") as mock_filelock, patch("sys.exit") as mock_exit, patch("src.llm.llm.LLMClient"):
-        lock_instance = MagicMock()
-        lock_instance.__enter__.side_effect = Timeout(str(tmp_path / ".inbox.lock"))
-        mock_filelock.return_value = lock_instance
+    with patch("src.fs_ui.lock.acquire_lock", side_effect=LockExistsError), \
+         patch("sys.exit") as mock_exit, \
+         patch("src.llm.llm.LLMClient"), \
+         patch("src.fs_ui.orchestrator.FSUIOrchestrator"):
         
         run_append_mode(config)
         

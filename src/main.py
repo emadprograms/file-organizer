@@ -6,8 +6,6 @@ from pathlib import Path
 import json
 import fitz
 from typing import Any
-from filelock import FileLock, Timeout
-
 import re
 
 # Ensure src module is resolvable when run directly
@@ -85,57 +83,31 @@ def run_append_mode(config: Any) -> None:
         config (AppConfig): The application configuration.
     """
     import os
-    import time
+    import sys
+    import logging
+    from pathlib import Path
     from src.llm.llm import LLMClient
-    from src.inbox.parser import parse_filename_syntax
-    from src.inbox.resolver import infer_missing_data, resolve_area, resolve_tenant, ConflictError
+    from src.fs_ui.lock import acquire_lock, release_lock, LockExistsError
+    from src.fs_ui.orchestrator import FSUIOrchestrator
 
+    inbox_dir = Path(config.inbox_path)
+    os.makedirs(str(inbox_dir), exist_ok=True)
+    
     llm_client = LLMClient(api_key=os.getenv("GEMINI_API_KEY"))
-    lock_path = Path(config.inbox_path) / ".inbox.lock"
-    lock = FileLock(str(lock_path), timeout=0)
+    lock_path = inbox_dir / ".inbox.lock"
+    
     try:
-        with lock:
-            logger.info("Listener started...")
-            inbox_dir = Path(config.inbox_path)
-            while True:
-                for pdf_path in inbox_dir.glob("*.pdf"):
-                    name = pdf_path.name
-                    if name.endswith("_categorized.pdf") or name.endswith("_report.json") or name.endswith("_Error_Invalid_Format.pdf") or name.endswith(" - please choose area.pdf"):
-                        continue
-                        
-                    try:
-                        parsed_cmd = parse_filename_syntax(name)
-                    except ValueError:
-                        new_name = pdf_path.stem + "_Error_Invalid_Format.pdf"
-                        os.rename(pdf_path, pdf_path.parent / new_name)
-                        continue
-                        
-                    inferred = infer_missing_data(pdf_path, parsed_cmd, llm_client)
-                    house_to_resolve = inferred.get("expected_house_number", parsed_cmd.house)
-                    if house_to_resolve == 'U':
-                        house_to_resolve = parsed_cmd.house # Fallback
-                        
-                    try:
-                        areas_root = Path(config.areas_root_path)
-                        area_id = resolve_area(house_to_resolve, areas_root)
-                    except ConflictError:
-                        new_name = pdf_path.stem + " - please choose area.pdf"
-                        os.rename(pdf_path, pdf_path.parent / new_name)
-                        continue
-                    except ValueError as e:
-                        logger.error(f"Failed to resolve area for {pdf_path}: {e}")
-                        continue
-                        
-                    house_dir = areas_root / area_id / house_to_resolve
-                    tenant_to_resolve = inferred.get("tenant_hint", parsed_cmd.tenant_hint)
-                    tenant = resolve_tenant(house_dir, tenant_to_resolve, llm_client)
-                    
-                    # Do not execute rename-to-proposed or finalization logic (deferred to Phase 24)
-                
-                time.sleep(2)
-    except Timeout:
+        acquire_lock(lock_path)
+    except LockExistsError:
         logger.warning("Listener is already running (lockfile exists). Exiting gracefully.")
         sys.exit(0)
+        
+    try:
+        logger.info("Listener started...")
+        orchestrator = FSUIOrchestrator(config, llm_client)
+        orchestrator.process_inbox()
+    finally:
+        release_lock(lock_path)
 
 def get_parser() -> argparse.ArgumentParser:
     """Create and configure the command-line argument parser.
@@ -321,7 +293,7 @@ def run_routing_pass(documents: list[Any], house_id: str, output_dir: Path, llm_
     documents = pipeline._route_documents(documents, str(routing_checkpoint_path))
     return documents
 
-def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, output_dir: Path, logger: logging.Logger, dry_run: bool, yaml_data: dict[str, Any] | None = None) -> None:
+def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, output_dir: Path, logger: logging.Logger, dry_run: bool, yaml_data: dict[str, Any] | None = None, pdf_path: Path | None = None) -> None:
     """Run the final generation pass to produce categorized PDFs.
     
     Args:
@@ -332,13 +304,15 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
         logger (logging.Logger): The logger instance.
         dry_run (bool): Whether this is a dry run.
         yaml_data (dict[str, Any] | None): Optional YAML tenant configuration data.
+        pdf_path (Path | None): Optional path to the PDF to use. Defaults to first categorized PDF.
         
     Returns:
         None
     """
     from src.timeline import FileOrganizer, run_reconciliation
     
-    pdf_path = list(target_dir.glob(f"{house_id}_categorized*.pdf"))[0]
+    if pdf_path is None:
+        pdf_path = list(target_dir.glob(f"{house_id}_categorized*.pdf"))[0]
     
     organizer = FileOrganizer()
     per_page, full_house_id = organizer.organize(documents, str(pdf_path), house_id, output_dir, yaml_data=yaml_data, dry_run=dry_run)
