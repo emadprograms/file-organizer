@@ -1,5 +1,5 @@
 ---
-status: complete
+status: diagnosed
 phase: 22-configuration-and-cli-modes
 source: [22-01-SUMMARY.md, 22-02-SUMMARY.md]
 started: 2026-07-20T12:11:00Z
