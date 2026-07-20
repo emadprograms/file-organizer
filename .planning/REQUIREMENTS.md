@@ -24,7 +24,7 @@
 - [ ] **FSUI-03**: System assumes any PDF dropped into the inbox belongs to exactly ONE house, and applies majority-vote logic if the house must be inferred.
 - [ ] **FSUI-04**: System can propose its filing intention by renaming the PDF in the Inbox (e.g. appending `_Proposed`).
 - [ ] **FSUI-05**: System watches the Inbox for user approval (indicated by appending ` OK` to the filename) and finalizes the filing process (moving the file to the correct house's `.source_files/` and updating the `_finalized` PDF) upon detection.
-- [ ] **FSUI-06**: FS-UI listener and orchestration is implemented using a class-based architecture to encapsulate state, keeping it strictly separated from the functional document pipeline.
+- [x] **FSUI-06**: FS-UI listener and orchestration is implemented using a class-based architecture to encapsulate state, keeping it strictly separated from the functional document pipeline.
 
 ## Future Requirements
 

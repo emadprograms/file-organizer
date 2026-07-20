@@ -8,7 +8,7 @@
 | 21 | System Unification | 1/1 | Complete    | 2026-07-20 |
 | 22 | Configuration and CLI Modes | 3/3 | Complete   | 2026-07-20 |
 | 23 | Inbox Parsing and Syntax | Build parser for space-separated FS-UI commands | FSUI-01, FSUI-02, FSUI-03 | In Progress |
-| 24 | FS-UI Orchestration | Wire up the rename loop and finalize filing logic | FSUI-04, FSUI-05 | 3 |
+| 24 | FS-UI Orchestration | 1/2 | In Progress|  |
 
 ### Phase 20: Codebase Maintainability Sweep
 
@@ -70,12 +70,12 @@ Plans:
 **Goal:** Wire up the rename loop and finalize filing logic
 **Requirements:** FSUI-04, FSUI-05, FSUI-06
 **Depends on:** Phase 23
-**Plans:** 2 plans
+**Plans:** 1/2 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 24-01-PLAN.md — PID Lock Utility
+- [x] 24-01-PLAN.md — PID Lock Utility
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
