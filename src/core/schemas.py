@@ -3,9 +3,32 @@
 These schemas leverage Pydantic for validation and structured data representation.
 """
 import logging
-from pydantic import BaseModel, Field, AliasChoices
+from pydantic import BaseModel, Field, AliasChoices, field_validator
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
+
+class ParsedCommand(BaseModel):
+    """Parsed components of an FS-UI space-separated filename."""
+    area: str
+    house: str
+    tenant_hint: str
+    group: str
+    date: str
+    title: str
+
+    @field_validator('group', mode='before')
+    @classmethod
+    def validate_group(cls, v: str) -> str:
+        if isinstance(v, str) and v.isdigit():
+            v_int = int(v)
+            if 1 <= v_int <= 13:
+                return str(v_int)
+            raise ValueError("Numeric group must be between 1 and 13")
+        if isinstance(v, str):
+            v_upper = v.upper()
+            if v_upper in ('G', 'U'):
+                return v_upper
+        raise ValueError("Group must be a number (1-13) or 'G'/'U'")
 
 class DocumentGroup(BaseModel):
     """A group of consecutive pages belonging to the same document segment."""
