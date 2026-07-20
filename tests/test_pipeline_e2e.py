@@ -35,10 +35,12 @@ def _setup_run_dir(tmp_path: Path) -> Path:
 
     return house_dir
 
+@patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
+@patch("src.main.process_unclassified_pdf")
 @patch("src.timeline.phase.canonicalize_with_llm")
 @patch("src.grouping.core.process_with_shrink")
 @patch("src.routing.router.route_document")
-def test_dry_run_end_to_end(mock_route, mock_shrink, mock_canonicalize, tmp_path, capfd) -> None:
+def test_dry_run_end_to_end(mock_route, mock_shrink, mock_canonicalize, mock_process_unclass, tmp_path, capfd) -> None:
     """
     Test dry run end to end.
 
@@ -76,10 +78,12 @@ def test_dry_run_end_to_end(mock_route, mock_shrink, mock_canonicalize, tmp_path
     output_pdf_dir = output_dir / "1273 - يونس محمد مالك"
     assert not output_pdf_dir.exists()
 
+@patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
+@patch("src.main.process_unclassified_pdf")
 @patch("src.timeline.phase.canonicalize_with_llm")
 @patch("src.grouping.core.process_with_shrink")
 @patch("src.routing.router.route_document")
-def test_full_run_end_to_end(mock_route, mock_shrink, mock_canonicalize, tmp_path) -> None:
+def test_full_run_end_to_end(mock_route, mock_shrink, mock_canonicalize, mock_process_unclass, tmp_path) -> None:
     """
     Test full run end to end.
 

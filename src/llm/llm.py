@@ -32,11 +32,11 @@ class LLMClient:
     Manages API keys and handles exponential backoff and rate limits for Gemini.
     """
     
-    def __init__(self, api_key: str, delay_between_pages: float = 7.0) -> None:
+    def __init__(self, api_key: str | None = None, delay_between_pages: float = 7.0) -> None:
         """Initialize the LLMClient with API credentials.
         
         Args:
-            api_key (str): Primary API key (typically for Gemini).
+            api_key (str | None): Primary API key (typically for Gemini).
             delay_between_pages (float): Delay in seconds between page extractions.
                 Defaults to 7.0.
         """
@@ -94,6 +94,28 @@ class LLMClient:
             log_prefix=log_prefix,
             max_attempts=0 if is_boundary_call else 3
         )
+
+    def upload_file(self, file_path: str) -> Any:
+        """Upload a file to the active provider's cloud storage.
+        
+        Args:
+            file_path (str): The local path to the file.
+            
+        Returns:
+            Any: A provider-specific file object.
+        """
+        if not hasattr(self.provider, "upload_file"):
+            raise NotImplementedError(f"Provider {self.provider.name} does not support upload_file")
+        return self.provider.upload_file(file_path)
+        
+    def delete_file(self, file_obj: Any) -> None:
+        """Delete a file from the active provider's cloud storage.
+        
+        Args:
+            file_obj (Any): The provider-specific file object to delete.
+        """
+        if hasattr(self.provider, "delete_file"):
+            self.provider.delete_file(file_obj)
 
     def _route_llm_call(
         self, 

@@ -8,8 +8,8 @@
 
 ### System Unification (Categorization)
 
-- [ ] **CAT-01**: System can extract structured metadata (`_report.json`) from a raw PDF document using OCR and Gemini 3.1 Flash Lite.
-- [ ] **CAT-02**: System can bypass the LLM/OCR extraction step entirely if a `_report.json` file is already present for the document.
+- [x] **CAT-01**: System can extract structured metadata (`_report.json`) from a raw PDF document using OCR and Gemini 3.1 Flash Lite.
+- [x] **CAT-02**: System can bypass the LLM/OCR extraction step entirely if a `_report.json` file is already present for the document.
 
 ### Configuration & CLI Modes
 

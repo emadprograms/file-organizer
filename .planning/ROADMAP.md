@@ -5,7 +5,7 @@
 | # | Phase | Goal | Requirements | Success Criteria |
 |---|-------|------|--------------|------------------|
 | 20 | Codebase Maintainability Sweep | 3/3 | Complete    | 2026-07-18 |
-| 21 | System Unification | Port file-categorizer logic for `_report.json` generation | CAT-01, CAT-02 | Complete |
+| 21 | System Unification | 1/1 | Complete    | 2026-07-20 |
 | 22 | Configuration and CLI Modes | Create config.yaml and setup explicit CLI commands | CONF-01, CONF-02, CONF-03 | 3 |
 | 23 | Inbox Parsing and Syntax | Build parser for space-separated FS-UI commands | FSUI-01, FSUI-02, FSUI-03 | 3 |
 | 24 | FS-UI Orchestration | Wire up the rename loop and finalize filing logic | FSUI-04, FSUI-05 | 3 |

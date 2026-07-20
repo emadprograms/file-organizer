@@ -39,6 +39,25 @@ class LLMProvider(Protocol):
         """
         ...
 
+    def upload_file(self, file_path: str) -> Any:
+        """Upload a file to the provider's cloud storage.
+        
+        Args:
+            file_path (str): The local path to the file.
+            
+        Returns:
+            Any: A provider-specific file object.
+        """
+        ...
+        
+    def delete_file(self, file_obj: Any) -> None:
+        """Delete a file from the provider's cloud storage.
+        
+        Args:
+            file_obj (Any): The provider-specific file object to delete.
+        """
+        ...
+
 class GeminiProvider:
     """Concrete LLM provider implementation for Google Gemini."""
     
@@ -106,5 +125,16 @@ class GeminiProvider:
         except Exception as e:
             raw_text = getattr(response, 'text', 'No text available')
             raise ValueError(f"LLM parsing error. Raw output: {raw_text}. Error: {e}")
+
+    def upload_file(self, file_path: str) -> Any:
+        """Upload a file using the Gemini File API."""
+        return self.client.files.upload(file=file_path)
+        
+    def delete_file(self, file_obj: Any) -> None:
+        """Delete a file from the Gemini File API."""
+        try:
+            self.client.files.delete(name=file_obj.name)
+        except Exception as e:
+            logger.warning(f"Failed to delete {file_obj.name} from cloud storage: {e}")
 
 

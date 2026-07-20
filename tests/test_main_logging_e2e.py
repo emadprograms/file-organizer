@@ -19,7 +19,9 @@ def run_organizer(target_dir, verbose_flag) -> Any:
     else:
         cmd.append("--no-verbose")
         
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    env = os.environ.copy()
+    env["GEMINI_API_KEY"] = "dummy_key"
+    result = subprocess.run(cmd, capture_output=True, text=True, env=env)
     
     import re
     # The log message looks like: "... - INFO - Logs will be written to: /path/to/logs/2026-..."

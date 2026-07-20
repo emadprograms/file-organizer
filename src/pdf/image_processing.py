@@ -12,7 +12,7 @@ import fitz  # PyMuPDF
 import cv2
 import numpy as np
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def adjust_levels(image: np.ndarray, black_point: int, white_point: int) -> np.ndarray:
     """

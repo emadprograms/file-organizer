@@ -2,8 +2,9 @@ import os
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 import yaml
+from pydantic import create_model, Field
 
 from src.pdf.image_processing import process_pdf
 from src.core.schemas import CategorizationResult
@@ -45,6 +46,9 @@ def process_unclassified_pdf(target_dir: Path, llm_client: Any) -> None:
         if "_categorized" in pdf_path.name:
             continue
             
+        if not pdf_path.is_file() or pdf_path.name.startswith("."):
+            continue
+            
         basename = pdf_path.stem
         report_path = target_dir / f"{basename}_report.json"
         categorized_pdf_path = target_dir / f"{basename}_categorized.pdf"
@@ -62,76 +66,103 @@ def process_unclassified_pdf(target_dir: Path, llm_client: Any) -> None:
             
         # 2. Query LLM for each page
         for page_key, page_status in status.items():
-            if page_status.get("status") != "extracted":
+            if page_status.get("status") == "classified":
                 continue
                 
             image_path = os.path.join(tmp_dir, f"{page_key}.png")
             if not os.path.exists(image_path):
                 continue
                 
+            image_obj = None
             try:
-                import cv2
-                import base64
-                img = cv2.imread(image_path)
-                if img is not None:
-                    h, w = img.shape[:2]
-                    max_dim = 1024
-                    if h > max_dim or w > max_dim:
-                        scale = max_dim / max(h, w)
-                        img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
-                    ret, buffer = cv2.imencode('.jpg', img, [int(cv2.IMWRITE_JPEG_QUALITY), 85])
-                    if ret:
-                        img_b64 = base64.b64encode(buffer).decode("utf-8")
-                    else:
-                        img_b64 = base64.b64encode(open(image_path, "rb").read()).decode("utf-8")
-                else:
-                    img_b64 = base64.b64encode(open(image_path, "rb").read()).decode("utf-8")
-            except Exception as e:
-                logger.warning(f"Failed to read image {image_path}: {e}")
-                continue
-
-            import PIL.Image
-            import io
-            image_obj = PIL.Image.open(io.BytesIO(base64.b64decode(img_b64)))
-
-            class_prompt = (
-                "Categorize this Arabic PDF page. "
-                f"You must select EXACTLY ONE category from the following list: {list(categories.keys())}. "
-                "Extract all necessary information for the category according to the rules."
-            )
-            class_prompt = f"{classification_instructions}\n\n{class_prompt}"
-            
-            try:
-                result = llm_client.generate_content(
+                # Use GenAI File API via our LLMClient wrapper instead of inline Base64
+                image_obj = llm_client.upload_file(image_path)
+                
+                # STEP 1: CLASSIFY ONLY
+                class_prompt = (
+                    "Categorize this Arabic PDF page. "
+                    f"You must select EXACTLY ONE category from the following list: {list(categories.keys())}. "
+                    "Respond with a JSON object containing ONLY the 'category' key."
+                )
+                class_prompt = f"{classification_instructions}\n\n{class_prompt}"
+                
+                # Use Literal to strictly enforce the enum in the API schema
+                CategoryLiteral = Literal[tuple(categories.keys())]
+                CategorySchema = create_model('CategorySchema', category=(CategoryLiteral, Field(..., description="The category name")))
+                
+                class_result = llm_client.generate_content(
                     contents=[image_obj, class_prompt],
-                    response_schema=CategorizationResult,
+                    response_schema=CategorySchema,
                     is_boundary_call=False
                 )
                 
-                # result is CategorizationResult instance
+                category = class_result.category
+                if category not in categories:
+                    logger.warning(f"Invalid category '{category}' returned for {page_key}")
+                    continue
+                    
+                # STEP 2: EXTRACT SPECIFIC FIELDS
+                extract_rules = categories[category].get("extract", [])
+                extract_instructions = f"Extract information for category '{category}'.\nRules:\n"
+                
+                extracted_fields = {
+                    "content_explanation": (str, Field(..., description="Detailed explanation of the document contents")),
+                    "expected_tenant_name": (str | None, Field(None, description="The person living in or responsible for the house")),
+                    "expected_house_number": (str | None, Field(None, description="The house number associated with the tenant"))
+                }
+                
+                for field in extract_rules:
+                    key = field.split(":")[0].strip()
+                    extract_instructions += f"  - {field}\n"
+                    extracted_fields[key] = (str | None, Field(None))
+                    
+                ext_prompt = (
+                    "Extract the required information from this Arabic PDF page based on the rules. "
+                    "Respond with a JSON object containing the exact requested fields."
+                )
+                ext_prompt = f"{extract_instructions}\n\n{ext_prompt}"
+                
+                ExtractionSchema = create_model('ExtractionSchema', **extracted_fields)
+                
+                ext_result = llm_client.generate_content(
+                    contents=[image_obj, ext_prompt],
+                    response_schema=ExtractionSchema,
+                    is_boundary_call=False
+                )
+                
                 page_status["status"] = "classified"
-                page_status["category"] = result.category
+                page_status["category"] = category
                 
                 # convert to dict excluding None
-                result_dict = result.model_dump(exclude_none=True)
+                result_dict = ext_result.model_dump(exclude_none=True)
                 for k, v in result_dict.items():
-                    if k != "category":
-                        page_status[k] = v
-                        
+                    page_status[k] = v
+                    
                 status[page_key] = page_status
+                
             except Exception as e:
                 logger.error(f"LLM Classification failed for {page_key}: {e}")
                 status[page_key]["status"] = "error"
                 status[page_key]["error"] = str(e)
+            finally:
+                if image_obj:
+                    try:
+                        llm_client.delete_file(image_obj)
+                    except Exception as e:
+                        logger.warning(f"Failed to delete uploaded file: {e}")
+                
+            # Save progress incrementally after each LLM call
+            progress_file = os.path.join(tmp_dir, "progress.json")
+            with atomic_write(progress_file) as tmp_progress:
+                with open(tmp_progress, "w", encoding="utf-8") as f:
+                    json.dump(status, f)
 
-        # Write progress.json
-        progress_file = os.path.join(tmp_dir, "progress.json")
-        with atomic_write(progress_file) as tmp_progress:
-            with open(tmp_progress, "w", encoding="utf-8") as f:
-                json.dump(status, f)
-
-        # Build final report
-        final_report = status
+        # Build final report as a list sorted by page index
+        final_report = []
+        for i in range(len(status)):
+            key = f"page_{i}"
+            if key in status:
+                final_report.append(status[key])
         
         # Write _report.json atomically
         with atomic_write(str(report_path)) as tmp_path:

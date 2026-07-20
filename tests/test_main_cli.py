@@ -70,6 +70,7 @@ def test_validate_environment_missing_key(mock_load_dotenv, capsys) -> None:
         validate_environment()
     assert "GEMINI_API_KEY is missing" in str(exc_info.value)
 
+@patch("src.main.process_unclassified_pdf")
 @patch("src.timeline.FileOrganizer")
 @patch("src.pipeline.pipeline.Pipeline")
 @patch("src.main.LLMClient")
@@ -78,14 +79,14 @@ def test_validate_environment_missing_key(mock_load_dotenv, capsys) -> None:
 @patch("src.main.validate_environment")
 @patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"}, clear=True)
 @patch("sys.argv", ["main.py", "./pdfs/1273"])
-def test_main_success(mock_validate_env, mock_validate_target, mock_setup_logging, mock_llm_client, mock_pipeline, mock_organizer) -> None:
+def test_main_success(mock_validate_env, mock_validate_target, mock_setup_logging, mock_llm_client, mock_pipeline, mock_organizer, mock_process_unclass) -> None:
     """
     Test main success.
 
     Expected outcome:
     The function should execute successfully and meet all assertions.
     """
-    mock_validate_target.return_value = "1273"
+    mock_validate_target.return_value = ["1273"]
     mock_setup_logging.return_value = "/tmp/logs"
     
     mock_pipeline_inst = mock_pipeline.return_value
@@ -143,8 +144,8 @@ def test_validate_target_directory_success(tmp_path) -> None:
     (target_dir / "1273_report.json").touch()
     
     from src.main import validate_target_directory
-    house_id = validate_target_directory(target_dir)
-    assert house_id == "1273"
+    house_ids = validate_target_directory(target_dir)
+    assert house_ids == ["1273"]
 
 def test_validate_target_directory_missing_pdf(tmp_path, capsys) -> None:
     """
@@ -177,7 +178,7 @@ def test_validate_target_directory_mismatch_id(tmp_path, capsys) -> None:
     from src.main import validate_target_directory
     with pytest.raises(ValidationError) as exc_info:
         validate_target_directory(target_dir)
-    assert "ID mismatch" in str(exc_info.value)
+    assert "No matching PDF and JSON pairs found." in str(exc_info.value)
 
 def test_validate_target_directory_missing_json(tmp_path, capsys) -> None:
     """Missing _report.json is gracefully caught and exits with code 1."""
