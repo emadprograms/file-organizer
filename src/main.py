@@ -20,7 +20,7 @@ from src.core.ui import set_verbosity
 from src.llm.llm import LLMClient
 from src.timeline.phase import process_cleaning_phase
 from src.core.exceptions import ConfigurationError, ValidationError, FileOrganizerError
-from src.categorization import process_unclassified_pdf
+from src.categorization.categorization import process_unclassified_pdf
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
@@ -88,10 +88,10 @@ def run_append_mode(config: Any) -> None:
     lock = FileLock(str(lock_path), timeout=0)
     try:
         with lock:
-            print("Listener started...")
+            logger.info("Listener started...")
             # Listener loop will go here in Phase 24
     except Timeout:
-        print("Listener is already running (lockfile exists). Exiting gracefully.")
+        logger.warning("Listener is already running (lockfile exists). Exiting gracefully.")
         sys.exit(0)
 
 def get_parser() -> argparse.ArgumentParser:
@@ -424,11 +424,14 @@ def main() -> int:
     # Load config early
     try:
         from src.core.config import AppConfig
-        # Try to find config.yaml
-        config_path = Path("config.yaml")
-        if not config_path.exists():
-            # fallback to root path if run from a different directory
-            config_path = Path(__file__).resolve().parent.parent / "config.yaml"
+        config_env = os.getenv("FILE_ORGANIZER_CONFIG")
+        if config_env:
+            config_path = Path(config_env)
+        else:
+            config_path = Path("config.yaml")
+            if not config_path.exists():
+                # fallback to root path if run from a different directory
+                config_path = Path(__file__).resolve().parent.parent / "config.yaml"
         config = AppConfig.load(config_path)
     except ConfigurationError as e:
         logger.exception(f"Failed to load configuration: {e}")
@@ -466,7 +469,13 @@ def main() -> int:
             validate_target_directory(args.target_dir)
             targets = [args.target_dir]
         except ValidationError as original_err:
-            targets = [d for d in args.target_dir.iterdir() if d.is_dir() and list(d.glob("*_categorized*.pdf"))]
+            # If the current directory has raw PDFs, it's a valid target
+            if list(args.target_dir.glob("*.pdf")):
+                targets = [args.target_dir]
+            else:
+                # Otherwise, check subdirectories for categorized or raw PDFs
+                targets = [d for d in args.target_dir.iterdir() if d.is_dir() and list(d.glob("*.pdf"))]
+            
             if not targets:
                 raise original_err
                 
