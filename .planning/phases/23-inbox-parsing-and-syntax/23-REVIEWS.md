@@ -1,53 +1,34 @@
----
-phase: 23
-reviewers: [claude]
-reviewed_at: 2026-07-20T15:02:41Z
-plans_reviewed: [23-01-PLAN.md, 23-02-PLAN.md]
----
-
-# Cross-AI Plan Review — Phase 23
-
-## the agent Review
+# Cross-AI Plan Review: Phase 23
 
 ## Summary
-The plans provide a solid separation of concerns, successfully splitting pure parsing (Plan 1) from filesystem and LLM side-effects (Plan 2). Plan 1 correctly models the 5-part space-separated syntax using Pydantic. Plan 2 intelligently coordinates inference and resolution logic. However, Plan 2 has several critical integration flaws: it fails to account for `process_unclassified_pdf` operating on a directory rather than a single file, it doesn't specify correctly locating the tenant YAML file inside the resolved area directory, and its mapping of the group number to `FOLDER_PREFIXES` lacks reverse-lookup specifics.
+The plans outline a robust and clean approach to building the space-separated syntax parser and data inference mechanisms. Plan 1 excellently isolates the parsing logic into pure functions with Pydantic validation, while Plan 2 successfully leverages the existing modular pipelines (`categorization.py` and `yaml_loader.py`) to resolve missing ('U') fields and tenant hints. However, there are a few critical oversights regarding how the existing categorization pass generates files, which will cause infinite loops or syntax errors in the inbox listener if not handled. Additionally, edge cases around empty LLM extractions and strict whitespace parsing need tightening.
 
 ## Strengths
-- **Pure Parsing (Plan 1)**: Isolating the string splitting and validation into a pure function `parse_filename_syntax` that returns a Pydantic model is excellent for testability.
-- **Strict Group Constraints (Plan 1)**: Using Pydantic validators for the `group` field ('1'-'13', 'G', 'U') precisely enforces Decision D-06 (`src/core/schemas.py`).
-- **Conflict Handling (Plan 2)**: Creating a specific `ConflictError` for area resolution gracefully satisfies D-11 by enabling the CLI hook to rename the file accurately.
-- **Majority Vote Logic (Plan 2)**: Utilizing `collections.Counter` on the list of page dicts in `_report.json` correctly leverages the output structure of `process_unclassified_pdf` (`src/categorization/categorization.py:165`).
+- **Pure Function Separation:** Plan 1 successfully separates string parsing into `src/inbox/parser.py` without intertwining filesystem or LLM side effects, keeping it strictly unit-testable.
+- **Graceful extension stripping:** Plan 1 appropriately uses slicing (`filename[:-4]`) rather than `.strip(".pdf")`, which is a common pitfall that corrupts filenames.
+- **Clean Component Reuse:** Plan 2 properly reuses `process_unclassified_pdf` in `src/categorization/categorization.py` by adding `specific_pdf_path`, avoiding code duplication for generating `_report.json`.
+- **Tenant Canonicalization Integration:** Plan 2 correctly routes `tenant_hint` through the existing Pass 1 LLM mechanism (`canonicalize_with_llm` in `src/grouping/name_matcher.py`), ensuring historical continuity.
 
 ## Concerns
-- **HIGH: `process_unclassified_pdf` Signature Mismatch**: Plan 2 says to call `process_unclassified_pdf` to generate `_report.json` for a specific file. However, `categorization.py:16` shows `process_unclassified_pdf(target_dir: Path, llm_client: Any)`. It iterates over `target_dir.glob("*.pdf")`. Passing the inbox path will process *all* PDFs in the inbox, which is dangerous in a listener loop and could cause race conditions or duplicate processing.
-- **HIGH: Incorrect `target_dir` for Tenant YAML**: Plan 2 says to use `yaml_loader.py` to load tenants. `load_tenant_config` (`src/tenant_config/yaml_loader.py:10`) expects the `target_dir` containing the `.source_files` directory. This YAML file lives in the specific house folder (e.g., `areas_root/Area_ID/House_ID/`), NOT the inbox. Plan 2 does not enforce resolving the area *before* resolving the tenant so the correct directory can be passed.
-- **MEDIUM: `FOLDER_PREFIXES` Reverse Lookup**: Plan 2 mentions mapping the `group` value ('1'-'13') to `FOLDER_PREFIXES` in `src/routing/config.py`. However, `FOLDER_PREFIXES` (`src/routing/config.py:28`) maps Arabic folder names (keys) to string prefixes like `"01"`, `"02"` (values). The logic must explicitly format the user's input (e.g., `f"{int(group):02d}"`) and reverse-lookup the key to get the correct folder name.
-- **LOW: Missing `llm_client` in Append Mode**: Plan 2 updates `src/main.py` `run_append_mode` to call `infer_missing_data` (which calls `process_unclassified_pdf`) and `resolve_tenant` (which calls `canonicalize_with_llm`). Both of these require an initialized `LLMClient`, but Plan 2 doesn't mention instantiating one inside `run_append_mode` like `main()` does for `create` mode.
-- **LOW: Unsafe String Stripping (Plan 1)**: If `parse_filename_syntax` uses `.strip(".pdf")`, it will strip individual characters rather than the extension.
+- **HIGH: Inbox Pollution and Infinite Loops (`src/categorization/categorization.py:173`)**
+  Currently, `process_unclassified_pdf` creates a `_categorized.pdf` copy of the processed file. If executed inside the inbox via `append` mode, the listener loop defined in Plan 2 Task 4 will detect this newly created `_categorized.pdf` on its next iteration, attempt to parse its filename, fail the 5-token check, and erroneously rename it to `*_Error_Invalid_Format.pdf`. The listener loop must explicitly ignore `*_categorized.pdf` and `*_report.json`, or the copying behavior must be conditional.
+- **HIGH: Exact Folder Name Construction (`src/routing/config.py:28`)**
+  Plan 2 Task 3 instructs `resolve_group_mode` to "find the corresponding dictionary key in `FOLDER_PREFIXES`... Return instruction to skip grouping and routing with the exact folder name." However, `FOLDER_PREFIXES` maps Keys (e.g., `"بيانات أساسية"`) to Prefixes (`"01"`). Returning either of these in isolation is not an exact folder name. It must construct the full physical folder string (e.g., `f"{prefix}_{key}"` -> `"01_بيانات أساسية"`).
+- **MEDIUM: Null/Empty Values in Majority Vote**
+  Plan 2 Task 2 relies on `collections.Counter` to find the mode of `expected_house_number` and `date` from `_report.json`. If the LLM fails to extract a house number for several pages, `None` or `""` will be present in the JSON. The counter will incorrectly count these nulls as valid votes.
+- **MEDIUM: Brittle String Splitting**
+  Plan 1 Task 2 proposes splitting by the space character `split(" ")`. If a user accidentally types double spaces (e.g., `SAF  1234  Ali 1 2026.pdf`), it will generate empty strings as tokens, causing the Pydantic validation to fail.
+- **MEDIUM: Pydantic Group Validator Strictness**
+  Plan 1 Task 1 restricts the `group` field to `'1'` through `'13'`. If a user inputs `'01'` (which matches the visual folder structure), a strict string validator will reject it.
 
 ## Suggestions
-- **Refactor `process_unclassified_pdf` or wrap it**: Update Plan 2 to either temporarily isolate the target PDF in a scratch directory before calling `process_unclassified_pdf`, or refactor `categorization.py` to accept an optional specific `pdf_path`.
-- **Enforce Resolution Order**: Update Plan 2 to strictly order resolutions: 1. `infer_missing_data` -> 2. `resolve_area` -> 3. Construct `house_dir` -> 4. `resolve_tenant` using the `house_dir` as `target_dir`.
-- **Reverse Lookup Logic**: Specify in Plan 2 that `resolve_group_mode` must zero-pad the group integer to 2 digits and find the dictionary key in `FOLDER_PREFIXES` that has this string value.
-- **Initialize LLM Client**: Explicitly add a task to initialize `LLMClient` in `run_append_mode` inside `src/main.py` so it can be passed to the resolver functions.
-- **Strip extensions securely**: In Plan 1, specify using `filename.lower().endswith(".pdf")` and `filename[:-4]` rather than `strip(".pdf")`.
+- **Modify the Splitting Logic (Plan 1, Task 2):** Use `.split(maxsplit=5)` instead of `.split(" ")`. This treats consecutive spaces as a single delimiter and automatically groups all trailing text (the Title) into the 6th element without needing manual array joining. Ensure you check if `len(parts) >= 5` to handle files without titles.
+- **Coerce Group Values (Plan 1, Task 1):** Instruct the Pydantic validator to cast the `group` value to an integer first (to handle `'01'`), validate it falls between 1 and 13 (or is `'G'`/`'U'`), and then store it as the normalized zero-padded string or integer.
+- **Construct Full Folder Paths (Plan 2, Task 3):** Explicitly mandate that `resolve_group_mode` returns the concatenated string `f"{prefix}_{key}"` (e.g. `01_بيانات أساسية`) using the data from `FOLDER_PREFIXES`.
+- **Filter Nulls in Vote (Plan 2, Task 2):** Add a strict instruction to filter out `None`, `""`, and missing keys from the `_report.json` page entries before feeding the list to `collections.Counter.most_common(1)`.
+- **Ignore Artifacts in Listener (Plan 2, Task 4):** In `src/main.py`'s listener loop, explicitly continue/skip if the file ends with `_categorized.pdf`, `_report.json`, or `_Error_Invalid_Format.pdf`. Additionally, you may want to add a flag `create_categorized_copy=False` to `process_unclassified_pdf` to prevent it from cluttering the inbox entirely.
 
 ## Risk Assessment
-- **Risk Level**: HIGH
-- **Justification**: While the design is conceptually sound, the integration issues in Plan 2 (specifically calling a directory-wide processing function in a listener loop and passing the wrong directory for YAML loading) will cause the application to crash or behave unpredictably in the FS-UI append mode. These integration specifics must be corrected before execution.
+**MEDIUM**. The core architectural separation is sound and relies correctly on the system's existing modular design. However, the unchecked side effects of `categorization.py` operating inside the listener loop pose a significant risk of polluting the inbox and causing infinite renaming cycles. Tightening the string parsing and majority-vote logic will ensure the CLI is robust against human typos.
 
----
-
-## Consensus Summary
-
-### Agreed Strengths
-- Pure Parsing isolation
-- Strict Group Constraints
-- Conflict Handling for Areas
-
-### Agreed Concerns
-- **HIGH:** `process_unclassified_pdf` signature mismatch (expects directory, not file)
-- **HIGH:** Incorrect `target_dir` for Tenant YAML loading
-
-### Divergent Views
-N/A - Only one reviewer.
+## REVIEW COMPLETE.
