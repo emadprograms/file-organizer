@@ -8,7 +8,7 @@ files_modified:
   - src/llm/llm.py
   - src/llm/providers.py
   - src/pdf/image_processing.py
-  - src/categorization.py
+  - src/categorization/categorization.py
   - src/main.py
 autonomous: true
 ---
@@ -84,9 +84,9 @@ Threats:
 
 <task>
 <description>Implement Categorization Logic with Bypass</description>
-<action>Create `src/categorization.py`. Implement `process_unclassified_pdf(target_dir: Path, llm_client: LLMClient)`. It must scan for `.pdf`. If `_report.json` exists in the exact same directory alongside the PDF, log bypass and return. Otherwise, use `image_processing.py` to extract images, query LLM with `CategorizationResult` schema, and save intermediate `progress.json` and the final `[basename]_report.json` and `[basename]_categorized.pdf` using `src.utils.fs.atomic_write`.</action>
+<action>Create `src/categorization/categorization.py`. Implement `process_unclassified_pdf(target_dir: Path, llm_client: LLMClient)`. It must scan for `.pdf`. If `_report.json` exists in the exact same directory alongside the PDF, log bypass and return. Otherwise, use `image_processing.py` to extract images, query LLM with `CategorizationResult` schema, and save intermediate `progress.json` and the final `[basename]_report.json` and `[basename]_categorized.pdf` using `src.utils.fs.atomic_write`.</action>
 <read_first>
-- src/categorization.py
+- src/categorization/categorization.py
 - src/pdf/image_processing.py
 - src/utils/fs.py
 - ../file-categorizer/src/ai_classification.py
@@ -105,7 +105,7 @@ Threats:
 <action>Modify `src/main.py` to call `process_unclassified_pdf(target_dir, llm_client)` BEFORE `validate_target_directory` is invoked. Furthermore, update `validate_target_directory` and the target resolution logic in `main()` to support multiple `_categorized.pdf` files in the same flat directory. Instead of crashing when `len(pdf_files) > 1`, the logic should yield multiple targets or `house_id`s so the pipeline can process each PDF-JSON pair individually.</action>
 <read_first>
 - src/main.py
-- src/categorization.py
+- src/categorization/categorization.py
 </read_first>
 <acceptance_criteria>
 - `process_unclassified_pdf` is called in `src/main.py` at the correct step.
@@ -118,9 +118,9 @@ Threats:
 
 <task>
 <description>Restore the two-call LLM architecture and File API uploads</description>
-<action>Modify `src/categorization.py` and `src/llm/providers.py`/`src/llm/llm.py` to restore the original two-call approach (one for classification, one for extraction) to reduce LLM cognitive load and improve accuracy. Additionally, restore the `client.files.upload()` mechanism for image handling instead of sending inline Base64 data, as this is more robust and reduces payload overhead.</action>
+<action>Modify `src/categorization/categorization.py` and `src/llm/providers.py`/`src/llm/llm.py` to restore the original two-call approach (one for classification, one for extraction) to reduce LLM cognitive load and improve accuracy. Additionally, restore the `client.files.upload()` mechanism for image handling instead of sending inline Base64 data, as this is more robust and reduces payload overhead.</action>
 <read_first>
-- src/categorization.py
+- src/categorization/categorization.py
 - src/llm/llm.py
 - src/llm/providers.py
 </read_first>
@@ -136,14 +136,14 @@ Threats:
 - `src/core/categories.yaml` (new file copied from categorizer)
 - `src/pdf/image_processing.py` (new module with functions: `extract_and_clean_page`, `adjust_levels`, `auto_deskew`, `process_pdf`)
 - `CategorizationResult` (new Pydantic schema in `src/core/schemas.py`)
-- `src/categorization.py` (new module with function: `process_unclassified_pdf`)
+- `src/categorization/categorization.py` (new module with function: `process_unclassified_pdf`)
 
 ## Verification Criteria
 - [ ] End-to-end run processes a raw PDF, invokes LLM, and creates `_report.json` and `_categorized.pdf`.
 - [ ] Subsequent run bypasses processing because `_report.json` exists.
 
 ## must_haves
-- D-01: Place the new logic in `src/categorization.py` — Runs before `cleaning.py`, keeps `main.py` lean and preserves functional pipeline.
+- D-01: Place the new logic in `src/categorization/categorization.py` — Runs before `cleaning.py`, keeps `main.py` lean and preserves functional pipeline.
 - D-02: Adapt to use existing `LLMClient` wrapper — Maintains consistency, retry logic, and JSON schema enforcement instead of keeping standalone API calls.
 - D-03: Exact port of `image_processing.py` without stripping OpenCV logic. Port `image_processing.py` and `ai_classification.py` exactly as they are without text-based OCR fallbacks.
 - D-04: Bypass logic to prevent redundant LLM calls. Look for existing `_report.json` co-located with the PDF (in the exact same directory) to bypass extraction.

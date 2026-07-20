@@ -19,10 +19,13 @@ def test_malformed_json_graceful_failure(tmp_path) -> None:
     (house_dir / "1273_categorized.pdf").write_bytes(b"%PDF-1.0 invalid")
     (house_dir / "1273_report.json").write_text("{invalid json: !@#", encoding="utf-8")
 
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(f"inbox_path: {tmp_path}/inbox\nareas_root_path: {tmp_path}\narea_mappings: {{}}", encoding="utf-8")
+
     result = subprocess.run(
-        [sys.executable, "-m", "src.main", str(house_dir)],
+        [sys.executable, "-m", "src.main", "create", str(house_dir), "--skip-llm"],
         capture_output=True,
-        env={**os.environ, "PYTHONIOENCODING": "utf8", "GEMINI_API_KEY": "dummy"},
+        env={**os.environ, "PYTHONIOENCODING": "utf8", "GEMINI_API_KEY": "dummy", "FILE_ORGANIZER_CONFIG": str(config_path)},
         cwd=str(Path(__file__).parent.parent),
     )
     stdout = result.stdout.decode("utf-8", errors="replace") if result.stdout else ""
@@ -76,10 +79,13 @@ def test_pipeline_out_of_bounds_routing(tmp_path) -> None:
     
     (house_dir / "1274_report.json").write_text(json.dumps(invalid_report), encoding="utf-8")
     
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(f"inbox_path: {tmp_path}/inbox\nareas_root_path: {tmp_path}\narea_mappings: {{}}", encoding="utf-8")
+    
     result = subprocess.run(
-        [sys.executable, "-m", "src.main", str(house_dir)],
+        [sys.executable, "-m", "src.main", "create", str(house_dir), "--skip-llm"],
         capture_output=True,
-        env={**os.environ, "PYTHONIOENCODING": "utf8", "GEMINI_API_KEY": "dummy"},
+        env={**os.environ, "PYTHONIOENCODING": "utf8", "GEMINI_API_KEY": "dummy", "FILE_ORGANIZER_CONFIG": str(config_path)},
         cwd=str(Path(__file__).parent.parent),
     )
     

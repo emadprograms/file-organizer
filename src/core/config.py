@@ -36,7 +36,7 @@ class AppConfig(BaseModel):
     """Application configuration structure."""
     inbox_path: str = Field(description="Path to the inbox directory")
     areas_root_path: str = Field(description="Path to the areas root directory")
-    area_mappings: dict[str, str] = Field(default_factory=dict, description="Mapping of tenant names to area IDs")
+    area_mappings: dict[str, str] = Field(default_factory=dict, description="Mapping of area names to area IDs")
 
     @classmethod
     def load(cls, path: Path | str) -> "AppConfig":

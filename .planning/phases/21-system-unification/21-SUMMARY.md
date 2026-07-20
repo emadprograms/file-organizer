@@ -20,11 +20,11 @@ tech-stack:
   patterns: [Pydantic schema definitions, Multi-modal LLM usage]
 
 key-files:
-  created: [src/pdf/image_processing.py, src/categorization.py, src/core/categories.yaml]
+  created: [src/pdf/image_processing.py, src/categorization/categorization.py, src/core/categories.yaml]
   modified: [src/main.py, src/core/schemas.py, src/llm/providers.py, src/llm/llm.py, requirements.txt]
 
 key-decisions:
-  - "D-01: Place the new logic in src/categorization.py"
+  - "D-01: Place the new logic in src/categorization/categorization.py"
   - "D-02: Adapt to use existing LLMClient wrapper"
   - "D-03: Port image_processing.py exactly as it is without text-based OCR fallbacks"
   - "D-04: Look for existing _report.json co-located with the PDF to bypass extraction"
@@ -80,11 +80,11 @@ Each task was committed atomically:
 - `src/core/schemas.py` - Added CategorizationResult
 - `src/llm/providers.py` - Multimodal input support
 - `src/llm/llm.py` - Multimodal input support
-- `src/categorization.py` - Categorization logic
+- `src/categorization/categorization.py` - Categorization logic
 - `src/main.py` - Pipeline injection
 
 ## Decisions Made
-- D-01: Place the new logic in `src/categorization.py` — Runs before `cleaning.py`, keeps `main.py` lean and preserves functional pipeline.
+- D-01: Place the new logic in `src/categorization/categorization.py` — Runs before `cleaning.py`, keeps `main.py` lean and preserves functional pipeline.
 - D-02: Adapt to use existing `LLMClient` wrapper — Maintains consistency, retry logic, and JSON schema enforcement instead of keeping standalone API calls.
 - D-03: Exact port of `image_processing.py` without stripping OpenCV logic. Port `image_processing.py` and `ai_classification.py` exactly as they are without text-based OCR fallbacks.
 - D-04: Bypass logic to prevent redundant LLM calls. Look for existing `_report.json` co-located with the PDF (in the exact same directory) to bypass extraction.

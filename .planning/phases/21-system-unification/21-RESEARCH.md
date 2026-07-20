@@ -3,14 +3,14 @@
 ## 1. Technical Approach
 
 ### 1.1 Architecture & Module Placement (D-01)
-Create a new module `src/categorization.py` to handle the "Pass 0" step of the pipeline.
+Create a new module `src/categorization/categorization.py` to handle the "Pass 0" step of the pipeline.
 In `src/main.py`, inject the categorization logic *before* `validate_target_directory` is called. 
 - The pipeline will look for `.pdf` files in the `target_dir`.
 - It will execute the categorization pass on raw PDFs.
 - Once completed (or bypassed), `validate_target_directory` can pick up the `_categorized.pdf` and `_report.json` exactly as it did before.
 
 ### 1.2 Bypass Logic (CAT-02 & D-04)
-Within `src/categorization.py` (`process_unclassified_pdf`):
+Within `src/categorization/categorization.py` (`process_unclassified_pdf`):
 - Scan the target directory for `_report.json`.
 - If `_report.json` exists in the exact same directory alongside the PDF, log a bypass message and immediately skip the image extraction and LLM classification process.
 - If it doesn't exist, proceed to rename the raw `.pdf` (if necessary) to `[basename]_categorized.pdf` and execute the extraction to generate `[basename]_report.json`.

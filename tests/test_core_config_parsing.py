@@ -92,7 +92,7 @@ def test_app_config_load_success(tmp_path: Path) -> None:
     config_data = {
         "inbox_path": str(inbox_dir),
         "areas_root_path": str(areas_dir),
-        "area_mappings": {"Tenant A": "123"}
+        "area_mappings": {"Northside": "123"}
     }
     
     with open(yaml_file, "w", encoding="utf-8") as f:
@@ -102,7 +102,7 @@ def test_app_config_load_success(tmp_path: Path) -> None:
     
     assert config.inbox_path == str(inbox_dir)
     assert config.areas_root_path == str(areas_dir)
-    assert config.area_mappings == {"Tenant A": "123"}
+    assert config.area_mappings == {"Northside": "123"}
     assert inbox_dir.exists()
     assert areas_dir.exists()
 

@@ -5,7 +5,8 @@ from pathlib import Path
 from src.main import run_append_mode
 from filelock import FileLock, Timeout
 
-def test_run_append_mode_success(capsys, tmp_path):
+def test_run_append_mode_success(caplog, tmp_path):
+    caplog.set_level("INFO")
     config = MagicMock()
     config.inbox_path = str(tmp_path)
     
@@ -18,10 +19,9 @@ def test_run_append_mode_success(capsys, tmp_path):
         mock_filelock.assert_called_once_with(str(tmp_path / ".inbox.lock"), timeout=0)
         lock_instance.__enter__.assert_called_once()
         
-        captured = capsys.readouterr()
-        assert "Listener started..." in captured.out
+        assert "Listener started..." in caplog.text
 
-def test_run_append_mode_already_locked(capsys, tmp_path):
+def test_run_append_mode_already_locked(caplog, tmp_path):
     config = MagicMock()
     config.inbox_path = str(tmp_path)
     
@@ -33,5 +33,4 @@ def test_run_append_mode_already_locked(capsys, tmp_path):
         run_append_mode(config)
         
         mock_exit.assert_called_once_with(0)
-        captured = capsys.readouterr()
-        assert "Listener is already running" in captured.out
+        assert "Listener is already running" in caplog.text

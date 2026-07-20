@@ -13,7 +13,7 @@ def run_organizer(target_dir, verbose_flag) -> Any:
     # To be safe, we'll clean the logs directory or use a temporary one if possible.
     # Since src/logger.py has a hardcoded LOGS_DIR, we'll just find the latest.
     
-    cmd = ["python", "src/main.py", str(target_dir)]
+    cmd = ["python", "src/main.py", "create", str(target_dir), "--skip-llm"]
     if verbose_flag:
         cmd.append("--verbose")
     else:
@@ -21,6 +21,9 @@ def run_organizer(target_dir, verbose_flag) -> Any:
         
     env = os.environ.copy()
     env["GEMINI_API_KEY"] = "dummy_key"
+    config_path = target_dir.parent / "config.yaml"
+    config_path.write_text(f"inbox_path: {target_dir.parent}/inbox\nareas_root_path: {target_dir.parent}\narea_mappings: {{}}", encoding="utf-8")
+    env["FILE_ORGANIZER_CONFIG"] = str(config_path)
     result = subprocess.run(cmd, capture_output=True, text=True, env=env)
     
     import re

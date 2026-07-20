@@ -2,7 +2,7 @@
 
 This document maps the architectural elements and technical requirements gathered from `CONTEXT.md` and `RESEARCH.md` into concrete file operations.
 
-## 1. `src/categorization.py` (New File)
+## 1. `src/categorization/categorization.py` (New File)
 - **Role**: Handles the "Pass 0" step of the pipeline. It bypasses already processed PDFs, or runs the image extraction and AI classification pass to produce a `[basename]_categorized.pdf` and `[basename]_report.json`.
 - **Data Flow**: Receives `target_dir` from `main.py`. Scans for `.pdf`. If `_report.json` exists in the exact same directory alongside the PDF, bypasses processing. Otherwise, extracts images using `src/pdf/image_processing.py`, reads `categories.yaml`, builds LLM queries via `src/llm/llm.py` using Pydantic schemas, and saves the output.
 - **Closest Existing Analog**: The orchestration functions in `src/main.py` (e.g., `run_cleaning_pass`) and the pipeline logic in `src/pipeline/pipeline.py` (e.g., `_clean_documents`).
@@ -20,7 +20,7 @@ This document maps the architectural elements and technical requirements gathere
 
 ## 2. `src/main.py` (Modified File)
 - **Role**: Pipeline orchestrator and entry point.
-- **Data Flow**: Needs to invoke `src/categorization.py` before `validate_target_directory` is called to ensure raw PDFs are transformed into the expected `_categorized.pdf` and `_report.json` state.
+- **Data Flow**: Needs to invoke `src/categorization/categorization.py` before `validate_target_directory` is called to ensure raw PDFs are transformed into the expected `_categorized.pdf` and `_report.json` state.
 - **Closest Existing Analog**: Existing orchestration logic for `run_cleaning_pass` and `run_grouping_pass`.
 - **Concrete Code Excerpt** (Where injection occurs):
   ```python
@@ -87,5 +87,5 @@ This document maps the architectural elements and technical requirements gathere
 
 ## 7. `src/core/categories.yaml` (New File)
 - **Role**: Contains the categorization rules and extraction instructions mapping.
-- **Data Flow**: Read directly by `src/categorization.py`.
+- **Data Flow**: Read directly by `src/categorization/categorization.py`.
 - **Closest Existing Analog**: `../file-categorizer/categories.yaml`.

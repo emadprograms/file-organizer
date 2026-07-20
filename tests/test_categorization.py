@@ -4,7 +4,7 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from src.categorization import process_unclassified_pdf
+from src.categorization.categorization import process_unclassified_pdf
 from src.llm.llm import LLMClient
 from src.core.schemas import CategorizationResult
 
@@ -47,7 +47,7 @@ class MockCrashLLM(LLMClient):
         
         return CategorizationResult(**dummy_data)
 
-@patch("src.categorization.process_pdf")
+@patch("src.categorization.categorization.process_pdf")
 @patch("cv2.imread")
 @patch("PIL.Image.open")
 def test_process_unclassified_pdf_checkpointing(mock_pil, mock_imread, mock_process_pdf, tmp_path):

@@ -13,12 +13,12 @@
 
 | Option | Description | Selected |
 |--------|-------------|----------|
-| (Recommended) New `src/categorization.py` | Runs before `cleaning.py`, keeps `main.py` lean and preserves functional pipeline | ✓ |
+| (Recommended) New `src/categorization/categorization.py` | Runs before `cleaning.py`, keeps `main.py` lean and preserves functional pipeline | ✓ |
 | Inside `src/main.py` | Simpler, but might bloat the entry point | |
 | Inside `src/cleaning.py` | Piggyback on Pass 1, though it mixes file analysis with entity resolution | |
 | You decide | | |
 
-**User's choice:** (Recommended) New `src/categorization.py`
+**User's choice:** (Recommended) New `src/categorization/categorization.py`
 **Notes:** None
 
 ---

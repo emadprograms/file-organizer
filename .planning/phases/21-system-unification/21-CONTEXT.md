@@ -13,7 +13,7 @@ Port file-categorizer logic for `_report.json` generation using Gemini 3.1 FL an
 ## Implementation Decisions
 
 ### Module Placement
-- **D-01:** Place the new logic in `src/categorization.py` — Runs before `cleaning.py`, keeps `main.py` lean and preserves functional pipeline.
+- **D-01:** Place the new logic in `src/categorization/categorization.py` — Runs before `cleaning.py`, keeps `main.py` lean and preserves functional pipeline.
 
 ### LLM Client Integration
 - **D-02:** Adapt to use existing `LLMClient` wrapper — Maintains consistency, retry logic, and JSON schema enforcement instead of keeping standalone API calls.
@@ -56,7 +56,7 @@ None — user made explicit choices for all areas.
 - Functional data pipeline: The v2.0 refactor established a functional pipeline (`cleaning.py`, `processing/pipeline.py`) which must be preserved.
 
 ### Integration Points
-- `src/main.py`: The entry point will orchestrate the new `src/categorization.py` module before calling `src/cleaning.py`.
+- `src/main.py`: The entry point will orchestrate the new `src/categorization/categorization.py` module before calling `src/cleaning.py`.
 
 </code_context>
 
