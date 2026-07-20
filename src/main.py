@@ -84,12 +84,54 @@ def run_append_mode(config: Any) -> None:
     Args:
         config (AppConfig): The application configuration.
     """
+    import os
+    import time
+    from src.llm.llm import LLMClient
+    from src.inbox.parser import parse_filename_syntax
+    from src.inbox.resolver import infer_missing_data, resolve_area, resolve_tenant, ConflictError
+
+    llm_client = LLMClient(api_key=os.getenv("GEMINI_API_KEY"))
     lock_path = Path(config.inbox_path) / ".inbox.lock"
     lock = FileLock(str(lock_path), timeout=0)
     try:
         with lock:
             logger.info("Listener started...")
-            # Listener loop will go here in Phase 24
+            inbox_dir = Path(config.inbox_path)
+            while True:
+                for pdf_path in inbox_dir.glob("*.pdf"):
+                    name = pdf_path.name
+                    if name.endswith("_categorized.pdf") or name.endswith("_report.json") or name.endswith("_Error_Invalid_Format.pdf") or name.endswith(" - please choose area.pdf"):
+                        continue
+                        
+                    try:
+                        parsed_cmd = parse_filename_syntax(name)
+                    except ValueError:
+                        new_name = pdf_path.stem + "_Error_Invalid_Format.pdf"
+                        os.rename(pdf_path, pdf_path.parent / new_name)
+                        continue
+                        
+                    inferred = infer_missing_data(pdf_path, parsed_cmd, llm_client)
+                    house_to_resolve = inferred.get("expected_house_number", parsed_cmd.house)
+                    if house_to_resolve == 'U':
+                        house_to_resolve = parsed_cmd.house # Fallback
+                        
+                    try:
+                        areas_root = Path(config.areas_root_path)
+                        area_id = resolve_area(house_to_resolve, areas_root)
+                    except ConflictError:
+                        new_name = pdf_path.stem + " - please choose area.pdf"
+                        os.rename(pdf_path, pdf_path.parent / new_name)
+                        continue
+                    except ValueError as e:
+                        logger.error(f"Failed to resolve area for {pdf_path}: {e}")
+                        continue
+                        
+                    house_dir = areas_root / area_id / house_to_resolve
+                    tenant = resolve_tenant(house_dir, parsed_cmd.tenant_hint, llm_client)
+                    
+                    # Do not execute rename-to-proposed or finalization logic (deferred to Phase 24)
+                
+                time.sleep(2)
     except Timeout:
         logger.warning("Listener is already running (lockfile exists). Exiting gracefully.")
         sys.exit(0)
