@@ -13,10 +13,12 @@ import shutil
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-def process_unclassified_pdf(target_dir: Path, llm_client: Any) -> None:
+def process_unclassified_pdf(target_dir: Path, llm_client: Any, specific_pdf_path: Path = None, create_categorized_copy: bool = True) -> None:
     """
     Scans the target directory for raw PDFs, bypasses if _report.json exists,
     otherwise processes images, queries LLM, and creates outputs.
+    If specific_pdf_path is provided, only processes that file.
+    If create_categorized_copy is False, does not create the _categorized.pdf copy.
     """
     # Load categories configuration
     categories_path = Path(__file__).parent.parent / "core" / "categories.yaml"
@@ -41,7 +43,8 @@ def process_unclassified_pdf(target_dir: Path, llm_client: Any) -> None:
             classification_instructions += f"  - {rule}\n"
         classification_instructions += "\n"
 
-    for pdf_path in target_dir.glob("*.pdf"):
+    pdf_paths = [specific_pdf_path] if specific_pdf_path else list(target_dir.glob("*.pdf"))
+    for pdf_path in pdf_paths:
         # Skip if already a categorized PDF
         if "_categorized" in pdf_path.name:
             continue
@@ -170,6 +173,6 @@ def process_unclassified_pdf(target_dir: Path, llm_client: Any) -> None:
                 json.dump(final_report, f, indent=2, ensure_ascii=False)
                 
         # Rename original PDF to _categorized.pdf
-        shutil.copy(str(pdf_path), str(categorized_pdf_path))
-        logger.info(f"Successfully processed and categorized: {categorized_pdf_path.name}")
-        
+        if create_categorized_copy:
+            shutil.copy(str(pdf_path), str(categorized_pdf_path))
+        logger.info(f"Successfully processed and categorized: {pdf_path.name}")
