@@ -7,8 +7,8 @@
 | 20 | Codebase Maintainability Sweep | 3/3 | Complete    | 2026-07-18 |
 | 21 | System Unification | 1/1 | Complete    | 2026-07-20 |
 | 22 | Configuration and CLI Modes | 3/3 | Complete   | 2026-07-20 |
-| 23 | Inbox Parsing and Syntax | Build parser for space-separated FS-UI commands | FSUI-01, FSUI-02, FSUI-03 | In Progress |
-| 24 | FS-UI Orchestration | 1/2 | In Progress|  |
+| 23 | Inbox Parsing and Syntax | 2/2 | Complete | 2026-07-20 |
+| 24 | FS-UI Orchestration | 2/2 | Complete | 2026-07-20 |
 
 ### Phase 20: Codebase Maintainability Sweep
 
@@ -63,14 +63,14 @@ Plans:
 Plans:
 
 - [x] 23-01-PLAN.md - Inbox Syntax Parser (completed 2026-07-20)
-- [ ] 23-02-PLAN.md - Inferring Missing Data
+- [x] 23-02-PLAN.md - Inferring Missing Data
 
 ### Phase 24: FS-UI Orchestration
 
 **Goal:** Wire up the rename loop and finalize filing logic
 **Requirements:** FSUI-04, FSUI-05, FSUI-06
 **Depends on:** Phase 23
-**Plans:** 1/2 plans executed
+**Plans:** 2/2 plans complete
 
 Plans:
 **Wave 1**
@@ -79,4 +79,4 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 24-02-PLAN.md — FSUIOrchestrator Class and main.py Hook
+- [x] 24-02-PLAN.md — FSUIOrchestrator Class and main.py Hook
