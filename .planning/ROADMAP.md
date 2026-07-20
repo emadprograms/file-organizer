@@ -41,11 +41,12 @@ Plans:
 **Goal:** Create config.yaml and setup explicit CLI commands
 **Requirements:** CONF-01, CONF-02, CONF-03
 **Depends on:** Phase 21
-**Plans:** 0 plans
+**Plans:** 2 plans
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 22 to break down)
+- [ ] 22-01-PLAN.md — Configuration Management
+- [ ] 22-02-PLAN.md — CLI Subparsers & Process Lock
 
 ### Phase 23: Inbox Parsing and Syntax
 
