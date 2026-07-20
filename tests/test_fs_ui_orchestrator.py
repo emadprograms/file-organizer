@@ -2,6 +2,7 @@ import pytest
 import os
 import time
 from pathlib import Path
+import unittest.mock
 from unittest.mock import MagicMock, patch
 
 from src.fs_ui.orchestrator import FSUIOrchestrator
@@ -116,6 +117,9 @@ def test_finalize_moves_and_invokes_pipeline(mock_config, mock_llm):
     test_file = inbox / "Area1 123 Smith 2023-01-01 Invoice OK.pdf"
     test_file.touch()
     
+    house_dir = Path(mock_config.areas_root_path) / "Area1" / "123"
+    house_dir.mkdir(parents=True, exist_ok=True)
+    
     # We need to mock the pipeline passes
     with patch("src.fs_ui.orchestrator.process_unclassified_pdf", create=True) as mock_unclass, \
          patch("src.fs_ui.orchestrator.run_cleaning_pass", return_value=([], None), create=True) as mock_clean, \
@@ -134,5 +138,7 @@ def test_finalize_moves_and_invokes_pipeline(mock_config, mock_llm):
         mock_unclass.assert_called_once()
         mock_clean.assert_called_once()
         mock_group.assert_called_once()
-        mock_route.assert_called_once()
-        mock_gen.assert_called_once()
+        mock_gen.assert_called_once_with(
+            [], dest_pdf.parent, "123", house_dir, 
+            unittest.mock.ANY, False, yaml_data=None, pdf_path=dest_pdf
+        )
