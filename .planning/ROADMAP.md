@@ -73,6 +73,10 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
+**Wave 1**
 
 - [ ] 24-01-PLAN.md — PID Lock Utility
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
 - [ ] 24-02-PLAN.md — FSUIOrchestrator Class and main.py Hook
