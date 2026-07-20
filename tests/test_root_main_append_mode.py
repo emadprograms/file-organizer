@@ -10,11 +10,14 @@ def test_run_append_mode_success(caplog, tmp_path):
     config = MagicMock()
     config.inbox_path = str(tmp_path)
     
-    with patch("src.main.FileLock") as mock_filelock, patch("src.llm.llm.LLMClient"):
+    with patch("src.main.FileLock") as mock_filelock, patch("src.llm.llm.LLMClient"), patch("time.sleep", side_effect=KeyboardInterrupt):
         lock_instance = MagicMock()
         mock_filelock.return_value = lock_instance
         
-        run_append_mode(config)
+        try:
+            run_append_mode(config)
+        except KeyboardInterrupt:
+            pass
         
         mock_filelock.assert_called_once_with(str(tmp_path / ".inbox.lock"), timeout=0)
         lock_instance.__enter__.assert_called_once()
