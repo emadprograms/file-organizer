@@ -2,7 +2,10 @@ from typing import Any
 import os
 import pytest
 import logging
-from src.core.config import record_successful_call, TRACKING_DIR, LOG_FILE
+import yaml
+from pathlib import Path
+from src.core.config import record_successful_call, TRACKING_DIR, LOG_FILE, AppConfig
+from src.core.exceptions import ConfigurationError
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
@@ -79,3 +82,58 @@ def test_record_successful_call_handles_exception(tmp_path, monkeypatch) -> None
     
     # This should not crash the application
     record_successful_call()
+
+def test_app_config_load_success(tmp_path: Path) -> None:
+    """Test successful configuration loading and directory creation."""
+    yaml_file = tmp_path / "config.yaml"
+    inbox_dir = tmp_path / "inbox"
+    areas_dir = tmp_path / "areas"
+    
+    config_data = {
+        "inbox_path": str(inbox_dir),
+        "areas_root_path": str(areas_dir),
+        "area_mappings": {"Tenant A": "123"}
+    }
+    
+    with open(yaml_file, "w", encoding="utf-8") as f:
+        yaml.dump(config_data, f)
+        
+    config = AppConfig.load(yaml_file)
+    
+    assert config.inbox_path == str(inbox_dir)
+    assert config.areas_root_path == str(areas_dir)
+    assert config.area_mappings == {"Tenant A": "123"}
+    assert inbox_dir.exists()
+    assert areas_dir.exists()
+
+def test_app_config_load_malformed_yaml(tmp_path: Path) -> None:
+    """Test configuration loading with malformed YAML."""
+    yaml_file = tmp_path / "config.yaml"
+    
+    with open(yaml_file, "w", encoding="utf-8") as f:
+        f.write("[unclosed list\n")
+        
+    with pytest.raises(ConfigurationError, match="Malformed YAML"):
+        AppConfig.load(yaml_file)
+
+def test_app_config_load_invalid_data(tmp_path: Path) -> None:
+    """Test configuration loading with invalid data schema."""
+    yaml_file = tmp_path / "config.yaml"
+    
+    config_data = {
+        "inbox_path": "/some/path"
+        # missing areas_root_path
+    }
+    
+    with open(yaml_file, "w", encoding="utf-8") as f:
+        yaml.dump(config_data, f)
+        
+    with pytest.raises(ConfigurationError, match="Invalid configuration data"):
+        AppConfig.load(yaml_file)
+
+def test_app_config_load_missing_file(tmp_path: Path) -> None:
+    """Test configuration loading with missing file."""
+    yaml_file = tmp_path / "missing_config.yaml"
+    
+    with pytest.raises(ConfigurationError, match="Configuration file not found"):
+        AppConfig.load(yaml_file)
