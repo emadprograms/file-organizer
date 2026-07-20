@@ -2,25 +2,25 @@
 gsd_state_version: 1.0
 milestone: v3.0
 milestone_name: Unified File-System UI & Append Mode
-current_phase: 22
-current_phase_name: configuration-and-cli-modes
+current_phase: 23
+current_phase_name: inbox-parsing-and-syntax
 status: executing
-stopped_at: Phase 23 context gathered
-last_updated: "2026-07-20T14:49:41.088Z"
+stopped_at: Completed 23-01-PLAN.md
+last_updated: "2026-07-20T15:36:23.543Z"
 last_activity: 2026-07-20
-last_activity_desc: Phase 22 execution resumed (wave continue)
+last_activity_desc: Completed Phase 23 Plan 1
 progress:
   total_phases: 5
   completed_phases: 3
-  total_plans: 7
+  total_plans: 9
   completed_plans: 7
   percent: 60
 ---
 
 # Project State
 
-**Current Phase:** 22
-**Status:** Ready to execute
+**Current Phase:** 23
+**Status:** Executing Phase 23
 
 ## Phase Progress
 
@@ -43,15 +43,15 @@ progress:
 ## Session
 
 **Last session:** 2026-07-20T14:49:41.081Z
-**Stopped at:** Phase 23 context gathered
-**Resume file:** .planning/phases/23-inbox-parsing-and-syntax/23-CONTEXT.md
+**Stopped at:** Completed 23-01-PLAN.md
+**Resume file:** None
 
 ## Current Position
 
-Phase: 22 (configuration-and-cli-modes) — EXECUTING
+Phase: 23 (inbox-parsing-and-syntax) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
-Last activity: 2026-07-20 — Phase 22 execution resumed (wave continue)
+Status: Executing Phase 23
+Last activity: 2026-07-20 — Completed Phase 23 Plan 1
 
 ## Operator Next Steps
 
@@ -74,6 +74,7 @@ Last activity: 2026-07-20 — Phase 22 execution resumed (wave continue)
 
 ### Key Decisions (Milestone v3.0)
 
+- Inbox Parser: Used split(maxsplit=5) to separate positional args from title, avoiding complex joins.
 - Adopt a hybrid architecture: retain the stateless, functional approach for the core document pipeline, but introduce class-based orchestrators for the stateful, long-running FS-UI listener in upcoming phases.
 
 ## Performance Metrics
@@ -82,6 +83,7 @@ Last activity: 2026-07-20 — Phase 22 execution resumed (wave continue)
 |-------|------|----------|-----------|
 | Phase 19.1.1 P1 | 10 min | 3 tasks | 6 files |
 | Phase 22 P03 | 1 min | 1 tasks | 3 files |
+| Phase 23 P01 | 15 min | 3 tasks | 3 files |
 
 ## Deferred Items
 
