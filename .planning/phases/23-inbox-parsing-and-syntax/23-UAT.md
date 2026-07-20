@@ -1,9 +1,9 @@
 ---
-status: complete
+status: diagnosed
 phase: 23-inbox-parsing-and-syntax
 source: [23-01-SUMMARY.md, 23-02-SUMMARY.md]
 started: 2026-07-20T16:15:00Z
-updated: 2026-07-20T16:45:00Z
+updated: 2026-07-20T16:47:00Z
 ---
 
 ## Current Test
@@ -63,7 +63,10 @@ blocked: 0
   reason: "User reported: if it couldn't identify U then that is a problem. U is not a name hint, it is unidentified. the way the program handles this is weird? wtf?"
   severity: major
   test: 4
-  root_cause: ""
-  artifacts: []
-  missing: []
-  debug_session: ""
+  root_cause: "resolve_tenant hardcodes returning 'U' when the hint is 'U'. It does not attempt to infer the missing tenant from the document or report."
+  artifacts:
+    - path: "src/inbox/resolver.py"
+      issue: "resolve_tenant early exit on 'U'"
+  missing:
+    - "Update infer_missing_data and resolve_tenant to extract and canonicalize the tenant name from the document when the tenant hint is 'U', similar to how the house ID and date are inferred."
+  debug_session: "manual-diagnosis"

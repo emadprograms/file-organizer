@@ -16,7 +16,7 @@ class ConflictError(Exception):
     pass
 
 def infer_missing_data(pdf_path: Path, parsed_cmd: ParsedCommand, llm_client: Any) -> dict:
-    if parsed_cmd.house == 'U' or parsed_cmd.date == 'U':
+    if parsed_cmd.house == 'U' or parsed_cmd.date == 'U' or parsed_cmd.tenant_hint == 'U':
         process_unclassified_pdf(
             target_dir=pdf_path.parent,
             llm_client=llm_client,
@@ -27,6 +27,7 @@ def infer_missing_data(pdf_path: Path, parsed_cmd: ParsedCommand, llm_client: An
         
         house_counter = collections.Counter()
         date_counter = collections.Counter()
+        tenant_counter = collections.Counter()
         
         if report_path.exists():
             try:
@@ -42,21 +43,28 @@ def infer_missing_data(pdf_path: Path, parsed_cmd: ParsedCommand, llm_client: An
                     if date is not None and date != "":
                         date_counter[date] += 1
                         
+                    tenant = page.get("expected_tenant_name") or page.get("canonical_tenant") or page.get("tenant_name")
+                    if tenant is not None and tenant != "":
+                        tenant_counter[tenant] += 1
+                        
             except json.JSONDecodeError as e:
                 logger.error(f"Failed to parse report {report_path}: {e}")
                 
         # Majority vote
         inferred_house = house_counter.most_common(1)[0][0] if house_counter else 'U'
         inferred_date = date_counter.most_common(1)[0][0] if date_counter else 'U'
+        inferred_tenant = tenant_counter.most_common(1)[0][0] if tenant_counter else 'U'
         
         return {
             "expected_house_number": inferred_house,
-            "date": inferred_date
+            "date": inferred_date,
+            "tenant_hint": inferred_tenant
         }
     
     return {
         "expected_house_number": parsed_cmd.house,
-        "date": parsed_cmd.date
+        "date": parsed_cmd.date,
+        "tenant_hint": parsed_cmd.tenant_hint
     }
 
 def resolve_area(house_id: str, areas_root: Path) -> str:

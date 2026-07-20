@@ -127,7 +127,8 @@ def run_append_mode(config: Any) -> None:
                         continue
                         
                     house_dir = areas_root / area_id / house_to_resolve
-                    tenant = resolve_tenant(house_dir, parsed_cmd.tenant_hint, llm_client)
+                    tenant_to_resolve = inferred.get("tenant_hint", parsed_cmd.tenant_hint)
+                    tenant = resolve_tenant(house_dir, tenant_to_resolve, llm_client)
                     
                     # Do not execute rename-to-proposed or finalization logic (deferred to Phase 24)
                 
