@@ -1,0 +1,4 @@
+inbox_path: "./inbox"
+areas_root_path: "./areas"
+area_mappings:
+  "Tenant A": "123"
