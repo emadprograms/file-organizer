@@ -10,7 +10,7 @@ def test_run_append_mode_success(caplog, tmp_path):
     config = MagicMock()
     config.inbox_path = str(tmp_path)
     
-    with patch("src.main.FileLock") as mock_filelock, patch("src.main.LLMClient"):
+    with patch("src.main.FileLock") as mock_filelock, patch("src.llm.llm.LLMClient"):
         lock_instance = MagicMock()
         mock_filelock.return_value = lock_instance
         
@@ -25,7 +25,7 @@ def test_run_append_mode_already_locked(caplog, tmp_path):
     config = MagicMock()
     config.inbox_path = str(tmp_path)
     
-    with patch("src.main.FileLock") as mock_filelock, patch("sys.exit") as mock_exit, patch("src.main.LLMClient"):
+    with patch("src.main.FileLock") as mock_filelock, patch("sys.exit") as mock_exit, patch("src.llm.llm.LLMClient"):
         lock_instance = MagicMock()
         lock_instance.__enter__.side_effect = Timeout(str(tmp_path / ".inbox.lock"))
         mock_filelock.return_value = lock_instance
