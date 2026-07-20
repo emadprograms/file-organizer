@@ -1,0 +1,13 @@
+# Sample Configuration for File Organizer
+# Copy this file to config.yaml and adjust paths as needed.
+
+# Path where unorganized files are dropped
+inbox_path: "/Volumes/arshad-pc/Inbox"
+
+# Path where organized files are sorted into areas
+areas_root_path: "/Volumes/arshad-pc/Areas"
+
+# Mapping of area names to area IDs
+area_mappings:
+  "Northside": "123"
+  "Downtown": "456"
