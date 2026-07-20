@@ -70,8 +70,9 @@ Plans:
 **Goal:** Wire up the rename loop and finalize filing logic
 **Requirements:** FSUI-04, FSUI-05, FSUI-06
 **Depends on:** Phase 23
-**Plans:** 0 plans
+**Plans:** 2 plans
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 24 to break down)
+- [ ] 24-01-PLAN.md — PID Lock Utility
+- [ ] 24-02-PLAN.md — FSUIOrchestrator Class and main.py Hook
