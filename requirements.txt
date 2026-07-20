@@ -11,3 +11,4 @@ rich
 PyYAML
 opencv-python
 numpy
+filelock

@@ -4,7 +4,7 @@ import sys
 import pytest
 import logging
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
@@ -19,7 +19,8 @@ def test_parser_default_model() -> None:
     The function should execute successfully and meet all assertions.
     """
     parser = get_parser()
-    args = parser.parse_args(["./pdfs/1273"])
+    args = parser.parse_args(["create", "./pdfs/1273"])
+    assert args.command == "create"
     assert args.target_dir == Path("./pdfs/1273")
     assert args.model == "gemma-4-31b-it"
 
@@ -31,7 +32,7 @@ def test_parser_custom_model() -> None:
     The function should execute successfully and meet all assertions.
     """
     parser = get_parser()
-    args = parser.parse_args(["./pdfs/1273", "--model", "gemma-4-31b-it"])
+    args = parser.parse_args(["create", "./pdfs/1273", "--model", "gemma-4-31b-it"])
     assert args.model == "gemma-4-31b-it"
 
 def test_parser_flags() -> None:
@@ -42,7 +43,7 @@ def test_parser_flags() -> None:
     The function should execute successfully and meet all assertions.
     """
     parser = get_parser()
-    args = parser.parse_args(["./pdfs/1273", "--verbose", "--skip-llm"])
+    args = parser.parse_args(["create", "./pdfs/1273", "--verbose", "--skip-llm"])
     assert args.verbose is True
     assert args.skip_llm is True
 
@@ -77,15 +78,19 @@ def test_validate_environment_missing_key(mock_load_dotenv, capsys) -> None:
 @patch("src.main.setup_logging")
 @patch("src.main.validate_target_directory")
 @patch("src.main.validate_environment")
+@patch("src.core.config.AppConfig.load")
 @patch.dict(os.environ, {"GEMINI_API_KEY": "test_key"}, clear=True)
-@patch("sys.argv", ["main.py", "./pdfs/1273"])
-def test_main_success(mock_validate_env, mock_validate_target, mock_setup_logging, mock_llm_client, mock_pipeline, mock_organizer, mock_process_unclass) -> None:
+@patch("sys.argv", ["main.py", "create", "./pdfs/1273"])
+def test_main_success(mock_app_config_load, mock_validate_env, mock_validate_target, mock_setup_logging, mock_llm_client, mock_pipeline, mock_organizer, mock_process_unclass) -> None:
     """
     Test main success.
 
     Expected outcome:
     The function should execute successfully and meet all assertions.
     """
+    mock_config = MagicMock()
+    mock_config.areas_root_path = str(Path("./pdfs").resolve())
+    mock_app_config_load.return_value = mock_config
     mock_validate_target.return_value = ["1273"]
     mock_setup_logging.return_value = "/tmp/logs"
     
@@ -192,3 +197,14 @@ def test_validate_target_directory_missing_json(tmp_path, capsys) -> None:
         validate_target_directory(target_dir)
     assert "No *_report.json found" in str(exc_info.value)
 
+
+@patch("src.core.config.AppConfig")
+@patch("sys.argv", ["main.py", "create", "/tmp/outside_path"])
+def test_main_create_boundary_check(mock_app_config, caplog) -> None:
+    """Test that create command rejects paths outside of areas_root_path."""
+    mock_app_config.load.return_value.areas_root_path = "/tmp/allowed_root"
+    
+    with patch("src.core.config.AppConfig.load", return_value=mock_app_config.load.return_value):
+        assert main() == 1
+    
+    assert "is outside the allowed areas root" in caplog.text

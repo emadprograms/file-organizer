@@ -6,6 +6,7 @@ from pathlib import Path
 import json
 import fitz
 from typing import Any
+from filelock import FileLock, Timeout
 
 import re
 
@@ -77,6 +78,22 @@ def validate_target_directory(target_dir: Path) -> list[str]:
         
     return ids
 
+def run_append_mode(config: Any) -> None:
+    """Run the listener in append mode with a process-exclusive lock.
+    
+    Args:
+        config (AppConfig): The application configuration.
+    """
+    lock_path = Path(config.inbox_path) / ".inbox.lock"
+    lock = FileLock(str(lock_path), timeout=0)
+    try:
+        with lock:
+            print("Listener started...")
+            # Listener loop will go here in Phase 24
+    except Timeout:
+        print("Listener is already running (lockfile exists). Exiting gracefully.")
+        sys.exit(0)
+
 def get_parser() -> argparse.ArgumentParser:
     """Create and configure the command-line argument parser.
     
@@ -84,40 +101,49 @@ def get_parser() -> argparse.ArgumentParser:
         argparse.ArgumentParser: The configured parser object.
     """
     parser = argparse.ArgumentParser(description="File Organizer Post-Processor")
-    parser.add_argument("target_dir", type=Path, help="Path to the target directory containing the categorized PDF and report JSON")
-    parser.add_argument(
+    
+    subparsers = parser.add_subparsers(dest="command", required=True)
+    
+    # create mode
+    create_parser = subparsers.add_parser("create", help="Run standard document pipeline on a path")
+    create_parser.add_argument("target_dir", type=Path, help="Path to the target directory containing the categorized PDF and report JSON")
+    create_parser.add_argument(
         "--model", 
         type=str, 
         default="gemma-4-31b-it", 
         choices=["gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"],
         help="LLM model to use for the main tasks"
     )
-    parser.add_argument(
+    create_parser.add_argument(
         "--routing-model", 
         type=str, 
         choices=["gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"],
         help="Optional: LLM model to use specifically for routing. Defaults to the main model if not set."
     )
-    parser.add_argument(
+    create_parser.add_argument(
         "--dry-run",
         action="store_true",
         help="Preview the pipeline output without writing physical files or PDFs."
     )
-    parser.add_argument(
+    create_parser.add_argument(
         "--verbose",
         action="store_true",
         help="Enable verbose logging."
     )
-    parser.add_argument(
+    create_parser.add_argument(
         "--skip-llm",
         action="store_true",
         help="Skip LLM calls and return mocked schemas."
     )
-    parser.add_argument(
+    create_parser.add_argument(
         "--output-dir",
         type=Path,
         help="Optional: Path to the output base directory. Defaults to the parent of the house folder if target_dir is the house folder, otherwise to target_dir."
     )
+    
+    # append mode
+    append_parser = subparsers.add_parser("append", help="Start the listener on the inbox")
+    
     return parser
 
 def run_cleaning_pass(json_path: Path, output_json_path: Path, llm_client: Any, logger: logging.Logger, dry_run: bool, house_id: str, target_dir: Path) -> tuple[list[Any], dict[str, Any] | None]:
@@ -395,7 +421,35 @@ def main() -> int:
     parser = get_parser()
     args = parser.parse_args()
     
-    if args.dry_run and sys.platform == 'win32':
+    # Load config early
+    try:
+        from src.core.config import AppConfig
+        # Try to find config.yaml
+        config_path = Path("config.yaml")
+        if not config_path.exists():
+            # fallback to root path if run from a different directory
+            config_path = Path(__file__).resolve().parent.parent / "config.yaml"
+        config = AppConfig.load(config_path)
+    except ConfigurationError as e:
+        logger.exception(f"Failed to load configuration: {e}")
+        return 1
+    except Exception as e:
+        logger.exception(f"Unexpected error loading config: {e}")
+        return 1
+
+    if args.command == "append":
+        run_append_mode(config)
+        return 0
+
+    # Ensure create mode paths are within allowed root
+    target_path = args.target_dir.resolve()
+    areas_root = Path(config.areas_root_path).resolve()
+    
+    if not target_path.is_relative_to(areas_root):
+        logger.error(f"Error: Target path {target_path} is outside the allowed areas root {areas_root}")
+        return 1
+
+    if getattr(args, 'dry_run', False) and sys.platform == 'win32':
         if sys.stdout.encoding.lower() != 'utf-8':
             logger.warning("Terminal encoding is not UTF-8. Arabic characters may not render correctly.")
             logger.warning("Recommend setting environment variable: PYTHONIOENCODING=utf8")
