@@ -7,7 +7,7 @@
 | 20 | Codebase Maintainability Sweep | 3/3 | Complete    | 2026-07-18 |
 | 21 | System Unification | 1/1 | Complete    | 2026-07-20 |
 | 22 | Configuration and CLI Modes | 3/3 | Complete   | 2026-07-20 |
-| 23 | Inbox Parsing and Syntax | Build parser for space-separated FS-UI commands | FSUI-01, FSUI-02, FSUI-03 | 3 |
+| 23 | Inbox Parsing and Syntax | Build parser for space-separated FS-UI commands | FSUI-01, FSUI-02, FSUI-03 | In Progress |
 | 24 | FS-UI Orchestration | Wire up the rename loop and finalize filing logic | FSUI-04, FSUI-05 | 3 |
 
 ### Phase 20: Codebase Maintainability Sweep
@@ -58,11 +58,12 @@ Plans:
 **Goal:** Build parser for space-separated FS-UI commands
 **Requirements:** FSUI-01, FSUI-02, FSUI-03
 **Depends on:** Phase 22
-**Plans:** 0 plans
+**Plans:** 1/2 plans complete
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 23 to break down)
+- [x] 23-01-PLAN.md - Inbox Syntax Parser (completed 2026-07-20)
+- [ ] 23-02-PLAN.md - Inferring Missing Data
 
 ### Phase 24: FS-UI Orchestration
 
