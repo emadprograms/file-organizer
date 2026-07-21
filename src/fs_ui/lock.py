@@ -6,33 +6,37 @@ class LockExistsError(Exception):
     pass
 
 def acquire_lock(lock_path: Path) -> None:
-    """Acquire a PID-based lock at lock_path."""
-    if lock_path.exists():
+    """Acquire a PID-based lock at lock_path atomically."""
+    while True:
         try:
-            pid_str = lock_path.read_text().strip()
-            if not pid_str:
-                raise ValueError("Empty lockfile")
-            pid = int(pid_str)
-            
-            # Check if alive
+            fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+            with os.fdopen(fd, 'w') as f:
+                f.write(str(os.getpid()))
+            return
+        except FileExistsError:
+            # Lock file exists, check if stale
             try:
+                pid_str = lock_path.read_text().strip()
+                if not pid_str:
+                    raise ValueError("Empty lockfile")
+                pid = int(pid_str)
+                
                 os.kill(pid, 0)
+                # If we get here, process is alive
+                raise LockExistsError(f"Lock held by active PID: {pid}")
             except ProcessLookupError:
-                pass # Process is dead, can overwrite
+                pass # Stale lock, can overwrite
             except PermissionError:
-                # Process is alive but we can't signal it
                 raise LockExistsError(f"Lock held by active PID: {pid}")
-            else:
-                # Process is alive
-                raise LockExistsError(f"Lock held by active PID: {pid}")
-            
-        except ValueError:
-            # ValueError: tampering/invalid PID
-            pass # Overwrite stale lock
-
-            
-    # Write current PID
-    lock_path.write_text(str(os.getpid()))
+            except (ValueError, OSError):
+                pass # Stale/invalid lock
+                
+            # If we reach here, lock is stale and should be removed to retry
+            try:
+                lock_path.unlink()
+            except FileNotFoundError:
+                pass
+            continue
 
 def release_lock(lock_path: Path) -> None:
     """Release the lock if it matches our PID."""

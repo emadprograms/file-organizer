@@ -35,7 +35,7 @@ class FSUIOrchestrator:
                         if not ((inbox_dir / f"{stem}_Proposed.pdf").exists() or 
                                 (inbox_dir / f"{stem}_Proposed OK.pdf").exists() or 
                                 (inbox_dir / f"{stem}.pdf").exists()):
-                            shutil.rmtree(tmp_dir)
+                            shutil.rmtree(tmp_dir, ignore_errors=True)
                 except Exception as e:
                     logger.error(f"Failed to cleanup temp dir {tmp_dir}: {e}")
 
@@ -46,7 +46,10 @@ class FSUIOrchestrator:
                     continue
 
                 if name.endswith(" OK.pdf"):
-                    self.finalize(pdf_path)
+                    try:
+                        self.finalize(pdf_path)
+                    except Exception as e:
+                        logger.error(f"Error finalizing {pdf_path}: {e}")
                     continue
 
                 try:
@@ -64,7 +67,10 @@ class FSUIOrchestrator:
                 if prev_size != size:
                     continue
                     
-                self.propose(pdf_path)
+                try:
+                    self.propose(pdf_path)
+                except Exception as e:
+                    logger.error(f"Error proposing {pdf_path}: {e}")
                 
             time.sleep(2)
 
@@ -217,7 +223,11 @@ class FSUIOrchestrator:
         os.rename(tmp_dir, new_tmp_dir)
 
     def finalize(self, filepath: Path) -> None:
-        clean_name = filepath.name.replace(" OK.pdf", "").replace("_Proposed", "")
+        clean_name = filepath.name
+        if clean_name.endswith(" OK.pdf"):
+            clean_name = clean_name[:-7]
+        if clean_name.endswith("_Proposed"):
+            clean_name = clean_name[:-9]
         
         areas_root = Path(self.config.areas_root_path).resolve(strict=True)
         
