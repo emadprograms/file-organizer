@@ -48,8 +48,8 @@ def validate_target_directory(target_dir: Path) -> list[str]:
         raise ValidationError(f"Target directory does not exist or is not a directory: {target_dir}")
         
     # Make globs more permissive in case of renames (e.g., _categorized (1).pdf)
-    pdf_files = list(target_dir.glob("*_categorized*.pdf"))
-    json_files = list(target_dir.glob("*_report*.json"))
+    pdf_files = list(target_dir.glob("*_categorized*.pdf")) + list((target_dir / ".source_files").glob("*_categorized*.pdf"))
+    json_files = list(target_dir.glob("*_report*.json")) + list((target_dir / ".source_files").glob("*_report*.json"))
     
     if len(pdf_files) == 0:
         raise ValidationError("No *_categorized.pdf found in the target directory.")
@@ -293,7 +293,7 @@ def run_routing_pass(documents: list[Any], house_id: str, output_dir: Path, llm_
     documents = pipeline._route_documents(documents, str(routing_checkpoint_path))
     return documents
 
-def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, output_dir: Path, logger: logging.Logger, dry_run: bool, yaml_data: dict[str, Any] | None = None, pdf_path: Path | None = None) -> None:
+def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, output_dir: Path, logger: logging.Logger, dry_run: bool, json_path: Path, yaml_data: dict[str, Any] | None = None, pdf_path: Path | None = None) -> None:
     """Run the final generation pass to produce categorized PDFs.
     
     Args:
@@ -303,8 +303,9 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
         output_dir (Path): The final output directory.
         logger (logging.Logger): The logger instance.
         dry_run (bool): Whether this is a dry run.
+        json_path (Path): Path to the JSON report file.
         yaml_data (dict[str, Any] | None): Optional YAML tenant configuration data.
-        pdf_path (Path | None): Optional path to the PDF to use. Defaults to first categorized PDF.
+        pdf_path (Path | None): Optional path to the PDF to use. Defaults to finding matching PDF by page count.
         
     Returns:
         None
@@ -312,7 +313,22 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
     from src.timeline import FileOrganizer, run_reconciliation
     
     if pdf_path is None:
-        pdf_path = list(target_dir.glob(f"{house_id}_categorized*.pdf"))[0]
+        with open(json_path, 'r', encoding='utf-8') as f:
+            report_data = json.load(f)
+        
+        expected_pages = len(report_data)
+        found_pdf = None
+        
+        for pdf_file in target_dir.glob("*.pdf"):
+            with fitz.open(str(pdf_file)) as doc:
+                if doc.page_count == expected_pages:
+                    found_pdf = pdf_file
+                    break
+                    
+        if found_pdf is None:
+            raise ValueError(f"No PDF in {target_dir} matches the expected page count ({expected_pages}) of {json_path.name}.")
+            
+        pdf_path = found_pdf
     
     organizer = FileOrganizer()
     per_page, full_house_id = organizer.organize(documents, str(pdf_path), house_id, output_dir, yaml_data=yaml_data, dry_run=dry_run)
@@ -533,13 +549,14 @@ def main() -> int:
                     
                     house_dir = output_dir / house_id
                     
-                    json_path = list(target_dir.glob(f"{house_id}_report*.json"))[0]
+                    json_paths = list(target_dir.glob(f"{house_id}_report*.json")) + list((target_dir / ".source_files").glob(f"{house_id}_report*.json"))
+                    json_path = json_paths[0]
                     output_json_path = output_dir / ".source_files" / f"{house_id}_1_cleaned.json"
                     
                     cleaned_pages, yaml_data = run_cleaning_pass(json_path, output_json_path, llm_client, logger, args.dry_run, house_id, target_dir)
                     documents = run_grouping_pass(cleaned_pages, house_id, output_dir, llm_client, logger, args.dry_run)
                     documents = run_routing_pass(documents, house_id, output_dir, llm_client, logger, args.dry_run, args.routing_model)
-                    run_generation_pass(documents, target_dir, house_id, output_dir, logger, args.dry_run, yaml_data)
+                    run_generation_pass(documents, target_dir, house_id, output_dir, logger, args.dry_run, json_path, yaml_data)
             except Exception as e:
                 logger.exception(f"Failed processing {target_dir}: {e}")
                 has_errors = True
