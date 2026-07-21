@@ -25,12 +25,14 @@ def test_file_placement_logic(tmp_path) -> None:
     
     # Create mock report json
     report_json = target_dir / f"{house_id}_report.json"
-    report_json.touch()
+    report_json.write_text("[1,2,3,4,5,6,7,8,9,10]")
+    
+    house_dir = output_dir / house_id
     
     # Create mock checkpoints (these are now generated directly in .source_files, 
     # but run_generation_pass moves other JSON files from target_dir to .source_files)
-    source_files_dir = output_dir / ".source_files"
-    source_files_dir.mkdir()
+    source_files_dir = house_dir / ".source_files"
+    source_files_dir.mkdir(parents=True)
     cleaned_path = source_files_dir / f"{house_id}_1_cleaned.json"
     cleaned_path.touch()
     grouped_path = source_files_dir / f"{house_id}_2_grouped.json"
@@ -79,7 +81,7 @@ def test_file_placement_logic(tmp_path) -> None:
         
         logger = logging.getLogger("test")
         
-        run_generation_pass([], target_dir, house_id, output_dir, logger, dry_run=False)
+        run_generation_pass([], target_dir, house_id, output_dir, logger, dry_run=False, json_path=report_json)
         
     # Assertions
     assert source_files_dir.exists(), ".source_files directory should exist"

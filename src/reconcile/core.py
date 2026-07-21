@@ -12,7 +12,7 @@ from src.utils.fs import atomic_write
 from src.core.utils import sanitize_filename
 import logging
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def run_reconcile_mode(args) -> int:
     """Run the reconcile mode to retroactively apply config updates.
