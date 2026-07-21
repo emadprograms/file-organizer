@@ -411,11 +411,11 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
         except Exception as e:
             logger.error(f"Failed to create finalized PDF: {e}")
         
-        source_files_dir = output_dir / ".source_files"
+        source_files_dir = house_dir / ".source_files"
         source_files_dir.mkdir(parents=True, exist_ok=True)
         
         # Delete the original categorized PDF upon completion
-        if pdf_path.exists():
+        if pdf_path.exists() and not pdf_path.name.endswith("_finalized.pdf") and not pdf_path.name.endswith("_raw_append.pdf"):
             try:
                 os.remove(str(pdf_path))
             except OSError as e:
