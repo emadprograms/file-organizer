@@ -40,6 +40,12 @@ progress:
   - TEST-05: Implement function-level LLM mocking using saved real responses
   - TEST-06: Add E2E routing destination assertions
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260721-n3z | Implement reconcile --tenants mode in main.py. It should read _tenants.yaml, parse dates, update _1_cleaned.json, _2_grouped.json, and _3_routed.json in-place so canonical_tenant matches the yaml based on dates. Then move PDFs on disk and delete old empty folders. | 2026-07-21 | ac83c4b | [260721-n3z-implement-reconcile-tenants-mode-in-main](./quick/260721-n3z-implement-reconcile-tenants-mode-in-main/) |
+
 ## Session
 
 **Last session:** 2026-07-20
