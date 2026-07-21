@@ -5,7 +5,7 @@ import yaml
 import shutil
 from unittest.mock import patch, MagicMock
 
-from src.main import run_reconcile_mode
+from src.reconcile.core import run_reconcile_mode
 
 class DummyArgs:
     def __init__(self, target_dir, dry_run=False):
@@ -74,7 +74,7 @@ def test_run_reconcile_mode(tmp_path):
     args = DummyArgs(target_dir=target_dir)
     
     # We patch FileOrganizer to avoid complicated real dependencies just to test the move logic
-    with patch("src.timeline.core.FileOrganizer") as mock_org:
+    with patch("src.reconcile.core.FileOrganizer") as mock_org:
         mock_instance = mock_org.return_value
         mock_instance.compute_tenant_folders.return_value = ({"Ahmed Yusuf Muraisil": "Ahmed Yusuf Muraisil (2021 - الآن)"}, "Ahmed Yusuf Muraisil (2021 - الآن)")
         
