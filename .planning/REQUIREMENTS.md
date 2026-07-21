@@ -22,9 +22,9 @@
 - [ ] **FSUI-01**: System can parse positional filename commands in the format `[AREA_CODE] [HOUSE_NUMBER] [GROUP] [DATE]` separated by spaces.
 - [ ] **FSUI-02**: System interprets the `U` character in any position as an instruction to dynamically infer that missing data (Area, House, Group, or Date) from the document content using the LLM.
 - [ ] **FSUI-03**: System assumes any PDF dropped into the inbox belongs to exactly ONE house, and applies majority-vote logic if the house must be inferred.
-- [x] **FSUI-04**: System can propose its filing intention by renaming the PDF in the Inbox (e.g. appending `_Proposed`).
-- [x] **FSUI-05**: System watches the Inbox for user approval (indicated by appending ` OK` to the filename) and finalizes the filing process (moving the file to the correct house's `.source_files/` and updating the `_finalized` PDF) upon detection.
-- [x] **FSUI-06**: FS-UI listener and orchestration is implemented using a class-based architecture to encapsulate state, keeping it strictly separated from the functional document pipeline.
+- [x] **FSUI-04**: System can propose its filing intention by renaming the PDF in the Inbox (appending `_Proposed`), preserving all 6 fields, and running the necessary extraction and pipeline passes (cleaning, grouping, routing) during the propose phase to store intermediate results.
+- [x] **FSUI-05**: System watches the Inbox for user approval (indicated by appending ` OK` to the filename) and finalizes by extracting pages to tenant folders, appending pages to the `_finalized` PDF, shifting page indices and merging temporary JSONs into main `.source_files/`, and cleaning up the inbox.
+- [x] **FSUI-06**: System aborts append mode and appends `_Error_Missing_YAML.pdf` to the filename if the required `house_id_tenants.yaml` file is missing.
 
 ## Future Requirements
 
