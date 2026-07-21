@@ -111,7 +111,7 @@ def run_reconcile_mode(args) -> int:
         if new_tenant and not new_tenant.startswith("Unassigned") and not new_tenant.startswith("غير محدد"):
             new_tenant_folder = tenant_folder_names.get(new_tenant, sanitize_filename(new_tenant))
         else:
-            new_tenant_folder = "Unassigned"
+            new_tenant_folder = tenant_folder_names.get("Unassigned", "غير مخصص")
             
         new_target_folder = f"{new_tenant_folder}/{topic}" if topic else new_tenant_folder
         new_output_file = f"{full_house_id}/{new_target_folder}/{file_name}"
@@ -140,34 +140,48 @@ def run_reconcile_mode(args) -> int:
             else:
                 logger.info(f"[DRY RUN] Would move: {old_path} -> {new_path}")
                 
-        # Clean up empty directories
-        if not getattr(args, 'dry_run', False):
-            # Also clean up the old house_dir if it is different
-            old_full_house_id = None
-            if old_per_page:
-                first_old_file = old_per_page[0].get("output_file", "")
-                if first_old_file:
-                    old_full_house_id = first_old_file.split("/")[0]
-            
-            dirs_to_clean = []
-            if old_full_house_id and old_full_house_id != full_house_id:
-                dirs_to_clean.append(output_base_dir / old_full_house_id)
-            dirs_to_clean.append(output_base_dir / full_house_id)
-            
-            for house_dir in dirs_to_clean:
-                if house_dir.exists():
-                    # Walk bottom-up to safely delete nested empty dirs
-                    for root, dirs, files in os.walk(str(house_dir), topdown=False):
-                        if root == str(source_dir):
-                            continue
-                        if not os.listdir(root):
-                            try:
-                                os.rmdir(root)
-                                logger.info(f"Removed empty directory: {root}")
-                            except Exception:
-                                pass
     else:
         logger.info("No file moves required based on the updated tenants.")
+        
+    # Clean up empty directories
+    if not getattr(args, 'dry_run', False):
+        # Also clean up the old house_dir if it is different
+        old_full_house_id = None
+        if old_per_page:
+            first_old_file = old_per_page[0].get("output_file", "")
+            if first_old_file:
+                old_full_house_id = first_old_file.split("/")[0]
+        
+        dirs_to_clean = []
+        if old_full_house_id and old_full_house_id != full_house_id:
+            dirs_to_clean.append(output_base_dir / old_full_house_id)
+        dirs_to_clean.append(output_base_dir / full_house_id)
+        
+        for house_dir in dirs_to_clean:
+            if house_dir.exists():
+                # Walk bottom-up to safely delete nested empty dirs
+                for root, dirs, files in os.walk(str(house_dir), topdown=False):
+                    if root == str(source_dir):
+                        continue
+                    is_empty = True
+                    for f in os.listdir(root):
+                        if not f.startswith("._") and f != ".DS_Store":
+                            is_empty = False
+                            break
+                            
+                    if is_empty:
+                        try:
+                            # Remove any leftover macOS ghost files first
+                            for f in os.listdir(root):
+                                junk_path = os.path.join(root, f)
+                                try:
+                                    os.remove(junk_path)
+                                except Exception:
+                                    pass
+                            os.rmdir(root)
+                            logger.info(f"Removed empty directory: {root}")
+                        except Exception:
+                            pass
         
     if not getattr(args, 'dry_run', False):
         with atomic_write(str(cleaned_path)) as tmp:
