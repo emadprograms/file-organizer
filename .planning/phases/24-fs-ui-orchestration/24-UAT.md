@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: resolved
 phase: 24-fs-ui-orchestration
 source: 24-01-SUMMARY.md, 24-02-SUMMARY.md
 started: 2026-07-21T07:07:00Z
@@ -72,7 +72,7 @@ blocked: 0
 ## Gaps
 
 - truth: "Finalize invokes pipeline passes correctly after moving files safely to .source_files/"
-  status: failed
+  status: resolved
   reason: "User reported that finalize re-runs the entire pipeline on existing source files rather than only processing the new file, tenant assignment timeline logic is incorrect/not implemented for overlapping dates, and the destination structure is wrong."
   severity: blocker
   test: 2

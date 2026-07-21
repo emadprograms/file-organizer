@@ -9,18 +9,18 @@ status: passed
 **Status:** Verified
 
 ## Goal Achievement
-**Phase Goal:** Implement a robust File-System UI Orchestrator
-**Result:** The goal is achieved. The File-System UI orchestrator has been fully implemented in `src/fs_ui/orchestrator.py`. The `FSUIOrchestrator` class introduces a stateless listener loop that monitors the inbox for new files, infers filing metadata via the LLM, communicates proposals via filename renaming (`_Proposed`), and triggers the finalization pipeline upon user approval (` OK`). In addition, `src/fs_ui/lock.py` introduces a robust POSIX-compliant PID locking utility to safely manage concurrent orchestrator execution and gracefully recover from crashes.
+**Phase Goal:** Implement a file-system based UI orchestrator...
+**Result:** The goal is achieved. The File-System UI orchestrator has been fully implemented in `src/fs_ui/orchestrator.py` along with a robust POSIX-compliant PID locking utility in `src/fs_ui/lock.py`. It correctly watches the inbox, proposes filing destinations, waits for user approval, and handles the finalize and append operations correctly into existing house directories.
 
 ## Requirement Traceability
 
-All requirements outlined in the PLAN frontmatter are fully accounted for:
+All requirements outlined in the PLAN frontmatter are fully accounted for, cross-referenced directly with `REQUIREMENTS.md`:
 
-| Requirement ID | Description | Status | Verification Detail |
-|----------------|-------------|--------|---------------------|
-| **FSUI-04** | System can propose its filing intention by renaming the PDF in the Inbox (e.g. appending `_Proposed`). | ✅ Verified | Verified in `src/fs_ui/orchestrator.py`. The `propose()` method renames the file appending `_Proposed.pdf` (or `_Failed` / `_Error_Invalid_Format` on errors) using standard filesystem methods. |
-| **FSUI-05** | System watches the Inbox for user approval (indicated by appending ` OK` to the filename) and finalizes the filing process... | ✅ Verified | Verified in `src/fs_ui/orchestrator.py`. The `process_inbox()` loop statelessly identifies files ending with ` OK.pdf` and routes them to `finalize()`, where they are safely moved using `shutil.move` and subsequently fed into the document pipeline. |
-| **FSUI-06** | FS-UI listener and orchestration is implemented using a class-based architecture to encapsulate state, keeping it strictly separated from the functional document pipeline. | ✅ Verified | Verified in `src/fs_ui/orchestrator.py` and `src/main.py`. The listener is encapsulated within the `FSUIOrchestrator` class. A custom lock utility (`src/fs_ui/lock.py`) properly coordinates process safety. |
+| Requirement ID | Description from REQUIREMENTS.md | Status | Verification Detail |
+|----------------|----------------------------------|--------|---------------------|
+| **FSUI-04** | System can propose its filing intention by renaming the PDF in the Inbox (appending `_Proposed`), preserving all 6 fields, and running the necessary extraction and pipeline passes (cleaning, grouping, routing) during the propose phase to store intermediate results. | ✅ Verified | Verified in `src/fs_ui/orchestrator.py`. The `propose()` method runs `process_unclassified_pdf`, infers missing data, runs `pipeline._clean_documents`, `_group_documents`, and `_route_documents`, saves these intermediate results in `.tmp_<name>` directories as JSON, and renames the file by appending `_Proposed.pdf`. |
+| **FSUI-05** | System watches the Inbox for user approval (indicated by appending ` OK` to the filename) and finalizes by extracting pages to tenant folders, appending pages to the `_finalized` PDF, shifting page indices and merging temporary JSONs into main `.source_files/`, and cleaning up the inbox. | ✅ Verified | Verified in `src/fs_ui/orchestrator.py`. The `finalize()` method triggers when it detects ` OK.pdf`. It shifts page indices by evaluating `fitz.page_count` from `_raw_append.pdf`, merges JSONs into the `.source_files/` directory, appends the PDF, and then triggers the standard pipeline passes (`run_grouping_pass`, `run_routing_pass`, `run_generation_pass`) for extraction. The temporary directory and inbox file are cleaned up. |
+| **FSUI-06** | System aborts append mode and appends `_Error_Missing_YAML.pdf` to the filename if the required `house_id_tenants.yaml` file is missing. | ✅ Verified | Verified in `src/fs_ui/orchestrator.py` at line 134. Inside `propose()`, it checks if `house_dir / ".source_files" / f"{house_to_resolve}_tenants.yaml"` exists. If not, it renames the file by appending `_Error_Missing_YAML.pdf` and aborts processing. (Additionally, class-based encapsulation and process-locking were correctly implemented to satisfy architectural intent). |
 
 ## Must-Haves Validation
 
@@ -42,8 +42,8 @@ User decisions in `24-CONTEXT.md` were honored:
 - **D-06 & D-07** (No explicit reject, append `_Failed`/`_Error`): Implemented in `propose()`.
 - **D-08, D-09, D-10** (Stateless): Listener logic treats existing `_Proposed` by skipping, processes ` OK` immediately.
 - **D-11 & D-12** (Finalized files moved, abort on move fail but keep ` OK`): Handled safely in `finalize()`.
-- **D-13** (File collision): Counter suffix loop is implemented correctly in `finalize()`.
+- **D-13** (File collision): Handled in finalize, though append mode now explicitly appends to `_raw_append.pdf` instead of just moving.
 - **Known pitfalls from RESEARCH.md**: Size-stability check and infinite LLM loop avoidance were successfully implemented.
 
 ## Conclusion
-Phase 24 is fully compliant with the established requirements and contextual constraints. The File-System UI Orchestration subsystem is complete, verified, and ready for deployment.
+Phase 24 is fully compliant with the established requirements and contextual constraints. The File-System UI Orchestration subsystem is complete, verified, and correctly aligned with the `REQUIREMENTS.md` source of truth.
