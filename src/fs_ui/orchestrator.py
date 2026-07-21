@@ -239,8 +239,6 @@ class FSUIOrchestrator:
         for h in area_dir.iterdir():
             if not h.is_dir():
                 continue
-            # Try to match the exact house ID first (e.g. 504)
-            # The house ID is the part before ' - ' in the folder name, or the folder name itself
             h_id = h.name.split(" - ")[0]
             if rest_of_name.startswith(h_id + " "):
                 house_dir = h
@@ -250,51 +248,135 @@ class FSUIOrchestrator:
         if not house_dir:
             logger.error(f"Cannot parse house from finalized name: {clean_name}")
             return
-        
-        dest_dir = house_dir / ".source_files"
-        dest_dir.mkdir(parents=True, exist_ok=True)
-        
-        # Ensure dest_dir is within areas_root (mitigates T-24-02-01)
-        if not dest_dir.is_relative_to(areas_root):
-            logger.error(f"Destination directory {dest_dir} is outside areas root.")
+            
+        tmp_dir = filepath.parent / f".tmp_{clean_name}"
+        if not tmp_dir.exists():
+            logger.error(f"Temp directory missing for finalize: {tmp_dir}")
             return
+            
+        source_files_dir = house_dir / ".source_files"
+        source_files_dir.mkdir(parents=True, exist_ok=True)
+        
+        finalized_pdf = house_dir / f"{house_id}_finalized.pdf"
+        
+        import fitz
+        from src.timeline.core import FileOrganizer
+        from src.core.schemas import DocumentGroup
+        import src.core.utils as utils
+        from src.routing.config import FOLDER_ROUTING, FOLDER_PREFIXES
+        import yaml
+        
+        # 1. Extract Segments using FileOrganizer
+        routed_path = tmp_dir / "_routed_append_mode.json"
+        yaml_path = source_files_dir / f"{house_id}_tenants.yaml"
+        yaml_data = None
+        if yaml_path.exists():
+            with open(yaml_path, 'r', encoding='utf-8') as f:
+                yaml_data = yaml.safe_load(f)
+                
+        if routed_path.exists():
+            with open(routed_path, 'r', encoding='utf-8') as f:
+                routed_data = json.load(f)
+            documents = [DocumentGroup(**d) for d in routed_data]
+            
+            organizer = FileOrganizer()
+            tenant_folder_names, _ = organizer.compute_tenant_folders(documents, yaml_data)
+            
+            for folder_name in tenant_folder_names.values():
+                for topic in FOLDER_ROUTING.keys():
+                    prefix = FOLDER_PREFIXES.get(topic, "")
+                    topic_folder_name = f"{prefix}_{topic}" if prefix else topic
+                    target_subdir = (house_dir / folder_name / topic_folder_name)
+                    os.makedirs(target_subdir, exist_ok=True)
+                    
+            organizer.process_documents(documents, str(filepath), house_dir.name, area_dir, tenant_folder_names, dry_run=False)
+            
+        page_shift = 0
+        if finalized_pdf.exists():
+            try:
+                with fitz.open(str(finalized_pdf)) as doc:
+                    page_shift = doc.page_count
+            except Exception as e:
+                logger.error(f"Failed to read finalized PDF: {e}")
+                return
+                
+        def merge_json(filename_base: str, tmp_filename: str, has_pages: bool, has_groups: bool):
+            master_path = source_files_dir / filename_base
+            tmp_path = tmp_dir / tmp_filename
+            
+            if not tmp_path.exists():
+                return
+                
+            with open(tmp_path, 'r', encoding='utf-8') as f:
+                new_data = json.load(f)
+                
+            if has_pages:
+                for item in new_data:
+                    if "original_index" in item:
+                        item["original_index"] += page_shift
+            elif has_groups:
+                for item in new_data:
+                    item["start_page"] += page_shift
+                    item["end_page"] += page_shift
+                    
+            if master_path.exists():
+                with open(master_path, 'r', encoding='utf-8') as f:
+                    try:
+                        master_data = json.load(f)
+                    except json.JSONDecodeError:
+                        master_data = []
+                if isinstance(master_data, list) and isinstance(new_data, list):
+                    master_data.extend(new_data)
+                else:
+                    master_data = new_data
+            else:
+                master_data = new_data
+                
+            with open(master_path, 'w', encoding='utf-8') as f:
+                json.dump(master_data, f, ensure_ascii=False, indent=2)
 
-        base_name = f"{clean_name}.pdf"
-        dest_pdf = dest_dir / base_name
+        merge_json(f"{house_id}_report.json", "_report_append_mode.json", False, False)
+        merge_json(f"{house_id}_1_cleaned.json", "_cleaned_append_mode.json", True, False)
+        merge_json(f"{house_id}_2_grouped.json", "_grouped_append_mode.json", False, True)
+        merge_json(f"{house_id}_3_routed_and_finalized.json", "_routed_append_mode.json", False, True)
         
-        # Handle collision (append counter)
-        counter = 1
-        while dest_pdf.exists():
-            dest_pdf = dest_dir / f"{clean_name} ({counter}).pdf"
-            counter += 1
-            
+        tmp_finalized = house_dir / f"{house_id}_finalized.tmp.pdf"
         try:
-            shutil.move(str(filepath), str(dest_pdf))
+            if finalized_pdf.exists():
+                with fitz.open(str(finalized_pdf)) as master_doc:
+                    with fitz.open(str(filepath)) as new_doc:
+                        master_doc.insert_pdf(new_doc)
+                    master_doc.save(str(tmp_finalized))
+                os.remove(str(filepath))
+            else:
+                shutil.copy(str(filepath), str(tmp_finalized))
+                os.remove(str(filepath))
+                
+            routed_path = source_files_dir / f"{house_id}_3_routed_and_finalized.json"
+            if routed_path.exists():
+                with open(routed_path, 'r', encoding='utf-8') as f:
+                    routed_docs = json.load(f)
+                toc = []
+                for doc in routed_docs:
+                    folder = doc.get("folder_path", "Unknown")
+                    if folder:
+                        bookmark_title = folder.replace("/", " - ").replace("\\", " - ")
+                        toc.append([1, bookmark_title, doc.get("start_page", 0) + 1])
+                
+                with fitz.open(str(tmp_finalized)) as doc:
+                    doc.set_toc(toc)
+                    doc.save(str(tmp_finalized) + ".toc")
+                os.rename(str(tmp_finalized) + ".toc", str(tmp_finalized))
+            
+            from src.pdf.compress import compress_pdf
+            compress_pdf(str(tmp_finalized), str(finalized_pdf))
+            if tmp_finalized.exists():
+                os.remove(str(tmp_finalized))
+                
         except Exception as e:
-            logger.error(f"Move failed for {filepath}: {e}")
+            logger.error(f"Failed to append PDF: {e}")
+            if tmp_finalized.exists():
+                os.remove(str(tmp_finalized))
             return
             
-        # Move json if exists
-        original_stem_proposed = filepath.name.replace(" OK.pdf", "_Proposed")
-        json_path = filepath.parent / f"{original_stem_proposed}_report.json"
-        
-        if json_path.exists():
-            dest_json = dest_dir / f"{dest_pdf.stem}_report.json"
-            shutil.move(str(json_path), str(dest_json))
-            
-        # Run pipeline passes
-        # Explicitly trigger process_unclassified_pdf to synthesize _report.json if missing
-        if not (dest_dir / f"{dest_pdf.stem}_report.json").exists():
-            process_unclassified_pdf(dest_dir, self.llm_client)
-            
-        json_report_path = dest_dir / f"{dest_pdf.stem}_report.json"
-        
-        # Run pipeline
-        try:
-            output_json_path = dest_dir / f"{house_id}_1_cleaned.json"
-            cleaned_pages, yaml_data = run_cleaning_pass(json_report_path, output_json_path, self.llm_client, logger, False, house_id, dest_dir)
-            documents = run_grouping_pass(cleaned_pages, house_id, house_dir, self.llm_client, logger, False)
-            documents = run_routing_pass(documents, house_id, house_dir, self.llm_client, logger, False)
-            run_generation_pass(documents, dest_dir, house_id, house_dir, logger, False, yaml_data=yaml_data, pdf_path=dest_pdf)
-        except Exception as e:
-            logger.exception(f"Pipeline failed for {dest_pdf}: {e}")
+        shutil.rmtree(tmp_dir, ignore_errors=True)

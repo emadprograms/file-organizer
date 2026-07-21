@@ -136,34 +136,37 @@ def test_finalize_moves_and_invokes_pipeline(mock_config, mock_llm):
     orchestrator = FSUIOrchestrator(mock_config, mock_llm)
     
     inbox = Path(mock_config.inbox_path)
-    test_file = inbox / "Area1 123 Smith 2023-01-01 Invoice OK.pdf"
+    clean_name = "Area1 123 Smith 2023-01-01 Invoice"
+    test_file = inbox / f"{clean_name} OK.pdf"
     test_file.touch()
+    
+    tmp_dir = inbox / f".tmp_{clean_name}"
+    tmp_dir.mkdir()
     
     house_dir = Path(mock_config.areas_root_path) / "Area1" / "123"
     house_dir.mkdir(parents=True, exist_ok=True)
     
-    # We need to mock the pipeline passes
-    with patch("src.fs_ui.orchestrator.process_unclassified_pdf", create=True) as mock_unclass, \
-         patch("src.fs_ui.orchestrator.run_cleaning_pass", return_value=([], None), create=True) as mock_clean, \
-         patch("src.fs_ui.orchestrator.run_grouping_pass", return_value=[], create=True) as mock_group, \
-         patch("src.fs_ui.orchestrator.run_routing_pass", return_value=[], create=True) as mock_route, \
-         patch("src.fs_ui.orchestrator.run_generation_pass", create=True) as mock_gen:
+    # We need to mock fitz and compress_pdf to avoid actually manipulating PDFs
+    with patch("src.fs_ui.orchestrator.fitz", create=True) as mock_fitz, \
+         patch("src.pdf.compress.compress_pdf") as mock_compress:
+         
+        # Simulate fitz.open returning a mock document that can be used in a context manager
+        mock_doc = MagicMock()
+        mock_doc.__enter__.return_value = mock_doc
+        mock_fitz.open.return_value = mock_doc
         
         orchestrator.finalize(test_file)
         
-        house_dir = Path(mock_config.areas_root_path) / "Area1" / "123"
-        dest_pdf = house_dir / ".source_files" / "Area1 123 Smith 2023-01-01 Invoice.pdf"
+        # After finalize, the tmp_dir should be deleted
+        assert not tmp_dir.exists()
         
-        assert dest_pdf.exists()
+        # And the test_file should be deleted
         assert not test_file.exists()
         
-        mock_unclass.assert_called_once()
-        mock_clean.assert_called_once()
-        mock_group.assert_called_once()
-        mock_gen.assert_called_once_with(
-            [], dest_pdf.parent, "123", house_dir, 
-            unittest.mock.ANY, False, yaml_data=None, pdf_path=dest_pdf
-        )
+        # And the compress_pdf should be called to generate 123_finalized.pdf
+        dest_pdf = house_dir / "123_finalized.pdf"
+        tmp_finalized = house_dir / "123_finalized.tmp.pdf"
+        mock_compress.assert_called_once_with(str(tmp_finalized), str(dest_pdf))
 
 def test_orphan_cleanup(tmp_path):
     config = MagicMock()
