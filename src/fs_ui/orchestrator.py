@@ -2,13 +2,16 @@ import os
 import time
 import logging
 import shutil
+import json
 from pathlib import Path
 from typing import Any
 
 from src.inbox.parser import parse_filename_syntax
-from src.inbox.resolver import infer_missing_data, resolve_area, resolve_tenant, ConflictError
+from src.inbox.resolver import infer_missing_data, resolve_area, resolve_tenant, ConflictError, resolve_group_mode
 from src.categorization.categorization import process_unclassified_pdf
 from src.main import run_cleaning_pass, run_grouping_pass, run_routing_pass, run_generation_pass
+from src.pipeline.pipeline import Pipeline
+from src.core.schemas import DocumentGroup
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
@@ -75,12 +78,23 @@ class FSUIOrchestrator:
             os.rename(filepath, filepath.parent / new_name)
             return
 
+        tmp_dir = filepath.parent / f".tmp_{filepath.stem}"
+        tmp_dir.mkdir(exist_ok=True)
+
         try:
+            process_unclassified_pdf(tmp_dir, self.llm_client, specific_pdf_path=filepath, create_categorized_copy=False)
+            
+            orig_report_path = tmp_dir / f"{filepath.stem}_report.json"
+            tmp_report_path = tmp_dir / "_report_append_mode.json"
+            if orig_report_path.exists():
+                orig_report_path.rename(tmp_report_path)
+            
             inferred = infer_missing_data(filepath, parsed_cmd, self.llm_client)
         except Exception as e:
-            logger.error(f"Inference failed for {filepath}: {e}")
+            logger.error(f"Inference/Categorization failed for {filepath}: {e}")
             new_name = filepath.stem + "_Failed.pdf"
             os.rename(filepath, filepath.parent / new_name)
+            shutil.rmtree(tmp_dir, ignore_errors=True)
             return
             
         house_to_resolve = inferred.get("expected_house_number", parsed_cmd.house)
@@ -93,11 +107,13 @@ class FSUIOrchestrator:
         except ConflictError:
             new_name = filepath.stem + " - please choose area.pdf"
             os.rename(filepath, filepath.parent / new_name)
+            shutil.rmtree(tmp_dir, ignore_errors=True)
             return
         except ValueError as e:
             logger.error(f"Failed to resolve area for {filepath}: {e}")
             new_name = filepath.stem + "_Failed.pdf"
             os.rename(filepath, filepath.parent / new_name)
+            shutil.rmtree(tmp_dir, ignore_errors=True)
             return
             
         area_dir = areas_root / area_id
@@ -111,6 +127,15 @@ class FSUIOrchestrator:
             logger.error(f"Failed to find full house dir for {house_to_resolve} in {area_dir}")
             new_name = filepath.stem + "_Failed.pdf"
             os.rename(filepath, filepath.parent / new_name)
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            return
+
+        yaml_path = house_dir / ".source_files" / f"{house_to_resolve}_tenants.yaml"
+        if not yaml_path.exists():
+            logger.error(f"Missing YAML config for {house_to_resolve}")
+            new_name = filepath.stem + "_Error_Missing_YAML.pdf"
+            os.rename(filepath, filepath.parent / new_name)
+            shutil.rmtree(tmp_dir, ignore_errors=True)
             return
 
         tenant_to_resolve = inferred.get("tenant_hint", parsed_cmd.tenant_hint)
@@ -125,16 +150,71 @@ class FSUIOrchestrator:
         if doc_type == "U" or not doc_type:
             doc_type = "UnknownType"
         
-        resolved_name = f"{area_id} {house_to_resolve} {tenant} {doc_date} {doc_type}"
+        resolved_name = f"{area_id} {house_to_resolve} {tenant} {parsed_cmd.group} {doc_date} {doc_type}"
         
+
+        pipeline = Pipeline(api_key=os.getenv("GEMINI_API_KEY") or "dummy")
+        pipeline.client = self.llm_client
+        
+        cleaned_pages, _ = pipeline._clean_documents(tmp_report_path, house_dir, house_to_resolve)
+        
+        cleaned_json_path = tmp_dir / "_cleaned_append_mode.json"
+        with open(cleaned_json_path, 'w', encoding='utf-8') as f:
+            json.dump([p.model_dump() for p in cleaned_pages], f, ensure_ascii=False, indent=2)
+            
+        group_mode = resolve_group_mode(parsed_cmd.group)
+        
+        if group_mode.get("skip_grouping"):
+            if cleaned_pages:
+                first_page = cleaned_pages[0]
+                category = getattr(first_page, "category", "Unknown")
+                title = getattr(first_page, "brief_arabic_title", "Unknown")
+                dates = [getattr(p, "date") for p in cleaned_pages if getattr(p, "date", None)]
+                group = DocumentGroup(
+                    start_page=min(p.original_index for p in cleaned_pages),
+                    end_page=max(p.original_index for p in cleaned_pages),
+                    primary_tenant=tenant,
+                    category=category,
+                    dates=dates,
+                    brief_arabic_title=title
+                )
+            else:
+                group = DocumentGroup(
+                    start_page=0, end_page=0, primary_tenant=tenant, category="Unknown", dates=[], brief_arabic_title="Unknown"
+                )
+            
+            with open(tmp_dir / "_grouped_append_mode.json", 'w', encoding='utf-8') as f:
+                json.dump([group.model_dump()], f, ensure_ascii=False, indent=2)
+                
+            if group_mode.get("skip_routing"):
+                group.folder_path = group_mode["folder_name"]
+                group.is_direct_routed = True
+                routed_docs = [group]
+            else:
+                routed_docs = pipeline._route_documents([group])
+                
+            with open(tmp_dir / "_routed_append_mode.json", 'w', encoding='utf-8') as f:
+                json.dump([doc.model_dump() for doc in routed_docs], f, ensure_ascii=False, indent=2)
+        else:
+            raw_pages = [(p.original_index, p) for p in cleaned_pages]
+            documents = pipeline._group_documents(raw_pages)
+            with open(tmp_dir / "_grouped_append_mode.json", 'w', encoding='utf-8') as f:
+                json.dump([doc.model_dump() for doc in documents], f, ensure_ascii=False, indent=2)
+                
+            routed_docs = pipeline._route_documents(documents)
+            
+            if parsed_cmd.tenant_hint != 'U':
+                for doc in routed_docs:
+                    doc.primary_tenant = tenant
+                    
+            with open(tmp_dir / "_routed_append_mode.json", 'w', encoding='utf-8') as f:
+                json.dump([doc.model_dump() for doc in routed_docs], f, ensure_ascii=False, indent=2)
+                
         new_pdf_path = filepath.parent / f"{resolved_name}_Proposed.pdf"
         os.rename(filepath, new_pdf_path)
         
-        # Check if _report.json exists
-        json_path = filepath.parent / f"{filepath.stem}_report.json"
-        if json_path.exists():
-            new_json_path = filepath.parent / f"{resolved_name}_Proposed_report.json"
-            os.rename(json_path, new_json_path)
+        new_tmp_dir = filepath.parent / f".tmp_{resolved_name}"
+        os.rename(tmp_dir, new_tmp_dir)
 
     def finalize(self, filepath: Path) -> None:
         clean_name = filepath.name.replace(" OK.pdf", "").replace("_Proposed", "")

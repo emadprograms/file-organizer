@@ -73,15 +73,26 @@ def test_propose_renames_valid_file(mock_config, mock_llm):
     test_file = inbox / "123 smith.pdf"
     test_file.touch()
     
-    # Use direct mocking of the methods we will import
+    # Setup area and house dirs, and tenant yaml to bypass new checks
+    areas_root = Path(mock_config.areas_root_path)
+    house_dir = areas_root / "Area1" / "123"
+    house_dir.mkdir(parents=True)
+    (house_dir / ".source_files").mkdir()
+    (house_dir / ".source_files" / "123_tenants.yaml").touch()
+    
     with patch("src.fs_ui.orchestrator.parse_filename_syntax", create=True) as mock_parse, \
          patch("src.fs_ui.orchestrator.infer_missing_data", create=True) as mock_infer, \
          patch("src.fs_ui.orchestrator.resolve_area", return_value="Area1", create=True), \
-         patch("src.fs_ui.orchestrator.resolve_tenant", return_value="Smith", create=True):
+         patch("src.fs_ui.orchestrator.resolve_tenant", return_value="Smith", create=True), \
+         patch("src.fs_ui.orchestrator.process_unclassified_pdf", create=True), \
+         patch("src.fs_ui.orchestrator.Pipeline", create=True) as mock_pipeline_cls:
         
         mock_cmd = MagicMock()
         mock_cmd.house = "123"
         mock_cmd.tenant_hint = "smith"
+        mock_cmd.group = "U"
+        mock_cmd.date = "2023-01-01"
+        mock_cmd.title = "Invoice"
         mock_parse.return_value = mock_cmd
         
         mock_infer.return_value = {
@@ -91,11 +102,22 @@ def test_propose_renames_valid_file(mock_config, mock_llm):
             "document_type": "Invoice"
         }
         
+        # Mock pipeline instance
+        mock_pipeline = MagicMock()
+        mock_pipeline_cls.return_value = mock_pipeline
+        mock_pipeline._clean_documents.return_value = ([], None)
+        mock_pipeline._group_documents.return_value = []
+        mock_pipeline._route_documents.return_value = []
+        
         orchestrator.propose(test_file)
         
-    expected_name = "Area1 123 Smith 2023-01-01 Invoice_Proposed.pdf"
+    expected_name = "Area1 123 Smith U 2023-01-01 Invoice_Proposed.pdf"
     assert (inbox / expected_name).exists()
     assert not test_file.exists()
+    
+    # Assert temp dir was renamed correctly
+    expected_tmp_dir = inbox / f".tmp_Area1 123 Smith U 2023-01-01 Invoice"
+    assert expected_tmp_dir.exists()
 
 def test_propose_handles_errors(mock_config, mock_llm):
     orchestrator = FSUIOrchestrator(mock_config, mock_llm)
