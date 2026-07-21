@@ -21,6 +21,21 @@ class FSUIOrchestrator:
     def process_inbox(self) -> None:
         inbox_dir = Path(self.config.inbox_path)
         while True:
+            current_time = time.time()
+            for tmp_dir in inbox_dir.glob(".tmp_*"):
+                if not tmp_dir.is_dir():
+                    continue
+                try:
+                    mtime = os.stat(tmp_dir).st_mtime
+                    if current_time - mtime > 300:
+                        stem = tmp_dir.name[5:]
+                        if not ((inbox_dir / f"{stem}_Proposed.pdf").exists() or 
+                                (inbox_dir / f"{stem}_Proposed OK.pdf").exists() or 
+                                (inbox_dir / f"{stem}.pdf").exists()):
+                            shutil.rmtree(tmp_dir)
+                except Exception as e:
+                    logger.error(f"Failed to cleanup temp dir {tmp_dir}: {e}")
+
             for pdf_path in inbox_dir.glob("*.pdf"):
                 name = pdf_path.name
                 
@@ -85,13 +100,30 @@ class FSUIOrchestrator:
             os.rename(filepath, filepath.parent / new_name)
             return
             
-        house_dir = areas_root / area_id / house_to_resolve
+        area_dir = areas_root / area_id
+        house_dir = None
+        for child in area_dir.iterdir():
+            if child.is_dir() and (child.name == house_to_resolve or child.name.startswith(f"{house_to_resolve} - ")):
+                house_dir = child
+                break
+        
+        if not house_dir:
+            logger.error(f"Failed to find full house dir for {house_to_resolve} in {area_dir}")
+            new_name = filepath.stem + "_Failed.pdf"
+            os.rename(filepath, filepath.parent / new_name)
+            return
+
         tenant_to_resolve = inferred.get("tenant_hint", parsed_cmd.tenant_hint)
         tenant = resolve_tenant(house_dir, tenant_to_resolve, self.llm_client)
         
         # Build proposed name
-        doc_date = inferred.get("document_date", parsed_cmd.document_date or "UnknownDate")
-        doc_type = inferred.get("document_type", parsed_cmd.document_type or "UnknownType")
+        doc_date = inferred.get("date", parsed_cmd.date or "UnknownDate")
+        if doc_date == "U":
+            doc_date = "UnknownDate"
+            
+        doc_type = inferred.get("title", getattr(parsed_cmd, "title", "")) or "UnknownType"
+        if doc_type == "U" or not doc_type:
+            doc_type = "UnknownType"
         
         resolved_name = f"{area_id} {house_to_resolve} {tenant} {doc_date} {doc_type}"
         
@@ -106,17 +138,38 @@ class FSUIOrchestrator:
 
     def finalize(self, filepath: Path) -> None:
         clean_name = filepath.name.replace(" OK.pdf", "").replace("_Proposed", "")
-        # The clean name format: "Area House Tenant Date Type"
-        parts = clean_name.split(" ", 2)
-        if len(parts) < 3:
-            logger.error(f"Cannot parse house from finalized name: {clean_name}")
-            return
-            
-        area_id = parts[0]
-        house_id = parts[1]
         
         areas_root = Path(self.config.areas_root_path).resolve(strict=True)
-        house_dir = (areas_root / area_id / house_id).resolve(strict=True)
+        
+        area_id = None
+        for a in areas_root.iterdir():
+            if a.is_dir() and clean_name.startswith(a.name + " "):
+                area_id = a.name
+                break
+                
+        if not area_id:
+            logger.error(f"Cannot parse area from finalized name: {clean_name}")
+            return
+            
+        area_dir = areas_root / area_id
+        house_dir = None
+        house_id = None
+        rest_of_name = clean_name[len(area_id) + 1:]
+        
+        for h in area_dir.iterdir():
+            if not h.is_dir():
+                continue
+            # Try to match the exact house ID first (e.g. 504)
+            # The house ID is the part before ' - ' in the folder name, or the folder name itself
+            h_id = h.name.split(" - ")[0]
+            if rest_of_name.startswith(h_id + " "):
+                house_dir = h
+                house_id = h_id
+                break
+                
+        if not house_dir:
+            logger.error(f"Cannot parse house from finalized name: {clean_name}")
+            return
         
         dest_dir = house_dir / ".source_files"
         dest_dir.mkdir(parents=True, exist_ok=True)

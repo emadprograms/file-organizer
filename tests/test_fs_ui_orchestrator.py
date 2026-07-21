@@ -142,3 +142,41 @@ def test_finalize_moves_and_invokes_pipeline(mock_config, mock_llm):
             [], dest_pdf.parent, "123", house_dir, 
             unittest.mock.ANY, False, yaml_data=None, pdf_path=dest_pdf
         )
+
+def test_orphan_cleanup(tmp_path):
+    config = MagicMock()
+    config.inbox_path = str(tmp_path)
+    orch = FSUIOrchestrator(config, None)
+    
+    # Create an old orphan temp dir
+    old_orphan = tmp_path / ".tmp_old"
+    old_orphan.mkdir()
+    os.utime(old_orphan, (time.time() - 400, time.time() - 400))
+    
+    # Create a new orphan temp dir
+    new_orphan = tmp_path / ".tmp_new"
+    new_orphan.mkdir()
+    os.utime(new_orphan, (time.time() - 100, time.time() - 100))
+    
+    # Create an old temp dir with a matching PDF
+    old_with_pdf = tmp_path / ".tmp_has_pdf"
+    old_with_pdf.mkdir()
+    os.utime(old_with_pdf, (time.time() - 400, time.time() - 400))
+    (tmp_path / "has_pdf.pdf").touch()
+    
+    # Run process_inbox but break the loop
+    original_sleep = time.sleep
+    def fake_sleep(secs):
+        raise StopIteration("Stop the loop")
+    
+    try:
+        time.sleep = fake_sleep
+        orch.process_inbox()
+    except StopIteration:
+        pass
+    finally:
+        time.sleep = original_sleep
+        
+    assert not old_orphan.exists()
+    assert new_orphan.exists()
+    assert old_with_pdf.exists()
