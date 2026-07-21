@@ -1,0 +1,66 @@
+{
+  "phase": "24",
+  "plans": [
+    {
+      "id": "24-01",
+      "wave": 1,
+      "depends_on": [],
+      "autonomous": true,
+      "objective": "Implement PID-based lock utility using POSIX `os.kill` for stale lock recovery.",
+      "files_modified": [
+        "src/fs_ui/__init__.py",
+        "src/fs_ui/lock.py",
+        "tests/test_fs_ui_lock.py"
+      ],
+      "task_count": 1,
+      "has_summary": true
+    },
+    {
+      "id": "24-02",
+      "wave": 2,
+      "depends_on": [
+        "24-01"
+      ],
+      "autonomous": true,
+      "objective": "Implement the class-based File-System UI Orchestrator to manage the proposal and finalization lifecycle.",
+      "files_modified": [
+        "src/fs_ui/orchestrator.py",
+        "src/main.py",
+        "tests/test_fs_ui_orchestrator.py"
+      ],
+      "task_count": 2,
+      "has_summary": true
+    },
+    {
+      "id": "24-03",
+      "wave": 3,
+      "depends_on": [
+        "24-02"
+      ],
+      "autonomous": true,
+      "objective": null,
+      "files_modified": [
+        "src/fs_ui/orchestrator.py",
+        ".planning/REQUIREMENTS.md",
+        "tests/test_fs_ui_orchestrator.py"
+      ],
+      "task_count": 5,
+      "has_summary": false
+    }
+  ],
+  "waves": {
+    "1": [
+      "24-01"
+    ],
+    "2": [
+      "24-02"
+    ],
+    "3": [
+      "24-03"
+    ]
+  },
+  "incomplete": [
+    "24-03"
+  ],
+  "has_checkpoints": false
+}

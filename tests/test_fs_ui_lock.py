@@ -3,7 +3,7 @@ import tempfile
 from pathlib import Path
 import pytest
 
-from fs_ui.lock import acquire_lock, release_lock, LockExistsError
+from src.fs_ui.lock import acquire_lock, release_lock, LockExistsError
 
 @pytest.fixture
 def lock_path():

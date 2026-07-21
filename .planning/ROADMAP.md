@@ -70,7 +70,7 @@ Plans:
 **Goal:** Wire up the rename loop and finalize filing logic
 **Requirements:** FSUI-04, FSUI-05, FSUI-06
 **Depends on:** Phase 23
-**Plans:** 2/2 plans complete
+**Plans:** 3/3 plans complete
 
 Plans:
 **Wave 1**
@@ -80,3 +80,7 @@ Plans:
 **Wave 2** *(blocked on Wave 1 completion)*
 
 - [x] 24-02-PLAN.md — FSUIOrchestrator Class and main.py Hook
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 24-03-PLAN.md — Re-implement finalize / append mode pipeline logic (Gap Closure)

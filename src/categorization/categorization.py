@@ -56,7 +56,12 @@ def process_unclassified_pdf(target_dir: Path, llm_client: Any, specific_pdf_pat
         report_path = target_dir / f"{basename}_report.json"
         categorized_pdf_path = target_dir / f"{basename}_categorized.pdf"
         
-        if report_path.exists() or (target_dir / "_report.json").exists():
+        if (
+            report_path.exists() or 
+            (target_dir / "_report.json").exists() or
+            (target_dir / ".source_files" / f"{basename}_report.json").exists() or
+            (target_dir / ".source_files" / "_report.json").exists()
+        ):
             logger.info(f"Bypassing categorization for {pdf_path.name}: {report_path.name} already exists.")
             continue
             

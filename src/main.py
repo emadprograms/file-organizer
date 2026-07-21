@@ -89,6 +89,9 @@ def run_append_mode(config: Any) -> None:
     from src.llm.llm import LLMClient
     from src.fs_ui.lock import acquire_lock, release_lock, LockExistsError
     from src.fs_ui.orchestrator import FSUIOrchestrator
+    from dotenv import load_dotenv
+
+    load_dotenv()
 
     inbox_dir = Path(config.inbox_path)
     os.makedirs(str(inbox_dir), exist_ok=True)

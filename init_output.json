@@ -1,0 +1,49 @@
+{
+  "executor_model": "",
+  "verifier_model": "",
+  "tdd_mode": false,
+  "commit_docs": true,
+  "sub_repos": [],
+  "parallelization": true,
+  "context_window": 200000,
+  "branching_strategy": "none",
+  "phase_branch_template": "gsd/phase-{phase}-{slug}",
+  "milestone_branch_template": "gsd/{milestone}-{slug}",
+  "verifier_enabled": true,
+  "phase_found": true,
+  "phase_dir": ".planning/phases/24-fs-ui-orchestration",
+  "phase_number": "24",
+  "phase_name": "fs-ui-orchestration",
+  "phase_slug": "fs-ui-orchestration",
+  "phase_req_ids": "FSUI-04, FSUI-05, FSUI-06",
+  "plans": [
+    "24-01-PLAN.md",
+    "24-02-PLAN.md",
+    "24-03-PLAN.md"
+  ],
+  "summaries": [
+    "24-01-SUMMARY.md",
+    "24-02-SUMMARY.md"
+  ],
+  "incomplete_plans": [
+    "24-03-PLAN.md"
+  ],
+  "plan_count": 3,
+  "incomplete_count": 1,
+  "branch_name": null,
+  "milestone_version": "v3.0",
+  "milestone_name": "milestone",
+  "milestone_slug": "milestone",
+  "state_exists": true,
+  "roadmap_exists": true,
+  "config_exists": true,
+  "state_path": ".planning/STATE.md",
+  "roadmap_path": ".planning/ROADMAP.md",
+  "config_path": ".planning/config.json",
+  "project_root": "/Users/emadarshadalam/Documents/GitHub/file-organizer",
+  "agents_installed": true,
+  "missing_agents": [],
+  "agents_dir": "/Users/emadarshadalam/Documents/GitHub/file-organizer/.agents/agents",
+  "agent_runtime": "claude",
+  "project_title": "File Organizer Refactoring"
+}

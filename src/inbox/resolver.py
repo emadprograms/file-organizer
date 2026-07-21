@@ -76,9 +76,11 @@ def resolve_area(house_id: str, areas_root: Path) -> str:
     for area_dir in areas_root.iterdir():
         if not area_dir.is_dir():
             continue
-        house_dir = area_dir / house_id
-        if house_dir.exists() and house_dir.is_dir():
-            found_areas.append(area_dir.name)
+            
+        for child in area_dir.iterdir():
+            if child.is_dir() and (child.name == house_id or child.name.startswith(f"{house_id} - ")):
+                found_areas.append(area_dir.name)
+                break
             
     if len(found_areas) > 1:
         raise ConflictError(f"House {house_id} found in multiple areas: {', '.join(found_areas)}")
