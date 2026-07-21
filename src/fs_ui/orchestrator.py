@@ -257,49 +257,39 @@ class FSUIOrchestrator:
         source_files_dir = house_dir / ".source_files"
         source_files_dir.mkdir(parents=True, exist_ok=True)
         
+        import fitz
+        
+        # 1. PDF Appending
+        raw_append_pdf = source_files_dir / f"{house_id}_raw_append.pdf"
         finalized_pdf = house_dir / f"{house_id}_finalized.pdf"
         
-        import fitz
-        from src.timeline.core import FileOrganizer
-        from src.core.schemas import DocumentGroup
-        import src.core.utils as utils
-        from src.routing.config import FOLDER_ROUTING, FOLDER_PREFIXES
-        import yaml
-        
-        # 1. Extract Segments using FileOrganizer
-        routed_path = tmp_dir / "_routed_append_mode.json"
-        yaml_path = source_files_dir / f"{house_id}_tenants.yaml"
-        yaml_data = None
-        if yaml_path.exists():
-            with open(yaml_path, 'r', encoding='utf-8') as f:
-                yaml_data = yaml.safe_load(f)
-                
-        if routed_path.exists():
-            with open(routed_path, 'r', encoding='utf-8') as f:
-                routed_data = json.load(f)
-            documents = [DocumentGroup(**d) for d in routed_data]
-            
-            organizer = FileOrganizer()
-            tenant_folder_names, _ = organizer.compute_tenant_folders(documents, yaml_data)
-            
-            for folder_name in tenant_folder_names.values():
-                for topic in FOLDER_ROUTING.keys():
-                    prefix = FOLDER_PREFIXES.get(topic, "")
-                    topic_folder_name = f"{prefix}_{topic}" if prefix else topic
-                    target_subdir = (house_dir / folder_name / topic_folder_name)
-                    os.makedirs(target_subdir, exist_ok=True)
-                    
-            organizer.process_documents(documents, str(filepath), house_dir.name, area_dir, tenant_folder_names, dry_run=False)
+        if not raw_append_pdf.exists() and finalized_pdf.exists():
+            shutil.copy(str(finalized_pdf), str(raw_append_pdf))
             
         page_shift = 0
-        if finalized_pdf.exists():
+        if raw_append_pdf.exists():
+            tmp_pdf = raw_append_pdf.with_suffix(".tmp.pdf")
             try:
-                with fitz.open(str(finalized_pdf)) as doc:
+                with fitz.open(str(raw_append_pdf)) as doc:
                     page_shift = doc.page_count
+                    with fitz.open(str(filepath)) as new_doc:
+                        doc.insert_pdf(new_doc)
+                    doc.save(str(tmp_pdf))
+                os.replace(str(tmp_pdf), str(raw_append_pdf))
             except Exception as e:
-                logger.error(f"Failed to read finalized PDF: {e}")
+                logger.error(f"Failed to append to raw PDF: {e}")
+                if tmp_pdf.exists():
+                    os.remove(str(tmp_pdf))
                 return
-                
+        else:
+            shutil.copy(str(filepath), str(raw_append_pdf))
+
+        try:
+            os.remove(str(filepath))
+        except OSError as e:
+            logger.warning(f"Could not delete {filepath}: {e}")
+
+        # 2. State Merging
         def merge_json(filename_base: str, tmp_filename: str, has_pages: bool, has_groups: bool):
             master_path = source_files_dir / filename_base
             tmp_path = tmp_dir / tmp_filename
@@ -338,45 +328,42 @@ class FSUIOrchestrator:
         merge_json(f"{house_id}_report.json", "_report_append_mode.json", False, False)
         merge_json(f"{house_id}_1_cleaned.json", "_cleaned_append_mode.json", True, False)
         merge_json(f"{house_id}_2_grouped.json", "_grouped_append_mode.json", False, True)
-        merge_json(f"{house_id}_3_routed_and_finalized.json", "_routed_append_mode.json", False, True)
-        
-        tmp_finalized = house_dir / f"{house_id}_finalized.tmp.pdf"
-        try:
-            if finalized_pdf.exists():
-                with fitz.open(str(finalized_pdf)) as master_doc:
-                    with fitz.open(str(filepath)) as new_doc:
-                        master_doc.insert_pdf(new_doc)
-                    master_doc.save(str(tmp_finalized))
-                os.remove(str(filepath))
-            else:
-                shutil.copy(str(filepath), str(tmp_finalized))
-                os.remove(str(filepath))
+
+        # 3. Cleanup Old State & Temp Dir
+        routed_and_finalized = source_files_dir / f"{house_id}_3_routed_and_finalized.json"
+        if routed_and_finalized.exists():
+            try:
+                os.remove(str(routed_and_finalized))
+            except OSError:
+                pass
                 
-            routed_path = source_files_dir / f"{house_id}_3_routed_and_finalized.json"
-            if routed_path.exists():
-                with open(routed_path, 'r', encoding='utf-8') as f:
-                    routed_docs = json.load(f)
-                toc = []
-                for doc in routed_docs:
-                    folder = doc.get("folder_path", "Unknown")
-                    if folder:
-                        bookmark_title = folder.replace("/", " - ").replace("\\", " - ")
-                        toc.append([1, bookmark_title, doc.get("start_page", 0) + 1])
-                
-                with fitz.open(str(tmp_finalized)) as doc:
-                    doc.set_toc(toc)
-                    doc.save(str(tmp_finalized) + ".toc")
-                os.rename(str(tmp_finalized) + ".toc", str(tmp_finalized))
-            
-            from src.pdf.compress import compress_pdf
-            compress_pdf(str(tmp_finalized), str(finalized_pdf))
-            if tmp_finalized.exists():
-                os.remove(str(tmp_finalized))
-                
-        except Exception as e:
-            logger.error(f"Failed to append PDF: {e}")
-            if tmp_finalized.exists():
-                os.remove(str(tmp_finalized))
-            return
-            
         shutil.rmtree(tmp_dir, ignore_errors=True)
+
+        # 4. Invoke Pipeline Passes
+        from src.main import run_grouping_pass, run_routing_pass, run_generation_pass
+        from src.core.models import PageData
+        import yaml
+        
+        with open(source_files_dir / f"{house_id}_1_cleaned.json", 'r', encoding='utf-8') as f:
+            cleaned_pages = [PageData(**p) for p in json.load(f)]
+            
+        yaml_path = source_files_dir / f"{house_id}_tenants.yaml"
+        yaml_data = None
+        if yaml_path.exists():
+            with open(yaml_path, 'r', encoding='utf-8') as f:
+                yaml_data = yaml.safe_load(f)
+
+        documents = run_grouping_pass(cleaned_pages, house_id, house_dir, self.llm_client, logger, dry_run=False)
+        documents = run_routing_pass(documents, house_id, house_dir, self.llm_client, logger, dry_run=False)
+        
+        run_generation_pass(
+            documents, 
+            target_dir=house_dir, 
+            house_id=house_id, 
+            output_dir=area_dir, 
+            logger=logger, 
+            dry_run=False, 
+            json_path=source_files_dir / f"{house_id}_report.json", 
+            yaml_data=yaml_data, 
+            pdf_path=source_files_dir / f"{house_id}_raw_append.pdf"
+        )
