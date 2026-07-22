@@ -8,7 +8,7 @@
 | 21 | System Unification | 1/1 | Complete    | 2026-07-20 |
 | 22 | Configuration and CLI Modes | 3/3 | Complete   | 2026-07-20 |
 | 23 | Inbox Parsing and Syntax | 2/2 | Complete | 2026-07-20 |
-| 24 | FS-UI Orchestration | 3/3 | Complete    | 2026-07-20 |
+| 24 | FS-UI Orchestration | 4/4 | Complete   | 2026-07-20 |
 
 ### Phase 20: Codebase Maintainability Sweep
 
@@ -70,9 +70,12 @@ Plans:
 **Goal:** Wire up the rename loop and finalize filing logic
 **Requirements:** FSUI-04, FSUI-05, FSUI-06
 **Depends on:** Phase 23
-**Plans:** 3/3 plans complete
+**Plans:** 4/4 plans complete
 
 Plans:
+
+- [x] 24-04-PLAN.md
+
 **Wave 1**
 
 - [x] 24-01-PLAN.md — PID Lock Utility
