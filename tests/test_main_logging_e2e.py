@@ -25,16 +25,18 @@ def run_organizer(target_dir, verbose_flag) -> Any:
     config_path = target_dir.parent / "config.yaml"
     config_path.write_text(f"inbox_path: {target_dir.parent}/inbox\nareas_root_path: {target_dir.parent}\narea_mappings: {{}}", encoding="utf-8")
     env["FILE_ORGANIZER_CONFIG"] = str(config_path)
-    result = subprocess.run(cmd, capture_output=True, text=True, env=env)
+    result = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", env=env)
     
     import re
     # The log message looks like: "... - INFO - Logs will be written to: /path/to/logs/2026-..."
-    match = re.search(r"Logs will be written to:\s*([^\n]+)", result.stderr or result.stdout)
+    match = re.search(r"Logs will be written to:\s*([^\n]+)", result.stderr or result.stdout or "")
     if match:
         return Path(match.group(1).strip())
     
     # Fallback just in case
     logs_base = Path("logs")
+    if not logs_base.exists():
+        logs_base.mkdir(parents=True, exist_ok=True)
     log_dirs = sorted(
         [d for d in logs_base.iterdir() if d.is_dir() and d.name.startswith("20")], 
         reverse=True

@@ -19,8 +19,8 @@ Before you begin, ensure you have the following installed on your system:
 
 2. **Set up a Python virtual environment:**
    ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+   python -m venv venv
+   source venv/bin/activate  # On Windows use: venv\Scripts\activate
    ```
 
 3. **Install the dependencies:**

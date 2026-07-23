@@ -14,6 +14,7 @@ venv/
 env/
 .env/
 .env
+.env2
 
 # Caches and logs
 .pytest_cache/

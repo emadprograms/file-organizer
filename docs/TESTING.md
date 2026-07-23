@@ -24,8 +24,9 @@ pytest
 To run tests in a specific file:
 
 ```bash
-pytest tests/test_core_config.py
+pytest tests/test_core_config_parsing.py
 ```
+*(On Windows using the local venv: `.\venv\Scripts\pytest`)*
 
 To run a specific test case by its name:
 
