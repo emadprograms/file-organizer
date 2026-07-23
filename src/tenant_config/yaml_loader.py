@@ -23,7 +23,9 @@ def load_tenant_config(target_dir: Path, house_id: str) -> list[dict[str, Any]] 
     Raises:
         ConfigurationError: If the YAML file is malformed, invalid, or missing required keys.
     """
-    yaml_path = target_dir / ".source_files" / f"{house_id}_tenants.yaml"
+    yaml_path = target_dir / ".source_files" / f"{house_id}_1_tenants.yaml"
+    if not yaml_path.exists():
+        yaml_path = target_dir / ".source_files" / f"{house_id}_tenants.yaml"
     
     if not yaml_path.exists():
         logger.info(f"No {yaml_path.name} found in {target_dir / '.source_files'}. Falling back to anchor logic.")

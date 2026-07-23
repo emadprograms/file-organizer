@@ -93,7 +93,7 @@ def resolve_tenant(target_dir: Path, tenant_hint: str, llm_client: Any) -> str:
     if tenant_hint == 'U':
         return 'U'
         
-    house_id = target_dir.name
+    house_id = target_dir.name.split(' - ')[0]
     tenant_configs = load_tenant_config(target_dir, house_id)
     
     if not tenant_configs:

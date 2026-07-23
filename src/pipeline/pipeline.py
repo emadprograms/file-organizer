@@ -90,7 +90,11 @@ class Pipeline:
                 cat = getattr(page, "category", None)
                 resident = getattr(page, "canonical_tenant", None)
                 
-                if cat == current_category and resident == current_resident:
+                # Do not split cohesive categories by resident
+                cohesive_cats = {"id_cards", "contract", "pictures"}
+                same_resident = (resident == current_resident) if current_category not in cohesive_cats else True
+                
+                if cat == current_category and same_resident:
                     current_run.append(page)
                 else:
                     runs.append(current_run)

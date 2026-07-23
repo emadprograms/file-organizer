@@ -209,6 +209,11 @@ class FSUIOrchestrator:
                         parts = doc.folder_path.split('.')
                         if parts[0].isdigit():
                             doc_group_str = parts[0]
+                        else:
+                            from src.routing.config import FOLDER_PREFIXES
+                            prefix = FOLDER_PREFIXES.get(doc.folder_path)
+                            if prefix:
+                                doc_group_str = str(int(prefix))
                     
                     doc_date = doc.dates[0] if doc.dates else "UnknownDate"
                     doc_date = doc_date if doc_date else "UnknownDate"
@@ -445,15 +450,52 @@ class FSUIOrchestrator:
         from src.main import run_generation_pass
         from src.core.schemas import DocumentGroup
         import yaml
+        import fitz as _fitz
         
         routed_json_path = source_files_dir / f"{house_id}_3_routed_and_finalized.json"
         if not routed_json_path.exists():
             return
-            
+
+        # Load the routed JSON. It may be the full manifest (list) or a reconciliation
+        # manifest dict ({"summary": ..., "per_page": ...}). Extract just the docs.
         with open(routed_json_path, 'r', encoding='utf-8') as f:
-            docs_data = json.load(f)
-        documents = [DocumentGroup(**d) for d in docs_data]
-            
+            raw_json = json.load(f)
+
+        if isinstance(raw_json, dict) and "per_page" in raw_json:
+            # Reconciliation manifest — rebuild docs from per_page entries is hard.
+            # Instead fall back to the append-mode doc list if available.
+            logger.warning("routed JSON is a reconciliation manifest; skipping generation pass re-run.")
+            return
+
+        all_docs_data = raw_json
+        
+        # We only want the newly appended documents (those whose start_page >= page_shift)
+        new_docs_data = [d for d in all_docs_data if d.get("start_page", 0) >= page_shift]
+        if not new_docs_data:
+            logger.warning("No new documents found in routed JSON after finalize merge. Skipping generation.")
+            return
+
+        # Re-index the new documents to be zero-relative (they reference absolute positions
+        # in raw_append.pdf, but we will extract a slice of that PDF)
+        new_docs = []
+        for d in new_docs_data:
+            doc = DocumentGroup(**d)
+            doc.start_page = doc.start_page - page_shift
+            doc.end_page = doc.end_page - page_shift
+            new_docs.append(doc)
+
+        # Extract the new-pages-only slice into a temporary PDF
+        tmp_slice_path = source_files_dir / f"{house_id}_new_slice.tmp.pdf"
+        try:
+            with _fitz.open(str(raw_append_pdf)) as full_doc:
+                new_doc_pdf = _fitz.open()
+                new_doc_pdf.insert_pdf(full_doc, from_page=page_shift, to_page=full_doc.page_count - 1)
+                new_doc_pdf.save(str(tmp_slice_path))
+                new_doc_pdf.close()
+        except Exception as e:
+            logger.error(f"Failed to extract new-pages slice for generation: {e}")
+            return
+
         yaml_path = source_files_dir / f"{house_id}_1_tenants.yaml"
         if not yaml_path.exists():
             yaml_path = source_files_dir / f"{house_id}_tenants.yaml"
@@ -462,14 +504,44 @@ class FSUIOrchestrator:
             with open(yaml_path, 'r', encoding='utf-8') as f:
                 yaml_data = yaml.safe_load(f)
 
-        run_generation_pass(
-            documents, 
-            target_dir=house_dir, 
-            house_id=house_id, 
-            output_dir=area_dir, 
-            logger=logger, 
-            dry_run=False, 
-            json_path=source_files_dir / f"{house_id}_report.json", 
-            yaml_data=yaml_data, 
-            pdf_path=source_files_dir / f"{house_id}_raw_append.pdf"
-        )
+        try:
+            run_generation_pass(
+                new_docs, 
+                target_dir=house_dir, 
+                house_id=house_id, 
+                output_dir=area_dir, 
+                logger=logger, 
+                dry_run=False, 
+                json_path=source_files_dir / f"{house_id}_report.json", 
+                yaml_data=yaml_data, 
+                pdf_path=tmp_slice_path
+            )
+        finally:
+            if tmp_slice_path.exists():
+                try:
+                    os.remove(str(tmp_slice_path))
+                except OSError:
+                    pass
+
+        # Rebuild finalized.pdf from the full raw_append.pdf with updated TOC (all docs)
+        import fitz as _fitz2
+        from src.pdf.compress import compress_pdf
+
+        all_docs_for_toc = [DocumentGroup(**d) for d in all_docs_data]
+        finalized_path = house_dir / f"{house_id}_finalized.pdf"
+        tmp_finalized = house_dir / f"{house_id}_finalized.tmp.pdf"
+        try:
+            toc = []
+            for doc in all_docs_for_toc:
+                title = doc.brief_arabic_title or doc.folder_path or "بدون عنوان"
+                toc.append([1, title, doc.start_page + 1])
+            with _fitz2.open(str(raw_append_pdf)) as full_pdf:
+                full_pdf.set_toc(toc)
+                full_pdf.save(str(tmp_finalized))
+            compress_pdf(str(tmp_finalized), str(finalized_path))
+            if tmp_finalized.exists():
+                os.remove(str(tmp_finalized))
+            logger.info(f"Rebuilt finalized PDF: {finalized_path.name} ({finalized_path.stat().st_size} bytes)")
+        except Exception as e:
+            logger.error(f"Failed to rebuild finalized PDF: {e}")
+

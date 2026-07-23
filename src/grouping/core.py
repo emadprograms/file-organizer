@@ -114,7 +114,7 @@ def process_with_shrink(
     final_groups: list[DocumentGroup] = []
 
     # Deterministic Bypass Paths
-    if category in ["contract", "id_cards"]:
+    if category in ["contract", "id_cards", "pictures"]:
         start_page = getattr(pages[0], "original_index", 0)
         end_page = getattr(pages[-1], "original_index", len(pages) - 1)
         primary_tenant = getattr(pages[0], "canonical_tenant", "Unassigned")
@@ -124,6 +124,12 @@ def process_with_shrink(
             if d and d != "NONE":
                 dates.append(d)
         
+        title_map = {
+            "id_cards": "بطاقات هوية",
+            "contract": "عقد",
+            "pictures": "صور ومعاينات"
+        }
+        
         final_groups.append(DocumentGroup(
             start_page=start_page,
             end_page=end_page,
@@ -131,7 +137,7 @@ def process_with_shrink(
             category=category,
             dates=dates,
             reason="Deterministic bypass: Category identified as cohesive document.",
-            brief_arabic_title=None
+            brief_arabic_title=title_map.get(category)
         ))
     elif category == "utility_bills":
         for i, page in enumerate(pages):

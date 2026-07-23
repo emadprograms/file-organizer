@@ -50,6 +50,7 @@ class LLMClient:
         self.delay_between_pages = delay_between_pages
         self.total_requests = 0
         self._last_request_time = 0.0
+        self.default_model = GEMINI_MODEL
 
     def activate_cooldown(self) -> None:
         """Activate a long sleep to recover from severe rate limits (e.g., 429)."""

@@ -51,3 +51,9 @@ agent_skills.txt
 init_context.json
 
 scratch/
+.DS_Store
+**/.DS_Store
+planner_skills.txt
+debug_*.py
+test_*.py
+patch_*.py
