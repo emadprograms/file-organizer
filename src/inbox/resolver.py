@@ -15,15 +15,16 @@ logger = logging.getLogger(f"file_organizer.{__name__}")
 class ConflictError(Exception):
     pass
 
-def infer_missing_data(pdf_path: Path, parsed_cmd: ParsedCommand, llm_client: Any) -> dict:
+def infer_missing_data(pdf_path: Path, parsed_cmd: ParsedCommand, llm_client: Any, report_path: Path | None = None) -> dict:
     if parsed_cmd.house == 'U' or parsed_cmd.date == 'U' or parsed_cmd.tenant_hint == 'U':
-        process_unclassified_pdf(
-            target_dir=pdf_path.parent,
-            llm_client=llm_client,
-            specific_pdf_path=pdf_path,
-            create_categorized_copy=False
-        )
-        report_path = pdf_path.parent / f"{pdf_path.stem}_report.json"
+        if report_path is None:
+            process_unclassified_pdf(
+                target_dir=pdf_path.parent,
+                llm_client=llm_client,
+                specific_pdf_path=pdf_path,
+                create_categorized_copy=False
+            )
+            report_path = pdf_path.parent / f"{pdf_path.stem}_report.json"
         
         house_counter = collections.Counter()
         date_counter = collections.Counter()
@@ -56,9 +57,9 @@ def infer_missing_data(pdf_path: Path, parsed_cmd: ParsedCommand, llm_client: An
         inferred_tenant = tenant_counter.most_common(1)[0][0] if tenant_counter else 'U'
         
         return {
-            "expected_house_number": inferred_house,
-            "date": inferred_date,
-            "tenant_hint": inferred_tenant
+            "expected_house_number": inferred_house if parsed_cmd.house == 'U' else parsed_cmd.house,
+            "date": inferred_date if parsed_cmd.date == 'U' else parsed_cmd.date,
+            "tenant_hint": inferred_tenant if parsed_cmd.tenant_hint == 'U' else parsed_cmd.tenant_hint
         }
     
     return {

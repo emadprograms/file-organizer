@@ -102,7 +102,7 @@ class FSUIOrchestrator:
             with open(orig_report_path, 'r', encoding='utf-8') as f:
                 full_report_data = json.load(f)
             
-            inferred = infer_missing_data(filepath, parsed_cmd, self.llm_client)
+            inferred = infer_missing_data(filepath, parsed_cmd, self.llm_client, report_path=orig_report_path)
         except Exception as e:
             logger.error(f"Inference/Categorization failed for {filepath}: {e}")
             new_name = filepath.stem + "_Failed.pdf"
@@ -485,7 +485,7 @@ class FSUIOrchestrator:
             new_docs.append(doc)
 
         # Extract the new-pages-only slice into a temporary PDF
-        tmp_slice_path = source_files_dir / f"{house_id}_new_slice.tmp.pdf"
+        tmp_slice_path = house_dir / f"{house_id}_new_slice.tmp.pdf"
         try:
             with _fitz.open(str(raw_append_pdf)) as full_doc:
                 new_doc_pdf = _fitz.open()
@@ -526,6 +526,14 @@ class FSUIOrchestrator:
         # Rebuild finalized.pdf from the full raw_append.pdf with updated TOC (all docs)
         import fitz as _fitz2
         from src.pdf.compress import compress_pdf
+
+        # Re-resolve house_dir in case it was renamed by organize()
+        for h in area_dir.iterdir():
+            if h.is_dir() and (h.name == house_id or h.name.startswith(f"{house_id} - ")):
+                house_dir = h
+                break
+        source_files_dir = house_dir / ".source_files"
+        raw_append_pdf = source_files_dir / f"{house_id}_raw_append.pdf"
 
         all_docs_for_toc = [DocumentGroup(**d) for d in all_docs_data]
         finalized_path = house_dir / f"{house_id}_finalized.pdf"
