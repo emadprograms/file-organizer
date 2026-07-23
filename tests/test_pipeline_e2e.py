@@ -25,15 +25,24 @@ def inject_mock_report(inbox: Path, stem: str) -> None:
     else:
         folder_name = "01_عقود"
         
-    date = "2006-04-18" if "1273" in stem else "2015-05-05"
+    if "504" in stem:
+        category = "letters"
+        date = "2021-05-24"
+        expected_tenant_name = "أحمد يوسف المريسل"
+        expected_house_number = "504"
+    else:
+        category = "contract"
+        date = "2006-04-18" if "1273" in stem else "2015-05-05"
+        expected_tenant_name = tenant_hint
+        expected_house_number = stem.split(" ")[1] if len(stem.split(" ")) > 1 else "U"
 
     mock_data = {
         "0": {
-            "category": "contract",
+            "category": category,
             "content_explanation": "dummy",
             "date": date,
-            "expected_tenant_name": tenant_hint,
-            "expected_house_number": stem.split(" ")[1] if len(stem.split(" ")) > 1 else "U"
+            "expected_tenant_name": expected_tenant_name,
+            "expected_house_number": expected_house_number
         }
     }
     
@@ -161,7 +170,7 @@ def test_cli_append_504(tmp_path) -> None:
     proposed_files = list(inbox.glob("*_Proposed.pdf"))
     print('\nINBOX AFTER TEST:', list(inbox.glob('*')))
     assert len(proposed_files) == 1
-    assert proposed_files[0].name == "Safra D 504 عبدالله بدر عبدالله أحمد بودواس 5 2015-05-05 عقد_Proposed.pdf"
+    assert proposed_files[0].name == "Safra D 504 أحمد يوسف المريسل 13 2021-05-24 عنوان تجريبي_Proposed.pdf"
 
 @patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
 def test_cli_append_broken(tmp_path) -> None:
