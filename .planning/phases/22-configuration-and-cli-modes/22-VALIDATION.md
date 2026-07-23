@@ -1,7 +1,7 @@
 ---
 phase: 22
 slug: configuration-and-cli-modes
-status: draft
+status: approved
 nyquist_compliant: true
 wave_0_complete: true
 created: 2026-07-20
@@ -38,8 +38,8 @@ created: 2026-07-20
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 22-01-01 | 01 | 1 | CONF-01 | — | N/A | unit | `pytest tests/test_core_config.py` | ❌ W0 | ⬜ pending |
-| 22-02-01 | 02 | 2 | CONF-02 | — | N/A | unit | `pytest tests/test_main_cli.py` | ❌ W0 | ⬜ pending |
+| 22-01-01 | 01 | 1 | CONF-01 | — | N/A | unit | `pytest tests/test_core_config_parsing.py` | ✅ W0 | ✅ green |
+| 22-02-01 | 02 | 2 | CONF-02 | — | N/A | unit | `pytest tests/test_root_main_cli.py` | ✅ W0 | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -47,8 +47,8 @@ created: 2026-07-20
 
 ## Wave 0 Requirements
 
-- [ ] `tests/test_core_config.py` — stubs for CONF-01
-- [ ] `tests/test_main_cli.py` — stubs for CONF-02
+- [x] `tests/test_core_config_parsing.py` — stubs for CONF-01
+- [x] `tests/test_root_main_cli.py` — stubs for CONF-02
 
 ---
 
@@ -63,14 +63,14 @@ created: 2026-07-20
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 5s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All tasks have `<automated>` verify or Wave 0 dependencies
+- [x] Sampling continuity: no 3 consecutive tasks without automated verify
+- [x] Wave 0 covers all MISSING references
+- [x] No watch-mode flags
+- [x] Feedback latency < 5s
+- [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** pending
+**Approval:** approved
 
 ## Post-Planning Gap Analysis
 | Source | Item | Status |

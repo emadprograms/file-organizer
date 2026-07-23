@@ -1,3 +1,11 @@
+---
+phase: 23-inbox-parsing-and-syntax
+plan: 02
+requirements-completed:
+  - FSUI-02
+  - FSUI-03
+---
+
 # Phase 23 - Plan 02: Inbox Data Inference and Resolution
 
 ## Execution Summary
