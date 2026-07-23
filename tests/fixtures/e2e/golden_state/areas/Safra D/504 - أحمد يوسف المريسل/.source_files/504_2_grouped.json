@@ -1,0 +1,1024 @@
+[
+  {
+    "start_page": 0,
+    "end_page": 0,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "forms",
+    "dates": [
+      "2021-05-20"
+    ],
+    "reason": "The page is a standardized occupant registration form for Ahmed Yusuf Ahmed Almeraisel.",
+    "brief_arabic_title": "نموذج تسجيل شاغل سكن",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 1,
+    "end_page": 1,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "letters",
+    "dates": [
+      "2021-05-20"
+    ],
+    "reason": "The page is a formal report regarding a housing violation (unauthorized structural modifications) for unit 504, serving as the start and end of the document in this chunk.",
+    "brief_arabic_title": "تقرير رصد مخالفات بناء - وحدة 504",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 2,
+    "end_page": 2,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "others",
+    "dates": [
+      "2021-05-20"
+    ],
+    "reason": "The page contains visual evidence (photos of house number and interior) and a confidentiality disclaimer, serving as the second page of a service or inspection report.",
+    "brief_arabic_title": "ملحق الصور والأدلة المرئية",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 3,
+    "end_page": 4,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "letters",
+    "dates": [
+      "2021-05-27",
+      "2021-05-27"
+    ],
+    "reason": "Both pages relate to the same specific housing unit (No. 504, Road 4411, Safra) and the same request by Ahmed Yousif Al-Meraysel for structural additions. Page 0 is the internal forwarding letter and Page 1 is the original request letter; they form a single correspondence story.",
+    "brief_arabic_title": "طلب إضافات لمنزل رقم 504 - سافرة",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 5,
+    "end_page": 5,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "others",
+    "dates": [
+      "2022-05-25"
+    ],
+    "reason": "The page contains a complete set of architectural and electrical design plans for 'SAFRAH HOUSE NO. 504', including electrical, roof, and section plans.",
+    "brief_arabic_title": "مخططات التصميم المعماري والكهربائي لمنزل سفره رقم 504",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 6,
+    "end_page": 6,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "letters",
+    "dates": [
+      "2022-05-25"
+    ],
+    "reason": "The page contains a signed statement regarding property modifications for house 504, serving as a standalone document.",
+    "brief_arabic_title": "إقرار بتعديلات عقارية",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 7,
+    "end_page": 8,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "pictures",
+    "dates": [
+      "2022-05-25",
+      "2021-05-01"
+    ],
+    "reason": "Both pages contain photographs of a residential property under construction or renovation, showing interior views and construction materials.",
+    "brief_arabic_title": "صور عقار تحت الإنشاء",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 9,
+    "end_page": 11,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "letters",
+    "dates": [
+      "2021-05-01",
+      "2021-05-24",
+      "2021-05-24"
+    ],
+    "reason": "All three pages refer to the same housing unit (504, road 4411) and the same violation (unauthorized structural modifications/wall removal), forming a single cohesive case file.",
+    "brief_arabic_title": "مخالفة بناء بالوحدة رقم 504 طريق 4411",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 12,
+    "end_page": 12,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "pictures",
+    "dates": [
+      "2021-05-24"
+    ],
+    "reason": "The page contains visual documentation of renovation work at property number 504, including a house number plaque and photos of construction workers.",
+    "brief_arabic_title": "توثيق أعمال ترميم العقار رقم 504",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 13,
+    "end_page": 13,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "letters",
+    "dates": [
+      "2021-05-24"
+    ],
+    "reason": "The page is a standalone official letter regarding the deduction of housing benefits for specific employees, establishing a clear subject.",
+    "brief_arabic_title": "خصم بدل سكن",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 14,
+    "end_page": 14,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "letters",
+    "dates": [
+      "2021-05-11"
+    ],
+    "reason": "The page contains a single official letter regarding the allocation of a residential unit and a request for electricity connection for a specific individual, forming a complete and self-contained document.",
+    "brief_arabic_title": "طلب توصيل كهرباء للمنزل رقم 504",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 15,
+    "end_page": 15,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "forms",
+    "dates": [
+      "2021-05-11"
+    ],
+    "reason": "The page contains a Residential Unit Handover Form for a tenant, including personal details, unit location, and legal undertakings.",
+    "brief_arabic_title": "نموذج تسليم وحدة سكنية",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 16,
+    "end_page": 16,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "letters",
+    "dates": [
+      "2021-05-11"
+    ],
+    "reason": "The page is a standalone official letter requesting electricity and water connection for a specific housing unit (House 504, Safra 944), forming a complete correspondence unit.",
+    "brief_arabic_title": "طلب توصيل خدمات الكهرباء والماء لمنزل رقم 504",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 17,
+    "end_page": 20,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "id_cards",
+    "dates": [
+      "2021-05-11",
+      "2021-05-11",
+      "2021-05-11",
+      "2021-05-11"
+    ],
+    "reason": "Deterministic bypass: Category identified as cohesive document.",
+    "brief_arabic_title": null,
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 21,
+    "end_page": 21,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "id_cards",
+    "dates": [
+      "2021-05-11"
+    ],
+    "reason": "Deterministic bypass: Category identified as cohesive document.",
+    "brief_arabic_title": null,
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 22,
+    "end_page": 22,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "id_cards",
+    "dates": [
+      "2021-05-11"
+    ],
+    "reason": "Deterministic bypass: Category identified as cohesive document.",
+    "brief_arabic_title": null,
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 23,
+    "end_page": 29,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "contract",
+    "dates": [
+      "2021-05-11",
+      "2021-05-10",
+      "2021-05-10",
+      "2021-05-10",
+      "2021-05-10",
+      "2021-05-10",
+      "2021-05-10"
+    ],
+    "reason": "Deterministic bypass: Category identified as cohesive document.",
+    "brief_arabic_title": null,
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 30,
+    "end_page": 30,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "letters",
+    "dates": [
+      "2021-05-10"
+    ],
+    "reason": "The page is a standalone official letter regarding the completion of maintenance for residential unit 504 and the return of its keys. Since it is the only page in the chunk, it forms its own group.",
+    "brief_arabic_title": "إشعار بإكمال أعمال صيانة الوحدة السكنية رقم 504",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 31,
+    "end_page": 31,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "letters",
+    "dates": [
+      "2021-05-06"
+    ],
+    "reason": "The page is a standalone internal memorandum regarding the completion of maintenance for a specific residential unit (no. 504, Safra 944), including details on installations and attachments.",
+    "brief_arabic_title": "مذكرة إتمام أعمال صيانة الوحدة السكنية 504",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 32,
+    "end_page": 32,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "forms",
+    "dates": [
+      "2021-05-06"
+    ],
+    "reason": "The page is a 'Data Collection Checklist' for residential property inventory (electrical, plumbing, doors, and windows).",
+    "brief_arabic_title": "قائمة مراجعة جمع البيانات للمرافق السكنية",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 33,
+    "end_page": 33,
+    "primary_tenant": "Unassigned (2020-09)",
+    "category": "forms",
+    "dates": [
+      "2020-09-20"
+    ],
+    "reason": "The page is a 'Data Collection Checklist' for inspecting a housing unit, detailing household features and fixtures.",
+    "brief_arabic_title": "قائمة مراجعة جمع البيانات لوحدة سكنية",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 34,
+    "end_page": 35,
+    "primary_tenant": "Unassigned (2020-09)",
+    "category": "letters",
+    "dates": [
+      "2020-09-20",
+      "2020-09-13"
+    ],
+    "reason": "Both pages discuss the same subject: the cancellation of tender 206719/A and the administrative decisions regarding maintenance and allocation of housing units for the Ministry of Interior. Page 1 is a continuation or a related administrative action regarding the same case file.",
+    "brief_arabic_title": "إلغاء مناقصة الوحدات السكنية وتخصيصها",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 36,
+    "end_page": 36,
+    "primary_tenant": "Unassigned (2020-09)",
+    "category": "forms",
+    "dates": [
+      "2020-09-13"
+    ],
+    "reason": "The page is a single official circular listing residential units for maintenance issued by the Ministry of Interior.",
+    "brief_arabic_title": "قائمة الوحدات السكنية المخصصة للصيانة",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 37,
+    "end_page": 38,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "letters",
+    "dates": [
+      "2021-04-18",
+      "2021-04-18"
+    ],
+    "reason": "Page 0 is a letter regarding the inspection of residential units, and Page 1 provides the specific safety and protection conditions related to such inspections. Both pages are part of the same administrative process concerning civil defense safety requirements for residential units, forming a single cohesive 'story'.",
+    "brief_arabic_title": "تفتيش الوحدات السكنية واشتراطات السلامة",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 39,
+    "end_page": 39,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "forms",
+    "dates": [
+      "2021-04-18"
+    ],
+    "reason": "The page is an official memorandum from the Ministry of Interior regarding the inspection of residential units for fire safety standards.",
+    "brief_arabic_title": "مذكرة تفتيش وحدات سكنية - الدفاع المدني",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 40,
+    "end_page": 41,
+    "primary_tenant": "عبدالله بدر عبدالله أحمد بودواس",
+    "category": "letters",
+    "dates": [
+      "2018-07-23",
+      "2018-07-05"
+    ],
+    "reason": "Both pages are part of the same correspondence story regarding the inspection of police housing and safety requirements. Page 0 is a follow-up to the communication mentioned in Page 1, and both deal with the same specific safety issues (copper gas pipes, electrical panel storage, and fire extinguishers).",
+    "brief_arabic_title": "مراسلات فحص إسكان الشرطة",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 42,
+    "end_page": 42,
+    "primary_tenant": "عبدالله بدر عبدالله أحمد بودواس",
+    "category": "forms",
+    "dates": [
+      "2018-07-05"
+    ],
+    "reason": "The page is a single-page 'Receipt and Handover Form' for keys from the Ministry of Interior, Works Directorate, documenting a specific transfer of keys on 10/05/2021.",
+    "brief_arabic_title": "نموذج استلام وتسليم مفاتيح",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 43,
+    "end_page": 51,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "letters",
+    "dates": [
+      "2021-02-25",
+      "2021-02-25",
+      "2021-02-25",
+      "2021-02-04"
+    ],
+    "reason": "All four pages are part of a single correspondence story regarding the temporary residential unit assignments for the same group of personnel (Ahmed Saleh Al-Alan, Abdullah Khalid Al-Maawada, and Ahmed Yousef Al-Mursal). Pages 0, 1, and 2 are direct modifications/proposals for the same set of people, and Page 3 is the initial recommendation/allocation that started the process. They all relate to the same subject and personnel, forming a cohesive case file.",
+    "brief_arabic_title": "تعديل وتخصيص الوحدات السكنية المؤقتة",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 52,
+    "end_page": 52,
+    "primary_tenant": "Unassigned (2020-11)",
+    "category": "letters",
+    "dates": [
+      "2020-11-22"
+    ],
+    "reason": "The page is a formal request for housing allocation for a specific employee (Ahmed Yousef Ahmed Ahmed), establishing a clear subject. Since it is the only page in the chunk, it forms its own group.",
+    "brief_arabic_title": "طلب تخصيص وحدة سكنية للموظف أحمد يوسف أحمد",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 53,
+    "end_page": 53,
+    "primary_tenant": "Unassigned (2020-10)",
+    "category": "letters",
+    "dates": [
+      "2020-10-01"
+    ],
+    "reason": "The page contains a specific request for temporary housing for a civilian employee, forming a complete and single subject case.",
+    "brief_arabic_title": "طلب سكن مؤقت للموظف أحمد يوسف",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 54,
+    "end_page": 55,
+    "primary_tenant": "Unassigned (2020-12)",
+    "category": "letters",
+    "dates": [
+      "2020-12-21",
+      "2020-12-21"
+    ],
+    "reason": "Both pages concern the same specific request from First Lieutenant Abdullah Khalid Al-Maawda for a temporary housing unit. Page 0 is the directive/recommendation and Page 1 is the supporting request letter from the Inspector General. They form a single correspondence story.",
+    "brief_arabic_title": "طلب تخصيص وحدة إسكانية مؤقتة للملازم أول عبد الله خالد المعوضة",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 56,
+    "end_page": 60,
+    "primary_tenant": "أحمد يوسف المريسل",
+    "category": "letters",
+    "dates": [
+      "2021-01-31",
+      "2021-02-15",
+      "2021-02-14",
+      "2021-02-04"
+    ],
+    "reason": "Page 0 is a request for temporary housing by First Lieutenant Abdullah Khalid Al-Maawda. Page 3 mentions the allocation of housing units to several individuals, including Abdullah Khaled Al-Maadadi (likely the same person as Al-Maawda), indicating these pages are part of the same administrative process for housing requests. Page 1 and Page 2 concern the allocation of residential unit 504 for First Lieutenant Nasser Ahmed Fadhel Al-Nuaimi, which is a separate case file/story regarding a specific unit and a specific person. Therefore, Page 0 and Page 3 are grouped together as they relate to the same request process, while Page 1 and Page 2 are grouped together as they relate to the Nuaimi case. However, following the 'True Until Proven Guilty' logic and the 'Hard Reset' rule, Page 0 is a request, Page 1 and 2 are a different person's request for a specific unit, and Page 3 is a summary list of allocations. Since Page 1 and 2 are a completely different subject (Nasser Al-Nuaimi), they constitute a Hard Reset from Page 0. Page 3 is a general allocation list that may include the same person from Page 0. Because the documents are chronological or administrative sequences, and Page 1 and 2 are a distinct case, I will group Page 0 as one group, Page 1 and 2 as one group, and Page 3 as a separate group as it is a general administrative list.",
+    "brief_arabic_title": "طلبات تخصيص الوحدات السكنية",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 61,
+    "end_page": 62,
+    "primary_tenant": "عبدالله بدر عبدالله أحمد بودواس",
+    "category": "letters",
+    "dates": [
+      "2019-10-15",
+      "2019-10-14"
+    ],
+    "reason": "Both pages are official correspondence from the Ministry of Interior's Police Housing Branch regarding the same individual (Abdullah Badr Abdullah Bodawas, badge 373) and the same request: stopping the monthly housing fee deduction of 30 BHD effective October 2019. Page 1 provides the specific reason (vacating the housing unit) for the request made in Page 0.",
+    "brief_arabic_title": "إيقاف استقطاع رسوم انتفاع سكن الشرطة - عبدالله بدر بودواس",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 63,
+    "end_page": 63,
+    "primary_tenant": "عبدالله بدر عبدالله أحمد بودواس",
+    "category": "forms",
+    "dates": [
+      "2019-10-14"
+    ],
+    "reason": "The page is a single-page 'Enquiry & Follow Up Card' for a disconnection application from the Electricity & Water Authority (EWA) of Bahrain.",
+    "brief_arabic_title": "بطاقة استفسار ومتابعة - هيئة الكهرباء والماء",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 64,
+    "end_page": 64,
+    "primary_tenant": "عبدالله بدر عبدالله أحمد بودواس",
+    "category": "letters",
+    "dates": [
+      "2019-10-08"
+    ],
+    "reason": "The page is a standalone internal memorandum regarding the handover of keys for maintenance of housing unit 504 in Safra. As it is the only page in the chunk, it forms its own group.",
+    "brief_arabic_title": "مذكرة تسليم مفاتيح الوحدة السكنية 504 بالصفرة",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 65,
+    "end_page": 65,
+    "primary_tenant": "عبدالله بدر عبدالله أحمد بودواس",
+    "category": "forms",
+    "dates": [
+      "2019-10-08"
+    ],
+    "reason": "The page is a Temporary Key Handover Form for a specific property in Safra, issued by the Ministry of Interior.",
+    "brief_arabic_title": "نموذج تسليم مفاتيح مؤقت",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 66,
+    "end_page": 70,
+    "primary_tenant": "عبدالله بدر عبدالله أحمد بودواس",
+    "category": "letters",
+    "dates": [
+      "2019-07-11",
+      "2019-07-10",
+      "2019-07-09",
+      "2019-07-07"
+    ],
+    "reason": "All pages (0-3) are part of a single correspondence story regarding the evacuation and maintenance of residential units (الوحدات السكنية) involving the Ministry of Interior and the Ministry of Works. Page 0 is a directive, Page 1 is a status update on tenants, Page 2 is a forwarding letter, and Page 3 is the engineering report submission from the Ministry of Works. They all share the same subject and are logically linked as a single case file.",
+    "brief_arabic_title": "مراسلات بشأن إخلاء وصيانة الوحدات السكنية",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 71,
+    "end_page": 71,
+    "primary_tenant": "عبدالله بدر عبدالله أحمد بودواس",
+    "category": "letters",
+    "dates": [
+      "2019-05-16"
+    ],
+    "reason": "Page 5 is a formal evacuation notice issued to a specific employee, which is a distinct legal action separate from the general administrative correspondence regarding unit reports and maintenance found in the previous pages.",
+    "brief_arabic_title": "إشعار بالإخلاء",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 72,
+    "end_page": 72,
+    "primary_tenant": "عبدالله بدر عبدالله أحمد بودواس",
+    "category": "forms",
+    "dates": [
+      "2019-05-16"
+    ],
+    "reason": "The page is a single official mail receipt form from the Ministry of Interior of Bahrain, documenting a specific correspondence tracking for document 19/3089.",
+    "brief_arabic_title": "إيصال استلام بريد - وزارة الداخلية",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 73,
+    "end_page": 75,
+    "primary_tenant": "عبدالله بدر عبدالله أحمد بودواس",
+    "category": "letters",
+    "dates": [
+      "2019-06-13",
+      "2019-06-13",
+      "2019-05-16"
+    ],
+    "reason": "Pages 0, 1, and 2 are all part of a single correspondence story regarding the eviction and extension request for housing unit 504 for Abdullah Bader Abdullah Boodawas. Page 0 is the notice granting the extension, Page 1 is the request for that extension, and Page 2 is the initial eviction notice. They are logically linked by the same person, unit, and subject matter.",
+    "brief_arabic_title": "إجراءات إخلاء الوحدة السكنية رقم 504",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 76,
+    "end_page": 76,
+    "primary_tenant": "عبدالله بدر عبدالله أحمد بودواس",
+    "category": "letters",
+    "dates": [
+      "2019-05-16"
+    ],
+    "reason": "Page 3 represents a Hard Reset. While it concerns the same person and the same housing unit (504), the subject matter has shifted completely from eviction/vacating the premises to a request for the installation of air conditioning units. This is a different administrative request/case.",
+    "brief_arabic_title": "طلب توفير مكيفات للوحدة السكنية رقم 504",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 77,
+    "end_page": 77,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "letters",
+    "dates": [
+      "2007-06-02"
+    ],
+    "reason": "The page is a formal request for air conditioning units for a specific housing unit, establishing a clear subject. Since it is the only page in the chunk, it forms its own group.",
+    "brief_arabic_title": "طلب توفير مكيفات لوحدة سكنية",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 78,
+    "end_page": 78,
+    "primary_tenant": "عبدالله بدر عبدالله أحمد بودواس",
+    "category": "letters",
+    "dates": [
+      "2012-07-31"
+    ],
+    "reason": "The page is a standalone official administrative letter regarding the deduction of housing usage fees for a specific individual, establishing a clear subject.",
+    "brief_arabic_title": "استقطاع بدل انتفاع لسكن",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 79,
+    "end_page": 79,
+    "primary_tenant": "عبدالله بدر عبدالله أحمد بودواس",
+    "category": "id_cards",
+    "dates": [
+      "2012-07-31"
+    ],
+    "reason": "Deterministic bypass: Category identified as cohesive document.",
+    "brief_arabic_title": null,
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 80,
+    "end_page": 82,
+    "primary_tenant": "عبدالله بدر عبدالله أحمد بودواس",
+    "category": "contract",
+    "dates": [
+      "2012-07-31",
+      "2012-07-31",
+      "2012-07-31"
+    ],
+    "reason": "Deterministic bypass: Category identified as cohesive document.",
+    "brief_arabic_title": null,
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 83,
+    "end_page": 85,
+    "primary_tenant": "Unassigned (2012-07)",
+    "category": "contract",
+    "dates": [
+      "2012-07-30",
+      "2012-07-30",
+      "2012-07-30"
+    ],
+    "reason": "Deterministic bypass: Category identified as cohesive document.",
+    "brief_arabic_title": null,
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 86,
+    "end_page": 87,
+    "primary_tenant": "Unassigned (2012-07)",
+    "category": "letters",
+    "dates": [
+      "2012-07-30",
+      "2012-07-29"
+    ],
+    "reason": "Both pages relate to the same specific residential unit (House 504, Road 4411 in Safra) and the administrative process of its allocation and maintenance. Page 1 discusses the completion of maintenance and handover of keys, while Page 0 is the notification to the utility authority regarding the occupant. They form a single 'correspondence story' regarding the management of this specific property.",
+    "brief_arabic_title": "إجراءات تخص الوحدة السكنية رقم 504 بمنطقة صفرى",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 88,
+    "end_page": 88,
+    "primary_tenant": "Unassigned (2012-07)",
+    "category": "forms",
+    "dates": [
+      "2012-07-29"
+    ],
+    "reason": "The page is a single-page official 'Receipt and Handover Form for Keys' for a residential unit in Safa, Bahrain.",
+    "brief_arabic_title": "نموذج استلام وتسليم مفاتيح",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 89,
+    "end_page": 89,
+    "primary_tenant": "Unassigned (2011-09)",
+    "category": "letters",
+    "dates": [
+      "2011-09-06"
+    ],
+    "reason": "The page is a formal letter regarding the maintenance of Housing Unit 504, including an attachment of the key and subsequent handwritten instructions for renovation. As it is the only page in the chunk, it forms its own group.",
+    "brief_arabic_title": "صيانة الوحدة السكنية رقم 504",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 90,
+    "end_page": 90,
+    "primary_tenant": "Unassigned (2011-09)",
+    "category": "forms",
+    "dates": [
+      "2011-09-06"
+    ],
+    "reason": "The page is a single Maintenance Request Form from the Ministry of Interior, Bahrain, containing a request for maintenance at a specific location and official processing details.",
+    "brief_arabic_title": "نموذج طلب صيانة - وزارة الداخلية",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 91,
+    "end_page": 93,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "letters",
+    "dates": [
+      "2011-01-19",
+      "2011-01-17",
+      "2010-12-22"
+    ],
+    "reason": "All three pages are part of a single correspondence story regarding the allocation of a police housing unit to Abdullah Badr Bodawas. Page 0 is a memorandum forwarding the approval, Page 1 is the approval letter itself, and Page 2 is the initial request/recommendation letter. They all relate to the same individual and the same specific housing issue.",
+    "brief_arabic_title": "تخصيص سكن للشرطي عبدالله بدر بودواس",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 94,
+    "end_page": 94,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "forms",
+    "dates": [
+      "2010-12-22"
+    ],
+    "reason": "The page is a single official 'Occupant' form for Yaqub Yusuf Shaheen, detailing residential occupancy and administrative details.",
+    "brief_arabic_title": "نموذج شاغل سكن",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 95,
+    "end_page": 95,
+    "primary_tenant": "عبدالله بدر عبدالله أحمد بودواس",
+    "category": "letters",
+    "dates": [
+      "2015-05-14"
+    ],
+    "reason": "The page is a standalone attestation certificate regarding the vacating of a housing unit, forming a complete document group.",
+    "brief_arabic_title": "شهادة إخلاء وحدة سكنية",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 96,
+    "end_page": 97,
+    "primary_tenant": "Unassigned (2011-09)",
+    "category": "letters",
+    "dates": [
+      "2011-09-06",
+      "2011-09-06"
+    ],
+    "reason": "Both pages refer to the same residential unit (No. 504, Road 4411, Safra) and involve the same administrative process regarding the keys and occupancy of that specific unit, handled by the same department and official (Major Hamad Abdullah Al-Dossary). This constitutes a single 'correspondence story' regarding the status of unit 504.",
+    "brief_arabic_title": "مراسلات الوحدة السكنية رقم ٥٠٤ - سافرة",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 98,
+    "end_page": 98,
+    "primary_tenant": "Unassigned (2011-09)",
+    "category": "forms",
+    "dates": [
+      "2011-09-06"
+    ],
+    "reason": "The page contains a single administrative table regarding the allocation of residential units for military or governmental personnel.",
+    "brief_arabic_title": "جدول تخصيص وحدات سكنية",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 99,
+    "end_page": 99,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "forms",
+    "dates": [
+      "2011-09-05"
+    ],
+    "reason": "The page is a single-page 'Enquiry & Follow Up Card' for a service request (Disconnection) for customer Yaqoob Yousif Shaheen.",
+    "brief_arabic_title": "بطاقة استفسار ومتابعة - هيئة الكهرباء والماء",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 100,
+    "end_page": 105,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "letters",
+    "dates": [
+      "2011-09-05",
+      "2011-01-19",
+      "2011-01-17",
+      "2010-12-14"
+    ],
+    "reason": "Page 0 is a request to stop salary deductions for a resident who vacated a housing unit in Safra (Road 504, Building 4411, Block 944). Pages 1, 2, and 3 are all related to the allocation of that same specific housing unit (Road 504, Building 4411, Block 944) to a new officer, Abdullah Badr. Together, they form a single 'Correspondence Story' regarding the transition of occupancy for this specific government housing unit.",
+    "brief_arabic_title": "إجراءات إخلاء وتخصيص سكن الشرطة في منطقة الصفرة",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 106,
+    "end_page": 107,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "pictures",
+    "dates": [
+      "2010-04-18",
+      "2010-04-18"
+    ],
+    "reason": "Both pages contain photographs documenting a physical location, timestamped with the same date (22 4 2010), likely as part of a single property inspection or record.",
+    "brief_arabic_title": "صور توثيقية للموقع",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 108,
+    "end_page": 108,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "forms",
+    "dates": [
+      "2010-04-18"
+    ],
+    "reason": "This page contains a personal data form for a resident named Maqol Dhaher.",
+    "brief_arabic_title": "استمارة بيانات شخصية لسكان الوحدة السكنية - مقول ظاهر",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 109,
+    "end_page": 109,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "forms",
+    "dates": [
+      "2010-04-18"
+    ],
+    "reason": "This page contains a residential unit tenant personal data form for Yaqoub Yousef Al-Hamad.",
+    "brief_arabic_title": "استمارة بيانات شخصية للمستأجر - يعقوب يوسف الحمد",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 110,
+    "end_page": 111,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "id_cards",
+    "dates": [
+      "2004-04-21",
+      "2004-04-21"
+    ],
+    "reason": "Deterministic bypass: Category identified as cohesive document.",
+    "brief_arabic_title": null,
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 112,
+    "end_page": 112,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "forms",
+    "dates": [
+      "2004-04-21"
+    ],
+    "reason": "The page contains a 'Regular Inspection Details' form for military-related married quarter housing for occupant Yaqoob Yousif.",
+    "brief_arabic_title": "تفاصيل التفتيش الدوري للسكن العسكري",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 113,
+    "end_page": 113,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "letters",
+    "dates": [
+      "2004-04-21"
+    ],
+    "reason": "The page is a standalone official memorandum regarding the inspection of married quarters, containing a specific subject, date, and a list of personnel to be inspected.",
+    "brief_arabic_title": "تفتيش السكن الزوجي",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 114,
+    "end_page": 114,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "forms",
+    "dates": [
+      "2004-04-21"
+    ],
+    "reason": "The page is a 'Regular Inspection Details' form for Married Quarters, containing occupant and inspection details for a specific property.",
+    "brief_arabic_title": "تفاصيل التفتيش الدوري للمساكن الزوجية",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 115,
+    "end_page": 115,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "letters",
+    "dates": [
+      "2002-03-11"
+    ],
+    "reason": "Page 0 is a general notice for multiple personnel regarding married quarter inspections, which is a distinct administrative action from the specific case of Areef Yaqoob Yousif Shaheen.",
+    "brief_arabic_title": "إشعار تفتيش السكن الزوجي",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 116,
+    "end_page": 118,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "letters",
+    "dates": [
+      "2002-01-28",
+      "2002-01-15",
+      "2001-12-31"
+    ],
+    "reason": "Pages 1, 2, and 3 all relate to the same specific case: Areef Yaqoob Yousif Shaheen and his residence at MQ # 504/D, Safra, involving an inspection, illegal construction of a store room, and a subsequent summons to report to the Personnel Affairs Directorate. These form a cohesive 'correspondence story'.",
+    "brief_arabic_title": "ملف مخالفات بناء وتفتيش سكن العريف يعقوب يوسف شاهين",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 119,
+    "end_page": 119,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "others",
+    "dates": [
+      "2001-12-31"
+    ],
+    "reason": "The page contains a grid of scanned documents, likely a microfilm record, and since it is the only page in the chunk, it forms a single group.",
+    "brief_arabic_title": "سجل ميكروفيلم للمستندات",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 120,
+    "end_page": 120,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "forms",
+    "dates": [
+      "2001-12-31"
+    ],
+    "reason": "This page is a regular inspection form for housing, which is distinct from the utility applications that follow.",
+    "brief_arabic_title": "نموذج تفاصيل التفتيش الدوري",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 121,
+    "end_page": 121,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "forms",
+    "dates": [
+      "2001-12-31"
+    ],
+    "reason": "This page is an administrative receipt or application confirmation for a license/permit, unrelated to the housing inspection or utility forms.",
+    "brief_arabic_title": "إيصال أو تأكيد طلب ترخيص",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 122,
+    "end_page": 123,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "forms",
+    "dates": [
+      "2001-02-19",
+      "2001-02-19"
+    ],
+    "reason": "These pages are related to the Ministry of Electricity and Water, specifically an application form and a guarantee form for the same customer (Yaqoob Yousif Shaheen) and property (House 504, Safra).",
+    "brief_arabic_title": "طلبات وضمانات وزارة الكهرباء والماء",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 124,
+    "end_page": 124,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "id_cards",
+    "dates": [
+      "2001-02-19"
+    ],
+    "reason": "Deterministic bypass: Category identified as cohesive document.",
+    "brief_arabic_title": null,
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 125,
+    "end_page": 125,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "letters",
+    "dates": [
+      "2001-02-19"
+    ],
+    "reason": "The page is a formal memorandum regarding the allotment of a married quarter to a specific individual, establishing a clear subject and case.",
+    "brief_arabic_title": "تخصيص سكن للمتزوجين",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 126,
+    "end_page": 128,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "forms",
+    "dates": [
+      "2001-02-19",
+      "2001-02-19",
+      "2001-02-19"
+    ],
+    "reason": "All three pages relate to the same individual (Yaqoob Yousif Shaheen) and the same residential unit (Safra D-504), covering the handover certificate, inspection report, and personal residency information form.",
+    "brief_arabic_title": "وثائق السكن الخاصة بـ يعقوب يوسف شاهين",
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 129,
+    "end_page": 129,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "id_cards",
+    "dates": [
+      "2001-02-19"
+    ],
+    "reason": "Deterministic bypass: Category identified as cohesive document.",
+    "brief_arabic_title": null,
+    "folder_path": null,
+    "is_direct_routed": false
+  },
+  {
+    "start_page": 130,
+    "end_page": 130,
+    "primary_tenant": "عريف يعقوب يوسف شاهين",
+    "category": "forms",
+    "dates": [
+      "2001-02-19"
+    ],
+    "reason": "The page contains a formal record titled 'OCCUPANT' for an individual named Yaqoob Yousif Shaheen, serving as an administrative form for tracking residency and personnel details.",
+    "brief_arabic_title": "سجل شاغل العقار",
+    "folder_path": null,
+    "is_direct_routed": false
+  }
+]
