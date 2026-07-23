@@ -87,3 +87,14 @@ Plans:
 **Wave 3** *(blocked on Wave 2 completion)*
 
 - [x] 24-03-PLAN.md — Re-implement finalize / append mode pipeline logic (Gap Closure)
+
+### Phase 24.1: Update test suite and fixtures for Phase 24 (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 24
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 24.1 to break down)
