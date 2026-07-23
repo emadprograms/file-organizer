@@ -39,15 +39,15 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 - ✓ YAML loading and tenant name extraction (YAML) — v2.0
 - ✓ Replace anchor logic with YAML-based LLM Name Matching in Pass 1 (PIPE) — v2.0
 - ✓ Add type hinting and docstrings across all v2.0 modules (MAINT-01) (Phase 20) — v3.0
-
 - ✓ Port file-categorizer OCR and Gemini 3.1 FL logic to main repository (CAT-01) (Phase 21) — v3.0
 - ✓ Implement early bypass for existing categorized reports (CAT-02) (Phase 21) — v3.0
+- ✓ Implement `config.yaml` for inbox/area mapping and explicit CLI modes (CONF-01, CONF-02, CONF-03) (Phase 22) — v3.0
+- ✓ Build space-separated syntax parser & resolver for FS-UI (FSUI-01, FSUI-02, FSUI-03) (Phase 23) — v3.0
+- ✓ Implement FS-UI Append loop (`_Proposed` -> ` OK` -> Finalize) (FSUI-04, FSUI-05, FSUI-06) (Phase 24) — v3.0
 
 ### Active
 
-- Implement `config.yaml` for inbox/area mapping and explicit CLI modes (CONF-01)
-- Build space-separated syntax parser for FS-UI (PARS-01)
-- Implement FS-UI Append loop (`_Proposed` -> ` OK` -> Finalize) (FSUI-01)
+(None defined — ready for next milestone)
 
 ### Out of Scope
 
@@ -61,8 +61,7 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 - ✅ Shipped v1.2 Pipeline Resilience.
 - ✅ Shipped v1.3 Routing Decoupling.
 - ✅ Shipped v2.0 Logic-Based Modular Refactoring on 2026-07-17.
-- ✅ Phase 20 complete — Codebase Maintainability Sweep (Types & Docs)
-- ✅ Phase 21 complete — System Unification (file-categorizer porting)
+- ✅ Shipped v3.0 Unified File-System UI & Append Mode on 2026-07-24.
 
 ## Context
 
@@ -95,4 +94,4 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-07-20*
+*Last updated: 2026-07-24 after v3.0 milestone*

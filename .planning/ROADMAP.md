@@ -1,100 +1,34 @@
-## Proposed Roadmap
+# Roadmap: File Organizer Refactoring
 
-**5 phases** | **12 requirements mapped** | All covered ✓
+## Milestones
 
-| # | Phase | Goal | Requirements | Success Criteria |
-|---|-------|------|--------------|------------------|
-| 20 | Codebase Maintainability Sweep | 3/3 | Complete    | 2026-07-18 |
-| 21 | System Unification | 1/1 | Complete    | 2026-07-20 |
-| 22 | Configuration and CLI Modes | 3/3 | Complete   | 2026-07-20 |
-| 23 | Inbox Parsing and Syntax | 2/2 | Complete | 2026-07-20 |
-| 24 | FS-UI Orchestration | 4/4 | Complete   | 2026-07-20 |
+- ✅ **v3.0 Unified File-System UI & Append Mode** — Phases 20-24.1 (shipped 2026-07-24) — [.planning/milestones/v3.0-ROADMAP.md](file:///Users/emadarshadalam/Documents/GitHub/file-organizer/.planning/milestones/v3.0-ROADMAP.md)
 
-### Phase 20: Codebase Maintainability Sweep
+## Phases
 
-**Goal:** Add type hinting and docstrings to v2.0 modules
-**Requirements:** MAINT-01
-**Depends on:** Phase 19
-**Plans:** 3/3 plans complete
+<details>
+<summary>✅ v3.0 Unified File-System UI & Append Mode (Phases 20-24.1) — SHIPPED 2026-07-24</summary>
 
-Plans:
+- [x] Phase 20: Codebase Maintainability Sweep (3/3 plans) — completed 2026-07-18
+- [x] Phase 21: System Unification (1/1 plan) — completed 2026-07-20
+- [x] Phase 22: Configuration and CLI Modes (3/3 plans) — completed 2026-07-20
+- [x] Phase 23: Inbox Parsing and Syntax (2/2 plans) — completed 2026-07-20
+- [x] Phase 24: FS-UI Orchestration (4/4 plans) — completed 2026-07-20
+- [x] Phase 24.1: Update test suite and fixtures for Phase 24 (4/4 plans) — completed 2026-07-23
 
-- [x] 1-domain-and-orchestration-PLAN.md
-- [x] 2-pipeline-logic-PLAN.md
-- [x] 3-tests-type-hinting-PLAN.md
+</details>
 
-- [x] TBD (run /gsd-plan-phase 20 to break down) (completed 2026-07-18)
+### 🚧 Next Milestone (Planned)
 
-### Phase 21: System Unification
+*(Run `/gsd-new-milestone` to start planning the next milestone)*
 
-**Goal:** Port file-categorizer logic for `_report.json` generation
-**Requirements:** CAT-01, CAT-02
-**Depends on:** Phase 20
-**Plans:** 1/1 plans complete
+## Progress
 
-Plans:
-
-- [x] 21-PLAN.md (completed 2026-07-19)
-
-### Phase 22: Configuration and CLI Modes (Completed)
-
-**Goal:** Create config.yaml and setup explicit CLI commands
-**Requirements:** CONF-01, CONF-02, CONF-03
-**Depends on:** Phase 21
-**Plans:** 3/3 plans complete
-
-Plans:
-**Wave 1**
-
-- [x] 22-01-PLAN.md — Configuration Management
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 22-02-PLAN.md — CLI Subparsers & Process Lock
-- [x] 22-03-PLAN.md — Gap Closure: Enforce Test Naming
-
-### Phase 23: Inbox Parsing and Syntax
-
-**Goal:** Build parser for space-separated FS-UI commands
-**Requirements:** FSUI-01, FSUI-02, FSUI-03
-**Depends on:** Phase 22
-**Plans:** 1/2 plans complete
-
-Plans:
-
-- [x] 23-01-PLAN.md - Inbox Syntax Parser (completed 2026-07-20)
-- [x] 23-02-PLAN.md - Inferring Missing Data
-
-### Phase 24: FS-UI Orchestration
-
-**Goal:** Wire up the rename loop and finalize filing logic
-**Requirements:** FSUI-04, FSUI-05, FSUI-06
-**Depends on:** Phase 23
-**Plans:** 4/4 plans complete
-
-Plans:
-
-- [x] 24-04-PLAN.md
-
-**Wave 1**
-
-- [x] 24-01-PLAN.md — PID Lock Utility
-
-**Wave 2** *(blocked on Wave 1 completion)*
-
-- [x] 24-02-PLAN.md — FSUIOrchestrator Class and main.py Hook
-
-**Wave 3** *(blocked on Wave 2 completion)*
-
-- [x] 24-03-PLAN.md — Re-implement finalize / append mode pipeline logic (Gap Closure)
-
-### Phase 24.1: Update test suite and fixtures for Phase 24 (INSERTED)
-
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
-**Depends on:** Phase 24
-**Plans:** 0 plans
-
-Plans:
-
-- [ ] TBD (run /gsd-plan-phase 24.1 to break down)
+| Phase | Milestone | Plans Complete | Status | Completed |
+|-------|-----------|----------------|--------|-----------|
+| 20. Codebase Maintainability Sweep | v3.0 | 3/3 | Complete | 2026-07-18 |
+| 21. System Unification | v3.0 | 1/1 | Complete | 2026-07-20 |
+| 22. Configuration and CLI Modes | v3.0 | 3/3 | Complete | 2026-07-20 |
+| 23. Inbox Parsing and Syntax | v3.0 | 2/2 | Complete | 2026-07-20 |
+| 24. FS-UI Orchestration | v3.0 | 4/4 | Complete | 2026-07-20 |
+| 24.1. Test Suite & Fixtures Update | v3.0 | 4/4 | Complete | 2026-07-23 |

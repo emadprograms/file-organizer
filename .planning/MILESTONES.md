@@ -1,5 +1,24 @@
 # Milestones
 
+## v3.0 File Organizer Refactoring (Shipped: 2026-07-23)
+
+**Phases completed:** 6 phases, 18 plans, 28 tasks
+
+**Key accomplishments:**
+
+- Type hints using modern built-in generics and exhaustive Google-style docstrings applied to all domain and orchestrator modules
+- Type hints using modern built-in generics and exhaustive Google-style docstrings applied to all pipeline logic modules.
+- Type hints using modern built-in generics and exhaustive Google-style docstrings applied to all test modules.
+- Ported file-categorizer logic for _report.json generation using Gemini 3.1 FL and OCR to the main repository
+- AppConfig Pydantic model for loading config.yaml and structural directory initialization
+- Refactored CLI with `argparse` subparsers (`create` and `append`) and implemented lockfile mutual exclusion for the upcoming listener loop.
+- Renamed phase 22 tests to match strict naming convention
+- Implemented space-separated filename parser and ParsedCommand Pydantic schema for FS-UI
+- Implemented a robust, crash-resilient PID-based lock utility using POSIX os.kill for the upcoming FS-UI Orchestrator.
+- Implemented the `FSUIOrchestrator` class to fully orchestrate the proposal and finalization lifecycle via File-System UI.
+
+---
+
 ## v2.0 Logic-Based Modular Refactoring (Shipped: 2026-07-17)
 
 **Phases completed:** 20 phases, 28 plans, 14 tasks

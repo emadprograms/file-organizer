@@ -1,5 +1,5 @@
 ---
-status: diagnosed
+status: complete
 phase: 23-inbox-parsing-and-syntax
 source: [23-01-SUMMARY.md, 23-02-SUMMARY.md]
 started: 2026-07-20T16:15:00Z
