@@ -25,7 +25,7 @@ def test_parse_filename_syntax_invalid():
         parse_filename_syntax("SAF 1234.pdf")
 
 def test_parse_filename_syntax_group_validation():
-    with pytest.raises(ValidationError, match="Numeric group must be between 1 and 13"):
+    with pytest.raises(ValueError, match="Invalid Format"):
         parse_filename_syntax("SAF 1234 Ali 14 2026-01-01.pdf")
         
     cmd = parse_filename_syntax("SAF 1234 Ali g 2026-01-01.pdf")

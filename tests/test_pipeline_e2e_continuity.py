@@ -30,7 +30,7 @@ def test_e2e_continuity() -> None:
     Expected outcome:
     The function should execute successfully and meet all assertions.
     """
-    json_path = "tests/fixtures/continuity_test_state.json"
+    json_path = "tests/fixtures/unit_states/continuity_test_state.json"
     if not os.path.exists(json_path):
         pytest.skip(f"Fixture file not found at {json_path}")
 

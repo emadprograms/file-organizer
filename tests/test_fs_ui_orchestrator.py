@@ -84,7 +84,6 @@ def test_propose_renames_valid_file(mock_config, mock_llm):
          patch("src.fs_ui.orchestrator.infer_missing_data", create=True) as mock_infer, \
          patch("src.fs_ui.orchestrator.resolve_area", return_value="Area1", create=True), \
          patch("src.fs_ui.orchestrator.resolve_tenant", return_value="Smith", create=True), \
-         patch("src.fs_ui.orchestrator.process_unclassified_pdf", create=True), \
          patch("src.fs_ui.orchestrator.Pipeline", create=True) as mock_pipeline_cls:
         
         mock_cmd = MagicMock()
@@ -107,16 +106,36 @@ def test_propose_renames_valid_file(mock_config, mock_llm):
         mock_pipeline_cls.return_value = mock_pipeline
         mock_pipeline._clean_documents.return_value = ([], None)
         mock_pipeline._group_documents.return_value = []
-        mock_pipeline._route_documents.return_value = []
+        from src.core.schemas import DocumentGroup
+        doc_group = DocumentGroup(
+            start_page=0, end_page=0, primary_tenant="Smith",
+            category="01_Test", dates=["2023-01-01"],
+            brief_arabic_title="Invoice", folder_path="01_Test"
+        )
+        mock_pipeline._route_documents.return_value = [doc_group]
         
-        orchestrator.propose(test_file)
+        with patch.dict('sys.modules', {'fitz': MagicMock()}):
+            mock_fitz = __import__('sys').modules['fitz']
+            mock_doc = MagicMock()
+            mock_doc.__enter__.return_value = mock_doc
+            mock_doc.page_count = 1
+            def mock_save(path, *args, **kwargs):
+                Path(path).touch()
+            mock_doc.save.side_effect = mock_save
+            mock_fitz.open.return_value = mock_doc
+            
+            def mock_process_unclassified(master_tmp_dir, *args, **kwargs):
+                (master_tmp_dir / f"{test_file.stem}_report.json").write_text("[]")
+                
+            with patch("src.fs_ui.orchestrator.process_unclassified_pdf", side_effect=mock_process_unclassified):
+                orchestrator.propose(test_file)
         
-    expected_name = "Area1 123 Smith U 2023-01-01 Invoice_Proposed.pdf"
+    expected_name = "Area1 123 Smith G 2023-01-01 Invoice_Proposed.pdf"
     assert (inbox / expected_name).exists()
     assert not test_file.exists()
     
-    # Assert temp dir was renamed correctly
-    expected_tmp_dir = inbox / f".tmp_Area1 123 Smith U 2023-01-01 Invoice"
+    # Assert temp dir was created for the proposed file
+    expected_tmp_dir = inbox / ".tmp_Area1 123 Smith G 2023-01-01 Invoice_Proposed"
     assert expected_tmp_dir.exists()
 
 def test_propose_handles_errors(mock_config, mock_llm):
@@ -138,10 +157,26 @@ def test_finalize_moves_and_invokes_pipeline(mock_config, mock_llm):
     inbox = Path(mock_config.inbox_path)
     clean_name = "Area1 123 Smith 2023-01-01 Invoice"
     test_file = inbox / f"{clean_name} OK.pdf"
-    test_file.touch()
+    test_file.write_bytes(b"%PDF-1.4 fake content")
     
     tmp_dir = inbox / f".tmp_{clean_name}"
     tmp_dir.mkdir()
+    
+    import hashlib
+    hasher = hashlib.sha256()
+    with open(test_file, 'rb') as f:
+        hasher.update(f.read())
+    file_hash = hasher.hexdigest()
+    (tmp_dir / "pdf_hash.txt").write_text(file_hash)
+    
+    import json
+    routed_data = [{
+        "start_page": 0, "end_page": 0,
+        "primary_tenant": "Smith", "category": "Test",
+        "dates": ["2023-01-01"], "brief_arabic_title": "Invoice",
+        "folder_path": "01_Test"
+    }]
+    (tmp_dir / "_routed_append_mode.json").write_text(json.dumps(routed_data))
     
     house_dir = Path(mock_config.areas_root_path) / "Area1" / "123"
     house_dir.mkdir(parents=True, exist_ok=True)
@@ -149,17 +184,20 @@ def test_finalize_moves_and_invokes_pipeline(mock_config, mock_llm):
     source_files_dir.mkdir(parents=True, exist_ok=True)
     (source_files_dir / "123_1_cleaned.json").write_text("[]")
     
-    # We need to mock fitz and compress_pdf to avoid actually manipulating PDFs
-    with patch("src.fs_ui.orchestrator.fitz", create=True) as mock_fitz, \
-         patch("src.pdf.compress.compress_pdf") as mock_compress, \
-         patch("src.main.run_grouping_pass", return_value=[]) as mock_grouping, \
-         patch("src.main.run_routing_pass", return_value=[]) as mock_routing, \
-         patch("src.main.run_generation_pass") as mock_generation:
-         
-        # Simulate fitz.open returning a mock document that can be used in a context manager
-        mock_doc = MagicMock()
-        mock_doc.__enter__.return_value = mock_doc
-        mock_fitz.open.return_value = mock_doc
+    # Build a mock fitz module that handles all the fitz.open() calls
+    mock_fitz = MagicMock()
+    mock_doc = MagicMock()
+    mock_doc.__enter__ = MagicMock(return_value=mock_doc)
+    mock_doc.__exit__ = MagicMock(return_value=False)
+    mock_doc.page_count = 1
+    def mock_save(path, *args, **kwargs):
+        Path(path).touch()
+    mock_doc.save = MagicMock(side_effect=mock_save)
+    mock_fitz.open.return_value = mock_doc
+    
+    with patch.dict('sys.modules', {'fitz': mock_fitz}), \
+         patch("src.main.run_generation_pass") as mock_generation, \
+         patch("src.pdf.compress.compress_pdf"):
         
         orchestrator.finalize(test_file)
         

@@ -5,6 +5,7 @@ import json
 import shutil
 import pytest
 from pathlib import Path
+import sys
 
 def run_organizer(target_dir, verbose_flag) -> Any:
     """Helper to run organizer and return the resulting log directory."""
@@ -13,7 +14,7 @@ def run_organizer(target_dir, verbose_flag) -> Any:
     # To be safe, we'll clean the logs directory or use a temporary one if possible.
     # Since src/logger.py has a hardcoded LOGS_DIR, we'll just find the latest.
     
-    cmd = ["python", "src/main.py", "create", str(target_dir), "--skip-llm"]
+    cmd = [sys.executable, "src/main.py", "create", str(target_dir), "--skip-llm"]
     if verbose_flag:
         cmd.append("--verbose")
     else:

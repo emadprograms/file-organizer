@@ -38,7 +38,7 @@ def parse_filename_syntax(filename: str) -> ParsedCommand:
     # GROUP is the next token after tenant that is a digit (1-13), 'G', or 'U'
     group_idx = None
     for i in range(house_idx + 1, len(tokens)):
-        t = tokens[i]
+        t = tokens[i].upper()
         if t in ('G', 'U') or (t.isdigit() and 1 <= int(t) <= 13):
             group_idx = i
             break
