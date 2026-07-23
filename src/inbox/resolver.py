@@ -35,7 +35,15 @@ def infer_missing_data(pdf_path: Path, parsed_cmd: ParsedCommand, llm_client: An
                 with open(report_path, 'r', encoding='utf-8') as f:
                     report = json.load(f)
                     
-                for page in report:
+                if isinstance(report, dict):
+                    if "per_page" in report:
+                        report_pages = report["per_page"]
+                    else:
+                        report_pages = [report[k] for k in sorted(report.keys(), key=int) if isinstance(report[k], dict)]
+                else:
+                    report_pages = report
+                    
+                for page in report_pages:
                     house = page.get("expected_house_number")
                     if house is not None and house != "":
                         house_counter[house] += 1

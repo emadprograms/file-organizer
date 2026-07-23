@@ -1,131 +1,189 @@
-from typing import Any
-"""End-to-end tests for the pipeline.
-
-Uses isolated fixture files in tests/fixtures/golden_1273/ to avoid
-relying on live API calls or the main pdfs/ directory.
-Mocked LLM responses are loaded from tests/fixtures/golden_1273/state/.
-"""
-
 import os
+import sys
 import json
 import shutil
-import sys
-from pathlib import Path
-
 import pytest
-from unittest.mock import patch
+from pathlib import Path
+from unittest.mock import patch, MagicMock
+from src.core.config import AppConfig
 
-FIXTURES_DIR = Path(__file__).parent / "fixtures" / "golden_1273"
-STATE_DIR = FIXTURES_DIR / "state"
+FIXTURES_DIR = Path(__file__).parent / "fixtures" / "e2e" / "golden_state"
 
-def _setup_run_dir(tmp_path: Path) -> Path:
-    house_dir = tmp_path / "1273"
-    house_dir.mkdir()
-
-    # Copy minimal fixture PDF
-    shutil.copy(FIXTURES_DIR / "input" / "1273" / "1273_categorized.pdf", house_dir / "1273_categorized.pdf")
-
-    # Copy report
-    shutil.copy(FIXTURES_DIR / "input" / "1273" / "1273_report.json", house_dir / "1273_report.json")
+def inject_mock_report(inbox: Path, stem: str) -> None:
+    """Inject the mock report for the given stem into the master inbox directory."""
+    master_dir = inbox / f".tmp_{stem}_master"
+    master_dir.mkdir(exist_ok=True)
     
-    # Copy source files
-    source_dir = house_dir / ".source_files"
-    source_dir.mkdir()
-    shutil.copy(FIXTURES_DIR / "input" / "1273" / ".source_files" / "1273_tenants.yaml", source_dir / "1273_tenants.yaml")
+    parts = stem.split(" ")
+    tenant_hint = parts[2] if len(parts) > 2 else "U"
+    group = parts[3] if len(parts) > 3 else "G"
+    
+    if group == "G":
+        folder_name = "01_عقود"
+    elif group == "7":
+        folder_name = "07_رخص"
+    else:
+        folder_name = "01_عقود"
+        
+    date = "2006-04-18" if "1273" in stem else "2015-05-05"
 
-    return house_dir
+    mock_data = {
+        "0": {
+            "category": "contract",
+            "content_explanation": "dummy",
+            "date": date,
+            "expected_tenant_name": tenant_hint,
+            "expected_house_number": stem.split(" ")[1] if len(stem.split(" ")) > 1 else "U"
+        }
+    }
+    
+    with open(master_dir / f"{stem}_report.json", "w", encoding="utf-8") as f:
+        json.dump(mock_data, f, ensure_ascii=False)
+
+def create_workspace(tmp_path: Path, house: str = "1273") -> tuple[Path, Path, Path]:
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    inbox = workspace / "inbox"
+    inbox.mkdir()
+    areas = workspace / "areas"
+    areas.mkdir()
+
+    if house == "1273":
+        safc_dir = areas / "Safra C"
+        safc_dir.mkdir()
+        shutil.copytree(FIXTURES_DIR / "areas" / "Safra C" / "1273 - يونس محمد ملاك", safc_dir / "1273 - يونس محمد ملاك")
+    elif house == "504":
+        safd_dir = areas / "Safra D"
+        safd_dir.mkdir()
+        shutil.copytree(FIXTURES_DIR / "areas" / "Safra D" / "504 - أحمد يوسف المريسل", safd_dir / "504 - أحمد يوسف المريسل")
+
+    config_path = workspace / "config.yaml"
+    config_path.write_text(f"inbox_path: {inbox}\nareas_root_path: {areas}\narea_mappings: {{}}", encoding="utf-8")
+    os.environ["FILE_ORGANIZER_CONFIG"] = str(config_path)
+
+    return workspace, inbox, areas
 
 @patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
-@patch("src.main.process_unclassified_pdf")
-@patch("src.timeline.phase.canonicalize_with_llm")
-@patch("src.grouping.process_with_shrink")
-@patch("src.routing.route_document")
-def test_dry_run_end_to_end(mock_route, mock_shrink, mock_canonicalize, mock_process_unclass, tmp_path, capfd) -> None:
-    """
-    Test dry run end to end.
-
-    Expected outcome:
-    The function should execute successfully and meet all assertions.
-    """
-    house_dir = _setup_run_dir(tmp_path)
-    output_dir = house_dir / "output"
+def test_cli_append_1273(tmp_path) -> None:
+    workspace, inbox, areas = create_workspace(tmp_path, "1273")
+    stem = "SAFC 1273 U G U"
     
-    with open(STATE_DIR / "1273_1_cleaned.json", "r", encoding="utf-8") as f:
-        cleaned_data = json.load(f)
-    mock_canonicalize.return_value = {"Ahmed Ali": "يونس محمد مالك"}
+    shutil.copy(FIXTURES_DIR / "inbox" / f"{stem}.pdf", inbox / f"{stem}.pdf")
+    inject_mock_report(inbox, stem)
     
-    from src.core.schemas import DocumentGroup
-    with open(STATE_DIR / "1273_2_grouped.json", "r", encoding="utf-8") as f:
-        grouped_data = json.load(f)
-    mock_shrink.return_value = [DocumentGroup(**d) for d in grouped_data]
+    test_args = ["main.py", "append", "--skip-llm"]
     
-    mock_route.return_value = ("05_عقود", True)
-    
-    config_path = tmp_path / "config.yaml"
-    config_path.write_text(f"inbox_path: {tmp_path}/inbox\nareas_root_path: {tmp_path}\narea_mappings: {{}}", encoding="utf-8")
-    os.environ["FILE_ORGANIZER_CONFIG"] = str(config_path)
-    
-    test_args = ["main.py", "create", str(house_dir), "--output-dir", str(output_dir), "--dry-run", "--verbose", "--skip-llm"]
-    
-    with patch.object(sys, 'argv', test_args):
-        from src.main import main
-        exit_code = main()
-        assert exit_code == 0
+    with patch("src.main.LLMClient") as MockLLMClient, patch("src.fs_ui.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
+        mock_client = MockLLMClient.return_value
+        mock_client.skip_llm = True
         
-    out, err = capfd.readouterr()
-    combined_output = out + err
-    
-    assert "1273" in combined_output
-    assert "Ahmed" in combined_output or "يونس" in combined_output
-    
-    output_pdf_dir = output_dir / "1273 - يونس محمد مالك"
-    assert not output_pdf_dir.exists()
+        with patch.object(sys, 'argv', test_args):
+            from src.main import main
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 0
+            
+    proposed_files = list(inbox.glob("*_Proposed.pdf"))
+    print('\nINBOX AFTER TEST:', list(inbox.glob('*')))
+    assert len(proposed_files) == 1
+    assert proposed_files[0].name == "Safra C 1273 يونس محمد مالك 5 2006-04-18 عقد_Proposed.pdf"
 
 @patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
-@patch("src.main.process_unclassified_pdf")
-@patch("src.timeline.phase.canonicalize_with_llm")
-@patch("src.grouping.process_with_shrink")
-@patch("src.routing.route_document")
-def test_full_run_end_to_end(mock_route, mock_shrink, mock_canonicalize, mock_process_unclass, tmp_path) -> None:
-    """
-    Test full run end to end.
+def test_cli_append_1273_tenant_folder(tmp_path) -> None:
+    workspace, inbox, areas = create_workspace(tmp_path, "1273")
+    stem = "SAFC 1273 يونس 7 U"
+    
+    shutil.copy(FIXTURES_DIR / "inbox" / f"{stem}.pdf", inbox / f"{stem}.pdf")
+    inject_mock_report(inbox, stem)
+    
+    test_args = ["main.py", "append", "--skip-llm"]
+    
+    with patch("src.main.LLMClient") as MockLLMClient, patch("src.fs_ui.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
+        mock_client = MockLLMClient.return_value
+        mock_client.skip_llm = True
+        
+        with patch.object(sys, 'argv', test_args):
+            from src.main import main
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 0
+            
+    proposed_files = list(inbox.glob("*_Proposed.pdf"))
+    print('\nINBOX AFTER TEST:', list(inbox.glob('*')))
+    assert len(proposed_files) == 1
+    assert proposed_files[0].name == "Safra C 1273 يونس G 2006-04-18 Unknown_Proposed.pdf"
 
-    Expected outcome:
-    The function should execute successfully and meet all assertions.
-    """
-    house_dir = _setup_run_dir(tmp_path)
-    output_dir = house_dir / "output"
+@patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
+def test_cli_append_1273_unknown(tmp_path) -> None:
+    workspace, inbox, areas = create_workspace(tmp_path, "1273")
+    stem = "U 1273 U U U"
     
-    with open(STATE_DIR / "1273_1_cleaned.json", "r", encoding="utf-8") as f:
-        cleaned_data = json.load(f)
-    mock_canonicalize.return_value = {"Ahmed Ali": "يونس محمد مالك"}
+    shutil.copy(FIXTURES_DIR / "inbox" / f"{stem}.pdf", inbox / f"{stem}.pdf")
+    inject_mock_report(inbox, stem)
     
-    from src.core.schemas import DocumentGroup
-    with open(STATE_DIR / "1273_2_grouped.json", "r", encoding="utf-8") as f:
-        grouped_data = json.load(f)
-    mock_shrink.return_value = [DocumentGroup(**d) for d in grouped_data]
+    test_args = ["main.py", "append", "--skip-llm"]
     
-    mock_route.return_value = ("05_عقود", True)
-    
-    config_path = tmp_path / "config.yaml"
-    config_path.write_text(f"inbox_path: {tmp_path}/inbox\nareas_root_path: {tmp_path}\narea_mappings: {{}}", encoding="utf-8")
-    os.environ["FILE_ORGANIZER_CONFIG"] = str(config_path)
-    
-    test_args = ["main.py", "create", str(house_dir), "--output-dir", str(output_dir), "--verbose", "--skip-llm"]
-    
-    with patch.object(sys, 'argv', test_args):
-        from src.main import main
-        exit_code = main()
-        assert exit_code == 0
+    with patch("src.main.LLMClient") as MockLLMClient, patch("src.fs_ui.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
+        mock_client = MockLLMClient.return_value
+        mock_client.skip_llm = True
         
-    # Check the final output from the reconciliation report generated in source files
-    report_path = output_dir / ".source_files" / "1273_3_routed_and_finalized.json"
-    assert report_path.exists()
+        with patch.object(sys, 'argv', test_args):
+            from src.main import main
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 0
+            
+    proposed_files = list(inbox.glob("*_Proposed.pdf"))
+    print('\nINBOX AFTER TEST:', list(inbox.glob('*')))
+    assert len(proposed_files) == 1
+    assert proposed_files[0].name == "Safra C 1273 يونس محمد مالك 5 2006-04-18 عقد_Proposed.pdf"
+
+@patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
+def test_cli_append_504(tmp_path) -> None:
+    workspace, inbox, areas = create_workspace(tmp_path, "504")
+    stem = "U 504 U U U"
     
-    with open(report_path, "r", encoding="utf-8") as f:
-        report = json.load(f)
+    shutil.copy(FIXTURES_DIR / "inbox" / f"{stem}.pdf", inbox / f"{stem}.pdf")
+    inject_mock_report(inbox, stem)
+    
+    test_args = ["main.py", "append", "--skip-llm"]
+    
+    with patch("src.main.LLMClient") as MockLLMClient, patch("src.fs_ui.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
+        mock_client = MockLLMClient.return_value
+        mock_client.skip_llm = True
         
-    # Find the output path for the page
-    output_path = report["per_page"][0]["output_file"]
-    assert "1273 - يونس محمد مالك" in output_path
-    assert "يونس محمد مالك ‎(2000 - الآن)‎/05_عقود" in output_path
+        with patch.object(sys, 'argv', test_args):
+            from src.main import main
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 0
+            
+    proposed_files = list(inbox.glob("*_Proposed.pdf"))
+    print('\nINBOX AFTER TEST:', list(inbox.glob('*')))
+    assert len(proposed_files) == 1
+    assert proposed_files[0].name == "Safra D 504 عبدالله بدر عبدالله أحمد بودواس 5 2015-05-05 عقد_Proposed.pdf"
+
+@patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
+def test_cli_append_broken(tmp_path) -> None:
+    workspace, inbox, areas = create_workspace(tmp_path, "1273")
+    stem = "broken"
+    
+    shutil.copy(FIXTURES_DIR / "inbox" / f"{stem}.pdf", inbox / f"{stem}.pdf")
+    inject_mock_report(inbox, stem)
+    
+    test_args = ["main.py", "append", "--skip-llm"]
+    
+    with patch("src.main.LLMClient") as MockLLMClient, patch("src.fs_ui.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
+        mock_client = MockLLMClient.return_value
+        mock_client.skip_llm = True
+        
+        with patch.object(sys, 'argv', test_args):
+            from src.main import main
+            with pytest.raises(SystemExit) as exc:
+                main()
+            assert exc.value.code == 0
+            
+    # Broken filename doesn't follow pattern, should be marked as failed
+    failed_files = list(inbox.glob("*_Error_Invalid_Format.pdf"))
+    print("\nINBOX AFTER TEST:", list(inbox.glob("*")))
+    assert len(failed_files) == 1

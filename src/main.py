@@ -76,7 +76,7 @@ def validate_target_directory(target_dir: Path) -> list[str]:
         
     return ids
 
-def run_append_mode(config: Any) -> None:
+def run_append_mode(config: Any, skip_llm: bool = False) -> None:
     """Run the listener in append mode with a process-exclusive lock.
     
     Args:
@@ -97,6 +97,7 @@ def run_append_mode(config: Any) -> None:
     os.makedirs(str(inbox_dir), exist_ok=True)
     
     llm_client = LLMClient(api_key=os.getenv("GEMINI_API_KEY"))
+    llm_client.skip_llm = skip_llm
     lock_path = inbox_dir / ".inbox.lock"
     
     try:
@@ -161,6 +162,11 @@ def get_parser() -> argparse.ArgumentParser:
     
     # append mode
     append_parser = subparsers.add_parser("append", help="Start the listener on the inbox")
+    append_parser.add_argument(
+        "--skip-llm",
+        action="store_true",
+        help="Skip LLM calls and return mocked schemas."
+    )
     
     # reconcile mode
     reconcile_parser = subparsers.add_parser("reconcile", help="Reconcile documents with updated configurations")
@@ -487,7 +493,7 @@ def main() -> int:
         return 1
 
     if args.command == "append":
-        run_append_mode(config)
+        run_append_mode(config, skip_llm=getattr(args, 'skip_llm', False))
         return 0
 
     if args.command == "reconcile":

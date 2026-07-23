@@ -45,8 +45,8 @@ def process_unclassified_pdf(target_dir: Path, llm_client: Any, specific_pdf_pat
 
     pdf_paths = [specific_pdf_path] if specific_pdf_path else list(target_dir.glob("*.pdf"))
     for pdf_path in pdf_paths:
-        # Skip if already a categorized PDF
-        if "_categorized" in pdf_path.name:
+        # Skip if already a categorized or finalized PDF
+        if "_categorized" in pdf_path.name or "_finalized" in pdf_path.name:
             continue
             
         if not pdf_path.is_file() or pdf_path.name.startswith("."):

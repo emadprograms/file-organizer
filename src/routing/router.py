@@ -14,7 +14,8 @@ from src.routing.config import (
     FORM_FOLDERS, 
     LETTER_CATEGORIES, 
     LETTER_FOLDERS,
-    FOLDER_ROUTING
+    FOLDER_ROUTING,
+    FOLDER_PREFIXES
 )
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
@@ -176,6 +177,11 @@ def route_document(group: DocumentGroup, llm_client: Any, model: str | None = No
     if category_upper in SINGLE_MATCH:
         folder = CATEGORY_TO_FOLDERS[category_upper][0]
         return folder, True
+
+    # 1.5 Try Exact Match on Folder Names (e.g. from categorization directly)
+    for folder_name, prefix in FOLDER_PREFIXES.items():
+        if category == f"{prefix}_{folder_name}" or category == folder_name:
+            return folder_name, True
 
     # 2. Try Direct Routing via Aliases (DIRECT_ROUTING_MAP)
     if category in DIRECT_ROUTING_MAP:

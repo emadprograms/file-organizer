@@ -1,0 +1,8 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.12.13, pytest-9.1.1, pluggy-1.6.0 -- /Users/emadarshadalam/Documents/GitHub/file-organizer/.venv/bin/python3.12
+cachedir: .pytest_cache
+rootdir: /Users/emadarshadalam/Documents/GitHub/file-organizer
+plugins: cov-7.1.0, anyio-4.14.1
+collecting ... collected 1 item
+
+tests/test_e2e_fs_ui.py::test_fsui_infer_missing_data_1273 

@@ -34,12 +34,14 @@ class MockLLMProvider:
             for content in contents:
                 if isinstance(content, str) and "Raw names:" in content:
                     try:
-                        start_idx = content.find("[")
-                        end_idx = content.rfind("]") + 1
-                        if start_idx != -1 and end_idx != -1:
-                            names = json.loads(content[start_idx:end_idx])
-                            if isinstance(names, list):
-                                return json.dumps({name: name for name in names}, ensure_ascii=False)
+                        raw_names_idx = content.find("Raw names:")
+                        if raw_names_idx != -1:
+                            start_idx = content.find("[", raw_names_idx)
+                            end_idx = content.find("]", start_idx) + 1
+                            if start_idx != -1 and end_idx != -1:
+                                names = json.loads(content[start_idx:end_idx])
+                                if isinstance(names, list):
+                                    return json.dumps({name: name for name in names}, ensure_ascii=False)
                     except Exception:
                         pass
             return "{}"
@@ -53,7 +55,11 @@ class MockLLMProvider:
                 start, end = int(m.group(1)), int(m.group(2))
             else:
                 start, end = 0, 0
-            return GroupingResponse.model_construct(groups=[GroupEntry(start_page=start, end_page=end, reason="mock skip-llm", brief_arabic_title="عنوان تجريبي")])
+            
+            cat_m = re.search(r"'category': '([^']+)'", content_str)
+            category = cat_m.group(1) if cat_m else "01_بيانات أساسية"
+                
+            return GroupingResponse.model_construct(groups=[GroupEntry(start_page=start, end_page=end, reason="mock skip-llm", brief_arabic_title="عنوان تجريبي", category=category)])
         elif schema_name == "RoutingResponse":
             try:
                 from src.routing.router import RoutingResponse

@@ -170,7 +170,7 @@ class LLMClient:
                 # Enforce application-level rate limit
                 now = time.time()
                 elapsed = now - self._last_request_time
-                if elapsed < self.delay_between_pages:
+                if elapsed < self.delay_between_pages and not getattr(self, 'skip_llm', False):
                     sleep_time = self.delay_between_pages - elapsed
                     if getattr(self, "verbose", False):
                         logger.debug(f"[{log_prefix}] Enforcing app rate limit. Sleeping {sleep_time:.2f}s...")
