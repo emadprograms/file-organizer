@@ -228,7 +228,11 @@ class FSUIOrchestrator:
                     
                     doc_date = doc.dates[0] if doc.dates else "UnknownDate"
                     doc_date = doc_date if doc_date else "UnknownDate"
-                    doc_title = doc.brief_arabic_title or "UnknownType"
+                    
+                    if parsed_cmd.title:
+                        doc_title = parsed_cmd.title
+                    else:
+                        doc_title = doc.brief_arabic_title or "UnknownType"
                     
                     doc_title = "".join(c for c in doc_title if c.isalnum() or c in " -_")
                     

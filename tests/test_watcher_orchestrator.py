@@ -110,7 +110,7 @@ def test_propose_renames_valid_file(mock_config, mock_llm):
         doc_group = DocumentGroup(
             start_page=0, end_page=0, primary_tenant="Smith",
             category="01_Test", dates=["2023-01-01"],
-            brief_arabic_title="Invoice", folder_path="01_Test"
+            brief_arabic_title="AITitle", folder_path="01_Test"
         )
         mock_pipeline._route_documents.return_value = [doc_group]
         
