@@ -130,12 +130,12 @@ def test_propose_renames_valid_file(mock_config, mock_llm):
             with patch("src.watcher.orchestrator.process_unclassified_pdf", side_effect=mock_process_unclassified):
                 orchestrator.propose(test_file)
         
-    expected_name = "Area1 123 Smith G 2023-01-01 Invoice_Proposed.pdf"
+    expected_name = "Area1 123 Smith G 2023-01-01 InvoiceProposed.pdf"
     assert (inbox / expected_name).exists()
     assert not test_file.exists()
     
     # Assert temp dir was created for the proposed file
-    expected_tmp_dir = inbox / ".tmp_Area1 123 Smith G 2023-01-01 Invoice_Proposed"
+    expected_tmp_dir = inbox / ".tmp_Area1 123 Smith G 2023-01-01 InvoiceProposed"
     assert expected_tmp_dir.exists()
 
 def test_propose_handles_errors(mock_config, mock_llm):

@@ -34,7 +34,7 @@ class FSUIOrchestrator:
                         stem = tmp_dir.name[5:]
                         if not ((inbox_dir / f"{stem}.pdf").exists() or 
                                 (inbox_dir / f"{stem} OK.pdf").exists() or
-                                (inbox_dir / f"{stem.replace('_Proposed', '')}.pdf").exists()):
+                                (inbox_dir / f"{stem.replace('Proposed', '')}.pdf").exists()):
                             shutil.rmtree(tmp_dir, ignore_errors=True)
                 except Exception as e:
                     logger.error(f"Failed to cleanup temp dir {tmp_dir}: {e}")
@@ -42,7 +42,7 @@ class FSUIOrchestrator:
             for pdf_path in inbox_dir.glob("*.pdf"):
                 name = pdf_path.name
                 
-                if name.endswith("_Proposed.pdf") or name.endswith("_Failed.pdf") or name.endswith("_Error_Invalid_Format.pdf") or name.endswith(" - please choose area.pdf"):
+                if name.endswith("Proposed.pdf") or name.endswith("_Failed.pdf") or name.endswith("_Error_Invalid_Format.pdf") or name.endswith(" - please choose area.pdf"):
                     continue
 
                 if name.endswith(" OK.pdf"):
@@ -223,12 +223,12 @@ class FSUIOrchestrator:
                     
                     doc_resolved_name = f"{area_id} {house_to_resolve} {doc.primary_tenant} {doc_group_str} {doc_date} {doc_title}"
                     
-                    new_pdf_name = f"{doc_resolved_name}_Proposed.pdf"
+                    new_pdf_name = f"{doc_resolved_name}Proposed.pdf"
                     new_pdf_path = filepath.parent / new_pdf_name
                     
                     counter = 1
                     while new_pdf_path.exists():
-                        new_pdf_name = f"{doc_resolved_name}_{counter}_Proposed.pdf"
+                        new_pdf_name = f"{doc_resolved_name}_{counter}Proposed.pdf"
                         new_pdf_path = filepath.parent / new_pdf_name
                         counter += 1
                         
@@ -284,7 +284,7 @@ class FSUIOrchestrator:
         clean_name = filepath.name
         if clean_name.endswith(" OK.pdf"):
             clean_name = clean_name[:-7]
-        if clean_name.endswith("_Proposed"):
+        if clean_name.endswith("Proposed"):
             clean_name = clean_name[:-9]
             
         try:

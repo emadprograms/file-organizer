@@ -95,8 +95,8 @@ def test_mock_append_propose(mock_config, mock_llm):
                 orchestrator.propose(test_pdf)
 
     # Note: the group string depends on folder_name routing. If not mocked, it might fall back to 'G'
-    expected_name = "1273 1273 يونس محمد ملاك G 2006-04-18 استقطاع الإيجار الشهري للمتقاعدين_Proposed.pdf"
-    assert (MOCK_INBOX_DIR / expected_name).exists(), "The _Proposed file was not created"
+    expected_name = "1273 1273 يونس محمد ملاك G 2006-04-18 استقطاع الإيجار الشهري للمتقاعدينProposed.pdf"
+    assert (MOCK_INBOX_DIR / expected_name).exists(), "The Proposed file was not created"
     assert not test_pdf.exists(), "The original unclassified file was not removed"
 
 def test_mock_append_finalize(mock_config, mock_llm):

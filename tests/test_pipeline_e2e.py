@@ -92,10 +92,10 @@ def test_cli_append_1273(tmp_path) -> None:
                 main()
             assert exc.value.code == 0
             
-    proposed_files = list(inbox.glob("*_Proposed.pdf"))
+    proposed_files = list(inbox.glob("*Proposed.pdf"))
     print('\nINBOX AFTER TEST:', list(inbox.glob('*')))
     assert len(proposed_files) == 1
-    assert proposed_files[0].name == "Safra C 1273 يونس محمد مالك 5 2006-04-18 عقد_Proposed.pdf"
+    assert proposed_files[0].name == "Safra C 1273 يونس محمد مالك 5 2006-04-18 عقدProposed.pdf"
 
 @patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
 def test_cli_append_1273_tenant_folder(tmp_path) -> None:
@@ -117,10 +117,10 @@ def test_cli_append_1273_tenant_folder(tmp_path) -> None:
                 main()
             assert exc.value.code == 0
             
-    proposed_files = list(inbox.glob("*_Proposed.pdf"))
+    proposed_files = list(inbox.glob("*Proposed.pdf"))
     print('\nINBOX AFTER TEST:', list(inbox.glob('*')))
     assert len(proposed_files) == 1
-    assert proposed_files[0].name == "Safra C 1273 يونس G 2006-04-18 Unknown_Proposed.pdf"
+    assert proposed_files[0].name == "Safra C 1273 يونس G 2006-04-18 UnknownProposed.pdf"
 
 @patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
 def test_cli_append_1273_unknown(tmp_path) -> None:
@@ -142,10 +142,10 @@ def test_cli_append_1273_unknown(tmp_path) -> None:
                 main()
             assert exc.value.code == 0
             
-    proposed_files = list(inbox.glob("*_Proposed.pdf"))
+    proposed_files = list(inbox.glob("*Proposed.pdf"))
     print('\nINBOX AFTER TEST:', list(inbox.glob('*')))
     assert len(proposed_files) == 1
-    assert proposed_files[0].name == "Safra C 1273 يونس محمد مالك 5 2006-04-18 عقد_Proposed.pdf"
+    assert proposed_files[0].name == "Safra C 1273 يونس محمد مالك 5 2006-04-18 عقدProposed.pdf"
 
 @patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
 def test_cli_append_504(tmp_path) -> None:
@@ -167,10 +167,10 @@ def test_cli_append_504(tmp_path) -> None:
                 main()
             assert exc.value.code == 0
             
-    proposed_files = list(inbox.glob("*_Proposed.pdf"))
+    proposed_files = list(inbox.glob("*Proposed.pdf"))
     print('\nINBOX AFTER TEST:', list(inbox.glob('*')))
     assert len(proposed_files) == 1
-    assert proposed_files[0].name == "Safra D 504 أحمد يوسف المريسل 13 2021-05-24 عنوان تجريبي_Proposed.pdf"
+    assert proposed_files[0].name == "Safra D 504 أحمد يوسف المريسل 13 2021-05-24 عنوان تجريبيProposed.pdf"
 
 @patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
 def test_cli_append_broken(tmp_path) -> None:

@@ -60,11 +60,11 @@ def test_fsui_infer_missing_data_1273(e2e_workspace):
     orchestrator.propose(source_pdf)
     assert not source_pdf.exists()
     
-    proposed_files = list(inbox.glob("*_Proposed.pdf"))
+    proposed_files = list(inbox.glob("*Proposed.pdf"))
     assert len(proposed_files) == 1
     proposed_file = proposed_files[0]
     
-    ok_file = inbox / proposed_file.name.replace("_Proposed.pdf", " OK.pdf")
+    ok_file = inbox / proposed_file.name.replace("Proposed.pdf", " OK.pdf")
     proposed_file.rename(ok_file)
     
     orchestrator.finalize(ok_file)
@@ -109,11 +109,11 @@ def test_fsui_infer_unknown_area_1273(e2e_workspace):
     orchestrator.propose(source_pdf)
     assert not source_pdf.exists()
     
-    proposed_files = list(inbox.glob("*_Proposed.pdf"))
+    proposed_files = list(inbox.glob("*Proposed.pdf"))
     assert len(proposed_files) == 1
     proposed_file = proposed_files[0]
     
-    ok_file = inbox / proposed_file.name.replace("_Proposed.pdf", " OK.pdf")
+    ok_file = inbox / proposed_file.name.replace("Proposed.pdf", " OK.pdf")
     proposed_file.rename(ok_file)
     
     orchestrator.finalize(ok_file)
@@ -136,11 +136,11 @@ def test_fsui_success_flow_504(e2e_workspace):
     orchestrator.propose(source_pdf)
     assert not source_pdf.exists()
     
-    proposed_files = list(inbox.glob("*_Proposed.pdf"))
+    proposed_files = list(inbox.glob("*Proposed.pdf"))
     assert len(proposed_files) == 1
     proposed_file = proposed_files[0]
     
-    ok_file = inbox / proposed_file.name.replace("_Proposed.pdf", " OK.pdf")
+    ok_file = inbox / proposed_file.name.replace("Proposed.pdf", " OK.pdf")
     proposed_file.rename(ok_file)
     
     orchestrator.finalize(ok_file)

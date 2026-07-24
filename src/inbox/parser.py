@@ -14,8 +14,8 @@ def parse_filename_syntax(filename: str) -> ParsedCommand:
     """
     if filename.lower().endswith(".pdf"):
         filename = filename[:-4]
-    # Strip _Proposed suffix if present
-    if filename.endswith("_Proposed"):
+    # Strip Proposed suffix if present
+    if filename.endswith("Proposed"):
         filename = filename[:-9]
 
     tokens = filename.split()
