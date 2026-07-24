@@ -37,6 +37,10 @@ def load_and_parse_json(json_path: Path) -> list[PageData]:
         items = data
 
     for i, item in enumerate(items):
+        if item.get("status") == "error":
+            item.setdefault("category", "others")
+            item.setdefault("content_explanation", f"Classification error: {item.get('error', 'Unknown error')}")
+
         date_val = item.get("date")
         if date_val is not None:
             # normalize date

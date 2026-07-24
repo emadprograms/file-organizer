@@ -152,6 +152,8 @@ def process_unclassified_pdf(target_dir: Path, llm_client: Any, specific_pdf_pat
                 logger.error(f"LLM Classification failed for {page_key}: {e}")
                 status[page_key]["status"] = "error"
                 status[page_key]["error"] = str(e)
+                status[page_key]["category"] = "others"
+                status[page_key]["content_explanation"] = f"Classification failed: {e}"
             finally:
                 if image_obj:
                     try:
