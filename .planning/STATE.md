@@ -2,33 +2,33 @@
 gsd_state_version: 1.0
 milestone: v4.0
 milestone_name: Architectural Cleanup
-current_phase: 25
-status: pending
-stopped_at: Milestone v4.0 initialized
-last_updated: "2026-07-24T12:55:00.000Z"
+current_phase: 29
+status: completed
+stopped_at: Milestone v4.0 completed
+last_updated: "2026-07-24T13:30:00.000Z"
 last_activity: 2026-07-24
-last_activity_desc: Milestone v4.0 initialized with 5 phases
+last_activity_desc: Milestone v4.0 completed
 progress:
   total_phases: 5
-  completed_phases: 0
+  completed_phases: 5
   total_plans: 5
-  completed_plans: 0
-  percent: 0
-current_phase_name: extract-presentation-from-core
+  completed_plans: 5
+  percent: 100
+current_phase_name: milestone-complete
 ---
 
 # Project State
 
-**Current Phase:** 25
-**Status:** Pending — ready to plan Phase 25
+**Current Phase:** 29 (Milestone Complete)
+**Status:** Completed — ready for next milestone
 
 ## Phase Progress
 
-- [ ] Phase 25: Extract Presentation Logic from `core/` (ARCH-01)
-- [ ] Phase 26: Rename `fs_ui/` to `watcher/` (ARCH-02)
-- [ ] Phase 27: Disambiguate Reconciliation Modules (ARCH-03)
-- [ ] Phase 28: Clean Up `main.py` Dead Imports (ARCH-04)
-- [ ] Phase 29: Audit Test Mock Patch Targets (ARCH-05)
+- [x] Phase 25: Extract Presentation Logic from `core/` (ARCH-01)
+- [x] Phase 26: Rename `fs_ui/` to `watcher/` (ARCH-02)
+- [x] Phase 27: Disambiguate Reconciliation Modules (ARCH-03)
+- [x] Phase 28: Clean Up `main.py` Dead Imports (ARCH-04)
+- [x] Phase 29: Audit Test Mock Patch Targets (ARCH-05)
 
 ## Open Issues / Blockers
 

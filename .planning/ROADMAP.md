@@ -21,11 +21,11 @@
 
 ### 🚧 v4.0 Architectural Cleanup (Phases 25-29)
 
-- [ ] Phase 25: Extract Presentation Logic from `core/` (ARCH-01)
-- [ ] Phase 26: Rename `fs_ui/` to `watcher/` (ARCH-02)
-- [ ] Phase 27: Disambiguate Reconciliation Modules (ARCH-03)
-- [ ] Phase 28: Clean Up `main.py` Dead Imports (ARCH-04)
-- [ ] Phase 29: Audit Test Mock Patch Targets (ARCH-05)
+- [x] Phase 25: Extract Presentation Logic from `core/` (ARCH-01) - completed 2026-07-24
+- [x] Phase 26: Rename `fs_ui/` to `watcher/` (ARCH-02) - completed 2026-07-24
+- [x] Phase 27: Disambiguate Reconciliation Modules (ARCH-03) - completed 2026-07-24
+- [x] Phase 28: Clean Up `main.py` Dead Imports (ARCH-04) - completed 2026-07-24
+- [x] Phase 29: Audit Test Mock Patch Targets (ARCH-05) - completed 2026-07-24
 
 ## Progress
 
@@ -37,8 +37,8 @@
 | 23. Inbox Parsing and Syntax | v3.0 | 2/2 | Complete | 2026-07-20 |
 | 24. FS-UI Orchestration | v3.0 | 4/4 | Complete | 2026-07-20 |
 | 24.1. Test Suite & Fixtures Update | v3.0 | 4/4 | Complete | 2026-07-23 |
-| 25. Extract Presentation from core/ | v4.0 | 0/1 | Pending | — |
-| 26. Rename fs_ui/ to watcher/ | v4.0 | 0/1 | Pending | — |
-| 27. Disambiguate Reconciliation | v4.0 | 0/1 | Pending | — |
-| 28. Clean Up main.py Imports | v4.0 | 0/1 | Pending | — |
-| 29. Audit Test Mock Targets | v4.0 | 0/1 | Pending | — |
+| 25. Extract Presentation from core/ | v4.0 | 1/1 | Complete | 2026-07-24 |
+| 26. Rename fs_ui/ to watcher/ | v4.0 | 1/1 | Complete | 2026-07-24 |
+| 27. Disambiguate Reconciliation | v4.0 | 1/1 | Complete | 2026-07-24 |
+| 28. Clean Up main.py Imports | v4.0 | 1/1 | Complete | 2026-07-24 |
+| 29. Audit Test Mock Targets | v4.0 | 1/1 | Complete | 2026-07-24 |

@@ -4,7 +4,7 @@
 
 A technical debt cleanup and refactoring effort for the file organizer project. The goal is to remove unused legacy code by tracing imports from the main entry point, break down bloated functions and files into smaller, more focused modules to improve maintainability, and implement logic-based modular refactoring (v2.0) utilizing YAML configuration instead of legacy anchor-based logic.
 
-## Current Milestone: v4.0 Architectural Cleanup
+## Milestone 4: Architectural Cleanup (v4.0) - COMPLETE 2026-07-24
 
 **Goal:** Surgical cleanup of module boundaries, naming, and import hygiene. Fix architectural smells identified during the v3.0 codebase review without adding features or changing behavior.
 
@@ -44,14 +44,15 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 - ✓ Implement `config.yaml` for inbox/area mapping and explicit CLI modes (CONF-01, CONF-02, CONF-03) (Phase 22) — v3.0
 - ✓ Build space-separated syntax parser & resolver for FS-UI (FSUI-01, FSUI-02, FSUI-03) (Phase 23) — v3.0
 - ✓ Implement FS-UI Append loop (`_Proposed` -> ` OK` -> Finalize) (FSUI-04, FSUI-05, FSUI-06) (Phase 24) — v3.0
+- ✓ Extract `core/ui.py` to `src/presentation/ui.py` — presentation logic out of domain core (ARCH-01) (Phase 25) — v4.0
+- ✓ Rename `fs_ui/` → `watcher/` — accurate naming for file watcher package (ARCH-02) (Phase 26) — v4.0
+- ✓ Rename `timeline/reconciliation.py` → `timeline/page_integrity.py` — disambiguate from `reconcile/core.py` (ARCH-03) (Phase 27) — v4.0
+- ✓ Remove dead `fitz`/`json` imports from `main.py` after runner extraction (ARCH-04) (Phase 28) — v4.0
+- ✓ Audit all test mock `@patch()` targets for import-site correctness (ARCH-05) (Phase 29) — v4.0
 
 ### Active
 
-- ARCH-01: Extract `core/ui.py` to `src/ui.py` — presentation logic out of domain core
-- ARCH-02: Rename `fs_ui/` → `watcher/` — accurate naming for file watcher package
-- ARCH-03: Rename `timeline/reconciliation.py` → `timeline/page_integrity.py` — disambiguate from `reconcile/core.py`
-- ARCH-04: Remove dead `fitz`/`json` imports from `main.py` after runner extraction
-- ARCH-05: Audit all test mock `@patch()` targets for import-site correctness
+*(No active requirements - v4.0 completed)*
 
 ### Out of Scope
 
