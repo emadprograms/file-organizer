@@ -167,52 +167,52 @@ class FSUIOrchestrator:
         tenant_to_resolve = inferred.get("tenant_hint", parsed_cmd.tenant_hint)
         tenant = resolve_tenant(house_dir, tenant_to_resolve, self.llm_client)
 
-        pipeline = Pipeline(api_key=os.getenv("GEMINI_API_KEY") or "dummy")
-        pipeline.client = self.llm_client
-        
-        cleaned_pages, _ = pipeline._clean_documents(orig_report_path, house_dir, house_to_resolve)
-        
-        group_mode = resolve_group_mode(parsed_cmd.group)
-        
-        if group_mode.get("skip_grouping"):
-            if cleaned_pages:
-                first_page = cleaned_pages[0]
-                category = getattr(first_page, "category", "Unknown")
-                title = getattr(first_page, "brief_arabic_title", "Unknown")
-                dates = [getattr(p, "date") for p in cleaned_pages if getattr(p, "date", None)]
-                group = DocumentGroup(
-                    start_page=min(p.original_index for p in cleaned_pages),
-                    end_page=max(p.original_index for p in cleaned_pages),
-                    primary_tenant=tenant,
-                    category=category,
-                    dates=dates,
-                    brief_arabic_title=title
-                )
-            else:
-                group = DocumentGroup(
-                    start_page=0, end_page=0, primary_tenant=tenant, category="Unknown", dates=[], brief_arabic_title="Unknown"
-                )
-            documents = [group]
-        else:
-            raw_pages = [(p.original_index, p) for p in cleaned_pages]
-            documents = pipeline._group_documents(raw_pages)
-            
-        if group_mode.get("skip_routing"):
-            for doc in documents:
-                doc.folder_path = group_mode.get("folder_name")
-                doc.is_direct_routed = True
-            routed_docs = documents
-        else:
-            routed_docs = pipeline._route_documents(documents)
-            
-        if parsed_cmd.tenant_hint != 'U':
-            for doc in routed_docs:
-                doc.primary_tenant = tenant
-
-        import fitz
-        import hashlib
-        
         try:
+            pipeline = Pipeline(api_key=os.getenv("GEMINI_API_KEY") or "dummy")
+            pipeline.client = self.llm_client
+            
+            cleaned_pages, _ = pipeline._clean_documents(orig_report_path, house_dir, house_to_resolve)
+            
+            group_mode = resolve_group_mode(parsed_cmd.group)
+            
+            if group_mode.get("skip_grouping"):
+                if cleaned_pages:
+                    first_page = cleaned_pages[0]
+                    category = getattr(first_page, "category", "Unknown")
+                    title = getattr(first_page, "brief_arabic_title", "Unknown")
+                    dates = [getattr(p, "date") for p in cleaned_pages if getattr(p, "date", None)]
+                    group = DocumentGroup(
+                        start_page=min(p.original_index for p in cleaned_pages),
+                        end_page=max(p.original_index for p in cleaned_pages),
+                        primary_tenant=tenant,
+                        category=category,
+                        dates=dates,
+                        brief_arabic_title=title
+                    )
+                else:
+                    group = DocumentGroup(
+                        start_page=0, end_page=0, primary_tenant=tenant, category="Unknown", dates=[], brief_arabic_title="Unknown"
+                    )
+                documents = [group]
+            else:
+                raw_pages = [(p.original_index, p) for p in cleaned_pages]
+                documents = pipeline._group_documents(raw_pages)
+                
+            if group_mode.get("skip_routing"):
+                for doc in documents:
+                    doc.folder_path = group_mode.get("folder_name")
+                    doc.is_direct_routed = True
+                routed_docs = documents
+            else:
+                routed_docs = pipeline._route_documents(documents)
+                
+            if parsed_cmd.tenant_hint != 'U':
+                for doc in routed_docs:
+                    doc.primary_tenant = tenant
+
+            import fitz
+            import hashlib
+            
             with fitz.open(str(filepath)) as doc_pdf:
                 for doc_idx, doc in enumerate(routed_docs):
                     doc_group_str = "G"
@@ -287,7 +287,7 @@ class FSUIOrchestrator:
                         json.dump([doc_group.model_dump()], f, ensure_ascii=False, indent=2)
                         
         except Exception as e:
-            logger.error(f"Error splitting proposed PDF {filepath}: {e}")
+            logger.error(f"Error processing or routing proposed PDF {filepath}: {e}")
             new_name = filepath.stem + "_Failed.pdf"
             os.rename(filepath, filepath.parent / new_name)
             
