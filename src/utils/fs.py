@@ -21,7 +21,8 @@ def atomic_write(filepath: str) -> Generator[str, None, None]:
     Raises:
         PermissionError: If the file cannot be renamed after 10 attempts.
     """
-    tmp_filepath = filepath + f".{uuid.uuid4().hex}.tmp"
+    import tempfile
+    tmp_filepath = os.path.join(tempfile.gettempdir(), f"{os.path.basename(filepath)}.{uuid.uuid4().hex}.tmp")
     try:
         yield tmp_filepath
         for _ in range(10):

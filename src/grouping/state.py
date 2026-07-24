@@ -34,7 +34,10 @@ class GroupingStateManager:
         """
         self.state_file = state_file
         self.bak_file = f"{state_file}.bak"
-        self.tmp_file = f"{state_file}.tmp"
+        import tempfile
+        import uuid
+        import os
+        self.tmp_file = os.path.join(tempfile.gettempdir(), f"grouping_state_{uuid.uuid4().hex}.tmp")
 
     def save_state(self, state: GroupingState) -> None:
         """Saves the state atomically using a temporary file and os.replace.

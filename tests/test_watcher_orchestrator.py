@@ -130,12 +130,12 @@ def test_propose_renames_valid_file(mock_config, mock_llm):
             with patch("src.watcher.orchestrator.process_unclassified_pdf", side_effect=mock_process_unclassified):
                 orchestrator.propose(test_file)
         
-    expected_name = "Area1 123 Smith G 2023-01-01 InvoiceProposed.pdf"
+    expected_name = "Area1 123 Smith G 2023-01-01 Invoice Proposed.pdf"
     assert (inbox / expected_name).exists()
     assert not test_file.exists()
     
     # Assert temp dir was created for the proposed file
-    expected_tmp_dir = inbox / ".tmp_Area1 123 Smith G 2023-01-01 InvoiceProposed"
+    expected_tmp_dir = orchestrator.cache_dir / ".tmp_Area1 123 Smith G 2023-01-01 Invoice Proposed"
     assert expected_tmp_dir.exists()
 
 def test_propose_handles_errors(mock_config, mock_llm):
@@ -159,8 +159,8 @@ def test_finalize_moves_and_invokes_pipeline(mock_config, mock_llm):
     test_file = inbox / f"{clean_name} OK.pdf"
     test_file.write_bytes(b"%PDF-1.4 fake content")
     
-    tmp_dir = inbox / f".tmp_{clean_name}"
-    tmp_dir.mkdir()
+    tmp_dir = orchestrator.cache_dir / f".tmp_{clean_name}"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
     
     import hashlib
     hasher = hashlib.sha256()
@@ -214,19 +214,20 @@ def test_orphan_cleanup(tmp_path):
     config = MagicMock()
     config.inbox_path = str(tmp_path)
     orch = FSUIOrchestrator(config, None)
+    orch.cache_dir.mkdir(parents=True, exist_ok=True)
     
     # Create an old orphan temp dir
-    old_orphan = tmp_path / ".tmp_old"
+    old_orphan = orch.cache_dir / ".tmp_old"
     old_orphan.mkdir()
     os.utime(old_orphan, (time.time() - 400, time.time() - 400))
     
     # Create a new orphan temp dir
-    new_orphan = tmp_path / ".tmp_new"
+    new_orphan = orch.cache_dir / ".tmp_new"
     new_orphan.mkdir()
     os.utime(new_orphan, (time.time() - 100, time.time() - 100))
     
     # Create an old temp dir with a matching PDF
-    old_with_pdf = tmp_path / ".tmp_has_pdf"
+    old_with_pdf = orch.cache_dir / ".tmp_has_pdf"
     old_with_pdf.mkdir()
     os.utime(old_with_pdf, (time.time() - 400, time.time() - 400))
     (tmp_path / "has_pdf.pdf").touch()

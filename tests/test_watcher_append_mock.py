@@ -95,7 +95,7 @@ def test_mock_append_propose(mock_config, mock_llm):
                 orchestrator.propose(test_pdf)
 
     # Note: the group string depends on folder_name routing. If not mocked, it might fall back to 'G'
-    expected_name = "1273 1273 يونس محمد ملاك G 2006-04-18 استقطاع الإيجار الشهري للمتقاعدينProposed.pdf"
+    expected_name = "1273 1273 يونس محمد ملاك G 2006-04-18 استقطاع الإيجار الشهري للمتقاعدين Proposed.pdf"
     assert (MOCK_INBOX_DIR / expected_name).exists(), "The Proposed file was not created"
     assert not test_pdf.exists(), "The original unclassified file was not removed"
 
@@ -107,8 +107,11 @@ def test_mock_append_finalize(mock_config, mock_llm):
     # Copy a real PDF instead of touching to avoid fitz errors
     shutil.copy(MOCK_INBOX_DIR / "mock_notice.pdf", test_file)
     
-    tmp_dir = MOCK_INBOX_DIR / f".tmp_{clean_name}"
-    tmp_dir.mkdir(exist_ok=True)
+    # Initialize early to use its cache_dir
+    orchestrator = FSUIOrchestrator(mock_config, mock_llm)
+
+    tmp_dir = orchestrator.cache_dir / f".tmp_{clean_name}"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
     
     # Needs a hash file to match
     import hashlib

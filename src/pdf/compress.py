@@ -17,7 +17,9 @@ def compress_pdf(input_path: str, output_path: str) -> None:
         input_path (str): The absolute or relative path to the input PDF.
         output_path (str): The absolute or relative path where the compressed PDF should be saved.
     """
-    temp_output_path = output_path + ".tmp.pdf"
+    import tempfile
+    import uuid
+    temp_output_path = os.path.join(tempfile.gettempdir(), f"compress_{uuid.uuid4().hex}.tmp.pdf")
     original_size = os.path.getsize(input_path)
     
     try:

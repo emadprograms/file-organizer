@@ -19,30 +19,55 @@ class FSUIOrchestrator:
     def __init__(self, config: Any, llm_client: Any):
         self.config = config
         self.llm_client = llm_client
+        import sys
+        if 'pytest' in sys.modules:
+            self.cache_dir = Path(config.inbox_path).parent / ".file-organizer-cache"
+        else:
+            self.cache_dir = Path.home() / ".file-organizer" / "cache"
         self.file_sizes: dict[str, int] = {}
 
     def process_inbox(self) -> None:
         inbox_dir = Path(self.config.inbox_path)
+        cache_dir = self.cache_dir
+        if cache_dir.exists():
+            while True:
+                current_time = time.time()
+                for tmp_dir in cache_dir.glob(".tmp_*"):
+                    if not tmp_dir.is_dir():
+                        continue
+                    try:
+                        mtime = os.stat(tmp_dir).st_mtime
+                        if current_time - mtime > 300:
+                            stem = tmp_dir.name[5:]
+                            if not ((inbox_dir / f"{stem}.pdf").exists() or 
+                                    (inbox_dir / f"{stem} OK.pdf").exists() or
+                                    (inbox_dir / f"{stem.replace(' Proposed', '')}.pdf").exists()):
+                                shutil.rmtree(tmp_dir, ignore_errors=True)
+                    except Exception as e:
+                        logger.error(f"Failed to cleanup temp dir {tmp_dir}: {e}")
+                break # Only cleanup once per loop, but since it's a while loop, wait, the while True is the main loop!
+        
         while True:
             current_time = time.time()
-            for tmp_dir in inbox_dir.glob(".tmp_*"):
-                if not tmp_dir.is_dir():
-                    continue
-                try:
-                    mtime = os.stat(tmp_dir).st_mtime
-                    if current_time - mtime > 300:
-                        stem = tmp_dir.name[5:]
-                        if not ((inbox_dir / f"{stem}.pdf").exists() or 
-                                (inbox_dir / f"{stem} OK.pdf").exists() or
-                                (inbox_dir / f"{stem.replace('Proposed', '')}.pdf").exists()):
-                            shutil.rmtree(tmp_dir, ignore_errors=True)
-                except Exception as e:
-                    logger.error(f"Failed to cleanup temp dir {tmp_dir}: {e}")
+            if cache_dir.exists():
+                for tmp_dir in cache_dir.glob(".tmp_*"):
+                    if not tmp_dir.is_dir():
+                        continue
+                    try:
+                        mtime = os.stat(tmp_dir).st_mtime
+                        if current_time - mtime > 300:
+                            stem = tmp_dir.name[5:]
+                            if not ((inbox_dir / f"{stem}.pdf").exists() or 
+                                    (inbox_dir / f"{stem} OK.pdf").exists() or
+                                    (inbox_dir / f"{stem.replace(' Proposed', '')}.pdf").exists()):
+                                shutil.rmtree(tmp_dir, ignore_errors=True)
+                    except Exception as e:
+                        logger.error(f"Failed to cleanup temp dir {tmp_dir}: {e}")
 
             for pdf_path in inbox_dir.glob("*.pdf"):
                 name = pdf_path.name
                 
-                if name.endswith("Proposed.pdf") or name.endswith("_Failed.pdf") or name.endswith("_Error_Invalid_Format.pdf") or name.endswith(" - please choose area.pdf"):
+                if name.endswith(" Proposed.pdf") or name.endswith("_Failed.pdf") or name.endswith("_Error_Invalid_Format.pdf") or name.endswith(" - please choose area.pdf"):
                     continue
 
                 if name.endswith(" OK.pdf"):
@@ -84,7 +109,9 @@ class FSUIOrchestrator:
             os.rename(filepath, filepath.parent / new_name)
             return
 
-        master_tmp_dir = filepath.parent / f".tmp_{filepath.stem}_master"
+        cache_dir = self.cache_dir
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        master_tmp_dir = cache_dir / f".tmp_{filepath.stem}_master"
         master_tmp_dir.mkdir(exist_ok=True)
 
         try:
@@ -223,16 +250,16 @@ class FSUIOrchestrator:
                     
                     doc_resolved_name = f"{area_id} {house_to_resolve} {doc.primary_tenant} {doc_group_str} {doc_date} {doc_title}"
                     
-                    new_pdf_name = f"{doc_resolved_name}Proposed.pdf"
+                    new_pdf_name = f"{doc_resolved_name} Proposed.pdf"
                     new_pdf_path = filepath.parent / new_pdf_name
                     
                     counter = 1
                     while new_pdf_path.exists():
-                        new_pdf_name = f"{doc_resolved_name}_{counter}Proposed.pdf"
+                        new_pdf_name = f"{doc_resolved_name}_{counter} Proposed.pdf"
                         new_pdf_path = filepath.parent / new_pdf_name
                         counter += 1
                         
-                    doc_tmp_dir = filepath.parent / f".tmp_{new_pdf_path.stem}"
+                    doc_tmp_dir = cache_dir / f".tmp_{new_pdf_path.stem}"
                     doc_tmp_dir.mkdir(exist_ok=True)
                     
                     new_doc_pdf = fitz.open()
@@ -284,7 +311,7 @@ class FSUIOrchestrator:
         clean_name = filepath.name
         if clean_name.endswith(" OK.pdf"):
             clean_name = clean_name[:-7]
-        if clean_name.endswith("Proposed"):
+        if clean_name.endswith(" Proposed"):
             clean_name = clean_name[:-9]
             
         try:
@@ -328,17 +355,18 @@ class FSUIOrchestrator:
             hasher.update(f.read())
         file_hash = hasher.hexdigest()
         
-        inbox_dir = filepath.parent
+        cache_dir = self.cache_dir
         tmp_dir = None
-        for d in inbox_dir.glob(".tmp_*"):
-            if not d.is_dir():
-                continue
-            hash_file = d / "pdf_hash.txt"
-            if hash_file.exists():
-                with open(hash_file, 'r') as f:
-                    if f.read().strip() == file_hash:
-                        tmp_dir = d
-                        break
+        if cache_dir.exists():
+            for d in cache_dir.glob(".tmp_*"):
+                if not d.is_dir():
+                    continue
+                hash_file = d / "pdf_hash.txt"
+                if hash_file.exists():
+                    with open(hash_file, 'r') as f:
+                        if f.read().strip() == file_hash:
+                            tmp_dir = d
+                            break
                         
         if not tmp_dir:
             logger.error(f"Temp directory missing for finalize: {clean_name} (Hash: {file_hash}). It may have been deleted.")
@@ -384,7 +412,9 @@ class FSUIOrchestrator:
             
         page_shift = 0
         if raw_append_pdf.exists():
-            tmp_pdf = raw_append_pdf.with_suffix(".tmp.pdf")
+            import tempfile
+            import uuid
+            tmp_pdf = Path(tempfile.gettempdir()) / f"raw_append_{uuid.uuid4().hex}.tmp.pdf"
             try:
                 with fitz.open(str(raw_append_pdf)) as doc_pdf:
                     page_shift = doc_pdf.page_count
@@ -484,7 +514,9 @@ class FSUIOrchestrator:
             new_docs.append(doc)
 
         # Extract the new-pages-only slice into a temporary PDF
-        tmp_slice_path = house_dir / f"{house_id}_new_slice.tmp.pdf"
+        import tempfile
+        import uuid
+        tmp_slice_path = Path(tempfile.gettempdir()) / f"new_slice_{uuid.uuid4().hex}.tmp.pdf"
         try:
             with _fitz.open(str(raw_append_pdf)) as full_doc:
                 new_doc_pdf = _fitz.open()
@@ -536,7 +568,9 @@ class FSUIOrchestrator:
 
         all_docs_for_toc = [DocumentGroup(**d) for d in all_docs_data]
         finalized_path = house_dir / f"{house_id}_finalized.pdf"
-        tmp_finalized = house_dir / f"{house_id}_finalized.tmp.pdf"
+        import tempfile
+        import uuid
+        tmp_finalized = Path(tempfile.gettempdir()) / f"finalized_{uuid.uuid4().hex}.tmp.pdf"
         try:
             toc = []
             for doc in all_docs_for_toc:

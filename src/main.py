@@ -98,7 +98,12 @@ def run_append_mode(config: Any, skip_llm: bool = False) -> None:
     
     llm_client = LLMClient(api_key=os.getenv("GEMINI_API_KEY") or "dummy")
     llm_client.skip_llm = skip_llm
-    lock_path = inbox_dir / ".inbox.lock"
+    
+    import hashlib
+    inbox_hash = hashlib.md5(str(inbox_dir.resolve()).encode()).hexdigest()
+    lock_dir = Path.home() / ".file-organizer" / "locks"
+    lock_dir.mkdir(parents=True, exist_ok=True)
+    lock_path = lock_dir / f"inbox_{inbox_hash}.lock"
     
     try:
         acquire_lock(lock_path)

@@ -20,8 +20,11 @@ def test_run_append_mode_success(caplog, tmp_path):
         
         run_append_mode(config)
         
-        mock_acquire.assert_called_once_with(tmp_path / ".inbox.lock")
-        mock_release.assert_called_once_with(tmp_path / ".inbox.lock")
+        import hashlib
+        inbox_hash = hashlib.md5(str(tmp_path.resolve()).encode()).hexdigest()
+        lock_dir = Path.home() / ".file-organizer" / "locks"
+        mock_acquire.assert_called_once_with(lock_dir / f"inbox_{inbox_hash}.lock")
+        mock_release.assert_called_once_with(lock_dir / f"inbox_{inbox_hash}.lock")
         mock_orch_instance.process_inbox.assert_called_once()
         assert "Listener started..." in caplog.text
 
