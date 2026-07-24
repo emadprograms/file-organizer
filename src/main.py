@@ -3,8 +3,7 @@ import os
 import sys
 import logging
 from pathlib import Path
-import json
-import fitz
+
 from typing import Any
 import re
 
