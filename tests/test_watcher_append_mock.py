@@ -72,7 +72,7 @@ def test_mock_append_propose(mock_config, mock_llm):
             category="07_استقطاع إيجار",
             dates=["2006-04-18"],
             brief_arabic_title="استقطاع الإيجار الشهري للمتقاعدين",
-            folder_path="07_استقطاع إيجار"
+            folder_path="استقطاع إيجار"
         )
         mock_pipeline._route_documents.return_value = [doc_group]
 
@@ -94,8 +94,7 @@ def test_mock_append_propose(mock_config, mock_llm):
             with patch("src.watcher.orchestrator.process_unclassified_pdf", side_effect=mock_process_unclassified):
                 orchestrator.propose(test_pdf)
 
-    # Note: the group string depends on folder_name routing. If not mocked, it might fall back to 'G'
-    expected_name = "1273 1273 يونس محمد ملاك G 2006-04-18 استقطاع الإيجار الشهري للمتقاعدين Proposed.pdf"
+    expected_name = "1273 1273 يونس محمد ملاك 7 2006-04-18 استقطاع الإيجار الشهري للمتقاعدين Proposed.pdf"
     assert (MOCK_INBOX_DIR / expected_name).exists(), "The Proposed file was not created"
     assert not test_pdf.exists(), "The original unclassified file was not removed"
 
