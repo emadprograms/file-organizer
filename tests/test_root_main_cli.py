@@ -116,7 +116,7 @@ def test_main_success(mock_app_config_load, mock_validate_env, mock_validate_tar
         return [Path("1273.pdf")]
         
     from unittest.mock import mock_open
-    with patch.object(Path, "glob", autospec=True) as mock_glob, patch.object(Path, "exists", return_value=False), patch("builtins.open", mock_open(read_data="{}")), patch.object(Path, "replace"), patch("os.replace"), patch("src.main.fitz") as mock_fitz, patch("src.main.json.load") as mock_json_load, patch("shutil.move"), patch("yaml.safe_load") as mock_yaml_load:
+    with patch.object(Path, "glob", autospec=True) as mock_glob, patch.object(Path, "exists", return_value=False), patch("builtins.open", mock_open(read_data="{}")), patch.object(Path, "replace"), patch("os.replace"), patch("src.pipeline.runner.fitz") as mock_fitz, patch("src.pipeline.runner.json.load") as mock_json_load, patch("shutil.move"), patch("yaml.safe_load") as mock_yaml_load:
         mock_glob.side_effect = custom_glob
         mock_fitz.open.return_value.__enter__.return_value.page_count = 0
         mock_json_load.return_value = []

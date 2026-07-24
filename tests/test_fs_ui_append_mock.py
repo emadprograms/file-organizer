@@ -141,7 +141,7 @@ def test_mock_append_finalize(mock_config, mock_llm):
         mock_fitz.open.return_value = mock_doc
         
         with patch("src.pdf.compress.compress_pdf", create=True), \
-             patch("src.main.run_generation_pass", create=True) as mock_generation:
+             patch("src.pipeline.runner.run_generation_pass", create=True) as mock_generation:
              
             orchestrator.finalize(test_file)
             

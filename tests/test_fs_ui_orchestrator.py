@@ -196,7 +196,7 @@ def test_finalize_moves_and_invokes_pipeline(mock_config, mock_llm):
     mock_fitz.open.return_value = mock_doc
     
     with patch.dict('sys.modules', {'fitz': mock_fitz}), \
-         patch("src.main.run_generation_pass") as mock_generation, \
+         patch("src.fs_ui.orchestrator.run_generation_pass") as mock_generation, \
          patch("src.pdf.compress.compress_pdf"):
         
         orchestrator.finalize(test_file)

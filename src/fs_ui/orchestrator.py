@@ -9,7 +9,7 @@ from typing import Any
 from src.inbox.parser import parse_filename_syntax
 from src.inbox.resolver import infer_missing_data, resolve_area, resolve_tenant, ConflictError, resolve_group_mode
 from src.categorization.categorization import process_unclassified_pdf
-from src.main import run_cleaning_pass, run_grouping_pass, run_routing_pass, run_generation_pass
+from src.pipeline.runner import run_cleaning_pass, run_grouping_pass, run_routing_pass, run_generation_pass
 from src.pipeline.pipeline import Pipeline
 from src.core.schemas import DocumentGroup
 
@@ -447,7 +447,6 @@ class FSUIOrchestrator:
 
         shutil.rmtree(tmp_dir, ignore_errors=True)
 
-        from src.main import run_generation_pass
         from src.core.schemas import DocumentGroup
         import yaml
         import fitz as _fitz

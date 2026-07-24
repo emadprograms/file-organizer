@@ -57,7 +57,7 @@ def test_file_placement_logic(tmp_path) -> None:
     
     with patch('src.timeline.FileOrganizer') as MockOrganizer, \
          patch('src.timeline.run_reconciliation') as mock_reconciliation, \
-         patch('src.main.fitz.open') as mock_fitz_open, \
+         patch('src.pipeline.runner.fitz.open') as mock_fitz_open, \
          patch('src.pdf.compress.compress_pdf') as mock_compress_pdf:
         
         mock_organizer_instance = MockOrganizer.return_value
