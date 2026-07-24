@@ -413,7 +413,6 @@ class FSUIOrchestrator:
                     with fitz.open(str(filepath)) as new_doc:
                         doc_pdf.insert_pdf(new_doc)
                     doc_pdf.save(str(tmp_pdf))
-                import shutil
                 shutil.move(str(tmp_pdf), str(raw_append_pdf))
             except Exception as e:
                 logger.error(f"Failed to append to raw PDF: {e}")
