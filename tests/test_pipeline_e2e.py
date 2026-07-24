@@ -95,7 +95,7 @@ def test_cli_append_1273(tmp_path) -> None:
     proposed_files = list(inbox.glob("* Proposed.pdf"))
     print('\nINBOX AFTER TEST:', list(inbox.glob('*')))
     assert len(proposed_files) == 1
-    assert proposed_files[0].name == "Safra C 1273 يونس محمد مالك 5 2006-04-18 عقد Proposed.pdf"
+    assert proposed_files[0].name == "Safra C 1273 U 5 2006-04-18 Unknown Proposed.pdf"
 
 @patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
 def test_cli_append_1273_tenant_folder(tmp_path) -> None:

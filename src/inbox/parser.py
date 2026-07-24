@@ -35,13 +35,34 @@ def parse_filename_syntax(filename: str) -> ParsedCommand:
     area = " ".join(tokens[:house_idx])
     house = tokens[house_idx]
 
+    def is_valid_group(g: str) -> bool:
+        g = g.upper()
+        return g in ('G', 'U') or (g.isdigit() and 1 <= int(g) <= 13)
+
+    def is_valid_date(d: str) -> bool:
+        d = d.upper()
+        return d in ('U', 'UNKNOWNDATE') or bool(re.match(r'^\d{4}-\d{2}-\d{2}$', d))
+
     # GROUP is the next token after tenant that is a digit (1-13), 'G', or 'U'
     group_idx = None
     for i in range(house_idx + 1, len(tokens)):
         t = tokens[i].upper()
-        if t in ('G', 'U') or (t.isdigit() and 1 <= int(t) <= 13):
-            group_idx = i
-            break
+        if is_valid_group(t):
+            has_next = i + 1 < len(tokens)
+            next_t = tokens[i+1].upper() if has_next else 'U'
+            
+            if is_valid_date(next_t):
+                # Check for the ambiguous 'U' tenant case (e.g. U 547 U U U title)
+                if t == 'U' and i == house_idx + 1 and i + 2 <= len(tokens):
+                    next_is_group = is_valid_group(tokens[i+1]) if i + 1 < len(tokens) else False
+                    next_next_is_date = is_valid_date(tokens[i+2]) if i + 2 < len(tokens) else True
+                    
+                    if next_is_group and next_next_is_date:
+                        continue # Skip this 'U', it's actually the Tenant!
+                
+                group_idx = i
+                break
+                
     if group_idx is None:
         raise ValueError("Invalid Format: no group token found")
 
