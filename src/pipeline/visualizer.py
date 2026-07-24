@@ -2,7 +2,7 @@ import logging
 from rich.table import Table
 from rich.tree import Tree
 from src.core.schemas import DocumentGroup
-from src.core.ui import vprint
+from src.presentation.ui import vprint
 
 from typing import Any
 
