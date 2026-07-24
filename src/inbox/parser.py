@@ -48,20 +48,16 @@ def parse_filename_syntax(filename: str) -> ParsedCommand:
     for i in range(house_idx + 1, len(tokens)):
         t = tokens[i].upper()
         if is_valid_group(t):
-            has_next = i + 1 < len(tokens)
-            next_t = tokens[i+1].upper() if has_next else 'U'
+            # Check for the ambiguous 'U' tenant placeholder.
+            # If 'U' is the very first token after house, and the NEXT token is ALSO a valid group,
+            # then this 'U' is the Tenant placeholder, and the NEXT token is the actual Group.
+            if t == 'U' and i == house_idx + 1 and i + 1 < len(tokens):
+                next_t = tokens[i+1].upper()
+                if is_valid_group(next_t):
+                    continue # Skip this 'U', it's actually the Tenant!
             
-            if is_valid_date(next_t):
-                # Check for the ambiguous 'U' tenant case (e.g. U 547 U U U title)
-                if t == 'U' and i == house_idx + 1 and i + 2 <= len(tokens):
-                    next_is_group = is_valid_group(tokens[i+1]) if i + 1 < len(tokens) else False
-                    next_next_is_date = is_valid_date(tokens[i+2]) if i + 2 < len(tokens) else True
-                    
-                    if next_is_group and next_next_is_date:
-                        continue # Skip this 'U', it's actually the Tenant!
-                
-                group_idx = i
-                break
+            group_idx = i
+            break
                 
     if group_idx is None:
         raise ValueError("Invalid Format: no group token found")
