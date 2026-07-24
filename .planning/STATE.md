@@ -40,6 +40,7 @@ None.
 |---|-------------|------|--------|-----------|
 | 260721-n3z | Implement reconcile --tenants mode in main.py. It should read _tenants.yaml, parse dates, update _1_cleaned.json, _2_grouped.json, and _3_routed.json in-place so canonical_tenant matches the yaml based on dates. Then move PDFs on disk and delete old empty folders. | 2026-07-21 | ac83c4b | [260721-n3z-implement-reconcile-tenants-mode-in-main](./quick/260721-n3z-implement-reconcile-tenants-mode-in-main/) |
 | 260724-refactor | Refactor main.py pipeline runner functions to src/pipeline/runner.py, update main.py and orchestrator.py imports, and verify pytest suite execution. | 2026-07-24 | 41c1beb | [260724-refactor-main-pipeline-runner](./quick/260724-refactor-main-pipeline-runner/) |
+| 20260724-rename-proposed | Rename `_Proposed` to `Proposed` everywhere in the codebase. | 2026-07-24 | 972843a | [20260724-rename-proposed](./quick/20260724-rename-proposed/) |
 
 ## Session
 
