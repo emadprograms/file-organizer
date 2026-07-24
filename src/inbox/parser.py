@@ -26,7 +26,7 @@ def parse_filename_syntax(filename: str) -> ParsedCommand:
     # If none found, fall back to token at index 1 (raw format: "U U U U U Title")
     house_idx = None
     for i, t in enumerate(tokens):
-        if t.isdigit() and len(t) >= 3:
+        if re.match(r'^\d{3,}[A-Za-z]?$', t):
             house_idx = i
             break
     if house_idx is None:

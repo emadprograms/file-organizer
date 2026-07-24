@@ -60,7 +60,7 @@ def compress_pdf(input_path: str, output_path: str) -> None:
         if os.path.exists(temp_output_path):
             new_size = os.path.getsize(temp_output_path)
             if new_size > 0 and new_size < original_size:
-                os.replace(temp_output_path, output_path)
+                shutil.move(temp_output_path, output_path)
             else:
                 os.remove(temp_output_path)
                 if input_path != output_path:
@@ -78,3 +78,4 @@ def compress_pdf(input_path: str, output_path: str) -> None:
                 pass
         if input_path != output_path:
             shutil.copy2(input_path, output_path)
+

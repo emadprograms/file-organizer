@@ -40,7 +40,7 @@ class GroupingStateManager:
         self.tmp_file = os.path.join(tempfile.gettempdir(), f"grouping_state_{uuid.uuid4().hex}.tmp")
 
     def save_state(self, state: GroupingState) -> None:
-        """Saves the state atomically using a temporary file and os.replace.
+        """Saves the state atomically using a temporary file and shutil.move.
         
         Maintains a backup of the last known good state.
 
@@ -60,7 +60,7 @@ class GroupingStateManager:
                 shutil.copy2(self.state_file, self.bak_file)
 
             # 3. Atomic swap
-            os.replace(self.tmp_file, self.state_file)
+            shutil.move(self.tmp_file, self.state_file)
             logger.debug(f"Grouping state saved atomically to {self.state_file}")
         except Exception as e:
             logger.error(f"Failed to save grouping state: {e}")
@@ -93,3 +93,4 @@ class GroupingStateManager:
         
         logger.info("No valid grouping state found. Starting from scratch.")
         return GroupingState()
+

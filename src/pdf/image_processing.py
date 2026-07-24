@@ -1,3 +1,4 @@
+import shutil
 """
 Image processing utilities for PDF document analysis.
 
@@ -190,7 +191,7 @@ def process_pdf(pdf_path: str, output_dir: str) -> tuple[dict, str]:
         tmp_progress = progress_file + ".tmp"
         with open(tmp_progress, "w", encoding="utf-8") as f:
             json.dump(status, f)
-        os.replace(tmp_progress, progress_file)
+        shutil.move(tmp_progress, progress_file)
 
     try:
         pdf_document = fitz.open(pdf_path)
@@ -238,3 +239,4 @@ def process_pdf(pdf_path: str, output_dir: str) -> tuple[dict, str]:
 
     pdf_document.close()
     return status, tmp_dir
+

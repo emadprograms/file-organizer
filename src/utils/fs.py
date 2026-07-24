@@ -1,3 +1,4 @@
+import shutil
 from typing import Generator
 import os
 from contextlib import contextmanager
@@ -27,7 +28,7 @@ def atomic_write(filepath: str) -> Generator[str, None, None]:
         yield tmp_filepath
         for _ in range(10):
             try:
-                os.replace(tmp_filepath, filepath)
+                shutil.move(tmp_filepath, filepath)
                 break
             except PermissionError:
                 time.sleep(0.1)
@@ -40,3 +41,4 @@ def atomic_write(filepath: str) -> Generator[str, None, None]:
         if os.path.exists(tmp_filepath):
             os.remove(tmp_filepath)
         raise
+
