@@ -134,7 +134,9 @@ def parse_flexible_date(date_str: str) -> str:
     Raises:
         ValueError: If the date cannot be parsed by any known pattern.
     """
-    date_str_clean = date_str.strip()
+    # Normalize Eastern Arabic numerals to ASCII digits
+    arabic_to_ascii = str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789')
+    date_str_clean = date_str.translate(arabic_to_ascii).strip()
 
     # --- Pre-processing: strip noise before attempting patterns ---
 
