@@ -217,19 +217,22 @@ class FSUIOrchestrator:
                 for doc_idx, doc in enumerate(routed_docs):
                     doc_group_str = "G"
                     if doc.folder_path:
-                        parts = doc.folder_path.split('.')
-                        if parts[0].isdigit():
-                            doc_group_str = parts[0]
+                        if '_' in doc.folder_path and doc.folder_path.split('_')[0].isdigit():
+                            doc_group_str = str(int(doc.folder_path.split('_')[0]))
                         else:
-                            from src.routing.config import FOLDER_PREFIXES
-                            prefix = FOLDER_PREFIXES.get(doc.folder_path)
-                            if prefix:
-                                doc_group_str = str(int(prefix))
+                            parts = doc.folder_path.split('.')
+                            if parts[0].isdigit():
+                                doc_group_str = parts[0]
+                            else:
+                                from src.routing.config import FOLDER_PREFIXES
+                                prefix = FOLDER_PREFIXES.get(doc.folder_path)
+                                if prefix:
+                                    doc_group_str = str(int(prefix))
                     
                     doc_date = doc.dates[0] if doc.dates else "UnknownDate"
                     doc_date = doc_date if doc_date else "UnknownDate"
                     
-                    if parsed_cmd.title:
+                    if parsed_cmd.title and parsed_cmd.title != 'U':
                         doc_title = parsed_cmd.title
                     else:
                         doc_title = doc.brief_arabic_title or "UnknownType"
