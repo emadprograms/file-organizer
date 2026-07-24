@@ -88,8 +88,8 @@ def run_append_mode(config: Any, skip_llm: bool = False) -> None:
     import logging
     from pathlib import Path
     from src.llm.llm import LLMClient
-    from src.fs_ui.lock import acquire_lock, release_lock, LockExistsError
-    from src.fs_ui.orchestrator import FSUIOrchestrator
+    from src.watcher.lock import acquire_lock, release_lock, LockExistsError
+    from src.watcher.orchestrator import FSUIOrchestrator
     from dotenv import load_dotenv
 
     load_dotenv()

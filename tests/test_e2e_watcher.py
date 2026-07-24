@@ -3,7 +3,7 @@ import os
 import shutil
 from pathlib import Path
 
-from src.fs_ui.orchestrator import FSUIOrchestrator
+from src.watcher.orchestrator import FSUIOrchestrator
 from src.core.config import AppConfig
 from src.llm.llm import LLMClient
 from dotenv import load_dotenv

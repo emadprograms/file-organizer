@@ -3,17 +3,17 @@ import sys
 from unittest.mock import patch, MagicMock
 from pathlib import Path
 from src.main import run_append_mode
-from src.fs_ui.lock import LockExistsError
+from src.watcher.lock import LockExistsError
 
 def test_run_append_mode_success(caplog, tmp_path):
     caplog.set_level("INFO")
     config = MagicMock()
     config.inbox_path = str(tmp_path)
     
-    with patch("src.fs_ui.lock.acquire_lock") as mock_acquire, \
-         patch("src.fs_ui.lock.release_lock") as mock_release, \
-         patch("src.llm.llm.LLMClient"), \
-         patch("src.fs_ui.orchestrator.FSUIOrchestrator") as mock_orchestrator:
+    with patch("src.watcher.lock.acquire_lock") as mock_acquire, \
+         patch("src.watcher.lock.release_lock") as mock_release, \
+         patch("src.main.setup_logging"), \
+         patch("src.watcher.orchestrator.FSUIOrchestrator") as mock_orchestrator:
          
         mock_orch_instance = MagicMock()
         mock_orchestrator.return_value = mock_orch_instance
@@ -29,10 +29,10 @@ def test_run_append_mode_already_locked(caplog, tmp_path):
     config = MagicMock()
     config.inbox_path = str(tmp_path)
     
-    with patch("src.fs_ui.lock.acquire_lock", side_effect=LockExistsError), \
+    with patch("src.watcher.lock.acquire_lock", side_effect=LockExistsError), \
          patch("sys.exit") as mock_exit, \
          patch("src.llm.llm.LLMClient"), \
-         patch("src.fs_ui.orchestrator.FSUIOrchestrator"):
+         patch("src.watcher.orchestrator.FSUIOrchestrator"):
         
         run_append_mode(config)
         

@@ -82,7 +82,7 @@ def test_cli_append_1273(tmp_path) -> None:
     
     test_args = ["main.py", "append", "--skip-llm"]
     
-    with patch("src.main.LLMClient") as MockLLMClient, patch("src.fs_ui.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
+    with patch("src.main.LLMClient") as MockLLMClient, patch("src.watcher.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
         mock_client = MockLLMClient.return_value
         mock_client.skip_llm = True
         
@@ -107,7 +107,7 @@ def test_cli_append_1273_tenant_folder(tmp_path) -> None:
     
     test_args = ["main.py", "append", "--skip-llm"]
     
-    with patch("src.main.LLMClient") as MockLLMClient, patch("src.fs_ui.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
+    with patch("src.main.LLMClient") as MockLLMClient, patch("src.watcher.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
         mock_client = MockLLMClient.return_value
         mock_client.skip_llm = True
         
@@ -132,7 +132,7 @@ def test_cli_append_1273_unknown(tmp_path) -> None:
     
     test_args = ["main.py", "append", "--skip-llm"]
     
-    with patch("src.main.LLMClient") as MockLLMClient, patch("src.fs_ui.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
+    with patch("src.main.LLMClient") as MockLLMClient, patch("src.watcher.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
         mock_client = MockLLMClient.return_value
         mock_client.skip_llm = True
         
@@ -157,7 +157,7 @@ def test_cli_append_504(tmp_path) -> None:
     
     test_args = ["main.py", "append", "--skip-llm"]
     
-    with patch("src.main.LLMClient") as MockLLMClient, patch("src.fs_ui.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
+    with patch("src.main.LLMClient") as MockLLMClient, patch("src.watcher.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
         mock_client = MockLLMClient.return_value
         mock_client.skip_llm = True
         
@@ -182,7 +182,7 @@ def test_cli_append_broken(tmp_path) -> None:
     
     test_args = ["main.py", "append", "--skip-llm"]
     
-    with patch("src.main.LLMClient") as MockLLMClient, patch("src.fs_ui.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
+    with patch("src.main.LLMClient") as MockLLMClient, patch("src.watcher.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
         mock_client = MockLLMClient.return_value
         mock_client.skip_llm = True
         

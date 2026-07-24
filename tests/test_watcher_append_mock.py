@@ -5,7 +5,7 @@ import json
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from src.fs_ui.orchestrator import FSUIOrchestrator
+from src.watcher.orchestrator import FSUIOrchestrator
 from src.core.config import AppConfig
 from src.core.schemas import DocumentGroup
 
@@ -38,11 +38,11 @@ def test_mock_append_propose(mock_config, mock_llm):
     
     orchestrator = FSUIOrchestrator(mock_config, mock_llm)
 
-    with patch("src.fs_ui.orchestrator.parse_filename_syntax", create=True) as mock_parse, \
-         patch("src.fs_ui.orchestrator.infer_missing_data", create=True) as mock_infer, \
-         patch("src.fs_ui.orchestrator.resolve_area", return_value="1273", create=True), \
-         patch("src.fs_ui.orchestrator.resolve_tenant", return_value="يونس محمد ملاك", create=True), \
-         patch("src.fs_ui.orchestrator.Pipeline", create=True) as mock_pipeline_cls:
+    with patch("src.watcher.orchestrator.parse_filename_syntax", create=True) as mock_parse, \
+         patch("src.watcher.orchestrator.infer_missing_data", create=True) as mock_infer, \
+         patch("src.watcher.orchestrator.resolve_area", return_value="1273", create=True), \
+         patch("src.watcher.orchestrator.resolve_tenant", return_value="يونس محمد ملاك", create=True), \
+         patch("src.watcher.orchestrator.Pipeline", create=True) as mock_pipeline_cls:
         
         mock_cmd = MagicMock()
         mock_cmd.house = "1273"
@@ -91,7 +91,7 @@ def test_mock_append_propose(mock_config, mock_llm):
             def mock_process_unclassified(master_tmp_dir, *args, **kwargs):
                 (master_tmp_dir / f"{test_pdf.stem}_report.json").write_text("[]")
             
-            with patch("src.fs_ui.orchestrator.process_unclassified_pdf", side_effect=mock_process_unclassified):
+            with patch("src.watcher.orchestrator.process_unclassified_pdf", side_effect=mock_process_unclassified):
                 orchestrator.propose(test_pdf)
 
     # Note: the group string depends on folder_name routing. If not mocked, it might fall back to 'G'

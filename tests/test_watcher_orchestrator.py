@@ -5,7 +5,7 @@ from pathlib import Path
 import unittest.mock
 from unittest.mock import MagicMock, patch
 
-from src.fs_ui.orchestrator import FSUIOrchestrator
+from src.watcher.orchestrator import FSUIOrchestrator
 from src.core.config import AppConfig
 
 @pytest.fixture
@@ -80,11 +80,11 @@ def test_propose_renames_valid_file(mock_config, mock_llm):
     (house_dir / ".source_files").mkdir()
     (house_dir / ".source_files" / "123_tenants.yaml").touch()
     
-    with patch("src.fs_ui.orchestrator.parse_filename_syntax", create=True) as mock_parse, \
-         patch("src.fs_ui.orchestrator.infer_missing_data", create=True) as mock_infer, \
-         patch("src.fs_ui.orchestrator.resolve_area", return_value="Area1", create=True), \
-         patch("src.fs_ui.orchestrator.resolve_tenant", return_value="Smith", create=True), \
-         patch("src.fs_ui.orchestrator.Pipeline", create=True) as mock_pipeline_cls:
+    with patch("src.watcher.orchestrator.parse_filename_syntax", create=True) as mock_parse, \
+         patch("src.watcher.orchestrator.infer_missing_data", create=True) as mock_infer, \
+         patch("src.watcher.orchestrator.resolve_area", return_value="Area1", create=True), \
+         patch("src.watcher.orchestrator.resolve_tenant", return_value="Smith", create=True), \
+         patch("src.watcher.orchestrator.Pipeline", create=True) as mock_pipeline_cls:
         
         mock_cmd = MagicMock()
         mock_cmd.house = "123"
@@ -127,7 +127,7 @@ def test_propose_renames_valid_file(mock_config, mock_llm):
             def mock_process_unclassified(master_tmp_dir, *args, **kwargs):
                 (master_tmp_dir / f"{test_file.stem}_report.json").write_text("[]")
                 
-            with patch("src.fs_ui.orchestrator.process_unclassified_pdf", side_effect=mock_process_unclassified):
+            with patch("src.watcher.orchestrator.process_unclassified_pdf", side_effect=mock_process_unclassified):
                 orchestrator.propose(test_file)
         
     expected_name = "Area1 123 Smith G 2023-01-01 Invoice_Proposed.pdf"
@@ -145,7 +145,7 @@ def test_propose_handles_errors(mock_config, mock_llm):
     test_file = inbox / "bad.pdf"
     test_file.touch()
     
-    with patch("src.fs_ui.orchestrator.parse_filename_syntax", side_effect=ValueError("Bad format"), create=True):
+    with patch("src.watcher.orchestrator.parse_filename_syntax", side_effect=ValueError("Bad format"), create=True):
         orchestrator.propose(test_file)
         
     assert (inbox / "bad_Error_Invalid_Format.pdf").exists()
@@ -196,7 +196,7 @@ def test_finalize_moves_and_invokes_pipeline(mock_config, mock_llm):
     mock_fitz.open.return_value = mock_doc
     
     with patch.dict('sys.modules', {'fitz': mock_fitz}), \
-         patch("src.fs_ui.orchestrator.run_generation_pass") as mock_generation, \
+         patch("src.watcher.orchestrator.run_generation_pass") as mock_generation, \
          patch("src.pdf.compress.compress_pdf"):
         
         orchestrator.finalize(test_file)
