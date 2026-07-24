@@ -66,7 +66,7 @@ def test_process_inbox_delays_processing_if_size_unstable(mock_config, mock_llm)
             
         mock_propose.assert_called_once_with(test_file)
 
-def test_propose_renames_valid_file(mock_config, mock_llm):
+def test_propose_uses_user_provided_title(mock_config, mock_llm):
     orchestrator = FSUIOrchestrator(mock_config, mock_llm)
     
     inbox = Path(mock_config.inbox_path)
@@ -76,8 +76,8 @@ def test_propose_renames_valid_file(mock_config, mock_llm):
     # Setup area and house dirs, and tenant yaml to bypass new checks
     areas_root = Path(mock_config.areas_root_path)
     house_dir = areas_root / "Area1" / "123"
-    house_dir.mkdir(parents=True)
-    (house_dir / ".source_files").mkdir()
+    house_dir.mkdir(parents=True, exist_ok=True)
+    (house_dir / ".source_files").mkdir(exist_ok=True)
     (house_dir / ".source_files" / "123_tenants.yaml").touch()
     
     with patch("src.watcher.orchestrator.parse_filename_syntax", create=True) as mock_parse, \
@@ -91,7 +91,7 @@ def test_propose_renames_valid_file(mock_config, mock_llm):
         mock_cmd.tenant_hint = "smith"
         mock_cmd.group = "U"
         mock_cmd.date = "2023-01-01"
-        mock_cmd.title = "Invoice"
+        mock_cmd.title = "UserCustomTitle"
         mock_parse.return_value = mock_cmd
         
         mock_infer.return_value = {
@@ -130,13 +130,77 @@ def test_propose_renames_valid_file(mock_config, mock_llm):
             with patch("src.watcher.orchestrator.process_unclassified_pdf", side_effect=mock_process_unclassified):
                 orchestrator.propose(test_file)
         
-    expected_name = "Area1 123 Smith G 2023-01-01 Invoice Proposed.pdf"
+    expected_name = "Area1 123 Smith G 2023-01-01 UserCustomTitle Proposed.pdf"
     assert (inbox / expected_name).exists()
     assert not test_file.exists()
+
+def test_propose_falls_back_to_ai_title(mock_config, mock_llm):
+    orchestrator = FSUIOrchestrator(mock_config, mock_llm)
     
-    # Assert temp dir was created for the proposed file
-    expected_tmp_dir = orchestrator.cache_dir / ".tmp_Area1 123 Smith G 2023-01-01 Invoice Proposed"
-    assert expected_tmp_dir.exists()
+    inbox = Path(mock_config.inbox_path)
+    test_file = inbox / "123 smith empty.pdf"
+    test_file.touch()
+    
+    # Setup area and house dirs, and tenant yaml to bypass new checks
+    areas_root = Path(mock_config.areas_root_path)
+    house_dir = areas_root / "Area1" / "123"
+    house_dir.mkdir(parents=True, exist_ok=True)
+    (house_dir / ".source_files").mkdir(exist_ok=True)
+    (house_dir / ".source_files" / "123_tenants.yaml").touch()
+    
+    with patch("src.watcher.orchestrator.parse_filename_syntax", create=True) as mock_parse, \
+         patch("src.watcher.orchestrator.infer_missing_data", create=True) as mock_infer, \
+         patch("src.watcher.orchestrator.resolve_area", return_value="Area1", create=True), \
+         patch("src.watcher.orchestrator.resolve_tenant", return_value="Smith", create=True), \
+         patch("src.watcher.orchestrator.Pipeline", create=True) as mock_pipeline_cls:
+        
+        mock_cmd = MagicMock()
+        mock_cmd.house = "123"
+        mock_cmd.tenant_hint = "smith"
+        mock_cmd.group = "U"
+        mock_cmd.date = "2023-01-01"
+        mock_cmd.title = "" # User did NOT provide a title
+        mock_parse.return_value = mock_cmd
+        
+        mock_infer.return_value = {
+            "expected_house_number": "123",
+            "tenant_hint": "Smith",
+            "document_date": "2023-01-01",
+            "document_type": "Invoice"
+        }
+        
+        # Mock pipeline instance
+        mock_pipeline = MagicMock()
+        mock_pipeline_cls.return_value = mock_pipeline
+        mock_pipeline._clean_documents.return_value = ([], None)
+        mock_pipeline._group_documents.return_value = []
+        from src.core.schemas import DocumentGroup
+        doc_group = DocumentGroup(
+            start_page=0, end_page=0, primary_tenant="Smith",
+            category="01_Test", dates=["2023-01-01"],
+            brief_arabic_title="AITitle", folder_path="01_Test"
+        )
+        mock_pipeline._route_documents.return_value = [doc_group]
+        
+        with patch.dict('sys.modules', {'fitz': MagicMock()}):
+            mock_fitz = __import__('sys').modules['fitz']
+            mock_doc = MagicMock()
+            mock_doc.__enter__.return_value = mock_doc
+            mock_doc.page_count = 1
+            def mock_save(path, *args, **kwargs):
+                Path(path).touch()
+            mock_doc.save.side_effect = mock_save
+            mock_fitz.open.return_value = mock_doc
+            
+            def mock_process_unclassified(master_tmp_dir, *args, **kwargs):
+                (master_tmp_dir / f"{test_file.stem}_report.json").write_text("[]")
+                
+            with patch("src.watcher.orchestrator.process_unclassified_pdf", side_effect=mock_process_unclassified):
+                orchestrator.propose(test_file)
+        
+    expected_name = "Area1 123 Smith G 2023-01-01 AITitle Proposed.pdf"
+    assert (inbox / expected_name).exists()
+    assert not test_file.exists()
 
 def test_propose_handles_errors(mock_config, mock_llm):
     orchestrator = FSUIOrchestrator(mock_config, mock_llm)
