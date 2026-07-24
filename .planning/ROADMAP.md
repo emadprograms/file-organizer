@@ -2,7 +2,8 @@
 
 ## Milestones
 
-- ✅ **v3.0 Unified File-System UI & Append Mode** — Phases 20-24.1 (shipped 2026-07-24) — [.planning/milestones/v3.0-ROADMAP.md](file:///Users/emadarshadalam/Documents/GitHub/file-organizer/.planning/milestones/v3.0-ROADMAP.md)
+- ✅ **v3.0 Unified File-System UI & Append Mode** — Phases 20-24.1 (shipped 2026-07-24)
+- 🚧 **v4.0 Architectural Cleanup** — Phases 25-29 (in progress)
 
 ## Phases
 
@@ -18,9 +19,13 @@
 
 </details>
 
-### 🚧 Next Milestone (Planned)
+### 🚧 v4.0 Architectural Cleanup (Phases 25-29)
 
-*(Run `/gsd-new-milestone` to start planning the next milestone)*
+- [ ] Phase 25: Extract Presentation Logic from `core/` (ARCH-01)
+- [ ] Phase 26: Rename `fs_ui/` to `watcher/` (ARCH-02)
+- [ ] Phase 27: Disambiguate Reconciliation Modules (ARCH-03)
+- [ ] Phase 28: Clean Up `main.py` Dead Imports (ARCH-04)
+- [ ] Phase 29: Audit Test Mock Patch Targets (ARCH-05)
 
 ## Progress
 
@@ -32,3 +37,8 @@
 | 23. Inbox Parsing and Syntax | v3.0 | 2/2 | Complete | 2026-07-20 |
 | 24. FS-UI Orchestration | v3.0 | 4/4 | Complete | 2026-07-20 |
 | 24.1. Test Suite & Fixtures Update | v3.0 | 4/4 | Complete | 2026-07-23 |
+| 25. Extract Presentation from core/ | v4.0 | 0/1 | Pending | — |
+| 26. Rename fs_ui/ to watcher/ | v4.0 | 0/1 | Pending | — |
+| 27. Disambiguate Reconciliation | v4.0 | 0/1 | Pending | — |
+| 28. Clean Up main.py Imports | v4.0 | 0/1 | Pending | — |
+| 29. Audit Test Mock Targets | v4.0 | 0/1 | Pending | — |

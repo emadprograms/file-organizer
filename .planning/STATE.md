@@ -1,44 +1,38 @@
 ---
 gsd_state_version: 1.0
-milestone: v3.0
-milestone_name: Unified File-System UI & Append Mode
-current_phase: 24.1
-status: completed
-stopped_at: Phase 24.1 context gathered
-last_updated: "2026-07-23T21:12:26.129Z"
-last_activity: 2026-07-23
-last_activity_desc: Milestone v3.0 completed and archived
+milestone: v4.0
+milestone_name: Architectural Cleanup
+current_phase: 25
+status: pending
+stopped_at: Milestone v4.0 initialized
+last_updated: "2026-07-24T12:55:00.000Z"
+last_activity: 2026-07-24
+last_activity_desc: Milestone v4.0 initialized with 5 phases
 progress:
-  total_phases: 6
-  completed_phases: 5
-  total_plans: 18
-  completed_plans: 17
-  percent: 83
-current_phase_name: fs-ui-orchestration
+  total_phases: 5
+  completed_phases: 0
+  total_plans: 5
+  completed_plans: 0
+  percent: 0
+current_phase_name: extract-presentation-from-core
 ---
 
 # Project State
 
-**Current Phase:** 24.1
-**Status:** v3.0 milestone complete
+**Current Phase:** 25
+**Status:** Pending — ready to plan Phase 25
 
 ## Phase Progress
 
-- [x] Phase 1-13: MVP through v1.3 Routing Decoupling
-- [x] Phase 14-15: (Archived v1.4)
-- [ ] Phase 16: Setup New Directory Structure
-- [ ] Phase 17: Implement YAML Configuration Loading (tenant_config)
-- [ ] Phase 18: Refactor Pipeline to use YAML (grouping, timeline, routing)
-- [ ] Phase 19: End-to-End Testing and Verification
+- [ ] Phase 25: Extract Presentation Logic from `core/` (ARCH-01)
+- [ ] Phase 26: Rename `fs_ui/` to `watcher/` (ARCH-02)
+- [ ] Phase 27: Disambiguate Reconciliation Modules (ARCH-03)
+- [ ] Phase 28: Clean Up `main.py` Dead Imports (ARCH-04)
+- [ ] Phase 29: Audit Test Mock Patch Targets (ARCH-05)
 
 ## Open Issues / Blockers
 
-- **Phase 19 reopened** — Test suite overhaul required. New requirements TEST-01 through TEST-06 must be implemented:
-  - TEST-02: Restructure `golden_1273` fixture with clear `input/` and `expected_output/` folders
-  - TEST-03: Fix `.source_files/` placement inside the house directory (data loss bug)
-  - TEST-04: Add intermediate JSON state files to the golden fixture
-  - TEST-05: Implement function-level LLM mocking using saved real responses
-  - TEST-06: Add E2E routing destination assertions
+None.
 
 ### Quick Tasks Completed
 
@@ -49,22 +43,30 @@ current_phase_name: fs-ui-orchestration
 
 ## Session
 
-**Last session:** 2026-07-23T18:38:40.455Z
-**Stopped at:** Phase 24.1 context gathered
-**Resume file:** .planning/phases/24.1-update-test-suite-and-fixtures-for-phase-24/24.1-CONTEXT.md
+**Last session:** 2026-07-24T12:55:00.000Z
+**Stopped at:** Milestone v4.0 initialized
+**Resume file:** —
 
 ## Current Position
 
-Phase: Milestone v3.0 complete
+Phase: 25 — Extract Presentation from core/
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-07-23 — Milestone v3.0 completed and archived
+Status: Ready to plan
+Last activity: 2026-07-24 — Milestone v4.0 initialized
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Run `/gsd-plan-phase 25` to plan Phase 25 (Extract `core/ui.py`)
+- Or run `/gsd-autonomous` to execute all 5 phases sequentially
 
 ## Accumulated Context
+
+### Key Decisions (Milestone v4.0)
+
+- Rejected `domain/` and `infra/` wrapper directories — adds nesting without benefit in a 14-package project
+- Rejected `PipelineContext` object — current disk-checkpoint approach is already superior for resumability and debugging
+- Rejected splitting `main.py` into separate entry points — single entry with subcommands is the standard pattern
+- Chose surgical 5-point cleanup over full hexagonal restructuring
 
 ### Roadmap Evolution
 
@@ -72,13 +74,6 @@ Last activity: 2026-07-23 — Milestone v3.0 completed and archived
 - Phase 19.1.1.1 inserted after Phase 19.1.1: Close gap: YAML-01 — Update yaml_loader.py to check root folder .source_files/ for YAML (URGENT)
 - Phase 19 reopened 2026-07-17: Test suite overhaul (TEST-01–TEST-06) — naming convention enforcement, golden_1273 fixture restructure, .source_files placement bug, LLM mocking, E2E routing destination assertions
 - Phase 24.1 inserted after Phase 24: Update test suite and fixtures for Phase 24 (URGENT)
-
-### Key Decisions (Phase 19 Replan)
-
-- Test files kept flat in `tests/` with strict `test_[module].py` naming
-- `golden_1273` fixture restructured with `input/1273/.source_files/` and `expected_output/` subfolders
-- LLM responses captured once from a real run, saved in fixtures, and used as deterministic mocks
-- Dry run tests load intermediate JSON state files to bypass LLM calls
 
 ### Key Decisions (Milestone v3.0)
 
@@ -88,7 +83,7 @@ Last activity: 2026-07-23 — Milestone v3.0 completed and archived
 ## Performance Metrics
 
 | Phase | Plan | Duration | Notes |
-|-------|------|----------|-----------|
+|-------|------|----------|-------|
 | Phase 19.1.1 P1 | 10 min | 3 tasks | 6 files |
 | Phase 22 P03 | 1 min | 1 tasks | 3 files |
 | Phase 23 P01 | 15 min | 3 tasks | 3 files |
@@ -100,7 +95,8 @@ Items acknowledged and deferred at milestone close on 2026-07-17:
 
 | Category | Item | Status |
 |----------|------|--------|
-| debug | file-placement-resolved | unknown |
-| debug | missing-finalized-pdf-resolved | unknown |
-| uat_gap | 16-UAT.md | unknown |
-| uat_gap | 17-UAT.md | unknown |
+| Phase 19 | TEST-02: Restructure golden_1273 fixture folders | Deferred |
+| Phase 19 | TEST-03: Fix .source_files placement inside house directory | Deferred |
+| Phase 19 | TEST-04: Add intermediate JSON state files to golden fixture | Deferred |
+| Phase 19 | TEST-05: Implement function-level LLM mocking | Deferred |
+| Phase 19 | TEST-06: Add E2E routing destination assertions | Deferred |

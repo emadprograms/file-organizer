@@ -4,16 +4,16 @@
 
 A technical debt cleanup and refactoring effort for the file organizer project. The goal is to remove unused legacy code by tracing imports from the main entry point, break down bloated functions and files into smaller, more focused modules to improve maintainability, and implement logic-based modular refactoring (v2.0) utilizing YAML configuration instead of legacy anchor-based logic.
 
-## Current Milestone: v3.0 Unified File-System UI & Append Mode
+## Current Milestone: v4.0 Architectural Cleanup
 
-**Goal:** Integrate categorization logic into the main repository, enforce strict maintainability (types/docstrings), and introduce a "File-System UI" (FS-UI) allowing users to file documents purely by renaming files in an Inbox folder.
+**Goal:** Surgical cleanup of module boundaries, naming, and import hygiene. Fix architectural smells identified during the v3.0 codebase review without adding features or changing behavior.
 
-**Target features:**
-- Codebase maintainability sweep (types, docstrings)
-- System unification (port file-categorizer LLM logic)
-- Configuration & explicit CLI modes (Create vs Append)
-- Space-separated syntax parser for filenames
-- File-System UI orchestration (rename loop)
+**Target changes:**
+- Extract presentation logic (`ui.py`) out of `core/`
+- Rename `fs_ui/` to `watcher/` for clarity
+- Disambiguate the two "reconciliation" modules
+- Clean up dead imports in `main.py` post-runner refactor
+- Audit test mock patch targets for import-site correctness
 
 ## Core Value
 
@@ -47,7 +47,11 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 
 ### Active
 
-(None defined — ready for next milestone)
+- ARCH-01: Extract `core/ui.py` to `src/ui.py` — presentation logic out of domain core
+- ARCH-02: Rename `fs_ui/` → `watcher/` — accurate naming for file watcher package
+- ARCH-03: Rename `timeline/reconciliation.py` → `timeline/page_integrity.py` — disambiguate from `reconcile/core.py`
+- ARCH-04: Remove dead `fitz`/`json` imports from `main.py` after runner extraction
+- ARCH-05: Audit all test mock `@patch()` targets for import-site correctness
 
 ### Out of Scope
 
@@ -62,6 +66,7 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 - ✅ Shipped v1.3 Routing Decoupling.
 - ✅ Shipped v2.0 Logic-Based Modular Refactoring on 2026-07-17.
 - ✅ Shipped v3.0 Unified File-System UI & Append Mode on 2026-07-24.
+- 🚧 v4.0 Architectural Cleanup started 2026-07-24.
 
 ## Context
 
@@ -88,10 +93,11 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 | Switch to YAML-based tenant configuration | Allows for better future-proofing over fragile anchor-based legacy code. | ✓ Completed (v2.0). Anchor logic retained as a fallback. |
 | Retain unittest in pytest suite | Avoids unnecessary refactoring churn when tests are functioning perfectly. | ✓ Completed (v2.0). Test suite uses both. |
 | Hybrid functional/class architecture | Core pipeline is stateless (best for functional), FS-UI listener is stateful/long-running (best for OOP). | v3.0 decision: Keep pipeline functional, use classes for FS-UI orchestration (Phases 22-24). |
+| Surgical cleanup over full restructuring | Adding `domain/` and `infra/` wrapper layers would add nesting without benefit in a 14-package project. Targeted renames and moves give the same clarity. | v4.0 decision: 5-point surgical cleanup, no deep nesting. |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-07-24 after v3.0 milestone*
+*Last updated: 2026-07-24 — v4.0 Architectural Cleanup milestone started*
