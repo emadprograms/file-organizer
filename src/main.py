@@ -108,10 +108,12 @@ def run_append_mode(config: Any, skip_llm: bool = False) -> None:
     try:
         acquire_lock(lock_path)
     except LockExistsError:
-        logger.warning("Listener is already running (lockfile exists). Exiting gracefully.")
+        logger.info("Listener is already running (lockfile exists). Exiting gracefully.")
         sys.exit(0)
+        return
         
     try:
+        setup_logging()
         logger.info("Listener started...")
         orchestrator = FSUIOrchestrator(config, llm_client)
         orchestrator.process_inbox()

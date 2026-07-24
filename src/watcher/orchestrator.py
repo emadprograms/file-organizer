@@ -29,23 +29,6 @@ class FSUIOrchestrator:
     def process_inbox(self) -> None:
         inbox_dir = Path(self.config.inbox_path)
         cache_dir = self.cache_dir
-        if cache_dir.exists():
-            while True:
-                current_time = time.time()
-                for tmp_dir in cache_dir.glob(".tmp_*"):
-                    if not tmp_dir.is_dir():
-                        continue
-                    try:
-                        mtime = os.stat(tmp_dir).st_mtime
-                        if current_time - mtime > 300:
-                            stem = tmp_dir.name[5:]
-                            if not ((inbox_dir / f"{stem}.pdf").exists() or 
-                                    (inbox_dir / f"{stem} OK.pdf").exists() or
-                                    (inbox_dir / f"{stem.replace(' Proposed', '')}.pdf").exists()):
-                                shutil.rmtree(tmp_dir, ignore_errors=True)
-                    except Exception as e:
-                        logger.error(f"Failed to cleanup temp dir {tmp_dir}: {e}")
-                break # Only cleanup once per loop, but since it's a while loop, wait, the while True is the main loop!
         
         while True:
             current_time = time.time()
@@ -59,7 +42,8 @@ class FSUIOrchestrator:
                             stem = tmp_dir.name[5:]
                             if not ((inbox_dir / f"{stem}.pdf").exists() or 
                                     (inbox_dir / f"{stem} OK.pdf").exists() or
-                                    (inbox_dir / f"{stem.replace(' Proposed', '')}.pdf").exists()):
+                                    (inbox_dir / f"{stem.replace(' Proposed', '')}.pdf").exists() or
+                                    (inbox_dir / f"{stem.replace(' Proposed', '')} OK.pdf").exists()):
                                 shutil.rmtree(tmp_dir, ignore_errors=True)
                     except Exception as e:
                         logger.error(f"Failed to cleanup temp dir {tmp_dir}: {e}")
@@ -361,6 +345,14 @@ class FSUIOrchestrator:
             for d in cache_dir.glob(".tmp_*"):
                 if not d.is_dir():
                     continue
+                
+                # First try by name
+                d_stem = d.name[5:]
+                if d_stem == f"{clean_name} Proposed":
+                    tmp_dir = d
+                    break
+                    
+                # Fallback to hash
                 hash_file = d / "pdf_hash.txt"
                 if hash_file.exists():
                     with open(hash_file, 'r') as f:
