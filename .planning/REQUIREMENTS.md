@@ -17,14 +17,15 @@ Surgical cleanup of module boundaries, naming, and import hygiene without adding
 **Priority:** High  
 **Status:** Pending
 
-Move `src/core/ui.py` out of `src/core/` to a standalone `src/ui.py` module (or `src/presentation/ui.py`).
+Move `src/core/ui.py` to `src/presentation/ui.py`.
 
 `core/` should only contain pure data contracts (models, schemas, exceptions, config). Presentation logic (`vprint`, `set_verbosity`, `console`) violates this boundary.
 
 **Acceptance Criteria:**
 - [ ] `src/core/ui.py` no longer exists
-- [ ] New location exports the same public API (`console`, `set_verbosity`, `vprint`)
+- [ ] `src/presentation/ui.py` exports the same public API (`console`, `set_verbosity`, `vprint`)
 - [ ] All imports updated across `src/` and `tests/`
+- [ ] Test file renamed: `test_core_ui.py` → `test_presentation_ui.py`
 - [ ] All 262 tests pass
 
 **Affected files (imports to update):**
@@ -32,7 +33,7 @@ Move `src/core/ui.py` out of `src/core/` to a standalone `src/ui.py` module (or 
 - `src/pipeline/visualizer.py`
 - `src/timeline/core.py`
 - `src/timeline/reconciliation.py`
-- `tests/test_core_ui.py`
+- `tests/test_core_ui.py` → `tests/test_presentation_ui.py`
 - `tests/test_pipeline_visualizer.py`
 
 ---
@@ -48,14 +49,19 @@ Rename `src/fs_ui/` to `src/watcher/` to accurately describe what the package do
 - [ ] `src/fs_ui/` directory no longer exists
 - [ ] `src/watcher/` contains `orchestrator.py`, `lock.py`, `__init__.py`
 - [ ] All imports updated across `src/` and `tests/`
+- [ ] Test files renamed per naming convention:
+  - `test_e2e_fs_ui.py` → `test_e2e_watcher.py`
+  - `test_fs_ui_append_mock.py` → `test_watcher_append_mock.py`
+  - `test_fs_ui_lock.py` → `test_watcher_lock.py`
+  - `test_fs_ui_orchestrator.py` → `test_watcher_orchestrator.py`
 - [ ] All 262 tests pass
 
 **Affected files (imports to update):**
 - `src/main.py` (2 imports)
-- `tests/test_e2e_fs_ui.py`
-- `tests/test_fs_ui_append_mock.py`
-- `tests/test_fs_ui_lock.py`
-- `tests/test_fs_ui_orchestrator.py`
+- `tests/test_e2e_fs_ui.py` → `tests/test_e2e_watcher.py`
+- `tests/test_fs_ui_append_mock.py` → `tests/test_watcher_append_mock.py`
+- `tests/test_fs_ui_lock.py` → `tests/test_watcher_lock.py`
+- `tests/test_fs_ui_orchestrator.py` → `tests/test_watcher_orchestrator.py`
 - `tests/test_root_main_append_mode.py`
 
 ---
@@ -76,12 +82,13 @@ Currently both modules relate to "reconciliation" but serve completely different
 - [ ] `src/timeline/page_integrity.py` exports `run_reconciliation` (same public API)
 - [ ] `src/timeline/__init__.py` updated
 - [ ] All imports and mock patch targets updated
+- [ ] Test file renamed: `test_timeline_reconciliation.py` → `test_timeline_page_integrity.py`
 - [ ] All 262 tests pass
 
 **Affected files:**
 - `src/timeline/__init__.py`
 - `src/timeline/reconciliation.py` → `src/timeline/page_integrity.py`
-- `tests/test_timeline_reconciliation.py` (patch target)
+- `tests/test_timeline_reconciliation.py` → `tests/test_timeline_page_integrity.py`
 
 ---
 
