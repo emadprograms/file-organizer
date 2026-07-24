@@ -96,7 +96,7 @@ def run_append_mode(config: Any, skip_llm: bool = False) -> None:
     inbox_dir = Path(config.inbox_path)
     os.makedirs(str(inbox_dir), exist_ok=True)
     
-    llm_client = LLMClient(api_key=os.getenv("GEMINI_API_KEY"))
+    llm_client = LLMClient(api_key=os.getenv("GEMINI_API_KEY") or "dummy")
     llm_client.skip_llm = skip_llm
     lock_path = inbox_dir / ".inbox.lock"
     

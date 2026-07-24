@@ -60,6 +60,14 @@ class MockLLMProvider:
             category = cat_m.group(1) if cat_m else "01_بيانات أساسية"
                 
             return GroupingResponse.model_construct(groups=[GroupEntry(start_page=start, end_page=end, reason="mock skip-llm", brief_arabic_title="عنوان تجريبي", category=category)])
+        elif schema_name == "CategorySchema":
+            return response_schema(category="letters")
+        elif schema_name == "ExtractionSchema":
+            return response_schema.model_construct(
+                content_explanation="Mock content explanation",
+                expected_tenant_name="Mock Tenant",
+                expected_house_number="504"
+            )
         elif schema_name == "RoutingResponse":
             try:
                 from src.routing.router import RoutingResponse

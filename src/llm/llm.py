@@ -105,6 +105,11 @@ class LLMClient:
         Returns:
             Any: A provider-specific file object.
         """
+        if getattr(self, "skip_llm", False):
+            from src.llm.mock import MockLLMProvider
+            self.provider = MockLLMProvider()
+            return "mock_file_obj"
+            
         if not hasattr(self.provider, "upload_file"):
             raise NotImplementedError(f"Provider {self.provider.name} does not support upload_file")
         return self.provider.upload_file(file_path)
@@ -115,6 +120,8 @@ class LLMClient:
         Args:
             file_obj (Any): The provider-specific file object to delete.
         """
+        if getattr(self, "skip_llm", False):
+            return
         if hasattr(self.provider, "delete_file"):
             self.provider.delete_file(file_obj)
 
