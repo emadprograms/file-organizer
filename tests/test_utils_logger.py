@@ -137,7 +137,7 @@ def test_hierarchical_logger_naming() -> None:
     modules_to_check = [
         "src.main",
         "src.core.config",
-        "src.presentation.ui",
+        "src.core.ui",
         "src.llm.llm",
         "src.pipeline.pipeline",
     ]

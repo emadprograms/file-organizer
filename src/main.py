@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from dotenv import load_dotenv
 
 from src.utils.logger import setup_logging
-from src.presentation.ui import set_verbosity
+from src.core.ui import set_verbosity
 from src.llm.llm import LLMClient
 from src.timeline.phase import process_cleaning_phase
 from src.core.exceptions import ConfigurationError, ValidationError, FileOrganizerError

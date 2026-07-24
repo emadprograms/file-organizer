@@ -268,7 +268,7 @@ class FileOrganizer:
             
         if dry_run:
             from rich.tree import Tree
-            from src.presentation.ui import vprint
+            from src.core.ui import vprint
             tree = Tree(f"[bold blue]{house_id}[/bold blue]")
             for t_folder, topics in tree_data.items():
                 t_node = tree.add(f"[bold green]{t_folder}[/bold green]")

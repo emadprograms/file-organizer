@@ -59,7 +59,7 @@ def run_reconciliation(
     else:
         logger.info(f"  [DRY RUN] Would write manifest to {output_dir / '.source_files' / f'{house_id}_3_routed_and_finalized.json'}")
     
-    from src.presentation.ui import vprint
+    from src.core.ui import vprint
     from rich.table import Table
     table = Table(title="Reconciliation Report")
     table.add_column("House ID")
