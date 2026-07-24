@@ -259,7 +259,7 @@ def test_organize_path_traversal(organizer, mock_config, tmp_path) -> None:
     with pytest.raises(ValueError, match="Path traversal detected"):
         organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
 
-@patch('src.timeline.reconciliation.Path.replace')
+@patch('src.timeline.page_integrity.Path.replace')
 def test_reconciliation_dry_run(mock_replace, tmp_path) -> None:
     """
     Test reconciliation dry run.

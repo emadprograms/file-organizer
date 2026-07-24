@@ -1,6 +1,6 @@
 import logging
 from .core import FileOrganizer
-from .reconciliation import run_reconciliation
+from .page_integrity import run_reconciliation
 
 __all__ = ["FileOrganizer", "run_reconciliation"]
 
