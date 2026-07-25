@@ -282,21 +282,18 @@ class FileOrganizer:
             
         return per_page
 
-
-
     def organize(
         self, 
         documents: list[DocumentGroup], 
         source_pdf: str, 
         house_id: str, 
         output_base_dir: Path, 
-        yaml_data: list[dict[str, Any]] | None = None, 
+        yaml_data: list[dict[str, Any]] | None = None,
         dry_run: bool = False,
-        append_mode: bool = False
+        append_mode: bool = False,
+        fixed_house_dir: Path | None = None
     ) -> tuple[list[dict[str, Any]], str]:
-        """Organize the extracted documents into a structured directory hierarchy.
-
-        Coordinates tenant resolution, directory creation, and PDF segmentation.
+        """Orchestrate the parsing, extraction, and file management.
 
         Args:
             documents (list[DocumentGroup]): The grouped documents.
@@ -306,19 +303,21 @@ class FileOrganizer:
             yaml_data (list[dict[str, Any]] | None): Optional parsed tenant configuration.
             dry_run (bool): If True, simulate execution without writing files.
             append_mode (bool): If True, skip renaming logic and accept fixed house directory.
+            fixed_house_dir (Path | None): If provided, use this exact path for the house directory.
 
         Returns:
             tuple[list[dict[str, Any]], str]: The per-page mapping results and the full canonical house ID.
         """
         if not documents:
             logger.warning("⚠ No documents to organize. Exiting.")
-            return []
+            return [], house_id
 
-        if append_mode:
-            # In append mode, target_dir is just house_dir which we assume exists
-            target_dir = output_base_dir / house_id
+        if fixed_house_dir is not None:
+            target_dir = fixed_house_dir
+            full_house_id = fixed_house_dir.name
         else:
             target_dir = Path(source_pdf).parent
+            full_house_id = house_id
 
         tenant_folder_names, latest_tenant = self.compute_tenant_folders(documents, yaml_data)
         
@@ -326,10 +325,8 @@ class FileOrganizer:
         log_decision_trace("tenant_resolution", {"tenant_folders": tenant_folder_names})
         logger.info(f"Tenant resolution complete. Folders: {tenant_folder_names}")
 
-        if latest_tenant and not append_mode:
+        if latest_tenant and fixed_house_dir is None:
             full_house_id = f"{house_id} - {utils.sanitize_filename(latest_tenant)}"
-        else:
-            full_house_id = house_id
 
         if not dry_run:
             # Create directories

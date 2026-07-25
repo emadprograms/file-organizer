@@ -228,32 +228,33 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
     if not dry_run:
         from src.pdf.compress import compress_pdf
         
-        # 1. Create finalized PDF with TOC
-        toc = []
-        # Create unique bookmark entries (avoid duplicates if same target folder for consecutive pages, or just list all)
-        # We will map each page exactly
-        for entry in per_page:
-            folder = entry.get("target_folder", "Unknown")
-            bookmark_title = folder.replace("/", " - ").replace("\\", " - ")
-            page_index = entry.get("page_index", 0)
-            toc.append([1, bookmark_title, page_index + 1])
-            
-        finalized_path = house_dir / f"{house_id}_finalized.pdf"
-        tmp_path = house_dir / f"{house_id}_finalized.tmp.pdf"
-        
-        logger.info(f"Generating TOC for {finalized_path.name}...")
-        try:
-            with fitz.open(str(pdf_path)) as pdf_doc:
-                pdf_doc.set_toc(toc)
-                pdf_doc.save(str(tmp_path))
+        if fixed_house_dir is None:
+            # 1. Create finalized PDF with TOC
+            toc = []
+            # Create unique bookmark entries (avoid duplicates if same target folder for consecutive pages, or just list all)
+            # We will map each page exactly
+            for entry in per_page:
+                folder = entry.get("target_folder", "Unknown")
+                bookmark_title = folder.replace("/", " - ").replace("\\", " - ")
+                page_index = entry.get("page_index", 0)
+                toc.append([1, bookmark_title, page_index + 1])
                 
-            logger.info(f"Compressing finalized PDF to {finalized_path.name}...")
-            compress_pdf(str(tmp_path), str(finalized_path))
+            finalized_path = house_dir / f"{house_id}_finalized.pdf"
+            tmp_path = house_dir / f"{house_id}_finalized.tmp.pdf"
             
-            if tmp_path.exists():
-                os.remove(str(tmp_path))
-        except Exception as e:
-            logger.error(f"Failed to create finalized PDF: {e}")
+            logger.info(f"Generating TOC for {finalized_path.name}...")
+            try:
+                with fitz.open(str(pdf_path)) as pdf_doc:
+                    pdf_doc.set_toc(toc)
+                    pdf_doc.save(str(tmp_path))
+                    
+                logger.info(f"Compressing finalized PDF to {finalized_path.name}...")
+                compress_pdf(str(tmp_path), str(finalized_path))
+                
+                if tmp_path.exists():
+                    os.remove(str(tmp_path))
+            except Exception as e:
+                logger.error(f"Failed to create finalized PDF: {e}")
         
         source_files_dir = house_dir / ".source_files"
         source_files_dir.mkdir(parents=True, exist_ok=True)
