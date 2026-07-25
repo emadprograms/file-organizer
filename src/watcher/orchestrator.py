@@ -572,11 +572,12 @@ class FSUIOrchestrator:
         import uuid
         tmp_finalized = Path(tempfile.gettempdir()) / f"finalized_{uuid.uuid4().hex}.tmp.pdf"
         try:
-            toc = []
-            for doc in all_docs_for_toc:
-                title = doc.brief_arabic_title or doc.folder_path or "بدون عنوان"
-                toc.append([1, title, doc.start_page + 1])
             with _fitz2.open(str(raw_append_pdf)) as full_pdf:
+                toc = []
+                for doc in all_docs_for_toc:
+                    title = doc.brief_arabic_title or doc.folder_path or "بدون عنوان"
+                    target_page = min(doc.start_page + 1, full_pdf.page_count)
+                    toc.append([1, title, target_page])
                 full_pdf.set_toc(toc)
                 full_pdf.save(str(tmp_finalized))
             compress_pdf(str(tmp_finalized), str(finalized_path))

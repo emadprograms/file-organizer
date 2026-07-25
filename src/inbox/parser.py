@@ -30,6 +30,9 @@ def parse_filename_syntax(filename: str) -> ParsedCommand:
     if house_idx is None:
         house_idx = 1  # raw format fallback
 
+    if house_idx >= len(tokens):
+        raise ValueError("Invalid Format: missing house token")
+
     area = " ".join(tokens[:house_idx])
     house = tokens[house_idx]
 
