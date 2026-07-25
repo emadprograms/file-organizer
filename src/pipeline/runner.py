@@ -228,6 +228,24 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
     if not dry_run:
         from src.pdf.compress import compress_pdf
         
+        # Compress all individual generated PDFs
+        logger.info(f"Compressing {summary['output_file_count']} individual routed PDFs...")
+        for out_file_str in output_files:
+            abs_path = output_dir / out_file_str
+            if abs_path.exists():
+                tmp_path = abs_path.with_suffix('.tmp.pdf')
+                try:
+                    compress_pdf(str(abs_path), str(tmp_path))
+                    if tmp_path.exists():
+                        shutil.move(str(tmp_path), str(abs_path))
+                except Exception as e:
+                    logger.error(f"Failed to compress {out_file_str}: {e}")
+                    if tmp_path.exists():
+                        try:
+                            os.remove(str(tmp_path))
+                        except OSError:
+                            pass
+        
         if fixed_house_dir is None:
             # 1. Create finalized PDF with TOC
             toc = []
