@@ -121,7 +121,8 @@ class FileOrganizer:
         target_dir: Path, 
         tenant_folder_names: dict[str, str], 
         full_house_id: str, 
-        output_base_dir: Path
+        output_base_dir: Path,
+        append_mode: bool = False
     ) -> Path:
         """Create target directories for organization.
 
@@ -133,6 +134,7 @@ class FileOrganizer:
             tenant_folder_names (dict[str, str]): Mapping of raw tenant names to target subfolder names.
             full_house_id (str): The combined house identifier and active tenant.
             output_base_dir (Path): The base output path.
+            append_mode (bool): If True, skip renaming logic.
 
         Returns:
             Path: The resulting canonical house directory path.
@@ -140,7 +142,7 @@ class FileOrganizer:
         house_dir = output_base_dir / full_house_id
         
         # Rename target_dir if it's different from house_dir
-        if target_dir != house_dir and target_dir.exists():
+        if target_dir != house_dir and target_dir.exists() and not append_mode:
             if not house_dir.exists():
                 try:
                     target_dir.rename(house_dir)
@@ -289,7 +291,8 @@ class FileOrganizer:
         house_id: str, 
         output_base_dir: Path, 
         yaml_data: list[dict[str, Any]] | None = None, 
-        dry_run: bool = False
+        dry_run: bool = False,
+        append_mode: bool = False
     ) -> tuple[list[dict[str, Any]], str]:
         """Organize the extracted documents into a structured directory hierarchy.
 
@@ -302,6 +305,7 @@ class FileOrganizer:
             output_base_dir (Path): The root output directory.
             yaml_data (list[dict[str, Any]] | None): Optional parsed tenant configuration.
             dry_run (bool): If True, simulate execution without writing files.
+            append_mode (bool): If True, skip renaming logic and accept fixed house directory.
 
         Returns:
             tuple[list[dict[str, Any]], str]: The per-page mapping results and the full canonical house ID.
@@ -310,7 +314,11 @@ class FileOrganizer:
             logger.warning("⚠ No documents to organize. Exiting.")
             return []
 
-        target_dir = Path(source_pdf).parent
+        if append_mode:
+            # In append mode, target_dir is just house_dir which we assume exists
+            target_dir = output_base_dir / house_id
+        else:
+            target_dir = Path(source_pdf).parent
 
         tenant_folder_names, latest_tenant = self.compute_tenant_folders(documents, yaml_data)
         
@@ -318,14 +326,14 @@ class FileOrganizer:
         log_decision_trace("tenant_resolution", {"tenant_folders": tenant_folder_names})
         logger.info(f"Tenant resolution complete. Folders: {tenant_folder_names}")
 
-        if latest_tenant:
+        if latest_tenant and not append_mode:
             full_house_id = f"{house_id} - {utils.sanitize_filename(latest_tenant)}"
         else:
             full_house_id = house_id
 
         if not dry_run:
             # Create directories
-            house_dir = self.ensure_target_directories(target_dir, tenant_folder_names, full_house_id, output_base_dir)
+            house_dir = self.ensure_target_directories(target_dir, tenant_folder_names, full_house_id, output_base_dir, append_mode=append_mode)
             if target_dir != house_dir and not target_dir.exists() and house_dir.exists():
                 source_pdf = str(house_dir / Path(source_pdf).name)
 

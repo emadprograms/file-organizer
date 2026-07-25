@@ -144,7 +144,7 @@ def run_routing_pass(documents: list[Any], house_id: str, output_dir: Path, llm_
     return documents
 
 
-def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, output_dir: Path, logger: logging.Logger, dry_run: bool, json_path: Path, yaml_data: dict[str, Any] | None = None, pdf_path: Path | None = None) -> None:
+def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, output_dir: Path, logger: logging.Logger, dry_run: bool, json_path: Path, yaml_data: dict[str, Any] | None = None, pdf_path: Path | None = None, fixed_house_dir: Path | None = None) -> None:
     """Run the final generation pass to produce categorized PDFs.
     
     Args:
@@ -157,6 +157,7 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
         json_path (Path): Path to the JSON report file.
         yaml_data (dict[str, Any] | None): Optional YAML tenant configuration data.
         pdf_path (Path | None): Optional path to the PDF to use. Defaults to finding matching PDF by page count.
+        fixed_house_dir (Path | None): Optional fixed house directory to use in append mode.
         
     Returns:
         None
@@ -182,9 +183,17 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
         pdf_path = found_pdf
     
     organizer = FileOrganizer()
-    per_page, full_house_id = organizer.organize(documents, str(pdf_path), house_id, output_dir, yaml_data=yaml_data, dry_run=dry_run)
+    if fixed_house_dir is not None:
+        per_page, full_house_id = organizer.organize(
+            documents, str(pdf_path), house_id, output_dir, yaml_data=yaml_data, dry_run=dry_run, append_mode=True
+        )
+        house_dir = fixed_house_dir
+    else:
+        per_page, full_house_id = organizer.organize(
+            documents, str(pdf_path), house_id, output_dir, yaml_data=yaml_data, dry_run=dry_run, append_mode=False
+        )
+        house_dir = output_dir / full_house_id
     
-    house_dir = output_dir / full_house_id
     if not dry_run and target_dir != house_dir and not pdf_path.exists():
         new_pdf_path = house_dir / pdf_path.name
         if new_pdf_path.exists():
@@ -202,7 +211,7 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
     logger.info("Running reconciliation...")
     run_reconciliation(summary, per_page, total_input_pages, house_id, output_dir, dry_run=dry_run)
     
-    house_dir = output_dir / full_house_id
+    house_dir = fixed_house_dir if fixed_house_dir is not None else output_dir / full_house_id
     original_target_dir = target_dir
     
     if not dry_run and target_dir != house_dir:

@@ -404,36 +404,16 @@ class FSUIOrchestrator:
         
         import fitz
         
-        raw_append_pdf = source_files_dir / f"{house_id}_raw_append.pdf"
         finalized_pdf = house_dir / f"{house_id}_finalized.pdf"
         
-        if not raw_append_pdf.exists() and finalized_pdf.exists():
-            shutil.copy(str(finalized_pdf), str(raw_append_pdf))
-            
         page_shift = 0
-        if raw_append_pdf.exists():
-            import tempfile
-            import uuid
-            tmp_pdf = Path(tempfile.gettempdir()) / f"raw_append_{uuid.uuid4().hex}.tmp.pdf"
+        if finalized_pdf.exists():
             try:
-                with fitz.open(str(raw_append_pdf)) as doc_pdf:
+                with fitz.open(str(finalized_pdf)) as doc_pdf:
                     page_shift = doc_pdf.page_count
-                    with fitz.open(str(filepath)) as new_doc:
-                        doc_pdf.insert_pdf(new_doc)
-                    doc_pdf.save(str(tmp_pdf))
-                shutil.move(str(tmp_pdf), str(raw_append_pdf))
             except Exception as e:
-                logger.error(f"Failed to append to raw PDF: {e}")
-                if tmp_pdf.exists():
-                    os.remove(str(tmp_pdf))
+                logger.error(f"Failed to read finalized PDF: {e}")
                 return
-        else:
-            shutil.copy(str(filepath), str(raw_append_pdf))
-
-        try:
-            os.remove(str(filepath))
-        except OSError as e:
-            logger.warning(f"Could not delete {filepath}: {e}")
 
         def merge_json(filename_base: str, tmp_filename: str, has_pages: bool, has_groups: bool):
             master_path = source_files_dir / filename_base
@@ -513,19 +493,11 @@ class FSUIOrchestrator:
             doc.end_page = doc.end_page - page_shift
             new_docs.append(doc)
 
-        # Extract the new-pages-only slice into a temporary PDF
+        # Use the OK PDF directly for the generation pass
         import tempfile
         import uuid
         tmp_slice_path = Path(tempfile.gettempdir()) / f"new_slice_{uuid.uuid4().hex}.tmp.pdf"
-        try:
-            with _fitz.open(str(raw_append_pdf)) as full_doc:
-                new_doc_pdf = _fitz.open()
-                new_doc_pdf.insert_pdf(full_doc, from_page=page_shift, to_page=full_doc.page_count - 1)
-                new_doc_pdf.save(str(tmp_slice_path))
-                new_doc_pdf.close()
-        except Exception as e:
-            logger.error(f"Failed to extract new-pages slice for generation: {e}")
-            return
+        shutil.copy(str(filepath), str(tmp_slice_path))
 
         yaml_path = source_files_dir / f"{house_id}_1_tenants.yaml"
         if not yaml_path.exists():
@@ -545,7 +517,8 @@ class FSUIOrchestrator:
                 dry_run=False, 
                 json_path=source_files_dir / f"{house_id}_report.json", 
                 yaml_data=yaml_data, 
-                pdf_path=tmp_slice_path
+                pdf_path=tmp_slice_path,
+                fixed_house_dir=house_dir
             )
         finally:
             if tmp_slice_path.exists():
@@ -554,36 +527,60 @@ class FSUIOrchestrator:
                 except OSError:
                     pass
 
-        # Rebuild finalized.pdf from the full raw_append.pdf with updated TOC (all docs)
+        # Rebuild finalized.pdf by appending the new compressed pages and updating TOC
         import fitz as _fitz2
         from src.pdf.compress import compress_pdf
-
-        # Re-resolve house_dir in case it was renamed by organize()
-        for h in area_dir.iterdir():
-            if h.is_dir() and (h.name == house_id or h.name.startswith(f"{house_id} - ")):
-                house_dir = h
-                break
-        source_files_dir = house_dir / ".source_files"
-        raw_append_pdf = source_files_dir / f"{house_id}_raw_append.pdf"
-
+        
         all_docs_for_toc = [DocumentGroup(**d) for d in all_docs_data]
         finalized_path = house_dir / f"{house_id}_finalized.pdf"
         import tempfile
         import uuid
+        tmp_compressed_path = Path(tempfile.gettempdir()) / f"compressed_append_{uuid.uuid4().hex}.tmp.pdf"
         tmp_finalized = Path(tempfile.gettempdir()) / f"finalized_{uuid.uuid4().hex}.tmp.pdf"
+        
         try:
-            with _fitz2.open(str(raw_append_pdf)) as full_pdf:
-                toc = []
-                for doc in all_docs_for_toc:
-                    title = doc.brief_arabic_title or doc.folder_path or "بدون عنوان"
-                    target_page = min(doc.start_page + 1, full_pdf.page_count)
-                    toc.append([1, title, target_page])
-                full_pdf.set_toc(toc)
-                full_pdf.save(str(tmp_finalized))
-            compress_pdf(str(tmp_finalized), str(finalized_path))
-            if tmp_finalized.exists():
-                os.remove(str(tmp_finalized))
-            logger.info(f"Rebuilt finalized PDF: {finalized_path.name} ({finalized_path.stat().st_size} bytes)")
+            # 1. Compress the new pages
+            compress_pdf(str(filepath), str(tmp_compressed_path))
+            
+            # 2. Open existing finalized.pdf or create new
+            if finalized_path.exists():
+                full_pdf = _fitz2.open(str(finalized_path))
+            else:
+                full_pdf = _fitz2.open()
+                
+            # 3. Append compressed new pages
+            with _fitz2.open(str(tmp_compressed_path)) as new_pdf:
+                full_pdf.insert_pdf(new_pdf)
+                
+            # 4. Build TOC from all docs
+            toc = []
+            for doc in all_docs_for_toc:
+                title = doc.brief_arabic_title or doc.folder_path or "بدون عنوان"
+                target_page = min(doc.start_page + 1, full_pdf.page_count)
+                toc.append([1, title, target_page])
+            full_pdf.set_toc(toc)
+            
+            # 5. Save directly
+            full_pdf.save(str(tmp_finalized))
+            full_pdf.close()
+            
+            shutil.move(str(tmp_finalized), str(finalized_path))
+            logger.info(f"Updated finalized PDF: {finalized_path.name} ({finalized_path.stat().st_size} bytes)")
         except Exception as e:
             logger.error(f"Failed to rebuild finalized PDF: {e}")
-
+        finally:
+            if tmp_compressed_path.exists():
+                try:
+                    os.remove(str(tmp_compressed_path))
+                except OSError:
+                    pass
+            if tmp_finalized.exists():
+                try:
+                    os.remove(str(tmp_finalized))
+                except OSError:
+                    pass
+            
+            try:
+                os.remove(str(filepath))
+            except OSError as e:
+                logger.warning(f"Could not delete {filepath}: {e}")

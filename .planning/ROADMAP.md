@@ -26,6 +26,7 @@
 - [x] Phase 27: Disambiguate Reconciliation Modules (ARCH-03) - completed 2026-07-24
 - [x] Phase 28: Clean Up `main.py` Dead Imports (ARCH-04) - completed 2026-07-24
 - [x] Phase 29: Audit Test Mock Patch Targets (ARCH-05) - completed 2026-07-24
+- [ ] Phase 29.1: Fix Append-Mode Finalize Bugs (URGENT) - ready
 
 ## Progress
 
@@ -42,3 +43,4 @@
 | 27. Disambiguate Reconciliation | v4.0 | 1/1 | Complete | 2026-07-24 |
 | 28. Clean Up main.py Imports | v4.0 | 1/1 | Complete | 2026-07-24 |
 | 29. Audit Test Mock Targets | v4.0 | 1/1 | Complete | 2026-07-24 |
+| 29.1. Fix Append-Mode Finalize Bugs | v4.0 | 0/0 | Ready | — |
