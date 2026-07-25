@@ -42,6 +42,7 @@ None.
 | 260724-refactor | Refactor main.py pipeline runner functions to src/pipeline/runner.py, update main.py and orchestrator.py imports, and verify pytest suite execution. | 2026-07-24 | 41c1beb | [260724-refactor-main-pipeline-runner](./quick/260724-refactor-main-pipeline-runner/) |
 | 20260724-rename-proposed | Rename `_Proposed` to `Proposed` everywhere in the codebase. | 2026-07-24 | 972843a | [20260724-rename-proposed](./quick/20260724-rename-proposed/) |
 | 20260725-update-llm-fallback | Update LLM fallback list and change default model to gemini-3.5-flash-lite. | 2026-07-25 | pending | [20260725-update-llm-fallback](./quick/20260725-update-llm-fallback/) |
+| 20260725-fix-orchestrator-cache | Fix the orchestrator cache wipe bug to allow resuming from failures. | 2026-07-25 | pending | [20260725-fix-orchestrator-cache](./quick/20260725-fix-orchestrator-cache/) |
 
 ## Session
 

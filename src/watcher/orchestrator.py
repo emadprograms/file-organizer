@@ -97,6 +97,7 @@ class FSUIOrchestrator:
         cache_dir.mkdir(parents=True, exist_ok=True)
         master_tmp_dir = cache_dir / f".tmp_{filepath.stem}_master"
         master_tmp_dir.mkdir(exist_ok=True)
+        success = False
 
         try:
             process_unclassified_pdf(master_tmp_dir, self.llm_client, specific_pdf_path=filepath, create_categorized_copy=False)
@@ -106,7 +107,6 @@ class FSUIOrchestrator:
                 logger.error(f"Missing report JSON for {filepath}")
                 new_name = filepath.stem + "_Failed.pdf"
                 os.rename(filepath, filepath.parent / new_name)
-                shutil.rmtree(master_tmp_dir, ignore_errors=True)
                 return
             
             import json
@@ -118,7 +118,6 @@ class FSUIOrchestrator:
             logger.error(f"Inference/Categorization failed for {filepath}: {e}")
             new_name = filepath.stem + "_Failed.pdf"
             os.rename(filepath, filepath.parent / new_name)
-            shutil.rmtree(master_tmp_dir, ignore_errors=True)
             return
             
         house_to_resolve = inferred.get("expected_house_number", parsed_cmd.house)
@@ -131,13 +130,11 @@ class FSUIOrchestrator:
         except ConflictError:
             new_name = filepath.stem + " - please choose area.pdf"
             os.rename(filepath, filepath.parent / new_name)
-            shutil.rmtree(master_tmp_dir, ignore_errors=True)
             return
         except ValueError as e:
             logger.error(f"Failed to resolve area for {filepath}: {e}")
             new_name = filepath.stem + "_Failed.pdf"
             os.rename(filepath, filepath.parent / new_name)
-            shutil.rmtree(master_tmp_dir, ignore_errors=True)
             return
             
         area_dir = areas_root / area_id
@@ -151,7 +148,6 @@ class FSUIOrchestrator:
             logger.error(f"Failed to find full house dir for {house_to_resolve} in {area_dir}")
             new_name = filepath.stem + "_Failed.pdf"
             os.rename(filepath, filepath.parent / new_name)
-            shutil.rmtree(master_tmp_dir, ignore_errors=True)
             return
 
         yaml_path = house_dir / ".source_files" / f"{house_to_resolve}_1_tenants.yaml"
@@ -161,7 +157,6 @@ class FSUIOrchestrator:
             logger.error(f"Missing YAML config for {house_to_resolve}")
             new_name = filepath.stem + "_Error_Missing_YAML.pdf"
             os.rename(filepath, filepath.parent / new_name)
-            shutil.rmtree(master_tmp_dir, ignore_errors=True)
             return
 
         tenant_to_resolve = inferred.get("tenant_hint", parsed_cmd.tenant_hint)
@@ -286,13 +281,16 @@ class FSUIOrchestrator:
                     with open(doc_tmp_dir / "_routed_append_mode.json", 'w', encoding='utf-8') as f:
                         json.dump([doc_group.model_dump()], f, ensure_ascii=False, indent=2)
                         
+            success = True
+                        
         except Exception as e:
             logger.error(f"Error processing or routing proposed PDF {filepath}: {e}")
             new_name = filepath.stem + "_Failed.pdf"
             os.rename(filepath, filepath.parent / new_name)
             
         finally:
-            shutil.rmtree(master_tmp_dir, ignore_errors=True)
+            if success:
+                shutil.rmtree(master_tmp_dir, ignore_errors=True)
             try:
                 os.remove(filepath)
             except OSError:
