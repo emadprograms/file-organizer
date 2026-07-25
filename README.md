@@ -44,7 +44,7 @@ python src/main.py /path/to/target_directory --dry-run
 ```
 
 **Using a Specific LLM Model**
-By default, the script uses `gemini-3.1-flash-lite`. You can specify another model using the `--model` flag:
+By default, the script uses `gemini-3.5-flash-lite`. You can specify another model using the `--model` flag:
 ```bash
 python src/main.py /path/to/target_directory --model gemini-2.5-flash
 ```

@@ -137,13 +137,13 @@ def get_parser() -> argparse.ArgumentParser:
         "--model", 
         type=str, 
         default="gemma-4-31b-it", 
-        choices=["gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"],
+        choices=["gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-2.5-flash"],
         help="LLM model to use for the main tasks"
     )
     create_parser.add_argument(
         "--routing-model", 
         type=str, 
-        choices=["gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.1-flash-lite"],
+        choices=["gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-2.5-flash"],
         help="Optional: LLM model to use specifically for routing. Defaults to the main model if not set."
     )
     create_parser.add_argument(

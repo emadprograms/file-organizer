@@ -161,7 +161,7 @@ class LLMClient:
         provider_name = provider_obj.name
         primary_max_retries = max_attempts if max_attempts is not None else 3
 
-        fallback_models = ["gemini-3.5-flash", "gemini-3-flash", "gemini-2.5-flash"]
+        fallback_models = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-2.5-flash"]
         models_to_try = [model]
         for fbm in fallback_models:
             if fbm not in models_to_try:

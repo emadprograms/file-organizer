@@ -22,7 +22,7 @@ python src/main.py reconcile --tenants <tenants_file> [OPTIONS]
 |---|---|---|---|
 | `target_dir` | Path | (Required for default mode) | Path to target directory containing PDF and JSON report files |
 | `--dry-run` | Flag | `False` | Simulates file organization and prints summary without modifying files |
-| `--model` | String | `gemini-3.1-flash-lite` | Selects LLM model used for classification, grouping, and cleaning |
+| `--model` | String | `gemini-3.5-flash-lite` | Selects LLM model used for classification, grouping, and cleaning |
 | `--routing-model` | String | `google/gemma-4-31b-it` | Selects LLM model specifically for directory routing |
 | `--output-dir` | Path | None | Explicit output directory override |
 | `--verbose` | Flag | `False` | Enables detailed debug logging |

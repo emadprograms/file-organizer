@@ -183,7 +183,7 @@ def process_with_shrink(
             total_failures = 0
             
         fallback_model_idx = -1
-        FALLBACK_MODELS = ["gemini-3.5-flash", "gemini-3-flash", "gemini-2.5-flash"]
+        FALLBACK_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-2.5-flash"]
         
         while current_page_index < len(pages):
             if total_failures >= 20:
