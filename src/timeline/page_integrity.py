@@ -53,6 +53,28 @@ def run_reconciliation(
         source_files_dir = output_dir / ".source_files"
         source_files_dir.mkdir(parents=True, exist_ok=True)
         manifest_path = source_files_dir / f"{house_id}_3_routed_and_finalized.json"
+        
+        # Merge if exists (for append mode)
+        if manifest_path.exists():
+            try:
+                with open(manifest_path, 'r', encoding='utf-8') as f:
+                    existing = json.load(f)
+                if isinstance(existing, dict) and "per_page" in existing:
+                    # Update indices for new pages to append at the end
+                    page_shift = existing["summary"].get("total_input_pages", 0)
+                    for p in manifest["per_page"]:
+                        p["page_index"] += page_shift
+                    
+                    # Merge data
+                    existing["per_page"].extend(manifest["per_page"])
+                    existing["summary"]["total_input_pages"] += manifest["summary"]["total_input_pages"]
+                    existing["summary"]["total_output_pages"] += manifest["summary"]["total_output_pages"]
+                    existing["summary"]["output_file_count"] += manifest["summary"]["output_file_count"]
+                    
+                    manifest = existing
+            except Exception as e:
+                logger.error(f"Failed to merge existing reconciliation manifest: {e}")
+                
         with atomic_write(str(manifest_path)) as tmp_path:
             with open(tmp_path, 'w', encoding='utf-8') as f:
                 json.dump(manifest, f, ensure_ascii=False, indent=2)
@@ -76,5 +98,5 @@ def run_reconciliation(
     )
     vprint(table)
     
-    if total_input_pages != manifest["summary"]["total_output_pages"]:
+    if manifest["summary"]["total_input_pages"] != manifest["summary"]["total_output_pages"]:
         raise RuntimeError("Reconciliation failed: total input pages != total output pages")

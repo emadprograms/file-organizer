@@ -198,6 +198,52 @@ def test_reconciliation_manifest_generation(mock_replace, tmp_path) -> None:
         assert len(data["per_page"]) == 1
         assert data["per_page"][0]["tenant"] == "A"
 
+@patch('src.utils.fs.shutil.move')
+def test_reconciliation_manifest_merging(mock_replace, tmp_path) -> None:
+    """Test that run_reconciliation correctly merges with an existing manifest."""
+    source_files_dir = tmp_path / ".source_files"
+    source_files_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = source_files_dir / "HOUSE_123_3_routed_and_finalized.json"
+    
+    # Create an initial manifest representing previous runs
+    initial_manifest = {
+        "summary": {
+            "house_id": "HOUSE_123",
+            "total_input_pages": 5,
+            "total_output_pages": 5,
+            "output_file_count": 2,
+            "unaccounted_pages": []
+        },
+        "per_page": [
+            {"page_index": i, "tenant": "A", "date": "2020", "output_file": f"file_{i}.pdf", "page_in_output": 1}
+            for i in range(5)
+        ]
+    }
+    with open(manifest_path, 'w', encoding='utf-8') as f:
+        json.dump(initial_manifest, f)
+        
+    # Mock data for append mode (e.g. 1 newly appended page)
+    new_per_page = [
+        {"page_index": 0, "tenant": "B", "date": "2021", "output_file": "new_file.pdf", "page_in_output": 1}
+    ]
+    new_summary = {"total_output_pages": 1, "output_file_count": 1}
+    
+    run_reconciliation(new_summary, new_per_page, 1, "HOUSE_123", tmp_path)
+    
+    # Verify atomicity logic used tmp_path and moved it. We need to check what was written to the tmp_path.
+    mock_replace.assert_called_once()
+    tmp_file = Path(mock_replace.call_args[0][0])
+    
+    with open(tmp_file, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        assert data["summary"]["total_input_pages"] == 6 # 5 + 1
+        assert data["summary"]["total_output_pages"] == 6 # 5 + 1
+        assert data["summary"]["output_file_count"] == 3 # 2 + 1
+        assert len(data["per_page"]) == 6
+        # Check that the new page had its page_index shifted by existing total_input_pages (5)
+        assert data["per_page"][-1]["page_index"] == 5
+        assert data["per_page"][-1]["tenant"] == "B"
+
 @patch('src.timeline.core.extract_pdf_segment')
 def test_organize_empty_documents(mock_extract, organizer, mock_config, tmp_path) -> None:
     """
@@ -207,7 +253,7 @@ def test_organize_empty_documents(mock_extract, organizer, mock_config, tmp_path
     The function should execute successfully and meet all assertions.
     """
     result = organizer.organize([], "123.pdf", "HOUSE_123", tmp_path, mock_config)
-    assert result == []
+    assert result == ([], "HOUSE_123")
     mock_extract.assert_not_called()
 
 @patch('src.timeline.core.os.makedirs')

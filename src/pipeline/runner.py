@@ -209,9 +209,9 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
     }
     
     logger.info("Running reconciliation...")
-    run_reconciliation(summary, per_page, total_input_pages, house_id, output_dir, dry_run=dry_run)
-    
     house_dir = fixed_house_dir if fixed_house_dir is not None else output_dir / full_house_id
+    run_reconciliation(summary, per_page, total_input_pages, house_id, house_dir, dry_run=dry_run)
+    
     original_target_dir = target_dir
     
     if not dry_run and target_dir != house_dir:
