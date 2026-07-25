@@ -242,11 +242,11 @@ class LLMClient:
                         logger.warning(f"[{log_prefix} - {provider_name}] Read timeout on {current_model}. Falling back to next model immediately.")
                         break # Break out of retries for this model, move to next model
 
-                    # Case C: Rate Limit (429) -> Sleep 65s, Retry
+                    # Case C: Rate Limit (429) -> Sleep 65s, Retry or Fallback
                     if "429" in error_str:
+                        logger.warning(f"[{log_prefix} - {provider_name}] Rate limited (429) on {current_model}. Sleeping 65s before continuing...")
+                        time.sleep(65)
                         if attempt < max_retries:
-                            logger.warning(f"[{log_prefix} - {provider_name}] Rate limited (429) on {current_model}. Sleeping 65s before retry {attempt+1}/{max_retries}...")
-                            time.sleep(65)
                             continue 
                         else:
                             logger.warning(f"[{log_prefix} - {provider_name}] Rate limit retries exhausted on {current_model}.")
