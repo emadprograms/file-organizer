@@ -165,7 +165,7 @@ def test_reconciliation_manifest(tmp_path) -> None:
         data = json.load(f)
 
 
-@patch('src.utils.fs.os.replace')
+@patch('src.utils.fs.shutil.move')
 def test_reconciliation_manifest_generation(mock_replace, tmp_path) -> None:
     """
     Test reconciliation manifest generation.

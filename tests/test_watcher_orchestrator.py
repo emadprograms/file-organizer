@@ -130,7 +130,7 @@ def test_propose_uses_user_provided_title(mock_config, mock_llm):
             with patch("src.watcher.orchestrator.process_unclassified_pdf", side_effect=mock_process_unclassified):
                 orchestrator.propose(test_file)
         
-    expected_name = "Area1 123 Smith G 2023-01-01 UserCustomTitle Proposed.pdf"
+    expected_name = "Area1 123 Smith 1 2023-01-01 UserCustomTitle Proposed.pdf"
     assert (inbox / expected_name).exists()
     assert not test_file.exists()
 
@@ -198,7 +198,7 @@ def test_propose_falls_back_to_ai_title(mock_config, mock_llm):
             with patch("src.watcher.orchestrator.process_unclassified_pdf", side_effect=mock_process_unclassified):
                 orchestrator.propose(test_file)
         
-    expected_name = "Area1 123 Smith G 2023-01-01 AITitle Proposed.pdf"
+    expected_name = "Area1 123 Smith 1 2023-01-01 AITitle Proposed.pdf"
     assert (inbox / expected_name).exists()
     assert not test_file.exists()
 

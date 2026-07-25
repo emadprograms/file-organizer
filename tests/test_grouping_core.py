@@ -588,7 +588,7 @@ def test_grouping_state_atomic_write_simulation(tmp_path) -> None:
     
     # Simulate a crash during save_state by mocking os.replace to fail
     # We want to ensure the original state_file is untouched if replace fails
-    with patch("os.replace", side_effect=OSError("Disk full")):
+    with patch("shutil.move", side_effect=OSError("Disk full")):
         try:
             manager.save_state(GroupingState(current_page_index=2))
         except OSError:

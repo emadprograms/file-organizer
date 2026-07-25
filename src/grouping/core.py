@@ -186,8 +186,8 @@ def process_with_shrink(
         FALLBACK_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-2.5-flash"]
         
         while current_page_index < len(pages):
-            if total_failures >= 20:
-                raise RuntimeError("Hard fail: 20 total failures in grouping boundary detection.")
+            if total_failures >= 30:
+                raise RuntimeError("Hard fail: 30 total failures in grouping boundary detection.")
                 
             chunk_size = CHUNK_SIZES[chunk_size_idx]
             end_index = min(current_page_index + chunk_size, len(pages))
