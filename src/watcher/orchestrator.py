@@ -281,7 +281,10 @@ class FSUIOrchestrator:
                     with open(doc_tmp_dir / "_routed_append_mode.json", 'w', encoding='utf-8') as f:
                         json.dump([doc_group.model_dump()], f, ensure_ascii=False, indent=2)
                         
+                    logger.info(f"✅ SUCCESS: Created proposed file in Inbox: {new_pdf_name}")
+                        
             success = True
+            logger.info(f"🎉 COMPLETION: Finished processing {filepath.name}. Original file will be removed.")
                         
         except Exception as e:
             logger.error(f"Error processing or routing proposed PDF {filepath}: {e}")
