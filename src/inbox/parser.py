@@ -19,8 +19,6 @@ def parse_filename_syntax(filename: str) -> ParsedCommand:
         filename = filename[:-9]
 
     tokens = filename.split()
-    if len(tokens) < 5:
-        raise ValueError("Invalid Format: too few tokens")
 
     # HOUSE: find the first 3+-digit numeric token (e.g. '703', '504').
     # If none found, fall back to token at index 1 (raw format: "U U U U U Title")
@@ -60,17 +58,21 @@ def parse_filename_syntax(filename: str) -> ParsedCommand:
             break
                 
     if group_idx is None:
-        raise ValueError("Invalid Format: no group token found")
+        # No valid group token found, assume the rest is tenant hint
+        tenant_hint = " ".join(tokens[house_idx + 1:]) or 'U'
+        group = 'U'
+        date = 'U'
+        title = ""
+    else:
+        tenant_hint = " ".join(tokens[house_idx + 1:group_idx]) or 'U'
+        group = tokens[group_idx]
 
-    tenant_hint = " ".join(tokens[house_idx + 1:group_idx]) or 'U'
-    group = tokens[group_idx]
+        # DATE is the next token after group — either YYYY-MM-DD, 'U', or 'UnknownDate'
+        date_idx = group_idx + 1
+        date = tokens[date_idx] if date_idx < len(tokens) else 'U'
 
-    # DATE is the next token after group — either YYYY-MM-DD, 'U', or 'UnknownDate'
-    date_idx = group_idx + 1
-    date = tokens[date_idx] if date_idx < len(tokens) else 'U'
-
-    # TITLE is everything after DATE
-    title = " ".join(tokens[date_idx + 1:]) if date_idx + 1 < len(tokens) else ""
+        # TITLE is everything after DATE
+        title = " ".join(tokens[date_idx + 1:]) if date_idx + 1 < len(tokens) else ""
 
     return ParsedCommand(
         area=area,

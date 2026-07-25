@@ -20,13 +20,32 @@ def test_parse_filename_syntax_valid_no_title():
     assert cmd.date == "2026-01-01"
     assert cmd.title == ""
 
-def test_parse_filename_syntax_invalid():
-    with pytest.raises(ValueError, match="Invalid Format"):
-        parse_filename_syntax("SAF 1234.pdf")
+def test_parse_omitted_trailing():
+    # House only
+    cmd = parse_filename_syntax("SAF 507.pdf")
+    assert cmd.area == "SAF"
+    assert cmd.house == "507"
+    assert cmd.tenant_hint == "U"
+    assert cmd.group == "U"
+    assert cmd.date == "U"
+    assert cmd.title == ""
+    
+    # House and Tenant
+    cmd = parse_filename_syntax("SAF 507 abdul rehman.pdf")
+    assert cmd.area == "SAF"
+    assert cmd.house == "507"
+    assert cmd.tenant_hint == "abdul rehman"
+    assert cmd.group == "U"
+    assert cmd.date == "U"
+    assert cmd.title == ""
 
 def test_parse_filename_syntax_group_validation():
-    with pytest.raises(ValueError, match="Invalid Format"):
-        parse_filename_syntax("SAF 1234 Ali 14 2026-01-01.pdf")
+    # '14' is not a valid group, so it gets lumped into tenant_hint and defaults apply
+    cmd = parse_filename_syntax("SAF 1234 Ali 14 2026-01-01.pdf")
+    assert cmd.tenant_hint == "Ali 14 2026-01-01"
+    assert cmd.group == "U"
+    assert cmd.date == "U"
+    assert cmd.title == ""
         
     cmd = parse_filename_syntax("SAF 1234 Ali g 2026-01-01.pdf")
     assert cmd.group == "G"
