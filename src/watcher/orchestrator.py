@@ -442,6 +442,9 @@ class FSUIOrchestrator:
                         master_data = []
                 if isinstance(master_data, list) and isinstance(new_data, list):
                     master_data.extend(new_data)
+                elif isinstance(master_data, dict) and "per_page" in master_data and isinstance(new_data, list):
+                    # It's a reconciliation manifest. Don't overwrite it.
+                    pass
                 else:
                     master_data = new_data
             else:
@@ -455,7 +458,7 @@ class FSUIOrchestrator:
         merge_json(f"{house_id}_2_grouped.json", "_grouped_append_mode.json", False, True)
         merge_json(f"{house_id}_3_routed_and_finalized.json", "_routed_append_mode.json", False, True)
 
-        shutil.rmtree(tmp_dir, ignore_errors=True)
+
 
         from src.core.schemas import DocumentGroup
         import yaml
@@ -472,16 +475,27 @@ class FSUIOrchestrator:
 
         if isinstance(raw_json, dict) and "per_page" in raw_json:
             # Reconciliation manifest — rebuild docs from per_page entries is hard.
-            # Instead fall back to the append-mode doc list if available.
-            logger.warning("routed JSON is a reconciliation manifest; skipping generation pass re-run.")
-            return
-
-        all_docs_data = raw_json
-        
-        # We only want the newly appended documents (those whose start_page >= page_shift)
-        new_docs_data = [d for d in all_docs_data if d.get("start_page", 0) >= page_shift]
+            logger.warning("routed JSON is a reconciliation manifest; falling back to tmp _routed_append_mode.json.")
+            append_json_path = tmp_dir / "_routed_append_mode.json"
+            if append_json_path.exists():
+                with open(append_json_path, 'r', encoding='utf-8') as f:
+                    new_docs_data = json.load(f)
+                    for item in new_docs_data:
+                        item["start_page"] += page_shift
+                        item["end_page"] += page_shift
+            else:
+                logger.warning("No tmp _routed_append_mode.json found. Skipping generation pass.")
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+                return
+        else:
+            all_docs_data = raw_json
+            
+            # We only want the newly appended documents (those whose start_page >= page_shift)
+            new_docs_data = [d for d in all_docs_data if d.get("start_page", 0) >= page_shift]
+            
         if not new_docs_data:
             logger.warning("No new documents found in routed JSON after finalize merge. Skipping generation.")
+            shutil.rmtree(tmp_dir, ignore_errors=True)
             return
 
         # Re-index the new documents to be zero-relative (they reference absolute positions
@@ -531,7 +545,7 @@ class FSUIOrchestrator:
         import fitz as _fitz2
         from src.pdf.compress import compress_pdf
         
-        all_docs_for_toc = [DocumentGroup(**d) for d in all_docs_data]
+        new_docs_for_toc = [DocumentGroup(**d) for d in new_docs_data]
         finalized_path = house_dir / f"{house_id}_finalized.pdf"
         import tempfile
         import uuid
@@ -552,9 +566,9 @@ class FSUIOrchestrator:
             with _fitz2.open(str(tmp_compressed_path)) as new_pdf:
                 full_pdf.insert_pdf(new_pdf)
                 
-            # 4. Build TOC from all docs
-            toc = []
-            for doc in all_docs_for_toc:
+            # 4. Build TOC by appending new docs to existing TOC
+            toc = full_pdf.get_toc()
+            for doc in new_docs_for_toc:
                 title = doc.brief_arabic_title or doc.folder_path or "بدون عنوان"
                 target_page = min(doc.start_page + 1, full_pdf.page_count)
                 toc.append([1, title, target_page])
@@ -584,3 +598,5 @@ class FSUIOrchestrator:
                 os.remove(str(filepath))
             except OSError as e:
                 logger.warning(f"Could not delete {filepath}: {e}")
+                
+            shutil.rmtree(tmp_dir, ignore_errors=True)
