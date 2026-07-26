@@ -143,6 +143,21 @@ def run_reconcile_mode(args) -> int:
     else:
         logger.info("No file moves required based on the updated tenants.")
         
+    # Move .source_files to the new house directory if it changed
+    new_house_dir = output_base_dir / full_house_id
+    if target_dir != new_house_dir and not getattr(args, 'dry_run', False):
+        new_source_dir = new_house_dir / ".source_files"
+        if source_dir.exists() and not new_source_dir.exists():
+            new_house_dir.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(source_dir), str(new_source_dir))
+            logger.info(f"Moved .source_files to new house directory: {new_house_dir.name}")
+            
+            # Update paths so JSONs are saved correctly and cleanup ignores the new source_dir
+            source_dir = new_source_dir
+            cleaned_path = source_dir / cleaned_path.name
+            grouped_path = source_dir / grouped_path.name
+            routed_path = source_dir / routed_path.name
+
     # Clean up empty directories
     if not getattr(args, 'dry_run', False):
         # Also clean up the old house_dir if it is different
@@ -156,6 +171,8 @@ def run_reconcile_mode(args) -> int:
         if old_full_house_id and old_full_house_id != full_house_id:
             dirs_to_clean.append(output_base_dir / old_full_house_id)
         dirs_to_clean.append(output_base_dir / full_house_id)
+        if target_dir not in dirs_to_clean:
+            dirs_to_clean.append(target_dir)
         
         for house_dir in dirs_to_clean:
             if house_dir.exists():

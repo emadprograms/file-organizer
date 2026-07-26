@@ -91,3 +91,12 @@ def test_run_reconcile_mode(tmp_path):
     
     # The old PDF should be gone
     assert not old_pdf_path.exists(), "Old PDF should have been moved"
+    
+    # Check that .source_files was moved
+    assert (new_house_dir / ".source_files").exists(), "The .source_files directory should have been moved"
+    assert not source_dir.exists(), "The old .source_files directory should no longer exist"
+    
+    # Check that the old house directories were removed
+    assert not target_dir.exists(), "The old target_dir should have been removed"
+    old_house_dir = tmp_path / f"{house_id} - Ahmed Yousuf"
+    assert not old_house_dir.exists(), "The old house directory should have been removed"
