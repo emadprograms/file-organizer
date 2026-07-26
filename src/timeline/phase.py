@@ -86,6 +86,13 @@ def infer_missing_dates(pages: list[PageData]) -> None:
     if inferred_count > 0:
         logger.info(f"Successfully inferred {inferred_count} missing dates using closest proximity matching.")
 
+def _norm_date(d: str | None) -> str | None:
+    """Normalize Arabic numerals to standard ASCII digits for safe string comparison."""
+    if not d:
+        return d
+    arabic_to_ascii = str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789')
+    return d.translate(arabic_to_ascii)
+
 def assign_pages_to_tenants(
     pages: list[PageData], 
     timelines: list[TenantTimeline], 
@@ -106,7 +113,7 @@ def assign_pages_to_tenants(
     latest_tenant = None
     if timelines:
         # Sort by max_date to find the latest
-        sorted_by_max = sorted(timelines, key=lambda t: t.max_date, reverse=True)
+        sorted_by_max = sorted(timelines, key=lambda t: _norm_date(t.max_date), reverse=True)
         latest_tenant = sorted_by_max[0].canonical_name
 
     valid_tenant_names = {t.canonical_name for t in timelines}
@@ -127,12 +134,12 @@ def assign_pages_to_tenants(
             
         covering = []
         for t in timelines:
-            if t.min_date <= page.resolved_date <= t.max_date:
+            if _norm_date(t.min_date) <= _norm_date(page.resolved_date) <= _norm_date(t.max_date):
                 covering.append(t)
                 
         if covering:
             # Sort by min_date descending to get the latest overlapping tenant (D-10)
-            covering.sort(key=lambda t: t.min_date, reverse=True)
+            covering.sort(key=lambda t: _norm_date(t.min_date), reverse=True)
             page.canonical_tenant = covering[0].canonical_name
         else:
             month_str = page.resolved_date[:7]
