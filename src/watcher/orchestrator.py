@@ -496,6 +496,10 @@ class FSUIOrchestrator:
         if not new_docs_data:
             logger.warning("No new documents found in routed JSON after finalize merge. Skipping generation.")
             shutil.rmtree(tmp_dir, ignore_errors=True)
+            try:
+                os.remove(str(filepath))
+            except OSError as e:
+                logger.warning(f"Could not delete {filepath}: {e}")
             return
 
         # Re-index the new documents to be zero-relative (they reference absolute positions

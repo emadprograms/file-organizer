@@ -95,8 +95,15 @@ def test_mock_append_propose(mock_config, mock_llm):
                 orchestrator.propose(test_pdf)
 
     expected_name = "1273 1273 يونس محمد ملاك 7 2006-04-18 استقطاع الإيجار الشهري للمتقاعدين Proposed.pdf"
-    assert (MOCK_INBOX_DIR / expected_name).exists(), "The Proposed file was not created"
-    assert not test_pdf.exists(), "The original unclassified file was not removed"
+    try:
+        assert (MOCK_INBOX_DIR / expected_name).exists(), "The Proposed file was not created"
+        assert not test_pdf.exists(), "The original unclassified file was not removed"
+    finally:
+        if (MOCK_INBOX_DIR / expected_name).exists():
+            (MOCK_INBOX_DIR / expected_name).rename(test_pdf)
+        cache_dir = FIXTURE_DIR / ".file-organizer-cache"
+        if cache_dir.exists():
+            shutil.rmtree(cache_dir, ignore_errors=True)
 
 def test_mock_append_finalize(mock_config, mock_llm):
     # Setup for finalize
@@ -145,10 +152,16 @@ def test_mock_append_finalize(mock_config, mock_llm):
         with patch("src.pdf.compress.compress_pdf", create=True), \
              patch("src.pipeline.runner.run_generation_pass", create=True) as mock_generation:
              
-            orchestrator.finalize(test_file)
-            
-            assert not tmp_dir.exists(), "The temporary directory should be removed after finalization"
-            assert not test_file.exists(), "The OK file should be removed after finalization"
+            try:
+                orchestrator.finalize(test_file)
+                
+                assert not tmp_dir.exists(), "The temporary directory should be removed after finalization"
+                assert not test_file.exists(), "The OK file should be removed after finalization"
+            finally:
+                if test_file.exists():
+                    test_file.unlink()
+                if tmp_dir.exists():
+                    shutil.rmtree(tmp_dir, ignore_errors=True)
         
         # Generation pass might not be called if we wrote "[]" to routed_append_mode.json
         # But we verify it completes without errors
