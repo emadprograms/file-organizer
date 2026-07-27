@@ -407,13 +407,12 @@ class FSUIOrchestrator:
         finalized_pdf = house_dir / f"{house_id}_finalized.pdf"
         
         page_shift = 0
-        if finalized_pdf.exists():
-            try:
-                with fitz.open(str(finalized_pdf)) as doc_pdf:
-                    page_shift = doc_pdf.page_count
-            except Exception as e:
-                logger.error(f"Failed to read finalized PDF: {e}")
-                return
+        try:
+            with fitz.open(str(filepath)) as new_pdf:
+                page_shift = new_pdf.page_count
+        except Exception as e:
+            logger.error(f"Failed to read OK PDF: {e}")
+            return
 
         def merge_json(filename_base: str, tmp_filename: str, has_pages: bool, has_groups: bool):
             master_path = source_files_dir / filename_base
@@ -425,26 +424,35 @@ class FSUIOrchestrator:
             with open(tmp_json_path, 'r', encoding='utf-8') as f:
                 new_data = json.load(f)
                 
-            if has_pages:
-                for item in new_data:
-                    if "original_index" in item:
-                        item["original_index"] += page_shift
-            elif has_groups:
-                for item in new_data:
-                    item["start_page"] += page_shift
-                    item["end_page"] += page_shift
-                    
             if master_path.exists():
                 with open(master_path, 'r', encoding='utf-8') as f:
                     try:
                         master_data = json.load(f)
                     except json.JSONDecodeError:
                         master_data = []
+                        
+                # Shift existing master_data
+                if isinstance(master_data, list):
+                    if has_pages:
+                        for item in master_data:
+                            if "original_index" in item:
+                                item["original_index"] += page_shift
+                    elif has_groups:
+                        for item in master_data:
+                            if "start_page" in item:
+                                item["start_page"] += page_shift
+                            if "end_page" in item:
+                                item["end_page"] += page_shift
+                elif isinstance(master_data, dict) and "per_page" in master_data:
+                    for item in master_data.get("per_page", []):
+                        if "page_index" in item:
+                            item["page_index"] += page_shift
+
+                # Prepend new_data
                 if isinstance(master_data, list) and isinstance(new_data, list):
-                    master_data.extend(new_data)
+                    master_data = new_data + master_data
                 elif isinstance(master_data, dict) and "per_page" in master_data and isinstance(new_data, list):
-                    # It's a reconciliation manifest. Don't overwrite it.
-                    pass
+                    pass # Keep the old behavior of not merging into reconciliation manifest
                 else:
                     master_data = new_data
             else:
@@ -480,9 +488,6 @@ class FSUIOrchestrator:
             if append_json_path.exists():
                 with open(append_json_path, 'r', encoding='utf-8') as f:
                     new_docs_data = json.load(f)
-                    for item in new_docs_data:
-                        item["start_page"] += page_shift
-                        item["end_page"] += page_shift
             else:
                 logger.warning("No tmp _routed_append_mode.json found. Skipping generation pass.")
                 shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -490,8 +495,8 @@ class FSUIOrchestrator:
         else:
             all_docs_data = raw_json
             
-            # We only want the newly appended documents (those whose start_page >= page_shift)
-            new_docs_data = [d for d in all_docs_data if d.get("start_page", 0) >= page_shift]
+            # We only want the newly appended documents (those whose start_page < page_shift since they were prepended)
+            new_docs_data = [d for d in all_docs_data if d.get("start_page", 0) < page_shift]
             
         if not new_docs_data:
             logger.warning("No new documents found in routed JSON after finalize merge. Skipping generation.")
@@ -507,8 +512,6 @@ class FSUIOrchestrator:
         new_docs = []
         for d in new_docs_data:
             doc = DocumentGroup(**d)
-            doc.start_page = doc.start_page - page_shift
-            doc.end_page = doc.end_page - page_shift
             new_docs.append(doc)
 
         # Use the OK PDF directly for the generation pass
@@ -545,7 +548,7 @@ class FSUIOrchestrator:
                 except OSError:
                     pass
 
-        # Rebuild finalized.pdf by appending the new compressed pages and updating TOC
+        # Rebuild finalized.pdf by prepending the new compressed pages and updating TOC
         import fitz as _fitz2
         from src.pdf.compress import compress_pdf
         
@@ -566,17 +569,25 @@ class FSUIOrchestrator:
             else:
                 full_pdf = _fitz2.open()
                 
-            # 3. Append compressed new pages
+            # 3. Prepend compressed new pages
             with _fitz2.open(str(tmp_compressed_path)) as new_pdf:
-                full_pdf.insert_pdf(new_pdf)
+                full_pdf.insert_pdf(new_pdf, start_at=0)
                 
-            # 4. Build TOC by appending new docs to existing TOC
+            # 4. Build TOC by prepending new docs to existing TOC.
+            # Note: PyMuPDF's insert_pdf automatically shifts existing TOC targets,
+            # so we just prepend the new items and append the existing (already shifted) items.
             toc = full_pdf.get_toc()
+            
+            new_toc = []
             for doc in new_docs_for_toc:
                 title = doc.brief_arabic_title or doc.folder_path or "بدون عنوان"
                 target_page = min(doc.start_page + 1, full_pdf.page_count)
-                toc.append([1, title, target_page])
-            full_pdf.set_toc(toc)
+                new_toc.append([1, title, target_page])
+                
+            for item in toc:
+                new_toc.append(item)
+                
+            full_pdf.set_toc(new_toc)
             
             # 5. Save directly
             full_pdf.save(str(tmp_finalized))

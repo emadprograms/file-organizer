@@ -221,7 +221,16 @@ def test_finalize_toc_includes_all_documents(mock_compress, mock_run_gen, tmp_pa
     source_files.mkdir()
     
     finalized_pdf = house_dir / "502_finalized.pdf"
-    create_dummy_pdf(finalized_pdf, 3) 
+    create_dummy_pdf(finalized_pdf, 3)
+    
+    with fitz.open(str(finalized_pdf)) as doc:
+        toc = [
+            [1, "doc1", 1],
+            [1, "doc2", 2],
+            [1, "doc3", 3]
+        ]
+        doc.set_toc(toc)
+        doc.save(doc.name, incremental=True, encryption=fitz.PDF_ENCRYPT_KEEP)
     
     routed_json = source_files / "502_3_routed_and_finalized.json"
     with open(routed_json, "w", encoding="utf-8") as f:
