@@ -1,21 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v4.0
-milestone_name: Architectural Cleanup
-current_phase: 29.1
-status: verifying
-stopped_at: Phase 29.1 executed — ready for verification
-last_updated: "2026-07-25T19:28:00.000Z"
-last_activity: 2026-07-25
-last_activity_desc: Phase 29.1 executed and bugs fixed
-last_activity_desc: Milestone v4.0 completed
+milestone: v5.0
+milestone_name: Vault Architecture & Bidirectional Reconciliation
+status: planning
+last_updated: "2026-07-31T19:12:46.141Z"
+last_activity: 2026-07-31
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 5
-  completed_plans: 5
-  percent: 100
-current_phase_name: milestone-complete
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -54,10 +49,10 @@ None.
 
 ## Current Position
 
-Phase: 25 — Extract Presentation from core/
+Phase: Not started (defining requirements)
 Plan: —
-Status: Ready to plan
-Last activity: 2026-07-24 — Milestone v4.0 initialized
+Status: Defining requirements
+Last activity: 2026-07-31 — Milestone v5.0 started
 
 ## Operator Next Steps
 

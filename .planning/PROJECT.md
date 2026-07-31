@@ -2,22 +2,23 @@
 
 ## What This Is
 
-A technical debt cleanup and refactoring effort for the file organizer project. The goal is to remove unused legacy code by tracing imports from the main entry point, break down bloated functions and files into smaller, more focused modules to improve maintainability, and implement logic-based modular refactoring (v2.0) utilizing YAML configuration instead of legacy anchor-based logic.
+A document management system that processes scanned Arabic PDFs, categorizes them using LLM vision, groups related pages, and organizes them into a structured folder hierarchy per tenant household. The system runs on Windows and uses a Vault-based architecture with shortcuts for file organization and bidirectional reconciliation.
 
-## Milestone 4: Architectural Cleanup (v4.0) - COMPLETE 2026-07-24
+## Current Milestone: v5.0 Vault Architecture & Bidirectional Reconciliation
 
-**Goal:** Surgical cleanup of module boundaries, naming, and import hygiene. Fix architectural smells identified during the v3.0 codebase review without adding features or changing behavior.
+**Goal:** Replace the fragile multi-JSON checkpoint system with an ID-based Vault storage architecture using Windows shortcuts, enabling bidirectional reconciliation where manual user corrections are automatically detected and preserved.
 
-**Target changes:**
-- Extract presentation logic (`ui.py`) out of `core/`
-- Rename `fs_ui/` to `watcher/` for clarity
-- Disambiguate the two "reconciliation" modules
-- Clean up dead imports in `main.py` post-runner refactor
-- Audit test mock patch targets for import-site correctness
+**Target features:**
+- Vault storage system with unique document IDs
+- Windows `.lnk` shortcut generation (replacing direct file placement)
+- Unified `state.json` replacing `1_cleaned`, `2_grouped`, `3_routed` JSONs
+- Timeline View folder (chronological numbered shortcuts replacing `finalized.pdf`)
+- Bidirectional reconciliation with user override detection and pinning
+- Rename "append" → "prepend" mode and adapt to new architecture
 
 ## Core Value
 
-Keep the codebase lean and maintainable without altering the existing correct functionality.
+Documents are safely stored once in an immutable vault; all organization is done via lightweight shortcuts that can be freely rearranged by the user without risk of data loss.
 
 ## Requirements
 
@@ -52,12 +53,18 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 
 ### Active
 
-*(No active requirements - v4.0 completed)*
+- [ ] Vault storage system with unique document IDs (VAULT)
+- [ ] Windows `.lnk` shortcut generation replacing direct file placement (LNK)
+- [ ] Unified `state.json` replacing multi-JSON checkpoint system (STATE)
+- [ ] Timeline View folder with chronological numbered shortcuts (TIMELINE)
+- [ ] Bidirectional reconciliation with user override detection and pinning (RECON)
+- [ ] Rename append → prepend mode and adapt to new architecture (PREPEND)
 
 ### Out of Scope
 
-- Adding new features or altering existing behavior (pure refactoring).
-- Changing the underlying runtime or infrastructure.
+- Grouping logic changes — fixing how pages are merged into documents is deferred to a future milestone.
+- Name canonicalization — fixing how family members are grouped requires a separate phase with LLM prompt redesign.
+- macOS support — this milestone targets Windows only (`.lnk` shortcuts).
 
 ## Current State
 
@@ -67,22 +74,25 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 - ✅ Shipped v1.3 Routing Decoupling.
 - ✅ Shipped v2.0 Logic-Based Modular Refactoring on 2026-07-17.
 - ✅ Shipped v3.0 Unified File-System UI & Append Mode on 2026-07-24.
-- 🚧 v4.0 Architectural Cleanup started 2026-07-24.
+- ✅ Shipped v4.0 Architectural Cleanup on 2026-07-24.
+- 🚧 v5.0 Vault Architecture & Bidirectional Reconciliation started 2026-07-31.
 
 ## Context
 
-- The codebase has been successfully cleaned of legacy code and refactored into a modular, maintainable structure.
-- All processing logic is now decomposed into single-responsibility modules in `src/cleaning/` and `src/processing/`.
-- Error handling is standardized via a custom exception hierarchy in `src/core/exceptions.py`.
-- LLM resilience improved using `tenacity` for exponential backoff.
-- The system now has a unified, hierarchical logging infrastructure with structured JSONL telemetry for LLM decisions.
-- E2E testing overhauled using `pytest`, robust fixture directories, and LLM mocking via `unittest.mock`.
-- The architecture is now cleanly separated into `core`, `utils`, `tenant_config`, `grouping`, `timeline`, and `routing`.
+- The codebase has been through 4 milestones of refactoring and is cleanly modular.
+- The current storage model places physical PDFs directly in user-facing folders, making reconciliation fragile.
+- Multiple JSON checkpoint files (`1_cleaned`, `2_grouped`, `3_routed`) drift out of sync with each other and the filesystem.
+- Manual user corrections (dragging files to fix AI routing mistakes) permanently break the JSON state.
+- The `finalized.pdf` duplicates all documents, wasting significant disk space.
+- Target deployment is Windows — all file operations must use Windows shortcuts (`.lnk`), not macOS symlinks.
+- The LLM extraction layer (categorization, `report.json` generation) remains unchanged.
 
 ## Constraints
 
-- **Functional Parity**: The refactoring must not break existing functionality or change the output format.
-- **Maintainability**: The new modules should have clear, single responsibilities.
+- **Windows Target**: All file operations must use Windows `.lnk` shortcuts, not macOS symlinks or aliases.
+- **LLM Layer Untouched**: The categorization engine and `report.json` generation must not change.
+- **Vault Immutability**: Once a PDF enters the vault, it is never moved or renamed. All organization is done via shortcuts.
+- **Backward Compatibility**: Existing processed houses should be migratable to the new vault system.
 
 ## Key Decisions
 
@@ -95,10 +105,14 @@ Keep the codebase lean and maintainable without altering the existing correct fu
 | Retain unittest in pytest suite | Avoids unnecessary refactoring churn when tests are functioning perfectly. | ✓ Completed (v2.0). Test suite uses both. |
 | Hybrid functional/class architecture | Core pipeline is stateless (best for functional), FS-UI listener is stateful/long-running (best for OOP). | v3.0 decision: Keep pipeline functional, use classes for FS-UI orchestration (Phases 22-24). |
 | Surgical cleanup over full restructuring | Adding `domain/` and `infra/` wrapper layers would add nesting without benefit in a 14-package project. Targeted renames and moves give the same clarity. | v4.0 decision: 5-point surgical cleanup, no deep nesting. |
+| Vault + Shortcuts over direct file placement | Decouples physical storage from organization. User can freely rearrange shortcuts without risk of data loss. Eliminates finalized.pdf duplication. | v5.0 decision: Vault stores originals, shortcuts provide views. |
+| Unified state.json over multi-JSON checkpoints | Single source of truth eliminates drift between 1_cleaned, 2_grouped, 3_routed JSONs. | v5.0 decision: One state.json per house, report.json preserved as raw LLM dump. |
+| Bidirectional reconciliation over one-way sync | System detects manual user file moves and pins them, instead of overwriting user corrections. | v5.0 decision: Filesystem is a valid source of user intent. |
+| Timeline View folder over finalized.pdf | Chronological numbered shortcuts eliminate disk space duplication while preserving the reading experience. | v5.0 decision: Replace finalized.pdf with 00_Timeline_View/. |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-07-24 — v4.0 Architectural Cleanup milestone started*
+*Last updated: 2026-07-31 — v5.0 Vault Architecture & Bidirectional Reconciliation milestone started*
