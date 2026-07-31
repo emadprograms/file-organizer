@@ -144,7 +144,7 @@ def run_routing_pass(documents: list[Any], house_id: str, output_dir: Path, llm_
     return documents
 
 
-def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, output_dir: Path, logger: logging.Logger, dry_run: bool, json_path: Path, yaml_data: dict[str, Any] | None = None, pdf_path: Path | None = None, fixed_house_dir: Path | None = None) -> None:
+def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, output_dir: Path, logger: logging.Logger, dry_run: bool, json_path: Path, yaml_data: dict[str, Any] | None = None, pdf_path: Path | None = None, fixed_house_dir: Path | None = None, prepend_manifest: bool = False) -> None:
     """Run the final generation pass to produce categorized PDFs.
     
     Args:
@@ -158,6 +158,7 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
         yaml_data (dict[str, Any] | None): Optional YAML tenant configuration data.
         pdf_path (Path | None): Optional path to the PDF to use. Defaults to finding matching PDF by page count.
         fixed_house_dir (Path | None): Optional fixed house directory to use in append mode.
+        prepend_manifest (bool): Optional flag to prepend rather than append to the manifest in append mode.
         
     Returns:
         None
@@ -210,7 +211,7 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
     
     logger.info("Running reconciliation...")
     house_dir = fixed_house_dir if fixed_house_dir is not None else output_dir / full_house_id
-    run_reconciliation(summary, per_page, total_input_pages, house_id, house_dir, dry_run=dry_run)
+    run_reconciliation(summary, per_page, total_input_pages, house_id, house_dir, dry_run=dry_run, prepend=prepend_manifest)
     
     original_target_dir = target_dir
     

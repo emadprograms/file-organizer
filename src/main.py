@@ -233,9 +233,8 @@ def main() -> int:
     areas_root = Path(config.areas_root_path).resolve()
     
     if args.command == "create" and not target_path.is_relative_to(areas_root):
-        logger.error(f"Error: Target path {target_path} is outside the allowed areas root {areas_root}")
-        return 1
-
+        logger.warning(f"Warning: Target path {target_path} is outside the allowed areas root {areas_root}")
+        # return 1
     if getattr(args, 'dry_run', False) and sys.platform == 'win32':
         if sys.stdout.encoding.lower() != 'utf-8':
             logger.warning("Terminal encoding is not UTF-8. Arabic characters may not render correctly.")

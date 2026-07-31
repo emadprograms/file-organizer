@@ -1,0 +1,119 @@
+{
+  "area": "Safra C",
+  "areas_root": "D:\\Areas",
+  "additions_dir": "D:\\Safra C additions",
+  "created_at": "2026-07-30T20:36:11.251460",
+  "updated_at": "2026-07-31T07:00:08.804728",
+  "houses": [
+    {
+      "house_id": "508",
+      "house_dir": "508 - هيا جمال عيسى عبدالله علي",
+      "has_yaml": true,
+      "has_addition_pdf": true,
+      "addition_pdf_pages": 18,
+      "yaml_status": "ready",
+      "run_status": "done",
+      "run_error": null,
+      "skipped_reason": null
+    },
+    {
+      "house_id": "510",
+      "house_dir": "510 - علي مسعد",
+      "has_yaml": true,
+      "has_addition_pdf": true,
+      "addition_pdf_pages": 65,
+      "yaml_status": "ready",
+      "run_status": "done",
+      "run_error": null,
+      "skipped_reason": null
+    },
+    {
+      "house_id": "512",
+      "house_dir": "512 - عبد الله علي حسن جناحي",
+      "has_yaml": true,
+      "has_addition_pdf": true,
+      "addition_pdf_pages": 25,
+      "yaml_status": "ready",
+      "run_status": "done",
+      "run_error": null,
+      "skipped_reason": null
+    },
+    {
+      "house_id": "514",
+      "house_dir": "514 - قاسم علي عبدالله الفلاح",
+      "has_yaml": true,
+      "has_addition_pdf": true,
+      "addition_pdf_pages": 9,
+      "yaml_status": "ready",
+      "run_status": "done",
+      "run_error": null,
+      "skipped_reason": null
+    },
+    {
+      "house_id": "518",
+      "house_dir": "518 - محمد أحمد سعيد الشيبة",
+      "has_yaml": true,
+      "has_addition_pdf": false,
+      "addition_pdf_pages": null,
+      "yaml_status": "ready",
+      "run_status": "done",
+      "run_error": null,
+      "skipped_reason": null
+    },
+    {
+      "house_id": "524",
+      "house_dir": "524 - أحمد قايد صالح سيف",
+      "has_yaml": true,
+      "has_addition_pdf": true,
+      "addition_pdf_pages": 26,
+      "yaml_status": "pending",
+      "run_status": "pending",
+      "run_error": null,
+      "skipped_reason": null
+    },
+    {
+      "house_id": "526",
+      "house_dir": "526 - هاني جمعة سالم علي",
+      "has_yaml": true,
+      "has_addition_pdf": false,
+      "addition_pdf_pages": null,
+      "yaml_status": "pending",
+      "run_status": "pending",
+      "run_error": null,
+      "skipped_reason": null
+    },
+    {
+      "house_id": "528",
+      "house_dir": "528 - أريف ناياكان نيلي كونومال شرف الدين",
+      "has_yaml": true,
+      "has_addition_pdf": true,
+      "addition_pdf_pages": 19,
+      "yaml_status": "pending",
+      "run_status": "pending",
+      "run_error": null,
+      "skipped_reason": null
+    },
+    {
+      "house_id": "530",
+      "house_dir": "530 - محمد محمود خالد محمد رمضان",
+      "has_yaml": true,
+      "has_addition_pdf": false,
+      "addition_pdf_pages": null,
+      "yaml_status": "pending",
+      "run_status": "pending",
+      "run_error": null,
+      "skipped_reason": null
+    },
+    {
+      "house_id": "551",
+      "house_dir": "551 - غلام مرتضى محمد يعقوب محمد",
+      "has_yaml": true,
+      "has_addition_pdf": false,
+      "addition_pdf_pages": null,
+      "yaml_status": "pending",
+      "run_status": "pending",
+      "run_error": null,
+      "skipped_reason": null
+    }
+  ]
+}

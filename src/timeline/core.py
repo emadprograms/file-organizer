@@ -141,17 +141,19 @@ class FileOrganizer:
         """
         house_dir = output_base_dir / full_house_id
         
-        # Rename target_dir if it's different from house_dir
+        # Rename or merge target_dir if it's different from house_dir
         if target_dir != house_dir and target_dir.exists() and not append_mode:
             if not house_dir.exists():
                 try:
                     target_dir.rename(house_dir)
                     logger.info(f"Renamed {target_dir.name} to {house_dir.name}")
                 except Exception as e:
-                    logger.warning(f"Could not rename {target_dir} to {house_dir}: {e}")
-                    house_dir.mkdir(parents=True, exist_ok=True)
+                    logger.warning(f"Could not rename {target_dir} to {house_dir}: {e}. Merging instead.")
+                    from src.utils.fs import merge_and_remove_dir
+                    merge_and_remove_dir(target_dir, house_dir)
             else:
-                house_dir.mkdir(parents=True, exist_ok=True)
+                from src.utils.fs import merge_and_remove_dir
+                merge_and_remove_dir(target_dir, house_dir)
         else:
             house_dir.mkdir(parents=True, exist_ok=True)
 

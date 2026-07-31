@@ -322,3 +322,50 @@ def test_reconciliation_dry_run(mock_replace, tmp_path) -> None:
     
     mock_replace.assert_not_called()
     assert not (tmp_path / "HOUSE_123_manifest.json").exists()
+
+@patch('src.utils.fs.shutil.move')
+def test_reconciliation_manifest_prepending(mock_replace, tmp_path) -> None:
+    """Test that run_reconciliation correctly prepends with an existing manifest."""
+    source_files_dir = tmp_path / ".source_files"
+    source_files_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = source_files_dir / "HOUSE_123_3_routed_and_finalized.json"
+    
+    initial_manifest = {
+        "summary": {
+            "house_id": "HOUSE_123",
+            "total_input_pages": 5,
+            "total_output_pages": 5,
+            "output_file_count": 2,
+            "unaccounted_pages": []
+        },
+        "per_page": [
+            {"page_index": i, "tenant": "A", "date": "2020", "output_file": f"file_{i}.pdf", "page_in_output": 1}
+            for i in range(5)
+        ]
+    }
+    with open(manifest_path, 'w', encoding='utf-8') as f:
+        json.dump(initial_manifest, f)
+        
+    new_per_page = [
+        {"page_index": 0, "tenant": "B", "date": "2021", "output_file": "new_file.pdf", "page_in_output": 1}
+    ]
+    new_summary = {"total_output_pages": 1, "output_file_count": 1}
+    
+    run_reconciliation(new_summary, new_per_page, 1, "HOUSE_123", tmp_path, prepend=True)
+    
+    mock_replace.assert_called_once()
+    tmp_file = Path(mock_replace.call_args[0][0])
+    
+    with open(tmp_file, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        assert data["summary"]["total_input_pages"] == 6
+        assert data["summary"]["total_output_pages"] == 6
+        assert data["summary"]["output_file_count"] == 3
+        assert len(data["per_page"]) == 6
+        
+        assert data["per_page"][0]["page_index"] == 0
+        assert data["per_page"][0]["tenant"] == "B"
+        
+        assert data["per_page"][1]["page_index"] == 1
+        assert data["per_page"][1]["tenant"] == "A"
+

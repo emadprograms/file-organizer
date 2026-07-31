@@ -113,11 +113,15 @@ def test_orchestrator_json_merge_bugfixes(mock_remove, mock_shutil, mock_rgp, mo
     assert isinstance(final_report, list), "Bug 1 Failed: report JSON was not converted to list"
     assert len(final_report) == 3, f"Bug 1 Failed: expected 3 items, got {len(final_report)}. Old items were overwritten!"
     
+    # Bug 2 Fix Verification: FSUIOrchestrator should NOT manually touch _3_routed_and_finalized.json
+    # It delegates this to run_generation_pass using prepend_manifest=True
     with open(source_files / "1273_3_routed_and_finalized.json", "r") as f:
         final_routed = json.load(f)
-        
-    assert len(final_routed["per_page"]) == 3, "Bug 2 Failed: new pages not prepended"
-    assert final_routed["per_page"][0]["output_file"] == "new_add.pdf", "Bug 2 Failed: Prepended item incorrect"
-    assert final_routed["per_page"][1]["page_index"] == 1, "Bug 2 Failed: Old item index not shifted"
-    assert final_routed["per_page"][2]["page_index"] == 2, "Bug 2 Failed: Old item index not shifted"
+    
+    assert len(final_routed["per_page"]) == 2, "FSUIOrchestrator should not manually merge the routed JSON anymore"
+    
+    # Assert run_generation_pass was called with prepend_manifest=True
+    mock_rgp.assert_called_once()
+    kwargs = mock_rgp.call_args.kwargs
+    assert kwargs.get("prepend_manifest") is True, "Bug 2 Failed: run_generation_pass must be called with prepend_manifest=True"
     

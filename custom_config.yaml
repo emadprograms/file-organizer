@@ -1,0 +1,5 @@
+inbox_path: "D:/Inbox"
+areas_root_path: "D:/"
+area_mappings:
+  "Safra C": "SAF C"
+  "Safra D": "SAF D"

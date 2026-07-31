@@ -139,10 +139,13 @@ class FSUIOrchestrator:
             
         area_dir = areas_root / area_id
         house_dir = None
-        for child in area_dir.iterdir():
-            if child.is_dir() and (child.name == house_to_resolve or child.name.startswith(f"{house_to_resolve} - ")):
+        matching_dirs = [child for child in area_dir.iterdir() if child.is_dir() and (child.name == house_to_resolve or child.name.startswith(f"{house_to_resolve} - "))]
+        for child in matching_dirs:
+            if (child / ".source_files").exists():
                 house_dir = child
                 break
+        if not house_dir and matching_dirs:
+            house_dir = matching_dirs[0]
         
         if not house_dir:
             logger.error(f"Failed to find full house dir for {house_to_resolve} in {area_dir}")
@@ -328,14 +331,22 @@ class FSUIOrchestrator:
         house_id = None
         rest_of_name = clean_name[len(area_id) + 1:]
         
+        matching_houses = []
         for h in area_dir.iterdir():
             if not h.is_dir():
                 continue
             h_id = h.name.split(" - ")[0]
             if rest_of_name.startswith(h_id + " "):
-                house_dir = h
-                house_id = h_id
-                break
+                matching_houses.append((h, h_id))
+                
+        if matching_houses:
+            for h, h_id in matching_houses:
+                if (h / ".source_files").exists():
+                    house_dir = h
+                    house_id = h_id
+                    break
+            if not house_dir:
+                house_dir, house_id = matching_houses[0]
                 
         if not house_dir:
             logger.error(f"Cannot parse house from finalized name: {clean_name}")
@@ -431,6 +442,10 @@ class FSUIOrchestrator:
                     except json.JSONDecodeError:
                         master_data = []
                         
+                # Convert old dict report to list sorted by integer key
+                if isinstance(master_data, dict) and "per_page" not in master_data:
+                    master_data = [v for k, v in sorted(master_data.items(), key=lambda item: int(item[0]))]
+
                 # Shift existing master_data
                 if isinstance(master_data, list):
                     if has_pages:
@@ -451,8 +466,11 @@ class FSUIOrchestrator:
                 # Prepend new_data
                 if isinstance(master_data, list) and isinstance(new_data, list):
                     master_data = new_data + master_data
-                elif isinstance(master_data, dict) and "per_page" in master_data and isinstance(new_data, list):
-                    pass # Keep the old behavior of not merging into reconciliation manifest
+                elif isinstance(master_data, dict) and "per_page" in master_data:
+                    if isinstance(new_data, dict) and "per_page" in new_data:
+                        master_data["per_page"] = new_data["per_page"] + master_data["per_page"]
+                    elif isinstance(new_data, list):
+                        master_data["per_page"] = new_data + master_data["per_page"]
                 else:
                     master_data = new_data
             else:
@@ -464,7 +482,6 @@ class FSUIOrchestrator:
         merge_json(f"{house_id}_report.json", "_report_append_mode.json", False, False)
         merge_json(f"{house_id}_1_cleaned.json", "_cleaned_append_mode.json", True, False)
         merge_json(f"{house_id}_2_grouped.json", "_grouped_append_mode.json", False, True)
-        merge_json(f"{house_id}_3_routed_and_finalized.json", "_routed_append_mode.json", False, True)
 
 
 
@@ -472,31 +489,20 @@ class FSUIOrchestrator:
         import yaml
         import fitz as _fitz
         
-        routed_json_path = source_files_dir / f"{house_id}_3_routed_and_finalized.json"
-        if not routed_json_path.exists():
-            return
-
-        # Load the routed JSON. It may be the full manifest (list) or a reconciliation
-        # manifest dict ({"summary": ..., "per_page": ...}). Extract just the docs.
-        with open(routed_json_path, 'r', encoding='utf-8') as f:
-            raw_json = json.load(f)
-
-        if isinstance(raw_json, dict) and "per_page" in raw_json:
-            # Reconciliation manifest — rebuild docs from per_page entries is hard.
-            logger.warning("routed JSON is a reconciliation manifest; falling back to tmp _routed_append_mode.json.")
-            append_json_path = tmp_dir / "_routed_append_mode.json"
-            if append_json_path.exists():
-                with open(append_json_path, 'r', encoding='utf-8') as f:
-                    new_docs_data = json.load(f)
-            else:
-                logger.warning("No tmp _routed_append_mode.json found. Skipping generation pass.")
-                shutil.rmtree(tmp_dir, ignore_errors=True)
-                return
+        # _3_routed_and_finalized.json will be properly handled by run_generation_pass
+        # We just need to load the new documents to generate PDFs for them.
+        append_json_path = tmp_dir / "_routed_append_mode.json"
+        if append_json_path.exists():
+            with open(append_json_path, 'r', encoding='utf-8') as f:
+                new_docs_data = json.load(f)
         else:
-            all_docs_data = raw_json
-            
-            # We only want the newly appended documents (those whose start_page < page_shift since they were prepended)
-            new_docs_data = [d for d in all_docs_data if d.get("start_page", 0) < page_shift]
+            logger.warning("No tmp _routed_append_mode.json found. Skipping generation pass.")
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+            try:
+                os.remove(str(filepath))
+            except OSError as e:
+                logger.warning(f"Could not delete {filepath}: {e}")
+            return
             
         if not new_docs_data:
             logger.warning("No new documents found in routed JSON after finalize merge. Skipping generation.")
@@ -539,7 +545,8 @@ class FSUIOrchestrator:
                 json_path=source_files_dir / f"{house_id}_report.json", 
                 yaml_data=yaml_data, 
                 pdf_path=tmp_slice_path,
-                fixed_house_dir=house_dir
+                fixed_house_dir=house_dir,
+                prepend_manifest=True
             )
         finally:
             if tmp_slice_path.exists():

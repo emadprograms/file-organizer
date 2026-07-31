@@ -1,0 +1,6 @@
+﻿- name: ياسر محسن قائد أحمد بدوي
+  start_date: '2017-03-12'
+  end_date: present
+- name: محسن قائد أحمد
+  start_date: '2000-08-15'
+  end_date: '2017-03-12'

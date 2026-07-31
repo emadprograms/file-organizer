@@ -13,7 +13,8 @@ def run_reconciliation(
     total_input_pages: int, 
     house_id: str, 
     output_dir: Path, 
-    dry_run: bool = False
+    dry_run: bool = False,
+    prepend: bool = False
 ) -> None:
     """Write reconciliation manifest and assert page counts.
 
@@ -27,6 +28,7 @@ def run_reconciliation(
         house_id (str): The canonical house ID.
         output_dir (Path): The directory to save the output files.
         dry_run (bool): If True, skip writing files.
+        prepend (bool): If True, prepends the new data to the manifest instead of appending.
 
     Raises:
         RuntimeError: If the input and output page counts do not match.
@@ -60,18 +62,30 @@ def run_reconciliation(
                 with open(manifest_path, 'r', encoding='utf-8') as f:
                     existing = json.load(f)
                 if isinstance(existing, dict) and "per_page" in existing:
-                    # Update indices for new pages to append at the end
-                    page_shift = existing["summary"].get("total_input_pages", 0)
-                    for p in manifest["per_page"]:
-                        p["page_index"] += page_shift
-                    
-                    # Merge data
-                    existing["per_page"].extend(manifest["per_page"])
-                    existing["summary"]["total_input_pages"] += manifest["summary"]["total_input_pages"]
-                    existing["summary"]["total_output_pages"] += manifest["summary"]["total_output_pages"]
-                    existing["summary"]["output_file_count"] += manifest["summary"]["output_file_count"]
-                    
-                    manifest = existing
+                    if prepend:
+                        # Shift existing items by the number of new input pages
+                        page_shift = manifest["summary"]["total_input_pages"]
+                        for p in existing["per_page"]:
+                            p["page_index"] += page_shift
+                        
+                        # Merge data: new items + shifted existing items
+                        manifest["per_page"] = manifest["per_page"] + existing["per_page"]
+                        manifest["summary"]["total_input_pages"] += existing["summary"]["total_input_pages"]
+                        manifest["summary"]["total_output_pages"] += existing["summary"]["total_output_pages"]
+                        manifest["summary"]["output_file_count"] += existing["summary"]["output_file_count"]
+                    else:
+                        # Update indices for new pages to append at the end
+                        page_shift = existing["summary"].get("total_input_pages", 0)
+                        for p in manifest["per_page"]:
+                            p["page_index"] += page_shift
+                        
+                        # Merge data
+                        existing["per_page"].extend(manifest["per_page"])
+                        existing["summary"]["total_input_pages"] += manifest["summary"]["total_input_pages"]
+                        existing["summary"]["total_output_pages"] += manifest["summary"]["total_output_pages"]
+                        existing["summary"]["output_file_count"] += manifest["summary"]["output_file_count"]
+                        
+                        manifest = existing
             except Exception as e:
                 logger.error(f"Failed to merge existing reconciliation manifest: {e}")
                 
