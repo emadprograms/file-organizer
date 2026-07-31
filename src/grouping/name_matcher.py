@@ -136,6 +136,10 @@ Respond ONLY with a JSON dictionary where keys are the raw names and values are 
     
     missing_keys = set(unresolved_names) - set(result_map.keys())
     if missing_keys:
-        raise RuntimeError(f"LLM dropped names from the mapping: {missing_keys}")
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"LLM dropped names from the mapping. Falling back to self-mapping for: {missing_keys}")
+        for k in missing_keys:
+            result_map[k] = k
     
     return result_map

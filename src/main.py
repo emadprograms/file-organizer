@@ -48,11 +48,11 @@ def validate_target_directory(target_dir: Path) -> list[str]:
         raise ValidationError(f"Target directory does not exist or is not a directory: {target_dir}")
         
     # Make globs more permissive in case of renames (e.g., _categorized (1).pdf)
-    pdf_files = list(target_dir.glob("*_categorized*.pdf")) + list((target_dir / ".source_files").glob("*_categorized*.pdf"))
+    pdf_files = list(target_dir.glob("*.pdf")) + list((target_dir / ".source_files").glob("*.pdf"))
     json_files = list(target_dir.glob("*_report*.json")) + list((target_dir / ".source_files").glob("*_report*.json"))
     
     if len(pdf_files) == 0:
-        raise ValidationError("No *_categorized.pdf found in the target directory.")
+        raise ValidationError("No PDF found in the target directory.")
         
     if len(json_files) == 0:
         raise ValidationError("No *_report.json found in the target directory.")
@@ -60,7 +60,7 @@ def validate_target_directory(target_dir: Path) -> list[str]:
     ids = []
     
     for pdf_file in pdf_files:
-        pdf_match = re.search(r'^(.*?)_categorized', pdf_file.name)
+        pdf_match = re.search(r'^(.*?)_(?:categorized|finalized)', pdf_file.name)
         pdf_id = pdf_match.group(1) if pdf_match else pdf_file.stem
         
         # Check if there's a matching JSON report
