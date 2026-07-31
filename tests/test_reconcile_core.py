@@ -100,3 +100,49 @@ def test_run_reconcile_mode(tmp_path):
     assert not target_dir.exists(), "The old target_dir should have been removed"
     old_house_dir = tmp_path / f"{house_id} - Ahmed Yousuf"
     assert not old_house_dir.exists(), "The old house directory should have been removed"
+
+
+def test_run_reconcile_mode_ghost_folders(tmp_path):
+    """Test that reconciliation correctly cleans up old directories even when files collide or exist."""
+    house_id = "514"
+    target_dir = tmp_path / f"{house_id} - Old Tenant"
+    new_house_dir = tmp_path / f"{house_id} - New Tenant (2024 - present)"
+    
+    source_dir = target_dir / ".source_files"
+    source_dir.mkdir(parents=True)
+    
+    yaml_data = [{"name": "New Tenant", "start_date": "2024-01-01", "end_date": "present"}]
+    with open(source_dir / f"{house_id}_tenants.yaml", "w") as f:
+        yaml.dump(yaml_data, f)
+        
+    cleaned_data = [{"page_index": 0, "canonical_tenant": "Old Tenant", "resolved_date": "2024-05-11", "topics": ["02"], "is_junk": False, "category": "personal", "content_explanation": "", "original_index": 0}]
+    with open(source_dir / f"{house_id}_1_cleaned.json", "w") as f:
+        json.dump(cleaned_data, f)
+        
+    grouped_data = [{"start_page": 0, "end_page": 0, "primary_tenant": "Old Tenant", "primary_topic": "02", "metadata": {"date": "2024-05-11"}, "issues": [], "language": "ar", "category": "personal", "dates": ["2024-05-11"]}]
+    with open(source_dir / f"{house_id}_2_grouped.json", "w") as f:
+        json.dump(grouped_data, f)
+        
+    routed_data = {"per_page": [{"page_index": 0, "tenant": "Old Tenant", "target_folder": "Old/02", "output_file": f"{house_id} - Old Tenant/Old/02/test.pdf"}]}
+    with open(source_dir / f"{house_id}_3_routed_and_finalized.json", "w") as f:
+        json.dump(routed_data, f)
+        
+    # Create the old structure with a leftover root file (to trigger ghost folder issue)
+    (target_dir / "514_finalized.pdf").write_text("old pdf")
+    
+    # Pre-create the new directory and collide the root file
+    new_house_dir.mkdir(parents=True)
+    (new_house_dir / "514_finalized.pdf").write_text("new pdf")
+    
+    args = DummyArgs(target_dir=target_dir)
+    
+    with patch("src.reconcile.core.FileOrganizer") as mock_org:
+        mock_instance = mock_org.return_value
+        mock_instance.compute_tenant_folders.return_value = ({"New Tenant": "New Tenant (2024 - present)"}, "New Tenant (2024 - present)")
+        
+        result = run_reconcile_mode(args)
+    
+    assert result == 0
+    assert not target_dir.exists(), "The ghost directory was not completely merged and removed!"
+    assert (new_house_dir / "514_finalized.pdf").read_text() == "new pdf" or (new_house_dir / "514_finalized.pdf").read_text() == "old pdf"
+    assert (new_house_dir / ".source_files").exists()

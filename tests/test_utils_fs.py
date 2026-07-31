@@ -84,3 +84,38 @@ def test_sanitize_filename_empty() -> None:
     The function should execute successfully and meet all assertions.
     """
     assert sanitize_filename("") == ""
+
+def test_merge_and_remove_dir_basic(tmp_path) -> None:
+    """Test merging a directory into another."""
+    from src.utils.fs import merge_and_remove_dir
+    src = tmp_path / "src"
+    dst = tmp_path / "dst"
+    
+    src.mkdir()
+    (src / "file1.txt").write_text("hello")
+    (src / "sub").mkdir()
+    (src / "sub" / "file2.txt").write_text("world")
+    
+    merge_and_remove_dir(src, dst)
+    
+    assert not src.exists()
+    assert (dst / "file1.txt").exists()
+    assert (dst / "sub" / "file2.txt").exists()
+    assert (dst / "sub" / "file2.txt").read_text() == "world"
+
+def test_merge_and_remove_dir_with_collisions(tmp_path) -> None:
+    """Test merging when files already exist in dst."""
+    from src.utils.fs import merge_and_remove_dir
+    src = tmp_path / "src"
+    dst = tmp_path / "dst"
+    
+    src.mkdir()
+    dst.mkdir()
+    
+    (src / "file1.txt").write_text("new content")
+    (dst / "file1.txt").write_text("old content")
+    
+    merge_and_remove_dir(src, dst)
+    
+    assert not src.exists()
+    assert (dst / "file1.txt").read_text() == "new content"
