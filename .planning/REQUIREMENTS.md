@@ -88,41 +88,41 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| VAULT-01 | — | Pending |
-| VAULT-02 | — | Pending |
-| VAULT-03 | — | Pending |
-| VAULT-04 | — | Pending |
-| VAULT-05 | — | Pending |
-| LNK-01 | — | Pending |
-| LNK-02 | — | Pending |
-| LNK-03 | — | Pending |
-| LNK-04 | — | Pending |
-| STATE-01 | — | Pending |
-| STATE-02 | — | Pending |
-| STATE-03 | — | Pending |
-| STATE-04 | — | Pending |
-| TIMELINE-01 | — | Pending |
-| TIMELINE-02 | — | Pending |
-| TIMELINE-03 | — | Pending |
-| TIMELINE-04 | — | Pending |
-| RECON-01 | — | Pending |
-| RECON-02 | — | Pending |
-| RECON-03 | — | Pending |
-| RECON-04 | — | Pending |
-| RECON-05 | — | Pending |
-| RECON-06 | — | Pending |
-| RECON-07 | — | Pending |
-| PREPEND-01 | — | Pending |
-| PREPEND-02 | — | Pending |
-| PREPEND-03 | — | Pending |
-| MIGRATE-01 | — | Pending |
-| MIGRATE-02 | — | Pending |
-| MIGRATE-03 | — | Pending |
+| VAULT-01 | 31 | Mapped |
+| VAULT-02 | 31 | Mapped |
+| VAULT-03 | 31 | Mapped |
+| VAULT-04 | 31 | Mapped |
+| VAULT-05 | 31 | Mapped |
+| LNK-01 | 31 | Mapped |
+| LNK-02 | 31 | Mapped |
+| LNK-03 | 31 | Mapped |
+| LNK-04 | 31 | Mapped |
+| STATE-01 | 30 | Mapped |
+| STATE-02 | 30 | Mapped |
+| STATE-03 | 30 | Mapped |
+| STATE-04 | 30 | Mapped |
+| TIMELINE-01 | 32 | Mapped |
+| TIMELINE-02 | 32 | Mapped |
+| TIMELINE-03 | 32 | Mapped |
+| TIMELINE-04 | 32 | Mapped |
+| RECON-01 | 33 | Mapped |
+| RECON-02 | 33 | Mapped |
+| RECON-03 | 33 | Mapped |
+| RECON-04 | 33 | Mapped |
+| RECON-05 | 33 | Mapped |
+| RECON-06 | 33 | Mapped |
+| RECON-07 | 33 | Mapped |
+| PREPEND-01 | 34 | Mapped |
+| PREPEND-02 | 34 | Mapped |
+| PREPEND-03 | 34 | Mapped |
+| MIGRATE-01 | 35 | Mapped |
+| MIGRATE-02 | 35 | Mapped |
+| MIGRATE-03 | 35 | Mapped |
 
 **Coverage:**
 - v1 requirements: 30 total
-- Mapped to phases: 0
-- Unmapped: 30 ⚠️
+- Mapped to phases: 30
+- Unmapped: 0 ✅
 
 ---
 *Requirements defined: 2026-07-31*
