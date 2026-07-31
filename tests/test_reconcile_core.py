@@ -128,11 +128,11 @@ def test_run_reconcile_mode_ghost_folders(tmp_path):
         json.dump(routed_data, f)
         
     # Create the old structure with a leftover root file (to trigger ghost folder issue)
-    (target_dir / "514_finalized.pdf").write_text("old pdf")
+    (target_dir / "dummy_root_file.txt").write_text("old text")
     
     # Pre-create the new directory and collide the root file
     new_house_dir.mkdir(parents=True)
-    (new_house_dir / "514_finalized.pdf").write_text("new pdf")
+    (new_house_dir / "dummy_root_file.txt").write_text("new text")
     
     args = DummyArgs(target_dir=target_dir)
     
@@ -144,5 +144,5 @@ def test_run_reconcile_mode_ghost_folders(tmp_path):
     
     assert result == 0
     assert not target_dir.exists(), "The ghost directory was not completely merged and removed!"
-    assert (new_house_dir / "514_finalized.pdf").read_text() == "new pdf" or (new_house_dir / "514_finalized.pdf").read_text() == "old pdf"
+    assert (new_house_dir / "dummy_root_file.txt").read_text() == "new text" or (new_house_dir / "dummy_root_file.txt").read_text() == "old text"
     assert (new_house_dir / ".source_files").exists()

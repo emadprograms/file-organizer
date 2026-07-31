@@ -97,8 +97,9 @@ def test_hardcoded_routing(mock_extract, organizer, mock_config, tmp_path) -> No
     organizer.organize(docs, str(input_dir / "123.pdf"), "HOUSE_123", tmp_path, mock_config)
     assert mock_extract.called
     args, kwargs = mock_extract.call_args
-    assert "13_رسائل متنوعة" in args[3]
-    assert "nodate - رسالة.pdf" in args[3]
+    assert "vault" in args[3]
+    assert ".tmp.pdf" in args[3]
+    assert (tmp_path / "HOUSE_123" / "Resident A" / "13_رسائل متنوعة" / "nodate - رسالة.lnk").exists()
 
 @patch('src.timeline.core.extract_pdf_segment')
 def test_unassigned_folder_period(mock_extract, organizer, mock_config, tmp_path) -> None:
@@ -307,8 +308,10 @@ def test_organize_filename_conflict(mock_extract, organizer, mock_config, tmp_pa
     
     calls = mock_extract.call_args_list
     assert len(calls) == 2
-    assert calls[0][0][3].endswith("2023-01-01.pdf")
-    assert calls[1][0][3].endswith("2023-01-01_2.pdf")
+    assert calls[0][0][3] != calls[1][0][3]
+    assert "vault" in calls[0][0][3]
+    assert (tmp_path / "HOUSE_123 - Resident A" / "Resident A \u200E(2023 - 2023)\u200E" / "01_بيانات أساسية" / "2023-01-01.lnk").exists()
+    assert (tmp_path / "HOUSE_123 - Resident A" / "Resident A \u200E(2023 - 2023)\u200E" / "01_بيانات أساسية" / "2023-01-01_2.lnk").exists()
 
 def test_organize_path_traversal(organizer, mock_config, tmp_path) -> None:
     """

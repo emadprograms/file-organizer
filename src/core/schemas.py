@@ -41,6 +41,8 @@ class DocumentGroup(BaseModel):
     brief_arabic_title: str | None = None
     folder_path: str | None = None
     is_direct_routed: bool = False
+    vault_id: str | None = None
+    user_locked: bool = False
 
 class GroupEntry(BaseModel):
     """A document group defined by the LLM during the boundary detection phase."""

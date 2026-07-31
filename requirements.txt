@@ -12,3 +12,4 @@ PyYAML
 opencv-python
 numpy
 filelock
+pylnk3

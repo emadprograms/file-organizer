@@ -415,7 +415,7 @@ class FSUIOrchestrator:
         
         import fitz
         
-        finalized_pdf = house_dir / f"{house_id}_finalized.pdf"
+
         
         page_shift = 0
         try:
@@ -555,67 +555,7 @@ class FSUIOrchestrator:
                 except OSError:
                     pass
 
-        # Rebuild finalized.pdf by prepending the new compressed pages and updating TOC
-        import fitz as _fitz2
-        from src.pdf.compress import compress_pdf
-        
-        new_docs_for_toc = [DocumentGroup(**d) for d in new_docs_data]
-        finalized_path = house_dir / f"{house_id}_finalized.pdf"
-        import tempfile
-        import uuid
-        tmp_compressed_path = Path(tempfile.gettempdir()) / f"compressed_append_{uuid.uuid4().hex}.tmp.pdf"
-        tmp_finalized = Path(tempfile.gettempdir()) / f"finalized_{uuid.uuid4().hex}.tmp.pdf"
-        
-        try:
-            # 1. Compress the new pages
-            compress_pdf(str(filepath), str(tmp_compressed_path))
-            
-            # 2. Open existing finalized.pdf or create new
-            if finalized_path.exists():
-                full_pdf = _fitz2.open(str(finalized_path))
-            else:
-                full_pdf = _fitz2.open()
-                
-            # 3. Prepend compressed new pages
-            with _fitz2.open(str(tmp_compressed_path)) as new_pdf:
-                full_pdf.insert_pdf(new_pdf, start_at=0)
-                
-            # 4. Build TOC by prepending new docs to existing TOC.
-            # Note: PyMuPDF's insert_pdf automatically shifts existing TOC targets,
-            # so we just prepend the new items and append the existing (already shifted) items.
-            toc = full_pdf.get_toc()
-            
-            new_toc = []
-            for doc in new_docs_for_toc:
-                title = doc.brief_arabic_title or doc.folder_path or "بدون عنوان"
-                target_page = min(doc.start_page + 1, full_pdf.page_count)
-                new_toc.append([1, title, target_page])
-                
-            for item in toc:
-                new_toc.append(item)
-                
-            full_pdf.set_toc(new_toc)
-            
-            # 5. Save directly
-            full_pdf.save(str(tmp_finalized))
-            full_pdf.close()
-            
-            shutil.move(str(tmp_finalized), str(finalized_path))
-            logger.info(f"Updated finalized PDF: {finalized_path.name} ({finalized_path.stat().st_size} bytes)")
-        except Exception as e:
-            logger.error(f"Failed to rebuild finalized PDF: {e}")
-        finally:
-            if tmp_compressed_path.exists():
-                try:
-                    os.remove(str(tmp_compressed_path))
-                except OSError:
-                    pass
-            if tmp_finalized.exists():
-                try:
-                    os.remove(str(tmp_finalized))
-                except OSError:
-                    pass
-            
+
             try:
                 os.remove(str(filepath))
             except OSError as e:

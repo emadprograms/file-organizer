@@ -75,7 +75,7 @@
 | 29. Audit Test Mock Targets | v4.0 | 1/1 | Complete | 2026-07-24 |
 | 29.1. Fix Append-Mode Finalize Bugs | v4.0 | 1/1 | Complete | 2026-07-31 |
 | 30. Unified State Foundation | v5.0 | 1/1 | Complete | 2026-07-31 |
-| 31. Vault Core & Shortcut Utility | v5.0 | 0/0 | Ready | — |
+| 31. Vault Core & Shortcut Utility | v5.0 | 1/1 | Complete | 2026-07-31 |
 | 32. Pipeline Migration | v5.0 | 0/0 | Not Started | — |
 | 33. Bidirectional Reconciliation Engine | v5.0 | 0/0 | Not Started | — |
 | 34. Prepend Mode | v5.0 | 0/0 | Not Started | — |

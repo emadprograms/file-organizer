@@ -186,10 +186,13 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
     if not dry_run:
         from src.pdf.compress import compress_pdf
         
-        # Compress all individual generated PDFs
-        logger.info(f"Compressing {summary['output_file_count']} individual routed PDFs...")
-        for out_file_str in output_files:
-            abs_path = output_dir / out_file_str
+        # Compress all individual generated PDFs in the vault
+        vault_dir = house_dir / ".source_files" / "vault"
+        vault_ids = {p.get("vault_id") for p in per_page if p.get("vault_id")}
+        
+        logger.info(f"Compressing {len(vault_ids)} vault PDFs...")
+        for vid in vault_ids:
+            abs_path = vault_dir / f"doc_{vid}.pdf"
             if abs_path.exists():
                 tmp_path = abs_path.with_suffix('.tmp.pdf')
                 try:
@@ -197,7 +200,7 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
                     if tmp_path.exists():
                         shutil.move(str(tmp_path), str(abs_path))
                 except Exception as e:
-                    logger.error(f"Failed to compress {out_file_str}: {e}")
+                    logger.error(f"Failed to compress vault PDF {vid}: {e}")
                     if tmp_path.exists():
                         try:
                             os.remove(str(tmp_path))
@@ -205,32 +208,7 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
                             pass
         
         if fixed_house_dir is None:
-            # 1. Create finalized PDF with TOC
-            toc = []
-            # Create unique bookmark entries (avoid duplicates if same target folder for consecutive pages, or just list all)
-            # We will map each page exactly
-            for entry in per_page:
-                folder = entry.get("target_folder", "Unknown")
-                bookmark_title = folder.replace("/", " - ").replace("\\", " - ")
-                page_index = entry.get("page_index", 0)
-                toc.append([1, bookmark_title, page_index + 1])
-                
-            finalized_path = house_dir / f"{house_id}_finalized.pdf"
-            tmp_path = house_dir / f"{house_id}_finalized.tmp.pdf"
-            
-            logger.info(f"Generating TOC for {finalized_path.name}...")
-            try:
-                with fitz.open(str(pdf_path)) as pdf_doc:
-                    pdf_doc.set_toc(toc)
-                    pdf_doc.save(str(tmp_path))
-                    
-                logger.info(f"Compressing finalized PDF to {finalized_path.name}...")
-                compress_pdf(str(tmp_path), str(finalized_path))
-                
-                if tmp_path.exists():
-                    os.remove(str(tmp_path))
-            except Exception as e:
-                logger.error(f"Failed to create finalized PDF: {e}")
+            pass
         
         source_files_dir = house_dir / ".source_files"
         source_files_dir.mkdir(parents=True, exist_ok=True)
@@ -259,5 +237,10 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
         logger.info("Invoking visualizer for dry run output...")
         visualizer = Visualizer()
         visualizer.print_summary(full_house_id, summary, per_page, documents)
+        
+    if state is not None and not dry_run:
+        state.data["routed_documents"] = [doc.model_dump() for doc in documents]
+        state.save()
+        logger.info("Saved updated documents with vault_ids to state.")
         
     logger.info(f"Successfully generated {summary['output_file_count']} PDFs in {output_dir / full_house_id}")
