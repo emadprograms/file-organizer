@@ -32,20 +32,31 @@
 
 </details>
 
-### 🚧 v5.0 Vault Architecture & Bidirectional Reconciliation (Phases 30-35)
+### 🚧 v5.0 Vault Architecture & Bidirectional Reconciliation
 
-- [ ] Phase 30: Unified State Foundation (STATE-01, STATE-02, STATE-03, STATE-04)
-  - **Success Criteria**: Single `state.json` is created per house, legacy multi-json checkpoints are not generated, system continues to run crash-safe writes.
-- [ ] Phase 31: Vault Core & Shortcut Utility (VAULT-01, VAULT-02, VAULT-03, VAULT-04, VAULT-05, LNK-01, LNK-02, LNK-03, LNK-04)
-  - **Success Criteria**: Physical PDFs are copied to `.source_files/vault/` with UUIDs, Windows `.lnk` shortcuts are successfully generated using pylnk3, Shortcuts open the correct vault PDF targets.
-- [ ] Phase 32: Pipeline Migration (TIMELINE-01, TIMELINE-02, TIMELINE-03, TIMELINE-04)
-  - **Success Criteria**: `00_Timeline_View/` folder is generated containing numbered shortcuts, `finalized.pdf` is no longer created, Main pipeline output uses shortcuts instead of physical PDFs.
-- [ ] Phase 33: Bidirectional Reconciliation Engine (RECON-01, RECON-02, RECON-03, RECON-04, RECON-05, RECON-06, RECON-07)
-  - **Success Criteria**: Manually moved shortcuts trigger `user_locked: true` in `state.json`, Reconciliation re-routes unlocked documents based on `_tenants.yaml`, Timeline View is regenerated after moves.
-- [ ] Phase 34: Prepend Mode (PREPEND-01, PREPEND-02, PREPEND-03)
-  - **Success Criteria**: "append" is renamed to "prepend" across the app, Prepend mode adds incoming documents to the vault, New documents appear at the beginning of Timeline View.
-- [ ] Phase 35: Migration Script (MIGRATE-01, MIGRATE-02, MIGRATE-03)
-  - **Success Criteria**: Dry-run script lists changes without modifying files, Migration converts existing structured folders to vault format and pins locations.
+### Phase 30: Unified State Foundation
+**Requirements:** STATE-01, STATE-02, STATE-03, STATE-04
+**Success Criteria:** Single `state.json` is created per house, legacy multi-json checkpoints are not generated, system continues to run crash-safe writes.
+
+### Phase 31: Vault Core & Shortcut Utility
+**Requirements:** VAULT-01, VAULT-02, VAULT-03, VAULT-04, VAULT-05, LNK-01, LNK-02, LNK-03, LNK-04
+**Success Criteria:** Physical PDFs are copied to `.source_files/vault/` with UUIDs, Windows `.lnk` shortcuts are successfully generated using pylnk3, Shortcuts open the correct vault PDF targets.
+
+### Phase 32: Pipeline Migration
+**Requirements:** TIMELINE-01, TIMELINE-02, TIMELINE-03, TIMELINE-04
+**Success Criteria:** `00_Timeline_View/` folder is generated containing numbered shortcuts, `finalized.pdf` is no longer created, Main pipeline output uses shortcuts instead of physical PDFs.
+
+### Phase 33: Bidirectional Reconciliation Engine
+**Requirements:** RECON-01, RECON-02, RECON-03, RECON-04, RECON-05, RECON-06, RECON-07
+**Success Criteria:** Manually moved shortcuts trigger `user_locked: true` in `state.json`, Reconciliation re-routes unlocked documents based on `_tenants.yaml`, Timeline View is regenerated after moves.
+
+### Phase 34: Prepend Mode
+**Requirements:** PREPEND-01, PREPEND-02, PREPEND-03
+**Success Criteria:** "append" is renamed to "prepend" across the app, Prepend mode adds incoming documents to the vault, New documents appear at the beginning of Timeline View.
+
+### Phase 35: Migration Script
+**Requirements:** MIGRATE-01, MIGRATE-02, MIGRATE-03
+**Success Criteria:** Dry-run script lists changes without modifying files, Migration converts existing structured folders to vault format and pins locations.
 
 ## Progress
 
@@ -63,8 +74,8 @@
 | 28. Clean Up main.py Imports | v4.0 | 1/1 | Complete | 2026-07-24 |
 | 29. Audit Test Mock Targets | v4.0 | 1/1 | Complete | 2026-07-24 |
 | 29.1. Fix Append-Mode Finalize Bugs | v4.0 | 1/1 | Complete | 2026-07-31 |
-| 30. Unified State Foundation | v5.0 | 0/0 | Ready | — |
-| 31. Vault Core & Shortcut Utility | v5.0 | 0/0 | Not Started | — |
+| 30. Unified State Foundation | v5.0 | 1/1 | Complete | 2026-07-31 |
+| 31. Vault Core & Shortcut Utility | v5.0 | 0/0 | Ready | — |
 | 32. Pipeline Migration | v5.0 | 0/0 | Not Started | — |
 | 33. Bidirectional Reconciliation Engine | v5.0 | 0/0 | Not Started | — |
 | 34. Prepend Mode | v5.0 | 0/0 | Not Started | — |

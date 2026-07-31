@@ -171,8 +171,9 @@ def test_file_organizer_organize(tmp_path) -> None:
         )
     ]
     
-    # Create dummy pdf
-    dummy_pdf = tmp_path / "dummy.pdf"
+    test_dir = tmp_path / "test_dir"
+    test_dir.mkdir()
+    dummy_pdf = test_dir / "dummy.pdf"
     import fitz
     doc = fitz.open()
     doc.new_page()
@@ -192,7 +193,7 @@ def test_file_organizer_organize(tmp_path) -> None:
     
     # Check that it returns empty list if no docs
     empty_res = organizer.organize([], str(dummy_pdf), "123", tmp_path)
-    assert empty_res == []
+    assert empty_res[0] == []
 
 def test_file_organizer_dry_run(tmp_path) -> None:
     """

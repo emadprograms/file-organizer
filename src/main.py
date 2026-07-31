@@ -136,7 +136,7 @@ def get_parser() -> argparse.ArgumentParser:
     create_parser.add_argument(
         "--model", 
         type=str, 
-        default="gemma-4-31b-it", 
+        default="gemini-3.5-flash", 
         choices=["gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-2.5-flash"],
         help="LLM model to use for the main tasks"
     )
@@ -301,12 +301,14 @@ def main() -> int:
                     
                     json_paths = list(target_dir.glob(f"{house_id}_report*.json")) + list((target_dir / ".source_files").glob(f"{house_id}_report*.json"))
                     json_path = json_paths[0]
-                    output_json_path = output_dir / ".source_files" / f"{house_id}_1_cleaned.json"
+                    state_dir = output_dir / ".source_files"
+                    from src.core.state import State
+                    state = State(house_id, state_dir)
                     
-                    cleaned_pages, yaml_data = run_cleaning_pass(json_path, output_json_path, llm_client, logger, args.dry_run, house_id, target_dir)
-                    documents = run_grouping_pass(cleaned_pages, house_id, output_dir, llm_client, logger, args.dry_run)
-                    documents = run_routing_pass(documents, house_id, output_dir, llm_client, logger, args.dry_run, args.routing_model)
-                    run_generation_pass(documents, target_dir, house_id, output_dir, logger, args.dry_run, json_path, yaml_data)
+                    cleaned_pages, yaml_data = run_cleaning_pass(json_path, state, llm_client, logger, args.dry_run, house_id, target_dir)
+                    documents = run_grouping_pass(cleaned_pages, state, house_id, output_dir, llm_client, logger, args.dry_run)
+                    documents = run_routing_pass(documents, state, house_id, output_dir, llm_client, logger, args.dry_run, args.routing_model)
+                    run_generation_pass(documents, target_dir, house_id, output_dir, logger, args.dry_run, json_path, yaml_data, state=state)
             except Exception as e:
                 logger.exception(f"Failed processing {target_dir}: {e}")
                 has_errors = True

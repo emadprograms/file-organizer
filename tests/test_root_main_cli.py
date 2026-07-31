@@ -22,7 +22,7 @@ def test_parser_default_model() -> None:
     args = parser.parse_args(["create", "./pdfs/1273"])
     assert args.command == "create"
     assert args.target_dir == Path("./pdfs/1273")
-    assert args.model == "gemma-4-31b-it"
+    assert args.model == "gemini-3.5-flash"
 
 def test_parser_custom_model() -> None:
     """
@@ -159,7 +159,7 @@ def test_validate_target_directory_missing_pdf(tmp_path, capsys) -> None:
     from src.main import validate_target_directory
     with pytest.raises(ValidationError) as exc_info:
         validate_target_directory(target_dir)
-    assert "No *_categorized.pdf found" in str(exc_info.value)
+    assert "No PDF found in the target directory." in str(exc_info.value)
 
 def test_validate_target_directory_mismatch_id(tmp_path, capsys) -> None:
     """

@@ -15,7 +15,7 @@ progress:
 
 # Project State
 
-**Current Phase:** 30 (Unified State Foundation)
+**Current Phase:** 31 (Vault Core & Shortcut Utility)
 **Status:** Ready to plan
 
 ## Phase Progress
@@ -49,14 +49,14 @@ None.
 
 ## Current Position
 
-Phase: 30
+Phase: 31
 Plan: —
 Status: Ready to plan
 Last activity: 2026-07-31 — Defined roadmap for milestone v5.0
 
 ## Operator Next Steps
 
-- Run `/gsd-plan-phase 30` to plan Phase 30 (Unified State Foundation)
+- Run `/gsd-plan-phase 31` to plan Phase 31 (Vault Core & Shortcut Utility)
 - Or run `/gsd-autonomous` to execute all v5.0 phases sequentially
 
 ## Accumulated Context

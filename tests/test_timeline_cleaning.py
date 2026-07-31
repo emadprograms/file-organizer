@@ -426,8 +426,8 @@ def test_canonicalize_with_llm_missing_keys() -> None:
             """
             return '{"احمد": "احمد"}'
     
-    with pytest.raises(RuntimeError, match="LLM dropped names from the mapping"):
-        canonicalize_with_llm(["احمد", "محمد"], MissingKeyLLMClient())
+    res = canonicalize_with_llm(["احمد", "محمد"], MissingKeyLLMClient())
+    assert res == {"احمد": "احمد", "محمد": "محمد"}
 
 def test_process_cleaning_phase_integration(tmp_path) -> None:
     """Full integration test for the cleaning phase pipeline."""

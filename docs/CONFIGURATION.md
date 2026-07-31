@@ -9,10 +9,10 @@
 | `GEMINI_API_KEYS` | No | - | Included in `.env.example`. When using `rotate_process.py`, multiple keys can be specified. |
 | `OPENROUTER_API_KEY` | No | - | Placeholder API key in `.env.example` (currently unused). |
 | `GROQ_API_KEY` | No | - | Placeholder API key in `.env.example` (currently unused). |
-| `OPENROUTER_MODEL` | No | `google/gemma-4-31b-it` | Model identifier when OpenRouter is used. |
+| `OPENROUTER_MODEL` | No | `google/gemini-3.5-flash` | Model identifier when OpenRouter is used. |
 | `GROQ_MODEL` | No | `qwen/qwen3.6-27b` | Model identifier when Groq is used. |
-| `GEMINI_MODEL` | No | `gemini-3.5-flash-lite` | Default model identifier for Gemini orchestration. |
-| `ROUTING_MODEL` | No | `google/gemma-4-31b-it` | Default routing model for categorization. |
+| `GEMINI_MODEL` | No | `gemini-3.5-flash` | Default model identifier for Gemini orchestration. |
+| `ROUTING_MODEL` | No | `gemini-3.5-flash` | Default routing model for categorization. |
 
 ### Config File Format
 
@@ -37,12 +37,12 @@ The batch target directory for `rotate_process.py` is configured directly inside
 ### Defaults
 
 Optional settings have predefined fallback defaults defined in `src/core/config.py`:
-- `OPENROUTER_MODEL`: `google/gemma-4-31b-it`
+- `OPENROUTER_MODEL`: `google/gemini-3.5-flash`
 - `GROQ_MODEL`: `qwen/qwen3.6-27b`
-- `GEMINI_MODEL`: `gemini-3.5-flash-lite`
-- `ROUTING_MODEL`: `google/gemma-4-31b-it`
+- `GEMINI_MODEL`: `gemini-3.5-flash`
+- `ROUTING_MODEL`: `gemini-3.5-flash`
 
-The CLI entry point (`src/main.py`) also applies a default value for the `--model` argument: `gemini-3.5-flash-lite`.
+The CLI entry point (`src/main.py`) also applies a default value for the `--model` argument: `gemini-3.5-flash`.
 
 ### Per-Environment Overrides
 

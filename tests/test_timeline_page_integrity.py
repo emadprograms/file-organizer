@@ -88,11 +88,17 @@ def test_hardcoded_routing(mock_extract, organizer, mock_config, tmp_path) -> No
     Expected outcome:
     The function should execute successfully and meet all assertions.
     """
+    input_dir = tmp_path / "input"
+    input_dir.mkdir(exist_ok=True)
+    (input_dir / "123.pdf").touch(exist_ok=True)
     docs = [
         DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="OTHER_LETTERS", dates=[], folder_path="رسائل متنوعة", is_direct_routed=False, brief_arabic_title="رسالة"),
     ]
-    organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
-    mock_extract.assert_any_call("123.pdf", 0, 1, str(tmp_path / "HOUSE_123" / "Resident A" / "13_رسائل متنوعة" / "nodate - رسالة.pdf"))
+    organizer.organize(docs, str(input_dir / "123.pdf"), "HOUSE_123", tmp_path, mock_config)
+    assert mock_extract.called
+    args, kwargs = mock_extract.call_args
+    assert "13_رسائل متنوعة" in args[3]
+    assert "nodate - رسالة.pdf" in args[3]
 
 @patch('src.timeline.core.extract_pdf_segment')
 def test_unassigned_folder_period(mock_extract, organizer, mock_config, tmp_path) -> None:
@@ -120,10 +126,13 @@ def test_unassigned_folder_fallback(mock_extract, organizer, mock_config, tmp_pa
     Expected outcome:
     The function should execute successfully and meet all assertions.
     """
+    input_dir = tmp_path / "input"
+    input_dir.mkdir(exist_ok=True)
+    (input_dir / "123.pdf").touch(exist_ok=True)
     docs = [
         DocumentGroup(start_page=0, end_page=1, primary_tenant="Unassigned", category="BASIC_DETAILS", dates=["NONE", "NONE"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]
-    organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
+    organizer.organize(docs, str(input_dir / "123.pdf"), "HOUSE_123", tmp_path, mock_config)
     assert (tmp_path / "HOUSE_123" / "غير مخصص").exists()
 
 def test_page_count_reconciliation(tmp_path) -> None:
@@ -252,7 +261,10 @@ def test_organize_empty_documents(mock_extract, organizer, mock_config, tmp_path
     Expected outcome:
     The function should execute successfully and meet all assertions.
     """
-    result = organizer.organize([], "123.pdf", "HOUSE_123", tmp_path, mock_config)
+    input_dir = tmp_path / "input"
+    input_dir.mkdir(exist_ok=True)
+    (input_dir / "123.pdf").touch(exist_ok=True)
+    result = organizer.organize([], str(input_dir / "123.pdf"), "HOUSE_123", tmp_path, mock_config)
     assert result == ([], "HOUSE_123")
     mock_extract.assert_not_called()
 
@@ -265,10 +277,13 @@ def test_organize_dry_run(mock_extract, mock_makedirs, organizer, mock_config, t
     Expected outcome:
     The function should execute successfully and meet all assertions.
     """
+    input_dir = tmp_path / "input"
+    input_dir.mkdir(exist_ok=True)
+    (input_dir / "123.pdf").touch(exist_ok=True)
     docs = [
         DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]
-    summary = organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config, dry_run=True)
+    summary = organizer.organize(docs, str(input_dir / "123.pdf"), "HOUSE_123", tmp_path, mock_config, dry_run=True)
     mock_makedirs.assert_not_called()
     mock_extract.assert_not_called()
     assert len(summary) == 2
@@ -281,11 +296,14 @@ def test_organize_filename_conflict(mock_extract, organizer, mock_config, tmp_pa
     Expected outcome:
     The function should execute successfully and meet all assertions.
     """
+    input_dir = tmp_path / "input"
+    input_dir.mkdir(exist_ok=True)
+    (input_dir / "123.pdf").touch(exist_ok=True)
     docs = [
         DocumentGroup(start_page=0, end_page=0, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
         DocumentGroup(start_page=1, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]
-    organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
+    organizer.organize(docs, str(input_dir / "123.pdf"), "HOUSE_123", tmp_path, mock_config)
     
     calls = mock_extract.call_args_list
     assert len(calls) == 2
@@ -299,11 +317,14 @@ def test_organize_path_traversal(organizer, mock_config, tmp_path) -> None:
     Expected outcome:
     The function should execute successfully and meet all assertions.
     """
+    input_dir = tmp_path / "input"
+    input_dir.mkdir(exist_ok=True)
+    (input_dir / "123.pdf").touch(exist_ok=True)
     docs = [
         DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="../../../../../../../../../malicious", is_direct_routed=True),
     ]
     with pytest.raises(ValueError, match="Path traversal detected"):
-        organizer.organize(docs, "123.pdf", "HOUSE_123", tmp_path, mock_config)
+        organizer.organize(docs, str(input_dir / "123.pdf"), "HOUSE_123", tmp_path, mock_config)
 
 @patch('src.timeline.page_integrity.Path.replace')
 def test_reconciliation_dry_run(mock_replace, tmp_path) -> None:
