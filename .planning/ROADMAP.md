@@ -46,9 +46,9 @@
 - **Goal:** Switch main pipeline output to shortcut-based 00_Timeline_View/
 - **Success Criteria:** 00_Timeline_View/ folder is generated containing numbered shortcuts, finalized.pdf is no longer created, Main pipeline output uses shortcuts instead of physical PDFs.
 
-### Phase 33: Bidirectional Reconciliation Engine
-**Requirements:** RECON-01, RECON-02, RECON-03, RECON-04, RECON-05, RECON-06, RECON-07
-**Success Criteria:** Manually moved shortcuts trigger `user_locked: true` in `state.json`, Reconciliation re-routes unlocked documents based on `_tenants.yaml`, Timeline View is regenerated after moves.
+### Phase 33: Bidirectional Reconciliation Engine [Completed]
+- **Goal:** Allow users to fix categorization directly in folders, reflecting back into config.
+- **Success Criteria:** Re-running `file-organizer` over an existing house correctly diffs old vs new `.source_files/`, Updates old vault `.lnk` files if paths changed or deletes if removed, Rebuilds `.lnk` files correctly, Avoids orphaned shortcut links.yaml`, Timeline View is regenerated after moves.
 
 ### Phase 34: Prepend Mode
 **Requirements:** PREPEND-01, PREPEND-02, PREPEND-03

@@ -63,6 +63,62 @@ def run_reconcile_mode(args) -> int:
     with open(routed_path, 'r', encoding='utf-8') as f:
         routed_data = json.load(f)
         
+    # Phase 33: Scan physical shortcuts (RECON-01, RECON-02, RECON-07)
+    from src.utils.fs import read_shortcut_target
+    
+    physical_lnk_files = []
+    if target_dir.exists():
+        for lnk_path in target_dir.rglob("*.lnk"):
+            if ".source_files" in lnk_path.parts or "00_Timeline_View" in lnk_path.parts:
+                continue
+            physical_lnk_files.append(lnk_path)
+            
+    vault_id_to_page = {}
+    for p in routed_data.get("per_page", []):
+        if "vault_id" in p:
+            vault_id_to_page[p["vault_id"]] = p
+            
+    seen_vault_ids = set()
+    
+    for lnk_path in physical_lnk_files:
+        target_str = read_shortcut_target(str(lnk_path))
+        if not target_str:
+            continue
+            
+        filename = os.path.basename(target_str.replace('\\', '/'))
+        if filename.startswith("doc_") and filename.endswith(".pdf"):
+            vault_id = filename[4:-4]
+            seen_vault_ids.add(vault_id)
+            
+            if vault_id in vault_id_to_page:
+                p = vault_id_to_page[vault_id]
+                rel_path = lnk_path.relative_to(target_dir).as_posix()
+                
+                expected_parts = p["output_file"].split("/", 1)
+                expected_rel = expected_parts[1] if len(expected_parts) > 1 else expected_parts[0]
+                
+                if rel_path != expected_rel:
+                    logger.info(f"Detected manual move for {vault_id}: {expected_rel} -> {rel_path}")
+                    new_target_folder = str(Path(rel_path).parent.as_posix())
+                    if new_target_folder == ".":
+                        new_target_folder = ""
+                        
+                    p["target_folder"] = new_target_folder
+                    p["output_file"] = f"{target_dir.name}/{rel_path}"
+                    p["user_locked"] = True
+                    
+                    page_idx = p["page_index"]
+                    if page_idx < len(pages):
+                        pages[page_idx].user_locked = True
+                        
+                    for g in groups:
+                        if g.start_page <= page_idx <= g.end_page:
+                            g.user_locked = True
+                            break
+                            
+    for vault_id, p in vault_id_to_page.items():
+        if vault_id not in seen_vault_ids:
+            logger.warning(f"Shortcut for vault_id {vault_id} was deleted or missing.")
     timelines = []
     for t in yaml_data:
         end_d = t.get("end_date")
@@ -75,12 +131,14 @@ def run_reconcile_mode(args) -> int:
         
     final_mapping = {t["name"]: t["name"] for t in yaml_data}
     
-    # Reprocess the tenant assignment with updated timelines
-    assign_pages_to_tenants(pages, timelines, final_mapping)
+    # Reprocess the tenant assignment with updated timelines for unlocked pages
+    unlocked_pages = [p for p in pages if not getattr(p, "user_locked", False)]
+    assign_pages_to_tenants(unlocked_pages, timelines, final_mapping)
     
     for g in groups:
-        # Re-assign primary_tenant using the first page's canonical tenant
-        g.primary_tenant = pages[g.start_page].canonical_tenant
+        if not getattr(g, "user_locked", False):
+            # Re-assign primary_tenant using the first page's canonical tenant
+            g.primary_tenant = pages[g.start_page].canonical_tenant
         
     organizer = FileOrganizer()
     tenant_folder_names, latest_tenant = organizer.compute_tenant_folders(groups, yaml_data)
@@ -114,7 +172,15 @@ def run_reconcile_mode(args) -> int:
             new_tenant_folder = tenant_folder_names.get("Unassigned", "غير مخصص")
             
         new_target_folder = f"{new_tenant_folder}/{topic}" if topic else new_tenant_folder
-        new_output_file = f"{full_house_id}/{new_target_folder}/{file_name}"
+        
+        # If user_locked, retain manual placement
+        if p.get("user_locked", False):
+            new_target_folder = p["target_folder"]
+            # Keep the old filename, but update the root folder to the new full_house_id
+            old_filename = Path(p["output_file"]).name
+            new_output_file = f"{full_house_id}/{new_target_folder}/{old_filename}"
+        else:
+            new_output_file = f"{full_house_id}/{new_target_folder}/{file_name}"
         
         if old_output_file != new_output_file:
             moves.add((old_output_file, new_output_file))
@@ -143,6 +209,27 @@ def run_reconcile_mode(args) -> int:
     else:
         logger.info("No file moves required based on the updated tenants.")
         
+    # Phase 33: RECON-06 Regenerate 00_Timeline_View/
+    if not getattr(args, 'dry_run', False):
+        timeline_dir = target_dir / "00_Timeline_View"
+        if timeline_dir.exists():
+            shutil.rmtree(str(timeline_dir))
+        timeline_dir.mkdir(parents=True, exist_ok=True)
+        # Create shortcuts
+        idx = 1
+        for p in sorted(new_per_page, key=lambda x: (x.get('dates', [''])[0] if x.get('dates') else '', x.get('page_index', 0))):
+            doc_title = p.get('brief_arabic_title') or f"Doc_{p.get('page_index', 0)}"
+            link_name = f"{idx:03d}_{doc_title}.lnk"
+            lnk_path = timeline_dir / link_name
+            
+            # The vault PDF path
+            if "vault_id" in p:
+                vault_pdf = target_dir / ".source_files" / "vault" / f"doc_{p['vault_id']}.pdf"
+                if vault_pdf.exists():
+                    from src.utils.fs import create_shortcut
+                    create_shortcut(str(vault_pdf.resolve()), str(lnk_path))
+            idx += 1
+            
     # Move all files and .source_files to the new house directory if it changed
     new_house_dir = output_base_dir / full_house_id
     if target_dir != new_house_dir and not getattr(args, 'dry_run', False):

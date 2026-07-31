@@ -13,6 +13,7 @@ class PageData(BaseModel):
         expected_tenant_name (Optional[str]): The extracted tenant name, if any.
         expected_house_number (Optional[str]): The extracted house number, if any.
         date (Optional[str]): The raw extracted date, if any.
+        user_locked (bool): Whether the page data has been manually locked by the user.
         sender (Optional[str]): Sender of the document, if any.
         receiver (Optional[str]): Receiver of the document, if any.
         subject (Optional[str]): Subject of the document, if any.
@@ -32,6 +33,7 @@ class PageData(BaseModel):
     canonical_tenant: Optional[str] = None
     resolved_date: Optional[str] = None
     original_index: int
+    user_locked: bool = False
 
 class TenantTimeline(BaseModel):
     """Data model representing the active timeline for a canonical tenant.

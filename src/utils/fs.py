@@ -109,3 +109,22 @@ def create_shortcut(target_path: str, link_path: str) -> None:
         lnk.link_flags.HasExpString = True
         
     lnk.save(link_path)
+
+
+def read_shortcut_target(link_path: str) -> str | None:
+    """Reads a Windows .lnk shortcut and returns the target path.
+    
+    Args:
+        link_path: Absolute path to the .lnk file.
+        
+    Returns:
+        The target path as a string, or None if it cannot be parsed.
+    """
+    import pylnk3
+    try:
+        with open(link_path, "rb") as f:
+            lnk = pylnk3.parse(f)
+            return lnk.path
+    except Exception as e:
+        logger.warning(f"Could not parse shortcut {link_path}: {e}")
+        return None
