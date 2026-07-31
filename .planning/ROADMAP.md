@@ -50,9 +50,9 @@
 - **Goal:** Allow users to fix categorization directly in folders, reflecting back into config.
 - **Success Criteria:** Re-running `file-organizer` over an existing house correctly diffs old vs new `.source_files/`, Updates old vault `.lnk` files if paths changed or deletes if removed, Rebuilds `.lnk` files correctly, Avoids orphaned shortcut links.yaml`, Timeline View is regenerated after moves.
 
-### Phase 34: Prepend Mode
-**Requirements:** PREPEND-01, PREPEND-02, PREPEND-03
-**Success Criteria:** "append" is renamed to "prepend" across the app, Prepend mode adds incoming documents to the vault, New documents appear at the beginning of Timeline View.
+### Phase 34: Prepend Mode [Completed]
+- **Goal:** Switch new documents to be prepended instead of appended.
+- **Success Criteria:** All commands referencing `append` are renamed to `prepend`, Documentation matches the new prepend terminology, Tests are updated.s incoming documents to the vault, New documents appear at the beginning of Timeline View.
 
 ### Phase 35: Migration Script
 **Requirements:** MIGRATE-01, MIGRATE-02, MIGRATE-03

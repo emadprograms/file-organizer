@@ -143,12 +143,12 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
     organizer = FileOrganizer()
     if fixed_house_dir is not None:
         per_page, full_house_id = organizer.organize(
-            documents, str(pdf_path), house_id, output_dir, yaml_data=yaml_data, dry_run=dry_run, append_mode=True
+            documents, str(pdf_path), house_id, output_dir, yaml_data=yaml_data, dry_run=dry_run, prepend_mode=True
         )
         house_dir = fixed_house_dir
     else:
         per_page, full_house_id = organizer.organize(
-            documents, str(pdf_path), house_id, output_dir, yaml_data=yaml_data, dry_run=dry_run, append_mode=False
+            documents, str(pdf_path), house_id, output_dir, yaml_data=yaml_data, dry_run=dry_run, prepend_mode=False
         )
         house_dir = output_dir / full_house_id
     
@@ -214,7 +214,7 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
         source_files_dir.mkdir(parents=True, exist_ok=True)
         
         # Delete the original categorized PDF upon completion
-        if pdf_path.exists() and not pdf_path.name.endswith("_finalized.pdf") and not pdf_path.name.endswith("_raw_append.pdf"):
+        if pdf_path.exists() and not pdf_path.name.endswith("_finalized.pdf") and not pdf_path.name.endswith("_raw_prepend.pdf"):
             try:
                 os.remove(str(pdf_path))
             except OSError as e:

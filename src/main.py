@@ -76,8 +76,8 @@ def validate_target_directory(target_dir: Path) -> list[str]:
         
     return ids
 
-def run_append_mode(config: Any, skip_llm: bool = False) -> None:
-    """Run the listener in append mode with a process-exclusive lock.
+def run_prepend_mode(config: Any, skip_llm: bool = False) -> None:
+    """Run the listener in prepend mode with a process-exclusive lock.
     
     Args:
         config (AppConfig): The application configuration.
@@ -167,11 +167,11 @@ def get_parser() -> argparse.ArgumentParser:
         help="Optional: Path to the output base directory. Defaults to the parent of the house folder if target_dir is the house folder, otherwise to target_dir."
     )
     
-    # append mode
-    append_parser = subparsers.add_parser("append", help="Start the listener on the inbox")
-    append_parser.add_argument(
-        "--skip-llm",
-        action="store_true",
+    # prepend mode
+    prepend_parser = subparsers.add_parser("prepend", help="Start the listener on the inbox")
+    prepend_parser.add_argument(
+        "--skip-llm", 
+        action="store_true", 
         help="Skip LLM calls and return mocked schemas."
     )
     
@@ -215,8 +215,8 @@ def main() -> int:
         logger.exception(f"Unexpected error loading config: {e}")
         return 1
 
-    if args.command == "append":
-        run_append_mode(config, skip_llm=getattr(args, 'skip_llm', False))
+    if args.command == "prepend":
+        run_prepend_mode(config, skip_llm=getattr(args, 'skip_llm', False))
         return 0
 
     if args.command == "reconcile":

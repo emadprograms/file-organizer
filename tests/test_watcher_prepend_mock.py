@@ -127,13 +127,13 @@ def test_mock_append_finalize(mock_config, mock_llm):
     file_hash = hasher.hexdigest()
     
     (tmp_dir / "pdf_hash.txt").write_text(file_hash)
-    (tmp_dir / "_routed_append_mode.json").write_text("[]")
+    (tmp_dir / "_routed_prepend_mode.json").write_text("[]")
     
     house_dir = EXPECTED_OUTPUT_DIR / "1273" / "1273 - يونس محمد ملاك"
     house_dir.mkdir(parents=True, exist_ok=True)
     source_files_dir = house_dir / ".source_files"
     source_files_dir.mkdir(parents=True, exist_ok=True)
-    (source_files_dir / "1273_raw_append.pdf").touch()
+    (source_files_dir / "1273_raw_prepend.pdf").touch()
     
     orchestrator = FSUIOrchestrator(mock_config, mock_llm)
     
@@ -163,5 +163,5 @@ def test_mock_append_finalize(mock_config, mock_llm):
                 if tmp_dir.exists():
                     shutil.rmtree(tmp_dir, ignore_errors=True)
         
-        # Generation pass might not be called if we wrote "[]" to routed_append_mode.json
+        # Generation pass might not be called if we wrote "[]" to routed_prepend_mode.json
         # But we verify it completes without errors

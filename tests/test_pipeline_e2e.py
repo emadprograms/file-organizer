@@ -73,14 +73,14 @@ def create_workspace(tmp_path: Path, house: str = "1273") -> tuple[Path, Path, P
     return workspace, inbox, areas
 
 @patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
-def test_cli_append_1273(tmp_path) -> None:
+def test_cli_prepend_1273(tmp_path) -> None:
     workspace, inbox, areas = create_workspace(tmp_path, "1273")
     stem = "SAFC 1273 U G U"
     
     shutil.copy(FIXTURES_DIR / "inbox" / f"{stem}.pdf", inbox / f"{stem}.pdf")
     inject_mock_report(inbox, stem)
     
-    test_args = ["main.py", "append", "--skip-llm"]
+    test_args = ["main.py", "prepend", "--skip-llm"]
     
     with patch("src.main.LLMClient") as MockLLMClient, patch("src.watcher.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
         mock_client = MockLLMClient.return_value
@@ -98,14 +98,14 @@ def test_cli_append_1273(tmp_path) -> None:
     assert proposed_files[0].name == "Safra C 1273 U 5 2006-04-18 Unknown Proposed.pdf"
 
 @patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
-def test_cli_append_1273_tenant_folder(tmp_path) -> None:
+def test_cli_prepend_1273_tenant_folder(tmp_path) -> None:
     workspace, inbox, areas = create_workspace(tmp_path, "1273")
     stem = "SAFC 1273 يونس 7 U"
     
     shutil.copy(FIXTURES_DIR / "inbox" / f"{stem}.pdf", inbox / f"{stem}.pdf")
     inject_mock_report(inbox, stem)
     
-    test_args = ["main.py", "append", "--skip-llm"]
+    test_args = ["main.py", "prepend", "--skip-llm"]
     
     with patch("src.main.LLMClient") as MockLLMClient, patch("src.watcher.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
         mock_client = MockLLMClient.return_value
@@ -123,14 +123,14 @@ def test_cli_append_1273_tenant_folder(tmp_path) -> None:
     assert proposed_files[0].name == "Safra C 1273 يونس 7 2006-04-18 Unknown Proposed.pdf"
 
 @patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
-def test_cli_append_1273_unknown(tmp_path) -> None:
+def test_cli_prepend_1273_unknown(tmp_path) -> None:
     workspace, inbox, areas = create_workspace(tmp_path, "1273")
     stem = "U 1273 U U U"
     
     shutil.copy(FIXTURES_DIR / "inbox" / f"{stem}.pdf", inbox / f"{stem}.pdf")
     inject_mock_report(inbox, stem)
     
-    test_args = ["main.py", "append", "--skip-llm"]
+    test_args = ["main.py", "prepend", "--skip-llm"]
     
     with patch("src.main.LLMClient") as MockLLMClient, patch("src.watcher.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
         mock_client = MockLLMClient.return_value
@@ -148,14 +148,14 @@ def test_cli_append_1273_unknown(tmp_path) -> None:
     assert proposed_files[0].name == "Safra C 1273 يونس محمد مالك 5 2006-04-18 عقد Proposed.pdf"
 
 @patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
-def test_cli_append_504(tmp_path) -> None:
+def test_cli_prepend_504(tmp_path) -> None:
     workspace, inbox, areas = create_workspace(tmp_path, "504")
     stem = "U 504 U U U"
     
     shutil.copy(FIXTURES_DIR / "inbox" / f"{stem}.pdf", inbox / f"{stem}.pdf")
     inject_mock_report(inbox, stem)
     
-    test_args = ["main.py", "append", "--skip-llm"]
+    test_args = ["main.py", "prepend", "--skip-llm"]
     
     with patch("src.main.LLMClient") as MockLLMClient, patch("src.watcher.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
         mock_client = MockLLMClient.return_value
@@ -173,14 +173,14 @@ def test_cli_append_504(tmp_path) -> None:
     assert proposed_files[0].name == "Safra D 504 أحمد يوسف المريسل 13 2021-05-24 عنوان تجريبي Proposed.pdf"
 
 @patch.dict(os.environ, {"GEMINI_API_KEY": "dummy_key"})
-def test_cli_append_broken(tmp_path) -> None:
+def test_cli_prepend_broken(tmp_path) -> None:
     workspace, inbox, areas = create_workspace(tmp_path, "1273")
     stem = "broken"
     
     shutil.copy(FIXTURES_DIR / "inbox" / f"{stem}.pdf", inbox / f"{stem}.pdf")
     inject_mock_report(inbox, stem)
     
-    test_args = ["main.py", "append", "--skip-llm"]
+    test_args = ["main.py", "prepend", "--skip-llm"]
     
     with patch("src.main.LLMClient") as MockLLMClient, patch("src.watcher.orchestrator.time.sleep", side_effect=[None, SystemExit(0)]):
         mock_client = MockLLMClient.return_value

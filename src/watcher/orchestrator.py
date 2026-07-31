@@ -275,13 +275,13 @@ class FSUIOrchestrator:
                     doc_group.start_page = 0
                     doc_group.end_page = end_idx - start_idx
                     
-                    with open(doc_tmp_dir / "_report_append_mode.json", 'w', encoding='utf-8') as f:
+                    with open(doc_tmp_dir / "_report_prepend_mode.json", 'w', encoding='utf-8') as f:
                         json.dump(doc_report, f, ensure_ascii=False, indent=2)
-                    with open(doc_tmp_dir / "_cleaned_append_mode.json", 'w', encoding='utf-8') as f:
+                    with open(doc_tmp_dir / "_cleaned_prepend_mode.json", 'w', encoding='utf-8') as f:
                         json.dump(doc_cleaned, f, ensure_ascii=False, indent=2)
-                    with open(doc_tmp_dir / "_grouped_append_mode.json", 'w', encoding='utf-8') as f:
+                    with open(doc_tmp_dir / "_grouped_prepend_mode.json", 'w', encoding='utf-8') as f:
                         json.dump([doc_group.model_dump()], f, ensure_ascii=False, indent=2)
-                    with open(doc_tmp_dir / "_routed_append_mode.json", 'w', encoding='utf-8') as f:
+                    with open(doc_tmp_dir / "_routed_prepend_mode.json", 'w', encoding='utf-8') as f:
                         json.dump([doc_group.model_dump()], f, ensure_ascii=False, indent=2)
                         
                     logger.info(f"✅ SUCCESS: Created proposed file in Inbox: {new_pdf_name}")
@@ -384,7 +384,7 @@ class FSUIOrchestrator:
             return
 
         if parsed_cmd:
-            routed_json = tmp_dir / "_routed_append_mode.json"
+            routed_json = tmp_dir / "_routed_prepend_mode.json"
             if routed_json.exists():
                 with open(routed_json, 'r', encoding='utf-8') as f:
                     docs_data = json.load(f)
@@ -405,7 +405,7 @@ class FSUIOrchestrator:
                     with open(routed_json, 'w', encoding='utf-8') as f:
                         json.dump(docs_data, f, ensure_ascii=False, indent=2)
                         
-                    grouped_json = tmp_dir / "_grouped_append_mode.json"
+                    grouped_json = tmp_dir / "_grouped_prepend_mode.json"
                     if grouped_json.exists():
                         with open(grouped_json, 'w', encoding='utf-8') as f:
                             json.dump(docs_data, f, ensure_ascii=False, indent=2)
@@ -479,9 +479,9 @@ class FSUIOrchestrator:
             with open(master_path, 'w', encoding='utf-8') as f:
                 json.dump(master_data, f, ensure_ascii=False, indent=2)
 
-        merge_json(f"{house_id}_report.json", "_report_append_mode.json", False, False)
-        merge_json(f"{house_id}_1_cleaned.json", "_cleaned_append_mode.json", True, False)
-        merge_json(f"{house_id}_2_grouped.json", "_grouped_append_mode.json", False, True)
+        merge_json(f"{house_id}_report.json", "_report_prepend_mode.json", False, False)
+        merge_json(f"{house_id}_1_cleaned.json", "_cleaned_prepend_mode.json", True, False)
+        merge_json(f"{house_id}_2_grouped.json", "_grouped_prepend_mode.json", False, True)
 
 
 
@@ -491,12 +491,12 @@ class FSUIOrchestrator:
         
         # _3_routed_and_finalized.json will be properly handled by run_generation_pass
         # We just need to load the new documents to generate PDFs for them.
-        append_json_path = tmp_dir / "_routed_append_mode.json"
+        append_json_path = tmp_dir / "_routed_prepend_mode.json"
         if append_json_path.exists():
             with open(append_json_path, 'r', encoding='utf-8') as f:
                 new_docs_data = json.load(f)
         else:
-            logger.warning("No tmp _routed_append_mode.json found. Skipping generation pass.")
+            logger.warning("No tmp _routed_prepend_mode.json found. Skipping generation pass.")
             shutil.rmtree(tmp_dir, ignore_errors=True)
             try:
                 os.remove(str(filepath))
@@ -514,7 +514,7 @@ class FSUIOrchestrator:
             return
 
         # Re-index the new documents to be zero-relative (they reference absolute positions
-        # in raw_append.pdf, but we will extract a slice of that PDF)
+        # in raw_prepend.pdf, but we will extract a slice of that PDF)
         new_docs = []
         for d in new_docs_data:
             doc = DocumentGroup(**d)

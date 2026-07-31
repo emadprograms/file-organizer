@@ -122,7 +122,7 @@ class FileOrganizer:
         tenant_folder_names: dict[str, str], 
         full_house_id: str, 
         output_base_dir: Path,
-        append_mode: bool = False
+        prepend_mode: bool = False
     ) -> Path:
         """Create target directories for organization.
 
@@ -134,7 +134,7 @@ class FileOrganizer:
             tenant_folder_names (dict[str, str]): Mapping of raw tenant names to target subfolder names.
             full_house_id (str): The combined house identifier and active tenant.
             output_base_dir (Path): The base output path.
-            append_mode (bool): If True, skip renaming logic.
+            prepend_mode (bool): If True, skip renaming logic.
 
         Returns:
             Path: The resulting canonical house directory path.
@@ -142,7 +142,7 @@ class FileOrganizer:
         house_dir = output_base_dir / full_house_id
         
         # Rename or merge target_dir if it's different from house_dir
-        if target_dir != house_dir and target_dir.exists() and not append_mode:
+        if target_dir != house_dir and target_dir.exists() and not prepend_mode:
             if not house_dir.exists():
                 try:
                     target_dir.rename(house_dir)
@@ -174,7 +174,8 @@ class FileOrganizer:
         house_id: str, 
         output_base_dir: Path, 
         tenant_folder_names: dict[str, str], 
-        dry_run: bool = False
+        dry_run: bool = False,
+        prepend_mode: bool = False
     ) -> list[dict[str, Any]]:
         """Extract and save document segments.
 
@@ -209,13 +210,30 @@ class FileOrganizer:
             
         doc_counter = 1
         if timeline_dir.exists():
-            for f in timeline_dir.glob("*.lnk"):
-                try:
-                    num = int(f.name.split(" - ")[0])
-                    if num >= doc_counter:
-                        doc_counter = num + 1
-                except ValueError:
-                    pass
+            if prepend_mode and not dry_run:
+                # Shift existing timeline links up by the number of new documents
+                shift_amount = len(documents)
+                existing_links = list(timeline_dir.glob("*.lnk"))
+                # Sort descending to avoid rename collisions
+                existing_links.sort(key=lambda x: x.name, reverse=True)
+                for f in existing_links:
+                    try:
+                        num_part, rest = f.name.split(" - ", 1)
+                        num = int(num_part)
+                        new_num = num + shift_amount
+                        new_name = f"{new_num:03d} - {rest}"
+                        f.rename(timeline_dir / new_name)
+                    except ValueError:
+                        pass
+                doc_counter = 1
+            else:
+                for f in timeline_dir.glob("*.lnk"):
+                    try:
+                        num = int(f.name.split(" - ")[0])
+                        if num >= doc_counter:
+                            doc_counter = num + 1
+                    except ValueError:
+                        pass
         
         for doc in documents:
             tenant = doc.primary_tenant
@@ -348,7 +366,7 @@ class FileOrganizer:
         output_base_dir: Path, 
         yaml_data: list[dict[str, Any]] | None = None,
         dry_run: bool = False,
-        append_mode: bool = False,
+        prepend_mode: bool = False,
         fixed_house_dir: Path | None = None
     ) -> tuple[list[dict[str, Any]], str]:
         """Orchestrate the parsing, extraction, and file management.
@@ -360,7 +378,7 @@ class FileOrganizer:
             output_base_dir (Path): The root output directory.
             yaml_data (list[dict[str, Any]] | None): Optional parsed tenant configuration.
             dry_run (bool): If True, simulate execution without writing files.
-            append_mode (bool): If True, skip renaming logic and accept fixed house directory.
+            prepend_mode (bool): If True, skip renaming logic and accept fixed house directory.
             fixed_house_dir (Path | None): If provided, use this exact path for the house directory.
 
         Returns:
@@ -388,9 +406,9 @@ class FileOrganizer:
 
         if not dry_run:
             # Create directories
-            house_dir = self.ensure_target_directories(target_dir, tenant_folder_names, full_house_id, output_base_dir, append_mode=append_mode)
+            house_dir = self.ensure_target_directories(target_dir, tenant_folder_names, full_house_id, output_base_dir, prepend_mode=prepend_mode)
             if target_dir != house_dir and not target_dir.exists() and house_dir.exists():
                 source_pdf = str(house_dir / Path(source_pdf).name)
 
-        per_page = self.process_documents(documents, source_pdf, full_house_id, output_base_dir, tenant_folder_names, dry_run)
+        per_page = self.process_documents(documents, source_pdf, full_house_id, output_base_dir, tenant_folder_names, dry_run, prepend_mode)
         return per_page, full_house_id

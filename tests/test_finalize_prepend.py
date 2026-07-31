@@ -27,7 +27,7 @@ def create_dummy_pdf(path: Path, pages: int = 1):
     doc.save(str(path))
     doc.close()
 
-def test_ensure_target_dirs_append_mode_no_rename(tmp_path):
+def test_ensure_target_dirs_prepend_mode_no_rename(tmp_path):
     organizer = FileOrganizer()
     
     target_dir = tmp_path / "temp_target"
@@ -46,7 +46,7 @@ def test_ensure_target_dirs_append_mode_no_rename(tmp_path):
         tenant_folder_names=tenant_folders,
         full_house_id="502 - OldTenant",
         output_base_dir=output_base,
-        append_mode=True
+        prepend_mode=True
     )
     
     assert result_path == house_dir
@@ -91,7 +91,7 @@ def test_finalize_uses_existing_house_dir(mock_copy, mock_compress, mock_run_gen
     tmp_dir = orchestrator.cache_dir / f".tmp_{inbox_pdf.name[:-7]} Proposed"
     tmp_dir.mkdir(parents=True)
     
-    with open(tmp_dir / "_routed_append_mode.json", "w", encoding="utf-8") as f:
+    with open(tmp_dir / "_routed_prepend_mode.json", "w", encoding="utf-8") as f:
         json.dump([
             {"start_page": 0, "end_page": 0, "primary_tenant": "NewTenant", "folder_path": "folder", "dates": ["2024"], "brief_arabic_title": "new", "category": "Unknown"}
         ], f)
@@ -148,7 +148,7 @@ def test_finalize_no_raw_append_created(mock_compress, mock_run_gen, tmp_path, m
     tmp_dir = orchestrator.cache_dir / f".tmp_{inbox_pdf.name[:-7]} Proposed"
     tmp_dir.mkdir(parents=True)
     
-    with open(tmp_dir / "_routed_append_mode.json", "w", encoding="utf-8") as f:
+    with open(tmp_dir / "_routed_prepend_mode.json", "w", encoding="utf-8") as f:
         json.dump([
             {"start_page": 0, "end_page": 0, "primary_tenant": "NewTenant", "folder_path": "folder", "dates": ["2024"], "brief_arabic_title": "new", "category": "Unknown"}
         ], f)
@@ -160,7 +160,7 @@ def test_finalize_no_raw_append_created(mock_compress, mock_run_gen, tmp_path, m
 
     orchestrator.finalize(inbox_pdf)
     
-    assert not (source_files / "502_raw_append.pdf").exists()
-    assert not (house_dir / "502_raw_append.pdf").exists()
+    assert not (source_files / "502_raw_prepend.pdf").exists()
+    assert not (house_dir / "502_raw_prepend.pdf").exists()
 
 

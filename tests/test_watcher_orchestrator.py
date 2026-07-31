@@ -240,7 +240,7 @@ def test_finalize_moves_and_invokes_pipeline(mock_config, mock_llm):
         "dates": ["2023-01-01"], "brief_arabic_title": "Invoice",
         "folder_path": "01_Test"
     }]
-    (tmp_dir / "_routed_append_mode.json").write_text(json.dumps(routed_data))
+    (tmp_dir / "_routed_prepend_mode.json").write_text(json.dumps(routed_data))
     
     house_dir = Path(mock_config.areas_root_path) / "Area1" / "123"
     house_dir.mkdir(parents=True, exist_ok=True)

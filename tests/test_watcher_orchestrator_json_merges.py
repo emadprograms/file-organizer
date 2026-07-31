@@ -73,7 +73,7 @@ def test_orchestrator_json_merge_bugfixes(mock_remove, mock_shutil, mock_rgp, mo
     new_report = [
         {"status": "classified", "category": "forms"}
     ]
-    with open(tmp_dir / "_report_append_mode.json", "w") as f:
+    with open(tmp_dir / "_report_prepend_mode.json", "w") as f:
         json.dump(new_report, f)
         
     new_routed = [
@@ -87,12 +87,12 @@ def test_orchestrator_json_merge_bugfixes(mock_remove, mock_shutil, mock_rgp, mo
             "output_file": "new_add.pdf"
         }
     ]
-    with open(tmp_dir / "_routed_append_mode.json", "w") as f:
+    with open(tmp_dir / "_routed_prepend_mode.json", "w") as f:
         json.dump(new_routed, f)
         
-    with open(tmp_dir / "_cleaned_append_mode.json", "w") as f:
+    with open(tmp_dir / "_cleaned_prepend_mode.json", "w") as f:
         json.dump([], f)
-    with open(tmp_dir / "_grouped_append_mode.json", "w") as f:
+    with open(tmp_dir / "_grouped_prepend_mode.json", "w") as f:
         json.dump([], f)
 
     # Mock parse_filename_syntax to return an object with tenant_hint
