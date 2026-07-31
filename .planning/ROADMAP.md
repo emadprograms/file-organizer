@@ -54,9 +54,9 @@
 - **Goal:** Switch new documents to be prepended instead of appended.
 - **Success Criteria:** All commands referencing `append` are renamed to `prepend`, Documentation matches the new prepend terminology, Tests are updated.s incoming documents to the vault, New documents appear at the beginning of Timeline View.
 
-### Phase 35: Migration Script
-**Requirements:** MIGRATE-01, MIGRATE-02, MIGRATE-03
-**Success Criteria:** Dry-run script lists changes without modifying files, Migration converts existing structured folders to vault format and pins locations.
+### Phase 35: Migration Script [Completed]
+- **Goal:** Build a seamless one-click migration for older categorized houses to switch to the new shortcut architecture.
+- **Success Criteria:** Dry-run script lists changes without modifying files, Migration converts existing structured folders to vault format and pins locations.
 
 ## Progress
 

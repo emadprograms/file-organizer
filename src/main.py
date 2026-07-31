@@ -176,11 +176,19 @@ def get_parser() -> argparse.ArgumentParser:
     )
     
     # reconcile mode
-    reconcile_parser = subparsers.add_parser("reconcile", help="Reconcile documents with updated configurations")
-    reconcile_parser.add_argument("target_dir", type=Path, help="Path to the target house directory")
-    reconcile_parser.add_argument("--tenants", action="store_true", help="Reconcile based on updated _tenants.yaml")
+    reconcile_parser = subparsers.add_parser("reconcile", help="Reconcile existing categorized documents")
+    reconcile_parser.add_argument(
+        "--tenants", action="store_true", help="Only run tenant reallocation logic"
+    )
     reconcile_parser.add_argument("--dry-run", action="store_true", help="Preview the operations without moving files")
     reconcile_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+    
+    # migrate mode
+    migrate_parser = subparsers.add_parser("migrate", help="Migrate a v4 house to v5 vault architecture")
+    migrate_parser.add_argument("target_dir", type=Path, help="Path to the target house directory")
+    migrate_parser.add_argument(
+        "--dry-run", action="store_true", help="Preview changes without modifying files"
+    )
     
     return parser
 
@@ -227,6 +235,12 @@ def main() -> int:
         else:
             logger.error("Must specify --tenants with reconcile mode")
             return 1
+
+    if args.command == "migrate":
+        setup_logging(verbose=getattr(args, 'verbose', False))
+        set_verbosity(getattr(args, 'verbose', False))
+        from src.migration.v5_migration import migrate_to_v5
+        return migrate_to_v5(args.target_dir.resolve(), dry_run=getattr(args, 'dry_run', False))
 
     # Ensure create mode paths are within allowed root
     target_path = args.target_dir.resolve()
