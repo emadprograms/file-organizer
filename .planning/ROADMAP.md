@@ -42,9 +42,9 @@
 **Requirements:** VAULT-01, VAULT-02, VAULT-03, VAULT-04, VAULT-05, LNK-01, LNK-02, LNK-03, LNK-04
 **Success Criteria:** Physical PDFs are copied to `.source_files/vault/` with UUIDs, Windows `.lnk` shortcuts are successfully generated using pylnk3, Shortcuts open the correct vault PDF targets.
 
-### Phase 32: Pipeline Migration
-**Requirements:** TIMELINE-01, TIMELINE-02, TIMELINE-03, TIMELINE-04
-**Success Criteria:** `00_Timeline_View/` folder is generated containing numbered shortcuts, `finalized.pdf` is no longer created, Main pipeline output uses shortcuts instead of physical PDFs.
+### Phase 32: Pipeline Migration [Completed]
+- **Goal:** Switch main pipeline output to shortcut-based 00_Timeline_View/
+- **Success Criteria:** 00_Timeline_View/ folder is generated containing numbered shortcuts, finalized.pdf is no longer created, Main pipeline output uses shortcuts instead of physical PDFs.
 
 ### Phase 33: Bidirectional Reconciliation Engine
 **Requirements:** RECON-01, RECON-02, RECON-03, RECON-04, RECON-05, RECON-06, RECON-07
