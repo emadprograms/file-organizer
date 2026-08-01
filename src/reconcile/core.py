@@ -56,8 +56,7 @@ def run_reconcile_mode(args) -> int:
                 with open(fpath, 'a'):
                     pass
             except PermissionError:
-                from src.utils.logger import console
-                console.print(f"ABORTED: The following file is currently locked by another process or user: {fpath}. Please ask the user to close it and try again.", style="bold red")
+                logger.error(f"ABORTED: The following file is currently locked by another process or user: {fpath}. Please ask the user to close it and try again.")
                 sys.exit(1)
             except Exception:
                 pass
