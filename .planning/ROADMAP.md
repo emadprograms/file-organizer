@@ -81,31 +81,70 @@ See [.planning/milestones/v5.3-ROADMAP.md](milestones/v5.3-ROADMAP.md) for full 
 
 </details>
 
-### 🚧 v5.4 Architectural Consistency Refactor (Phases 49-53)
+### 🚧 v5.4 Architectural Consistency Refactor (Phases 49-57)
 
-### Phase 49: 1-to-Many Database Schema Refactor
+### Phase 49: 1-to-Many Shortcut Mapping
 **Requirements:** REQ-01
-**Success Criteria:** `state.json` accurately models 1 physical document mapped to N shortcuts without splitting pages or spawning virtual pages.
+**Success Criteria:** 
+- `state.json` updates to handle 1 vault ID to multiple shortcuts without duplicating physical pages.
+- Physical page count remains true regardless of how many shortcuts exist.
+- Timeline View generates correctly without duplicated pages.
 
-### Phase 50: Cross-House Contamination Handler
+### Phase 50: Cross-House Contamination Immunity
 **Requirements:** REQ-02
-**Success Criteria:** Reconciler detects shortcuts pointing to foreign vaults and rejects/re-homes them safely.
+**Success Criteria:** 
+- Reconciler detects shortcuts pointing to another house's vault.
+- System quarantines or handles the shortcut without crashing.
+- Target house's state remains uncorrupted.
 
-### Phase 51: Multi-Page Raw PDF Extraction
+### Phase 51: Multi-Page Raw PDF Ingestion
 **Requirements:** REQ-03
-**Success Criteria:** Dropping a 10-page raw PDF results in exactly 10 pages logged in `state.json`.
+**Success Criteria:** 
+- System correctly parses page count of unmanaged `.pdf` drops.
+- `state.json` updates with the correct physical page count.
+- Verification audits the full page count successfully.
 
 ### Phase 52: Corrupted Vault File Safeguards
 **Requirements:** REQ-04
-**Success Criteria:** 0-byte vault PDFs are flagged but do not crash the pipeline.
+**Success Criteria:** 
+- 0-byte or corrupt vault files do not crash the reconciler.
+- Timeline view handles corrupt vault links safely.
+- Verification flags corrupt vault documents.
 
-### Phase 53: Comprehensive Consistency Stress Tests
-**Requirements:** REQ-01, REQ-02, REQ-03, REQ-04
-**Success Criteria:** Pytest covers cross-house dragging, multi-page drops, and 0-byte corruptions.
+### Phase 53: Nested Folder Trap
+**Requirements:** REQ-05
+**Success Criteria:** 
+- Reconciler supports `.lnk` files in arbitrary nested directories.
+- `target_folder` path is accurately extracted.
+- Verification correctly validates shortcuts in sub-folders.
 
-### Phase 54: Stability Guarantees (Idempotency & Concurrency)
-**Requirements:** REQ-08, REQ-09
-**Success Criteria:** Running reconcile twice changes nothing. Running reconcile with a locked file skips it safely without crashing.
+### Phase 54: Tenant Root Folder Renaming
+**Requirements:** REQ-06
+**Success Criteria:** 
+- Reconciler survives rename of top-level tenant folder.
+- `state.json` updates folder paths without losing tenant link.
+- No endless loop fighting user renames.
+
+### Phase 55: Shortcut Target Hijack / Corruption
+**Requirements:** REQ-07
+**Success Criteria:** 
+- Reconciler detects `.lnk` target modified outside the Vault.
+- Does not treat modified shortcut as user deletion.
+- Verification flags broken shortcuts to user.
+
+### Phase 56: Idempotency Guarantee
+**Requirements:** REQ-08
+**Success Criteria:** 
+- Running reconciler multiple times has zero side-effects.
+- Ghost adoption and raw PDF ingestion do not duplicate files.
+- Metadata is completely stable.
+
+### Phase 57: File Locking Resilience
+**Requirements:** REQ-09
+**Success Criteria:** 
+- System catches `PermissionError` on locked PDFs instead of crashing.
+- Locked files are safely skipped during operations.
+- State updates are atomic, preventing partial corruption.
 
 ## Progress
 
@@ -142,12 +181,15 @@ See [.planning/milestones/v5.3-ROADMAP.md](milestones/v5.3-ROADMAP.md) for full 
 | 46. Auto-Verification & Reconciliation Report | v5.3 | 1/1 | Complete | 2026-08-01 |
 | 47. Reconciliation Test Suite | v5.3 | 1/1 | Complete | 2026-08-01 |
 | 48. Data Preservation & Verification Overhaul | v5.3 | 1/1 | Complete | 2026-08-01 |
-| 49. 1-to-Many Database Schema Refactor | v5.4 | 0/1 | Pending | - |
-| 50. Cross-House Contamination Handler | v5.4 | 0/1 | Pending | - |
-| 51. Multi-Page Raw PDF Extraction | v5.4 | 0/1 | Pending | - |
+| 49. 1-to-Many Shortcut Mapping | v5.4 | 0/1 | Pending | - |
+| 50. Cross-House Contamination Immunity | v5.4 | 0/1 | Pending | - |
+| 51. Multi-Page Raw PDF Ingestion | v5.4 | 0/1 | Pending | - |
 | 52. Corrupted Vault File Safeguards | v5.4 | 0/1 | Pending | - |
-| 53. Comprehensive Consistency Stress Tests | v5.4 | 0/1 | Pending | - |
-| 54. Stability Guarantees (Idempotency & Locks) | v5.4 | 0/1 | Pending | - |
+| 53. Nested Folder Trap | v5.4 | 0/1 | Pending | - |
+| 54. Tenant Root Folder Renaming | v5.4 | 0/1 | Pending | - |
+| 55. Shortcut Target Hijack / Corruption | v5.4 | 0/1 | Pending | - |
+| 56. Idempotency Guarantee | v5.4 | 0/1 | Pending | - |
+| 57. File Locking Resilience | v5.4 | 0/1 | Pending | - |
 
 
 
