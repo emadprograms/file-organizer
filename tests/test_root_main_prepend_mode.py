@@ -29,6 +29,7 @@ def test_run_prepend_mode_success(caplog, tmp_path):
         assert "Listener started..." in caplog.text
 
 def test_run_prepend_mode_already_locked(caplog, tmp_path):
+    caplog.set_level("INFO")
     config = MagicMock()
     config.inbox_path = str(tmp_path)
     
