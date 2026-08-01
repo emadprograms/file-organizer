@@ -8,6 +8,7 @@ This guide will help you set up the File Organizer project on your local machine
 Before you begin, ensure you have the following installed on your system:
 - Python >= 3.8
 - `git`
+- Windows OS (Required for `.lnk` shortcut creation)
 
 ## Installation Steps
 
@@ -38,11 +39,23 @@ Before you begin, ensure you have the following installed on your system:
    Add your `GEMINI_API_KEY` (and any other optional keys) to the newly created `.env` file.
 
 2. **Run the processor:**
-   The main script processes a directory containing categorized PDF and JSON reports. Point the script to a valid directory:
+   The main script (`src/main.py`) processes a directory containing categorized PDF and JSON reports. Point the CLI's `create` command to a valid directory:
    ```bash
-   python src/main.py /path/to/target_directory
+   python src/main.py create /path/to/target_directory
    ```
    *(Note: You can also use the `--dry-run` flag to preview changes without modifying any files).*
+
+## After Processing
+
+Once the `create` command completes:
+- All physical PDF segments are stored safely in `.source_files/vault/`.
+- A unified single-source-of-truth is saved at `.source_files/state.json`.
+- Your category folders and the `[Timeline View]` folder will be populated with lightweight `.lnk` shortcuts pointing to the vault.
+
+If you manually move shortcuts around between tenant folders, you can run the reconciler to sync those changes back to `state.json`:
+```bash
+python src/main.py reconcile --tenants
+```
 
 ## Common Setup Issues
 
@@ -55,4 +68,4 @@ Before you begin, ensure you have the following installed on your system:
 
 Now that you have the application running, you may want to check out:
 - [Configuration Guide](CONFIGURATION.md) - Learn about all available environment variables and model settings.
-- [Architecture Overview](ARCHITECTURE.md) - Understand how the data flows through the LLM pipeline phases (cleaning, grouping, routing).
+- [Architecture Overview](ARCHITECTURE.md) - Understand how the data flows through the LLM pipeline phases and the Vault architecture.

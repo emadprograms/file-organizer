@@ -99,12 +99,11 @@ graph TD
         end
     end
 
-    %% Checkpoint Files & Outputs
-    subgraph Artifacts["📄 Checkpoints & Final Outputs"]
-        CHK1["Pass 1 Checkpoint:<br/>house_id_1_cleaned.json"]
-        CHK2["Pass 2 Checkpoint:<br/>house_id_2_grouped.json"]
-        CHK3["Pass 3 Checkpoint:<br/>house_id_3_routed.json"]
-        FINAL_PDF["Final Output PDFs & Organized Folders"]
+    %% State & Vault Outputs
+    subgraph Artifacts["📄 State, Vault & Shortcuts"]
+        STATE["Unified State:<br/>.source_files/state.json"]
+        VAULT["PDF Vault:<br/>.source_files/vault/"]
+        SHORTCUTS["Categorized Shortcuts:<br/>01_Category/file.lnk"]
     end
 
     %% Connections - Entry Points to Runner
@@ -127,10 +126,11 @@ graph TD
     PASS2 -->|Invokes| PIPE
     PASS3 -->|Invokes| PIPE
 
-    PASS1 -->|Writes| CHK1
-    PASS2 -->|Reads CHK1 & Writes| CHK2
-    PASS3 -->|Reads CHK2 & Writes| CHK3
-    PASS4 -->|Reads CHK3 & Generates| FINAL_PDF
+    PASS1 -->|Writes| STATE
+    PASS2 -->|Reads/Writes| STATE
+    PASS3 -->|Reads/Writes| STATE
+    PASS4 -->|Reads STATE & Generates| VAULT
+    PASS4 -->|Creates| SHORTCUTS
 
     %% Connections - Pipeline to Engines
     PIPE -->|Runs cleaning| CAT
@@ -245,8 +245,15 @@ graph TD
 
 ### 9. Document Reconciliation (`src/reconcile/`)
 - [`src/reconcile/core.py`](file:///C:/Users/Emad/Documents/GitHub/file-organizer/src/reconcile/core.py)
-  - **Job**: Reconciler.
-  - **Role**: Compares newly ingested documents against existing file manifests to handle updates and deduplication.
+  - **Job**: Bidirectional Reconciler.
+  - **Role**: Synchronizes `state.json` with the actual state of physical shortcuts on disk. Auto-adopts moved shortcuts, cleans up orphans, and resolves ghost files.
+
+---
+
+### 10. System Verification (`src/core/verification.py`)
+- [`src/core/verification.py`](file:///C:/Users/Emad/Documents/GitHub/file-organizer/src/core/verification.py)
+  - **Job**: State Verifier.
+  - **Role**: Mathematically proves that the `state.json`, the `.source_files/vault/`, and the `.lnk` shortcuts in the filesystem are 100% synchronized and valid.
 
 ---
 

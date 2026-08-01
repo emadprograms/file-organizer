@@ -1,7 +1,14 @@
 <!-- generated-by: gsd-doc-writer -->
 # File Organizer
 
-File Organizer is a post-processor utility that organizes categorized PDFs into structured house folders by using LLMs to clean, group, and route documents. It takes a categorized PDF and its corresponding report JSON, processes the pages, and generates a finalized, structured PDF with a Table of Contents.
+File Organizer is a post-processor utility that organizes categorized PDFs into a structured **Vault** and dynamically creates categorized Windows Shortcuts (`.lnk`). By using LLMs, it cleans, groups, and routes documents. It creates a robust single-source-of-truth using a unified `state.json` and a bidirectional reconciler, ensuring your physical files and organized views are always mathematically synchronized.
+
+## Architecture Highlights (v5.3)
+- **Vault Architecture:** All physical PDFs are stored immutably in `.source_files/vault/`.
+- **Shortcuts:** Categorized folders (e.g., `01_بيانات شخصية`) and `[Timeline View]` contain only lightweight Windows `.lnk` shortcuts pointing to the Vault.
+- **Unified State:** A single `state.json` inside `.source_files/` tracks everything.
+- **Reconciliation Engine:** Bidirectionally synchronizes `state.json` with physical shortcut moves on disk, auto-adopting ghost files and cleaning up orphans.
+- **Strict Verification:** Proves mathematically that the shortcuts, vault, and JSON state are 100% synchronized and valid.
 
 ## Installation
 
@@ -30,35 +37,37 @@ cp .env.example .env
 ```
 Make sure to add your `GEMINI_API_KEY` to the `.env` file, as it is required to run the pipeline.
 
-2. Run the main processing script against a target directory containing a `*_categorized.pdf` and a `*_report.json`:
+2. Run the processor on a target directory:
 ```bash
-python src/main.py /path/to/target_directory
+python src/main.py create /path/to/target_directory
 ```
 
-## Usage Examples
+## CLI Commands
 
-**Previewing Output (Dry Run)**
-You can preview the pipeline output without making any physical file changes or writing PDFs:
+The main entry point `src/main.py` is a robust CLI supporting multiple operations:
+
+**Create/Process a directory:**
 ```bash
-python src/main.py /path/to/target_directory --dry-run
+python src/main.py create /path/to/target_directory --model gemini-2.5-flash
+```
+Use `--dry-run` to preview the pipeline output without making any physical file changes.
+
+**Verify integrity:**
+Ensure that your state and vault are perfectly in sync:
+```bash
+python src/main.py verify /path/to/house_directory
 ```
 
-**Using a Specific LLM Model**
-By default, the script uses `gemini-3.5-flash-lite`. You can specify another model using the `--model` flag:
+**Reconcile state:**
+Synchronize the internal state based on manual user moves:
 ```bash
-python src/main.py /path/to/target_directory --model gemini-2.5-flash
+python src/main.py reconcile --tenants
 ```
 
-**Running with Verbose Logging**
-For detailed logs and debugging information, use the `--verbose` flag:
+**Prepend (Inbox listener):**
+Run a listener in prepend mode on the inbox directory:
 ```bash
-python src/main.py /path/to/target_directory --verbose
-```
-
-**Batch Processing with Rotating API Keys**
-If you have multiple folders and need to rotate through multiple API keys to avoid rate limits, you can configure the target directory in `rotate_process.py` and run:
-```bash
-python rotate_process.py
+python src/main.py prepend
 ```
 
 ## Testing

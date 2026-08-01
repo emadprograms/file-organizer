@@ -7,25 +7,30 @@ This document describes the CLI options and key Python programming interfaces pr
 
 The primary entry point is `src/main.py`.
 
-### Positional Arguments & Commands
+### Commands
 
 ```bash
-python src/main.py <target_directory> [OPTIONS]
 python src/main.py create <target_directory> [OPTIONS]
-python src/main.py append [OPTIONS]
-python src/main.py reconcile --tenants <tenants_file> [OPTIONS]
+python src/main.py verify <target_directory> [OPTIONS]
+python src/main.py reconcile --tenants [OPTIONS]
+python src/main.py prepend [OPTIONS]
+python src/main.py migrate <target_directory> [OPTIONS]
 ```
 
-### Options
+### Common Options
 
 | Flag | Type | Default | Description |
 |---|---|---|---|
-| `target_dir` | Path | (Required for default mode) | Path to target directory containing PDF and JSON report files |
-| `--dry-run` | Flag | `False` | Simulates file organization and prints summary without modifying files |
+| `--dry-run` | Flag | `False` | Simulates actions (creation, migration) without modifying physical files |
+| `--verbose` | Flag | `False` | Enables detailed debug logging |
+
+### `create` Options
+
+| Flag | Type | Default | Description |
+|---|---|---|---|
 | `--model` | String | `gemini-3.5-flash` | Selects LLM model used for classification, grouping, and cleaning |
 | `--routing-model` | String | `gemini-3.5-flash` | Selects LLM model specifically for directory routing |
 | `--output-dir` | Path | None | Explicit output directory override |
-| `--verbose` | Flag | `False` | Enables detailed debug logging |
 | `--skip-llm` | Flag | `False` | Skips LLM calls (useful in mock/testing environments) |
 
 ---
@@ -48,10 +53,13 @@ Represents a cohesive set of pages forming a single document:
 - `start_date`: Optional[str] — Start date of document.
 - `end_date`: Optional[str] — End date of document.
 
-### 3. `LLMClient` (`src/llm/llm.py`)
+### 3. `State` (`src/core/state.py`)
+Unified single-source-of-truth object that manages reading and writing `state.json`.
+
+### 4. `LLMClient` (`src/llm/llm.py`)
 Centralized LLM communication handler:
 - `generate_content(prompt, model=None)` — Sends structured request to Google Gemini API with built-in retry and exponential backoff logic.
 
-### 4. `FileOrganizer` (`src/timeline/core.py`)
-PDF extraction and physical folder structure renderer:
-- `organize(documents, house_id, output_dir)` — Extracts page segments, writes individual document PDFs, compiles TOC, and compresses finalized PDF output.
+### 5. `FileOrganizer` (`src/timeline/core.py`)
+PDF extraction and Vault/Shortcut renderer:
+- `organize(documents, house_id, output_dir)` — Extracts page segments, writes them into the `.source_files/vault/`, and generates lightweight `.lnk` shortcuts in categorical folders.
