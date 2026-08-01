@@ -4,15 +4,15 @@
 
 A document management system that processes scanned Arabic PDFs, categorizes them using LLM vision, groups related pages, and organizes them into a structured folder hierarchy per tenant household. The system runs on Windows and uses a Vault-based architecture with shortcuts for file organization and bidirectional reconciliation.
 
-## Current Milestone: v5.1 (Polishing & Migration Cleanup)
+## Current Milestone: v5.2 (Deep Architecture Integrity & Verification)
 
-**Goal:** Polish the v5.0 Vault Architecture by resolving UX gaps in the Timeline View, completing the migration of legacy JSON files to the unified `state.json`, and establishing a robust production-like E2E test suite in the `D:\Areas` directory.
+**Goal:** Implement an exhaustive, test-driven integrity verification module directly into the core system (`src/`) that scrutinizes every aspect of a v5-migrated house folder to ensure structural and data integrity.
 
 **Target features:**
-- Timeline View shortcut prefixes mapped to document page index (e.g., jumps from 001 to 004 for a 3-page doc)
-- Migration script explicitly consolidates legacy JSONs into `state.json` and deletes old checkpoints
-- Missing `pylnk3` dependency added to `requirements.txt`
-- Full E2E test suite running directly against the real `D:\Areas` folder structure
+- Built-in verification module (`src/core/verification.py`) and CLI integration (`file-organizer verify`).
+- `.lnk` shortcut verification to ensure targets exist in the Vault.
+- Vault orphan detection and Bidirectional State-to-FileSystem consistency checks.
+- Comprehensive `pytest` coverage for the verifier itself.
 
 ## Core Value
 

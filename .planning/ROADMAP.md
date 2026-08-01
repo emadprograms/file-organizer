@@ -6,6 +6,7 @@
 - ✅ **v4.0 Architectural Cleanup** — Phases 25-29.1 (shipped 2026-07-31)
 - ✅ **v5.0 Vault Architecture & Bidirectional Reconciliation** — Phases 30-35 (shipped 2026-08-01)
 - ✅ **v5.1 Polishing & Migration Cleanup** — Phases 36-38 (shipped 2026-08-01)
+- ✅ **v5.2 Deep Architecture Integrity & Verification** — Phases 39-42 (shipped 2026-08-01)
 
 ## Phases
 
@@ -47,6 +48,28 @@ See [.planning/milestones/v5.1-ROADMAP.md](milestones/v5.1-ROADMAP.md) for full 
 
 </details>
 
+### ✅ v5.2 Deep Architecture Integrity & Verification (Phases 39-42) — SHIPPED 2026-08-01
+
+### Phase 39: Verification Module Scaffolding & CLI Integration
+
+**Requirements:** REQ-01
+**Success Criteria:** `src/core/verification.py` is created. `main.py` CLI exposes `file-organizer verify`. Basic structural checking is wired up.
+
+### Phase 40: Vault & Shortcut Resolution Engine
+
+**Requirements:** REQ-02
+**Success Criteria:** The verifier recursively parses `.lnk` files in categorized directories and `[Timeline View]`, validating their absolute targets against the vault.
+
+### Phase 41: State & YAML Integrity Rules
+
+**Requirements:** REQ-03, REQ-04
+**Success Criteria:** The verifier cross-references `state.json` against actual folder layout. Orphan PDFs in the vault are detected. Ghost legacy JSONs and physical PDFs outside the vault are flagged. Tenant structures match `tenants.yaml`.
+
+### Phase 42: Comprehensive Test Suite
+
+**Requirements:** REQ-05
+**Success Criteria:** `pytest` tests are added for the verification module handling various valid and corrupt state scenarios.
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -72,3 +95,7 @@ See [.planning/milestones/v5.1-ROADMAP.md](milestones/v5.1-ROADMAP.md) for full 
 | 36. Environment & E2E Testing | v5.1 | 1/1 | Complete | 2026-08-01 |
 | 37. Timeline View UX Improvements | v5.1 | 1/1 | Complete | 2026-08-01 |
 | 38. Unified State Migration | v5.1 | 1/1 | Complete | 2026-08-01 |
+| 39. Verification Scaffolding | v5.2 | 1/1 | Complete | 2026-08-01 |
+| 40. Vault & Shortcut Engine | v5.2 | 1/1 | Complete | 2026-08-01 |
+| 41. State & YAML Rules | v5.2 | 1/1 | Complete | 2026-08-01 |
+| 42. Comprehensive Test Suite | v5.2 | 1/1 | Complete | 2026-08-01 |
