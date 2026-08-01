@@ -4,15 +4,18 @@
 
 A document management system that processes scanned Arabic PDFs, categorizes them using LLM vision, groups related pages, and organizes them into a structured folder hierarchy per tenant household. The system runs on Windows and uses a Vault-based architecture with shortcuts for file organization and bidirectional reconciliation.
 
-## Current Milestone: v5.2 (Deep Architecture Integrity & Verification)
+## Current Milestone: v5.3 (Reconciliation Engine Upgrade)
 
-**Goal:** Implement an exhaustive, test-driven integrity verification module directly into the core system (`src/`) that scrutinizes every aspect of a v5-migrated house folder to ensure structural and data integrity.
+**Goal:** Upgrade the reconciliation engine to be the system's complete "immune system" — ensuring 100% synchronization between the physical folder structure and `state.json`, handling all edge cases that arise from manual user interaction with house folders.
 
 **Target features:**
-- Built-in verification module (`src/core/verification.py`) and CLI integration (`file-organizer verify`).
-- `.lnk` shortcut verification to ensure targets exist in the Vault.
-- Vault orphan detection and Bidirectional State-to-FileSystem consistency checks.
-- Comprehensive `pytest` coverage for the verifier itself.
+- Ghost file adoption: detect and formally register untracked shortcuts/PDFs into `state.json`.
+- User deletion detection: clean up `state.json` and trash orphan vault PDFs when shortcuts are deleted.
+- Raw PDF ingestion: auto-vault PDFs dropped directly into categorized folders.
+- Duplicate shortcut handling: support 1-to-many (one vault PDF, multiple category shortcuts).
+- Renamed shortcut detection: sync `state.json` when shortcuts are renamed by the user.
+- Auto-verification: always run `run_verification()` after reconciliation.
+- Reconciliation report: structured JSON + human-readable console summary of all actions taken.
 
 ## Core Value
 
@@ -62,7 +65,14 @@ Documents are safely stored once in an immutable vault; all organization is done
 
 ### Active
 
-(None currently. Awaiting planning for v5.2 / v6.0)
+- Ghost file adoption into state.json during reconciliation (RECON-ADOPT) — v5.3
+- User deletion detection and vault trash cleanup (RECON-DELETE) — v5.3
+- Raw PDF ingestion into vault from categorized folders (RECON-INGEST) — v5.3
+- Duplicate shortcut support (1-to-many vault mapping) (RECON-DUP) — v5.3
+- Renamed shortcut detection and state sync (RECON-RENAME) — v5.3
+- Auto-verification after reconciliation (RECON-VERIFY) — v5.3
+- Reconciliation report generation (RECON-REPORT) — v5.3
+- Comprehensive pytest test suite for reconciliation edge cases (RECON-TEST) — v5.3
 
 ### Out of Scope
 
@@ -81,6 +91,8 @@ Documents are safely stored once in an immutable vault; all organization is done
 - ✅ Shipped v4.0 Architectural Cleanup on 2026-07-24.
 - ✅ Shipped v5.0 Vault Architecture & Bidirectional Reconciliation on 2026-08-01.
 - ✅ Shipped v5.1 Polishing & Migration Cleanup on 2026-08-01.
+- ✅ Shipped v5.2 Deep Architecture Integrity & Verification on 2026-08-01.
+- 🔄 Starting v5.3 Reconciliation Engine Upgrade.
 
 ## Context
 
@@ -114,10 +126,11 @@ Documents are safely stored once in an immutable vault; all organization is done
 | Unified state.json over multi-JSON checkpoints | Single source of truth eliminates drift between 1_cleaned, 2_grouped, 3_routed JSONs. | v5.0 decision: One state.json per house, report.json preserved as raw LLM dump. |
 | Bidirectional reconciliation over one-way sync | System detects manual user file moves and pins them, instead of overwriting user corrections. | v5.0 decision: Filesystem is a valid source of user intent. |
 | Timeline View folder over finalized.pdf | Chronological numbered shortcuts eliminate disk space duplication while preserving the reading experience. | v5.0 decision: Replace finalized.pdf with 00_Timeline_View/. |
+| Reconciliation as the system's immune system | Ghost file adoption, deletion handling, raw PDF ingestion, and duplicate support belong in the reconciler, not in migration scripts. The reconciler is the permanent sync engine. | v5.3 decision: Reconciler guarantees 100% state-to-filesystem harmony. |
 
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-08-01 — v5.1 Polishing & Migration Cleanup started.*
+*Last updated: 2026-08-01 — v5.3 Reconciliation Engine Upgrade started.*

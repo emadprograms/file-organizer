@@ -7,6 +7,7 @@
 - ✅ **v5.0 Vault Architecture & Bidirectional Reconciliation** — Phases 30-35 (shipped 2026-08-01)
 - ✅ **v5.1 Polishing & Migration Cleanup** — Phases 36-38 (shipped 2026-08-01)
 - ✅ **v5.2 Deep Architecture Integrity & Verification** — Phases 39-42 (shipped 2026-08-01)
+- 🔄 **v5.3 Reconciliation Engine Upgrade** — Phases 43-47
 
 ## Phases
 
@@ -48,7 +49,8 @@ See [.planning/milestones/v5.1-ROADMAP.md](milestones/v5.1-ROADMAP.md) for full 
 
 </details>
 
-### ✅ v5.2 Deep Architecture Integrity & Verification (Phases 39-42) — SHIPPED 2026-08-01
+<details>
+<summary>✅ v5.2 Deep Architecture Integrity & Verification (Phases 39-42) — SHIPPED 2026-08-01</summary>
 
 ### Phase 39: Verification Module Scaffolding & CLI Integration
 
@@ -69,6 +71,35 @@ See [.planning/milestones/v5.1-ROADMAP.md](milestones/v5.1-ROADMAP.md) for full 
 
 **Requirements:** REQ-05
 **Success Criteria:** `pytest` tests are added for the verification module handling various valid and corrupt state scenarios.
+
+</details>
+
+### 🔄 v5.3 Reconciliation Engine Upgrade (Phases 43-47)
+
+### Phase 43: Ghost File Adoption & Raw PDF Ingestion
+
+**Requirements:** REQ-01, REQ-03
+**Success Criteria:** The reconciler detects physical shortcuts and raw PDFs on disk that have no `state.json` entry, formally adopts them (assigns vault_id, extracts date from filename, creates per_page entry), and moves raw PDFs into the vault with shortcuts in their place. Zero unaccounted files after reconciliation.
+
+### Phase 44: User Deletion & Orphan Cleanup
+
+**Requirements:** REQ-02
+**Success Criteria:** The reconciler detects deleted shortcuts, removes their `state.json` entries, and moves the corresponding vault PDFs to `.source_files/.trash/` for recovery. No orphan vault PDFs remain after reconciliation.
+
+### Phase 45: Duplicate Shortcuts & Renamed Shortcuts
+
+**Requirements:** REQ-04, REQ-05
+**Success Criteria:** The reconciler handles multiple shortcuts pointing to the same vault PDF (1-to-many) without errors. Renamed shortcuts are detected and `state.json` is updated to match, with `user_locked: true` applied.
+
+### Phase 46: Auto-Verification & Reconciliation Report
+
+**Requirements:** REQ-06, REQ-07
+**Success Criteria:** `run_verification()` runs automatically after every reconciliation. A structured JSON report is saved to `.source_files/` summarizing all actions taken (adopted, deleted, moved, renamed, verification pass/fail). Console prints a human-readable summary.
+
+### Phase 47: Reconciliation Test Suite
+
+**Requirements:** REQ-08
+**Success Criteria:** `pytest` tests cover all edge cases: ghost files, user deletions, raw PDF drops, duplicate shortcuts, renames, auto-verification integration. Each scenario validates that `state.json` is correctly updated.
 
 ## Progress
 
@@ -99,3 +130,11 @@ See [.planning/milestones/v5.1-ROADMAP.md](milestones/v5.1-ROADMAP.md) for full 
 | 40. Vault & Shortcut Engine | v5.2 | 1/1 | Complete | 2026-08-01 |
 | 41. State & YAML Rules | v5.2 | 1/1 | Complete | 2026-08-01 |
 | 42. Comprehensive Test Suite | v5.2 | 1/1 | Complete | 2026-08-01 |
+| 43. Ghost File Adoption & Raw PDF Ingestion | v5.3 | 0/0 | Planned | — |
+| 44. User Deletion & Orphan Cleanup | v5.3 | 0/0 | Planned | — |
+| 45. Duplicate Shortcuts & Renamed Shortcuts | v5.3 | 0/0 | Planned | — |
+| 46. Auto-Verification & Reconciliation Report | v5.3 | 0/0 | Planned | — |
+| 47. Reconciliation Test Suite | v5.3 | 0/0 | Planned | — |
+
+
+
