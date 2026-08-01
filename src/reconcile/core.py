@@ -58,6 +58,17 @@ def run_reconcile_mode(args) -> int:
     groups = [DocumentGroup(**g) for g in state.data.get("grouped_documents", [])]
     routed_data = state.data.get("manifest", {})
         
+    report = {
+        "ghost_adopted": 0,
+        "raw_pdf_ingested": 0,
+        "user_deleted": 0,
+        "orphans_trashed": 0,
+        "renamed_moved": 0,
+        "duplicates_adopted": 0,
+        "file_moves_planned": 0,
+        "verification_status": "Unknown"
+    }
+        
     # Phase 33 & 43: Scan physical shortcuts and raw PDFs (RECON-01, RECON-02, RECON-03, RECON-07)
     from src.utils.fs import read_shortcut_target
     
@@ -95,6 +106,7 @@ def run_reconcile_mode(args) -> int:
         if vault_id not in seen_vault_ids:
             logger.warning(f"Shortcut for vault_id {vault_id} was completely deleted. Trashing vault PDF.")
             deleted_vault_ids.add(vault_id)
+            report["user_deleted"] += 1
             continue
             
         lnks = physical_lnk_by_vault[vault_id]
@@ -125,6 +137,7 @@ def run_reconcile_mode(args) -> int:
             if i < len(unmatched_lnks):
                 lnk = unmatched_lnks[i]
                 rel_path = lnk.relative_to(target_dir).as_posix()
+                report["renamed_moved"] += 1
                 logger.info(f"Detected manual move/rename for {vault_id}: -> {rel_path}")
                 new_target_folder = str(Path(rel_path).parent.as_posix())
                 if new_target_folder == ".":
@@ -151,6 +164,7 @@ def run_reconcile_mode(args) -> int:
         # If there are more unmatched physical shortcuts, they are copies/ghosts of this vault_id
         if len(unmatched_lnks) > len(unmatched_pages):
             for lnk in unmatched_lnks[len(unmatched_pages):]:
+                report["duplicates_adopted"] += 1
                 logger.info(f"Adopting copied/ghost shortcut for vault_id {vault_id} from {lnk.name}")
                 date_match = re.search(r'(\d{4}-\d{2}-\d{2})', lnk.name)
                 extracted_date = date_match.group(1) if date_match else "nodate"
@@ -202,6 +216,7 @@ def run_reconcile_mode(args) -> int:
             vault_pdf = source_dir / "vault" / f"doc_{vault_id}.pdf"
             if vault_pdf.exists():
                 for lnk in lnks:
+                    report["ghost_adopted"] += 1
                     logger.info(f"Adopting completely new ghost shortcut for vault_id {vault_id} from {lnk.name}")
                     date_match = re.search(r'(\d{4}-\d{2}-\d{2})', lnk.name)
                     extracted_date = date_match.group(1) if date_match else "nodate"
@@ -304,7 +319,8 @@ def run_reconcile_mode(args) -> int:
         for pdf_file in vault_dir.glob("doc_*.pdf"):
             vid = pdf_file.stem[4:] # doc_...
             if vid not in active_vault_ids:
-                logger.info(f"Trashing orphan vault PDF: {pdf_file.name}")
+                report["orphans_trashed"] += 1
+                    logger.info(f"Trashing orphan vault PDF: {pdf_file.name}")
                 shutil.move(str(pdf_file), str(trash_dir / pdf_file.name))
             
     # Phase 43: Raw PDF Ingestion (REQ-03)
@@ -321,7 +337,8 @@ def run_reconcile_mode(args) -> int:
         if not getattr(args, 'dry_run', False):
             new_vault_id = uuid.uuid4().hex
             dest_vault_pdf = vault_dir / f"doc_{new_vault_id}.pdf"
-            logger.info(f"Ingesting raw PDF: {pdf_path.name} -> vault_id {new_vault_id}")
+            report["raw_pdf_ingested"] += 1
+                logger.info(f"Ingesting raw PDF: {pdf_path.name} -> vault_id {new_vault_id}")
             shutil.move(str(pdf_path), str(dest_vault_pdf))
             
             lnk_path = pdf_path.with_suffix('.lnk')
@@ -445,6 +462,7 @@ def run_reconcile_mode(args) -> int:
         new_per_page.append(new_p)
             
     if moves:
+        report["file_moves_planned"] = len(moves)
         logger.info(f"Reconciliation required. {len(moves)} distinct file moves planned.")
         for old_f, new_f in moves:
             old_path = output_base_dir / old_f
@@ -555,5 +573,41 @@ def run_reconcile_mode(args) -> int:
         state.save()
                 
         logger.info(f"Updated unified state JSON successfully in {source_dir}")
+        
+        # Save Report
+        with open(source_dir / "reconcile_report.json", "w", encoding="utf-8") as rf:
+            json.dump(report, rf, indent=2, ensure_ascii=False)
+            
+        logger.info("=== RECONCILIATION SUMMARY ===")
+        logger.info(f"Raw PDFs Ingested:   {report['raw_pdf_ingested']}")
+        logger.info(f"Ghosts Adopted:      {report['ghost_adopted']}")
+        logger.info(f"Duplicates Adopted:  {report['duplicates_adopted']}")
+        logger.info(f"Renamed/Moved:       {report['renamed_moved']}")
+        logger.info(f"User Deletions:      {report['user_deleted']}")
+        logger.info(f"Orphans Trashed:     {report['orphans_trashed']}")
+        logger.info(f"Auto-Moves Planned:  {report['file_moves_planned']}")
+        logger.info("==============================")
+        
+        # Auto-Verification (REQ-06)
+        try:
+            from src.reconcile.verify import run_verification
+            # We need to pass args with the new_house_dir if it changed
+            class VerifyArgs:
+                target_dir = new_house_dir
+            
+            logger.info("Running auto-verification...")
+            v_res = run_verification(VerifyArgs())
+            report["verification_status"] = "Pass" if v_res == 0 else "Fail"
+            
+            if v_res != 0:
+                logger.warning("Verification found issues after reconciliation.")
+                
+            # Re-save report with verification status
+            with open(source_dir / "reconcile_report.json", "w", encoding="utf-8") as rf:
+                json.dump(report, rf, indent=2, ensure_ascii=False)
+                
+        except Exception as e:
+            logger.error(f"Auto-verification failed to run: {e}")
+            report["verification_status"] = "Error"
     
     return 0
