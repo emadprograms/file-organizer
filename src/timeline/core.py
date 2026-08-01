@@ -309,10 +309,6 @@ class FileOrganizer:
                 # Create the shortcut
                 from src.utils.fs import create_shortcut
                 abs_vault_target = str(vault_pdf_path.resolve())
-                if os.name == 'nt' and not abs_vault_target.startswith(r"\\?\C:"):
-                    # Add prefix only if it is an absolute path on C: and we are on windows
-                    if abs_vault_target.startswith("C:"):
-                        abs_vault_target = "\\\\?\\\\" + abs_vault_target
                         
                 create_shortcut(abs_vault_target, str(lnk_path))
                 logger.info(f"  → Link: {lnk_filename}")

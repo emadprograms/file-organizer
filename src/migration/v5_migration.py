@@ -109,9 +109,6 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
         if not dry_run:
             shutil.move(str(pdf_path), str(vault_pdf))
             abs_vault_target = str(vault_pdf.resolve())
-            if os.name == 'nt' and not abs_vault_target.startswith("\\\\?\\"):
-                if len(abs_vault_target) > 1 and abs_vault_target[1] == ':':
-                    abs_vault_target = "\\\\?\\" + abs_vault_target
             shortcuts_to_create.append({"target": abs_vault_target, "link": str(lnk_path)})
             logger.info(f"Migrated: {pdf_path.name} -> vault/doc_{vid}.pdf + shortcut")
         else:
@@ -138,6 +135,7 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
 
         idx = 1
         timeline_shortcuts = []
+        processed_vault_ids = set()
         for p in sorted(per_page, key=lambda x: (x.get('dates', [''])[0] if x.get('dates') else '', x.get('page_index', 0))):
             if "vault_id" not in p:
                 continue
@@ -169,9 +167,6 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
             vault_pdf = vault_dir / f"doc_{vid}.pdf"
             if vault_pdf.exists():
                 abs_vault_target = str(vault_pdf.resolve())
-                if os.name == 'nt' and not abs_vault_target.startswith("\\\\?\\"):
-                    if len(abs_vault_target) > 1 and abs_vault_target[1] == ':':
-                        abs_vault_target = "\\\\?\\" + abs_vault_target
                 timeline_shortcuts.append({"target": abs_vault_target, "link": str(lnk_path)})
             idx += vid_page_counts.get(vid, 1)
             
