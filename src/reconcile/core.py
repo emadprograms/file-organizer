@@ -103,6 +103,16 @@ def run_reconcile_mode(args) -> int:
         target_str = target_results.get(os.path.abspath(str(lnk_path)))
         if not target_str:
             continue
+            
+        try:
+            target_path = Path(target_str).resolve()
+            if not target_path.is_relative_to(source_dir.resolve()):
+                logger.info(f"Ignoring external shortcut pointing outside source_dir: {lnk_path} -> {target_str}")
+                continue
+        except Exception as e:
+            logger.warning(f"Error checking shortcut target path {target_str}: {e}")
+            continue
+
         filename = os.path.basename(target_str.replace('\\', '/'))
         if filename.startswith("doc_") and filename.endswith(".pdf"):
             vault_id = filename[4:-4]
