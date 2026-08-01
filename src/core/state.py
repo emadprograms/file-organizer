@@ -42,9 +42,16 @@ class State:
     def save(self) -> None:
         self.state_dir.mkdir(parents=True, exist_ok=True)
         try:
+            new_json = json.dumps(self.data, ensure_ascii=False, indent=2)
+            if self.state_file.exists():
+                with open(self.state_file, 'r', encoding='utf-8') as f:
+                    old_json = f.read()
+                if old_json == new_json:
+                    return
+                    
             with atomic_write(str(self.state_file)) as tmp_path:
                 with open(tmp_path, 'w', encoding='utf-8') as f:
-                    json.dump(self.data, f, ensure_ascii=False, indent=2)
+                    f.write(new_json)
         except Exception as e:
             logger.error(f"Failed to save state to {self.state_file}: {e}")
             raise

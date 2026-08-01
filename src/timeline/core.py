@@ -61,6 +61,10 @@ class FileOrganizer:
 
         yaml_tenant_map = {t['name']: t for t in yaml_data} if yaml_data else {}
         
+        for t_name in yaml_tenant_map.keys():
+            if t_name not in tenant_years:
+                tenant_years[t_name] = set()
+                
         latest_tenant = None
         
         if yaml_tenant_map:

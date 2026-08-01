@@ -123,7 +123,9 @@ def run_reconcile_mode(args) -> int:
         if target_str:
             try:
                 target_path = Path(target_str).resolve()
-                if target_path.is_relative_to(source_dir.resolve()):
+                target_str_lower = str(target_path).lower()
+                source_dir_lower = str(source_dir.resolve()).lower()
+                if target_str_lower.startswith(source_dir_lower):
                     filename = os.path.basename(target_str.replace('\\', '/'))
                     if filename.startswith("doc_") and filename.endswith(".pdf"):
                         vault_id = filename[4:-4]
@@ -298,7 +300,8 @@ def run_reconcile_mode(args) -> int:
                         dates=[extracted_date] if extracted_date != "nodate" else [],
                         brief_arabic_title=lnk.stem,
                         vault_id=vault_id,
-                        user_locked=True
+                        user_locked=True,
+                        shortcuts=[f"{target_dir.name}/{rel_path}"]
                     )
                     groups.append(new_group)
                     
@@ -445,7 +448,8 @@ def run_reconcile_mode(args) -> int:
                 dates=[extracted_date] if extracted_date != "nodate" else [],
                 brief_arabic_title=lnk_path.stem,
                 vault_id=new_vault_id,
-                user_locked=True
+                user_locked=True,
+                shortcuts=[f"{target_dir.name}/{rel_path}"]
             )
             groups.append(new_group)
         else:
@@ -509,9 +513,15 @@ def run_reconcile_mode(args) -> int:
             new_target_folder = p["target_folder"]
             # Keep the old filename, but update the root folder to the new full_house_id
             old_filename = Path(p["output_file"]).name
-            new_output_file = f"{full_house_id}/{new_target_folder}/{old_filename}"
+            if new_target_folder:
+                new_output_file = f"{full_house_id}/{new_target_folder}/{old_filename}"
+            else:
+                new_output_file = f"{full_house_id}/{old_filename}"
         else:
-            new_output_file = f"{full_house_id}/{new_target_folder}/{file_name}"
+            if new_target_folder:
+                new_output_file = f"{full_house_id}/{new_target_folder}/{file_name}"
+            else:
+                new_output_file = f"{full_house_id}/{file_name}"
         
         if old_output_file != new_output_file:
             moves.add((old_output_file, new_output_file))
@@ -553,24 +563,43 @@ def run_reconcile_mode(args) -> int:
         source_dir = new_house_dir / ".source_files"
         
     if not getattr(args, 'dry_run', False):
-        # We must rewrite all shortcuts because their absolute target paths might be broken
+        # We must rewrite categorized shortcuts if their absolute target paths are broken
         # due to folder rename, parent folder moves, or manual user copying.
-        logger.info("Rewriting all categorized shortcuts to ensure absolute paths are correct...")
+        logger.info("Verifying categorized shortcuts and rewriting if necessary...")
         shortcuts_to_rewrite = []
         new_vault_dir = source_dir / "vault"
+        
+        all_potential_links = []
+        for p in new_per_page:
+            if "vault_id" in p and "output_file" in p:
+                lnk_path = output_base_dir / p["output_file"]
+                all_potential_links.append(str(lnk_path.resolve()))
+                
+        from src.utils.fs import batch_read_shortcut_targets
+        existing_targets = batch_read_shortcut_targets(all_potential_links) if all_potential_links else {}
+        
         for p in new_per_page:
             if "vault_id" in p and "output_file" in p:
                 vault_pdf = new_vault_dir / f"doc_{p['vault_id']}.pdf"
-                # p["output_file"] is something like '508 - عبدالله عيسى الكواري/01_Category/doc.lnk'
-                # We need the physical path relative to output_base_dir
                 lnk_path = output_base_dir / p["output_file"]
                 if vault_pdf.exists():
-                    lnk_path.parent.mkdir(parents=True, exist_ok=True)
-                    shortcuts_to_rewrite.append({
-                        "target": str(vault_pdf.resolve()),
-                        "link": str(lnk_path.resolve())
-                    })
+                    str_lnk = str(lnk_path.resolve())
+                    str_target = str(vault_pdf.resolve())
+                    
+                    existing_target = existing_targets.get(str_lnk)
+                    needs_rewrite = True
+                    if lnk_path.exists() and existing_target:
+                        if existing_target.lower() == str_target.lower():
+                            needs_rewrite = False
+                            
+                    if needs_rewrite:
+                        lnk_path.parent.mkdir(parents=True, exist_ok=True)
+                        shortcuts_to_rewrite.append({
+                            "target": str_target,
+                            "link": str_lnk
+                        })
         if shortcuts_to_rewrite:
+            logger.info(f"Rewriting {len(shortcuts_to_rewrite)} categorized shortcuts...")
             from src.utils.fs import batch_create_shortcuts
             batch_create_shortcuts(shortcuts_to_rewrite)
     if not getattr(args, 'dry_run', False):
@@ -586,26 +615,40 @@ def run_reconcile_mode(args) -> int:
                 from src.utils.fs import merge_and_remove_dir
                 logger.info(f"Cleaning up ghost directory: {candidate.name} -> {new_house_dir.name}")
                 merge_and_remove_dir(candidate, new_house_dir)
+                
+    # Recompute shortcuts to ensure they match final output_files before generating timeline
+    from collections import defaultdict
+    vault_to_shortcuts = defaultdict(list)
+    for p in new_per_page:
+        if "vault_id" in p and "output_file" in p:
+            if p["output_file"] not in vault_to_shortcuts[p["vault_id"]]:
+                vault_to_shortcuts[p["vault_id"]].append(p["output_file"])
+                
+    for g in groups:
+        if g.vault_id in vault_to_shortcuts:
+            g.shortcuts = vault_to_shortcuts[g.vault_id]
         
     # Phase 33: RECON-06 Regenerate [Timeline View]/
-    # We always regenerate it from scratch for this house to ensure perfect sync
+    # We update timeline links, avoiding rewrites if the existing link is perfectly matched
     if not getattr(args, 'dry_run', False):
         timeline_dir = new_house_dir / "[Timeline View]"
-        if timeline_dir.exists():
-            import time
-            shutil.rmtree(str(timeline_dir), ignore_errors=True)
-            # Give Windows time to release the file handles
-            for _ in range(10):
-                if not timeline_dir.exists():
-                    break
-                time.sleep(0.2)
         try:
             timeline_dir.mkdir(parents=True, exist_ok=True)
         except PermissionError:
             import time
             time.sleep(1)
             timeline_dir.mkdir(parents=True, exist_ok=True)
-        # Create shortcuts
+            
+        from src.utils.fs import batch_read_shortcut_targets
+        existing_timeline_links = []
+        if timeline_dir.exists():
+            for child in timeline_dir.iterdir():
+                if child.is_file() and child.suffix.lower() == ".lnk":
+                    existing_timeline_links.append(str(child.resolve()))
+                    
+        existing_timeline_targets = batch_read_shortcut_targets(existing_timeline_links) if existing_timeline_links else {}
+        expected_timeline_links = set()
+
         idx = 1
         processed_vault_ids = set()
         
@@ -643,19 +686,38 @@ def run_reconcile_mode(args) -> int:
             
             link_name = f"{idx:03d} - {date_str} - {doc_title} [{location}]{extra}.lnk"
             lnk_path = timeline_dir / link_name
+            str_lnk = str(lnk_path.resolve())
+            expected_timeline_links.add(str_lnk.lower())
             
             # The vault PDF path
             vault_pdf = new_house_dir / ".source_files" / "vault" / f"doc_{vid}.pdf"
             if vault_pdf.exists():
-                shortcuts_to_create.append({
-                    "target": str(vault_pdf.resolve()),
-                    "link": str(lnk_path)
-                })
+                str_target = str(vault_pdf.resolve())
+                existing_target = existing_timeline_targets.get(str_lnk)
+                needs_rewrite = True
+                if lnk_path.exists() and existing_target:
+                    if existing_target.lower() == str_target.lower():
+                        needs_rewrite = False
+                
+                if needs_rewrite:
+                    shortcuts_to_create.append({
+                        "target": str_target,
+                        "link": str_lnk
+                    })
             idx += (g.end_page - g.start_page + 1)
             
         if shortcuts_to_create:
+            logger.info(f"Creating/updating {len(shortcuts_to_create)} timeline shortcuts...")
             from src.utils.fs import batch_create_shortcuts
             batch_create_shortcuts(shortcuts_to_create)
+            
+        for existing_link in existing_timeline_links:
+            if existing_link.lower() not in expected_timeline_links:
+                try:
+                    os.remove(existing_link)
+                    logger.info(f"Removed orphaned timeline shortcut: {Path(existing_link).name}")
+                except Exception as e:
+                    logger.warning(f"Could not remove orphaned timeline shortcut {existing_link}: {e}")
             
     if not getattr(args, 'dry_run', False):
         state.state_dir = source_dir
