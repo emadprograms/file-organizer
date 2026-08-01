@@ -74,37 +74,12 @@ See [.planning/milestones/v5.1-ROADMAP.md](milestones/v5.1-ROADMAP.md) for full 
 
 </details>
 
-### ✅ v5.3 Reconciliation Engine Upgrade (Phases 43-48) — SHIPPED 2026-08-01
+<details>
+<summary>✅ v5.3 Reconciliation Engine Upgrade (Phases 43-48) — SHIPPED 2026-08-01</summary>
 
-### Phase 43: Ghost File Adoption & Raw PDF Ingestion
+See [.planning/milestones/v5.3-ROADMAP.md](milestones/v5.3-ROADMAP.md) for full phase details.
 
-**Requirements:** REQ-01, REQ-03
-**Success Criteria:** The reconciler detects physical shortcuts and raw PDFs on disk that have no `state.json` entry, formally adopts them (assigns vault_id, extracts date from filename, creates per_page entry), and moves raw PDFs into the vault with shortcuts in their place. Zero unaccounted files after reconciliation.
-
-### Phase 44: User Deletion & Orphan Cleanup
-
-**Requirements:** REQ-02
-**Success Criteria:** The reconciler detects deleted shortcuts, removes their `state.json` entries, and moves the corresponding vault PDFs to `.source_files/.trash/` for recovery. No orphan vault PDFs remain after reconciliation.
-
-### Phase 45: Duplicate Shortcuts & Renamed Shortcuts
-
-**Requirements:** REQ-04, REQ-05
-**Success Criteria:** The reconciler handles multiple shortcuts pointing to the same vault PDF (1-to-many) without errors. Renamed shortcuts are detected and `state.json` is updated to match, with `user_locked: true` applied.
-
-### Phase 46: Auto-Verification & Reconciliation Report
-
-**Requirements:** REQ-06, REQ-07
-**Success Criteria:** `run_verification()` runs automatically after every reconciliation. A structured JSON report is saved to `.source_files/` summarizing all actions taken (adopted, deleted, moved, renamed, verification pass/fail). Console prints a human-readable summary.
-
-### Phase 47: Reconciliation Test Suite
-
-**Requirements:** REQ-08
-**Success Criteria:** `pytest` tests cover all edge cases: ghost files, user deletions, raw PDF drops, duplicate shortcuts, renames, auto-verification integration. Each scenario validates that `state.json` is correctly updated.
-
-### Phase 48: Data Preservation & Verification Overhaul (Many-to-One)
-
-**Requirements:** REQ-09
-**Success Criteria:** The reconciler natively supports Many-to-One document structures (grouped pages pointing to a single shortcut) without deleting "unmatched" pages. `verification.py` is upgraded to perform an Immutable Page Count audit, crashing the pipeline if the final manifest loses any pages compared to the raw ingestion phase. Pytest fixtures validate this exact scenario.
+</details>
 
 ## Progress
 
