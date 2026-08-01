@@ -85,11 +85,11 @@ def create_shortcut(target_path: str, link_path: str) -> None:
         target_path: Absolute path to the target file.
         link_path: Absolute path where the .lnk file will be created.
     """
-    import pylnk3
-    pylnk3.DEFAULT_CHARSET = "utf-8"
-    from pylnk3 import ExtraData, ExtraData_EnvironmentVariableDataBlock
+    import subprocess
+    import base64
+    import os
     
-    # Strip \\?\ prefix if present for parsing into LinkTargetIDList properly
+    # Strip \\?\ prefix if present, WScript.Shell does not support it
     clean_target = str(target_path).replace('/', '\\')
     if clean_target.startswith("\\\\?\\UNC\\"):
         clean_target = "\\" + clean_target[7:]
@@ -97,23 +97,15 @@ def create_shortcut(target_path: str, link_path: str) -> None:
         clean_target = clean_target[4:]
         if clean_target.startswith("\\"):
             clean_target = clean_target[1:]
-        
+            
     if os.name != 'nt' and not clean_target.startswith("C:") and not clean_target.startswith(r"\\"):
-        # pylnk3 fails on posix paths. Convert to fake Windows path for testing on Mac
         from pathlib import Path
         clean_target = "C:" + str(Path(clean_target).resolve()).replace('/', '\\')
-        
-    lnk = pylnk3.for_file(clean_target)
-    
-    # Manually inject the long path prefix for the Environment Variable Block if it was passed
-    if target_path.startswith("\\\\?\\"):
-        env_data_block = ExtraData_EnvironmentVariableDataBlock()
-        env_data_block.target_ansi = target_path
-        env_data_block.target_unicode = target_path
-        lnk.extra_data = ExtraData(blocks=[env_data_block])
-        lnk.link_flags.HasExpString = True
-        
-    lnk.save(link_path)
+
+    ps_script_path = os.path.join(os.path.dirname(__file__), "ps_shortcut.ps1")
+    subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps_script_path, "create", clean_target, link_path], 
+                   creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
+                   check=True)
 
 
 def read_shortcut_target(link_path: str) -> str | None:
@@ -125,11 +117,28 @@ def read_shortcut_target(link_path: str) -> str | None:
     Returns:
         The target path as a string, or None if it cannot be parsed.
     """
-    import pylnk3
+    import subprocess
+    import os
+    import base64
+    
+    if not os.path.exists(link_path):
+        return None
+        
     try:
-        with open(link_path, "rb") as f:
-            lnk = pylnk3.parse(f)
-            return lnk.path
+        ps_script_path = os.path.join(os.path.dirname(__file__), "ps_shortcut.ps1")
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps_script_path, "read", os.path.abspath(link_path)],
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0)
+        )
+        
+        if result.returncode == 0:
+            target = result.stdout.strip()
+            if target:
+                return target
     except Exception as e:
         logger.warning(f"Could not parse shortcut {link_path}: {e}")
-        return None
+        
+    return None

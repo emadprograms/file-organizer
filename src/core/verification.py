@@ -3,7 +3,7 @@ import os
 import sys
 import json
 from pathlib import Path
-import pylnk3
+from src.utils.fs import read_shortcut_target
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
@@ -136,10 +136,12 @@ def run_verification(target_dir: Path) -> int:
     broken_links = 0
     for lnk_path in lnk_files:
         try:
-            with open(lnk_path, 'rb') as lf:
-                lnk = pylnk3.parse(lf)
+            target_path = read_shortcut_target(str(lnk_path))
+            if not target_path:
+                add_error(f"Failed to read shortcut target for {lnk_path.relative_to(target_dir)}")
+                broken_links += 1
+                continue
                 
-            target_path = lnk.path
             target_path_clean = target_path
             if target_path_clean.startswith("\\\\?\\"):
                 target_path_clean = target_path_clean[4:]
