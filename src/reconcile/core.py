@@ -73,6 +73,7 @@ def run_reconcile_mode(args) -> int:
         "renamed_moved": 0,
         "duplicates_adopted": 0,
         "file_moves_planned": 0,
+        "shortcuts_repaired": 0,
         "verification_status": "Unknown"
     }
         
@@ -102,38 +103,76 @@ def run_reconcile_mode(args) -> int:
     str_lnk_paths = [str(lnk) for lnk in physical_lnk_files]
     target_results = batch_read_shortcut_targets(str_lnk_paths) if str_lnk_paths else {}
     
+    expected_shortcut_paths = {}
+    for p in routed_data.get("per_page", []):
+        if "vault_id" in p and "output_file" in p:
+            expected_parts = p["output_file"].split("/", 1)
+            expected_rel = expected_parts[1] if len(expected_parts) > 1 else expected_parts[0]
+            expected_shortcut_paths[expected_rel] = p["vault_id"]
+            
+    hijacked_lnks = {}
+    
     for lnk_path in physical_lnk_files:
         target_str = target_results.get(os.path.abspath(str(lnk_path)))
-        if not target_str:
-            continue
+        rel_path = lnk_path.relative_to(target_dir).as_posix()
+        expected_vault_id = expected_shortcut_paths.get(rel_path)
+        
+        is_valid = False
+        vault_id = None
+        
+        if target_str:
+            try:
+                target_path = Path(target_str).resolve()
+                if target_path.is_relative_to(source_dir.resolve()):
+                    filename = os.path.basename(target_str.replace('\\', '/'))
+                    if filename.startswith("doc_") and filename.endswith(".pdf"):
+                        vault_id = filename[4:-4]
+                        is_valid = True
+                else:
+                    logger.info(f"Ignoring external shortcut pointing outside source_dir: {lnk_path} -> {target_str}")
+            except Exception as e:
+                logger.warning(f"Error checking shortcut target path {target_str}: {e}")
+                
+        if expected_vault_id and (not is_valid or vault_id != expected_vault_id):
+            hijacked_lnks[lnk_path] = expected_vault_id
             
-        try:
-            target_path = Path(target_str).resolve()
-            if not target_path.is_relative_to(source_dir.resolve()):
-                logger.info(f"Ignoring external shortcut pointing outside source_dir: {lnk_path} -> {target_str}")
-                continue
-        except Exception as e:
-            logger.warning(f"Error checking shortcut target path {target_str}: {e}")
-            continue
-
-        filename = os.path.basename(target_str.replace('\\', '/'))
-        if filename.startswith("doc_") and filename.endswith(".pdf"):
-            vault_id = filename[4:-4]
+        if is_valid:
             physical_lnk_by_vault.setdefault(vault_id, []).append(lnk_path)
             
     temp_organizer = FileOrganizer()
     valid_tenant_folders, _ = temp_organizer.compute_tenant_folders(groups, yaml_data)
     valid_folder_names_set = set(valid_tenant_folders.values())
     
-    deleted_vault_ids = set()
     seen_vault_ids = set(physical_lnk_by_vault.keys())
+    deleted_vault_ids = set()
     
     for vault_id, state_pages in vault_id_to_pages.items():
         if vault_id not in seen_vault_ids:
-            logger.warning(f"Shortcut for vault_id {vault_id} was completely deleted. Trashing vault PDF.")
-            deleted_vault_ids.add(vault_id)
-            report["user_deleted"] += 1
-            continue
+            repaired_lnks_for_vault = [lnk for lnk, ev_id in hijacked_lnks.items() if ev_id == vault_id]
+            if repaired_lnks_for_vault:
+                for lnk in repaired_lnks_for_vault:
+                    logger.info("Auto-repairing hijacked shortcut...")
+                    report["shortcuts_repaired"] += 1
+                    physical_lnk_by_vault.setdefault(vault_id, []).append(lnk)
+                    for other_vid, other_lnks in physical_lnk_by_vault.items():
+                        if other_vid != vault_id and lnk in other_lnks:
+                            other_lnks.remove(lnk)
+            else:
+                logger.warning(f"Shortcut for vault_id {vault_id} was completely deleted. Trashing vault PDF.")
+                deleted_vault_ids.add(vault_id)
+                report["user_deleted"] += 1
+                continue
+                
+        else:
+            repaired_lnks_for_vault = [lnk for lnk, ev_id in hijacked_lnks.items() if ev_id == vault_id]
+            for lnk in repaired_lnks_for_vault:
+                if lnk not in physical_lnk_by_vault[vault_id]:
+                    logger.info("Auto-repairing hijacked shortcut...")
+                    report["shortcuts_repaired"] += 1
+                    physical_lnk_by_vault[vault_id].append(lnk)
+                    for other_vid, other_lnks in physical_lnk_by_vault.items():
+                        if other_vid != vault_id and lnk in other_lnks:
+                            other_lnks.remove(lnk)
             
         lnks = physical_lnk_by_vault[vault_id]
         unmatched_lnks = []
@@ -648,6 +687,7 @@ def run_reconcile_mode(args) -> int:
         logger.info(f"User Deletions:      {report['user_deleted']}")
         logger.info(f"Orphans Trashed:     {report['orphans_trashed']}")
         logger.info(f"Auto-Moves Planned:  {report['file_moves_planned']}")
+        logger.info(f"Shortcuts Repaired:  {report.get('shortcuts_repaired', 0)}")
         if report.get("corrupt_vault_files", 0) > 0:
             logger.info(f"Corrupt Vault Files Detected: {report['corrupt_vault_files']}")
         logger.info("==============================")

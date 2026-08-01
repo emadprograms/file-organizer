@@ -146,3 +146,22 @@ def test_verification_untracked_shortcut_warning(mock_house, caplog):
     # Should still pass, but logs a warning
     assert run_verification(mock_house) == 0
     assert "categorized shortcuts not tracked" in caplog.text
+
+def test_verification_hijacked_shortcut(mock_house):
+    # State expects Tenant A/doc1.lnk to point to doc_1.pdf (by virtue of it not being explicitly mocked differently, wait, state says:
+    # "manifest": {"per_page": [{"output_file": "...", "vault_id": "1"}]}
+    # Let's just update the state explicitly in the test to ensure it expects vault_id "1"
+    
+    state_file = mock_house / ".source_files" / "123_state.json"
+    with open(state_file, "r", encoding="utf-8") as f:
+        state_data = json.load(f)
+    state_data["manifest"]["per_page"][0]["vault_id"] = "1"
+    with open(state_file, "w", encoding="utf-8") as f:
+        json.dump(state_data, f)
+        
+    # Hijack doc1.lnk to point to doc_2.pdf
+    pdf2 = mock_house / ".source_files" / "vault" / "doc_2.pdf"
+    lnk1 = mock_house / "Tenant A \u200e(2023 - 2024)\u200e" / "doc1.lnk"
+    create_shortcut(str(pdf2), str(lnk1))
+    
+    assert run_verification(mock_house) == 1

@@ -222,6 +222,35 @@ def run_verification(target_dir: Path) -> int:
                     logger.warning(f"  -> {un_lnk}")
                 add_pass("All categorized shortcuts are properly tracked in state.json")
                 
+            # Phase 55: Check for hijacked shortcuts (shortcuts pointing to wrong vault_id)
+            expected_vault_by_lnk = {}
+            for p in manifest:
+                out_f = p.get("output_file")
+                vid = p.get("vault_id")
+                if out_f and vid:
+                    expected_vault_by_lnk[out_f] = vid
+            
+            hijack_errors = 0
+            for lnk_path in lnk_files:
+                rel_path = lnk_path.relative_to(target_dir.parent).as_posix()
+                if rel_path in expected_vault_by_lnk:
+                    expected_vid = expected_vault_by_lnk[rel_path]
+                    
+                    target_path = batch_results.get(str(lnk_path))
+                    if not target_path:
+                        continue
+                        
+                    target_path_clean = target_path
+                    if target_path_clean.startswith("\\\\?\\"):
+                        target_path_clean = target_path_clean[4:]
+                    resolved_target = Path(target_path_clean)
+                    
+                    if resolved_target.name != f"doc_{expected_vid}.pdf":
+                        add_error(f"Hijacked shortcut detected: {rel_path} points to {resolved_target.name} instead of doc_{expected_vid}.pdf")
+                        hijack_errors += 1
+            if hijack_errors == 0:
+                add_pass("All known shortcuts point to their expected vault_id")
+                
             # Immutable Page Count Audit (Phase 48)
             cleaned_pages = state_data.get("cleaned_pages", [])
             if len(cleaned_pages) != len(manifest):
