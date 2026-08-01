@@ -5,7 +5,7 @@ import shutil
 import logging
 from pathlib import Path
 
-from src.utils.fs import create_shortcut
+from src.utils.fs import batch_create_shortcuts
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
@@ -83,6 +83,8 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
     logger.info(f"Found {len(pdfs)} PDFs to migrate to vault format.")
     
     updates_made = 0
+    shortcuts_to_create = []
+    
     for pdf_path in pdfs:
         vid = uuid.uuid4().hex
         vault_pdf = vault_dir / f"doc_{vid}.pdf"
@@ -110,12 +112,15 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
             if os.name == 'nt' and not abs_vault_target.startswith("\\\\?\\"):
                 if len(abs_vault_target) > 1 and abs_vault_target[1] == ':':
                     abs_vault_target = "\\\\?\\" + abs_vault_target
-            create_shortcut(abs_vault_target, str(lnk_path))
+            shortcuts_to_create.append({"target": abs_vault_target, "link": str(lnk_path)})
             logger.info(f"Migrated: {pdf_path.name} -> vault/doc_{vid}.pdf + shortcut")
         else:
             logger.info(f"[DRY RUN] Would migrate {pdf_path.name} -> vault/doc_{vid}.pdf + shortcut")
             
         updates_made += 1
+        
+    if not dry_run and shortcuts_to_create:
+        batch_create_shortcuts(shortcuts_to_create)
         
     # Rebuild [Timeline View]/
     timeline_dir = target_dir / "[Timeline View]"
@@ -132,7 +137,7 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
                 vid_page_counts[vid] = vid_page_counts.get(vid, 0) + 1
 
         idx = 1
-        processed_vault_ids = set()
+        timeline_shortcuts = []
         for p in sorted(per_page, key=lambda x: (x.get('dates', [''])[0] if x.get('dates') else '', x.get('page_index', 0))):
             if "vault_id" not in p:
                 continue
@@ -167,8 +172,11 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
                 if os.name == 'nt' and not abs_vault_target.startswith("\\\\?\\"):
                     if len(abs_vault_target) > 1 and abs_vault_target[1] == ':':
                         abs_vault_target = "\\\\?\\" + abs_vault_target
-                create_shortcut(abs_vault_target, str(lnk_path))
+                timeline_shortcuts.append({"target": abs_vault_target, "link": str(lnk_path)})
             idx += vid_page_counts.get(vid, 1)
+            
+        if timeline_shortcuts:
+            batch_create_shortcuts(timeline_shortcuts)
             
         # Delete finalized PDF if it exists
         for root, _, files in os.walk(target_dir):

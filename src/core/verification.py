@@ -3,7 +3,7 @@ import os
 import sys
 import json
 from pathlib import Path
-from src.utils.fs import read_shortcut_target
+from src.utils.fs import batch_read_shortcut_targets
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
@@ -134,17 +134,21 @@ def run_verification(target_dir: Path) -> int:
         add_pass("No rogue PDFs found outside the vault")
         
     broken_links = 0
-    for lnk_path in lnk_files:
-        try:
-            target_path = read_shortcut_target(str(lnk_path))
-            if not target_path:
-                add_error(f"Failed to read shortcut target for {lnk_path.relative_to(target_dir)}")
-                broken_links += 1
-                continue
-                
-            target_path_clean = target_path
-            if target_path_clean.startswith("\\\\?\\"):
-                target_path_clean = target_path_clean[4:]
+    if lnk_files:
+        link_paths_str = [str(lnk) for lnk in lnk_files]
+        batch_results = batch_read_shortcut_targets(link_paths_str)
+        
+        for lnk_path in lnk_files:
+            try:
+                target_path = batch_results.get(str(lnk_path))
+                if not target_path:
+                    add_error(f"Failed to read shortcut target for {lnk_path.relative_to(target_dir)}")
+                    broken_links += 1
+                    continue
+                    
+                target_path_clean = target_path
+                if target_path_clean.startswith("\\\\?\\"):
+                    target_path_clean = target_path_clean[4:]
             
             resolved_target = Path(target_path_clean)
             if not resolved_target.exists():

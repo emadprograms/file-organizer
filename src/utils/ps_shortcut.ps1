@@ -42,7 +42,7 @@ public class ShortcutInterop {
         IShellLinkW sl = (IShellLinkW)new ShellLink();
         IPersistFile pf = (IPersistFile)sl;
         pf.Load(link, 0);
-        StringBuilder sb = new StringBuilder(260);
+        StringBuilder sb = new StringBuilder(32767);
         sl.GetPath(sb, sb.Capacity, IntPtr.Zero, 0);
         return sb.ToString();
     }
@@ -55,8 +55,32 @@ if ($action -eq "create") {
     $target = $args[1]
     $link = $args[2]
     [ShortcutInterop]::Create($target, $link)
-} elseif ($action -eq "read") {
-    $link = $args[1]
-    $result = [ShortcutInterop]::Read($link)
-    Write-Output $result
+} elseif ($action -eq "batch-create") {
+    $inputJson = [Console]::In.ReadToEnd()
+    if (![string]::IsNullOrWhiteSpace($inputJson)) {
+        $items = $inputJson | ConvertFrom-Json
+        foreach ($item in $items) {
+            try {
+                [ShortcutInterop]::Create($item.target, $item.link)
+            } catch {
+                Write-Error "Failed to create shortcut $($item.link): $_"
+            }
+        }
+    }
+} elseif ($action -eq "batch-read") {
+    $inputJson = [Console]::In.ReadToEnd()
+    $results = @{}
+    if (![string]::IsNullOrWhiteSpace($inputJson)) {
+        $links = $inputJson | ConvertFrom-Json
+        foreach ($link in $links) {
+            try {
+                $target = [ShortcutInterop]::Read($link)
+                $results[$link] = $target
+            } catch {
+                $results[$link] = $null
+            }
+        }
+    }
+    $resultsJson = $results | ConvertTo-Json -Depth 5 -Compress
+    Write-Output $resultsJson
 }

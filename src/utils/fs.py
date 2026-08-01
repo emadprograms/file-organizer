@@ -134,11 +134,71 @@ def read_shortcut_target(link_path: str) -> str | None:
             creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0)
         )
         
-        if result.returncode == 0:
-            target = result.stdout.strip()
-            if target:
-                return target
+        target = result.stdout.strip()
+        return target if target else None
     except Exception as e:
-        logger.warning(f"Could not parse shortcut {link_path}: {e}")
+        logger.error(f"Failed to read shortcut {link_path}: {e}")
+        return None
+
+def batch_create_shortcuts(items: list[dict]) -> None:
+    """Create multiple shortcuts in a single PowerShell execution.
+    
+    Args:
+        items: List of dictionaries with 'target' and 'link' keys.
+    """
+    import subprocess
+    if os.name != 'nt' or not items:
+        return
         
-    return None
+    import json
+    ps_script_path = os.path.join(os.path.dirname(__file__), "ps_shortcut.ps1")
+    input_json = json.dumps(items, ensure_ascii=False)
+    
+    subprocess.run(
+        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps_script_path, "batch-create"],
+        input=input_json,
+        text=True,
+        encoding='utf-8',
+        creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
+        check=True
+    )
+
+def batch_read_shortcut_targets(link_paths: list[str]) -> dict[str, str]:
+    """Read multiple shortcut targets in a single PowerShell execution.
+    
+    Args:
+        link_paths: List of string absolute paths to .lnk files.
+        
+    Returns:
+        A dictionary mapping link paths to their target paths.
+    """
+    import subprocess
+    if os.name != 'nt' or not link_paths:
+        return {}
+        
+    import json
+    ps_script_path = os.path.join(os.path.dirname(__file__), "ps_shortcut.ps1")
+    
+    # PowerShell ConvertFrom-Json can fail if the array is too large or chunked incorrectly over stdin, 
+    # but for ~500 items it's fine.
+    input_json = json.dumps([os.path.abspath(p) for p in link_paths], ensure_ascii=False)
+    
+    try:
+        result = subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps_script_path, "batch-read"],
+            input=input_json,
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0)
+        )
+        
+        output = result.stdout.strip()
+        if not output:
+            return {}
+            
+        data = json.loads(output)
+        return data
+    except Exception as e:
+        logger.error(f"Failed batch reading shortcuts: {e}")
+        return {}
