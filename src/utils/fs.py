@@ -117,28 +117,12 @@ def read_shortcut_target(link_path: str) -> str | None:
     Returns:
         The target path as a string, or None if it cannot be parsed.
     """
-    import subprocess
     import os
-    import base64
-    
     if not os.path.exists(link_path):
         return None
         
-    try:
-        ps_script_path = os.path.join(os.path.dirname(__file__), "ps_shortcut.ps1")
-        result = subprocess.run(
-            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps_script_path, "read", os.path.abspath(link_path)],
-            capture_output=True,
-            text=True,
-            encoding='utf-8',
-            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0)
-        )
-        
-        target = result.stdout.strip()
-        return target if target else None
-    except Exception as e:
-        logger.error(f"Failed to read shortcut {link_path}: {e}")
-        return None
+    results = batch_read_shortcut_targets([link_path])
+    return results.get(os.path.abspath(link_path))
 
 def batch_create_shortcuts(items: list[dict]) -> None:
     """Create multiple shortcuts in a single PowerShell execution.

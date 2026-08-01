@@ -119,3 +119,56 @@ def test_merge_and_remove_dir_with_collisions(tmp_path) -> None:
     
     assert not src.exists()
     assert (dst / "file1.txt").read_text() == "new content"
+
+def test_shortcut_creation_and_reading(tmp_path) -> None:
+    """Test creating and reading a single shortcut."""
+    from src.utils.fs import create_shortcut, read_shortcut_target
+    import os
+    if os.name != 'nt':
+        pytest.skip("Windows shortcuts only supported on Windows")
+        
+    target_file = tmp_path / "target.pdf"
+    target_file.touch()
+    link_file = tmp_path / "link.lnk"
+    
+    # Test create
+    create_shortcut(str(target_file.resolve()), str(link_file.resolve()))
+    assert link_file.exists()
+    
+    # Test read
+    read_target = read_shortcut_target(str(link_file.resolve()))
+    assert read_target is not None
+    assert str(target_file.resolve()).lower() in read_target.lower()
+
+def test_batch_shortcuts(tmp_path) -> None:
+    """Test creating and reading multiple shortcuts in batch."""
+    from src.utils.fs import batch_create_shortcuts, batch_read_shortcut_targets
+    import os
+    if os.name != 'nt':
+        pytest.skip("Windows shortcuts only supported on Windows")
+        
+    targets = []
+    links = []
+    items = []
+    
+    # Create 3 targets and links
+    for i in range(3):
+        target = tmp_path / f"target_batch_{i}.pdf"
+        target.touch()
+        link = tmp_path / f"link_batch_{i}.lnk"
+        
+        targets.append(str(target.resolve()))
+        links.append(str(link.resolve()))
+        items.append({"target": str(target.resolve()), "link": str(link.resolve())})
+        
+    # Test batch create
+    batch_create_shortcuts(items)
+    for link in links:
+        assert os.path.exists(link)
+        
+    # Test batch read
+    results = batch_read_shortcut_targets(links)
+    assert len(results) == 3
+    for link, target in zip(links, targets):
+        assert link in results
+        assert target.lower() in results[link].lower()
