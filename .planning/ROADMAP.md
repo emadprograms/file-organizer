@@ -83,6 +83,19 @@ See [.planning/milestones/v5.3-ROADMAP.md](milestones/v5.3-ROADMAP.md) for full 
 
 ### 🚧 v5.4 Architectural Consistency Refactor (Phases 49-57)
 
+- [x] Phase 49: 1-to-Many Shortcut Mapping (1/1 plans)
+- [ ] Phase 50: Cross-House Contamination Immunity (0/1 plans)
+- [ ] Phase 51: Multi-Page Raw PDF Ingestion (0/1 plans)
+- [ ] Phase 52: Corrupted Vault File Safeguards (0/1 plans)
+- [ ] Phase 53: Nested Folder Trap (0/1 plans)
+- [ ] Phase 54: Tenant Root Folder Renaming (0/1 plans)
+- [ ] Phase 55: Shortcut Target Hijack / Corruption (0/1 plans)
+- [ ] Phase 56: Idempotency Guarantee (0/1 plans)
+- [ ] Phase 57: File Locking Resilience (0/1 plans)
+
+<details>
+<summary>Phase Details</summary>
+
 ### Phase 49: 1-to-Many Shortcut Mapping
 **Requirements:** REQ-01
 **Success Criteria:** 
@@ -145,6 +158,7 @@ See [.planning/milestones/v5.3-ROADMAP.md](milestones/v5.3-ROADMAP.md) for full 
 - System catches `PermissionError` on locked PDFs instead of crashing.
 - Locked files are safely skipped during operations.
 - State updates are atomic, preventing partial corruption.
+</details>
 
 ## Progress
 
@@ -181,7 +195,7 @@ See [.planning/milestones/v5.3-ROADMAP.md](milestones/v5.3-ROADMAP.md) for full 
 | 46. Auto-Verification & Reconciliation Report | v5.3 | 1/1 | Complete | 2026-08-01 |
 | 47. Reconciliation Test Suite | v5.3 | 1/1 | Complete | 2026-08-01 |
 | 48. Data Preservation & Verification Overhaul | v5.3 | 1/1 | Complete | 2026-08-01 |
-| 49. 1-to-Many Shortcut Mapping | v5.4 | 0/1 | Pending | - |
+| 49. 1-to-Many Shortcut Mapping | v5.4 | 1/1 | Complete | 2026-08-01 |
 | 50. Cross-House Contamination Immunity | v5.4 | 0/1 | Pending | - |
 | 51. Multi-Page Raw PDF Ingestion | v5.4 | 0/1 | Pending | - |
 | 52. Corrupted Vault File Safeguards | v5.4 | 0/1 | Pending | - |
