@@ -316,7 +316,7 @@ def run_reconcile_mode(args) -> int:
                         brief_arabic_title=lnk.stem,
                         vault_id=vault_id,
                         user_locked=True,
-                        shortcuts=[f"{target_dir.name}/{rel_path}"]
+                        shortcuts=[rel_path]
                     )
                     groups.append(new_group)
                     
@@ -464,7 +464,7 @@ def run_reconcile_mode(args) -> int:
                 brief_arabic_title=lnk_path.stem,
                 vault_id=new_vault_id,
                 user_locked=True,
-                shortcuts=[f"{target_dir.name}/{rel_path}"]
+                shortcuts=[rel_path]
             )
             groups.append(new_group)
         else:
@@ -636,8 +636,12 @@ def run_reconcile_mode(args) -> int:
     vault_to_shortcuts = defaultdict(list)
     for p in new_per_page:
         if "vault_id" in p and "output_file" in p:
-            if p["output_file"] not in vault_to_shortcuts[p["vault_id"]]:
-                vault_to_shortcuts[p["vault_id"]].append(p["output_file"])
+            out_f = p["output_file"]
+            prefix = f"{full_house_id}/"
+            if out_f.startswith(prefix):
+                out_f = out_f[len(prefix):]
+            if out_f not in vault_to_shortcuts[p["vault_id"]]:
+                vault_to_shortcuts[p["vault_id"]].append(out_f)
                 
     for g in groups:
         if g.vault_id in vault_to_shortcuts:
