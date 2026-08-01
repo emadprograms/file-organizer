@@ -102,7 +102,7 @@ def create_shortcut(target_path: str, link_path: str) -> None:
         from pathlib import Path
         clean_target = "C:" + str(Path(clean_target).resolve()).replace('/', '\\')
 
-    ps_script_path = os.path.join(os.path.dirname(__file__), "ps_shortcut.ps1")
+    ps_script_path = os.path.join(os.path.dirname(__file__), "windows_shortcut.ps1")
     subprocess.run(["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps_script_path, "create", clean_target, link_path], 
                    creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
                    check=True)
@@ -135,7 +135,7 @@ def batch_create_shortcuts(items: list[dict]) -> None:
         return
         
     import json
-    ps_script_path = os.path.join(os.path.dirname(__file__), "ps_shortcut.ps1")
+    ps_script_path = os.path.join(os.path.dirname(__file__), "windows_shortcut.ps1")
     input_json = json.dumps(items, ensure_ascii=False)
     
     subprocess.run(
@@ -161,7 +161,7 @@ def batch_read_shortcut_targets(link_paths: list[str]) -> dict[str, str]:
         return {}
         
     import json
-    ps_script_path = os.path.join(os.path.dirname(__file__), "ps_shortcut.ps1")
+    ps_script_path = os.path.join(os.path.dirname(__file__), "windows_shortcut.ps1")
     
     # PowerShell ConvertFrom-Json can fail if the array is too large or chunked incorrectly over stdin, 
     # but for ~500 items it's fine.

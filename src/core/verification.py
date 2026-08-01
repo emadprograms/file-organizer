@@ -150,18 +150,18 @@ def run_verification(target_dir: Path) -> int:
                 if target_path_clean.startswith("\\\\?\\"):
                     target_path_clean = target_path_clean[4:]
             
-            resolved_target = Path(target_path_clean)
-            if not resolved_target.exists():
-                add_error(f"Broken shortcut: {lnk_path.relative_to(target_dir)} points to missing file: {target_path_clean}")
+                resolved_target = Path(target_path_clean)
+                if not resolved_target.exists():
+                    add_error(f"Broken shortcut: {lnk_path.relative_to(target_dir)} points to missing file: {target_path_clean}")
+                    broken_links += 1
+                elif vault_dir.resolve() not in resolved_target.parents:
+                    add_error(f"Shortcut target outside vault: {lnk_path.relative_to(target_dir)} -> {target_path_clean}")
+                    broken_links += 1
+                else:
+                    referenced_vault_pdfs.add(resolved_target.name)
+            except Exception as e:
+                add_error(f"Failed to parse shortcut {lnk_path.relative_to(target_dir)}: {e}")
                 broken_links += 1
-            elif vault_dir.resolve() not in resolved_target.parents:
-                add_error(f"Shortcut target outside vault: {lnk_path.relative_to(target_dir)} -> {target_path_clean}")
-                broken_links += 1
-            else:
-                referenced_vault_pdfs.add(resolved_target.name)
-        except Exception as e:
-            add_error(f"Failed to parse shortcut {lnk_path.relative_to(target_dir)}: {e}")
-            broken_links += 1
             
     if broken_links == 0:
         add_pass(f"All {len(lnk_files)} shortcuts resolve correctly to the vault")
