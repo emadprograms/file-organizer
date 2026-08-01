@@ -206,8 +206,15 @@ def run_verification(target_dir: Path) -> int:
                 logger.warning(f"[WARN] Found {len(untracked_lnks)} categorized shortcuts not tracked in state.json")
                 for un_lnk in sorted(list(untracked_lnks)):
                     logger.warning(f"  -> {un_lnk}")
-            else:
                 add_pass("All categorized shortcuts are properly tracked in state.json")
+                
+            # Immutable Page Count Audit (Phase 48)
+            cleaned_pages = state_data.get("cleaned_pages", [])
+            if len(cleaned_pages) != len(manifest):
+                add_error(f"IMMUTABLE PAGE COUNT MISMATCH! System dropped data. Original raw pages: {len(cleaned_pages)}. Final reconciled pages: {len(manifest)}.")
+            else:
+                add_pass(f"Immutable Page Count verified ({len(manifest)} pages preserved)")
+
                 
         except Exception as e:
             add_error(f"Failed to parse state file {state_file.name}: {e}")

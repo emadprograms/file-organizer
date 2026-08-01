@@ -128,8 +128,6 @@ def run_reconcile_mode(args) -> int:
             expected_rel = expected_parts[1] if len(expected_parts) > 1 else expected_parts[0]
             matched = False
             for lnk in lnks:
-                if lnk in matched_lnks:
-                    continue
                 rel_path = lnk.relative_to(target_dir).as_posix()
                 if rel_path == expected_rel:
                     matched = True
