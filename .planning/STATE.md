@@ -1,4 +1,4 @@
 # State
 
-## Current Phase: 43 (Ghost File Adoption & Raw PDF Ingestion)
+## Current Phase: 44 (User Deletion & Orphan Cleanup)
 ## Status: Planned

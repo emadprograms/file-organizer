@@ -8,9 +8,11 @@ from src.core.models import PageData, TenantTimeline
 from src.timeline.phase import assign_pages_to_tenants
 from src.timeline.core import FileOrganizer
 from src.core.schemas import DocumentGroup
-from src.utils.fs import atomic_write
+from src.utils.fs import atomic_write, create_shortcut
 from src.core.utils import sanitize_filename
 import logging
+import uuid
+import re
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
@@ -56,16 +58,19 @@ def run_reconcile_mode(args) -> int:
     groups = [DocumentGroup(**g) for g in state.data.get("grouped_documents", [])]
     routed_data = state.data.get("manifest", {})
         
-    # Phase 33: Scan physical shortcuts (RECON-01, RECON-02, RECON-07)
+    # Phase 33 & 43: Scan physical shortcuts and raw PDFs (RECON-01, RECON-02, RECON-03, RECON-07)
     from src.utils.fs import read_shortcut_target
     
     physical_lnk_files = []
+    physical_pdf_files = []
     if target_dir.exists():
-        for lnk_path in target_dir.rglob("*.lnk"):
-            # Skip files in .source_files or [Timeline View]
-            if ".source_files" in lnk_path.parts or "[Timeline View]" in lnk_path.parts:
+        for path in target_dir.rglob("*"):
+            if ".source_files" in path.parts or "[Timeline View]" in path.parts:
                 continue
-            physical_lnk_files.append(lnk_path)
+            if path.suffix.lower() == ".lnk":
+                physical_lnk_files.append(path)
+            elif path.suffix.lower() == ".pdf":
+                physical_pdf_files.append(path)
             
     vault_id_to_page = {}
     for p in routed_data.get("per_page", []):
@@ -110,9 +115,125 @@ def run_reconcile_mode(args) -> int:
                             g.user_locked = True
                             break
                             
-    for vault_id, p in vault_id_to_page.items():
+            else:
+                # Phase 43: Ghost Shortcut Adoption (REQ-01)
+                vault_pdf = source_dir / "vault" / f"doc_{vault_id}.pdf"
+                if vault_pdf.exists():
+                    logger.info(f"Adopting ghost shortcut for vault_id {vault_id} from {lnk_path.name}")
+                    date_match = re.search(r'(\d{4}-\d{2}-\d{2})', lnk_path.name)
+                    extracted_date = date_match.group(1) if date_match else "nodate"
+                    
+                    new_page_idx = len(pages)
+                    
+                    rel_path = lnk_path.relative_to(target_dir).as_posix()
+                    new_target_folder = str(Path(rel_path).parent.as_posix())
+                    if new_target_folder == ".":
+                        new_target_folder = ""
+                        
+                    new_page = PageData(
+                        category="Unassigned",
+                        content_explanation="Adopted from ghost shortcut.",
+                        original_index=new_page_idx,
+                        user_locked=True,
+                        date=extracted_date,
+                        resolved_date=extracted_date if extracted_date != "nodate" else None
+                    )
+                    pages.append(new_page)
+                    
+                    new_group = DocumentGroup(
+                        start_page=new_page_idx,
+                        end_page=new_page_idx,
+                        primary_tenant="Unassigned",
+                        category="Unassigned",
+                        dates=[extracted_date] if extracted_date != "nodate" else [],
+                        brief_arabic_title=lnk_path.stem,
+                        vault_id=vault_id,
+                        user_locked=True
+                    )
+                    groups.append(new_group)
+                    
+                    new_p = {
+                        "page_index": new_page_idx,
+                        "vault_id": vault_id,
+                        "output_file": f"{target_dir.name}/{rel_path}",
+                        "target_folder": new_target_folder,
+                        "dates": [extracted_date] if extracted_date != "nodate" else [],
+                        "date": extracted_date,
+                        "brief_arabic_title": lnk_path.stem,
+                        "user_locked": True
+                    }
+                    routed_data.get("per_page", []).append(new_p)
+                    vault_id_to_page[vault_id] = new_p
+                            
+    for vault_id, p in list(vault_id_to_page.items()):
         if vault_id not in seen_vault_ids:
             logger.warning(f"Shortcut for vault_id {vault_id} was deleted or missing.")
+            
+    # Phase 43: Raw PDF Ingestion (REQ-03)
+    vault_dir = source_dir / "vault"
+    vault_dir.mkdir(parents=True, exist_ok=True)
+    
+    known_output_files = {Path(p["output_file"]).as_posix() for p in routed_data.get("per_page", [])}
+    
+    for pdf_path in physical_pdf_files:
+        rel_pdf = f"{target_dir.name}/{pdf_path.relative_to(target_dir).as_posix()}"
+        if rel_pdf in known_output_files:
+            continue
+            
+        if not getattr(args, 'dry_run', False):
+            new_vault_id = uuid.uuid4().hex
+            dest_vault_pdf = vault_dir / f"doc_{new_vault_id}.pdf"
+            logger.info(f"Ingesting raw PDF: {pdf_path.name} -> vault_id {new_vault_id}")
+            shutil.move(str(pdf_path), str(dest_vault_pdf))
+            
+            lnk_path = pdf_path.with_suffix('.lnk')
+            create_shortcut(str(dest_vault_pdf.resolve()), str(lnk_path.resolve()))
+            
+            date_match = re.search(r'(\d{4}-\d{2}-\d{2})', pdf_path.name)
+            extracted_date = date_match.group(1) if date_match else "nodate"
+            
+            new_page_idx = len(pages)
+            rel_path = lnk_path.relative_to(target_dir).as_posix()
+            new_target_folder = str(Path(rel_path).parent.as_posix())
+            if new_target_folder == ".":
+                new_target_folder = ""
+                
+            new_page = PageData(
+                category="Unassigned",
+                content_explanation="Ingested from raw PDF.",
+                original_index=new_page_idx,
+                user_locked=True,
+                date=extracted_date,
+                resolved_date=extracted_date if extracted_date != "nodate" else None
+            )
+            pages.append(new_page)
+            
+            new_group = DocumentGroup(
+                start_page=new_page_idx,
+                end_page=new_page_idx,
+                primary_tenant="Unassigned",
+                category="Unassigned",
+                dates=[extracted_date] if extracted_date != "nodate" else [],
+                brief_arabic_title=lnk_path.stem,
+                vault_id=new_vault_id,
+                user_locked=True
+            )
+            groups.append(new_group)
+            
+            new_p = {
+                "page_index": new_page_idx,
+                "vault_id": new_vault_id,
+                "output_file": f"{target_dir.name}/{rel_path}",
+                "target_folder": new_target_folder,
+                "dates": [extracted_date] if extracted_date != "nodate" else [],
+                "date": extracted_date,
+                "brief_arabic_title": lnk_path.stem,
+                "user_locked": True
+            }
+            routed_data.setdefault("per_page", []).append(new_p)
+            vault_id_to_page[new_vault_id] = new_p
+        else:
+            logger.info(f"[DRY RUN] Would ingest raw PDF {pdf_path.name} into vault.")
     timelines = []
     for t in yaml_data:
         end_d = t.get("end_date")
@@ -240,7 +361,6 @@ def run_reconcile_mode(args) -> int:
             if not doc_title:
                 doc_title = f"Doc_{p.get('page_index', 0)}"
                 
-            import re
             doc_title = re.sub(r'[\\/:*?"<>|]', '', doc_title)
             dates = p.get('dates', [])
             if not dates and p.get('date'):
@@ -252,7 +372,6 @@ def run_reconcile_mode(args) -> int:
             # The vault PDF path
             vault_pdf = target_dir / ".source_files" / "vault" / f"doc_{vid}.pdf"
             if vault_pdf.exists():
-                from src.utils.fs import create_shortcut
                 create_shortcut(str(vault_pdf.resolve()), str(lnk_path))
             idx += vid_page_counts.get(vid, 1)
             
