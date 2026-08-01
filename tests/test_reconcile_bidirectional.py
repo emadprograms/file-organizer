@@ -51,7 +51,8 @@ def test_bidirectional_reconciliation_user_locking(tmp_path):
                 "primary_tenant": "Unassigned",
                 "user_locked": False,
                 "category": "Unknown",
-                "dates": ["2022-01-01"]
+                "dates": ["2022-01-01"],
+                "vault_id": "mock_vault"
             }
         ],
         "manifest": {

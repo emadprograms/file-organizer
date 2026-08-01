@@ -188,6 +188,11 @@ def run_verification(target_dir: Path) -> int:
                 out_f = p.get("output_file")
                 if out_f:
                     state_output_files.add(out_f)
+            
+            for g in state_data.get("grouped_documents", []):
+                for s in g.get("shortcuts", []):
+                    full_s = f"{target_dir.name}/{s}"
+                    state_output_files.add(full_s)
                     
             # Check if all state output files exist
             missing_outputs = 0

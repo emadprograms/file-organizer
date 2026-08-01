@@ -162,60 +162,17 @@ def run_reconcile_mode(args) -> int:
                         g.user_locked = True
                         break
             else:
-                # Deleted duplicate shortcut, mark page to be deleted? 
-                # For now, we will add its vault_id to deleted if ALL are deleted, but if it's a partial delete (e.g. deleted 1 copy), we should remove just this per_page entry!
                 logger.info(f"Detected deletion of duplicate shortcut for vault_id {vault_id}.")
-                # To remove it properly, we can add a flag to `p` and filter it out below.
                 p["_mark_deleted"] = True
 
-        # If there are more unmatched physical shortcuts, they are copies/ghosts of this vault_id
         if len(unmatched_lnks) > len(unmatched_pages):
-            for lnk in unmatched_lnks[len(unmatched_pages):]:
-                report["duplicates_adopted"] += 1
-                logger.info(f"Adopting copied/ghost shortcut for vault_id {vault_id} from {lnk.name}")
-                date_match = re.search(r'(\d{4}-\d{2}-\d{2})', lnk.name)
-                extracted_date = date_match.group(1) if date_match else "nodate"
-                
-                new_page_idx = len(pages)
-                rel_path = lnk.relative_to(target_dir).as_posix()
-                new_target_folder = str(Path(rel_path).parent.as_posix())
-                if new_target_folder == ".":
-                    new_target_folder = ""
-                    
-                new_page = PageData(
-                    category="Unassigned",
-                    content_explanation="Adopted from ghost/copied shortcut.",
-                    original_index=new_page_idx,
-                    user_locked=True,
-                    date=extracted_date,
-                    resolved_date=extracted_date if extracted_date != "nodate" else None
-                )
-                pages.append(new_page)
-                
-                new_group = DocumentGroup(
-                    start_page=new_page_idx,
-                    end_page=new_page_idx,
-                    primary_tenant="Unassigned",
-                    category="Unassigned",
-                    dates=[extracted_date] if extracted_date != "nodate" else [],
-                    brief_arabic_title=lnk.stem,
-                    vault_id=vault_id,
-                    user_locked=True
-                )
-                groups.append(new_group)
-                
-                new_p = {
-                    "page_index": new_page_idx,
-                    "vault_id": vault_id,
-                    "output_file": f"{target_dir.name}/{rel_path}",
-                    "target_folder": new_target_folder,
-                    "dates": [extracted_date] if extracted_date != "nodate" else [],
-                    "date": extracted_date,
-                    "brief_arabic_title": lnk.stem,
-                    "user_locked": True
-                }
-                routed_data.get("per_page", []).append(new_p)
-                vault_id_to_pages[vault_id].append(new_p)
+            report["duplicates_adopted"] += len(unmatched_lnks) - len(unmatched_pages)
+            logger.info(f"Detected {len(unmatched_lnks) - len(unmatched_pages)} duplicate shortcuts for vault_id {vault_id}. Mapping them to the document group.")
+
+        for g in groups:
+            if g.vault_id == vault_id:
+                g.shortcuts = [lnk.relative_to(target_dir).as_posix() for lnk in lnks]
+                break
 
     # Adopt ghost shortcuts for vault_ids NOT in state.json
     for vault_id, lnks in physical_lnk_by_vault.items():
@@ -562,40 +519,39 @@ def run_reconcile_mode(args) -> int:
         idx = 1
         processed_vault_ids = set()
         
-        # Pre-calculate page counts for each vault_id
-        vid_page_counts = {}
-        for p in new_per_page:
-            vid = p.get("vault_id")
-            if vid:
-                vid_page_counts[vid] = vid_page_counts.get(vid, 0) + 1
-                
         shortcuts_to_create = []
-                
-        for p in sorted(new_per_page, key=lambda x: (x.get('dates', [''])[0] if x.get('dates') else '', x.get('page_index', 0))):
-            if "vault_id" not in p:
+        
+        # Sort groups by date then start_page
+        for g in sorted(groups, key=lambda x: (x.dates[0] if x.dates and x.dates[0] != "NONE" else '', x.start_page)):
+            vid = g.vault_id
+            if not vid:
                 continue
                 
-            vid = p["vault_id"]
-            if vid in processed_vault_ids:
+            # If no shortcuts exist for this document group, skip
+            if not getattr(g, "shortcuts", None):
                 continue
-            processed_vault_ids.add(vid)
-
-            doc_title = p.get('brief_arabic_title')
-            if not doc_title and 'output_file' in p:
-                filename = Path(p['output_file']).name.replace('.lnk', '').replace('.pdf', '')
+                
+            # Location tag
+            primary_shortcut = g.shortcuts[0]
+            location = Path(primary_shortcut).parent.name
+            extra = f" (+ {len(g.shortcuts) - 1} other locations)" if len(g.shortcuts) > 1 else ""
+                
+            doc_title = g.brief_arabic_title
+            if not doc_title:
+                filename = Path(primary_shortcut).name.replace('.lnk', '').replace('.pdf', '')
                 if ' - ' in filename:
                     doc_title = filename.split(' - ', 1)[1]
                 else:
                     doc_title = filename
             if not doc_title:
-                doc_title = f"Doc_{p.get('page_index', 0)}"
+                doc_title = f"Doc_{g.start_page}"
                 
             doc_title = re.sub(r'[\\/:*?"<>|]', '', doc_title)
-            dates = p.get('dates', [])
-            if not dates and p.get('date'):
-                dates = [p.get('date')]
+            
+            dates = g.dates
             date_str = dates[0] if dates and len(dates) > 0 and dates[0] and dates[0] != "NONE" else "nodate"
-            link_name = f"{idx:03d} - {date_str} - {doc_title}.lnk"
+            
+            link_name = f"{idx:03d} - {date_str} - {doc_title} [{location}]{extra}.lnk"
             lnk_path = timeline_dir / link_name
             
             # The vault PDF path
@@ -605,7 +561,7 @@ def run_reconcile_mode(args) -> int:
                     "target": str(vault_pdf.resolve()),
                     "link": str(lnk_path)
                 })
-            idx += vid_page_counts.get(vid, 1)
+            idx += (g.end_page - g.start_page + 1)
             
         if shortcuts_to_create:
             from src.utils.fs import batch_create_shortcuts

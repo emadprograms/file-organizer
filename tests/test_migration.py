@@ -72,13 +72,12 @@ def test_migrate_v4_to_v5(tmp_path: Path):
         assert p["output_file"] == "101 - John Doe/John Doe/10_صيانة/2023-01-01 - test.lnk"
         
     # Verify link target correctness
-    import pylnk3
+    from src.utils.fs import batch_read_shortcut_targets
     lnk_file = pdf_path.with_suffix('.lnk')
-    with open(lnk_file, 'rb') as lf:
-        lnk = pylnk3.parse(lf)
-        expected_target = str(vault_files[0].resolve())
-        # The create_shortcut might prepend \\?\ for absolute paths, so we check if the path ends with our target
-        assert lnk.path.endswith(str(vault_files[0].resolve()).replace('\\\\?\\', '')) or expected_target.endswith(lnk.path.replace('\\\\?\\', ''))
+    res_map = batch_read_shortcut_targets([str(lnk_file.resolve())])
+    expected_target = str(vault_files[0].resolve())
+    actual_target = res_map.get(str(lnk_file.resolve()), "")
+    assert actual_target.endswith(str(vault_files[0].resolve()).replace('\\\\?\\', '')) or expected_target.endswith(actual_target.replace('\\\\?\\', ''))
         
     # Check timeline
     timeline_dir = house_dir / "[Timeline View]"

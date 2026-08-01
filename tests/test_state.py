@@ -68,7 +68,7 @@ def test_state_loads_existing_data(tmp_path):
     state = State(house_id, state_dir)
     
     assert state.data["cleaned_pages"] == [{"index": 1}]
-    assert state.data["grouped_documents"] == [{"id": 1}]
+    assert state.data["grouped_documents"] == [{"id": 1, "shortcuts": []}]
     assert state.data["routed_documents"] is None
 
 def test_state_auto_migrates_shortcut_name(tmp_path):

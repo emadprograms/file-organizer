@@ -45,6 +45,12 @@ def mock_house(tmp_path):
     # State JSON
     state_file = source_dir / "123_state.json"
     state_data = {
+        "cleaned_pages": [{}],
+        "grouped_documents": [
+            {
+                "shortcuts": ["Tenant A \u200e(2023 - 2024)\u200e/doc1.lnk"]
+            }
+        ],
         "manifest": {
             "per_page": [
                 {"output_file": "123 - Test House/Tenant A \u200e(2023 - 2024)\u200e/doc1.lnk"}
@@ -106,6 +112,12 @@ def test_verification_missing_state(mock_house):
 def test_verification_missing_state_output(mock_house):
     state_file = mock_house / ".source_files" / "123_state.json"
     state_data = {
+        "cleaned_pages": [{}],
+        "grouped_documents": [
+            {
+                "shortcuts": ["Tenant A \u200e(2023 - 2024)\u200e/missing.lnk"]
+            }
+        ],
         "manifest": {
             "per_page": [
                 {"output_file": "123 - Test House/Tenant A \u200e(2023 - 2024)\u200e/missing.lnk"}

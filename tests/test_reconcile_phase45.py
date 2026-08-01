@@ -37,7 +37,8 @@ def test_phase45_renamed_shortcut(tmp_path):
             "end_page": 0,
             "primary_tenant": "Tenant",
             "category": "misc",
-            "dates": []
+            "dates": [],
+            "vault_id": "rename_me"
         }],
         "manifest": {"per_page": [{
             "page_index": 0,
@@ -101,7 +102,8 @@ def test_phase45_duplicate_shortcut(tmp_path):
             "end_page": 0,
             "primary_tenant": "Tenant",
             "category": "misc",
-            "dates": []
+            "dates": [],
+            "vault_id": "duplicate_me"
         }],
         "manifest": {"per_page": [{
             "page_index": 0,
@@ -141,16 +143,18 @@ def test_phase45_duplicate_shortcut(tmp_path):
     with open(new_house_dir / ".source_files" / f"{house_id}_state.json") as f:
         new_state = json.load(f)
         
-    # Should now have 2 pages
-    assert len(new_state["cleaned_pages"]) == 2
-    assert len(new_state["manifest"]["per_page"]) == 2
+    # Should now have 1 page still, but grouped_documents has 2 shortcuts
+    assert len(new_state["cleaned_pages"]) == 1
+    assert len(new_state["manifest"]["per_page"]) == 1
+    assert len(new_state["grouped_documents"][0]["shortcuts"]) == 2
     
     p1 = new_state["manifest"]["per_page"][0]
-    p2 = new_state["manifest"]["per_page"][1]
     
     assert p1["vault_id"] == "duplicate_me"
-    assert p2["vault_id"] == "duplicate_me"
     
     assert "Original.lnk" in p1["output_file"]
-    assert "Original - Copy.lnk" in p2["output_file"]
-    assert p2["user_locked"] is True
+    
+    # Timeline should have 1 file
+    timeline_dir = new_house_dir / "[Timeline View]"
+    shortcuts = list(timeline_dir.glob("*.lnk"))
+    assert len(shortcuts) == 1
