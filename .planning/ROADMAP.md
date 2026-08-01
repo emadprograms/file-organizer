@@ -81,6 +81,28 @@ See [.planning/milestones/v5.3-ROADMAP.md](milestones/v5.3-ROADMAP.md) for full 
 
 </details>
 
+### 🚧 v5.4 Architectural Consistency Refactor (Phases 49-53)
+
+### Phase 49: 1-to-Many Database Schema Refactor
+**Requirements:** REQ-01
+**Success Criteria:** `state.json` accurately models 1 physical document mapped to N shortcuts without splitting pages or spawning virtual pages.
+
+### Phase 50: Cross-House Contamination Handler
+**Requirements:** REQ-02
+**Success Criteria:** Reconciler detects shortcuts pointing to foreign vaults and rejects/re-homes them safely.
+
+### Phase 51: Multi-Page Raw PDF Extraction
+**Requirements:** REQ-03
+**Success Criteria:** Dropping a 10-page raw PDF results in exactly 10 pages logged in `state.json`.
+
+### Phase 52: Corrupted Vault File Safeguards
+**Requirements:** REQ-04
+**Success Criteria:** 0-byte vault PDFs are flagged but do not crash the pipeline.
+
+### Phase 53: Comprehensive Consistency Stress Tests
+**Requirements:** REQ-01, REQ-02, REQ-03, REQ-04
+**Success Criteria:** Pytest covers cross-house dragging, multi-page drops, and 0-byte corruptions.
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -116,6 +138,11 @@ See [.planning/milestones/v5.3-ROADMAP.md](milestones/v5.3-ROADMAP.md) for full 
 | 46. Auto-Verification & Reconciliation Report | v5.3 | 1/1 | Complete | 2026-08-01 |
 | 47. Reconciliation Test Suite | v5.3 | 1/1 | Complete | 2026-08-01 |
 | 48. Data Preservation & Verification Overhaul | v5.3 | 1/1 | Complete | 2026-08-01 |
+| 49. 1-to-Many Database Schema Refactor | v5.4 | 0/1 | Pending | - |
+| 50. Cross-House Contamination Handler | v5.4 | 0/1 | Pending | - |
+| 51. Multi-Page Raw PDF Extraction | v5.4 | 0/1 | Pending | - |
+| 52. Corrupted Vault File Safeguards | v5.4 | 0/1 | Pending | - |
+| 53. Comprehensive Consistency Stress Tests | v5.4 | 0/1 | Pending | - |
 
 
 
