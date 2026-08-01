@@ -30,6 +30,10 @@ def run_reconcile_mode(args) -> int:
     if target_dir.name and target_dir.name[0].isdigit():
         house_id = target_dir.name.split(" - ")[0]
         
+    if not target_dir.exists():
+        logger.error(f"Target directory does not exist: {target_dir}")
+        return 1
+        
     source_dir = target_dir / ".source_files"
     if not source_dir.exists():
         logger.error(f".source_files not found in {target_dir}")
@@ -90,8 +94,13 @@ def run_reconcile_mode(args) -> int:
             vault_id_to_pages.setdefault(p["vault_id"], []).append(p)
             
     physical_lnk_by_vault = {}
+    
+    from src.utils.fs import batch_read_shortcut_targets
+    str_lnk_paths = [str(lnk) for lnk in physical_lnk_files]
+    target_results = batch_read_shortcut_targets(str_lnk_paths) if str_lnk_paths else {}
+    
     for lnk_path in physical_lnk_files:
-        target_str = read_shortcut_target(str(lnk_path))
+        target_str = target_results.get(os.path.abspath(str(lnk_path)))
         if not target_str:
             continue
         filename = os.path.basename(target_str.replace('\\', '/'))
@@ -287,23 +296,31 @@ def run_reconcile_mode(args) -> int:
         
         # Re-index:
         idx_map = {}
-        new_pages = []
-        for i, p in enumerate(state.data.get("cleaned_pages", [])):
-            if i not in deleted_page_indices:
-                idx_map[i] = len(new_pages)
-                p_obj = PageData(**p)
-                p_obj.original_index = len(new_pages) # update
-                new_pages.append(p_obj)
-        pages = new_pages
         
+        for p in old_per_page_filtered:
+            # We don't really need to rebuild new_pages from raw dicts, we just need to update original_index and page_index
+            pass
+            
+        # Actually, let's just re-index `pages` properly
+        # The previous list comprehension already filtered `pages`:
+        # pages = [p for i, p in enumerate(pages) if i not in deleted_page_indices]
+        # BUT wait, the `enumerate(pages)` was on the pre-filtered list, which included the newly adopted pages!
+        # So `pages` is currently perfectly filtered. We just need to update their internal indices.
+        for new_i, p_obj in enumerate(pages):
+            idx_map[p_obj.original_index] = new_i
+            p_obj.original_index = new_i
+            
         new_groups = []
-        for g in state.data.get("grouped_documents", []):
-            if g["start_page"] not in deleted_page_indices:
-                g_obj = DocumentGroup(**g)
-                g_obj.start_page = idx_map.get(g_obj.start_page, g_obj.start_page)
-                g_obj.end_page = idx_map.get(g_obj.end_page, g_obj.end_page)
-                new_groups.append(g_obj)
+        for g_obj in groups:
+            g_obj.start_page = idx_map.get(g_obj.start_page, g_obj.start_page)
+            g_obj.end_page = idx_map.get(g_obj.end_page, g_obj.end_page)
+            new_groups.append(g_obj)
         groups = new_groups
+        
+        for p in old_per_page_filtered:
+            p["page_index"] = idx_map.get(p["page_index"], p["page_index"])
+        
+
         
         for p in old_per_page_filtered:
             p["page_index"] = idx_map.get(p["page_index"], p["page_index"])
@@ -480,13 +497,68 @@ def run_reconcile_mode(args) -> int:
     else:
         logger.info("No file moves required based on the updated tenants.")
         
+
+    # Move all files and .source_files to the new house directory if it changed
+    new_house_dir = output_base_dir / full_house_id
+    if target_dir != new_house_dir and not getattr(args, 'dry_run', False):
+        from src.utils.fs import merge_and_remove_dir
+        logger.info(f"Merging house directory {target_dir.name} -> {new_house_dir.name}")
+        merge_and_remove_dir(target_dir, new_house_dir)
+        
+        # Update paths so state JSONs are saved correctly to the new source_dir
+        source_dir = new_house_dir / ".source_files"
+        
+        # We must rewrite all shortcuts because their absolute target paths are now broken
+        # due to the folder rename.
+        logger.info("Rewriting all categorized shortcuts with new absolute paths...")
+        shortcuts_to_rewrite = []
+        new_vault_dir = source_dir / "vault"
+        for p in new_per_page:
+            if "vault_id" in p and "output_file" in p:
+                vault_pdf = new_vault_dir / f"doc_{p['vault_id']}.pdf"
+                # p["output_file"] is something like '508 - عبدالله عيسى الكواري/01_Category/doc.lnk'
+                # We need the physical path relative to output_base_dir
+                lnk_path = output_base_dir / p["output_file"]
+                if vault_pdf.exists() and lnk_path.parent.exists():
+                    shortcuts_to_rewrite.append({
+                        "target": str(vault_pdf.resolve()),
+                        "link": str(lnk_path.resolve())
+                    })
+        if shortcuts_to_rewrite:
+            from src.utils.fs import batch_create_shortcuts
+            batch_create_shortcuts(shortcuts_to_rewrite)
+    if not getattr(args, 'dry_run', False):
+        old_full_house_id = None
+        if old_per_page:
+            first_old_file = old_per_page[0].get("output_file", "")
+            if first_old_file:
+                old_full_house_id = first_old_file.split("/")[0]
+        
+        candidates = [d for d in output_base_dir.iterdir() if d.is_dir() and (d.name == house_id or d.name.startswith(f"{house_id} - "))]
+        for candidate in candidates:
+            if candidate != new_house_dir:
+                from src.utils.fs import merge_and_remove_dir
+                logger.info(f"Cleaning up ghost directory: {candidate.name} -> {new_house_dir.name}")
+                merge_and_remove_dir(candidate, new_house_dir)
+        
     # Phase 33: RECON-06 Regenerate [Timeline View]/
     # We always regenerate it from scratch for this house to ensure perfect sync
     if not getattr(args, 'dry_run', False):
-        timeline_dir = target_dir / "[Timeline View]"
+        timeline_dir = new_house_dir / "[Timeline View]"
         if timeline_dir.exists():
-            shutil.rmtree(str(timeline_dir))
-        timeline_dir.mkdir(parents=True, exist_ok=True)
+            import time
+            shutil.rmtree(str(timeline_dir), ignore_errors=True)
+            # Give Windows time to release the file handles
+            for _ in range(10):
+                if not timeline_dir.exists():
+                    break
+                time.sleep(0.2)
+        try:
+            timeline_dir.mkdir(parents=True, exist_ok=True)
+        except PermissionError:
+            import time
+            time.sleep(1)
+            timeline_dir.mkdir(parents=True, exist_ok=True)
         # Create shortcuts
         idx = 1
         processed_vault_ids = set()
@@ -497,6 +569,8 @@ def run_reconcile_mode(args) -> int:
             vid = p.get("vault_id")
             if vid:
                 vid_page_counts[vid] = vid_page_counts.get(vid, 0) + 1
+                
+        shortcuts_to_create = []
                 
         for p in sorted(new_per_page, key=lambda x: (x.get('dates', [''])[0] if x.get('dates') else '', x.get('page_index', 0))):
             if "vault_id" not in p:
@@ -526,36 +600,18 @@ def run_reconcile_mode(args) -> int:
             lnk_path = timeline_dir / link_name
             
             # The vault PDF path
-            vault_pdf = target_dir / ".source_files" / "vault" / f"doc_{vid}.pdf"
+            vault_pdf = new_house_dir / ".source_files" / "vault" / f"doc_{vid}.pdf"
             if vault_pdf.exists():
-                create_shortcut(str(vault_pdf.resolve()), str(lnk_path))
+                shortcuts_to_create.append({
+                    "target": str(vault_pdf.resolve()),
+                    "link": str(lnk_path)
+                })
             idx += vid_page_counts.get(vid, 1)
             
-    # Move all files and .source_files to the new house directory if it changed
-    new_house_dir = output_base_dir / full_house_id
-    if target_dir != new_house_dir and not getattr(args, 'dry_run', False):
-        from src.utils.fs import merge_and_remove_dir
-        logger.info(f"Merging house directory {target_dir.name} -> {new_house_dir.name}")
-        merge_and_remove_dir(target_dir, new_house_dir)
-        
-        # Update paths so state JSONs are saved correctly to the new source_dir
-        source_dir = new_house_dir / ".source_files"
-
-    # Clean up any leftover empty directories matching house_id
-    if not getattr(args, 'dry_run', False):
-        old_full_house_id = None
-        if old_per_page:
-            first_old_file = old_per_page[0].get("output_file", "")
-            if first_old_file:
-                old_full_house_id = first_old_file.split("/")[0]
-        
-        candidates = [d for d in output_base_dir.iterdir() if d.is_dir() and (d.name == house_id or d.name.startswith(f"{house_id} - "))]
-        for candidate in candidates:
-            if candidate != new_house_dir:
-                from src.utils.fs import merge_and_remove_dir
-                logger.info(f"Cleaning up ghost directory: {candidate.name} -> {new_house_dir.name}")
-                merge_and_remove_dir(candidate, new_house_dir)
-        
+        if shortcuts_to_create:
+            from src.utils.fs import batch_create_shortcuts
+            batch_create_shortcuts(shortcuts_to_create)
+            
     if not getattr(args, 'dry_run', False):
         state.state_dir = source_dir
         state.state_file = source_dir / f"{house_id}_state.json"

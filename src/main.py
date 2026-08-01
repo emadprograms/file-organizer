@@ -177,6 +177,7 @@ def get_parser() -> argparse.ArgumentParser:
     
     # reconcile mode
     reconcile_parser = subparsers.add_parser("reconcile", help="Reconcile existing categorized documents")
+    reconcile_parser.add_argument("target_dir", type=Path, help="Path to the target house directory")
     reconcile_parser.add_argument(
         "--tenants", action="store_true", help="Only run tenant reallocation logic"
     )
@@ -235,11 +236,7 @@ def main() -> int:
     if args.command == "reconcile":
         setup_logging(verbose=getattr(args, 'verbose', False))
         set_verbosity(getattr(args, 'verbose', False))
-        if getattr(args, 'tenants', False):
-            return run_reconcile_mode(args)
-        else:
-            logger.error("Must specify --tenants with reconcile mode")
-            return 1
+        return run_reconcile_mode(args)
 
     if args.command == "migrate":
         setup_logging(verbose=getattr(args, 'verbose', False))

@@ -78,7 +78,7 @@ if ($action -eq "create") {
                 $target = [ShortcutInterop]::Read($link)
                 $results[$link] = $target
             } catch {
-                $results[$link] = $null
+                $results[$link] = "ERROR: $($_.Exception.Message)"
             }
         }
     }
