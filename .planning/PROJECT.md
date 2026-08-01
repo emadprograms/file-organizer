@@ -55,12 +55,14 @@ Documents are safely stored once in an immutable vault; all organization is done
 - ✓ Remove dead `fitz`/`json` imports from `main.py` after runner extraction (ARCH-04) (Phase 28) — v4.0
 - ✓ Audit all test mock `@patch()` targets for import-site correctness (ARCH-05) (Phase 29) — v4.0
 
+- ✓ Add `pylnk3` to requirements and fix the test environment (ENV-01) — v5.1
+- ✓ Timeline View shortcut prefixes reflect page index (TIMELINE-05) — v5.1
+- ✓ Migration script consolidates legacy JSONs into `state.json` and deletes old checkpoints (MIGRATE-04) — v5.1
+- ✓ Build E2E test suite targeting `D:\Areas` (TEST-01) — v5.1
+
 ### Active
 
-- [ ] Add `pylnk3` to requirements and fix the test environment (ENV-01)
-- [ ] Timeline View shortcut prefixes reflect page index (TIMELINE-05)
-- [ ] Migration script consolidates legacy JSONs into `state.json` and deletes old checkpoints (MIGRATE-04)
-- [ ] Build E2E test suite targeting `D:\Areas` (TEST-01)
+(None currently. Awaiting planning for v5.2 / v6.0)
 
 ### Out of Scope
 
@@ -78,7 +80,7 @@ Documents are safely stored once in an immutable vault; all organization is done
 - ✅ Shipped v3.0 Unified File-System UI & Append Mode on 2026-07-24.
 - ✅ Shipped v4.0 Architectural Cleanup on 2026-07-24.
 - ✅ Shipped v5.0 Vault Architecture & Bidirectional Reconciliation on 2026-08-01.
-- 🚧 v5.1 Polishing & Migration Cleanup started 2026-08-01.
+- ✅ Shipped v5.1 Polishing & Migration Cleanup on 2026-08-01.
 
 ## Context
 
