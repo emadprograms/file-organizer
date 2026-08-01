@@ -7,7 +7,7 @@
 - ✅ **v5.0 Vault Architecture & Bidirectional Reconciliation** — Phases 30-35 (shipped 2026-08-01)
 - ✅ **v5.1 Polishing & Migration Cleanup** — Phases 36-38 (shipped 2026-08-01)
 - ✅ **v5.2 Deep Architecture Integrity & Verification** — Phases 39-42 (shipped 2026-08-01)
-- 🔄 **v5.3 Reconciliation Engine Upgrade** — Phases 43-47
+- 🔄 **v5.3 Reconciliation Engine Upgrade** — Phases 43-48
 
 ## Phases
 
@@ -74,7 +74,7 @@ See [.planning/milestones/v5.1-ROADMAP.md](milestones/v5.1-ROADMAP.md) for full 
 
 </details>
 
-### 🔄 v5.3 Reconciliation Engine Upgrade (Phases 43-47)
+### 🔄 v5.3 Reconciliation Engine Upgrade (Phases 43-48)
 
 ### Phase 43: Ghost File Adoption & Raw PDF Ingestion
 
@@ -100,6 +100,11 @@ See [.planning/milestones/v5.1-ROADMAP.md](milestones/v5.1-ROADMAP.md) for full 
 
 **Requirements:** REQ-08
 **Success Criteria:** `pytest` tests cover all edge cases: ghost files, user deletions, raw PDF drops, duplicate shortcuts, renames, auto-verification integration. Each scenario validates that `state.json` is correctly updated.
+
+### Phase 48: Data Preservation & Verification Overhaul (Many-to-One)
+
+**Requirements:** REQ-09
+**Success Criteria:** The reconciler natively supports Many-to-One document structures (grouped pages pointing to a single shortcut) without deleting "unmatched" pages. `verification.py` is upgraded to perform an Immutable Page Count audit, crashing the pipeline if the final manifest loses any pages compared to the raw ingestion phase. Pytest fixtures validate this exact scenario.
 
 ## Progress
 
@@ -135,6 +140,7 @@ See [.planning/milestones/v5.1-ROADMAP.md](milestones/v5.1-ROADMAP.md) for full 
 | 45. Duplicate Shortcuts & Renamed Shortcuts | v5.3 | 1/1 | Complete | 2026-08-01 |
 | 46. Auto-Verification & Reconciliation Report | v5.3 | 1/1 | Complete | 2026-08-01 |
 | 47. Reconciliation Test Suite | v5.3 | 1/1 | Complete | 2026-08-01 |
+| 48. Data Preservation & Verification Overhaul | v5.3 | 0/1 | Pending  |            |
 
 
 
