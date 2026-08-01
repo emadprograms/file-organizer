@@ -26,6 +26,15 @@ class State:
             try:
                 with open(self.state_file, 'r', encoding='utf-8') as f:
                     content = json.load(f)
+                    
+                    if "grouped_documents" in content and content["grouped_documents"]:
+                        for group in content["grouped_documents"]:
+                            if "shortcut_name" in group:
+                                val = group.pop("shortcut_name")
+                                group["shortcuts"] = [val] if val else []
+                            elif "shortcuts" not in group:
+                                group["shortcuts"] = []
+                                
                     self.data.update(content)
             except Exception as e:
                 logger.error(f"Failed to load state from {self.state_file}: {e}")

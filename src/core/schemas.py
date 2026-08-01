@@ -42,6 +42,7 @@ class DocumentGroup(BaseModel):
     folder_path: str | None = None
     is_direct_routed: bool = False
     vault_id: str | None = None
+    shortcuts: list[str] = Field(default_factory=list)
     user_locked: bool = False
 
 class GroupEntry(BaseModel):

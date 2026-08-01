@@ -70,3 +70,24 @@ def test_state_loads_existing_data(tmp_path):
     assert state.data["cleaned_pages"] == [{"index": 1}]
     assert state.data["grouped_documents"] == [{"id": 1}]
     assert state.data["routed_documents"] is None
+
+def test_state_auto_migrates_shortcut_name(tmp_path):
+    """Test auto-migrating shortcut_name to shortcuts."""
+    house_id = "test_house_mig"
+    state_dir = tmp_path / "states"
+    state_dir.mkdir()
+    
+    state_file = state_dir / f"{house_id}_state.json"
+    initial_data = {
+        "house_id": house_id,
+        "grouped_documents": [
+            {"id": 1, "shortcut_name": "old_shortcut"},
+            {"id": 2}
+        ]
+    }
+    state_file.write_text(json.dumps(initial_data))
+    
+    state = State(house_id, state_dir)
+    assert state.data["grouped_documents"][0]["shortcuts"] == ["old_shortcut"]
+    assert "shortcut_name" not in state.data["grouped_documents"][0]
+    assert state.data["grouped_documents"][1]["shortcuts"] == []
