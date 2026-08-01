@@ -320,7 +320,7 @@ def run_reconcile_mode(args) -> int:
             vid = pdf_file.stem[4:] # doc_...
             if vid not in active_vault_ids:
                 report["orphans_trashed"] += 1
-                    logger.info(f"Trashing orphan vault PDF: {pdf_file.name}")
+                logger.info(f"Trashing orphan vault PDF: {pdf_file.name}")
                 shutil.move(str(pdf_file), str(trash_dir / pdf_file.name))
             
     # Phase 43: Raw PDF Ingestion (REQ-03)
@@ -338,7 +338,7 @@ def run_reconcile_mode(args) -> int:
             new_vault_id = uuid.uuid4().hex
             dest_vault_pdf = vault_dir / f"doc_{new_vault_id}.pdf"
             report["raw_pdf_ingested"] += 1
-                logger.info(f"Ingesting raw PDF: {pdf_path.name} -> vault_id {new_vault_id}")
+            logger.info(f"Ingesting raw PDF: {pdf_path.name} -> vault_id {new_vault_id}")
             shutil.move(str(pdf_path), str(dest_vault_pdf))
             
             lnk_path = pdf_path.with_suffix('.lnk')
@@ -590,13 +590,13 @@ def run_reconcile_mode(args) -> int:
         
         # Auto-Verification (REQ-06)
         try:
-            from src.reconcile.verify import run_verification
+            from src.core.verification import run_verification
             # We need to pass args with the new_house_dir if it changed
             class VerifyArgs:
                 target_dir = new_house_dir
             
             logger.info("Running auto-verification...")
-            v_res = run_verification(VerifyArgs())
+            v_res = run_verification(new_house_dir)
             report["verification_status"] = "Pass" if v_res == 0 else "Fail"
             
             if v_res != 0:
