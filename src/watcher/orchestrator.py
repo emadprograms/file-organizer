@@ -480,8 +480,44 @@ class FSUIOrchestrator:
                 json.dump(master_data, f, ensure_ascii=False, indent=2)
 
         merge_json(f"{house_id}_report.json", "_report_prepend_mode.json", False, False)
-        merge_json(f"{house_id}_1_cleaned.json", "_cleaned_prepend_mode.json", True, False)
-        merge_json(f"{house_id}_2_grouped.json", "_grouped_prepend_mode.json", False, True)
+        
+        from src.core.state import State
+        state = State(house_id, source_files_dir)
+        
+        def merge_into_state(tmp_filename: str, state_key: str, has_pages: bool, has_groups: bool):
+            tmp_json_path = tmp_dir / tmp_filename
+            if not tmp_json_path.exists():
+                return
+                
+            with open(tmp_json_path, 'r', encoding='utf-8') as f:
+                new_data = json.load(f)
+                
+            master_data = state.data.get(state_key)
+            if not master_data:
+                master_data = [] if isinstance(new_data, list) else {}
+                
+            if isinstance(master_data, list):
+                if has_pages:
+                    for item in master_data:
+                        if "original_index" in item:
+                            item["original_index"] += page_shift
+                elif has_groups:
+                    for item in master_data:
+                        if "start_page" in item:
+                            item["start_page"] += page_shift
+                        if "end_page" in item:
+                            item["end_page"] += page_shift
+                            
+            if isinstance(master_data, list) and isinstance(new_data, list):
+                master_data = new_data + master_data
+            else:
+                master_data = new_data
+                
+            state.data[state_key] = master_data
+            
+        merge_into_state("_cleaned_prepend_mode.json", "cleaned_pages", True, False)
+        merge_into_state("_grouped_prepend_mode.json", "grouped_documents", False, True)
+        state.save()
 
 
 

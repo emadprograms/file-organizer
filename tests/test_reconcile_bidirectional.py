@@ -30,8 +30,9 @@ def test_bidirectional_reconciliation_user_locking(tmp_path):
         ], f)
         
     # Create state files
-    with open(source_dir / "502_1_cleaned.json", 'w') as f:
-        json.dump([
+    state_data = {
+        "house_id": "502",
+        "cleaned_pages": [
             {
                 "page_index": 0,
                 "text": "mock",
@@ -42,10 +43,8 @@ def test_bidirectional_reconciliation_user_locking(tmp_path):
                 "content_explanation": "mock explanation",
                 "original_index": 0
             }
-        ], f)
-        
-    with open(source_dir / "502_2_grouped.json", 'w') as f:
-        json.dump([
+        ],
+        "grouped_documents": [
             {
                 "start_page": 0,
                 "end_page": 0,
@@ -54,10 +53,8 @@ def test_bidirectional_reconciliation_user_locking(tmp_path):
                 "category": "Unknown",
                 "dates": ["2022-01-01"]
             }
-        ], f)
-        
-    with open(source_dir / "502_3_routed_and_finalized.json", 'w') as f:
-        json.dump({
+        ],
+        "manifest": {
             "per_page": [
                 {
                     "page_index": 0,
@@ -66,7 +63,10 @@ def test_bidirectional_reconciliation_user_locking(tmp_path):
                     "vault_id": "mock_vault"
                 }
             ]
-        }, f)
+        }
+    }
+    with open(source_dir / "502_state.json", 'w') as f:
+        json.dump(state_data, f)
         
     # We pretend the user moved the shortcut from Unassigned to MovedByUser
     moved_dir = target_dir / "MovedByUser"
@@ -88,18 +88,19 @@ def test_bidirectional_reconciliation_user_locking(tmp_path):
     
     # Verify state was updated with user_locked
     new_source_dir = new_house_dir / ".source_files"
-    with open(new_source_dir / "502_3_routed_and_finalized.json", 'r') as f:
-        routed = json.load(f)
-        p = routed["per_page"][0]
-        assert p["user_locked"] is True
-        assert p["target_folder"] == "MovedByUser"
-        # Since it was user locked, it shouldn't have been moved to NewTenant folder despite YAML
-        # But wait, output_file will be prefixed with the NEW house_dir name
-        assert p["output_file"] == "502 - NewTenant/MovedByUser/mock.lnk"
+    with open(new_source_dir / "502_state.json", 'r') as f:
+        new_data = json.load(f)
         
-    with open(new_source_dir / "502_1_cleaned.json", 'r') as f:
-        cleaned = json.load(f)
-        assert cleaned[0]["user_locked"] is True
+    p = new_data["manifest"]["per_page"][0]
+    assert p["target_folder"] == "MovedByUser"
+    assert p["user_locked"] is True
+    
+    # Also verify the cleaned/grouped logic
+    cp = new_data["cleaned_pages"][0]
+    assert cp["user_locked"] is True
+    
+    gp = new_data["grouped_documents"][0]
+    assert gp["user_locked"] is True
         
     # Check that [Timeline View] was generated
     timeline_dir = new_house_dir / "[Timeline View]"

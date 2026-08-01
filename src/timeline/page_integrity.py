@@ -51,16 +51,15 @@ def run_reconciliation(
     }
     
     if not dry_run:
-        from src.utils.fs import atomic_write
+        from src.core.state import State
         source_files_dir = output_dir / ".source_files"
         source_files_dir.mkdir(parents=True, exist_ok=True)
-        manifest_path = source_files_dir / f"{house_id}_3_routed_and_finalized.json"
+        state = State(house_id, source_files_dir)
         
         # Merge if exists (for append mode)
-        if manifest_path.exists():
+        if state.data.get("manifest"):
             try:
-                with open(manifest_path, 'r', encoding='utf-8') as f:
-                    existing = json.load(f)
+                existing = state.data["manifest"]
                 if isinstance(existing, dict) and "per_page" in existing:
                     if prepend:
                         # Shift existing items by the number of new input pages
@@ -87,13 +86,12 @@ def run_reconciliation(
                         
                         manifest = existing
             except Exception as e:
-                logger.error(f"Failed to merge existing reconciliation manifest: {e}")
+                logger.error(f"Failed to merge existing reconciliation manifest from state: {e}")
                 
-        with atomic_write(str(manifest_path)) as tmp_path:
-            with open(tmp_path, 'w', encoding='utf-8') as f:
-                json.dump(manifest, f, ensure_ascii=False, indent=2)
+        state.data["manifest"] = manifest
+        state.save()
     else:
-        logger.info(f"  [DRY RUN] Would write manifest to {output_dir / '.source_files' / f'{house_id}_3_routed_and_finalized.json'}")
+        logger.info(f"  [DRY RUN] Would write manifest to {output_dir / '.source_files' / f'{house_id}_state.json'}")
     
     from src.presentation.ui import vprint
     from rich.table import Table

@@ -33,11 +33,15 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
     if not dry_run:
         vault_dir.mkdir(parents=True, exist_ok=True)
         
-    # Find the routed JSON
-    routed_json = source_dir / f"{target_dir.name.split(' - ')[0]}_3_routed_and_finalized.json"
+    house_id = target_dir.name.split(' - ')[0]
+    
+    # Load all legacy JSONs
+    cleaned_json = source_dir / f"{house_id}_1_cleaned.json"
+    grouped_json = source_dir / f"{house_id}_2_grouped.json"
+    routed_json = source_dir / f"{house_id}_3_routed_and_finalized.json"
     if not routed_json.exists():
         # Try without finalized
-        routed_json = source_dir / f"{target_dir.name.split(' - ')[0]}_3_routed.json"
+        routed_json = source_dir / f"{house_id}_3_routed.json"
         
     if not routed_json.exists():
         logger.error(f"Could not find routed JSON in {source_dir}")
@@ -51,6 +55,16 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
         # Legacy format
         per_page = state_data
         state_data = {"per_page": per_page}
+        
+    cleaned_data = []
+    if cleaned_json.exists():
+        with open(cleaned_json, 'r', encoding='utf-8') as f:
+            cleaned_data = json.load(f)
+            
+    grouped_data = []
+    if grouped_json.exists():
+        with open(grouped_json, 'r', encoding='utf-8') as f:
+            grouped_data = json.load(f)
         
     # Find all PDFs in the house directory (excluding .source_files and [Timeline View])
     pdfs = []
@@ -110,6 +124,13 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
             shutil.rmtree(str(timeline_dir))
         timeline_dir.mkdir(parents=True, exist_ok=True)
         
+        # Pre-calculate page counts for each vault_id
+        vid_page_counts = {}
+        for p in per_page:
+            vid = p.get("vault_id")
+            if vid:
+                vid_page_counts[vid] = vid_page_counts.get(vid, 0) + 1
+
         idx = 1
         processed_vault_ids = set()
         for p in sorted(per_page, key=lambda x: (x.get('dates', [''])[0] if x.get('dates') else '', x.get('page_index', 0))):
@@ -121,10 +142,21 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
                 continue
             processed_vault_ids.add(vid)
             
-            doc_title = p.get('brief_arabic_title') or f"Doc_{p.get('page_index', 0)}"
+            doc_title = p.get('brief_arabic_title')
+            if not doc_title and 'output_file' in p:
+                filename = Path(p['output_file']).name.replace('.lnk', '').replace('.pdf', '')
+                if ' - ' in filename:
+                    doc_title = filename.split(' - ', 1)[1]
+                else:
+                    doc_title = filename
+            if not doc_title:
+                doc_title = f"Doc_{p.get('page_index', 0)}"
+                
             import re
             doc_title = re.sub(r'[\\/:*?"<>|]', '', doc_title)
             dates = p.get('dates', [])
+            if not dates and p.get('date'):
+                dates = [p.get('date')]
             date_str = dates[0] if dates and len(dates) > 0 and dates[0] and dates[0] != "NONE" else "nodate"
             link_name = f"{idx:03d} - {date_str} - {doc_title}.lnk"
             lnk_path = timeline_dir / link_name
@@ -136,7 +168,7 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
                     if abs_vault_target.startswith("C:"):
                         abs_vault_target = "\\\\?\\\\" + abs_vault_target
                 create_shortcut(abs_vault_target, str(lnk_path))
-            idx += 1
+            idx += vid_page_counts.get(vid, 1)
             
         # Delete finalized PDF if it exists
         for root, _, files in os.walk(target_dir):
@@ -144,18 +176,22 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
                 if f.endswith("_finalized.pdf"):
                     os.remove(os.path.join(root, f))
                     
-        # Save updated JSON
-        new_routed_json = source_dir / f"{target_dir.name.split(' - ')[0]}_3_routed_and_finalized.json"
-        with open(new_routed_json, 'w', encoding='utf-8') as f:
-            json.dump(state_data, f, ensure_ascii=False, indent=2)
-            
-        # If old JSON was just _3_routed.json, we can remove it
-        if routed_json.name != new_routed_json.name:
-            os.remove(str(routed_json))
-            
+        # Save unified state.json
+        from src.core.state import State
+        state = State(house_id, source_dir)
+        state.data["cleaned_pages"] = cleaned_data
+        state.data["grouped_documents"] = grouped_data
+        state.data["manifest"] = state_data
+        state.save()
+        
+        # Delete legacy JSONs
+        for p in [cleaned_json, grouped_json, routed_json]:
+            if p.exists():
+                os.remove(str(p))
+                
     else:
         logger.info(f"[DRY RUN] Would rebuild [Timeline View]/ with {len(per_page)} entries.")
-        logger.info(f"[DRY RUN] Would save updated state to _3_routed_and_finalized.json.")
+        logger.info(f"[DRY RUN] Would save updated state to {house_id}_state.json and delete legacy files.")
         
     logger.info(f"Migration completed successfully. Migrated {updates_made} documents.")
     return 0

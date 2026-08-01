@@ -211,8 +211,8 @@ class FileOrganizer:
         doc_counter = 1
         if timeline_dir.exists():
             if prepend_mode and not dry_run:
-                # Shift existing timeline links up by the number of new documents
-                shift_amount = len(documents)
+                # Shift existing timeline links up by the total number of new pages
+                shift_amount = sum((d.end_page - d.start_page + 1) for d in documents)
                 existing_links = list(timeline_dir.glob("*.lnk"))
                 # Sort descending to avoid rename collisions
                 existing_links.sort(key=lambda x: x.name, reverse=True)
@@ -317,7 +317,7 @@ class FileOrganizer:
                 create_shortcut(abs_vault_target, str(lnk_path))
                 logger.info(f"  → Link: {lnk_filename}")
                 
-                # Create timeline shortcut
+                # Create timeline shortcut using doc_counter to communicate document size jumps
                 timeline_lnk_filename = f"{doc_counter:03d} - {lnk_filename}"
                 timeline_lnk_path = timeline_dir / timeline_lnk_filename
                 create_shortcut(abs_vault_target, str(timeline_lnk_path))
@@ -342,7 +342,7 @@ class FileOrganizer:
                 })
                 page_in_output += 1
             
-            doc_counter += 1
+            doc_counter += (doc.end_page - doc.start_page + 1)
             
         if dry_run:
             from rich.tree import Tree

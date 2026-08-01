@@ -4,17 +4,15 @@
 
 A document management system that processes scanned Arabic PDFs, categorizes them using LLM vision, groups related pages, and organizes them into a structured folder hierarchy per tenant household. The system runs on Windows and uses a Vault-based architecture with shortcuts for file organization and bidirectional reconciliation.
 
-## Current Milestone: v6.0 (TBD)
+## Current Milestone: v5.1 (Polishing & Migration Cleanup)
 
-**Goal:** TBD (Define next milestone goals) with an ID-based Vault storage architecture using Windows shortcuts, enabling bidirectional reconciliation where manual user corrections are automatically detected and preserved.
+**Goal:** Polish the v5.0 Vault Architecture by resolving UX gaps in the Timeline View, completing the migration of legacy JSON files to the unified `state.json`, and establishing a robust production-like E2E test suite in the `D:\Areas` directory.
 
 **Target features:**
-- Vault storage system with unique document IDs
-- Windows `.lnk` shortcut generation (replacing direct file placement)
-- Unified `state.json` replacing `1_cleaned`, `2_grouped`, `3_routed` JSONs
-- Timeline View folder (chronological numbered shortcuts replacing `finalized.pdf`)
-- Bidirectional reconciliation with user override detection and pinning
-- Rename "append" → "prepend" mode and adapt to new architecture
+- Timeline View shortcut prefixes mapped to document page index (e.g., jumps from 001 to 004 for a 3-page doc)
+- Migration script explicitly consolidates legacy JSONs into `state.json` and deletes old checkpoints
+- Missing `pylnk3` dependency added to `requirements.txt`
+- Full E2E test suite running directly against the real `D:\Areas` folder structure
 
 ## Core Value
 
@@ -59,15 +57,10 @@ Documents are safely stored once in an immutable vault; all organization is done
 
 ### Active
 
-(None yet - pending v6.0 definition)
-
-
-- [ ] Vault storage system with unique document IDs (VAULT)
-- [ ] Windows `.lnk` shortcut generation replacing direct file placement (LNK)
-- [ ] Unified `state.json` replacing multi-JSON checkpoint system (STATE)
-- [ ] Timeline View folder with chronological numbered shortcuts (TIMELINE)
-- [ ] Bidirectional reconciliation with user override detection and pinning (RECON)
-- [ ] Rename append → prepend mode and adapt to new architecture (PREPEND)
+- [ ] Add `pylnk3` to requirements and fix the test environment (ENV-01)
+- [ ] Timeline View shortcut prefixes reflect page index (TIMELINE-05)
+- [ ] Migration script consolidates legacy JSONs into `state.json` and deletes old checkpoints (MIGRATE-04)
+- [ ] Build E2E test suite targeting `D:\Areas` (TEST-01)
 
 ### Out of Scope
 
@@ -85,7 +78,7 @@ Documents are safely stored once in an immutable vault; all organization is done
 - ✅ Shipped v3.0 Unified File-System UI & Append Mode on 2026-07-24.
 - ✅ Shipped v4.0 Architectural Cleanup on 2026-07-24.
 - ✅ Shipped v5.0 Vault Architecture & Bidirectional Reconciliation on 2026-08-01.
-- 🚧 v6.0 Next phase started 2026-08-01.
+- 🚧 v5.1 Polishing & Migration Cleanup started 2026-08-01.
 
 ## Context
 
@@ -125,4 +118,4 @@ Documents are safely stored once in an immutable vault; all organization is done
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-08-01 — v5.0 Vault Architecture milestone completed. v6.0 pending.*
+*Last updated: 2026-08-01 — v5.1 Polishing & Migration Cleanup started.*

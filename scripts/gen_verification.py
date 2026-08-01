@@ -16,7 +16,7 @@ reqs = """
 - [ ] **STATE-03**: `report.json` preserved as raw LLM dump (never modified by downstream logic)
 - [ ] **STATE-04**: Atomic writes via `tempfile` + `os.fsync` + `os.replace` for crash safety
 - [ ] **TIMELINE-01**: System generates `[Timeline View]/` folder per house
-- [ ] **TIMELINE-02**: Shortcuts inside `[Timeline View]/` are numbered chronologically (e.g., `01 - 2010-02-09 - Contract.lnk`)
+- [ ] **TIMELINE-02**: Shortcuts inside `[Timeline View]/` are numbered chronologically (e.g., `001 - 2010-02-09 - Contract.lnk`)
 - [ ] **TIMELINE-03**: Timeline View is regenerated automatically after every reconciliation run
 - [ ] **TIMELINE-04**: `finalized.pdf` is no longer generated (replaced by Timeline View)
 - [ ] **RECON-01**: Reconciliation scans physical folders for `.lnk` shortcuts before applying any logic

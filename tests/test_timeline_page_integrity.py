@@ -168,11 +168,12 @@ def test_reconciliation_manifest(tmp_path) -> None:
     summary = {"total_output_pages": 1, "output_file_count": 1}
     run_reconciliation(summary, per_page, 1, "HOUSE_123", tmp_path)
     
-    manifest_file = tmp_path / ".source_files" / "HOUSE_123_3_routed_and_finalized.json"
+    manifest_file = tmp_path / ".source_files" / "HOUSE_123_state.json"
     assert manifest_file.exists()
     
     with open(manifest_file, 'r', encoding='utf-8') as f:
         data = json.load(f)
+        assert data["manifest"]["summary"]["output_file_count"] == 1
 
 
 @patch('src.utils.fs.shutil.move')
@@ -200,34 +201,36 @@ def test_reconciliation_manifest_generation(mock_replace, tmp_path) -> None:
     assert tmp_file.exists()
     with open(tmp_file, "r", encoding="utf-8") as f:
         data = json.load(f)
-        assert data["summary"]["house_id"] == "HOUSE_123"
-        assert data["summary"]["total_input_pages"] == 1
-        assert data["summary"]["total_output_pages"] == 1
-        assert data["summary"]["output_file_count"] == 1
-        assert data["summary"]["unaccounted_pages"] == []
-        assert len(data["per_page"]) == 1
-        assert data["per_page"][0]["tenant"] == "A"
+        assert data["manifest"]["summary"]["house_id"] == "HOUSE_123"
+        assert data["manifest"]["summary"]["total_input_pages"] == 1
+        assert data["manifest"]["summary"]["total_output_pages"] == 1
+        assert data["manifest"]["summary"]["output_file_count"] == 1
+        assert data["manifest"]["summary"]["unaccounted_pages"] == []
+        assert len(data["manifest"]["per_page"]) == 1
+        assert data["manifest"]["per_page"][0]["tenant"] == "A"
 
 @patch('src.utils.fs.shutil.move')
 def test_reconciliation_manifest_merging(mock_replace, tmp_path) -> None:
     """Test that run_reconciliation correctly merges with an existing manifest."""
     source_files_dir = tmp_path / ".source_files"
     source_files_dir.mkdir(parents=True, exist_ok=True)
-    manifest_path = source_files_dir / "HOUSE_123_3_routed_and_finalized.json"
+    manifest_path = source_files_dir / "HOUSE_123_state.json"
     
     # Create an initial manifest representing previous runs
     initial_manifest = {
-        "summary": {
-            "house_id": "HOUSE_123",
-            "total_input_pages": 5,
-            "total_output_pages": 5,
-            "output_file_count": 2,
-            "unaccounted_pages": []
-        },
-        "per_page": [
-            {"page_index": i, "tenant": "A", "date": "2020", "output_file": f"file_{i}.pdf", "page_in_output": 1}
-            for i in range(5)
-        ]
+        "manifest": {
+            "summary": {
+                "house_id": "HOUSE_123",
+                "total_input_pages": 5,
+                "total_output_pages": 5,
+                "output_file_count": 2,
+                "unaccounted_pages": []
+            },
+            "per_page": [
+                {"page_index": i, "tenant": "A", "date": "2020", "output_file": f"file_{i}.pdf", "page_in_output": 1}
+                for i in range(5)
+            ]
+        }
     }
     with open(manifest_path, 'w', encoding='utf-8') as f:
         json.dump(initial_manifest, f)
@@ -246,13 +249,13 @@ def test_reconciliation_manifest_merging(mock_replace, tmp_path) -> None:
     
     with open(tmp_file, "r", encoding="utf-8") as f:
         data = json.load(f)
-        assert data["summary"]["total_input_pages"] == 6 # 5 + 1
-        assert data["summary"]["total_output_pages"] == 6 # 5 + 1
-        assert data["summary"]["output_file_count"] == 3 # 2 + 1
-        assert len(data["per_page"]) == 6
+        assert data["manifest"]["summary"]["total_input_pages"] == 6 # 5 + 1
+        assert data["manifest"]["summary"]["total_output_pages"] == 6 # 5 + 1
+        assert data["manifest"]["summary"]["output_file_count"] == 3 # 2 + 1
+        assert len(data["manifest"]["per_page"]) == 6
         # Check that the new page had its page_index shifted by existing total_input_pages (5)
-        assert data["per_page"][-1]["page_index"] == 5
-        assert data["per_page"][-1]["tenant"] == "B"
+        assert data["manifest"]["per_page"][-1]["page_index"] == 5
+        assert data["manifest"]["per_page"][-1]["tenant"] == "B"
 
 @patch('src.timeline.core.extract_pdf_segment')
 def test_organize_empty_documents(mock_extract, organizer, mock_config, tmp_path) -> None:
@@ -352,20 +355,22 @@ def test_reconciliation_manifest_prepending(mock_replace, tmp_path) -> None:
     """Test that run_reconciliation correctly prepends with an existing manifest."""
     source_files_dir = tmp_path / ".source_files"
     source_files_dir.mkdir(parents=True, exist_ok=True)
-    manifest_path = source_files_dir / "HOUSE_123_3_routed_and_finalized.json"
+    manifest_path = source_files_dir / "HOUSE_123_state.json"
     
     initial_manifest = {
-        "summary": {
-            "house_id": "HOUSE_123",
-            "total_input_pages": 5,
-            "total_output_pages": 5,
-            "output_file_count": 2,
-            "unaccounted_pages": []
-        },
-        "per_page": [
-            {"page_index": i, "tenant": "A", "date": "2020", "output_file": f"file_{i}.pdf", "page_in_output": 1}
-            for i in range(5)
-        ]
+        "manifest": {
+            "summary": {
+                "house_id": "HOUSE_123",
+                "total_input_pages": 5,
+                "total_output_pages": 5,
+                "output_file_count": 2,
+                "unaccounted_pages": []
+            },
+            "per_page": [
+                {"page_index": i, "tenant": "A", "date": "2020", "output_file": f"file_{i}.pdf", "page_in_output": 1}
+                for i in range(5)
+            ]
+        }
     }
     with open(manifest_path, 'w', encoding='utf-8') as f:
         json.dump(initial_manifest, f)
@@ -382,14 +387,14 @@ def test_reconciliation_manifest_prepending(mock_replace, tmp_path) -> None:
     
     with open(tmp_file, "r", encoding="utf-8") as f:
         data = json.load(f)
-        assert data["summary"]["total_input_pages"] == 6
-        assert data["summary"]["total_output_pages"] == 6
-        assert data["summary"]["output_file_count"] == 3
-        assert len(data["per_page"]) == 6
+        assert data["manifest"]["summary"]["total_input_pages"] == 6
+        assert data["manifest"]["summary"]["total_output_pages"] == 6
+        assert data["manifest"]["summary"]["output_file_count"] == 3
+        assert len(data["manifest"]["per_page"]) == 6
         
-        assert data["per_page"][0]["page_index"] == 0
-        assert data["per_page"][0]["tenant"] == "B"
+        assert data["manifest"]["per_page"][0]["page_index"] == 0
+        assert data["manifest"]["per_page"][0]["tenant"] == "B"
         
-        assert data["per_page"][1]["page_index"] == 1
-        assert data["per_page"][1]["tenant"] == "A"
+        assert data["manifest"]["per_page"][1]["page_index"] == 1
+        assert data["manifest"]["per_page"][1]["tenant"] == "A"
 

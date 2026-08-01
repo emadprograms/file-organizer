@@ -26,45 +26,42 @@ def test_run_reconcile_mode(tmp_path):
     with open(source_dir / f"{house_id}_tenants.yaml", "w") as f:
         yaml.dump(yaml_data, f)
         
-    cleaned_data = [{
-        "page_index": 0, 
-        "canonical_tenant": "Ahmed Yousuf", 
-        "resolved_date": "2021-05-11", 
-        "topics": ["02_بيانات شخصية"], 
-        "is_junk": False,
-        "category": "personal",
-        "content_explanation": "mock explanation",
-        "original_index": 0
-    }]
-    with open(source_dir / f"{house_id}_1_cleaned.json", "w") as f:
-        json.dump(cleaned_data, f)
-        
-    grouped_data = [{
-        "start_page": 0, 
-        "end_page": 0, 
-        "primary_tenant": "Ahmed Yousuf", 
-        "primary_topic": "02_بيانات شخصية", 
-        "metadata": {"date": "2021-05-11"}, 
-        "issues": [], 
-        "language": "ar",
-        "category": "personal",
-        "dates": ["2021-05-11"]
-    }]
-    with open(source_dir / f"{house_id}_2_grouped.json", "w") as f:
-        json.dump(grouped_data, f)
-        
-    routed_data = {
-        "per_page": [
-            {
-                "page_index": 0,
-                "tenant": "Ahmed Yousuf",
-                "target_folder": "Ahmed Yousuf/02_بيانات شخصية",
-                "output_file": f"{house_id} - Ahmed Yousuf/Ahmed Yousuf/02_بيانات شخصية/2021-05-11.pdf"
-            }
-        ]
+    state_data = {
+        "house_id": house_id,
+        "cleaned_pages": [{
+            "page_index": 0, 
+            "canonical_tenant": "Ahmed Yousuf", 
+            "resolved_date": "2021-05-11", 
+            "topics": ["02_بيانات شخصية"], 
+            "is_junk": False,
+            "category": "personal",
+            "content_explanation": "mock explanation",
+            "original_index": 0
+        }],
+        "grouped_documents": [{
+            "start_page": 0, 
+            "end_page": 0, 
+            "primary_tenant": "Ahmed Yousuf", 
+            "primary_topic": "02_بيانات شخصية", 
+            "metadata": {"date": "2021-05-11"}, 
+            "issues": [], 
+            "language": "ar",
+            "category": "personal",
+            "dates": ["2021-05-11"]
+        }],
+        "manifest": {
+            "per_page": [
+                {
+                    "page_index": 0,
+                    "tenant": "Ahmed Yousuf",
+                    "target_folder": "Ahmed Yousuf/02_بيانات شخصية",
+                    "output_file": f"{house_id} - Ahmed Yousuf/Ahmed Yousuf/02_بيانات شخصية/2021-05-11.pdf"
+                }
+            ]
+        }
     }
-    with open(source_dir / f"{house_id}_3_routed_and_finalized.json", "w") as f:
-        json.dump(routed_data, f)
+    with open(source_dir / f"{house_id}_state.json", "w") as f:
+        json.dump(state_data, f)
         
     # Create the old PDF file
     old_pdf_path = tmp_path / f"{house_id} - Ahmed Yousuf/Ahmed Yousuf/02_بيانات شخصية/2021-05-11.pdf"
@@ -115,17 +112,14 @@ def test_run_reconcile_mode_ghost_folders(tmp_path):
     with open(source_dir / f"{house_id}_tenants.yaml", "w") as f:
         yaml.dump(yaml_data, f)
         
-    cleaned_data = [{"page_index": 0, "canonical_tenant": "Old Tenant", "resolved_date": "2024-05-11", "topics": ["02"], "is_junk": False, "category": "personal", "content_explanation": "", "original_index": 0}]
-    with open(source_dir / f"{house_id}_1_cleaned.json", "w") as f:
-        json.dump(cleaned_data, f)
-        
-    grouped_data = [{"start_page": 0, "end_page": 0, "primary_tenant": "Old Tenant", "primary_topic": "02", "metadata": {"date": "2024-05-11"}, "issues": [], "language": "ar", "category": "personal", "dates": ["2024-05-11"]}]
-    with open(source_dir / f"{house_id}_2_grouped.json", "w") as f:
-        json.dump(grouped_data, f)
-        
-    routed_data = {"per_page": [{"page_index": 0, "tenant": "Old Tenant", "target_folder": "Old/02", "output_file": f"{house_id} - Old Tenant/Old/02/test.pdf"}]}
-    with open(source_dir / f"{house_id}_3_routed_and_finalized.json", "w") as f:
-        json.dump(routed_data, f)
+    state_data = {
+        "house_id": house_id,
+        "cleaned_pages": [{"page_index": 0, "canonical_tenant": "Old Tenant", "resolved_date": "2024-05-11", "topics": ["02"], "is_junk": False, "category": "personal", "content_explanation": "", "original_index": 0}],
+        "grouped_documents": [{"start_page": 0, "end_page": 0, "primary_tenant": "Old Tenant", "primary_topic": "02", "metadata": {"date": "2024-05-11"}, "issues": [], "language": "ar", "category": "personal", "dates": ["2024-05-11"]}],
+        "manifest": {"per_page": [{"page_index": 0, "tenant": "Old Tenant", "target_folder": "Old/02", "output_file": f"{house_id} - Old Tenant/Old/02/test.pdf"}]}
+    }
+    with open(source_dir / f"{house_id}_state.json", "w") as f:
+        json.dump(state_data, f)
         
     # Create the old structure with a leftover root file (to trigger ghost folder issue)
     (target_dir / "dummy_root_file.txt").write_text("old text")

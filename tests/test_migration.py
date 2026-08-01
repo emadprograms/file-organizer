@@ -55,13 +55,13 @@ def test_migrate_v4_to_v5(tmp_path: Path):
     assert len(vault_files) == 1
     
     # Check new state
-    new_state_file = source_dir / "101_3_routed_and_finalized.json"
+    new_state_file = source_dir / "101_state.json"
     assert new_state_file.exists()
     assert not state_file.exists()
     
     with open(new_state_file, encoding='utf-8') as f:
         data = json.load(f)
-        p = data["per_page"][0]
+        p = data["manifest"]["per_page"][0]
         assert p.get("vault_id") is not None
         assert p.get("user_locked") is True
         assert p["output_file"] == "101 - John Doe/John Doe/10_صيانة/2023-01-01 - test.lnk"

@@ -30,31 +30,28 @@ def test_reconcile_generates_correct_paths(tmp_path):
         import yaml
         yaml.dump(yaml_data, f, allow_unicode=True)
         
-    cleaned_data = [
-        {"original_index": 0, "canonical_tenant": tenant_base, "category": "forms", "resolved_date": "2024-03-24", "content_explanation": "test"}
-    ]
-    with open(source_dir / f"{house_id}_1_cleaned.json", "w", encoding='utf-8') as f:
-        json.dump(cleaned_data, f, ensure_ascii=False)
-        
-    grouped_data = [
-        {"start_page": 0, "end_page": 0, "primary_tenant": tenant_base, "category": "forms", "dates": ["2024-03-24"]}
-    ]
-    with open(source_dir / f"{house_id}_2_grouped.json", "w", encoding='utf-8') as f:
-        json.dump(grouped_data, f, ensure_ascii=False)
-        
-    routed_data = {
-        "summary": {"total_input_pages": 1, "total_output_pages": 1, "output_file_count": 1},
-        "per_page": [{
-            "page_index": 0,
-            "tenant": tenant_base,
-            "date": "2024-03-24",
-            "output_file": f"{house_id} - {tenant_base}/{tenant_base}/01_بيانات أساسية/2024-03-24.pdf",
-            "page_in_output": 1,
-            "target_folder": f"{tenant_base}/01_بيانات أساسية"
-        }]
+    state_data = {
+        "house_id": house_id,
+        "cleaned_pages": [
+            {"original_index": 0, "canonical_tenant": tenant_base, "category": "forms", "resolved_date": "2024-03-24", "content_explanation": "test"}
+        ],
+        "grouped_documents": [
+            {"start_page": 0, "end_page": 0, "primary_tenant": tenant_base, "category": "forms", "dates": ["2024-03-24"]}
+        ],
+        "manifest": {
+            "summary": {"total_input_pages": 1, "total_output_pages": 1, "output_file_count": 1},
+            "per_page": [{
+                "page_index": 0,
+                "tenant": tenant_base,
+                "date": "2024-03-24",
+                "output_file": f"{house_id} - {tenant_base}/{tenant_base}/01_بيانات أساسية/2024-03-24.pdf",
+                "page_in_output": 1,
+                "target_folder": f"{tenant_base}/01_بيانات أساسية"
+            }]
+        }
     }
-    with open(source_dir / f"{house_id}_3_routed_and_finalized.json", "w", encoding='utf-8') as f:
-        json.dump(routed_data, f, ensure_ascii=False)
+    with open(source_dir / f"{house_id}_state.json", "w", encoding='utf-8') as f:
+        json.dump(state_data, f, ensure_ascii=False)
         
     # Create the physical file using the old path so it can be moved
     old_file_path = house_dir / tenant_base / "01_بيانات أساسية" / "2024-03-24.pdf"
@@ -73,13 +70,13 @@ def test_reconcile_generates_correct_paths(tmp_path):
         run_reconcile_mode(args)
     
     # 4. Verify the new routed JSON paths
-    new_routed_path = area_dir / f"{house_id} - {tenant_full}" / ".source_files" / f"{house_id}_3_routed_and_finalized.json"
+    new_routed_path = area_dir / f"{house_id} - {tenant_full}" / ".source_files" / f"{house_id}_state.json"
     assert new_routed_path.exists(), "Reconcile did not move the .source_files directory to the new house folder correctly"
     
     with open(new_routed_path, "r", encoding='utf-8') as f:
         new_routed_data = json.load(f)
         
-    per_page = new_routed_data["per_page"]
+    per_page = new_routed_data["manifest"]["per_page"]
     assert len(per_page) == 1
     
     output_file = per_page[0]["output_file"]

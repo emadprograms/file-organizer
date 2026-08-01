@@ -17,6 +17,7 @@ class State:
             "cleaned_pages": None,
             "grouped_documents": None,
             "routed_documents": None,
+            "manifest": None
         }
         self.load()
 

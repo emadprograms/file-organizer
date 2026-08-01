@@ -42,26 +42,19 @@ def run_reconcile_mode(args) -> int:
     if not house_id:
         house_id = yaml_path.name.split("_")[0]
         
-    cleaned_path = source_dir / f"{house_id}_1_cleaned.json"
-    grouped_path = source_dir / f"{house_id}_2_grouped.json"
-    routed_path = source_dir / f"{house_id}_3_routed_and_finalized.json"
+    from src.core.state import State
+    state = State(house_id, source_dir)
     
-    for p in [cleaned_path, grouped_path, routed_path]:
-        if not p.exists():
-            logger.error(f"Missing required state file: {p.name}")
-            return 1
+    if not state.state_file.exists():
+        logger.error(f"Missing required state file: {state.state_file.name}")
+        return 1
             
     with open(yaml_path, 'r', encoding='utf-8') as f:
         yaml_data = yaml.safe_load(f)
         
-    with open(cleaned_path, 'r', encoding='utf-8') as f:
-        pages = [PageData(**p) for p in json.load(f)]
-        
-    with open(grouped_path, 'r', encoding='utf-8') as f:
-        groups = [DocumentGroup(**g) for g in json.load(f)]
-        
-    with open(routed_path, 'r', encoding='utf-8') as f:
-        routed_data = json.load(f)
+    pages = [PageData(**p) for p in state.data.get("cleaned_pages", [])]
+    groups = [DocumentGroup(**g) for g in state.data.get("grouped_documents", [])]
+    routed_data = state.data.get("manifest", {})
         
     # Phase 33: Scan physical shortcuts (RECON-01, RECON-02, RECON-07)
     from src.utils.fs import read_shortcut_target
@@ -220,6 +213,14 @@ def run_reconcile_mode(args) -> int:
         # Create shortcuts
         idx = 1
         processed_vault_ids = set()
+        
+        # Pre-calculate page counts for each vault_id
+        vid_page_counts = {}
+        for p in new_per_page:
+            vid = p.get("vault_id")
+            if vid:
+                vid_page_counts[vid] = vid_page_counts.get(vid, 0) + 1
+                
         for p in sorted(new_per_page, key=lambda x: (x.get('dates', [''])[0] if x.get('dates') else '', x.get('page_index', 0))):
             if "vault_id" not in p:
                 continue
@@ -229,10 +230,21 @@ def run_reconcile_mode(args) -> int:
                 continue
             processed_vault_ids.add(vid)
 
-            doc_title = p.get('brief_arabic_title') or f"Doc_{p.get('page_index', 0)}"
+            doc_title = p.get('brief_arabic_title')
+            if not doc_title and 'output_file' in p:
+                filename = Path(p['output_file']).name.replace('.lnk', '').replace('.pdf', '')
+                if ' - ' in filename:
+                    doc_title = filename.split(' - ', 1)[1]
+                else:
+                    doc_title = filename
+            if not doc_title:
+                doc_title = f"Doc_{p.get('page_index', 0)}"
+                
             import re
             doc_title = re.sub(r'[\\/:*?"<>|]', '', doc_title)
             dates = p.get('dates', [])
+            if not dates and p.get('date'):
+                dates = [p.get('date')]
             date_str = dates[0] if dates and len(dates) > 0 and dates[0] and dates[0] != "NONE" else "nodate"
             link_name = f"{idx:03d} - {date_str} - {doc_title}.lnk"
             lnk_path = timeline_dir / link_name
@@ -242,7 +254,7 @@ def run_reconcile_mode(args) -> int:
             if vault_pdf.exists():
                 from src.utils.fs import create_shortcut
                 create_shortcut(str(vault_pdf.resolve()), str(lnk_path))
-            idx += 1
+            idx += vid_page_counts.get(vid, 1)
             
     # Move all files and .source_files to the new house directory if it changed
     new_house_dir = output_base_dir / full_house_id
@@ -253,9 +265,6 @@ def run_reconcile_mode(args) -> int:
         
         # Update paths so state JSONs are saved correctly to the new source_dir
         source_dir = new_house_dir / ".source_files"
-        cleaned_path = source_dir / cleaned_path.name
-        grouped_path = source_dir / grouped_path.name
-        routed_path = source_dir / routed_path.name
 
     # Clean up any leftover empty directories matching house_id
     if not getattr(args, 'dry_run', False):
@@ -273,24 +282,21 @@ def run_reconcile_mode(args) -> int:
                 merge_and_remove_dir(candidate, new_house_dir)
         
     if not getattr(args, 'dry_run', False):
-        with atomic_write(str(cleaned_path)) as tmp:
-            with open(tmp, 'w', encoding='utf-8') as f:
-                json.dump([p.model_dump() if hasattr(p, "model_dump") else p.dict() for p in pages], f, ensure_ascii=False, indent=2)
-                
-        with atomic_write(str(grouped_path)) as tmp:
-            with open(tmp, 'w', encoding='utf-8') as f:
-                json.dump([g.model_dump() if hasattr(g, "model_dump") else g.dict() for g in groups], f, ensure_ascii=False, indent=2)
-                
+        state.state_dir = source_dir
+        state.state_file = source_dir / f"{house_id}_state.json"
+        
+        state.data["cleaned_pages"] = [p.model_dump() if hasattr(p, "model_dump") else p.dict() for p in pages]
+        state.data["grouped_documents"] = [g.model_dump() if hasattr(g, "model_dump") else g.dict() for g in groups]
+        
         routed_data["per_page"] = new_per_page
         
         # Make sure to update summary file_count as well
         if "summary" in routed_data:
             routed_data["summary"]["output_file_count"] = len(set([p["output_file"] for p in new_per_page]))
             
-        with atomic_write(str(routed_path)) as tmp:
-            with open(tmp, 'w', encoding='utf-8') as f:
-                json.dump(routed_data, f, ensure_ascii=False, indent=2)
+        state.data["manifest"] = routed_data
+        state.save()
                 
-        logger.info(f"Updated state JSONs successfully in {source_dir}")
+        logger.info(f"Updated unified state JSON successfully in {source_dir}")
     
     return 0

@@ -5,6 +5,7 @@
 - ✅ **v3.0 Unified File-System UI & Append Mode** — Phases 20-24.1 (shipped 2026-07-24)
 - ✅ **v4.0 Architectural Cleanup** — Phases 25-29.1 (shipped 2026-07-31)
 - ✅ **v5.0 Vault Architecture & Bidirectional Reconciliation** — Phases 30-35 (shipped 2026-08-01)
+- 🚧 **v5.1 Polishing & Migration Cleanup** — Phases 36-38 (in progress)
 
 ## Phases
 
@@ -39,6 +40,15 @@ See [.planning/milestones/v5.0-ROADMAP.md](milestones/v5.0-ROADMAP.md) for full 
 
 </details>
 
+<details open>
+<summary>🚧 v5.1 Polishing & Migration Cleanup (Phases 36-38) — IN PROGRESS</summary>
+
+- [x] Phase 36: Environment & E2E Testing (ENV-01, TEST-01)
+- [x] Phase 37: Timeline View UX Improvements (TIMELINE-05)
+- [ ] Phase 38: Unified State Migration (MIGRATE-04)
+
+</details>
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -61,3 +71,6 @@ See [.planning/milestones/v5.0-ROADMAP.md](milestones/v5.0-ROADMAP.md) for full 
 | 33. Bidirectional Reconciliation Engine | v5.0 | 1/1 | Complete    | 2026-07-31 |
 | 34. Prepend Mode | v5.0 | 1/0 | Complete    | 2026-07-31 |
 | 35. Migration Script | v5.0 | 1/0 | Complete    | 2026-07-31 |
+| 36. Environment & E2E Testing | v5.1 | 1/1 | Complete | 2026-08-01 |
+| 37. Timeline View UX Improvements | v5.1 | 1/1 | Complete | 2026-08-01 |
+| 38. Unified State Migration | v5.1 | 0/0 | Pending | |
