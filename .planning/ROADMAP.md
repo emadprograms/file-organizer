@@ -7,7 +7,7 @@
 - ✅ **v5.0 Vault Architecture & Bidirectional Reconciliation** — Phases 30-35 (shipped 2026-08-01)
 - ✅ **v5.1 Polishing & Migration Cleanup** — Phases 36-38 (shipped 2026-08-01)
 - ✅ **v5.2 Deep Architecture Integrity & Verification** — Phases 39-42 (shipped 2026-08-01)
-- 🔄 **v5.3 Reconciliation Engine Upgrade** — Phases 43-48
+- ✅ **v5.3 Reconciliation Engine Upgrade** — Phases 43-48 (shipped 2026-08-01)
 
 ## Phases
 
@@ -74,7 +74,7 @@ See [.planning/milestones/v5.1-ROADMAP.md](milestones/v5.1-ROADMAP.md) for full 
 
 </details>
 
-### 🔄 v5.3 Reconciliation Engine Upgrade (Phases 43-48)
+### ✅ v5.3 Reconciliation Engine Upgrade (Phases 43-48) — SHIPPED 2026-08-01
 
 ### Phase 43: Ghost File Adoption & Raw PDF Ingestion
 
@@ -140,7 +140,7 @@ See [.planning/milestones/v5.1-ROADMAP.md](milestones/v5.1-ROADMAP.md) for full 
 | 45. Duplicate Shortcuts & Renamed Shortcuts | v5.3 | 1/1 | Complete | 2026-08-01 |
 | 46. Auto-Verification & Reconciliation Report | v5.3 | 1/1 | Complete | 2026-08-01 |
 | 47. Reconciliation Test Suite | v5.3 | 1/1 | Complete | 2026-08-01 |
-| 48. Data Preservation & Verification Overhaul | v5.3 | 0/1 | Pending  |            |
+| 48. Data Preservation & Verification Overhaul | v5.3 | 1/1 | Complete | 2026-08-01 |
 
 
 

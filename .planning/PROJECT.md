@@ -65,14 +65,19 @@ Documents are safely stored once in an immutable vault; all organization is done
 
 ### Active
 
-- Ghost file adoption into state.json during reconciliation (RECON-ADOPT) — v5.3
-- User deletion detection and vault trash cleanup (RECON-DELETE) — v5.3
-- Raw PDF ingestion into vault from categorized folders (RECON-INGEST) — v5.3
-- Duplicate shortcut support (1-to-many vault mapping) (RECON-DUP) — v5.3
-- Renamed shortcut detection and state sync (RECON-RENAME) — v5.3
-- Auto-verification after reconciliation (RECON-VERIFY) — v5.3
-- Reconciliation report generation (RECON-REPORT) — v5.3
-- Comprehensive pytest test suite for reconciliation edge cases (RECON-TEST) — v5.3
+- ✓ Ghost file adoption into state.json during reconciliation (RECON-ADOPT) (Phase 43) — v5.3
+- ✓ User deletion detection and vault trash cleanup (RECON-DELETE) (Phase 44) — v5.3
+- ✓ Raw PDF ingestion into vault from categorized folders (RECON-INGEST) (Phase 43) — v5.3
+- ✓ Duplicate shortcut support (1-to-many vault mapping) (RECON-DUP) (Phase 45) — v5.3
+- ✓ Renamed shortcut detection and state sync (RECON-RENAME) (Phase 45) — v5.3
+- ✓ Auto-verification after reconciliation (RECON-VERIFY) (Phase 46) — v5.3
+- ✓ Reconciliation report generation (RECON-REPORT) (Phase 46) — v5.3
+- ✓ Comprehensive pytest test suite for reconciliation edge cases (RECON-TEST) (Phase 47) — v5.3
+- ✓ Data Preservation & Verification Overhaul (Many-to-One and Immutable Page Audit) (REQ-09) (Phase 48) — v5.3
+
+### Active
+
+- [None - Milestone Complete]
 
 ### Out of Scope
 
@@ -92,7 +97,7 @@ Documents are safely stored once in an immutable vault; all organization is done
 - ✅ Shipped v5.0 Vault Architecture & Bidirectional Reconciliation on 2026-08-01.
 - ✅ Shipped v5.1 Polishing & Migration Cleanup on 2026-08-01.
 - ✅ Shipped v5.2 Deep Architecture Integrity & Verification on 2026-08-01.
-- 🔄 Starting v5.3 Reconciliation Engine Upgrade.
+- ✅ Shipped v5.3 Reconciliation Engine Upgrade on 2026-08-01.
 
 ## Context
 
@@ -133,4 +138,4 @@ Documents are safely stored once in an immutable vault; all organization is done
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-08-01 — v5.3 Reconciliation Engine Upgrade started.*
+*Last updated: 2026-08-01 — v5.3 Reconciliation Engine Upgrade SHIPPED.*

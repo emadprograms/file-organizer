@@ -42,3 +42,9 @@
 - MUST include `pytest` tests covering each edge case: ghost files, deletions, raw PDF drops, duplicates, renames.
 - Tests MUST validate that `state.json` is correctly updated after each reconciliation scenario.
 - Tests MUST validate that auto-verification runs and produces correct pass/fail results.
+
+## 9. Data Preservation & Verification Overhaul (REQ-09)
+- The reconciler MUST natively support Many-to-One document structures (grouped pages mapping to a single shortcut) without incorrectly deleting "unmatched" pages.
+- The `verification.py` module MUST perform an Immutable Page Count audit.
+- If the final manifest loses any pages compared to the raw ingestion phase (`cleaned_pages`), the verification MUST fail loudly.
+- Pytest fixtures MUST validate the Many-to-One grouped document preservation scenario.
