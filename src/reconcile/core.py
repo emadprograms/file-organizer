@@ -165,9 +165,71 @@ def run_reconcile_mode(args) -> int:
                     routed_data.get("per_page", []).append(new_p)
                     vault_id_to_page[vault_id] = new_p
                             
+    # Phase 44: Detect user deletions (REQ-02)
+    deleted_vault_ids = set()
     for vault_id, p in list(vault_id_to_page.items()):
         if vault_id not in seen_vault_ids:
-            logger.warning(f"Shortcut for vault_id {vault_id} was deleted or missing.")
+            logger.warning(f"Shortcut for vault_id {vault_id} was deleted. Trashing vault PDF.")
+            deleted_vault_ids.add(vault_id)
+            
+    if deleted_vault_ids and not getattr(args, 'dry_run', False):
+        trash_dir = source_dir / ".trash"
+        trash_dir.mkdir(parents=True, exist_ok=True)
+        vault_dir = source_dir / "vault"
+        
+        for vid in deleted_vault_ids:
+            vault_pdf = vault_dir / f"doc_{vid}.pdf"
+            if vault_pdf.exists():
+                shutil.move(str(vault_pdf), str(trash_dir / vault_pdf.name))
+                
+        # Remove from old_per_page
+        old_per_page_filtered = [p for p in routed_data.get("per_page", []) if p.get("vault_id") not in deleted_vault_ids]
+        
+        # Remove from pages and groups
+        deleted_page_indices = {p["page_index"] for p in routed_data.get("per_page", []) if p.get("vault_id") in deleted_vault_ids}
+        pages = [p for i, p in enumerate(pages) if i not in deleted_page_indices]
+        
+        # Keep groups that have at least one valid page. (Assuming 1 page per group mostly for now).
+        groups = [g for g in groups if g.start_page not in deleted_page_indices]
+        
+        # We don't bother re-indexing start_page and end_page here. In v5, they loosely point to the conceptual page. 
+        # But wait, `page_idx` is used later for `pages[page_idx]`. If we delete from `pages`, the indices will shift!
+        # Re-index:
+        idx_map = {}
+        new_pages = []
+        for i, p in enumerate(state.data.get("cleaned_pages", [])):
+            if i not in deleted_page_indices:
+                idx_map[i] = len(new_pages)
+                p_obj = PageData(**p)
+                p_obj.original_index = len(new_pages) # update
+                new_pages.append(p_obj)
+        pages = new_pages
+        
+        new_groups = []
+        for g in state.data.get("grouped_documents", []):
+            if g["start_page"] not in deleted_page_indices:
+                g_obj = DocumentGroup(**g)
+                g_obj.start_page = idx_map.get(g_obj.start_page, g_obj.start_page)
+                g_obj.end_page = idx_map.get(g_obj.end_page, g_obj.end_page)
+                new_groups.append(g_obj)
+        groups = new_groups
+        
+        for p in old_per_page_filtered:
+            p["page_index"] = idx_map.get(p["page_index"], p["page_index"])
+            
+        routed_data["per_page"] = old_per_page_filtered
+        
+    # Phase 44: Detect Orphan Vault PDFs on Disk (REQ-02)
+    vault_dir = source_dir / "vault"
+    if vault_dir.exists() and not getattr(args, 'dry_run', False):
+        active_vault_ids = {p.get("vault_id") for p in routed_data.get("per_page", []) if p.get("vault_id")}
+        trash_dir = source_dir / ".trash"
+        trash_dir.mkdir(parents=True, exist_ok=True)
+        for pdf_file in vault_dir.glob("doc_*.pdf"):
+            vid = pdf_file.stem[4:] # doc_...
+            if vid not in active_vault_ids:
+                logger.info(f"Trashing orphan vault PDF: {pdf_file.name}")
+                shutil.move(str(pdf_file), str(trash_dir / pdf_file.name))
             
     # Phase 43: Raw PDF Ingestion (REQ-03)
     vault_dir = source_dir / "vault"
