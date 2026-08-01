@@ -131,21 +131,31 @@ def batch_create_shortcuts(items: list[dict]) -> None:
         items: List of dictionaries with 'target' and 'link' keys.
     """
     import subprocess
+    import tempfile
     if os.name != 'nt' or not items:
         return
         
     import json
     ps_script_path = os.path.join(os.path.dirname(__file__), "windows_shortcut.ps1")
-    input_json = json.dumps(items, ensure_ascii=False)
     
-    subprocess.run(
-        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps_script_path, "batch-create"],
-        input=input_json,
-        text=True,
-        encoding='utf-8',
-        creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
-        check=True
-    )
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as f:
+        json.dump(items, f, ensure_ascii=False)
+        temp_input = f.name
+        
+    try:
+        subprocess.run(
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps_script_path, "batch-create", temp_input],
+            text=True,
+            encoding='utf-8',
+            creationflags=getattr(subprocess, 'CREATE_NO_WINDOW', 0),
+            check=True
+        )
+    finally:
+        if os.path.exists(temp_input):
+            try:
+                os.remove(temp_input)
+            except Exception:
+                pass
 
 def batch_read_shortcut_targets(link_paths: list[str]) -> dict[str, str]:
     """Read multiple shortcut targets in a single PowerShell execution.
@@ -157,20 +167,20 @@ def batch_read_shortcut_targets(link_paths: list[str]) -> dict[str, str]:
         A dictionary mapping link paths to their target paths.
     """
     import subprocess
+    import tempfile
     if os.name != 'nt' or not link_paths:
         return {}
         
     import json
     ps_script_path = os.path.join(os.path.dirname(__file__), "windows_shortcut.ps1")
     
-    # PowerShell ConvertFrom-Json can fail if the array is too large or chunked incorrectly over stdin, 
-    # but for ~500 items it's fine.
-    input_json = json.dumps([os.path.abspath(p) for p in link_paths], ensure_ascii=False)
-    
+    with tempfile.NamedTemporaryFile("w", encoding="utf-8", delete=False) as f:
+        json.dump([os.path.abspath(p) for p in link_paths], f, ensure_ascii=False)
+        temp_input = f.name
+        
     try:
         result = subprocess.run(
-            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps_script_path, "batch-read"],
-            input=input_json,
+            ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ps_script_path, "batch-read", temp_input],
             capture_output=True,
             text=True,
             encoding='utf-8',
@@ -186,3 +196,9 @@ def batch_read_shortcut_targets(link_paths: list[str]) -> dict[str, str]:
     except Exception as e:
         logger.error(f"Failed batch reading shortcuts: {e}")
         return {}
+    finally:
+        if os.path.exists(temp_input):
+            try:
+                os.remove(temp_input)
+            except Exception:
+                pass

@@ -147,28 +147,26 @@ def test_batch_shortcuts(tmp_path) -> None:
     if os.name != 'nt':
         pytest.skip("Windows shortcuts only supported on Windows")
         
-    targets = []
-    links = []
-    items = []
+    target1 = tmp_path / "target1.txt"
+    target1.touch()
+    link1 = tmp_path / "link1.lnk"
     
-    # Create 3 targets and links
-    for i in range(3):
-        target = tmp_path / f"target_batch_{i}.pdf"
-        target.touch()
-        link = tmp_path / f"link_batch_{i}.lnk"
-        
-        targets.append(str(target.resolve()))
-        links.append(str(link.resolve()))
-        items.append({"target": str(target.resolve()), "link": str(link.resolve())})
-        
-    # Test batch create
+    target2 = tmp_path / "علي مسعد.txt"
+    target2.touch()
+    link2 = tmp_path / "عبد الله.lnk"
+    
+    items = [
+        {"target": str(target1.resolve()), "link": str(link1.resolve())},
+        {"target": str(target2.resolve()), "link": str(link2.resolve())}
+    ]
+    
     batch_create_shortcuts(items)
-    for link in links:
-        assert os.path.exists(link)
-        
-    # Test batch read
-    results = batch_read_shortcut_targets(links)
-    assert len(results) == 3
-    for link, target in zip(links, targets):
-        assert link in results
-        assert target.lower() in results[link].lower()
+    
+    assert link1.exists()
+    assert link2.exists()
+    
+    results = batch_read_shortcut_targets([str(link1.resolve()), str(link2.resolve())])
+    
+    # Path comparison might differ in case on Windows
+    assert results[str(link1.resolve())].lower() == str(target1.resolve()).lower()
+    assert results[str(link2.resolve())].lower() == str(target2.resolve()).lower()

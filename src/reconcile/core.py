@@ -506,9 +506,10 @@ def run_reconcile_mode(args) -> int:
         # Update paths so state JSONs are saved correctly to the new source_dir
         source_dir = new_house_dir / ".source_files"
         
-        # We must rewrite all shortcuts because their absolute target paths are now broken
-        # due to the folder rename.
-        logger.info("Rewriting all categorized shortcuts with new absolute paths...")
+    if not getattr(args, 'dry_run', False):
+        # We must rewrite all shortcuts because their absolute target paths might be broken
+        # due to folder rename, parent folder moves, or manual user copying.
+        logger.info("Rewriting all categorized shortcuts to ensure absolute paths are correct...")
         shortcuts_to_rewrite = []
         new_vault_dir = source_dir / "vault"
         for p in new_per_page:

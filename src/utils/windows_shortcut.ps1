@@ -57,7 +57,8 @@ if ($action -eq "create") {
     $link = $args[2]
     [ShortcutInterop]::Create($target, $link)
 } elseif ($action -eq "batch-create") {
-    $inputJson = [Console]::In.ReadToEnd()
+    $inputFile = $args[1]
+    $inputJson = Get-Content -Raw -Path $inputFile -Encoding UTF8
     if (![string]::IsNullOrWhiteSpace($inputJson)) {
         $items = $inputJson | ConvertFrom-Json
         foreach ($item in $items) {
@@ -69,7 +70,8 @@ if ($action -eq "create") {
         }
     }
 } elseif ($action -eq "batch-read") {
-    $inputJson = [Console]::In.ReadToEnd()
+    $inputFile = $args[1]
+    $inputJson = Get-Content -Raw -Path $inputFile -Encoding UTF8
     $results = @{}
     if (![string]::IsNullOrWhiteSpace($inputJson)) {
         $links = $inputJson | ConvertFrom-Json
@@ -85,3 +87,4 @@ if ($action -eq "create") {
     $resultsJson = $results | ConvertTo-Json -Depth 5 -Compress
     Write-Output $resultsJson
 }
+
