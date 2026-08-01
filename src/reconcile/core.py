@@ -40,6 +40,21 @@ def run_reconcile_mode(args) -> int:
         logger.error(f".source_files not found in {target_dir}")
         return 1
         
+    # Phase 57: Preflight Lock Detection
+    # Scan the target directory for any locked files before proceeding
+    import sys
+    for root, dirs, files in os.walk(target_dir):
+        for f in files:
+            fpath = Path(root) / f
+            try:
+                with open(fpath, 'a'):
+                    pass
+            except PermissionError:
+                print(f"ABORTED: The following file is currently locked by another process or user: {fpath}. Please ask the user to close it and try again.")
+                sys.exit(1)
+            except Exception:
+                pass
+                
     yaml_paths = list(source_dir.glob("*_tenants.yaml"))
     if not yaml_paths:
         logger.error(f"No _tenants.yaml found in {source_dir}")
