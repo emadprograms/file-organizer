@@ -84,7 +84,7 @@ See [.planning/milestones/v5.3-ROADMAP.md](milestones/v5.3-ROADMAP.md) for full 
 ### 🚧 v5.4 Architectural Consistency Refactor (Phases 49-57)
 
 - [x] Phase 49: 1-to-Many Shortcut Mapping (1/1 plans)
-- [ ] Phase 50: Cross-House Contamination Immunity (0/1 plans)
+- [x] Phase 50: Cross-House Contamination Immunity (1/1 plans)
 - [ ] Phase 51: Multi-Page Raw PDF Ingestion (0/1 plans)
 - [ ] Phase 52: Corrupted Vault File Safeguards (0/1 plans)
 - [ ] Phase 53: Nested Folder Trap (0/1 plans)
@@ -196,7 +196,7 @@ See [.planning/milestones/v5.3-ROADMAP.md](milestones/v5.3-ROADMAP.md) for full 
 | 47. Reconciliation Test Suite | v5.3 | 1/1 | Complete | 2026-08-01 |
 | 48. Data Preservation & Verification Overhaul | v5.3 | 1/1 | Complete | 2026-08-01 |
 | 49. 1-to-Many Shortcut Mapping | v5.4 | 1/1 | Complete | 2026-08-01 |
-| 50. Cross-House Contamination Immunity | v5.4 | 0/1 | Pending | - |
+| 50. Cross-House Contamination Immunity | v5.4 | 1/1 | Complete | 2026-08-01 |
 | 51. Multi-Page Raw PDF Ingestion | v5.4 | 0/1 | Pending | - |
 | 52. Corrupted Vault File Safeguards | v5.4 | 0/1 | Pending | - |
 | 53. Nested Folder Trap | v5.4 | 0/1 | Pending | - |
