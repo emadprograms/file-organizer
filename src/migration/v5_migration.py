@@ -107,9 +107,9 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
         if not dry_run:
             shutil.move(str(pdf_path), str(vault_pdf))
             abs_vault_target = str(vault_pdf.resolve())
-            if os.name == 'nt' and not abs_vault_target.startswith(r"\\?\C:"):
-                if abs_vault_target.startswith("C:"):
-                    abs_vault_target = "\\\\?\\\\" + abs_vault_target
+            if os.name == 'nt' and not abs_vault_target.startswith("\\\\?\\"):
+                if len(abs_vault_target) > 1 and abs_vault_target[1] == ':':
+                    abs_vault_target = "\\\\?\\" + abs_vault_target
             create_shortcut(abs_vault_target, str(lnk_path))
             logger.info(f"Migrated: {pdf_path.name} -> vault/doc_{vid}.pdf + shortcut")
         else:
@@ -164,9 +164,9 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
             vault_pdf = vault_dir / f"doc_{vid}.pdf"
             if vault_pdf.exists():
                 abs_vault_target = str(vault_pdf.resolve())
-                if os.name == 'nt' and not abs_vault_target.startswith(r"\\?\C:"):
-                    if abs_vault_target.startswith("C:"):
-                        abs_vault_target = "\\\\?\\\\" + abs_vault_target
+                if os.name == 'nt' and not abs_vault_target.startswith("\\\\?\\"):
+                    if len(abs_vault_target) > 1 and abs_vault_target[1] == ':':
+                        abs_vault_target = "\\\\?\\" + abs_vault_target
                 create_shortcut(abs_vault_target, str(lnk_path))
             idx += vid_page_counts.get(vid, 1)
             
@@ -185,7 +185,8 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
         state.save()
         
         # Delete legacy JSONs
-        for p in [cleaned_json, grouped_json, routed_json]:
+        routed_base_json = source_dir / f"{house_id}_3_routed.json"
+        for p in [cleaned_json, grouped_json, source_dir / f"{house_id}_3_routed_and_finalized.json", routed_base_json]:
             if p.exists():
                 os.remove(str(p))
                 

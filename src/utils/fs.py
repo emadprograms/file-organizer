@@ -90,9 +90,13 @@ def create_shortcut(target_path: str, link_path: str) -> None:
     from pylnk3 import ExtraData, ExtraData_EnvironmentVariableDataBlock
     
     # Strip \\?\ prefix if present for parsing into LinkTargetIDList properly
-    clean_target = target_path
-    if target_path.startswith(r"\\?\C:"):
-        clean_target = target_path[4:]
+    clean_target = str(target_path).replace('/', '\\')
+    if clean_target.startswith("\\\\?\\UNC\\"):
+        clean_target = "\\" + clean_target[7:]
+    elif clean_target.startswith("\\\\?\\"):
+        clean_target = clean_target[4:]
+        if clean_target.startswith("\\"):
+            clean_target = clean_target[1:]
         
     if os.name != 'nt' and not clean_target.startswith("C:") and not clean_target.startswith(r"\\"):
         # pylnk3 fails on posix paths. Convert to fake Windows path for testing on Mac
@@ -102,7 +106,7 @@ def create_shortcut(target_path: str, link_path: str) -> None:
     lnk = pylnk3.for_file(clean_target)
     
     # Manually inject the long path prefix for the Environment Variable Block if it was passed
-    if target_path.startswith(r"\\?\C:"):
+    if target_path.startswith("\\\\?\\"):
         env_data_block = ExtraData_EnvironmentVariableDataBlock()
         env_data_block.target_ansi = target_path
         env_data_block.target_unicode = target_path

@@ -23,7 +23,7 @@ def test_migrate_v4_to_v5(tmp_path: Path):
     source_dir = house_dir / ".source_files"
     source_dir.mkdir()
     
-    state_file = source_dir / "101_3_routed.json"
+    state_file = source_dir / "101_3_routed_and_finalized.json"
     state_file.write_text(json.dumps({
         "per_page": [
             {
@@ -34,6 +34,10 @@ def test_migrate_v4_to_v5(tmp_path: Path):
             }
         ]
     }))
+    
+    # Also create the other legacy file to test both get deleted
+    legacy_routed = source_dir / "101_3_routed.json"
+    legacy_routed.write_text("{}")
     
     # Run migration (dry-run first)
     res = migrate_to_v5(house_dir, dry_run=True)
@@ -58,6 +62,7 @@ def test_migrate_v4_to_v5(tmp_path: Path):
     new_state_file = source_dir / "101_state.json"
     assert new_state_file.exists()
     assert not state_file.exists()
+    assert not legacy_routed.exists()
     
     with open(new_state_file, encoding='utf-8') as f:
         data = json.load(f)
@@ -65,6 +70,15 @@ def test_migrate_v4_to_v5(tmp_path: Path):
         assert p.get("vault_id") is not None
         assert p.get("user_locked") is True
         assert p["output_file"] == "101 - John Doe/John Doe/10_صيانة/2023-01-01 - test.lnk"
+        
+    # Verify link target correctness
+    import pylnk3
+    lnk_file = pdf_path.with_suffix('.lnk')
+    with open(lnk_file, 'rb') as lf:
+        lnk = pylnk3.parse(lf)
+        expected_target = str(vault_files[0].resolve())
+        # The create_shortcut might prepend \\?\ for absolute paths, so we check if the path ends with our target
+        assert lnk.path.endswith(str(vault_files[0].resolve()).replace('\\\\?\\', '')) or expected_target.endswith(lnk.path.replace('\\\\?\\', ''))
         
     # Check timeline
     timeline_dir = house_dir / "[Timeline View]"
