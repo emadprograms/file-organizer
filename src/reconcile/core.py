@@ -511,7 +511,8 @@ def run_reconcile_mode(args) -> int:
                 # p["output_file"] is something like '508 - عبدالله عيسى الكواري/01_Category/doc.lnk'
                 # We need the physical path relative to output_base_dir
                 lnk_path = output_base_dir / p["output_file"]
-                if vault_pdf.exists() and lnk_path.parent.exists():
+                if vault_pdf.exists():
+                    lnk_path.parent.mkdir(parents=True, exist_ok=True)
                     shortcuts_to_rewrite.append({
                         "target": str(vault_pdf.resolve()),
                         "link": str(lnk_path.resolve())
