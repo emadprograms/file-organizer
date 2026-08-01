@@ -35,8 +35,8 @@ def test_phase43_raw_pdf_ingestion(tmp_path):
     with open(source_dir / f"{house_id}_state.json", "w") as f:
         json.dump(state_data, f)
         
-    # Drop a raw PDF in a subfolder
-    subfolder = target_dir / "Category"
+    # Drop a raw PDF in a subfolder inside a canonical tenant
+    subfolder = target_dir / "Tenant" / "Category"
     subfolder.mkdir(parents=True)
     raw_pdf = subfolder / "2023-05-15 - Raw Invoice.pdf"
     raw_pdf.touch()
@@ -52,7 +52,7 @@ def test_phase43_raw_pdf_ingestion(tmp_path):
     
     # 1. Raw PDF should be gone from the subfolder
     new_house_dir = tmp_path / f"{house_id} - Tenant"
-    new_subfolder = new_house_dir / "Category"
+    new_subfolder = new_house_dir / "Tenant" / "Category"
     assert not (new_subfolder / "2023-05-15 - Raw Invoice.pdf").exists()
     
     # 2. A shortcut should be in its place

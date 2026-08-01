@@ -121,6 +121,10 @@ def run_reconcile_mode(args) -> int:
             vault_id = filename[4:-4]
             physical_lnk_by_vault.setdefault(vault_id, []).append(lnk_path)
             
+    temp_organizer = FileOrganizer()
+    valid_tenant_folders, _ = temp_organizer.compute_tenant_folders(groups, yaml_data)
+    valid_folder_names_set = set(valid_tenant_folders.values())
+    
     deleted_vault_ids = set()
     seen_vault_ids = set(physical_lnk_by_vault.keys())
     
@@ -164,14 +168,24 @@ def run_reconcile_mode(args) -> int:
                     new_target_folder = ""
                 p["target_folder"] = new_target_folder
                 p["output_file"] = f"{target_dir.name}/{rel_path}"
-                p["user_locked"] = True
+                
+                # Phase 54: Only lock if it was moved to a canonical tenant folder.
+                top_level_folder = Path(rel_path).parts[0] if Path(rel_path).parts else ""
+                should_lock = top_level_folder in valid_folder_names_set
+                
+                if should_lock:
+                    p["user_locked"] = True
+                else:
+                    p["user_locked"] = False
+                    logger.info(f"Top-level folder '{top_level_folder}' is not canonical. Snapping back.")
+                    
                 p["brief_arabic_title"] = lnk.stem
                 
                 page_idx = p["page_index"]
-                if page_idx < len(pages):
+                if page_idx < len(pages) and should_lock:
                     pages[page_idx].user_locked = True
                 for g in groups:
-                    if g.start_page <= page_idx <= g.end_page:
+                    if g.start_page <= page_idx <= g.end_page and should_lock:
                         g.user_locked = True
                         break
             else:
@@ -638,6 +652,22 @@ def run_reconcile_mode(args) -> int:
             logger.info(f"Corrupt Vault Files Detected: {report['corrupt_vault_files']}")
         logger.info("==============================")
         
+        # Phase 54: Cleanup orphaned/renamed legacy folders
+        allowed_dirs = {".source_files", "[Timeline View]"}
+        allowed_dirs.update(tenant_folder_names.values())
+        
+        for child in new_house_dir.iterdir():
+            if child.is_dir() and child.name not in allowed_dirs:
+                # Check if it contains only shortcuts or is empty
+                contains_unmanaged_files = False
+                for item in child.rglob("*"):
+                    if item.is_file() and item.suffix.lower() != ".lnk":
+                        contains_unmanaged_files = True
+                        break
+                if not contains_unmanaged_files:
+                    logger.info(f"Deleted orphaned/renamed legacy folder: {child.name}")
+                    shutil.rmtree(str(child), ignore_errors=True)
+
         # Auto-Verification (REQ-06)
         try:
             from src.core.verification import run_verification
