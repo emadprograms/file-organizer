@@ -4,7 +4,7 @@
 
 A document management system that processes scanned Arabic PDFs, categorizes them using LLM vision, groups related pages, and organizes them into a structured folder hierarchy per tenant household. The system runs on Windows and uses a Vault-based architecture with shortcuts for file organization and bidirectional reconciliation.
 
-## Current Milestone: v5.4 (Architectural Consistency Refactor)
+## Current Milestone: Next
 
 **Goal:** Decouple the concept of "Pages" from "Shortcuts" in the data model. Address the architectural quirk where duplicating a shortcut of a multi-page document artificially inflates the page index and splits pages across shortcuts.
 
@@ -21,6 +21,15 @@ Documents are safely stored once in an immutable vault; all organization is done
 
 ### Validated
 
+- ✓ 1-to-Many Shortcut Mapping (REQ-01) (Phase 49) — v5.4
+- ✓ Cross-House Contamination Immunity (REQ-02) (Phase 50) — v5.4
+- ✓ Multi-Page Raw PDF Ingestion (REQ-03) (Phase 51) — v5.4
+- ✓ Corrupted Vault File Safeguards (REQ-04) (Phase 52) — v5.4
+- ✓ Nested Folder Trap (REQ-05) (Phase 53) — v5.4
+- ✓ Tenant Root Folder Renaming (REQ-06) (Phase 54) — v5.4
+- ✓ Shortcut Target Hijack / Corruption (REQ-07) (Phase 55) — v5.4
+- ✓ Idempotency Guarantee (REQ-08) (Phase 56) — v5.4
+- ✓ File Locking Resilience (REQ-09) (Phase 57) — v5.4
 - ✓ Vault storage system with unique document IDs (VAULT) (Phase 30-35) — v5.0
 - ✓ Windows .lnk shortcut generation replacing direct file placement (LNK) (Phase 30-35) — v5.0
 - ✓ Unified state.json replacing multi-JSON checkpoint system (STATE) (Phase 30-35) — v5.0
@@ -73,7 +82,7 @@ Documents are safely stored once in an immutable vault; all organization is done
 
 ### Active
 
-- [Pending Phase Definitions for v5.4]
+- [Pending]
 
 ### Out of Scope
 
@@ -94,6 +103,7 @@ Documents are safely stored once in an immutable vault; all organization is done
 - ✅ Shipped v5.1 Polishing & Migration Cleanup on 2026-08-01.
 - ✅ Shipped v5.2 Deep Architecture Integrity & Verification on 2026-08-01.
 - ✅ Shipped v5.3 Reconciliation Engine Upgrade on 2026-08-01.
+- ✅ Shipped v5.4 Architectural Consistency Refactor on 2026-08-02.
 
 ## Context
 
@@ -136,4 +146,4 @@ Documents are safely stored once in an immutable vault; all organization is done
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-08-01 — v5.3 Reconciliation Engine Upgrade SHIPPED. Transitioning to v5.4.*
+*Last updated: 2026-08-02 — v5.4 Architectural Consistency Refactor SHIPPED. Transitioning to next.*
