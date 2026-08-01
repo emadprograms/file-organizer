@@ -15,8 +15,8 @@ reqs = """
 - [ ] **STATE-02**: Each entry tracks vault_id, tenant, category, display_name, date, and user_locked status
 - [ ] **STATE-03**: `report.json` preserved as raw LLM dump (never modified by downstream logic)
 - [ ] **STATE-04**: Atomic writes via `tempfile` + `os.fsync` + `os.replace` for crash safety
-- [ ] **TIMELINE-01**: System generates `00_Timeline_View/` folder per house
-- [ ] **TIMELINE-02**: Shortcuts inside `00_Timeline_View/` are numbered chronologically (e.g., `01 - 2010-02-09 - Contract.lnk`)
+- [ ] **TIMELINE-01**: System generates `[Timeline View]/` folder per house
+- [ ] **TIMELINE-02**: Shortcuts inside `[Timeline View]/` are numbered chronologically (e.g., `01 - 2010-02-09 - Contract.lnk`)
 - [ ] **TIMELINE-03**: Timeline View is regenerated automatically after every reconciliation run
 - [ ] **TIMELINE-04**: `finalized.pdf` is no longer generated (replaced by Timeline View)
 - [ ] **RECON-01**: Reconciliation scans physical folders for `.lnk` shortcuts before applying any logic
@@ -24,7 +24,7 @@ reqs = """
 - [ ] **RECON-03**: Detected manual moves update `state.json` and flag the document as `user_locked: true`
 - [ ] **RECON-04**: User-locked documents are never overridden by AI re-routing
 - [ ] **RECON-05**: `reconcile --tenants` re-routes only unlocked documents based on updated `_tenants.yaml` timeline
-- [ ] **RECON-06**: Reconciliation regenerates `00_Timeline_View/` after all moves
+- [ ] **RECON-06**: Reconciliation regenerates `[Timeline View]/` after all moves
 - [ ] **RECON-07**: Reconciliation detects deleted shortcuts and logs warnings
 - [ ] **PREPEND-01**: Rename "append" to "prepend" across all CLI commands, code, and documentation
 - [ ] **PREPEND-02**: Prepend mode adds new incoming documents to the vault and generates shortcuts

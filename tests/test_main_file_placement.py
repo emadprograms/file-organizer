@@ -51,9 +51,9 @@ def test_file_placement_logic(tmp_path) -> None:
         The appropriate fixture or mock value.
         """
         # organize() calls ensure_target_directories which renames target_dir -> house_dir
-        if target_dir.exists() and not house_dir.exists():
-            target_dir.rename(house_dir)
-        (house_dir / "00_Timeline_View").mkdir(parents=True, exist_ok=True)
+        # Simulate v5 architecture: create vault and [Timeline View] directories
+        (house_dir / ".source_files" / "vault").mkdir(parents=True, exist_ok=True)
+        (house_dir / "[Timeline View]").mkdir(parents=True, exist_ok=True)
         return ([{"output_file": "mock_output.pdf", "target_folder": "mock/mock"}], house_id)
     
     with patch('src.timeline.FileOrganizer') as MockOrganizer, \
@@ -92,7 +92,8 @@ def test_file_placement_logic(tmp_path) -> None:
     expected_pdf_path = output_dir / house_id / pdf_path.name
     assert not expected_pdf_path.exists(), "Categorized PDF should be removed or moved out of house_dir root"
     
-    timeline_dir = output_dir / house_id / "00_Timeline_View"
+    # Assert [Timeline View] is intact
+    timeline_dir = output_dir / house_id / "[Timeline View]"
     assert timeline_dir.exists(), "Timeline View directory should be created in house_dir"
     
     # D-03: *_report.json is correctly moved to .source_files/

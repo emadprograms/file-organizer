@@ -69,7 +69,8 @@ def run_reconcile_mode(args) -> int:
     physical_lnk_files = []
     if target_dir.exists():
         for lnk_path in target_dir.rglob("*.lnk"):
-            if ".source_files" in lnk_path.parts or "00_Timeline_View" in lnk_path.parts:
+            # Skip files in .source_files or [Timeline View]
+            if ".source_files" in lnk_path.parts or "[Timeline View]" in lnk_path.parts:
                 continue
             physical_lnk_files.append(lnk_path)
             
@@ -209,25 +210,38 @@ def run_reconcile_mode(args) -> int:
     else:
         logger.info("No file moves required based on the updated tenants.")
         
-    # Phase 33: RECON-06 Regenerate 00_Timeline_View/
+    # Phase 33: RECON-06 Regenerate [Timeline View]/
+    # We always regenerate it from scratch for this house to ensure perfect sync
     if not getattr(args, 'dry_run', False):
-        timeline_dir = target_dir / "00_Timeline_View"
+        timeline_dir = target_dir / "[Timeline View]"
         if timeline_dir.exists():
             shutil.rmtree(str(timeline_dir))
         timeline_dir.mkdir(parents=True, exist_ok=True)
         # Create shortcuts
         idx = 1
+        processed_vault_ids = set()
         for p in sorted(new_per_page, key=lambda x: (x.get('dates', [''])[0] if x.get('dates') else '', x.get('page_index', 0))):
+            if "vault_id" not in p:
+                continue
+                
+            vid = p["vault_id"]
+            if vid in processed_vault_ids:
+                continue
+            processed_vault_ids.add(vid)
+
             doc_title = p.get('brief_arabic_title') or f"Doc_{p.get('page_index', 0)}"
-            link_name = f"{idx:03d}_{doc_title}.lnk"
+            import re
+            doc_title = re.sub(r'[\\/:*?"<>|]', '', doc_title)
+            dates = p.get('dates', [])
+            date_str = dates[0] if dates and len(dates) > 0 and dates[0] and dates[0] != "NONE" else "nodate"
+            link_name = f"{idx:03d} - {date_str} - {doc_title}.lnk"
             lnk_path = timeline_dir / link_name
             
             # The vault PDF path
-            if "vault_id" in p:
-                vault_pdf = target_dir / ".source_files" / "vault" / f"doc_{p['vault_id']}.pdf"
-                if vault_pdf.exists():
-                    from src.utils.fs import create_shortcut
-                    create_shortcut(str(vault_pdf.resolve()), str(lnk_path))
+            vault_pdf = target_dir / ".source_files" / "vault" / f"doc_{vid}.pdf"
+            if vault_pdf.exists():
+                from src.utils.fs import create_shortcut
+                create_shortcut(str(vault_pdf.resolve()), str(lnk_path))
             idx += 1
             
     # Move all files and .source_files to the new house directory if it changed

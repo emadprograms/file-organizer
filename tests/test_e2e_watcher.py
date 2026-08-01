@@ -71,7 +71,7 @@ def test_fsui_infer_missing_data_1273(e2e_workspace):
     assert not ok_file.exists()
     
     # Assert final output explicitly
-    timeline_dirs = list(ws["areas"].rglob("00_Timeline_View"))
+    timeline_dirs = list(ws["areas"].rglob("*Timeline View*"))
     assert len(timeline_dirs) >= 1, f"Expected at least one timeline directory, found: {timeline_dirs}"
 
 def test_fsui_missing_yaml_abort(e2e_workspace):
@@ -119,7 +119,7 @@ def test_fsui_infer_unknown_area_1273(e2e_workspace):
     orchestrator.finalize(ok_file)
     assert not ok_file.exists()
 
-    timeline_dirs = list(ws["areas"].rglob("00_Timeline_View"))
+    timeline_dirs = list(ws["areas"].rglob("*Timeline View*"))
     assert len(timeline_dirs) >= 1, f"Expected at least one timeline directory, found: {timeline_dirs}"
 
 def test_fsui_success_flow_504(e2e_workspace):
@@ -147,7 +147,7 @@ def test_fsui_success_flow_504(e2e_workspace):
     assert not ok_file.exists()
     
     # Assert final output explicitly
-    timeline_dirs = list(ws["areas"].rglob("00_Timeline_View"))
+    timeline_dirs = list(ws["areas"].rglob("*Timeline View*"))
     assert len(timeline_dirs) >= 1, f"Expected at least one timeline directory, found: {timeline_dirs}"
 
 def test_fsui_broken_syntax(e2e_workspace):

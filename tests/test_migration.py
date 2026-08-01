@@ -59,7 +59,7 @@ def test_migrate_v4_to_v5(tmp_path: Path):
     assert new_state_file.exists()
     assert not state_file.exists()
     
-    with open(new_state_file) as f:
+    with open(new_state_file, encoding='utf-8') as f:
         data = json.load(f)
         p = data["per_page"][0]
         assert p.get("vault_id") is not None
@@ -67,6 +67,6 @@ def test_migrate_v4_to_v5(tmp_path: Path):
         assert p["output_file"] == "101 - John Doe/John Doe/10_صيانة/2023-01-01 - test.lnk"
         
     # Check timeline
-    timeline_dir = house_dir / "00_Timeline_View"
+    timeline_dir = house_dir / "[Timeline View]"
     assert timeline_dir.exists()
-    assert (timeline_dir / "001_test.lnk").exists()
+    assert (timeline_dir / "001 - 2023-01-01 - test.lnk").exists()

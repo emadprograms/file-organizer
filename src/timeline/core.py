@@ -202,7 +202,7 @@ class FileOrganizer:
         
         house_dir = output_base_dir / house_id
         vault_dir = house_dir / ".source_files" / "vault"
-        timeline_dir = house_dir / "00_Timeline_View"
+        timeline_dir = house_dir / "[Timeline View]"
         
         if not dry_run:
             vault_dir.mkdir(parents=True, exist_ok=True)

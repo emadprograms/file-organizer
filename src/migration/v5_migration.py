@@ -52,11 +52,11 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
         per_page = state_data
         state_data = {"per_page": per_page}
         
-    # Find all PDFs in the house directory (excluding .source_files and 00_Timeline_View)
+    # Find all PDFs in the house directory (excluding .source_files and [Timeline View])
     pdfs = []
     for root, _, files in os.walk(target_dir):
         root_path = Path(root)
-        if ".source_files" in root_path.parts or "00_Timeline_View" in root_path.parts:
+        if ".source_files" in root_path.parts or "[Timeline View]" in root_path.parts:
             continue
         for f in files:
             if f.lower().endswith(".pdf") and not f.endswith("_finalized.pdf") and not f.endswith("_raw_prepend.pdf") and not f.endswith("_raw_append.pdf"):
@@ -103,27 +103,39 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
             
         updates_made += 1
         
-    # Rebuild 00_Timeline_View/
-    timeline_dir = target_dir / "00_Timeline_View"
+    # Rebuild [Timeline View]/
+    timeline_dir = target_dir / "[Timeline View]"
     if not dry_run:
         if timeline_dir.exists():
             shutil.rmtree(str(timeline_dir))
         timeline_dir.mkdir(parents=True, exist_ok=True)
         
         idx = 1
+        processed_vault_ids = set()
         for p in sorted(per_page, key=lambda x: (x.get('dates', [''])[0] if x.get('dates') else '', x.get('page_index', 0))):
+            if "vault_id" not in p:
+                continue
+            
+            vid = p["vault_id"]
+            if vid in processed_vault_ids:
+                continue
+            processed_vault_ids.add(vid)
+            
             doc_title = p.get('brief_arabic_title') or f"Doc_{p.get('page_index', 0)}"
-            link_name = f"{idx:03d}_{doc_title}.lnk"
+            import re
+            doc_title = re.sub(r'[\\/:*?"<>|]', '', doc_title)
+            dates = p.get('dates', [])
+            date_str = dates[0] if dates and len(dates) > 0 and dates[0] and dates[0] != "NONE" else "nodate"
+            link_name = f"{idx:03d} - {date_str} - {doc_title}.lnk"
             lnk_path = timeline_dir / link_name
             
-            if "vault_id" in p:
-                vault_pdf = vault_dir / f"doc_{p['vault_id']}.pdf"
-                if vault_pdf.exists():
-                    abs_vault_target = str(vault_pdf.resolve())
-                    if os.name == 'nt' and not abs_vault_target.startswith(r"\\?\C:"):
-                        if abs_vault_target.startswith("C:"):
-                            abs_vault_target = "\\\\?\\\\" + abs_vault_target
-                    create_shortcut(abs_vault_target, str(lnk_path))
+            vault_pdf = vault_dir / f"doc_{vid}.pdf"
+            if vault_pdf.exists():
+                abs_vault_target = str(vault_pdf.resolve())
+                if os.name == 'nt' and not abs_vault_target.startswith(r"\\?\C:"):
+                    if abs_vault_target.startswith("C:"):
+                        abs_vault_target = "\\\\?\\\\" + abs_vault_target
+                create_shortcut(abs_vault_target, str(lnk_path))
             idx += 1
             
         # Delete finalized PDF if it exists
@@ -142,7 +154,7 @@ def migrate_to_v5(target_dir: Path, dry_run: bool = False) -> int:
             os.remove(str(routed_json))
             
     else:
-        logger.info(f"[DRY RUN] Would rebuild 00_Timeline_View/ with {len(per_page)} entries.")
+        logger.info(f"[DRY RUN] Would rebuild [Timeline View]/ with {len(per_page)} entries.")
         logger.info(f"[DRY RUN] Would save updated state to _3_routed_and_finalized.json.")
         
     logger.info(f"Migration completed successfully. Migrated {updates_made} documents.")

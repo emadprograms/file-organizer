@@ -86,6 +86,7 @@ def create_shortcut(target_path: str, link_path: str) -> None:
         link_path: Absolute path where the .lnk file will be created.
     """
     import pylnk3
+    pylnk3.DEFAULT_CHARSET = "utf-8"
     from pylnk3 import ExtraData, ExtraData_EnvironmentVariableDataBlock
     
     # Strip \\?\ prefix if present for parsing into LinkTargetIDList properly

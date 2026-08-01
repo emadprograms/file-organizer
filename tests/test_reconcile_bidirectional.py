@@ -101,8 +101,8 @@ def test_bidirectional_reconciliation_user_locking(tmp_path):
         cleaned = json.load(f)
         assert cleaned[0]["user_locked"] is True
         
-    # Check that 00_Timeline_View was generated
-    timeline_dir = new_house_dir / "00_Timeline_View"
+    # Check that [Timeline View] was generated
+    timeline_dir = new_house_dir / "[Timeline View]"
     assert timeline_dir.exists()
     shortcuts = list(timeline_dir.glob("*.lnk"))
     assert len(shortcuts) == 1
