@@ -44,13 +44,20 @@ def run_reconcile_mode(args) -> int:
     # Scan the target directory for any locked files before proceeding
     import sys
     for root, dirs, files in os.walk(target_dir):
+        if ".source_files" in dirs:
+            dirs.remove(".source_files")
+            
         for f in files:
+            if f.startswith("."):
+                continue
+                
             fpath = Path(root) / f
             try:
                 with open(fpath, 'a'):
                     pass
             except PermissionError:
-                print(f"ABORTED: The following file is currently locked by another process or user: {fpath}. Please ask the user to close it and try again.")
+                from src.utils.logger import console
+                console.print(f"ABORTED: The following file is currently locked by another process or user: {fpath}. Please ask the user to close it and try again.", style="bold red")
                 sys.exit(1)
             except Exception:
                 pass
@@ -631,22 +638,33 @@ def run_reconcile_mode(args) -> int:
                 logger.info(f"Cleaning up ghost directory: {candidate.name} -> {new_house_dir.name}")
                 merge_and_remove_dir(candidate, new_house_dir)
                 
-    # Recompute shortcuts to ensure they match final output_files before generating timeline
-    from collections import defaultdict
-    vault_to_shortcuts = defaultdict(list)
-    for p in new_per_page:
-        if "vault_id" in p and "output_file" in p:
-            out_f = p["output_file"]
-            prefix = f"{full_house_id}/"
-            if out_f.startswith(prefix):
-                out_f = out_f[len(prefix):]
-            if out_f not in vault_to_shortcuts[p["vault_id"]]:
-                vault_to_shortcuts[p["vault_id"]].append(out_f)
-                
-    for g in groups:
-        if g.vault_id in vault_to_shortcuts:
-            g.shortcuts = vault_to_shortcuts[g.vault_id]
+    # Recompute shortcuts from actual final physical state to ensure perfect idempotency
+    if not getattr(args, 'dry_run', False):
+        from collections import defaultdict
+        from src.utils.fs import batch_read_shortcut_targets
         
+        final_lnks = []
+        for child in new_house_dir.rglob("*.lnk"):
+            if "[Timeline View]" not in child.parts:
+                final_lnks.append(child)
+                
+        if final_lnks:
+            targets = batch_read_shortcut_targets([str(l) for l in final_lnks])
+            vault_to_shortcuts = defaultdict(list)
+            
+            for lnk in final_lnks:
+                t = targets.get(str(lnk))
+                if t:
+                    filename = Path(t).name
+                    if filename.startswith("doc_") and filename.endswith(".pdf"):
+                        vid = filename[4:-4]
+                        rel_p = lnk.relative_to(new_house_dir).as_posix()
+                        vault_to_shortcuts[vid].append(rel_p)
+                        
+            for g in groups:
+                if g.vault_id in vault_to_shortcuts:
+                    g.shortcuts = vault_to_shortcuts[g.vault_id]
+                    
     # Phase 33: RECON-06 Regenerate [Timeline View]/
     # We update timeline links, avoiding rewrites if the existing link is perfectly matched
     if not getattr(args, 'dry_run', False):
