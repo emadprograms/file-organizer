@@ -103,6 +103,10 @@ See [.planning/milestones/v5.3-ROADMAP.md](milestones/v5.3-ROADMAP.md) for full 
 **Requirements:** REQ-01, REQ-02, REQ-03, REQ-04
 **Success Criteria:** Pytest covers cross-house dragging, multi-page drops, and 0-byte corruptions.
 
+### Phase 54: Stability Guarantees (Idempotency & Concurrency)
+**Requirements:** REQ-08, REQ-09
+**Success Criteria:** Running reconcile twice changes nothing. Running reconcile with a locked file skips it safely without crashing.
+
 ## Progress
 
 | Phase | Milestone | Plans Complete | Status | Completed |
@@ -143,6 +147,7 @@ See [.planning/milestones/v5.3-ROADMAP.md](milestones/v5.3-ROADMAP.md) for full 
 | 51. Multi-Page Raw PDF Extraction | v5.4 | 0/1 | Pending | - |
 | 52. Corrupted Vault File Safeguards | v5.4 | 0/1 | Pending | - |
 | 53. Comprehensive Consistency Stress Tests | v5.4 | 0/1 | Pending | - |
+| 54. Stability Guarantees (Idempotency & Locks) | v5.4 | 0/1 | Pending | - |
 
 
 
