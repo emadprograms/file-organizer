@@ -35,26 +35,32 @@
 ### 🚧 v5.0 Vault Architecture & Bidirectional Reconciliation
 
 ### Phase 30: Unified State Foundation
+
 **Requirements:** STATE-01, STATE-02, STATE-03, STATE-04
 **Success Criteria:** Single `state.json` is created per house, legacy multi-json checkpoints are not generated, system continues to run crash-safe writes.
 
 ### Phase 31: Vault Core & Shortcut Utility
+
 **Requirements:** VAULT-01, VAULT-02, VAULT-03, VAULT-04, VAULT-05, LNK-01, LNK-02, LNK-03, LNK-04
 **Success Criteria:** Physical PDFs are copied to `.source_files/vault/` with UUIDs, Windows `.lnk` shortcuts are successfully generated using pylnk3, Shortcuts open the correct vault PDF targets.
 
 ### Phase 32: Pipeline Migration [Completed]
+
 - **Goal:** Switch main pipeline output to shortcut-based 00_Timeline_View/
 - **Success Criteria:** 00_Timeline_View/ folder is generated containing numbered shortcuts, finalized.pdf is no longer created, Main pipeline output uses shortcuts instead of physical PDFs.
 
 ### Phase 33: Bidirectional Reconciliation Engine [Completed]
+
 - **Goal:** Allow users to fix categorization directly in folders, reflecting back into config.
 - **Success Criteria:** Re-running `file-organizer` over an existing house correctly diffs old vs new `.source_files/`, Updates old vault `.lnk` files if paths changed or deletes if removed, Rebuilds `.lnk` files correctly, Avoids orphaned shortcut links.yaml`, Timeline View is regenerated after moves.
 
 ### Phase 34: Prepend Mode [Completed]
+
 - **Goal:** Switch new documents to be prepended instead of appended.
 - **Success Criteria:** All commands referencing `append` are renamed to `prepend`, Documentation matches the new prepend terminology, Tests are updated.s incoming documents to the vault, New documents appear at the beginning of Timeline View.
 
 ### Phase 35: Migration Script [Completed]
+
 - **Goal:** Build a seamless one-click migration for older categorized houses to switch to the new shortcut architecture.
 - **Success Criteria:** Dry-run script lists changes without modifying files, Migration converts existing structured folders to vault format and pins locations.
 
@@ -74,9 +80,9 @@
 | 28. Clean Up main.py Imports | v4.0 | 1/1 | Complete | 2026-07-24 |
 | 29. Audit Test Mock Targets | v4.0 | 1/1 | Complete | 2026-07-24 |
 | 29.1. Fix Append-Mode Finalize Bugs | v4.0 | 1/1 | Complete | 2026-07-31 |
-| 30. Unified State Foundation | v5.0 | 1/1 | Complete | 2026-07-31 |
-| 31. Vault Core & Shortcut Utility | v5.0 | 1/1 | Complete | 2026-07-31 |
-| 32. Pipeline Migration | v5.0 | 1/1 | Complete | 2026-07-31 |
-| 33. Bidirectional Reconciliation Engine | v5.0 | 1/1 | Complete | 2026-07-31 |
-| 34. Prepend Mode | v5.0 | 1/1 | Complete | 2026-07-31 |
-| 35. Migration Script | v5.0 | 1/1 | Complete | 2026-07-31 |
+| 30. Unified State Foundation | v5.0 | 1/1 | Complete    | 2026-07-31 |
+| 31. Vault Core & Shortcut Utility | v5.0 | 1/1 | Complete    | 2026-07-31 |
+| 32. Pipeline Migration | v5.0 | 1/0 | Complete    | 2026-07-31 |
+| 33. Bidirectional Reconciliation Engine | v5.0 | 1/1 | Complete    | 2026-07-31 |
+| 34. Prepend Mode | v5.0 | 1/0 | Complete    | 2026-07-31 |
+| 35. Migration Script | v5.0 | 1/0 | Complete    | 2026-07-31 |
