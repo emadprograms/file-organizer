@@ -211,7 +211,13 @@ class FSUIOrchestrator:
             import fitz
             import hashlib
             
-            with fitz.open(str(filepath)) as doc_pdf:
+            try:
+                doc_pdf = fitz.open(str(filepath))
+            except Exception as e:
+                logger.error(f"Failed to open PDF {filepath}: {e}")
+                raise
+            
+            with doc_pdf:
                 for doc_idx, doc in enumerate(routed_docs):
                     doc_group_str = "G"
                     if doc.folder_path:

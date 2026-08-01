@@ -107,7 +107,16 @@ def run_verification(target_dir: Path) -> int:
     # Collect physical Vault PDFs
     vault_pdfs = set()
     if vault_dir.exists():
-        vault_pdfs = {f.name for f in vault_dir.glob("*.pdf")}
+        for f in vault_dir.glob("*.pdf"):
+            vault_pdfs.add(f.name)
+            if f.stat().st_size == 0:
+                add_error(f"Corrupt (0-byte) Vault PDF detected: {f.name}")
+                continue
+            try:
+                import pypdf
+                pypdf.PdfReader(str(f))
+            except Exception as e:
+                add_error(f"Corrupt Vault PDF detected: {f.name} ({e})")
         
     # Parse LNKs and physical PDFs in categorized folders and timeline view
     referenced_vault_pdfs = set()

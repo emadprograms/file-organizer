@@ -6,6 +6,13 @@ from unittest.mock import patch, mock_open
 from src.core.verification import run_verification
 from src.utils.fs import create_shortcut
 
+def make_valid_pdf(path: Path):
+    import pypdf
+    writer = pypdf.PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 @pytest.fixture
 def mock_house(tmp_path):
     house_dir = tmp_path / "123 - Test House"
@@ -31,9 +38,9 @@ def mock_house(tmp_path):
     
     # Vault PDFs
     pdf1 = vault_dir / "doc_1.pdf"
-    pdf1.touch()
+    make_valid_pdf(pdf1)
     pdf2 = vault_dir / "doc_2.pdf"
-    pdf2.touch()
+    make_valid_pdf(pdf2)
     
     # Shortcuts
     lnk1 = tenant_a / "doc1.lnk"
@@ -102,7 +109,8 @@ def test_verification_shortcut_outside_vault(mock_house):
     assert run_verification(mock_house) == 1
 
 def test_verification_orphan_pdf(mock_house):
-    (mock_house / ".source_files" / "vault" / "orphan.pdf").touch()
+    orphan_pdf = mock_house / ".source_files" / "vault" / "orphan.pdf"
+    make_valid_pdf(orphan_pdf)
     assert run_verification(mock_house) == 1
 
 def test_verification_missing_state(mock_house):
@@ -131,7 +139,7 @@ def test_verification_missing_state_output(mock_house):
 def test_verification_untracked_shortcut_warning(mock_house, caplog):
     # Add a valid shortcut not in state.json
     extra_pdf = mock_house / ".source_files" / "vault" / "doc_3.pdf"
-    extra_pdf.touch()
+    make_valid_pdf(extra_pdf)
     extra_lnk = mock_house / "Tenant A \u200e(2023 - 2024)\u200e" / "extra.lnk"
     create_shortcut(str(extra_pdf), str(extra_lnk))
     

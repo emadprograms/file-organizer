@@ -157,8 +157,12 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
         if new_pdf_path.exists():
             pdf_path = new_pdf_path
 
-    with fitz.open(str(pdf_path)) as pdf_doc:
-        total_input_pages = pdf_doc.page_count
+    try:
+        with fitz.open(str(pdf_path)) as pdf_doc:
+            total_input_pages = pdf_doc.page_count
+    except Exception as e:
+        logger.warning(f"Failed to open PDF {pdf_path}: {e}")
+        total_input_pages = 1
     
     output_files = {p["output_file"] for p in per_page}
     summary = {

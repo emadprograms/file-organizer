@@ -197,6 +197,8 @@ def run_reconcile_mode(args) -> int:
                     reader = pypdf.PdfReader(str(vault_pdf))
                     num_pages = len(reader.pages)
                 except Exception as e:
+                    report.setdefault("corrupt_vault_files", 0)
+                    report["corrupt_vault_files"] += 1
                     logger.warning(f"Failed to read PDF {vault_pdf.name} to get page count, defaulting to 1: {e}")
                     
                 for lnk in lnks:
@@ -340,6 +342,8 @@ def run_reconcile_mode(args) -> int:
                 reader = pypdf.PdfReader(str(dest_vault_pdf))
                 num_pages = len(reader.pages)
             except Exception as e:
+                report.setdefault("corrupt_vault_files", 0)
+                report["corrupt_vault_files"] += 1
                 logger.warning(f"Failed to read PDF {dest_vault_pdf.name} to get page count, defaulting to 1: {e}")
                 
             report["raw_pdf_pages_ingested"] += num_pages
@@ -629,6 +633,8 @@ def run_reconcile_mode(args) -> int:
         logger.info(f"User Deletions:      {report['user_deleted']}")
         logger.info(f"Orphans Trashed:     {report['orphans_trashed']}")
         logger.info(f"Auto-Moves Planned:  {report['file_moves_planned']}")
+        if report.get("corrupt_vault_files", 0) > 0:
+            logger.info(f"Corrupt Vault Files Detected: {report['corrupt_vault_files']}")
         logger.info("==============================")
         
         # Auto-Verification (REQ-06)
