@@ -190,6 +190,11 @@ def get_parser() -> argparse.ArgumentParser:
         "--dry-run", action="store_true", help="Preview changes without modifying files"
     )
     
+    # verify mode
+    verify_parser = subparsers.add_parser("verify", help="Deep verify the integrity of a v5 house vault structure")
+    verify_parser.add_argument("target_dir", type=Path, help="Path to the target house directory to verify")
+    verify_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+    
     return parser
 
 from src.reconcile.core import run_reconcile_mode
@@ -241,6 +246,12 @@ def main() -> int:
         set_verbosity(getattr(args, 'verbose', False))
         from src.migration.v5_migration import migrate_to_v5
         return migrate_to_v5(args.target_dir.resolve(), dry_run=getattr(args, 'dry_run', False))
+
+    if args.command == "verify":
+        setup_logging(verbose=getattr(args, 'verbose', False))
+        set_verbosity(getattr(args, 'verbose', False))
+        from src.core.verification import run_verification
+        return run_verification(args.target_dir.resolve())
 
     # Ensure create mode paths are within allowed root
     target_path = args.target_dir.resolve()
