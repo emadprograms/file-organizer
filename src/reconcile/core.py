@@ -3,6 +3,7 @@ import os
 import shutil
 from pathlib import Path
 import yaml
+import pypdf
 
 from src.core.models import PageData, TenantTimeline
 from src.timeline.phase import assign_pages_to_tenants
@@ -64,7 +65,9 @@ def run_reconcile_mode(args) -> int:
         
     report = {
         "ghost_adopted": 0,
+        "ghost_pages_adopted": 0,
         "raw_pdf_ingested": 0,
+        "raw_pdf_pages_ingested": 0,
         "user_deleted": 0,
         "orphans_trashed": 0,
         "renamed_moved": 0,
@@ -189,9 +192,17 @@ def run_reconcile_mode(args) -> int:
         if vault_id not in vault_id_to_pages:
             vault_pdf = source_dir / "vault" / f"doc_{vault_id}.pdf"
             if vault_pdf.exists():
+                num_pages = 1
+                try:
+                    reader = pypdf.PdfReader(str(vault_pdf))
+                    num_pages = len(reader.pages)
+                except Exception as e:
+                    logger.warning(f"Failed to read PDF {vault_pdf.name} to get page count, defaulting to 1: {e}")
+                    
                 for lnk in lnks:
                     report["ghost_adopted"] += 1
-                    logger.info(f"Adopting completely new ghost shortcut for vault_id {vault_id} from {lnk.name}")
+                    report["ghost_pages_adopted"] += num_pages
+                    logger.info(f"Adopting completely new ghost shortcut for vault_id {vault_id} from {lnk.name} ({num_pages} pages)")
                     date_match = re.search(r'(\d{4}-\d{2}-\d{2})', lnk.name)
                     extracted_date = date_match.group(1) if date_match else "nodate"
                     
@@ -201,19 +212,32 @@ def run_reconcile_mode(args) -> int:
                     if new_target_folder == ".":
                         new_target_folder = ""
                         
-                    new_page = PageData(
-                        category="Unassigned",
-                        content_explanation="Adopted from ghost shortcut.",
-                        original_index=new_page_idx,
-                        user_locked=True,
-                        date=extracted_date,
-                        resolved_date=extracted_date if extracted_date != "nodate" else None
-                    )
-                    pages.append(new_page)
-                    
+                    for i in range(num_pages):
+                        new_page = PageData(
+                            category="Unassigned",
+                            content_explanation=f"Adopted from ghost shortcut. (Page {i+1}/{num_pages})",
+                            original_index=new_page_idx + i,
+                            user_locked=True,
+                            date=extracted_date,
+                            resolved_date=extracted_date if extracted_date != "nodate" else None
+                        )
+                        pages.append(new_page)
+                        
+                        new_p = {
+                            "page_index": new_page_idx + i,
+                            "vault_id": vault_id,
+                            "output_file": f"{target_dir.name}/{rel_path}",
+                            "target_folder": new_target_folder,
+                            "dates": [extracted_date] if extracted_date != "nodate" else [],
+                            "date": extracted_date,
+                            "brief_arabic_title": lnk.stem,
+                            "user_locked": True
+                        }
+                        routed_data.setdefault("per_page", []).append(new_p)
+                        
                     new_group = DocumentGroup(
                         start_page=new_page_idx,
-                        end_page=new_page_idx,
+                        end_page=new_page_idx + num_pages - 1,
                         primary_tenant="Unassigned",
                         category="Unassigned",
                         dates=[extracted_date] if extracted_date != "nodate" else [],
@@ -222,18 +246,6 @@ def run_reconcile_mode(args) -> int:
                         user_locked=True
                     )
                     groups.append(new_group)
-                    
-                    new_p = {
-                        "page_index": new_page_idx,
-                        "vault_id": vault_id,
-                        "output_file": f"{target_dir.name}/{rel_path}",
-                        "target_folder": new_target_folder,
-                        "dates": [extracted_date] if extracted_date != "nodate" else [],
-                        "date": extracted_date,
-                        "brief_arabic_title": lnk.stem,
-                        "user_locked": True
-                    }
-                    routed_data.get("per_page", []).append(new_p)
                     
     deleted_page_indices = {p["page_index"] for p in routed_data.get("per_page", []) if p.get("vault_id") in deleted_vault_ids}
     partial_deleted_page_indices = {p["page_index"] for p in routed_data.get("per_page", []) if p.get("_mark_deleted")}
@@ -323,6 +335,15 @@ def run_reconcile_mode(args) -> int:
             logger.info(f"Ingesting raw PDF: {pdf_path.name} -> vault_id {new_vault_id}")
             shutil.move(str(pdf_path), str(dest_vault_pdf))
             
+            num_pages = 1
+            try:
+                reader = pypdf.PdfReader(str(dest_vault_pdf))
+                num_pages = len(reader.pages)
+            except Exception as e:
+                logger.warning(f"Failed to read PDF {dest_vault_pdf.name} to get page count, defaulting to 1: {e}")
+                
+            report["raw_pdf_pages_ingested"] += num_pages
+            
             lnk_path = pdf_path.with_suffix('.lnk')
             create_shortcut(str(dest_vault_pdf.resolve()), str(lnk_path.resolve()))
             
@@ -335,19 +356,33 @@ def run_reconcile_mode(args) -> int:
             if new_target_folder == ".":
                 new_target_folder = ""
                 
-            new_page = PageData(
-                category="Unassigned",
-                content_explanation="Ingested from raw PDF.",
-                original_index=new_page_idx,
-                user_locked=True,
-                date=extracted_date,
-                resolved_date=extracted_date if extracted_date != "nodate" else None
-            )
-            pages.append(new_page)
-            
+            for i in range(num_pages):
+                new_page = PageData(
+                    category="Unassigned",
+                    content_explanation=f"Ingested from raw PDF. (Page {i+1}/{num_pages})",
+                    original_index=new_page_idx + i,
+                    user_locked=True,
+                    date=extracted_date,
+                    resolved_date=extracted_date if extracted_date != "nodate" else None
+                )
+                pages.append(new_page)
+                
+                new_p = {
+                    "page_index": new_page_idx + i,
+                    "vault_id": new_vault_id,
+                    "output_file": f"{target_dir.name}/{rel_path}",
+                    "target_folder": new_target_folder,
+                    "dates": [extracted_date] if extracted_date != "nodate" else [],
+                    "date": extracted_date,
+                    "brief_arabic_title": lnk_path.stem,
+                    "user_locked": True
+                }
+                routed_data.setdefault("per_page", []).append(new_p)
+                vault_id_to_pages.setdefault(new_vault_id, []).append(new_p)
+                
             new_group = DocumentGroup(
                 start_page=new_page_idx,
-                end_page=new_page_idx,
+                end_page=new_page_idx + num_pages - 1,
                 primary_tenant="Unassigned",
                 category="Unassigned",
                 dates=[extracted_date] if extracted_date != "nodate" else [],
@@ -356,19 +391,6 @@ def run_reconcile_mode(args) -> int:
                 user_locked=True
             )
             groups.append(new_group)
-            
-            new_p = {
-                "page_index": new_page_idx,
-                "vault_id": new_vault_id,
-                "output_file": f"{target_dir.name}/{rel_path}",
-                "target_folder": new_target_folder,
-                "dates": [extracted_date] if extracted_date != "nodate" else [],
-                "date": extracted_date,
-                "brief_arabic_title": lnk_path.stem,
-                "user_locked": True
-            }
-            routed_data.setdefault("per_page", []).append(new_p)
-            vault_id_to_pages.setdefault(new_vault_id, []).append(new_p)
         else:
             logger.info(f"[DRY RUN] Would ingest raw PDF {pdf_path.name} into vault.")
     timelines = []
@@ -600,8 +622,8 @@ def run_reconcile_mode(args) -> int:
             json.dump(report, rf, indent=2, ensure_ascii=False)
             
         logger.info("=== RECONCILIATION SUMMARY ===")
-        logger.info(f"Raw PDFs Ingested:   {report['raw_pdf_ingested']}")
-        logger.info(f"Ghosts Adopted:      {report['ghost_adopted']}")
+        logger.info(f"Raw PDFs Ingested:   {report['raw_pdf_ingested']} ({report.get('raw_pdf_pages_ingested', 0)} pages)")
+        logger.info(f"Ghosts Adopted:      {report['ghost_adopted']} ({report.get('ghost_pages_adopted', 0)} pages)")
         logger.info(f"Duplicates Adopted:  {report['duplicates_adopted']}")
         logger.info(f"Renamed/Moved:       {report['renamed_moved']}")
         logger.info(f"User Deletions:      {report['user_deleted']}")
