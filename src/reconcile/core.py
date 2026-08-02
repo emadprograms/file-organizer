@@ -290,12 +290,17 @@ def run_reconcile_mode(args) -> int:
                     if new_target_folder == ".":
                         new_target_folder = ""
                         
+                    top_level_folder = Path(rel_path).parts[0] if Path(rel_path).parts else ""
+                    should_lock = top_level_folder in valid_folder_names_set
+                    if not should_lock:
+                        logger.info(f"Top-level folder '{top_level_folder}' for ghost shortcut is not canonical. Snapping back.")
+                        
                     for i in range(num_pages):
                         new_page = PageData(
                             category="Unassigned",
                             content_explanation=f"Adopted from ghost shortcut. (Page {i+1}/{num_pages})",
                             original_index=new_page_idx + i,
-                            user_locked=True,
+                            user_locked=should_lock,
                             date=extracted_date,
                             resolved_date=extracted_date if extracted_date != "nodate" else None
                         )
@@ -309,7 +314,7 @@ def run_reconcile_mode(args) -> int:
                             "dates": [extracted_date] if extracted_date != "nodate" else [],
                             "date": extracted_date,
                             "brief_arabic_title": lnk.stem,
-                            "user_locked": True
+                            "user_locked": should_lock
                         }
                         routed_data.setdefault("per_page", []).append(new_p)
                         
@@ -321,7 +326,7 @@ def run_reconcile_mode(args) -> int:
                         dates=[extracted_date] if extracted_date != "nodate" else [],
                         brief_arabic_title=lnk.stem,
                         vault_id=vault_id,
-                        user_locked=True,
+                        user_locked=should_lock,
                         shortcuts=[rel_path]
                     )
                     groups.append(new_group)
@@ -437,12 +442,17 @@ def run_reconcile_mode(args) -> int:
             if new_target_folder == ".":
                 new_target_folder = ""
                 
+            top_level_folder = Path(rel_path).parts[0] if Path(rel_path).parts else ""
+            should_lock = top_level_folder in valid_folder_names_set
+            if not should_lock:
+                logger.info(f"Top-level folder '{top_level_folder}' for raw PDF is not canonical. Snapping back.")
+                
             for i in range(num_pages):
                 new_page = PageData(
                     category="Unassigned",
                     content_explanation=f"Ingested from raw PDF. (Page {i+1}/{num_pages})",
                     original_index=new_page_idx + i,
-                    user_locked=True,
+                    user_locked=should_lock,
                     date=extracted_date,
                     resolved_date=extracted_date if extracted_date != "nodate" else None
                 )
@@ -456,7 +466,7 @@ def run_reconcile_mode(args) -> int:
                     "dates": [extracted_date] if extracted_date != "nodate" else [],
                     "date": extracted_date,
                     "brief_arabic_title": lnk_path.stem,
-                    "user_locked": True
+                    "user_locked": should_lock
                 }
                 routed_data.setdefault("per_page", []).append(new_p)
                 vault_id_to_pages.setdefault(new_vault_id, []).append(new_p)
@@ -469,7 +479,7 @@ def run_reconcile_mode(args) -> int:
                 dates=[extracted_date] if extracted_date != "nodate" else [],
                 brief_arabic_title=lnk_path.stem,
                 vault_id=new_vault_id,
-                user_locked=True,
+                user_locked=should_lock,
                 shortcuts=[rel_path]
             )
             groups.append(new_group)
