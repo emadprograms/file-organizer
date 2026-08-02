@@ -140,3 +140,45 @@ def test_run_reconcile_mode_ghost_folders(tmp_path):
     assert not target_dir.exists(), "The ghost directory was not completely merged and removed!"
     assert (new_house_dir / "dummy_root_file.txt").read_text() == "new text" or (new_house_dir / "dummy_root_file.txt").read_text() == "old text"
     assert (new_house_dir / ".source_files").exists()
+
+def test_run_reconcile_timeline_generation(tmp_path):
+    """Test that reconciliation correctly infers missing vault_id and generates Timeline View."""
+    house_id = "548"
+    target_dir = tmp_path / f"{house_id} - Test House"
+    source_dir = target_dir / ".source_files"
+    source_dir.mkdir(parents=True)
+    
+    yaml_data = [{"name": "Test Tenant", "start_date": "2021-01-01", "end_date": "present"}]
+    with open(source_dir / f"{house_id}_tenants.yaml", "w") as f:
+        yaml.dump(yaml_data, f)
+        
+    state_data = {
+        "house_id": house_id,
+        "cleaned_pages": [{"page_index": 0, "canonical_tenant": "Test Tenant", "resolved_date": "2021-05-11", "topics": ["02"], "is_junk": False, "category": "personal", "content_explanation": "", "original_index": 0}],
+        # NO vault_id in grouped_documents (simulating legacy bug)
+        "grouped_documents": [{"start_page": 0, "end_page": 0, "primary_tenant": "Test Tenant", "primary_topic": "02", "metadata": {"date": "2021-05-11"}, "issues": [], "language": "ar", "category": "personal", "dates": ["2021-05-11"]}],
+        # vault_id exists in per_page
+        "manifest": {"per_page": [{"page_index": 0, "tenant": "Test Tenant", "target_folder": "Test/02", "output_file": f"{house_id} - Test House/Test/02/test.pdf", "vault_id": "test_vault_id"}]}
+    }
+    with open(source_dir / f"{house_id}_state.json", "w") as f:
+        json.dump(state_data, f)
+        
+    old_pdf_path = tmp_path / f"{house_id} - Test House/Test/02/test.pdf"
+    old_pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    old_pdf_path.touch()
+    
+    args = DummyArgs(target_dir=target_dir)
+    
+    with patch("src.reconcile.core.FileOrganizer") as mock_org:
+        mock_instance = mock_org.return_value
+        mock_instance.compute_tenant_folders.return_value = ({"Test Tenant": "Test Tenant (2021 - الآن)"}, "Test Tenant (2021 - الآن)")
+        
+        result = run_reconcile_mode(args)
+    
+    assert result == 0
+    new_house_dir = tmp_path / f"{house_id} - Test Tenant (2021 - الآن)"
+    timeline_dir = new_house_dir / "[Timeline View]"
+    assert timeline_dir.exists(), "Timeline View folder should be generated"
+    
+    timeline_shortcuts = list(timeline_dir.glob("*.lnk"))
+    assert len(timeline_shortcuts) == 1, f"Expected 1 timeline shortcut, found {len(timeline_shortcuts)}"

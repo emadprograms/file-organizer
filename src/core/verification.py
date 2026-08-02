@@ -222,6 +222,20 @@ def run_verification(target_dir: Path) -> int:
                     logger.warning(f"  -> {un_lnk}")
                 add_pass("All categorized shortcuts are properly tracked in state.json")
                 
+            # Phase: Verify Timeline View
+            timeline_dir = target_dir / "[Timeline View]"
+            if not timeline_dir.exists():
+                add_error("Missing [Timeline View] directory")
+            else:
+                timeline_lnks = list(timeline_dir.glob("*.lnk"))
+                expected_timeline_count = len([g for g in state_data.get("grouped_documents", []) if g.get("vault_id") and g.get("shortcuts")])
+                if not timeline_lnks and expected_timeline_count > 0:
+                    add_error(f"[Timeline View] is empty but {expected_timeline_count} document groups have shortcuts.")
+                elif len(timeline_lnks) < expected_timeline_count:
+                    add_error(f"[Timeline View] has {len(timeline_lnks)} shortcuts but expected at least {expected_timeline_count}.")
+                else:
+                    add_pass(f"[Timeline View] populated with {len(timeline_lnks)} shortcuts")
+                
             # Phase 55: Check for hijacked shortcuts (shortcuts pointing to wrong vault_id)
             expected_vault_by_lnk = {}
             for p in manifest:

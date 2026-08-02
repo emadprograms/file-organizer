@@ -84,6 +84,14 @@ def run_reconcile_mode(args) -> int:
     groups = [DocumentGroup(**g) for g in state.data.get("grouped_documents", [])]
     routed_data = state.data.get("manifest", {})
     
+    # Dynamically infer vault_id for legacy groups that didn't get it during migration
+    for g in groups:
+        if not g.vault_id:
+            for p in routed_data.get("per_page", []):
+                if p.get("page_index") == g.start_page and "vault_id" in p:
+                    g.vault_id = p["vault_id"]
+                    break
+    
     expected_len = len(routed_data.get("per_page", []))
     if len(pages) < expected_len:
         logger.warning(f"Padding missing PageData: cleaned_pages has {len(pages)} but per_page has {expected_len}")
