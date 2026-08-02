@@ -83,6 +83,21 @@ def run_reconcile_mode(args) -> int:
     pages = [PageData(**p) for p in state.data.get("cleaned_pages", [])]
     groups = [DocumentGroup(**g) for g in state.data.get("grouped_documents", [])]
     routed_data = state.data.get("manifest", {})
+    
+    expected_len = len(routed_data.get("per_page", []))
+    if len(pages) < expected_len:
+        logger.warning(f"Padding missing PageData: cleaned_pages has {len(pages)} but per_page has {expected_len}")
+        for i in range(len(pages), expected_len):
+            p_dict = routed_data["per_page"][i]
+            d = p_dict.get("date", "nodate")
+            pages.append(PageData(
+                category="Unassigned",
+                content_explanation="Padded missing page.",
+                original_index=i,
+                date=d,
+                resolved_date=d if d != "nodate" else None,
+                user_locked=p_dict.get("user_locked", False)
+            ))
         
     report = {
         "ghost_adopted": 0,
