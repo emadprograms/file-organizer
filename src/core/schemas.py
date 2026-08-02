@@ -34,9 +34,9 @@ class DocumentGroup(BaseModel):
     """A group of consecutive pages belonging to the same document segment."""
     start_page: int
     end_page: int
-    primary_tenant: str
-    category: str
-    dates: list[str]
+    primary_tenant: str | None = None
+    category: str | None = None
+    dates: list[str] = Field(default_factory=list)
     reason: str | None = None
     brief_arabic_title: str | None = None
     folder_path: str | None = None
