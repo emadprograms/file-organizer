@@ -15,6 +15,10 @@ import logging
 import uuid
 import re
 
+def _normalize_arabic_numerals(s: str) -> str:
+    if not isinstance(s, str): return s
+    return s.translate(str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789'))
+
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def run_reconcile_mode(args) -> int:
@@ -97,7 +101,7 @@ def run_reconcile_mode(args) -> int:
         logger.warning(f"Padding missing PageData: cleaned_pages has {len(pages)} but per_page has {expected_len}")
         for i in range(len(pages), expected_len):
             p_dict = routed_data["per_page"][i]
-            d = p_dict.get("date", "nodate")
+            d = _normalize_arabic_numerals(p_dict.get("date", "nodate"))
             pages.append(PageData(
                 category="Unassigned",
                 content_explanation="Padded missing page.",
@@ -305,7 +309,7 @@ def run_reconcile_mode(args) -> int:
                     report["ghost_pages_adopted"] += num_pages
                     logger.info(f"Adopting completely new ghost shortcut for vault_id {vault_id} from {lnk.name} ({num_pages} pages)")
                     date_match = re.search(r'(\d{4}-\d{2}-\d{2})', lnk.name)
-                    extracted_date = date_match.group(1) if date_match else "nodate"
+                    extracted_date = _normalize_arabic_numerals(date_match.group(1)) if date_match else "nodate"
                     
                     new_page_idx = len(pages)
                     rel_path = lnk.relative_to(target_dir).as_posix()
@@ -457,7 +461,7 @@ def run_reconcile_mode(args) -> int:
             create_shortcut(str(dest_vault_pdf.resolve()), str(lnk_path.resolve()))
             
             date_match = re.search(r'(\d{4}-\d{2}-\d{2})', pdf_path.name)
-            extracted_date = date_match.group(1) if date_match else "nodate"
+            extracted_date = _normalize_arabic_numerals(date_match.group(1)) if date_match else "nodate"
             
             new_page_idx = len(pages)
             rel_path = lnk_path.relative_to(target_dir).as_posix()
@@ -567,7 +571,7 @@ def run_reconcile_mode(args) -> int:
         if p.get("user_locked", False):
             new_target_folder = p["target_folder"]
             # Keep the old filename, but update the root folder to the new full_house_id
-            old_filename = Path(p["output_file"]).name
+            old_filename = _normalize_arabic_numerals(Path(p["output_file"]).name)
             if new_target_folder:
                 new_output_file = f"{full_house_id}/{new_target_folder}/{old_filename}"
             else:
@@ -760,7 +764,7 @@ def run_reconcile_mode(args) -> int:
             doc_title = re.sub(r'[\\/:*?"<>|]', '', doc_title)
             
             dates = g.dates
-            date_str = dates[0] if dates and len(dates) > 0 and dates[0] and dates[0] != "NONE" else "nodate"
+            date_str = _normalize_arabic_numerals(dates[0]) if dates and len(dates) > 0 and dates[0] and dates[0] != "NONE" else "nodate"
             
             link_name = f"{idx:03d} - {date_str} - {doc_title} [{location}]{extra}.lnk"
             lnk_path = timeline_dir / link_name
