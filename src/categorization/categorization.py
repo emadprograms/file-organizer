@@ -13,7 +13,7 @@ import shutil
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
-def process_unclassified_pdf(target_dir: Path, llm_client: Any, specific_pdf_path: Path = None, create_categorized_copy: bool = True) -> None:
+def process_unclassified_pdf(target_dir: Path, llm_client: Any, specific_pdf_path: Path = None, create_categorized_copy: bool = True, model: str | None = None) -> None:
     """
     Scans the target directory for raw PDFs, bypasses if _report.json exists,
     otherwise processes images, queries LLM, and creates outputs.
@@ -102,7 +102,8 @@ def process_unclassified_pdf(target_dir: Path, llm_client: Any, specific_pdf_pat
                 class_result = llm_client.generate_content(
                     contents=[image_obj, class_prompt],
                     response_schema=CategorySchema,
-                    is_boundary_call=False
+                    is_boundary_call=False,
+                    model=model
                 )
                 
                 category = class_result.category
@@ -136,7 +137,8 @@ def process_unclassified_pdf(target_dir: Path, llm_client: Any, specific_pdf_pat
                 ext_result = llm_client.generate_content(
                     contents=[image_obj, ext_prompt],
                     response_schema=ExtractionSchema,
-                    is_boundary_call=False
+                    is_boundary_call=False,
+                    model=model
                 )
                 
                 page_status["status"] = "classified"

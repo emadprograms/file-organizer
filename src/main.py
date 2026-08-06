@@ -172,6 +172,12 @@ def get_parser() -> argparse.ArgumentParser:
         help="LLM model to use for the main tasks"
     )
     create_parser.add_argument(
+        "--categorization-model", 
+        type=str, 
+        choices=["gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-2.5-flash"],
+        help="Optional: LLM model to use specifically for categorization. Defaults to the main model if not set."
+    )
+    create_parser.add_argument(
         "--routing-model", 
         type=str, 
         choices=["gemma-4-31b-it", "gemma-4-26b-a4b-it", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-2.5-flash"],
@@ -331,7 +337,8 @@ def main() -> int:
         for target_dir in targets:
             try:
                 # 1. Process unclassified PDFs
-                process_unclassified_pdf(target_dir, llm_client)
+                categorization_model = getattr(args, 'categorization_model', None) or args.model
+                process_unclassified_pdf(target_dir, llm_client, model=categorization_model)
                 
                 # 2. Validate and get list of house_ids
                 house_ids = validate_target_directory(target_dir)
