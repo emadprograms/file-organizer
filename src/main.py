@@ -76,6 +76,37 @@ def validate_target_directory(target_dir: Path) -> list[str]:
         
     return ids
 
+def validate_report_json(json_path: Path) -> None:
+    """Validate that every page in the JSON report has a valid, known category.
+    
+    Args:
+        json_path (Path): Path to the _report.json file.
+        
+    Raises:
+        ValidationError: If a missing or invalid category is found.
+    """
+    import json
+    from src.routing.config import CATEGORY_TO_FOLDERS, DIRECT_ROUTING_MAP, FORM_CATEGORIES, LETTER_CATEGORIES, FOLDER_PREFIXES
+    
+    valid_categories = {"others", "other_letters"}
+    valid_categories.update(c.lower() for c in CATEGORY_TO_FOLDERS.keys())
+    valid_categories.update(DIRECT_ROUTING_MAP.keys())
+    valid_categories.update(c.lower() for c in FORM_CATEGORIES)
+    valid_categories.update(c.lower() for c in LETTER_CATEGORIES)
+    valid_categories.update(FOLDER_PREFIXES.keys())
+    for folder, prefix in FOLDER_PREFIXES.items():
+        valid_categories.add(f"{prefix}_{folder}")
+
+    with open(json_path, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+        
+    for i, page in enumerate(data):
+        cat = page.get("category")
+        if not cat:
+            raise ValidationError(f"Page {i+1} in {json_path.name} is missing a category (found: {cat}). Please fix the report JSON.")
+        if cat.lower() not in valid_categories:
+            raise ValidationError(f"Page {i+1} in {json_path.name} has unknown category '{cat}'. Please fix the report JSON.")
+
 def run_prepend_mode(config: Any, skip_llm: bool = False) -> None:
     """Run the listener in prepend mode with a process-exclusive lock.
     
@@ -323,6 +354,10 @@ def main() -> int:
                     
                     json_paths = list(target_dir.glob(f"{house_id}_report*.json")) + list((target_dir / ".source_files").glob(f"{house_id}_report*.json"))
                     json_path = json_paths[0]
+                    
+                    # Fail fast if report json has invalid categories
+                    validate_report_json(json_path)
+                    
                     state_dir = output_dir / ".source_files"
                     from src.core.state import State
                     state = State(house_id, state_dir)

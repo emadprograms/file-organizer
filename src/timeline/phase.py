@@ -251,8 +251,10 @@ def process_cleaning_phase(
             raise RuntimeError("Page is missing canonical_tenant")
             
         date_str = page.resolved_date or "N/A"
+        cat_str = page.category or "N/A"
+        tenant_str = page.canonical_tenant or "N/A"
         # We manually format the columns. The Tenant column gets 38 chars of space.
-        logger.info(f"Γöé {page.original_index:02d}   Γöé {date_str:<10} Γöé {page.category:<10} Γöé {page.canonical_tenant:<38} Γöé")
+        logger.info(f"Γöé {page.original_index:02d}   Γöé {date_str:<10} Γöé {cat_str:<10} Γöé {tenant_str:<38} Γöé")
     logger.info("ΓööΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö┤ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö┤ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓö┤ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÿ")
     logger.info(f"Successfully mapped {len(pages)} pages to their respective canonical tenants.")
         
