@@ -544,6 +544,7 @@ def run_reconcile_mode(args) -> int:
         
     old_per_page = routed_data.get("per_page", [])
     new_per_page = []
+    seen_outputs = set()
     
     moves = set()
     for p in old_per_page:
@@ -577,6 +578,14 @@ def run_reconcile_mode(args) -> int:
             else:
                 new_output_file = f"{full_house_id}/{file_name}"
         
+        base_output_file = new_output_file
+        counter = 1
+        while new_output_file in seen_outputs:
+            path_obj = Path(base_output_file)
+            new_output_file = f"{path_obj.parent.as_posix()}/{path_obj.stem}_{counter}{path_obj.suffix}"
+            counter += 1
+        seen_outputs.add(new_output_file)
+
         if old_output_file != new_output_file:
             moves.add((old_output_file, new_output_file))
             
