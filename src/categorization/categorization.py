@@ -90,6 +90,7 @@ def process_unclassified_pdf(target_dir: Path, llm_client: Any, specific_pdf_pat
                 class_prompt = (
                     "Categorize this Arabic PDF page. "
                     f"You must select EXACTLY ONE category from the following list: {list(categories.keys())}. "
+                    "If the document does not fit any of the specific categories, or if you are unsure, you MUST select 'others'. Do not invent new categories like 'unknown'. "
                     "Respond with a JSON object containing ONLY the 'category' key."
                 )
                 class_prompt = f"{classification_instructions}\n\n{class_prompt}"

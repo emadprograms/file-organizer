@@ -108,8 +108,9 @@ def extract_and_clean_page(pdf_document: fitz.Document, page_num: int, tmp_dir: 
     # Save raw image to disk exactly like process_full_pdf.py
     pix.save(raw_path)
     
-    # 1. Load image in BGR
-    img = cv2.imread(raw_path)
+    # 1. Load image in BGR (using np.fromfile to support Arabic paths on Windows)
+    img_array = np.fromfile(raw_path, dtype=np.uint8)
+    img = cv2.imdecode(img_array, cv2.IMREAD_COLOR) if img_array.size > 0 else None
     if img is None:
         raise ValueError(f"Could not read raw image {raw_path}")
         
@@ -145,8 +146,10 @@ def extract_and_clean_page(pdf_document: fitz.Document, page_num: int, tmp_dir: 
     gaussian = cv2.GaussianBlur(boosted, (0, 0), 2.0)
     sharpened = cv2.addWeighted(boosted, 1.5, gaussian, -0.5, 0)
     
-    # Save the result
-    cv2.imwrite(clean_path, sharpened)
+    # Save the result (using tofile to support Arabic paths on Windows)
+    is_success, im_buf_arr = cv2.imencode(".png", sharpened)
+    if is_success:
+        im_buf_arr.tofile(clean_path)
     
     # Clean up raw image
     try:
