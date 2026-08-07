@@ -198,7 +198,7 @@ def run_verification(target_dir: Path) -> int:
                 if out_f:
                     state_output_files.add(out_f)
             
-            for g in state_data.get("grouped_documents", []):
+            for g in (state_data.get("grouped_documents") or []):
                 for s in g.get("shortcuts", []):
                     full_s = f"{target_dir.name}/{s}"
                     state_output_files.add(full_s)
@@ -228,7 +228,7 @@ def run_verification(target_dir: Path) -> int:
                 add_error("Missing [Timeline View] directory")
             else:
                 timeline_lnks = list(timeline_dir.glob("*.lnk"))
-                expected_timeline_count = len([g for g in state_data.get("grouped_documents", []) if g.get("vault_id") and g.get("shortcuts")])
+                expected_timeline_count = len([g for g in (state_data.get("grouped_documents") or []) if g.get("vault_id") and g.get("shortcuts")])
                 if not timeline_lnks and expected_timeline_count > 0:
                     add_error(f"[Timeline View] is empty but {expected_timeline_count} document groups have shortcuts.")
                 elif len(timeline_lnks) < expected_timeline_count:
@@ -266,11 +266,44 @@ def run_verification(target_dir: Path) -> int:
                 add_pass("All known shortcuts point to their expected vault_id")
                 
             # Immutable Page Count Audit (Phase 48)
-            cleaned_pages = state_data.get("cleaned_pages", [])
-            if len(cleaned_pages) != len(manifest):
-                add_error(f"IMMUTABLE PAGE COUNT MISMATCH! System dropped data. Original raw pages: {len(cleaned_pages)}. Final reconciled pages: {len(manifest)}.")
+            total_input_pages = state_data.get("manifest", {}).get("summary", {}).get("total_input_pages", 0)
+            if total_input_pages and total_input_pages != len(manifest):
+                add_error(f"IMMUTABLE PAGE COUNT MISMATCH! System dropped data. Original raw pages: {total_input_pages}. Final reconciled pages: {len(manifest)}.")
             else:
                 add_pass(f"Immutable Page Count verified ({len(manifest)} pages preserved)")
+
+            # Verify _report.json matches the new Paradigm Shift (Phase 59)
+            report_file = source_dir / f"{house_id}_report.json"
+            if not report_file.exists():
+                add_error(f"Missing {report_file.name}")
+            else:
+                try:
+                    with open(report_file, 'r', encoding='utf-8') as f:
+                        report_data = json.load(f)
+                        
+                    if not isinstance(report_data, list):
+                        add_error(f"{report_file.name} is not a JSON array")
+                    else:
+                        malformed = 0
+                        for idx, item in enumerate(report_data):
+                            required_keys = {"vault_id", "start_page", "end_page", "date", "folder_path", "filename", "tenant"}
+                            if not required_keys.issubset(item.keys()):
+                                add_error(f"Item {idx} in {report_file.name} is missing required fields: {required_keys - set(item.keys())}")
+                                malformed += 1
+                        
+                        if malformed == 0:
+                            add_pass(f"{report_file.name} format is fully valid (v5.5 compliant)")
+                            
+                        # Also check if it matches the number of expected vault documents
+                        routed_docs = state_data.get("routed_documents") or state_data.get("grouped_documents") or []
+                        unique_vids = {g.get("vault_id") for g in routed_docs if g.get("vault_id")}
+                        expected_report_count = len(unique_vids)
+                        if expected_report_count > 0 and len(report_data) != expected_report_count:
+                            add_error(f"{report_file.name} has {len(report_data)} items but state expected {expected_report_count} vault documents.")
+                        else:
+                            add_pass(f"{report_file.name} perfectly mirrors the expected vault documents count")
+                except Exception as e:
+                    add_error(f"Failed to parse {report_file.name}: {e}")
 
                 
         except Exception as e:

@@ -125,7 +125,7 @@ def test_propose_uses_user_provided_title(mock_config, mock_llm):
             mock_fitz.open.return_value = mock_doc
             
             def mock_process_unclassified(master_tmp_dir, *args, **kwargs):
-                (master_tmp_dir / f"{test_file.stem}_report.json").write_text("[]")
+                (master_tmp_dir / f"{test_file.stem}.raw_dump.json").write_text("[]")
                 
             with patch("src.watcher.orchestrator.process_unclassified_pdf", side_effect=mock_process_unclassified):
                 orchestrator.propose(test_file)
@@ -193,7 +193,7 @@ def test_propose_falls_back_to_ai_title(mock_config, mock_llm):
             mock_fitz.open.return_value = mock_doc
             
             def mock_process_unclassified(master_tmp_dir, *args, **kwargs):
-                (master_tmp_dir / f"{test_file.stem}_report.json").write_text("[]")
+                (master_tmp_dir / f"{test_file.stem}.raw_dump.json").write_text("[]")
                 
             with patch("src.watcher.orchestrator.process_unclassified_pdf", side_effect=mock_process_unclassified):
                 orchestrator.propose(test_file)

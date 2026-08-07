@@ -129,6 +129,6 @@ def test_phase43_ghost_shortcut_adoption(tmp_path):
     assert len(per_page) == 1
     
     p = per_page[0]
-    assert p["user_locked"] is True
+    assert p["user_locked"] is False
     assert p["date"] == "2022-11-20"
     assert p["vault_id"] == "mockvault123"

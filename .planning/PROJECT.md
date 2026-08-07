@@ -4,14 +4,14 @@
 
 A document management system that processes scanned Arabic PDFs, categorizes them using LLM vision, groups related pages, and organizes them into a structured folder hierarchy per tenant household. The system runs on Windows and uses a Vault-based architecture with shortcuts for file organization and bidirectional reconciliation.
 
-## Current Milestone: Next
+## Current Milestone: v5.5 (Pipeline Reversibility & Lossless Undo)
 
-**Goal:** Decouple the concept of "Pages" from "Shortcuts" in the data model. Address the architectural quirk where duplicating a shortcut of a multi-page document artificially inflates the page index and splits pages across shortcuts.
+**Goal:** Provide an elegant, space-efficient method to completely reverse the pipeline without keeping a duplicate copy of the original raw PDF. 
 
 **Target features:**
-- Refactor `state.json` to map 1 physical document to Many shortcuts, instead of 1 page to 1 shortcut.
-- Ensure the total number of entries in `cleaned_pages` never exceeds the true physical page count inside the vault, regardless of how many shortcuts the user creates.
-- Clean up any residual side-effects in Timeline View generation caused by the new 1-to-Many mapping.
+- Implement an `undo` command in the CLI.
+- Dynamically reconstruct the original PDF by reading the `[Timeline View]` shortcuts to get the exact original page order and stitching the Vault documents together.
+- Delete all generated output (Vault, Jasons, Tenant Folders) and leave the folder in its virgin state with just the reconstructed PDF.
 
 ## Core Value
 

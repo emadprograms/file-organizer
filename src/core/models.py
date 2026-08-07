@@ -21,8 +21,8 @@ class PageData(BaseModel):
         resolved_date (Optional[str]): The normalized YYYY-MM-DD date.
         original_index (int): The 0-based original index of the page in the document.
     """
-    category: str
-    content_explanation: str
+    category: str | None = None
+    content_explanation: str | None = None
     expected_tenant_name: Optional[str] = None
     expected_house_number: Optional[str] = None
     date: Optional[str] = None

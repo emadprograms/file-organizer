@@ -111,4 +111,4 @@ def run_reconciliation(
     vprint(table)
     
     if manifest["summary"]["total_input_pages"] != manifest["summary"]["total_output_pages"]:
-        raise RuntimeError("Reconciliation failed: total input pages != total output pages")
+        raise RuntimeError(f"Reconciliation failed: total input pages ({manifest['summary']['total_input_pages']}) != total output pages ({manifest['summary']['total_output_pages']})")

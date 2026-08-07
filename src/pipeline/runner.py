@@ -130,6 +130,8 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
         found_pdf = None
         
         for pdf_file in target_dir.glob("*.pdf"):
+            if not pdf_file.is_file():
+                continue
             with fitz.open(str(pdf_file)) as doc:
                 if doc.page_count == expected_pages:
                     found_pdf = pdf_file
@@ -246,5 +248,31 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
         state.data["routed_documents"] = [doc.model_dump() for doc in documents]
         state.save()
         logger.info("Saved updated documents with vault_ids to state.")
+        
+    if not dry_run:
+        sorted_docs = sorted(documents, key=lambda x: x.start_page)
+        
+        from src.core import utils
+        report_payload = []
+        for doc in sorted_docs:
+            d = doc.model_dump(exclude_none=True)
+            date_str = "nodate"
+            if doc.dates and len(doc.dates) > 0 and doc.dates[0] and doc.dates[0] != "NONE":
+                date_str = utils.normalize_date(doc.dates[0])
+            d["date"] = date_str
+            d["tenant"] = doc.primary_tenant or "Unknown"
+            if doc.shortcuts:
+                d["filename"] = Path(doc.shortcuts[0]).name
+            else:
+                d["filename"] = f"doc_{doc.vault_id}.pdf"
+            report_payload.append(d)
+            
+        report_out_path = source_files_dir / f"{house_id}_report.json"
+        
+        from src.utils.fs import atomic_write
+        with atomic_write(str(report_out_path)) as tmp_path:
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                json.dump(report_payload, f, indent=2, ensure_ascii=False)
+        logger.info(f"Generated new timeline-view report at {report_out_path}")
         
     logger.info(f"Successfully generated {summary['output_file_count']} PDFs in {output_dir / full_house_id}")

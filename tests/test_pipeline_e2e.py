@@ -36,17 +36,17 @@ def inject_mock_report(inbox: Path, stem: str) -> None:
         expected_tenant_name = tenant_hint
         expected_house_number = stem.split(" ")[1] if len(stem.split(" ")) > 1 else "U"
 
-    mock_data = {
-        "0": {
+    mock_data = [
+        {
             "category": category,
             "content_explanation": "dummy",
             "date": date,
             "expected_tenant_name": expected_tenant_name,
             "expected_house_number": expected_house_number
         }
-    }
+    ]
     
-    with open(master_dir / f"{stem}_report.json", "w", encoding="utf-8") as f:
+    with open(master_dir / f"{stem}.raw_dump.json", "w", encoding="utf-8") as f:
         json.dump(mock_data, f, ensure_ascii=False)
 
 def create_workspace(tmp_path: Path, house: str = "1273") -> tuple[Path, Path, Path]:

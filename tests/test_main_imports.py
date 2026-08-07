@@ -14,6 +14,6 @@ def test_main_py_has_no_dead_imports():
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
-                assert alias.name not in ["fitz", "json"], f"Dead import found: {alias.name}"
+                assert alias.name not in ["fitz"], f"Dead import found: {alias.name}"
         elif isinstance(node, ast.ImportFrom):
-            assert node.module not in ["fitz", "json"], f"Dead import found: {node.module}"
+            assert node.module not in ["fitz"], f"Dead import found: {node.module}"

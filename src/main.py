@@ -1,6 +1,7 @@
 import argparse
 import os
 import sys
+import json
 import logging
 from pathlib import Path
 
@@ -48,14 +49,14 @@ def validate_target_directory(target_dir: Path) -> list[str]:
         raise ValidationError(f"Target directory does not exist or is not a directory: {target_dir}")
         
     # Make globs more permissive in case of renames (e.g., _categorized (1).pdf)
-    pdf_files = list(target_dir.glob("*.pdf")) + list((target_dir / ".source_files").glob("*.pdf"))
-    json_files = list(target_dir.glob("*_report*.json")) + list((target_dir / ".source_files").glob("*_report*.json"))
+    pdf_files = [p for p in (list(target_dir.glob("*.pdf")) + list((target_dir / ".source_files").glob("*.pdf"))) if p.is_file()]
+    json_files = [p for p in (list(target_dir.glob("*_report*.json")) + list((target_dir / ".source_files").glob("*_report*.json")) + list(target_dir.glob("*.raw_dump.json")) + list((target_dir / ".source_files").glob("*.raw_dump.json"))) if p.is_file()]
     
     if len(pdf_files) == 0:
         raise ValidationError("No PDF found in the target directory.")
         
     if len(json_files) == 0:
-        raise ValidationError("No *_report.json found in the target directory.")
+        raise ValidationError("No .raw_dump.json or _report.json found in the target directory.")
         
     ids = []
     
@@ -64,7 +65,7 @@ def validate_target_directory(target_dir: Path) -> list[str]:
         pdf_id = pdf_match.group(1) if pdf_match else pdf_file.stem
         
         # Check if there's a matching JSON report
-        matching_jsons = [j for j in json_files if j.name.startswith(f"{pdf_id}_report")]
+        matching_jsons = [j for j in json_files if j.name.startswith(f"{pdf_id}_") or j.name.startswith(f"{pdf_id}.")]
         if not matching_jsons:
             logger.warning(f"ID mismatch: PDF ({pdf_id}) has no matching JSON report.")
             continue
@@ -74,7 +75,8 @@ def validate_target_directory(target_dir: Path) -> list[str]:
     if not ids:
         raise ValidationError("No matching PDF and JSON pairs found.")
         
-    return ids
+    # Return unique IDs preserving order
+    return list(dict.fromkeys(ids))
 
 def validate_report_json(json_path: Path) -> None:
     """Validate that every page in the JSON report has a valid, known category.
@@ -85,7 +87,6 @@ def validate_report_json(json_path: Path) -> None:
     Raises:
         ValidationError: If a missing or invalid category is found.
     """
-    import json
     from src.routing.config import CATEGORY_TO_FOLDERS, DIRECT_ROUTING_MAP, FORM_CATEGORIES, LETTER_CATEGORIES, FOLDER_PREFIXES
     
     valid_categories = {"others", "other_letters"}
@@ -233,6 +234,11 @@ def get_parser() -> argparse.ArgumentParser:
     verify_parser.add_argument("target_dir", type=Path, help="Path to the target house directory to verify")
     verify_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     
+    # undo mode
+    undo_parser = subparsers.add_parser("undo", help="Undo the pipeline and reconstruct the original PDF")
+    undo_parser.add_argument("target_dir", type=Path, help="Path to the target house directory to undo")
+    undo_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+    
     return parser
 
 from src.reconcile.core import run_reconcile_mode
@@ -286,6 +292,12 @@ def main() -> int:
         set_verbosity(getattr(args, 'verbose', False))
         from src.core.verification import run_verification
         return run_verification(args.target_dir.resolve())
+
+    if args.command == "undo":
+        setup_logging(verbose=getattr(args, 'verbose', False))
+        set_verbosity(getattr(args, 'verbose', False))
+        from src.pipeline.undo import run_undo
+        return run_undo(args.target_dir.resolve())
 
     # Ensure create mode paths are within allowed root
     target_path = args.target_dir.resolve()
@@ -359,7 +371,13 @@ def main() -> int:
                     
                     house_dir = output_dir / house_id
                     
-                    json_paths = list(target_dir.glob(f"{house_id}_report*.json")) + list((target_dir / ".source_files").glob(f"{house_id}_report*.json"))
+                    json_paths = list(target_dir.glob(f"{house_id}*.raw_dump.json")) + list((target_dir / ".source_files").glob(f"{house_id}*.raw_dump.json"))
+                    if not json_paths:
+                        # Fallback for older .json reports if .raw_dump doesn't exist
+                        json_paths = list(target_dir.glob(f"{house_id}_report*.json")) + list((target_dir / ".source_files").glob(f"{house_id}_report*.json"))
+                        if not json_paths:
+                             raise FileNotFoundError(f"Could not find .raw_dump.json or _report.json for house ID {house_id}")
+
                     json_path = json_paths[0]
                     
                     # Fail fast if report json has invalid categories
@@ -371,7 +389,8 @@ def main() -> int:
                     
                     cleaned_pages, yaml_data = run_cleaning_pass(json_path, state, llm_client, logger, args.dry_run, house_id, target_dir)
                     documents = run_grouping_pass(cleaned_pages, state, house_id, output_dir, llm_client, logger, args.dry_run)
-                    documents = run_routing_pass(documents, state, house_id, output_dir, llm_client, logger, args.dry_run, args.routing_model)
+                    routing_model_to_use = getattr(args, 'routing_model', None) or args.model
+                    documents = run_routing_pass(documents, state, house_id, output_dir, llm_client, logger, args.dry_run, routing_model_to_use)
                     run_generation_pass(documents, target_dir, house_id, output_dir, logger, args.dry_run, json_path, yaml_data, state=state)
             except Exception as e:
                 logger.exception(f"Failed processing {target_dir}: {e}")

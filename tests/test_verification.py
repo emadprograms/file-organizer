@@ -55,17 +55,37 @@ def mock_house(tmp_path):
         "cleaned_pages": [{}],
         "grouped_documents": [
             {
+                "vault_id": "1",
                 "shortcuts": ["Tenant A \u200e(2023 - 2024)\u200e/doc1.lnk"]
             }
         ],
         "manifest": {
             "per_page": [
                 {"output_file": "123 - Test House/Tenant A \u200e(2023 - 2024)\u200e/doc1.lnk"}
-            ]
+            ],
+            "summary": {
+                "total_input_pages": 1
+            }
         }
     }
     with open(state_file, "w", encoding="utf-8") as f:
         json.dump(state_data, f)
+        
+    # Report JSON
+    report_file = source_dir / "123_report.json"
+    report_data = [
+        {
+            "vault_id": "1",
+            "start_page": 1,
+            "end_page": 1,
+            "date": "2023-01-01",
+            "folder_path": "Tenant A",
+            "filename": "doc_1.pdf",
+            "tenant": "Tenant A"
+        }
+    ]
+    with open(report_file, "w", encoding="utf-8") as f:
+        json.dump(report_data, f)
         
     return house_dir
 
@@ -123,6 +143,7 @@ def test_verification_missing_state_output(mock_house):
         "cleaned_pages": [{}],
         "grouped_documents": [
             {
+                "vault_id": "1",
                 "shortcuts": ["Tenant A \u200e(2023 - 2024)\u200e/missing.lnk"]
             }
         ],
@@ -165,3 +186,15 @@ def test_verification_hijacked_shortcut(mock_house):
     create_shortcut(str(pdf2), str(lnk1))
     
     assert run_verification(mock_house) == 1
+
+def test_verification_null_state_arrays(mock_house):
+    state_file = mock_house / ".source_files" / "123_state.json"
+    with open(state_file, "r", encoding="utf-8") as f:
+        state_data = json.load(f)
+    state_data["cleaned_pages"] = None
+    state_data["grouped_documents"] = None
+    state_data["routed_documents"] = None
+    with open(state_file, "w", encoding="utf-8") as f:
+        json.dump(state_data, f)
+        
+    assert run_verification(mock_house) == 0

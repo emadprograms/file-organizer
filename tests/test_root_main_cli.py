@@ -188,7 +188,7 @@ def test_validate_target_directory_missing_json(tmp_path, capsys) -> None:
     from src.main import validate_target_directory
     with pytest.raises(ValidationError) as exc_info:
         validate_target_directory(target_dir)
-    assert "No *_report.json found" in str(exc_info.value)
+    assert "No .raw_dump.json or _report.json found" in str(exc_info.value)
 
 
 @patch("src.core.config.AppConfig")

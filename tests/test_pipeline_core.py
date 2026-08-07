@@ -17,7 +17,7 @@ def test_malformed_json_graceful_failure(tmp_path) -> None:
 
     # Provide valid PDF placeholder and a syntactically INVALID report JSON
     (house_dir / "1273_categorized.pdf").write_bytes(b"%PDF-1.0 invalid")
-    (house_dir / "1273_report.json").write_text("{invalid json: !@#", encoding="utf-8")
+    (house_dir / "1273.raw_dump.json").write_text("{invalid json: !@#", encoding="utf-8")
 
     config_path = tmp_path / "config.yaml"
     config_path.write_text(f"inbox_path: {tmp_path}/inbox\nareas_root_path: {tmp_path}\narea_mappings: {{}}", encoding="utf-8")
@@ -67,17 +67,17 @@ def test_pipeline_out_of_bounds_routing(tmp_path) -> None:
     doc.close()
     
     # We only have 1 page, but the JSON references page 2 (out-of-bounds)
-    invalid_report = {
-        "2": {
-            "category": "1_requests_and_applications",
+    invalid_report = [
+        {
+            "category": "contract",
             "resident": "John Doe",
             "date": "2024-01-01",
             "summary": "Out of bounds test",
             "content_explanation": "Test out of bounds"
         }
-    }
+    ]
     
-    (house_dir / "1274_report.json").write_text(json.dumps(invalid_report), encoding="utf-8")
+    (house_dir / "1274.raw_dump.json").write_text(json.dumps(invalid_report), encoding="utf-8")
     
     config_path = tmp_path / "config.yaml"
     config_path.write_text(f"inbox_path: {tmp_path}/inbox\nareas_root_path: {tmp_path}\narea_mappings: {{}}", encoding="utf-8")

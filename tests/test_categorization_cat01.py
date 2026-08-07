@@ -66,10 +66,10 @@ def test_cat_01_extracts_metadata_and_copies_pdf(mock_pil, mock_imread, mock_pro
     
     process_unclassified_pdf(tmp_path, llm_client)
     
-    report_file = tmp_path / "testdoc_report.json"
+    report_file = tmp_path / "testdoc.raw_dump.json"
     categorized_file = tmp_path / "testdoc_categorized.pdf"
     
-    assert report_file.exists(), "_report.json should be created"
+    assert report_file.exists(), ".raw_dump.json should be created"
     assert categorized_file.exists(), "_categorized.pdf should be copied"
     
     with open(report_file, "r") as f:

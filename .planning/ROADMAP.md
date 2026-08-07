@@ -2,6 +2,7 @@
 
 ## Milestones
 
+- 🏃 **v5.5 Pipeline Reversibility & Lossless Undo** — Phases 58-61 (Active)
 - ✅ **v5.4 Architectural Consistency Refactor** — Phases 49-57 (shipped 2026-08-02)
 - ✅ **v3.0 Unified File-System UI & Append Mode** — Phases 20-24.1 (shipped 2026-07-24)
 - ✅ **v4.0 Architectural Cleanup** — Phases 25-29.1 (shipped 2026-07-31)
@@ -11,6 +12,26 @@
 - ✅ **v5.3 Reconciliation Engine Upgrade** — Phases 43-48 (shipped 2026-08-01)
 
 ## Phases
+
+<details open>
+<summary>🏃 v5.5 Pipeline Reversibility & Lossless Undo (Phases 58-61) — ACTIVE</summary>
+
+### Phase 58: Lossless Undo Command
+- [x] Implement `python src/main.py undo <target_dir>`
+- [x] Read `_state.json` routed documents
+- [x] Reconstruct `<house_id>.pdf` perfectly via `fitz` using vault files
+- [x] Wipe target_dir (except reconstructed PDF)
+
+### Phase 59: _report.json Paradigm Shift
+**Goal:** Move raw AI extraction to `.raw_dump.json`. Generate a brand new `_report.json` at the end of generation (for both `create` and `append`) that perfectly mirrors the Timeline View's grouped structure.
+
+### Phase 60: Migration Script (Completed)
+**Goal:** Build a script to ingest old messy `_report.json` files, generate the new chronological format, and bring legacy houses up to the v5.5 standard.
+
+### Phase 61: Test Suite Update (Completed)
+**Goal:** Add E2E tests for the `undo` command, update existing assertions for the new `_report.json` format, and add migration tests.
+
+</details>
 
 <details>
 <summary>✅ v3.0 Unified File-System UI & Append Mode (Phases 20-24.1) — SHIPPED 2026-07-24</summary>
@@ -134,6 +155,10 @@ See [.planning/milestones/v5.4-ROADMAP.md](milestones/v5.4-ROADMAP.md) for full 
 | 55. Phase 55 | v5.4 | 1/1 | Complete | 2026-08-02 |
 | 56. Phase 56 | v5.4 | 1/1 | Complete | 2026-08-02 |
 | 57. Phase 57 | v5.4 | 1/1 | Complete | 2026-08-02 |
+| 58. Lossless Undo Command | v5.5 | 1/1 | Complete | 2026-08-07 |
+| 59. _report.json Paradigm Shift | v5.5 | 1/1 | Complete | 2026-08-07 |
+| 60. Migration Script | v5.5 | 1/1 | Complete | 2026-08-07 |
+| 61. Test Suite Update | v5.5 | 1/1 | Complete | 2026-08-07 |
 
 
 

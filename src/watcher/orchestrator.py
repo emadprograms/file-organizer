@@ -102,9 +102,9 @@ class FSUIOrchestrator:
         try:
             process_unclassified_pdf(master_tmp_dir, self.llm_client, specific_pdf_path=filepath, create_categorized_copy=False)
             
-            orig_report_path = master_tmp_dir / f"{filepath.stem}_report.json"
+            orig_report_path = master_tmp_dir / f"{filepath.stem}.raw_dump.json"
             if not orig_report_path.exists():
-                logger.error(f"Missing report JSON for {filepath}")
+                logger.error(f"Missing raw dump JSON for {filepath}")
                 new_name = filepath.stem + "_Failed.pdf"
                 os.rename(filepath, filepath.parent / new_name)
                 return

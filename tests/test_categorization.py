@@ -140,7 +140,7 @@ def test_process_unclassified_pdf_checkpointing(mock_pil, mock_imread, mock_proc
     assert getattr(resume_llm, 'call_count', 0) == 6, "Should only make LLM calls for the remaining 3 pages (2 calls each)"
     
     # 6. Verify final report was created properly
-    report_file = tmp_path / "test_report.json"
+    report_file = tmp_path / "test.raw_dump.json"
     assert report_file.exists()
     with open(report_file, "r") as f:
         report_data = json.load(f)
@@ -151,3 +151,31 @@ def test_process_unclassified_pdf_checkpointing(mock_pil, mock_imread, mock_proc
     assert report_data[0]["status"] == "classified"
     assert report_data[4]["status"] == "classified"
     assert report_data[0]["category"] == "contract"
+
+def test_process_unclassified_pdf_rate_limit_halt(tmp_path):
+    """
+    Test that process_unclassified_pdf correctly bubbles up ProviderRotationExhaustedError
+    and halts the pipeline instead of swallowing the error.
+    """
+    from src.core.exceptions import ProviderRotationExhaustedError
+    
+    test_pdf = tmp_path / "test.pdf"
+    test_pdf.touch()
+    
+    tmp_pdf_dir = tmp_path / ".tmp_test"
+    tmp_pdf_dir.mkdir()
+    (tmp_pdf_dir / "page_1.png").touch()
+    
+    class MockRateLimitLLM:
+        def upload_file(self, *args, **kwargs):
+            return "mock_file"
+        def generate_content(self, *args, **kwargs):
+            raise ProviderRotationExhaustedError("Fake exhaustion error")
+        def delete_file(self, *args, **kwargs):
+            pass
+
+    with patch("src.categorization.categorization.process_pdf") as mock_process_pdf:
+        mock_process_pdf.return_value = ({"page_1": {"status": "unclassified"}}, str(tmp_pdf_dir))
+        
+        with pytest.raises(ProviderRotationExhaustedError):
+            process_unclassified_pdf(tmp_path, MockRateLimitLLM())

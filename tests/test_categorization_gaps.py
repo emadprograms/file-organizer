@@ -37,7 +37,7 @@ def test_bypass_if_report_exists(mock_process_pdf, tmp_path):
     test_pdf.touch()
     
     # Create the bypass file
-    report_file = tmp_path / "doc1_report.json"
+    report_file = tmp_path / "doc1.raw_dump.json"
     report_file.write_text("[]")
     
     llm_client = MockBypassLLM()
@@ -58,7 +58,7 @@ def test_bypass_if_global_report_exists(mock_process_pdf, tmp_path):
     test_pdf = tmp_path / "doc2.pdf"
     test_pdf.touch()
     
-    report_file = tmp_path / "_report.json"
+    report_file = tmp_path / ".raw_dump.json"
     report_file.write_text("[]")
     
     llm_client = MockBypassLLM()

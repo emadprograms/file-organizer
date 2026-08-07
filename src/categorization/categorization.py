@@ -6,6 +6,9 @@ from typing import Any, Literal
 import yaml
 from pydantic import create_model, Field
 
+from src.core.exceptions import ProviderRotationExhaustedError, PipelineHaltError
+from src.llm.llm import LLMFailureError
+
 from src.pdf.image_processing import process_pdf
 from src.core.schemas import CategorizationResult
 from src.utils.fs import atomic_write
@@ -53,16 +56,16 @@ def process_unclassified_pdf(target_dir: Path, llm_client: Any, specific_pdf_pat
             continue
             
         basename = pdf_path.stem
-        report_path = target_dir / f"{basename}_report.json"
+        raw_dump_path = target_dir / f"{basename}.raw_dump.json"
         categorized_pdf_path = target_dir / f"{basename}_categorized.pdf"
         
         if (
-            report_path.exists() or 
-            (target_dir / "_report.json").exists() or
-            (target_dir / ".source_files" / f"{basename}_report.json").exists() or
-            (target_dir / ".source_files" / "_report.json").exists()
+            raw_dump_path.exists() or 
+            (target_dir / ".raw_dump.json").exists() or
+            (target_dir / ".source_files" / f"{basename}.raw_dump.json").exists() or
+            (target_dir / ".source_files" / ".raw_dump.json").exists()
         ):
-            logger.info(f"Bypassing categorization for {pdf_path.name}: {report_path.name} already exists.")
+            logger.info(f"Bypassing categorization for {pdf_path.name}: {raw_dump_path.name} already exists.")
             continue
             
         logger.info(f"Processing unclassified PDF: {pdf_path}")
@@ -151,6 +154,9 @@ def process_unclassified_pdf(target_dir: Path, llm_client: Any, specific_pdf_pat
                     
                 status[page_key] = page_status
                 
+            except (ProviderRotationExhaustedError, PipelineHaltError) as e:
+                logger.error(f"Critical LLM failure during classification for {page_key}. Halting pipeline: {e}")
+                raise
             except Exception as e:
                 logger.error(f"LLM Classification failed for {page_key}: {e}")
                 status[page_key]["status"] = "error"
@@ -177,8 +183,8 @@ def process_unclassified_pdf(target_dir: Path, llm_client: Any, specific_pdf_pat
             if key in status:
                 final_report.append(status[key])
         
-        # Write _report.json atomically
-        with atomic_write(str(report_path)) as tmp_path:
+        # Write .raw_dump.json atomically
+        with atomic_write(str(raw_dump_path)) as tmp_path:
             with open(tmp_path, "w", encoding="utf-8") as f:
                 json.dump(final_report, f, indent=2, ensure_ascii=False)
                 

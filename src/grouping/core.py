@@ -237,52 +237,14 @@ def process_with_shrink(
                         processed_groups=[g.model_dump() for g in final_groups]
                     ))
                 
-            except ProviderRotationExhaustedError as e:
-                total_failures += 1
-                current_chunk_failure_count += 1
-                logger.warning(f"Rotation failure at size {CHUNK_SIZES[chunk_size_idx]}: {e}")
-                
-                if CHUNK_SIZES[chunk_size_idx] == 4:
-                    threshold = 1
-                elif CHUNK_SIZES[chunk_size_idx] == 3:
-                    threshold = 1
-                elif CHUNK_SIZES[chunk_size_idx] == 2:
-                    threshold = 3
-                else:
-                    threshold = 1
-                    
-                if current_chunk_failure_count >= threshold:
-                    if chunk_size_idx < len(CHUNK_SIZES) - 1:
-                        while chunk_size_idx < len(CHUNK_SIZES) - 1:
-                            chunk_size_idx += 1
-                            if CHUNK_SIZES[chunk_size_idx] < actual_chunk_size:
-                                break
-                        current_chunk_failure_count = 0
-                        logger.warning(f"Threshold reached. Shrinking chunk size to {CHUNK_SIZES[chunk_size_idx]}")
-                    else:
-                        # Minimum size failed, check fallback models
-                        if fallback_model_idx < len(FALLBACK_MODELS) - 1:
-                            fallback_model_idx += 1
-                            current_chunk_failure_count = 0
-                            logger.warning(f"Threshold reached. Falling back to model: {FALLBACK_MODELS[fallback_model_idx]}")
-                        else:
-                            # GRACEFUL HALT: all fallbacks exhausted
-                            if state_manager:
-                                state_manager.save_state(GroupingState(
-                                    current_page_index=current_page_index,
-                                    chunk_size_index=chunk_size_idx,
-                                    current_chunk_failure_count=current_chunk_failure_count,
-                                    failure_count=total_failures,
-                                    processed_groups=[g.model_dump() for g in final_groups]
-                                ))
-                            raise GracefulHaltException(f"Grouping failed at minimum chunk size {CHUNK_SIZES[-1]} and all fallback models exhausted. Halting gracefully.") from e
-                else:
-                    logger.info(f"Failure {current_chunk_failure_count}/{threshold} at size {CHUNK_SIZES[chunk_size_idx]}. Retrying same size.")
+            except (ProviderRotationExhaustedError, PipelineHaltError) as e:
+                logger.error(f"Critical LLM failure during grouping. Halting pipeline: {e}")
+                raise
             
             except (ValueError, LLMFailureError) as e:
                 total_failures += 1
                 current_chunk_failure_count += 1
-                logger.warning(f"Processing Error (not rotation exhausted): {e}")
+                logger.warning(f"Processing Error (ValueError/LLMFailureError): {e}")
                 
                 error_str = str(e).lower()
                 is_fatal_error = any(term in error_str for term in ["500", "503", "parse", "parsing", "token", "8000", "too large"])

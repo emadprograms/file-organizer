@@ -295,7 +295,7 @@ Respond only with a valid JSON matching the requested schema. The selected_folde
                 logger.error(f"LLM routing failed validation after {attempts} attempts for category {category}.")
                 raise RoutingValidationError(f"Failed to route document to valid folder after {attempts} attempts. Last error: {e}")
                 
-        except LLMFailureError:
+        except (ProviderRotationExhaustedError, PipelineHaltError):
             # Infrastructure failure - re-raise to let the pipeline handle it (likely stop)
             raise
         except Exception as e:
