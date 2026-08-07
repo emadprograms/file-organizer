@@ -18,3 +18,4 @@
 | Date | Slug | Description |
 | ---- | ---- | ----------- |
 | 2026-08-07 | undo-preserve | Update undo command to preserve OCR dump and tenants.yaml |
+| 2026-08-07 | max-filename | Enforce 50 char limit on LLM prompt fields that become filenames |
