@@ -383,7 +383,7 @@ def main() -> int:
                     # Fail fast if report json has invalid categories
                     validate_report_json(json_path)
                     
-                    state_dir = output_dir / ".source_files"
+                    state_dir = target_dir / ".source_files"
                     from src.core.state import State
                     state = State(house_id, state_dir)
                     

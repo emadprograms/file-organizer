@@ -245,6 +245,7 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
         visualizer.print_summary(full_house_id, summary, per_page, documents)
         
     if state is not None and not dry_run:
+        state.load()  # Reload to pick up manifest changes from run_reconciliation
         state.data["routed_documents"] = [doc.model_dump() for doc in documents]
         state.save()
         logger.info("Saved updated documents with vault_ids to state.")

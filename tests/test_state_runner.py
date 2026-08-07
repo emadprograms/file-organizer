@@ -63,3 +63,75 @@ def test_runner_uses_single_state(mock_state, mock_logger, tmp_path, monkeypatch
     
     # Check that state.json exists and holds all data
     assert mock_state.state_file.exists()
+
+def test_generation_pass_does_not_overwrite_manifest(mock_logger, tmp_path, monkeypatch):
+    """Test that run_generation_pass reloads state from disk before saving, so it doesn't overwrite manifest."""
+    from src.pipeline.runner import run_generation_pass
+    from src.core.schemas import DocumentGroup
+    from src.core.state import State
+    import src.pipeline.runner
+
+    def mock_run_reconciliation(*args, **kwargs):
+        house_dir = kwargs.get('house_dir') or args[4]
+        house_id = kwargs.get('house_id') or args[3]
+        source_files_dir = house_dir / ".source_files"
+        source_files_dir.mkdir(parents=True, exist_ok=True)
+        new_state = State(house_id, source_files_dir)
+        new_state.data["manifest"] = {"summary": {"total_input_pages": 10}}
+        new_state.save()
+
+    import src.timeline
+    monkeypatch.setattr(src.timeline, "run_reconciliation", mock_run_reconciliation)
+
+    house_id = "test_house"
+    output_dir = tmp_path
+    house_dir = output_dir / house_id
+    house_dir.mkdir(parents=True, exist_ok=True)
+    
+    source_files_dir = house_dir / ".source_files"
+    source_files_dir.mkdir(parents=True, exist_ok=True)
+    
+    mock_state = State(house_id, source_files_dir)
+    assert mock_state.data.get("manifest") is None
+
+    docs = [DocumentGroup(group_id="group1", documents=[], tenant="Tenant A", category="Assigned", start_page=1, end_page=1, primary_tenant="Tenant A", dates=[])]
+
+    import src.pdf.compress
+    monkeypatch.setattr(src.pdf.compress, "compress_pdf", lambda *args, **kwargs: None)
+    
+    class MockOrganizer:
+        def organize(self, *args, **kwargs):
+            return [{"output_file": "doc_1.pdf"}], house_id
+            
+    monkeypatch.setattr("src.timeline.FileOrganizer", lambda: MockOrganizer())
+    
+    dummy_pdf = tmp_path / "dummy.pdf"
+    dummy_pdf.touch()
+
+    class MockFitz:
+        def __init__(self, *args, **kwargs):
+            self.page_count = 10
+        def __enter__(self):
+            return self
+        def __exit__(self, *args):
+            pass
+    monkeypatch.setattr("fitz.open", MockFitz)
+
+    run_generation_pass(
+        documents=docs,
+        target_dir=output_dir,
+        house_id=house_id,
+        output_dir=output_dir,
+        logger=mock_logger,
+        dry_run=False,
+        json_path=tmp_path / "dummy.json",
+        yaml_data=None,
+        pdf_path=dummy_pdf,
+        fixed_house_dir=house_dir,
+        prepend_manifest=False,
+        state=mock_state
+    )
+
+    final_state = State(house_id, source_files_dir)
+    assert final_state.data.get("manifest") is not None
+    assert final_state.data["manifest"]["summary"]["total_input_pages"] == 10
