@@ -6,6 +6,7 @@ from dotenv import dotenv_values
 from src.llm.llm import LLMClient
 from src.timeline.phase import load_and_parse_json
 from src.pipeline.pipeline import Pipeline
+from src.categorization.fine_categorization import process_fine_categorization
 
 def evaluate_grouping(house_id: str, golden_yaml_path: Path, raw_dump_path: Path, llm_client: LLMClient) -> tuple[int, int]:
     # 1. Load Golden Truth Grouping
@@ -35,6 +36,30 @@ def evaluate_grouping(house_id: str, golden_yaml_path: Path, raw_dump_path: Path
         # Ensure resolved_date is somewhat populated for the fallback deterministic utility
         if not getattr(page, "resolved_date", None):
             page.resolved_date = getattr(page, "date", None)
+            
+    # 3.5 Run Fine Categorization (Pass 2)
+    print("Running Fine Categorization (Pass 2)...")
+    
+    # Simple caching to avoid 17 minute re-runs
+    cache_path = raw_dump_path.with_name(raw_dump_path.name + ".fine_cache.json")
+    if cache_path.exists():
+        print("Loading Pass 2 from cache...")
+        with open(cache_path, 'r', encoding='utf-8') as f:
+            cache_data = json.load(f)
+        for i, page in enumerate(pages):
+            if str(i) in cache_data:
+                page.fine_category = cache_data[str(i)].get("fine_category")
+                page.fine_category_reason = cache_data[str(i)].get("fine_category_reason")
+    else:
+        pages = process_fine_categorization(pages, llm_client)
+        cache_data = {}
+        for i, page in enumerate(pages):
+            cache_data[str(i)] = {
+                "fine_category": getattr(page, "fine_category", None),
+                "fine_category_reason": getattr(page, "fine_category_reason", None)
+            }
+        with open(cache_path, 'w', encoding='utf-8') as f:
+            json.dump(cache_data, f, ensure_ascii=False, indent=2)
             
     # 4. Run Grouping Phase
     pipeline = Pipeline(api_key=llm_client.api_key)
@@ -66,6 +91,13 @@ def evaluate_grouping(house_id: str, golden_yaml_path: Path, raw_dump_path: Path
     return correct, total
 
 def main():
+    import sys
+    if sys.platform == 'win32':
+        try:
+            sys.stdout.reconfigure(encoding='utf-8')
+        except AttributeError:
+            pass
+
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         env = dotenv_values(".env")
@@ -75,9 +107,22 @@ def main():
     # Use standard flash-lite for grouping (much faster and more reliable than Gemma 4 for boundary JSON schema)
     client.default_model = "gemma-4-31b-it"
     
+    import argparse
+    parser = argparse.ArgumentParser(description="Evaluate grouping logic.")
+    parser.add_argument("--house", type=str, help="House ID to evaluate (e.g. 1155, 1166). If not provided, runs all.")
+    args = parser.parse_args()
+
     target_dir = Path("tests/golden_data")
-    houses = ["1155_R3322"]  # Run only one house at a time
+    if args.house:
+        # Match house ID ignoring the RXXXX part
+        houses = [h.name.split('_')[1] + "_" + h.name.split('_')[2] for h in target_dir.glob(f"house_{args.house}_*_golden.yaml")]
+    else:
+        houses = [h.name.split('_')[1] + "_" + h.name.split('_')[2] for h in target_dir.glob("house_*_golden.yaml")]
     
+    if not houses:
+        print("No matching houses found.")
+        return
+        
     total_correct = 0
     total_pages = 0
     

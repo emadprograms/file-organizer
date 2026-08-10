@@ -83,18 +83,17 @@ class Pipeline:
         runs = []
         if pages_only:
             current_run = [pages_only[0]]
-            current_category = getattr(pages_only[0], "category", None)
+            current_category = getattr(pages_only[0], "category", "unknown").lower()
             current_resident = getattr(pages_only[0], "canonical_tenant", None)
             
+            cohesive_cats = {"contract", "utility_bills"}
+            mixable_cats = {"letters", "forms", "others", "pictures", "id_cards"}
+            
             for page in pages_only[1:]:
-                cat = getattr(page, "category", None)
+                cat = getattr(page, "category", "unknown").lower()
                 resident = getattr(page, "canonical_tenant", None)
                 
-                # Do not split cohesive categories by resident
-                cohesive_cats = {"contract"}
                 same_resident = (resident == current_resident) if current_category not in cohesive_cats else True
-                
-                mixable_cats = {"letters", "forms", "others", "id_cards", "pictures"}
                 is_mixable = (cat in mixable_cats and current_category in mixable_cats)
                 
                 if (cat == current_category or is_mixable) and same_resident:
