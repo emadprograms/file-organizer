@@ -119,40 +119,46 @@ def process_with_shrink(
         prefix = get_admin_cat(p)
         return prefix in ['10', '11', '04']
 
+    def get_effective_type(p):
+        if is_maintenance(p): return "maintenance"
+        cat = get_admin_cat(p)
+        if cat == '05': return "contract"
+        if getattr(p, 'category', '') == 'utility_bills' or cat == '06': return "utility"
+        return "other"
+
+    types = [get_effective_type(p) for p in pages]
+    
+    for i in range(1, len(types) - 1):
+        if types[i] == "other":
+            if types[i-1] == types[i+1] and types[i-1] in ["maintenance", "contract"]:
+                types[i] = types[i-1]
+                
+    for i in range(1, len(types) - 2):
+        if types[i] == "other" and types[i+1] == "other":
+            if types[i-1] == types[i+2] and types[i-1] in ["maintenance", "contract"]:
+                types[i] = types[i-1]
+                types[i+1] = types[i-1]
+
     blocks = []
     current_block = [pages[0]]
+    current_type = types[0]
     for i in range(1, len(pages)):
-        p1 = pages[i-1]
-        p2 = pages[i]
-        
-        p1_maint = is_maintenance(p1)
-        p2_maint = is_maintenance(p2)
-        
-        p1_prefix = get_admin_cat(p1)
-        p2_prefix = get_admin_cat(p2)
-        
-        is_boundary = False
-        if p1_maint != p2_maint:
-            is_boundary = True
-        elif not p1_maint and not p2_maint:
-            if p1_prefix != p2_prefix:
-                is_boundary = True
-                
-        if is_boundary:
-            blocks.append(current_block)
-            current_block = [p2]
+        if types[i] != current_type:
+            blocks.append((current_type, current_block))
+            current_block = [pages[i]]
+            current_type = types[i]
         else:
-            current_block.append(p2)
+            current_block.append(pages[i])
     if current_block:
-        blocks.append(current_block)
+        blocks.append((current_type, current_block))
 
     final_groups: list[DocumentGroup] = []
     
-    for block in blocks:
+    for block_type, block in blocks:
         p1 = block[0]
         category = getattr(p1, 'category', 'unknown').lower()
         
-        if is_maintenance(p1) or get_admin_cat(p1) == '05':
+        if block_type in ["maintenance", "contract"]:
             start_page = getattr(block[0], "original_index", 0)
             end_page = getattr(block[-1], "original_index", len(block) - 1)
             primary_tenant = getattr(block[0], "canonical_tenant", "Unassigned")
@@ -161,7 +167,7 @@ def process_with_shrink(
                 d = getattr(p, "resolved_date", getattr(p, "date", None))
                 if d and d != "NONE":
                     dates.append(d)
-            reason_text = "Deterministic grouping: Maintenance Set." if is_maintenance(p1) else "Deterministic grouping: Contract."
+            reason_text = "Deterministic grouping: Maintenance Set." if block_type == "maintenance" else "Deterministic grouping: Contract."
             final_groups.append(DocumentGroup(
                 start_page=start_page,
                 end_page=end_page,
@@ -171,7 +177,7 @@ def process_with_shrink(
                 reason=reason_text,
                 brief_arabic_title=None
             ))
-        elif category == "utility_bills":
+        elif block_type == "utility":
             for i, page in enumerate(block):
                 d = getattr(page, "resolved_date", getattr(page, "date", None))
                 dates = [d] if d and d != "NONE" else []
