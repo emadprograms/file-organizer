@@ -1,36 +1,32 @@
-# Milestone v5.5: Pipeline Reversibility & Lossless Undo
+# Requirements for v6.0: LLM Accuracy & Evaluation
 
-## Overview
-Currently, the Generation Pass at the end of the pipeline slices the original scanned PDF into the Vault and deletes the original file. This prevents users from easily "undoing" a processed house if they want to re-run the pipeline from scratch. Saving a massive `.pdf` duplicate defeats the Vault's storage deduplication.
+## 1. OCR Golden Data Pre-processing (REQ-01)
+**Problem:** Uploading multi-megabyte PDFs to Gemini on every evaluation run is extremely slow and hits rate limits quickly.
+**Requirement:** 
+- A one-time Phase 62 script that extracts the `raw_dump.json` (OCR layer) for all 4 Golden PDFs using Gemini.
+- Must rotate through 4 distinct API keys from `.env` and `.env2` to prevent throttling.
+- Save the resulting JSON files directly to `tests/golden_data/`.
 
-This milestone leverages the chronological `[Timeline View]` folder. Because the Timeline perfectly preserves the physical page order of the original scan (`001 - ...`, `006 - ...`), the system can perfectly reconstruct the original deleted PDF on demand by stitching the referenced Vault documents back together in numerical order.
+## 2. Automated Evaluation Harness (REQ-02)
+**Problem:** We cannot optimize non-deterministic LLM prompts without a fast, reliable feedback loop.
+**Requirement:** 
+- A test script (`run_eval.py`) that executes the pipeline on the pre-processed `raw_dump.json` files for the 4 Golden PDFs.
+- The script must programmatically compare the pipeline's output to the Golden YAML datasets.
+- It must generate a scoreboard showing the accuracy percentage for Canonicalization, Grouping, and Routing to guide prompt engineering.
 
-## Requirements
+## 3. Name Canonicalization Accuracy (REQ-03)
+**Problem:** The system creates random/duplicate folders because it fails to map extracted names (e.g., "Abdullah Mehmood") to the exact key in `tenants.yaml` (e.g., "Abdullah Hamid Mahmoud").
+**Requirement:** 
+- Tweak prompts and extraction logic using Gemma-4-31B to achieve **100% accuracy** in name canonicalization.
+- The pipeline must output exactly the number of tenants specified in the Golden YAML. No hallucinated or extraneous folders are allowed.
 
-### Functional
-1. **`undo` CLI Command:** Implement `python src/main.py undo "D:/Areas/.../House_Dir"`.
-2. **Lossless PDF Reconstruction:** 
-   - Read `_state.json` and extract the `routed_documents` array.
-   - Sort the documents strictly by their `start_page` to ensure perfect chronological scan order.
-   - Retrieve the corresponding `doc_<vault_id>.pdf` for each document from the Vault.
-   - Use `PyMuPDF` (`fitz`) to merge them into a single continuous `568.pdf` in the exact original sequence.
-3. **Restoration & Cleanup:**
-   - Place the rebuilt `568.pdf` at the root of the target directory.
-   - Completely delete the `.source_files/vault/`, `[Timeline View]/`, all tenant folders, and Jasons (`_report.json`, `_state.json`, etc.).
-   - Leave the directory in its virgin, pre-processed state.
+## 4. Grouping Logic Accuracy (REQ-04)
+**Problem:** Pages that belong together are split, and unrelated pages are merged.
+**Requirement:** 
+- Recursively optimize the LLM grouping prompts.
+- Target **95%+ accuracy** in identifying correct document boundaries. If LLM reasoning limits are hit, a fallback to a minimum of 85% is acceptable.
 
-4. **`_report.json` Paradigm Shift:**
-   - The messy, raw AI per-page extraction (currently saved as `_report.json`) must be hidden away. It should be saved directly into `_state.json` (e.g., as `raw_classified_pages`) or as a hidden `.raw_dump.json`.
-   - A *brand new* `_report.json` must be generated at the very end of the pipeline.
-   - This new `_report.json` must perfectly mirror the `[Timeline View]`. It will be an array of Grouped Documents, structured sequentially by their scan order (matching the `001`, `006` Timeline numbers), containing their finalized dates, assigned folders, and Vault IDs.
-   - This applies to both `create` and `append` modes.
-
-5. **Migration Script:**
-   - Build a migration script that scans existing processed houses.
-   - It will take the old, messy `_report.json` and ingest it into `_state.json`.
-   - It will then generate the new, grouped `_report.json` based on the finalized timeline structure to bring old houses up to the v5.5 standard.
-
-6. **Testing:**
-   - Update existing tests to reflect the new `_report.json` generation.
-   - Add new end-to-end tests for the `undo` command.
-   - Add tests for the `migrate` script.
+## 5. Routing Logic Accuracy (REQ-05)
+**Problem:** The overarching logic incorrectly routes grouped documents.
+**Requirement:** 
+- Maximize the final routing accuracy so that categorized documents map correctly to their intended physical structure.

@@ -4,14 +4,15 @@
 
 A document management system that processes scanned Arabic PDFs, categorizes them using LLM vision, groups related pages, and organizes them into a structured folder hierarchy per tenant household. The system runs on Windows and uses a Vault-based architecture with shortcuts for file organization and bidirectional reconciliation.
 
-## Current Milestone: v5.5 (Pipeline Reversibility & Lossless Undo)
+## Current Milestone: v6.0 (LLM Accuracy & Evaluation)
 
-**Goal:** Provide an elegant, space-efficient method to completely reverse the pipeline without keeping a duplicate copy of the original raw PDF. 
+**Goal:** Establish a rigorous automated testing framework using Golden Datasets, and recursively prompt-engineer the LLM to achieve extremely high accuracy in name canonicalization, grouping, and routing.
 
 **Target features:**
-- Implement an `undo` command in the CLI.
-- Dynamically reconstruct the original PDF by reading the `[Timeline View]` shortcuts to get the exact original page order and stitching the Vault documents together.
-- Delete all generated output (Vault, Jasons, Tenant Folders) and leave the folder in its virgin state with just the reconstructed PDF.
+- **Evaluation Harness:** A programmatic test script that runs the pipeline on raw PDFs and grades the output against Golden YAMLs.
+- **Name Canonicalization:** 100% accuracy in matching LLM-extracted names to the correct `tenants.yaml` keys without hallucinating extra folders.
+- **Grouping Logic:** 95%+ accuracy in identifying document boundaries (falling back to 85% if LLM limits are hit).
+- **Routing Logic:** Maximize accuracy in placing documents into the correct structural folders.
 
 ## Core Value
 
@@ -86,8 +87,6 @@ Documents are safely stored once in an immutable vault; all organization is done
 
 ### Out of Scope
 
-- Grouping logic changes — fixing how pages are merged into documents is deferred to a future milestone.
-- Name canonicalization — fixing how family members are grouped requires a separate phase with LLM prompt redesign.
 - macOS support — this milestone targets Windows only (`.lnk` shortcuts).
 
 ## Current State
@@ -104,6 +103,7 @@ Documents are safely stored once in an immutable vault; all organization is done
 - ✅ Shipped v5.2 Deep Architecture Integrity & Verification on 2026-08-01.
 - ✅ Shipped v5.3 Reconciliation Engine Upgrade on 2026-08-01.
 - ✅ Shipped v5.4 Architectural Consistency Refactor on 2026-08-02.
+- ⏸️ Pivoted from v5.5 (Lossless Undo) to v6.0 (LLM Accuracy) on 2026-08-10.
 
 ## Context
 

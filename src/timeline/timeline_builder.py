@@ -24,7 +24,9 @@ def build_tenant_timelines(
     Raises:
         RuntimeError: If a timeline has a minimum date later than its maximum date.
     """
-    anchor_categories = {"contract", "forms", "id_cards"}
+    # Anchors: contracts, forms (e.g. key handover), and letters (e.g. allocation order, deduction letters).
+    # ID Cards are EXCLUDED because they can belong to dependents without establishing a new timeline.
+    anchor_categories = {"contract", "forms", "letters"}
     
     tenant_stats = {}
     for page in pages:

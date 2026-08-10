@@ -89,9 +89,11 @@ def canonicalize_with_llm(
         allowed_list = json.dumps(allowed_tenants, ensure_ascii=False)
         prompt = f"""
 Please map the following raw tenant names to unified canonical identities.
-IMPORTANT: You MUST map each raw name STRICTLY to one of the following known identities:
+IMPORTANT INSTRUCTIONS:
+1. You MUST map each raw name STRICTLY to one of the following known identities:
 {allowed_list}
-Is this name similar to any of the names here?
+2. FAMILY MEMBERS: If a raw name belongs to a dependent (child, wife, sibling) and shares a family name or patronymic sequence with one of the allowed identities (the Head of Household), you MUST map the dependent to that Head of Household. People from the same family MUST go into the same folder.
+Is this name similar to, or a dependent of, any of the names here?
 
 Raw names:
 {json.dumps(unresolved_names, ensure_ascii=False)}
@@ -101,8 +103,10 @@ Respond ONLY with a JSON dictionary where keys are the raw names and values are 
     else:
         prompt = f"""
 Please map the following raw tenant names to unified canonical identities.
-Merge transliterations and OCR errors into a single canonical name.
-IMPORTANT: Output all canonical identities strictly in Arabic.
+IMPORTANT INSTRUCTIONS:
+1. Merge transliterations and OCR errors into a single canonical name.
+2. FAMILY MEMBERS: If a name belongs to a dependent (child, wife, sibling) and shares a family name or patronymic sequence with the Head of Household, you MUST map the dependent's name to the Head of Household's name. (e.g., Map 'Hisham Qassim Ahmed' to 'Qassim Ahmed' if both are present or implied). People from the same family MUST go into the same folder.
+3. Output all canonical identities strictly in Arabic.
 
 Raw names:
 {json.dumps(unresolved_names, ensure_ascii=False)}

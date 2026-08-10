@@ -175,7 +175,7 @@ def process_cleaning_phase(
     infer_missing_dates(pages)
     
     logger.info("\n>>> NAME CLEANING WORKFLOW")
-    anchor_categories = {"contract", "forms", "id_cards"}
+    anchor_categories = {"contract", "forms", "letters"}
     unique_anchors_seen = set()
     
     for page in pages:

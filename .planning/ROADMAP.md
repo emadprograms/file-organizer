@@ -2,7 +2,8 @@
 
 ## Milestones
 
-- 🏃 **v5.5 Pipeline Reversibility & Lossless Undo** — Phases 58-61 (Active)
+- 🏃 **v6.0 LLM Accuracy & Evaluation** — Phases 62-66 (Active)
+- ⏸️ **v5.5 Pipeline Reversibility & Lossless Undo** — Phases 58-61 (Pivoted 2026-08-07)
 - ✅ **v5.4 Architectural Consistency Refactor** — Phases 49-57 (shipped 2026-08-02)
 - ✅ **v3.0 Unified File-System UI & Append Mode** — Phases 20-24.1 (shipped 2026-07-24)
 - ✅ **v4.0 Architectural Cleanup** — Phases 25-29.1 (shipped 2026-07-31)
@@ -14,7 +15,27 @@
 ## Phases
 
 <details open>
-<summary>🏃 v5.5 Pipeline Reversibility & Lossless Undo (Phases 58-61) — ACTIVE</summary>
+<summary>🏃 v6.0 LLM Accuracy & Evaluation (Phases 62-66) — ACTIVE</summary>
+
+### Phase 62: OCR Golden Data Pre-processing
+**Goal:** Generate the OCR `raw_dump.json` for the 4 Golden PDFs (Houses 1155, 1166, 1176, 1492) using Gemini (rotating 4 different API keys from `.env` and `.env2`). Save them in `tests/golden_data/` so subsequent prompt testing is fast and doesn't require re-uploading PDFs.
+
+### Phase 63: Evaluation & Testing Harness
+**Goal:** Build a script (`run_eval.py`) that uses the pre-processed `raw_dump.json` and grades the output against the Golden YAMLs to output a clear accuracy scoreboard.
+
+### Phase 64: Name Canonicalization
+**Goal:** (Using Gemma-4-31B) Recursively tweak prompts and logic until we hit 100% accuracy in mapping extracted names to existing `tenants.yaml` keys without creating duplicate/random folders.
+
+### Phase 65: Grouping Logic
+**Goal:** Recursively tweak prompts and logic until we hit 95%+ accuracy (or best possible) in identifying document boundaries and keeping related pages together.
+
+### Phase 66: Routing Logic
+**Goal:** Maximize the final routing accuracy so documents end up in the precise structural destinations intended.
+
+</details>
+
+<details>
+<summary>⏸️ v5.5 Pipeline Reversibility & Lossless Undo (Phases 58-61) — PIVOTED</summary>
 
 ### Phase 58: Lossless Undo Command
 - [x] Implement `python src/main.py undo <target_dir>`
