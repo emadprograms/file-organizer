@@ -88,8 +88,8 @@ def main():
         env = dotenv_values(".env")
         api_key = env.get("GEMINI_API_KEY")
         
-    client = LLMClient(api_key=api_key, delay_between_pages=0.2)
-    client.default_model = "gemini-3.5-flash"
+    client = LLMClient(api_key=api_key, delay_between_pages=7.0)
+    client.default_model = "gemma-4-31b-it"
     
     target_dir = Path("tests/golden_data")
     houses = ["1155_R3322", "1166_R3322", "1176_R3322", "1492_R3300"]

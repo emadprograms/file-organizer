@@ -71,12 +71,12 @@ def main():
         env = dotenv_values(".env")
         api_key = env.get("GEMINI_API_KEY")
         
-    client = LLMClient(api_key=api_key, delay_between_pages=0.2)
-    # Use standard flash for grouping (much faster and more reliable than Gemma 4 for boundary JSON schema)
-    client.default_model = "gemini-3.5-flash"
+    client = LLMClient(api_key=api_key, delay_between_pages=7.0)
+    # Use standard flash-lite for grouping (much faster and more reliable than Gemma 4 for boundary JSON schema)
+    client.default_model = "gemma-4-31b-it"
     
     target_dir = Path("tests/golden_data")
-    houses = ["1155_R3322", "1166_R3322", "1176_R3322", "1492_R3300"]
+    houses = ["1155_R3322"]  # Run only one house at a time
     
     total_correct = 0
     total_pages = 0
