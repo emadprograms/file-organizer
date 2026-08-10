@@ -7,6 +7,10 @@ from src.llm.llm import LLMClient
 from src.timeline.phase import load_and_parse_json
 from src.pipeline.pipeline import Pipeline
 from src.core.schemas import DocumentGroup
+from src.categorization.fine_categorization import process_fine_categorization
+from src.routing.config import FOLDER_PREFIXES
+
+PREFIX_TO_FOLDER = {str(int(v)): k for k, v in FOLDER_PREFIXES.items()}
 
 def evaluate_routing(house_id: str, golden_yaml_path: Path, raw_dump_path: Path, llm_client: LLMClient) -> tuple[int, int]:
     # 1. Load Golden Truth Routing & Grouping
@@ -22,7 +26,17 @@ def evaluate_routing(house_id: str, golden_yaml_path: Path, raw_dump_path: Path,
             if pages:
                 start = min(pages) - 1
                 end = max(pages) - 1
-                expected_routes[(start, end)] = doc['expected_path']
+                
+                cat_id = str(doc.get('category', ''))
+                # Handle possible leading zeros or different formats
+                try:
+                    cat_id = str(int(cat_id))
+                except ValueError:
+                    pass
+                    
+                expected_folder = PREFIX_TO_FOLDER.get(cat_id, "Unknown")
+                expected_routes[(start, end)] = expected_folder
+                
                 for p in pages:
                     truth_page_map[p - 1] = tenant_name
                     
@@ -34,11 +48,38 @@ def evaluate_routing(house_id: str, golden_yaml_path: Path, raw_dump_path: Path,
         if not getattr(page, "resolved_date", None):
             page.resolved_date = getattr(page, "date", None)
             
+    # 2.5 Run Fine Categorization
+    print(f"Running fine categorization for {house_id}...")
+    cache_path = Path(str(raw_dump_path) + '.fine_cache.json')
+    
+    if cache_path.exists():
+        with open(cache_path, 'r', encoding='utf-8') as f:
+            cache_data = json.load(f)
+        for idx, page in enumerate(pages):
+            str_idx = str(idx)
+            if str_idx in cache_data:
+                page.fine_category = cache_data[str_idx].get('fine_category')
+                page.fine_category_reason = cache_data[str_idx].get('fine_category_reason')
+    else:
+        pages = process_fine_categorization(pages, llm_client)
+        cache_data = {}
+        for idx, page in enumerate(pages):
+            cache_data[str(idx)] = {
+                'fine_category': getattr(page, 'fine_category', None),
+                'fine_category_reason': getattr(page, 'fine_category_reason', None)
+            }
+        with open(cache_path, 'w', encoding='utf-8') as f:
+            json.dump(cache_data, f, ensure_ascii=False, indent=2)
+
     # 3. Construct Perfect DocumentGroups (Bypass Grouping Phase Completely)
     perfect_groups = []
     for (start, end), expected_path in expected_routes.items():
         g_pages = pages[start:end+1]
-        category = getattr(g_pages[0], "category", "UNKNOWN")
+        first_page = g_pages[0]
+        category = getattr(first_page, "fine_category", getattr(first_page, "category", "UNKNOWN"))
+        reason = getattr(first_page, "fine_category_reason", "Perfect Golden Grouping")
+        title = getattr(first_page, "subject", getattr(first_page, "content_explanation", None))
+        
         primary_tenant = truth_page_map.get(start, "Unassigned")
         dates = [getattr(p, "resolved_date", None) for p in g_pages if getattr(p, "resolved_date", None)]
         
@@ -48,8 +89,8 @@ def evaluate_routing(house_id: str, golden_yaml_path: Path, raw_dump_path: Path,
             primary_tenant=primary_tenant,
             category=category,
             dates=dates,
-            reason="Perfect Golden Grouping",
-            brief_arabic_title=None
+            reason=reason,
+            brief_arabic_title=title
         )
         perfect_groups.append(doc_group)
         

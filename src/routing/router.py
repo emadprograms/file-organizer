@@ -165,10 +165,20 @@ def route_document(group: DocumentGroup, llm_client: Any, model: str | None = No
         RoutingValidationError: If the document category has no mapping or LLM routing fails repeatedly.
     """
     category = group.category.lower() if group.category else "unknown"
+    
+    for folder_name, prefix in FOLDER_PREFIXES.items():
+        if category in (
+            f"{prefix}-{folder_name}".lower(),
+            f"{prefix}_{folder_name}".lower(),
+            f"{prefix} - {folder_name}".lower()
+        ):
+            category = folder_name.lower()
+            break
+            
     category_upper = category.upper()
     
     # Trigger double-check for others immediately
-    if category in ("others", "other_letters"):
+    if category in ("others", "other_letters", "رسائل متنوعة"):
         logger.info(f"Category '{category}' detected for pages {group.start_page}-{group.end_page}. Triggering double-check flow.")
         folder = double_check_others(group, llm_client, model=model)
         return folder, False
