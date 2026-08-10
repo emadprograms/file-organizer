@@ -34,6 +34,8 @@ class PageData(BaseModel):
     resolved_date: Optional[str] = None
     original_index: int
     user_locked: bool = False
+    fine_category: Optional[str] = None
+    fine_category_reason: Optional[str] = None
 
 class TenantTimeline(BaseModel):
     """Data model representing the active timeline for a canonical tenant.

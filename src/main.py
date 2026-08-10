@@ -19,8 +19,7 @@ from src.llm.llm import LLMClient
 from src.timeline.phase import process_cleaning_phase
 from src.core.exceptions import ConfigurationError, ValidationError, FileOrganizerError
 from src.categorization.categorization import process_unclassified_pdf
-from src.pipeline.runner import run_cleaning_pass, run_grouping_pass, run_routing_pass, run_generation_pass
-
+from src.pipeline.runner import run_cleaning_pass, run_fine_categorization_pass, run_grouping_pass, run_routing_pass, run_generation_pass
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def validate_environment() -> None:
@@ -388,8 +387,12 @@ def main() -> int:
                     state = State(house_id, state_dir)
                     
                     cleaned_pages, yaml_data = run_cleaning_pass(json_path, state, llm_client, logger, args.dry_run, house_id, target_dir)
-                    documents = run_grouping_pass(cleaned_pages, state, house_id, output_dir, llm_client, logger, args.dry_run)
+                    
                     routing_model_to_use = getattr(args, 'routing_model', None) or args.model
+                    
+                    fine_categorized_pages = run_fine_categorization_pass(cleaned_pages, state, llm_client, logger, args.dry_run, routing_model_to_use)
+                    
+                    documents = run_grouping_pass(fine_categorized_pages, state, house_id, output_dir, llm_client, logger, args.dry_run)
                     documents = run_routing_pass(documents, state, house_id, output_dir, llm_client, logger, args.dry_run, routing_model_to_use)
                     run_generation_pass(documents, target_dir, house_id, output_dir, logger, args.dry_run, json_path, yaml_data, state=state)
             except Exception as e:

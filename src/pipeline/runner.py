@@ -49,6 +49,30 @@ def run_cleaning_pass(json_path: Path, state: Any, llm_client: Any, logger: logg
     return cleaned_pages, yaml_data
 
 
+def run_fine_categorization_pass(cleaned_pages: list[Any], state: Any, llm_client: Any, logger: logging.Logger, dry_run: bool, routing_model: str | None = None) -> list[Any]:
+    """Run Pass 2: Fine-Grained Categorization."""
+    from src.categorization.fine_categorization import process_fine_categorization
+    
+    if state.data.get("fine_categorized_pages"):
+        logger.info(f"Skipping Pass 2 Fine Categorization (found in state). Loading fine-categorized data.")
+        from src.core.models import PageData
+        return [PageData(**p) for p in state.data["fine_categorized_pages"]]
+        
+    logger.info("Starting Pass 2 — Fine-Grained Categorization")
+    
+    fine_categorized_pages = process_fine_categorization(cleaned_pages, llm_client, model=routing_model)
+    
+    if not dry_run:
+        state.data["fine_categorized_pages"] = [p.model_dump() for p in fine_categorized_pages]
+        state.save()
+        logger.info(f"Wrote fine categorized data to state")
+    else:
+        logger.info(f"  [DRY RUN] Would write fine categorized data to state")
+        
+    return fine_categorized_pages
+
+
+
 def run_grouping_pass(cleaned_pages: list[Any], state: Any, house_id: str, output_dir: Path, llm_client: Any, logger: logging.Logger, dry_run: bool) -> list[Any]:
     """Run the second pass of the document pipeline: Grouping."""
     from src.pipeline.pipeline import Pipeline
