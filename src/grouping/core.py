@@ -2,10 +2,10 @@
 import logging
 from typing import Any, Optional
 from src.core.schemas import DocumentGroup, GroupingResponse
-from src.core.exceptions import ProviderRotationExhaustedError, GracefulHaltException
+from src.core.exceptions import ProviderRotationExhaustedError, GracefulHaltException, PipelineHaltError
 from src.llm.llm import LLMFailureError
 from src.grouping.utils import verify_groups, merge_chunks
-from src.grouping.config import LETTER_PROMPT, FORM_PROMPT, OTHER_PROMPT
+from src.grouping.config import MAINTENANCE_PROMPT, STRICT_ADMIN_PROMPT, OTHER_PROMPT
 from src.grouping.state import GroupingStateManager, GroupingState
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
@@ -123,7 +123,7 @@ def process_with_shrink(
     final_groups: list[DocumentGroup] = []
 
     # Deterministic Bypass Paths
-    if category in ["contract", "id_cards", "pictures"]:
+    if category in ["contract"]:
         start_page = getattr(pages[0], "original_index", 0)
         end_page = getattr(pages[-1], "original_index", len(pages) - 1)
         primary_tenant = getattr(pages[0], "canonical_tenant", "Unassigned")
@@ -166,14 +166,27 @@ def process_with_shrink(
         cats_in_chunk = {getattr(p, 'category', 'unknown').lower() for p in pages}
         is_mixed = len(cats_in_chunk) > 1
 
-        if category in ["letters", "forms", "others"] or is_mixed:
-            CHUNK_SIZES = [4, 3, 2]
-            prompt_template = LETTER_PROMPT
+        if category in ["letters", "forms", "others", "id_cards", "pictures"] or is_mixed:
             content_field = "dynamic"
         else:
-            CHUNK_SIZES = [4, 3, 2]
-            prompt_template = FORM_PROMPT
             content_field = "content_explanation"
+
+        maintenance_keywords = ['صيانة', 'ترميم', 'شاملة', 'مقاول']
+        is_maintenance = False
+        for p in pages:
+            subject = getattr(p, 'subject', '') or ''
+            content = getattr(p, 'content_explanation', '') or ''
+            combined_text = (str(subject) + ' ' + str(content))
+            if any(kw in combined_text for kw in maintenance_keywords):
+                is_maintenance = True
+                break
+        
+        if is_maintenance:
+            CHUNK_SIZES = [22, 15, 10]
+            prompt_template = MAINTENANCE_PROMPT
+        else:
+            CHUNK_SIZES = [4, 3, 2]
+            prompt_template = STRICT_ADMIN_PROMPT
 
         # State Initialization
         if state_manager:

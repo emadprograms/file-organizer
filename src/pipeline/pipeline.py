@@ -91,10 +91,10 @@ class Pipeline:
                 resident = getattr(page, "canonical_tenant", None)
                 
                 # Do not split cohesive categories by resident
-                cohesive_cats = {"id_cards", "contract", "pictures"}
+                cohesive_cats = {"contract"}
                 same_resident = (resident == current_resident) if current_category not in cohesive_cats else True
                 
-                mixable_cats = {"letters", "forms", "others"}
+                mixable_cats = {"letters", "forms", "others", "id_cards", "pictures"}
                 is_mixable = (cat in mixable_cats and current_category in mixable_cats)
                 
                 if (cat == current_category or is_mixable) and same_resident:
