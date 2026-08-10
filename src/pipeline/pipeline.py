@@ -94,7 +94,10 @@ class Pipeline:
                 cohesive_cats = {"id_cards", "contract", "pictures"}
                 same_resident = (resident == current_resident) if current_category not in cohesive_cats else True
                 
-                if cat == current_category and same_resident:
+                mixable_cats = {"letters", "forms", "others"}
+                is_mixable = (cat in mixable_cats and current_category in mixable_cats)
+                
+                if (cat == current_category or is_mixable) and same_resident:
                     current_run.append(page)
                 else:
                     runs.append(current_run)

@@ -37,12 +37,21 @@ def _process_chunk(
     
     page_descriptions = []
     for i, p in enumerate(chunk_pages):
-        main_text = getattr(p, content_field, getattr(p, 'content_explanation', ''))
-        if content_field == "subject":
-            context = getattr(p, 'content_explanation', '')
-            text = f"Subject: {main_text}\nContext: {context}" if context else main_text
+        if content_field == "dynamic":
+            cat = getattr(p, 'category', '')
+            if cat == "letters" and getattr(p, "subject", ""):
+                main_text = getattr(p, "subject")
+                context = getattr(p, 'content_explanation', '')
+                text = f"Subject: {main_text}\nContext: {context}" if context else main_text
+            else:
+                text = getattr(p, 'content_explanation', '')
         else:
-            text = main_text
+            main_text = getattr(p, content_field, getattr(p, 'content_explanation', ''))
+            if content_field == "subject":
+                context = getattr(p, 'content_explanation', '')
+                text = f"Subject: {main_text}\nContext: {context}" if context else main_text
+            else:
+                text = main_text
         page_descriptions.append(f"Page {current_page_index + i}: {text}")
         
     pages_text = "\n".join(page_descriptions)
@@ -154,14 +163,13 @@ def process_with_shrink(
             ))
     else:
         # Dynamic Routing Paths
-        if category == "others":
-            CHUNK_SIZES = [2]
-            prompt_template = OTHER_PROMPT
-            content_field = "content_explanation"
-        elif category == "letters":
+        cats_in_chunk = {getattr(p, 'category', 'unknown').lower() for p in pages}
+        is_mixed = len(cats_in_chunk) > 1
+
+        if category in ["letters", "forms", "others"] or is_mixed:
             CHUNK_SIZES = [4, 3, 2]
             prompt_template = LETTER_PROMPT
-            content_field = "subject"
+            content_field = "dynamic"
         else:
             CHUNK_SIZES = [4, 3, 2]
             prompt_template = FORM_PROMPT
