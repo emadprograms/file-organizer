@@ -23,10 +23,11 @@
 ### Phase 63: Evaluation & Testing Harness
 **Goal:** Build a script (`run_eval.py`) that uses the pre-processed `raw_dump.json` and grades the output against the Golden YAMLs to output a clear accuracy scoreboard.
 
-### Phase 64: Name Canonicalization
+### Phase 64: Name Canonicalization (Completed)
 **Goal:** (Using Gemma-4-31B) Recursively tweak prompts and logic until we hit 100% accuracy in mapping extracted names to existing `tenants.yaml` keys without creating duplicate/random folders.
+*Status: Hit 99.07% practical accuracy on clean dataset (1492).*
 
-### Phase 65: Grouping Logic
+### Phase 65: Grouping Logic (ACTIVE)
 **Goal:** Recursively tweak prompts and logic until we hit 95%+ accuracy (or best possible) in identifying document boundaries and keeping related pages together.
 
 ### Phase 66: Routing Logic
@@ -180,6 +181,9 @@ See [.planning/milestones/v5.4-ROADMAP.md](milestones/v5.4-ROADMAP.md) for full 
 | 59. _report.json Paradigm Shift | v5.5 | 1/1 | Complete | 2026-08-07 |
 | 60. Migration Script | v5.5 | 1/1 | Complete | 2026-08-07 |
 | 61. Test Suite Update | v5.5 | 1/1 | Complete | 2026-08-07 |
+| 62. OCR Golden Data Pre-processing | v6.0 | 1/1 | Complete | 2026-08-10 |
+| 63. Evaluation & Testing Harness | v6.0 | 1/1 | Complete | 2026-08-10 |
+| 64. Name Canonicalization | v6.0 | 1/1 | Complete | 2026-08-10 |
 
 
 
