@@ -25,6 +25,7 @@ def process_fine_categorization(pages: list[Any], llm_client: Any, model: str | 
     """Run fine-grained categorization on each page."""
     
     processed_indices = set()
+    logger.info(f"DEBUG: run_checkpoint_path is {run_checkpoint_path}")
     if run_checkpoint_path and os.path.exists(run_checkpoint_path):
         try:
             with open(run_checkpoint_path, 'r', encoding='utf-8') as f:
@@ -45,7 +46,8 @@ def process_fine_categorization(pages: list[Any], llm_client: Any, model: str | 
         prompt_template += f"- {prefix}-{name}: {desc}\n"
         
     prompt_template += "\nRead the page carefully. You MUST output a `reason` field first to explain your thought process, followed by the `category` field with EXACTLY ONE of the above categories."
-    prompt_template += "\n\nCRITICAL WARNING: The previous extraction pass may have incorrectly described an ID card as a 'form'. Do not be fooled! If the content clearly mentions a CPR, National ID, Smart Card, or Passport, you MUST classify it as `02-بيانات شخصية` (Personal Details), even if the text refers to it as a form or application."
+    prompt_template += "\n\nCRITICAL RULE 1 (ID CARDS MUST GO TO 02): NEVER put ID cards, CPRs, National IDs, passports, or smart cards in `01-بيانات أساسية`. Even if the text mentions 'form', if it is an identity document, you MUST categorize it as `02-بيانات شخصية` (Personal Details). This is a strict rule."
+    prompt_template += "\n\nCRITICAL RULE 2 (ROSTERS MUST GO TO 13): NEVER put pages with multiple names, tables of personnel, eviction rosters, or tracking sheets in `01-بيانات أساسية`. Any document listing multiple people MUST go to `13-رسائل متنوعة` (Miscellaneous). `01-بيانات أساسية` is ONLY for a single tenant's personal form."
     
     for idx, page in enumerate(pages):
         if idx in processed_indices:

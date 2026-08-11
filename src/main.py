@@ -47,32 +47,32 @@ def validate_target_directory(target_dir: Path) -> list[str]:
     if not target_dir.is_dir():
         raise ValidationError(f"Target directory does not exist or is not a directory: {target_dir}")
         
+    # Check for resume state
+    state_file = target_dir / ".source_files" / f"{target_dir.name}_state.json"
+    
     # Make globs more permissive in case of renames (e.g., _categorized (1).pdf)
     pdf_files = [p for p in (list(target_dir.glob("*.pdf")) + list((target_dir / ".source_files").glob("*.pdf"))) if p.is_file()]
     json_files = [p for p in (list(target_dir.glob("*_report*.json")) + list((target_dir / ".source_files").glob("*_report*.json")) + list(target_dir.glob("*.raw_dump.json")) + list((target_dir / ".source_files").glob("*.raw_dump.json"))) if p.is_file()]
     
-    if len(pdf_files) == 0:
-        raise ValidationError("No PDF found in the target directory.")
         
     if len(json_files) == 0:
         raise ValidationError("No .raw_dump.json or _report.json found in the target directory.")
         
     ids = []
     
-    for pdf_file in pdf_files:
-        pdf_match = re.search(r'^(.*?)_(?:categorized|finalized)', pdf_file.name)
-        pdf_id = pdf_match.group(1) if pdf_match else pdf_file.stem
-        
-        # Check if there's a matching JSON report
-        matching_jsons = [j for j in json_files if j.name.startswith(f"{pdf_id}_") or j.name.startswith(f"{pdf_id}.")]
-        if not matching_jsons:
-            logger.warning(f"ID mismatch: PDF ({pdf_id}) has no matching JSON report.")
+    for json_file in json_files:
+        name = json_file.name
+        if "_old" in name:
             continue
+        if "_report" in name:
+            json_id = name.split("_report")[0]
+            ids.append(json_id)
+        elif ".raw_dump.json" in name:
+            json_id = name.split(".raw_dump.json")[0]
+            ids.append(json_id)
             
-        ids.append(pdf_id)
-        
     if not ids:
-        raise ValidationError("No matching PDF and JSON pairs found.")
+        raise ValidationError("No valid JSON reports found.")
         
     # Return unique IDs preserving order
     return list(dict.fromkeys(ids))

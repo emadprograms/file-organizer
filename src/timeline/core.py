@@ -160,6 +160,19 @@ class FileOrganizer:
                 merge_and_remove_dir(target_dir, house_dir)
         else:
             house_dir.mkdir(parents=True, exist_ok=True)
+            
+        if not prepend_mode:
+            import shutil
+            vault_dir = house_dir / ".source_files" / "vault"
+            timeline_dir = house_dir / "[Timeline View]"
+            if timeline_dir.exists():
+                shutil.rmtree(timeline_dir, ignore_errors=True)
+            if vault_dir.exists():
+                shutil.rmtree(vault_dir, ignore_errors=True)
+            if house_dir.exists():
+                for item in house_dir.iterdir():
+                    if item.is_dir() and "(" in item.name and ")" in item.name and " - " in item.name:
+                        shutil.rmtree(item, ignore_errors=True)
 
         from src.routing.config import FOLDER_ROUTING, FOLDER_PREFIXES
         for folder_name in tenant_folder_names.values():

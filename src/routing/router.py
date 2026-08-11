@@ -183,7 +183,7 @@ def route_document(group: DocumentGroup, llm_client: Any, model: str | None = No
         logger.info(f"Category '{category}' detected for pages {group.start_page}-{group.end_page}. Triggering double-check flow.")
         folder = double_check_others(group, llm_client, category_name=cat_name, model=model)
         return folder, False
-
+        
     # 1. Try Direct Routing via Formal Categories (SINGLE_MATCH)
     if category_upper in SINGLE_MATCH:
         folder = CATEGORY_TO_FOLDERS[category_upper][0]
@@ -274,6 +274,38 @@ Respond only with a valid JSON matching the requested schema. The selected_folde
                 logger.info(f"Document (pages {group.start_page}-{group.end_page}) routed to escape hatch '{ESCAPE_HATCH}'. Triggering double-check flow.")
                 selected = double_check_others(group, llm_client, category_name="رسائل متنوعة", model=model)
                 reason = "Routed via escape hatch -> Double-check"
+            elif selected == "بيانات أساسية":
+                logger.info(f"LLM routed pages {group.start_page}-{group.end_page} to Basic Details. Triggering Basic Details double-check flow.")
+                confirm_prompt = f"""You are an expert document routing verifier.
+This document was categorized as 'بيانات أساسية' (Basic Details). We must verify this is correct.
+
+RULE 1: If it is an ID Card, CPR, Passport, or Smart Card, it MUST be 'بيانات شخصية' (Personal Details).
+RULE 2: If it is a table/roster containing multiple people's names, it MUST be 'رسائل متنوعة' (Miscellaneous).
+RULE 3: Only if it is a comprehensive form for ONE specific tenant, it remains 'بيانات أساسية'.
+
+Document Summary: {group.brief_arabic_title or 'N/A'}
+Reasoning: {group.reason or 'N/A'}
+
+Allowed Folders:
+- بيانات أساسية
+- بيانات شخصية
+- رسائل متنوعة
+
+Respond only with a valid JSON matching the requested schema.
+"""
+                try:
+                    confirm_result = llm_client.generate_content(
+                        contents=[confirm_prompt],
+                        response_schema=RoutingResponse,
+                        validation_context={'allowed_folders': ["بيانات أساسية", "بيانات شخصية", "رسائل متنوعة"]},
+                        model=model
+                    )
+                    if confirm_result and confirm_result.selected_folder != "بيانات أساسية":
+                        logger.info(f"Basic Details double-check changed routing to '{confirm_result.selected_folder}'.")
+                        selected = confirm_result.selected_folder
+                        reason = f"Intercepted! Originally Basic Details, changed to {selected} by double-check."
+                except Exception as e:
+                    logger.warning(f"Basic Details double-check failed: {e}. Falling back to 'بيانات أساسية'.")
             
             logger.info(f"Routed category '{category}' (pages {group.start_page}-{group.end_page}) to '{selected}'. Reason: {reason}")
             from src.utils.logger import log_decision_trace

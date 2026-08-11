@@ -212,7 +212,7 @@ def process_with_shrink(
                 
                 has_maintenance = any(is_maintenance(p) for p in block[current_page_index:min(current_page_index + 22, len(block))])
                 CHUNK_SIZES = [22, 11, 5] if has_maintenance else [4, 3, 2]
-                prompt_template = STRICT_ADMIN_PROMPT
+                prompt_template = MAINTENANCE_PROMPT if has_maintenance else STRICT_ADMIN_PROMPT
                     
                 chunk_size = CHUNK_SIZES[chunk_size_idx if chunk_size_idx < len(CHUNK_SIZES) else -1]
                 end_index = min(current_page_index + chunk_size, len(block))

@@ -190,10 +190,15 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
         )
         house_dir = output_dir / full_house_id
     
-    if not dry_run and target_dir != house_dir and not pdf_path.exists():
-        new_pdf_path = house_dir / pdf_path.name
-        if new_pdf_path.exists():
-            pdf_path = new_pdf_path
+    if not dry_run and target_dir != house_dir:
+        if state is not None:
+            state.state_dir = house_dir / ".source_files"
+            state.state_file = state.state_dir / f"{state.house_id}_state.json"
+        
+        if not pdf_path.exists():
+            new_pdf_path = house_dir / pdf_path.name
+            if new_pdf_path.exists():
+                pdf_path = new_pdf_path
 
     try:
         with fitz.open(str(pdf_path)) as pdf_doc:
