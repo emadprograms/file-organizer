@@ -83,7 +83,7 @@ def run_undo(target_dir: Path) -> int:
                 for item in search_dir.iterdir():
                     if item.is_file():
                         name = item.name.lower()
-                        if name.endswith(".raw_dump.json") or ("_report" in name and name.endswith(".json")) or ("tenant" in name and name.endswith(".yaml")):
+                        if ("raw_dump" in name) or ("report" in name and name.endswith(".json")) or ("tenant" in name and name.endswith(".yaml")) or ("categorization" in name and name.endswith(".json")):
                             dest = temp_dir / item.name
                             shutil.copy2(item, dest)
                             preserved.append(item.name)
