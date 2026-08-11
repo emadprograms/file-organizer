@@ -133,6 +133,8 @@ def run_verification(target_dir: Path) -> int:
             if f.lower().endswith(".lnk"):
                 lnk_files.append(p)
             elif f.lower().endswith(".pdf"):
+                if f.lower() == f"{house_id}.pdf".lower():
+                    continue
                 rogue_pdfs.append(p)
                 
     if rogue_pdfs:
