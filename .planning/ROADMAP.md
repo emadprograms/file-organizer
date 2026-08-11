@@ -27,8 +27,8 @@
 **Goal:** (Using Gemma-4-31B) Recursively tweak prompts and logic until we hit 100% accuracy in mapping extracted names to existing `tenants.yaml` keys without creating duplicate/random folders.
 *Status: Hit 99.07% practical accuracy on clean dataset (1492).*
 
-### Phase 65: Grouping Logic (ACTIVE)
-**Goal:** Recursively tweak prompts and logic until we hit 95%+ accuracy (or best possible) in identifying document boundaries and keeping related pages together.
+### Phase 65: Integrate Pass 2 Categorization & Comprehensive Testing (Completed)
+**Goal:** Integrate the newly perfected "Pass 2 Fine Categorization" into the main production pipeline, and write comprehensive tests for it.
 
 ### Phase 66: Routing Logic
 **Goal:** Maximize the final routing accuracy so documents end up in the precise structural destinations intended.
@@ -184,6 +184,7 @@ See [.planning/milestones/v5.4-ROADMAP.md](milestones/v5.4-ROADMAP.md) for full 
 | 62. OCR Golden Data Pre-processing | v6.0 | 1/1 | Complete | 2026-08-10 |
 | 63. Evaluation & Testing Harness | v6.0 | 1/1 | Complete | 2026-08-10 |
 | 64. Name Canonicalization | v6.0 | 1/1 | Complete | 2026-08-10 |
+| 65. Integrate Pass 2 Categorization | v6.0 | 1/1 | Complete | 2026-08-11 |
 
 
 

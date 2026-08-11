@@ -58,9 +58,21 @@ def run_fine_categorization_pass(cleaned_pages: list[Any], state: Any, llm_clien
         from src.core.models import PageData
         return [PageData(**p) for p in state.data["fine_categorized_pages"]]
         
-    logger.info("Starting Pass 2 — Fine-Grained Categorization")
+    logger.info("Step 2: Fine Categorization")
     
-    fine_categorized_pages = process_fine_categorization(cleaned_pages, llm_client, model=routing_model)
+    checkpoint_path = str(state.state_dir / f"{state.house_id}_categorization.json")
+    fine_categorized_pages = process_fine_categorization(
+        cleaned_pages, 
+        llm_client, 
+        model=routing_model,
+        run_checkpoint_path=checkpoint_path
+    )
+    
+    if not dry_run and os.path.exists(checkpoint_path):
+        try:
+            os.remove(checkpoint_path)
+        except OSError:
+            pass
     
     if not dry_run:
         state.data["fine_categorized_pages"] = [p.model_dump() for p in fine_categorized_pages]
