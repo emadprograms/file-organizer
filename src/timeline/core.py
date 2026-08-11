@@ -407,8 +407,11 @@ class FileOrganizer:
         if not dry_run:
             # Create directories
             house_dir = self.ensure_target_directories(target_dir, tenant_folder_names, full_house_id, output_base_dir, prepend_mode=prepend_mode)
-            if target_dir != house_dir and not target_dir.exists() and house_dir.exists():
-                source_pdf = str(house_dir / Path(source_pdf).name)
+            if target_dir != house_dir:
+                if not Path(source_pdf).exists():
+                    potential_new_path = house_dir / Path(source_pdf).name
+                    if potential_new_path.exists():
+                        source_pdf = str(potential_new_path)
 
         per_page = self.process_documents(documents, source_pdf, full_house_id, output_base_dir, tenant_folder_names, dry_run, prepend_mode)
         return per_page, full_house_id
