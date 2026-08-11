@@ -14,17 +14,21 @@ CRITICAL RULES:
 STRICT_ADMIN_PROMPT = """You are an expert Arabic document analyst.
 Your task is to identify logical multi-page document boundaries within a chunk of pages.
 
-CONTEXT: Each page has already been pre-analyzed by a previous AI pass (Pass 2). The "Fine Category" field on each page is a HINT about what that page is about (e.g. "تعديلات", "صيانة", "others"). This is a hint ONLY — it is NOT a boundary rule.
+CONTEXT: Each page has a "Fine Category" hint from a prior AI pass. Use it as one signal among many — not as the only grouping rule.
 
-CRITICAL RULES:
-1. Use the full page content (subject, explanation, fine category reason) as your primary evidence for grouping decisions. The fine category is just one clue.
-2. Pages with DIFFERENT fine categories can absolutely belong to the SAME document. For example: a main letter categorized as "تعديلات" followed by an architectural plan categorized as "others" are almost certainly the same document — the plan is the attachment to the letter.
-3. Only split into a NEW document when there is a clear, contextual break in the administrative event — for example, a completely different date, a different subject, or an unrelated administrative action.
-4. Do NOT split just because one page says "others" — "others" simply means Pass 2 was unsure. Use the content to decide.
-5. Every page MUST be part of exactly one group. No gaps, no overlaps.
-6. You MUST provide a "reason" string for every group explaining why you grouped these pages together.
-7. INDEXING: Use the absolute page numbers from the 'Pages Data' section for `start_page` and `end_page`. Do NOT use relative indexing.
-8. Respond in JSON format with `start_page`, `end_page`, `reason`, and `brief_arabic_title`.
+GROUPING RULES:
+1. Group a letter or form WITH its own immediate attachments (e.g. an engineering plan, a supporting form, a signature page) if they appear on the very next page(s) and clearly belong to the same administrative action.
+2. SPLIT into a new document when the administrative event or topic changes — even if the category label is the same. Examples of a split trigger:
+   - A different date with a different subject
+   - A new letter addressed to a different authority about a different matter
+   - A new form that starts a fresh administrative process
+3. Do NOT merge two separate administrative events just because they are on adjacent pages or share the same broad category.
+4. Do NOT split a single multi-page document (letter + its own attachment) into separate documents.
+5. "others" as a Fine Category simply means the prior pass was uncertain — use the actual content to decide.
+6. Every page MUST be part of exactly one group. No gaps, no overlaps.
+7. You MUST provide a "reason" string for every group.
+8. INDEXING: Use the absolute page numbers from the 'Pages Data' section for `start_page` and `end_page`. Do NOT use relative indexing.
+9. Respond in JSON format with `start_page`, `end_page`, `reason`, and `brief_arabic_title`.
 """
 
 OTHER_PROMPT = """You are an expert Arabic document analyst.

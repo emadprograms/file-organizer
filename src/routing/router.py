@@ -306,6 +306,41 @@ Respond only with a valid JSON matching the requested schema.
                         reason = f"Intercepted! Originally Basic Details, changed to {selected} by double-check."
                 except Exception as e:
                     logger.warning(f"Basic Details double-check failed: {e}. Falling back to 'بيانات أساسية'.")
+            elif selected in ("استقطاع إيجار", "وقف استقطاع بدل"):
+                logger.info(f"LLM routed pages {group.start_page}-{group.end_page} to '{selected}'. Triggering rent/allowance double-check flow.")
+                confirm_prompt = f"""You are an expert document routing verifier for Arabic housing documents.
+This document was initially routed to '{selected}'. You must verify this is correct by applying the following strict rule:
+
+CRITICAL RULE:
+- 'استقطاع إيجار' (Rent Deduction): Use ONLY if the document explicitly mentions a specific monetary amount being deducted (e.g. 30 BD, 60 BD, 120 BD). This is a deduction FROM the tenant's salary for rent.
+- 'وقف استقطاع بدل' (Stop Allowance Deduction): Use ONLY if the document is about STOPPING or cancelling a housing allowance deduction. It will NOT mention a specific rent amount — it will mention stopping/cancelling a benefit.
+
+These two folders are commonly confused. Apply the rule strictly.
+
+Document Summary: {group.brief_arabic_title or 'N/A'}
+Reasoning: {group.reason or 'N/A'}
+
+Allowed Folders:
+- استقطاع إيجار
+- وقف استقطاع بدل
+
+Respond only with a valid JSON matching the requested schema.
+"""
+                try:
+                    confirm_result = llm_client.generate_content(
+                        contents=[confirm_prompt],
+                        response_schema=RoutingResponse,
+                        validation_context={'allowed_folders': ["استقطاع إيجار", "وقف استقطاع بدل"]},
+                        model=model
+                    )
+                    if confirm_result and confirm_result.selected_folder != selected:
+                        logger.info(f"Rent/Allowance double-check changed routing from '{selected}' to '{confirm_result.selected_folder}'.")
+                        reason = f"Intercepted! Originally '{selected}', changed to '{confirm_result.selected_folder}' by rent/allowance double-check."
+                        selected = confirm_result.selected_folder
+                    else:
+                        logger.info(f"Rent/Allowance double-check confirmed '{selected}'.")
+                except Exception as e:
+                    logger.warning(f"Rent/Allowance double-check failed: {e}. Keeping original routing '{selected}'.")
             
             logger.info(f"Routed category '{category}' (pages {group.start_page}-{group.end_page}) to '{selected}'. Reason: {reason}")
             from src.utils.logger import log_decision_trace
