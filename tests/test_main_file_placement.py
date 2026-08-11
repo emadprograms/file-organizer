@@ -87,10 +87,9 @@ def test_file_placement_logic(tmp_path) -> None:
     # Assertions
     assert source_files_dir.exists(), ".source_files directory should exist"
     
-    # D-01: *_categorized.pdf is moved to .source_files -> wait, it is deleted in main.py
-    # main.py: "Delete the original categorized PDF upon completion"
+    # The original PDF should remain intact in the house_dir root
     expected_pdf_path = output_dir / house_id / pdf_path.name
-    assert not expected_pdf_path.exists(), "Categorized PDF should be removed or moved out of house_dir root"
+    assert expected_pdf_path.exists(), "Categorized PDF should NOT be removed and must remain intact"
     
     # Assert [Timeline View] is intact
     timeline_dir = output_dir / house_id / "[Timeline View]"

@@ -260,13 +260,7 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
         source_files_dir = house_dir / ".source_files"
         source_files_dir.mkdir(parents=True, exist_ok=True)
         
-        # Delete the original categorized PDF upon completion
-        if pdf_path.exists() and not pdf_path.name.endswith("_finalized.pdf") and not pdf_path.name.endswith("_raw_prepend.pdf"):
-            try:
-                os.remove(str(pdf_path))
-            except OSError as e:
-                logger.warning(f"Failed to delete original PDF {pdf_path}: {e}")
-                
+        # The original PDF is preserved in the target directory                
         # Move JSON and YAML files from original source directory to source_files_dir
         move_dir = original_target_dir if original_target_dir.exists() else target_dir
         for ext in ("*.json", "*.yaml", "*.yml"):
