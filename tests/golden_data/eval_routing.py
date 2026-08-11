@@ -52,22 +52,32 @@ def evaluate_routing(house_id: str, golden_yaml_path: Path, raw_dump_path: Path,
     print(f"Running fine categorization for {house_id}...")
     cache_path = Path(str(raw_dump_path) + '.fine_cache.json')
     
+    cache_data = {}
     if cache_path.exists():
         with open(cache_path, 'r', encoding='utf-8') as f:
             cache_data = json.load(f)
-        for idx, page in enumerate(pages):
-            str_idx = str(idx)
-            if str_idx in cache_data:
-                page.fine_category = cache_data[str_idx].get('fine_category')
-                page.fine_category_reason = cache_data[str_idx].get('fine_category_reason')
-    else:
-        pages = process_fine_categorization(pages, llm_client)
-        cache_data = {}
-        for idx, page in enumerate(pages):
+            
+    missing_pages = []
+    for idx, page in enumerate(pages):
+        str_idx = str(idx)
+        if str_idx in cache_data:
+            page.fine_category = cache_data[str_idx].get('fine_category')
+            page.fine_category_reason = cache_data[str_idx].get('fine_category_reason')
+        else:
+            missing_pages.append((idx, page))
+            
+    if missing_pages:
+        missing_pages_only = [p for idx, p in missing_pages]
+        processed_pages = process_fine_categorization(missing_pages_only, llm_client)
+        
+        for (idx, page), processed_page in zip(missing_pages, processed_pages):
             cache_data[str(idx)] = {
-                'fine_category': getattr(page, 'fine_category', None),
-                'fine_category_reason': getattr(page, 'fine_category_reason', None)
+                'fine_category': getattr(processed_page, 'fine_category', None),
+                'fine_category_reason': getattr(processed_page, 'fine_category_reason', None)
             }
+            page.fine_category = getattr(processed_page, 'fine_category', None)
+            page.fine_category_reason = getattr(processed_page, 'fine_category_reason', None)
+            
         with open(cache_path, 'w', encoding='utf-8') as f:
             json.dump(cache_data, f, ensure_ascii=False, indent=2)
 
@@ -80,6 +90,13 @@ def evaluate_routing(house_id: str, golden_yaml_path: Path, raw_dump_path: Path,
         reason = getattr(first_page, "fine_category_reason", "Perfect Golden Grouping")
         title = getattr(first_page, "subject", getattr(first_page, "content_explanation", None))
         
+        if any("صيانة" in getattr(p, "fine_category", "") for p in g_pages if getattr(p, "fine_category", "")):
+            category = "10-صيانة"
+            reason = "Deterministic Maintenance Set"
+        elif any("عقود" in getattr(p, "fine_category", "") for p in g_pages if getattr(p, "fine_category", "")):
+            category = "05-عقود"
+            reason = "Deterministic Contract Set"
+            
         primary_tenant = truth_page_map.get(start, "Unassigned")
         dates = [getattr(p, "resolved_date", None) for p in g_pages if getattr(p, "resolved_date", None)]
         

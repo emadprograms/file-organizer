@@ -57,7 +57,7 @@ class RoutingResponse(BaseModel):
             raise ValueError(f"Selected folder '{v}' is not in the allowed list: {allowed}")
         return v
 
-def double_check_others(group: DocumentGroup, llm_client: Any, model: str | None = None) -> str:
+def double_check_others(group: DocumentGroup, llm_client: Any, category_name: str, model: str | None = None) -> str:
     """Double-check routing for documents categorized as others or hitting the escape hatch.
     
     Implements a two-step verification to reduce 'Miscellaneous' dumping and handle hallucinations.
@@ -77,7 +77,7 @@ def double_check_others(group: DocumentGroup, llm_client: Any, model: str | None
     
     # Step 1: Initial pick from all folders
     prompt = f"""You are an expert document routing assistant.
-The document was initially categorized as 'Miscellaneous' or 'Other'. 
+The document was initially categorized as '{category_name}'. 
 Please re-evaluate if it fits into any of the following specific folders.
 
 Allowed Folders:
@@ -102,50 +102,50 @@ Respond only with a valid JSON matching the requested schema.
             return "رسائل متنوعة"
             
         initial_pick = result.selected_folder
-        if initial_pick == "رسائل متنوعة":
-            logger.info("Double-check Step 1: LLM confirmed 'رسائل متنوعة'.")
-            return "رسائل متنوعة"
+        if initial_pick == category_name:
+            logger.info(f"Double-check Step 1: LLM confirmed '{category_name}'.")
+            return category_name
             
         # Step 2: Confirmation call if a specific folder was picked
         logger.info(f"Double-check Step 1: LLM suggested '{initial_pick}'. Confirming...")
         
         confirm_prompt = f"""You previously selected '{initial_pick}' for this document.
-Are you sure this is the best fit, or should it be 'رسائل متنوعة' (Miscellaneous Letters)?
+Are you sure this is the best fit, or should it be '{category_name}'?
 
 Document Summary: {group.brief_arabic_title or 'N/A'}
 
 Allowed Folders for this confirmation:
 - {initial_pick}
-- رسائل متنوعة
+- {category_name}
 
 Respond only with a valid JSON.
 """
         confirm_result = llm_client.generate_content(
             contents=[confirm_prompt],
             response_schema=RoutingResponse,
-            validation_context={'allowed_folders': [initial_pick, "رسائل متنوعة"]},
+            validation_context={'allowed_folders': [initial_pick, category_name]},
             model=model
         )
         
         if not confirm_result:
-            logger.warning("Double-check Step 2: Confirmation call returned None. Falling back to 'رسائل متنوعة'.")
-            return "رسائل متنوعة"
+            logger.warning(f"Double-check Step 2: Confirmation call returned None. Falling back to '{category_name}'.")
+            return category_name
             
         final_pick = confirm_result.selected_folder
         
         if final_pick == initial_pick:
             logger.info(f"Double-check Step 2: LLM confirmed '{initial_pick}'.")
             return initial_pick
-        elif final_pick == "رسائل متنوعة":
-            logger.info("Double-check Step 2: LLM changed mind to 'رسائل متنوعة'.")
-            return "رسائل متنوعة"
+        elif final_pick == category_name:
+            logger.info(f"Double-check Step 2: LLM changed mind to '{category_name}'.")
+            return category_name
         else:
-            logger.warning(f"Double-check Step 2: LLM returned unexpected value '{final_pick}'. Falling back to 'رسائل متنوعة'.")
-            return "رسائل متنوعة"
+            logger.warning(f"Double-check Step 2: LLM returned unexpected value '{final_pick}'. Falling back to '{category_name}'.")
+            return category_name
             
     except Exception as e:
-        logger.error(f"Error during double-check others: {e}. Falling back to 'رسائل متنوعة'.")
-        return "رسائل متنوعة"
+        logger.error(f"Error during double-check others: {e}. Falling back to '{category_name}'.")
+        return category_name
 
 def route_document(group: DocumentGroup, llm_client: Any, model: str | None = None) -> tuple[str, bool]:
     """Route a document group to the appropriate folder.
@@ -179,8 +179,9 @@ def route_document(group: DocumentGroup, llm_client: Any, model: str | None = No
     
     # Trigger double-check for others immediately
     if category in ("others", "other_letters", "رسائل متنوعة"):
+        cat_name = "رسائل متنوعة"
         logger.info(f"Category '{category}' detected for pages {group.start_page}-{group.end_page}. Triggering double-check flow.")
-        folder = double_check_others(group, llm_client, model=model)
+        folder = double_check_others(group, llm_client, category_name=cat_name, model=model)
         return folder, False
 
     # 1. Try Direct Routing via Formal Categories (SINGLE_MATCH)
@@ -271,7 +272,7 @@ Respond only with a valid JSON matching the requested schema. The selected_folde
             # Handle Escape Hatch
             if selected == ESCAPE_HATCH:
                 logger.info(f"Document (pages {group.start_page}-{group.end_page}) routed to escape hatch '{ESCAPE_HATCH}'. Triggering double-check flow.")
-                selected = double_check_others(group, llm_client, model=model)
+                selected = double_check_others(group, llm_client, category_name="رسائل متنوعة", model=model)
                 reason = "Routed via escape hatch -> Double-check"
             
             logger.info(f"Routed category '{category}' (pages {group.start_page}-{group.end_page}) to '{selected}'. Reason: {reason}")

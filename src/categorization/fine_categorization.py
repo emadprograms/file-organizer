@@ -27,6 +27,7 @@ def process_fine_categorization(pages: list[Any], llm_client: Any, model: str | 
         prompt_template += f"- {prefix}-{name}: {desc}\n"
         
     prompt_template += "\nRead the page carefully. You MUST output a `reason` field first to explain your thought process, followed by the `category` field with EXACTLY ONE of the above categories."
+    prompt_template += "\n\nCRITICAL WARNING: The previous extraction pass may have incorrectly described an ID card as a 'form'. Do not be fooled! If the content clearly mentions a CPR, National ID, Smart Card, or Passport, you MUST classify it as `02-بيانات شخصية` (Personal Details), even if the text refers to it as a form or application."
     
     for idx, page in enumerate(pages):
         try:

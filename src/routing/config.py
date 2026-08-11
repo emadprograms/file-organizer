@@ -5,18 +5,18 @@ from typing import Any
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
 FOLDER_ROUTING: dict[str, dict[str, Any]] = {
-    "بيانات أساسية": {"cats": ["BASIC_DETAILS"], "desc": "Forms requesting basic details or personal info"},
-    "بيانات شخصية": {"cats": ["PERSONAL_DETAILS"], "desc": "Personal details documents"},
-    "أمر تخصيص": {"cats": ["AMAR_TAKHSEES"], "desc": "Letters detailing housing allocation decisions"},
+    "بيانات أساسية": {"cats": ["BASIC_DETAILS"], "desc": "Official application forms, clearance forms, or questionnaires filled out by the tenant (e.g., end of service, housing status report). Do NOT use for ID cards or passports."},
+    "بيانات شخصية": {"cats": ["PERSONAL_DETAILS"], "desc": "Strictly for official identification documents like CPR (National ID Cards), Passports, Driving Licenses, and Marriage Certificates."},
+    "أمر تخصيص": {"cats": ["AMAR_TAKHSEES"], "desc": "Crucial official orders, ministerial directives, or routing memos specifically assigning or transferring a housing unit to a tenant."},
     "محضر تسليم مفتاح": {"cats": ["KEY_HANDOVER"], "desc": "Forms for key handover"},
     "عقود": {"cats": ["CONTRACT"], "desc": "Contracts and agreements"},
     "كهرباء وماء": {"cats": ["EWA_LETTERS"], "desc": "Electricity and water authority correspondence"},
-    "استقطاع إيجار": {"cats": ["RENT_DEDUCTION"], "desc": "Letters or forms about rent deductions"},
-    "وقف استقطاع بدل": {"cats": ["ALLOWANCE_DEDUCTION"], "desc": "Letters or forms about stopping allowance deductions"},
+    "استقطاع إيجار": {"cats": ["RENT_DEDUCTION"], "desc": "Letters or forms about rent deductions. Rent deductions will ALWAYS mention a specific monetary amount (e.g., 30 BD, 60 BD, 120 BD)."},
+    "وقف استقطاع بدل": {"cats": ["ALLOWANCE_DEDUCTION"], "desc": "Letters or forms about stopping housing allowance deductions. Stopping an allowance NEVER mentions a specific monetary amount."},
     "إشعارات": {"cats": ["NOTIFICATIONS"], "desc": "Notifications and warnings"},
     "صيانة": {"cats": ["MAINTENANCE"], "desc": "Letters or forms regarding house repairs and maintenance"},
     "صور ومعاينات": {"cats": ["INSPECTION_PICTURES"], "desc": "Inspection pictures and reports"},
-    "تعديلات": {"cats": ["MODIFICATIONS"], "desc": "Modification requests or approvals"},
+    "تعديلات": {"cats": ["MODIFICATIONS"], "desc": "Requests from the tenant to physically modify the house (e.g., adding a room, building a garage). Do NOT use for administrative allocations."},
     "رسائل متنوعة": {"cats": ["OTHER_LETTERS"], "desc": "Anything that does not clearly fit into the specific folders above"},
 }
 

@@ -168,6 +168,12 @@ def process_with_shrink(
                 if d and d != "NONE":
                     dates.append(d)
             reason_text = "Deterministic grouping: Maintenance Set." if block_type == "maintenance" else "Deterministic grouping: Contract."
+            
+            if block_type == "maintenance":
+                category = "10-صيانة"
+            elif block_type == "contract":
+                category = "05-عقود"
+
             final_groups.append(DocumentGroup(
                 start_page=start_page,
                 end_page=end_page,
