@@ -740,8 +740,8 @@ def run_reconcile_mode(args) -> int:
         
         shortcuts_to_create = []
         
-        # Sort groups by date then start_page
-        for g in sorted(groups, key=lambda x: (x.dates[0] if x.dates and x.dates[0] != "NONE" else '', x.start_page)):
+        # Sort groups by latest date first, then start_page
+        for g in sorted(groups, key=lambda x: (x.dates[0] if x.dates and x.dates[0] != "NONE" else '', x.start_page), reverse=True):
             vid = g.vault_id
             if not vid:
                 continue
@@ -753,7 +753,10 @@ def run_reconcile_mode(args) -> int:
             # Location tag
             primary_shortcut = g.shortcuts[0]
             location = Path(primary_shortcut).parent.name
-            extra = f" (+ {len(g.shortcuts) - 1} other locations)" if len(g.shortcuts) > 1 else ""
+            
+            unique_locations = {Path(s).parent.name for s in g.shortcuts}
+            extra_count = len(unique_locations) - 1
+            extra = f" (+ {extra_count} other locations)" if extra_count > 0 else ""
                 
             doc_title = g.brief_arabic_title
             if not doc_title:
