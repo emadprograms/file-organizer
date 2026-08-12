@@ -30,8 +30,8 @@
 ### Phase 65: Integrate Pass 2 Categorization & Comprehensive Testing (Completed)
 **Goal:** Integrate the newly perfected "Pass 2 Fine Categorization" into the main production pipeline, and write comprehensive tests for it.
 
-### Phase 66: Routing Logic
-**Goal:** Maximize the final routing accuracy so documents end up in the precise structural destinations intended.
+### Phase 66: OCR Letter Continuation Detection (is_continuation)
+**Goal:** Implement the `is_continuation` fix for the OCR pass so that pages lacking subjects/addressees are marked as continuations.
 
 </details>
 
@@ -185,6 +185,7 @@ See [.planning/milestones/v5.4-ROADMAP.md](milestones/v5.4-ROADMAP.md) for full 
 | 63. Evaluation & Testing Harness | v6.0 | 1/1 | Complete | 2026-08-10 |
 | 64. Name Canonicalization | v6.0 | 1/1 | Complete | 2026-08-10 |
 | 65. Integrate Pass 2 Categorization | v6.0 | 1/1 | Complete | 2026-08-11 |
+| 66. OCR Letter Continuation Detection | v6.0 | 1/1 | Complete | 2026-08-12 |
 
 
 

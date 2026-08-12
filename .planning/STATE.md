@@ -1,13 +1,14 @@
 # State
 
 **Current Milestone:** v6.0 (LLM Accuracy & Evaluation)
-**Current Phase:** Phase 65: Integrate Pass 2 Categorization & Comprehensive Testing
+**Current Phase:** Phase 66: OCR Letter Continuation Detection (is_continuation)
 - **Status**: Complete
-- **Outcome**: Successfully implemented checkpointing per page, updated runner, and rigorous tests passed.
+- **Outcome**: Successfully added `is_continuation` flag to `PageData` and updated the OCR prompt logic in `categories.yaml`.
 
 ## Active Tasks
-- [x] Discuss and plan Phase 65.
-- [x] Execute Phase 65.
+- [x] Plan Phase 66.
+- [x] Execute Phase 66.
+- [x] Validate Phase 66.
 
 ## Blockers
 - None

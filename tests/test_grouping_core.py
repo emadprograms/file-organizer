@@ -6,7 +6,7 @@ import json
 from unittest.mock import MagicMock, patch
 from src.grouping.utils import verify_groups, merge_chunks
 from src.grouping.core import process_with_shrink, _process_chunk
-from src.grouping.config import FORM_PROMPT, LETTER_PROMPT, OTHER_PROMPT
+from src.grouping.config import MAINTENANCE_PROMPT as FORM_PROMPT, STRICT_ADMIN_PROMPT as LETTER_PROMPT, OTHER_PROMPT
 from src.grouping.state import GroupingState, GroupingStateManager
 from src.core.exceptions import ProviderRotationExhaustedError, GracefulHaltException
 from src.core.schemas import GroupEntry, DocumentGroup, GroupingResponse

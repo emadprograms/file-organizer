@@ -36,12 +36,13 @@ letters:
     - "CRITICAL RULE: Anything from the 'Office of the Undersecretary' (مكتب وكيل الوزارة) is ALWAYS a letter."
   extract:
     - "content_explanation: Act like the eyes of the system. First, provide a highly detailed, comprehensive explanation of all the contents within the document. Focus on reading and summarizing the text, the overall purpose of the document, the data presented, and the context, rather than just describing the visual layout."
-    - "sender: Extract the full name, title, and department of the sender."
-    - "receiver: Extract the full name, title, and department of the recipient."
-    - "subject: Extract the subject line (الموضوع) or main purpose of the letter. MUST BE MAXIMUM 50 CHARACTERS LONG."
+    - "sender: Extract the full name, title, and department of the sender. If this is a continuation page, leave null."
+    - "receiver: Extract the full name, title, and department of the recipient. If this is a continuation page, leave null."
+    - "subject: Extract the subject line (الموضوع) or main purpose of the letter. MUST BE MAXIMUM 50 CHARACTERS LONG. If this is a continuation page, leave null."
     - "date: Extract the date the letter was issued."
     - "expected_tenant_name: The person living in or responsible for the house during this document's timeline. E.g., for letters, if it mentions someone living in the current house. For forms, the person it is filled about. For utility bills, the person associated. IMPORTANT: Not every document will have a tenant name. Do not force an extraction. If you cannot find them, return null."
     - "expected_house_number: The house number associated with the expected tenant or mentioned in the document. IMPORTANT: Not every document will have a house number. Do not force an extraction. If you cannot find them, return null."
+    - "is_continuation: If a page classified as a 'letter' lacks a subject line (الموضوع), addressee line (إلى/سعادة), or new reference number, it is likely a continuation of the previous page. Set is_continuation to true and leave sender, receiver, and subject null. Otherwise, set to false."
 
 utility_bills:
   description: "Bills for electricity, water, internet, or other municipal services."

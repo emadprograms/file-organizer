@@ -3,7 +3,7 @@ from typing import Any
 import unittest
 from unittest.mock import MagicMock, patch
 from src.grouping.core import process_with_shrink
-from src.grouping.config import LETTER_PROMPT, FORM_PROMPT, OTHER_PROMPT
+from src.grouping.config import STRICT_ADMIN_PROMPT as LETTER_PROMPT, MAINTENANCE_PROMPT as FORM_PROMPT, OTHER_PROMPT
 from src.core.schemas import DocumentGroup
 
 class MockPage:
