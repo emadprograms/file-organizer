@@ -242,8 +242,8 @@ def process_with_shrink(
                     else:
                         block_groups.extend(chunk_groups)
                         
-                    group_details = [f"Group {idx+1} (pages {g.start_page}-{g.end_page})" for idx, g in enumerate(chunk_groups)]
-                    logger.info(f"Grouping complete for chunk. Identified {len(chunk_groups)} groups: {', '.join(group_details)}")
+                    group_details = [f"Group {idx+1} (pages {g.start_page}-{g.end_page}) - Reason: {g.reason}" for idx, g in enumerate(chunk_groups)]
+                    logger.info(f"Grouping complete for chunk. Identified {len(chunk_groups)} groups:\n    " + "\n    ".join(group_details))
                         
                     overlap = 1 if (end_index < len(block) and actual_chunk_size > 1) else 0
                     current_page_index = end_index - overlap
