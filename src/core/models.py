@@ -1,5 +1,5 @@
 from typing import Optional, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 import logging
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
@@ -37,6 +37,19 @@ class PageData(BaseModel):
     fine_category: Optional[str] = None
     fine_category_reason: Optional[str] = None
     is_continuation: bool = False
+
+    @field_validator('is_continuation', mode='before')
+    def parse_messy_boolean(cls, v):
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, str):
+            v_lower = v.strip().lower()
+            if 'true' in v_lower:
+                return True
+            if 'false' in v_lower:
+                return False
+        return False
+
 
 class TenantTimeline(BaseModel):
     """Data model representing the active timeline for a canonical tenant.

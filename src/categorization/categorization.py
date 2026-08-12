@@ -191,4 +191,8 @@ def process_unclassified_pdf(target_dir: Path, llm_client: Any, specific_pdf_pat
         # Rename original PDF to _categorized.pdf
         if create_categorized_copy:
             shutil.copy(str(pdf_path), str(categorized_pdf_path))
+        
+        # Clean up temporary image directory
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        
         logger.info(f"Successfully processed and categorized: {pdf_path.name}")

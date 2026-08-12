@@ -349,7 +349,7 @@ def main() -> int:
             try:
                 # 1. Process unclassified PDFs
                 categorization_model = getattr(args, 'categorization_model', None) or args.model
-                process_unclassified_pdf(target_dir, llm_client, model=categorization_model)
+                process_unclassified_pdf(target_dir, llm_client, model=categorization_model, create_categorized_copy=False)
                 
                 # 2. Validate and get list of house_ids
                 house_ids = validate_target_directory(target_dir)

@@ -137,6 +137,10 @@ def run_reconcile_mode(args) -> int:
             if path.suffix.lower() == ".lnk":
                 physical_lnk_files.append(path)
             elif path.suffix.lower() == ".pdf":
+                # Skip the original house PDF if it's in the root folder
+                if path.parent == target_dir and path.name.lower() in [f"{house_id}.pdf".lower(), f"{target_dir.name}.pdf".lower()]:
+                    logger.info(f"Skipping original house PDF from ingestion: {path.name}")
+                    continue
                 physical_pdf_files.append(path)
             
     # Phase 45: Duplicate & Renamed Shortcuts (REQ-04, REQ-05)
