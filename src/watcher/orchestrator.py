@@ -296,7 +296,7 @@ class FSUIOrchestrator:
             logger.info(f"🎉 COMPLETION: Finished processing {filepath.name}. Original file will be removed.")
                         
         except Exception as e:
-            logger.error(f"Error processing or routing proposed PDF {filepath}: {e}")
+            logger.exception(f"Error processing or routing proposed PDF {filepath}: {e}")
             new_name = filepath.stem + "_Failed.pdf"
             os.rename(filepath, filepath.parent / new_name)
             

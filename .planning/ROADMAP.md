@@ -33,6 +33,9 @@
 ### Phase 66: OCR Letter Continuation Detection (is_continuation)
 **Goal:** Implement the `is_continuation` fix for the OCR pass so that pages lacking subjects/addressees are marked as continuations.
 
+### Phase 67: Test Suite Cleanup & Missing Imports
+**Goal:** Fix pre-existing `NameError` bugs in `router.py` and align tests with Phase 64 & 65 changes to return the test suite to 100% green.
+
 </details>
 
 <details>
@@ -185,7 +188,9 @@ See [.planning/milestones/v5.4-ROADMAP.md](milestones/v5.4-ROADMAP.md) for full 
 | 63. Evaluation & Testing Harness | v6.0 | 1/1 | Complete | 2026-08-10 |
 | 64. Name Canonicalization | v6.0 | 1/1 | Complete | 2026-08-10 |
 | 65. Integrate Pass 2 Categorization | v6.0 | 1/1 | Complete | 2026-08-11 |
+| 65. Integrate Pass 2 Categorization | v6.0 | 1/1 | Complete | 2026-08-11 |
 | 66. OCR Letter Continuation Detection | v6.0 | 1/1 | Complete | 2026-08-12 |
+| 67. Test Suite Cleanup & Missing Imports | v6.0 | 0/1 | Active | |
 
 
 

@@ -35,8 +35,8 @@ def test_id_cards_vs_forms():
     assert result[0].fine_category == "02-بيانات شخصية"
     # Ensure the prompt contains the critical warning
     call_args = mock_llm_client.generate_content.call_args[1]
-    assert "CRITICAL WARNING:" in call_args["contents"][0]
-    assert "CPR, National ID" in call_args["contents"][0]
+    assert "CRITICAL RULE 1" in call_args["contents"][0]
+    assert "CPRs, National IDs" in call_args["contents"][0]
 
 def test_allocation_orders_vs_modifications():
     page1 = MockPage(

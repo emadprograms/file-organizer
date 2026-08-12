@@ -112,7 +112,10 @@ def process_with_shrink(
         return []
 
     def get_admin_cat(p):
-        fc = getattr(p, 'fine_category', getattr(p, 'category', ''))
+        fc = getattr(p, 'fine_category', None)
+        if not fc:
+            fc = getattr(p, 'category', '')
+        fc = fc or ''
         return fc.split('-')[0] if '-' in fc else fc
 
     def is_maintenance(p):
@@ -171,8 +174,10 @@ def process_with_shrink(
             
             if block_type == "maintenance":
                 category = "10-صيانة"
+                title = "صيانة"
             elif block_type == "contract":
                 category = "05-عقود"
+                title = "عقد"
 
             final_groups.append(DocumentGroup(
                 start_page=start_page,
@@ -181,7 +186,7 @@ def process_with_shrink(
                 category=category,
                 dates=dates,
                 reason=reason_text,
-                brief_arabic_title=None
+                brief_arabic_title=title
             ))
         elif block_type == "utility":
             for i, page in enumerate(block):
@@ -194,18 +199,27 @@ def process_with_shrink(
                     category=category,
                     dates=dates,
                     reason="Deterministic bypass: Each utility bill page is a separate document.",
-                    brief_arabic_title=None
+                    brief_arabic_title="فاتورة خدمات"
                 ))
         else:
             content_field = "dynamic"
-            current_page_index = 0
-            chunk_size_idx = 0
-            current_chunk_failure_count = 0
-            total_failures = 0
+            
+            if state_manager:
+                state = state_manager.load_state()
+                current_page_index = state.current_page_index
+                chunk_size_idx = state.chunk_size_index
+                current_chunk_failure_count = state.current_chunk_failure_count
+                total_failures = state.failure_count
+                block_groups = [DocumentGroup(**g) for g in state.processed_groups]
+            else:
+                current_page_index = 0
+                chunk_size_idx = 0
+                current_chunk_failure_count = 0
+                total_failures = 0
+                block_groups = []
+                
             fallback_model_idx = -1
             FALLBACK_MODELS = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3-flash-preview", "gemini-2.5-flash"]
-            
-            block_groups = []
             while current_page_index < len(block):
                 if total_failures >= 30:
                     raise RuntimeError("Hard fail: 30 total failures in grouping boundary detection.")
@@ -242,8 +256,8 @@ def process_with_shrink(
                     else:
                         block_groups.extend(chunk_groups)
                         
-                    group_details = [f"Group {idx+1} (pages {g.start_page}-{g.end_page}) - Reason: {g.reason}" for idx, g in enumerate(chunk_groups)]
-                    logger.info(f"Grouping complete for chunk. Identified {len(chunk_groups)} groups:\n    " + "\n    ".join(group_details))
+                        group_details = [f"Group {idx+1} (pages {g.start_page}-{g.end_page}) - Reason: {g.reason}" for idx, g in enumerate(chunk_groups)]
+                        logger.info(f"Grouping complete for chunk. Identified {len(chunk_groups)} groups:\n    " + "\n    ".join(group_details))
                         
                     overlap = 1 if (end_index < len(block) and actual_chunk_size > 1) else 0
                     current_page_index = end_index - overlap
@@ -251,6 +265,15 @@ def process_with_shrink(
                     chunk_size_idx = 0
                     current_chunk_failure_count = 0
                     fallback_model_idx = -1
+                    
+                    if state_manager:
+                        state_manager.save_state(GroupingState(
+                            current_page_index=current_page_index,
+                            chunk_size_index=chunk_size_idx,
+                            current_chunk_failure_count=current_chunk_failure_count,
+                            failure_count=total_failures,
+                            processed_groups=[g.model_dump() if hasattr(g, "model_dump") else g.dict() for g in block_groups]
+                        ))
                     
                 except (ProviderRotationExhaustedError, PipelineHaltError) as e:
                     logger.error(f"Critical LLM failure during grouping. Halting pipeline: {e}")
@@ -279,6 +302,14 @@ def process_with_shrink(
                                 current_chunk_failure_count = 0
                                 logger.warning(f"Error threshold reached. Falling back to model: {FALLBACK_MODELS[fallback_model_idx]}")
                             else:
+                                if state_manager:
+                                    state_manager.save_state(GroupingState(
+                                        current_page_index=current_page_index,
+                                        chunk_size_index=chunk_size_idx,
+                                        current_chunk_failure_count=current_chunk_failure_count,
+                                        failure_count=total_failures,
+                                        processed_groups=[g.model_dump() if hasattr(g, "model_dump") else g.dict() for g in block_groups]
+                                    ))
                                 raise GracefulHaltException(f"Grouping failed at minimum chunk size {CHUNK_SIZES[-1]} due to repeated processing errors. All fallbacks exhausted. Halting gracefully.") from e
                     else:
                         logger.info(f"Error {current_chunk_failure_count}/{threshold} at size {CHUNK_SIZES[chunk_size_idx]}. Retrying same size.")

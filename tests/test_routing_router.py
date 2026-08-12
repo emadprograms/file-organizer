@@ -181,6 +181,6 @@ def test_double_check_model_propagation() -> None:
     )
     test_model = "claude-3-5-sonnet"
     llm = MockLLMClient([("صيانة", "fits"), ("صيانة", "confirmed")])
-    double_check_others(group, llm, model=test_model)
+    double_check_others(group, llm, category_name="others", model=test_model)
     assert llm.calls[0]["model"] == test_model
     assert llm.calls[1]["model"] == test_model

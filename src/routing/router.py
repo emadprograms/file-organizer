@@ -4,7 +4,7 @@ import logging
 from typing import Any, Optional
 from pydantic import BaseModel, Field, field_validator, ValidationInfo, ValidationError, AliasChoices
 from src.core.schemas import DocumentGroup
-from src.core.exceptions import PipelineHaltError
+from src.core.exceptions import PipelineHaltError, ProviderRotationExhaustedError
 from src.llm.llm import LLMFailureError
 from src.routing.config import (
     CATEGORY_TO_FOLDERS, 

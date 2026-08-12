@@ -31,13 +31,13 @@ class TestUAT08Contracts(unittest.TestCase):
         """
         # Data based on pages 9-15 of file 567
         pages = [
-            MockPage(9, "contract"),
-            MockPage(10, "contract"),
-            MockPage(11, "contract"),
-            MockPage(12, "contract"),
-            MockPage(13, "contract"),
-            MockPage(14, "contract"),
-            MockPage(15, "contract"),
+            MockPage(9, "05-عقود"),
+            MockPage(10, "05-عقود"),
+            MockPage(11, "05-عقود"),
+            MockPage(12, "05-عقود"),
+            MockPage(13, "05-عقود"),
+            MockPage(14, "05-عقود"),
+            MockPage(15, "05-عقود"),
         ]
         
         llm_client = MagicMock()
@@ -47,7 +47,7 @@ class TestUAT08Contracts(unittest.TestCase):
         self.assertEqual(len(groups), 1, "Should group all contract pages into one")
         self.assertEqual(groups[0].start_page, 9)
         self.assertEqual(groups[0].end_page, 15)
-        self.assertEqual(groups[0].category, "contract")
+        self.assertEqual(groups[0].category, "05-عقود")
         
         # Verify LLM was bypassed
         llm_client.generate_content.assert_not_called()

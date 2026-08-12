@@ -153,7 +153,7 @@ def test_canonicalize_with_llm_with_allowed_tenants() -> None:
     client = CapturingLLMClient()
     res = canonicalize_with_llm(["احمد"], client, allowed_tenants=["احمد"])
     assert res == {"احمد": "احمد"}
-    assert "Is this name similar to any of the names here?" in client.captured_prompt
+    assert "Is this name similar to, or a dependent of, any of the names here?" in client.captured_prompt
 
 def test_build_tenant_timelines() -> None:
     """

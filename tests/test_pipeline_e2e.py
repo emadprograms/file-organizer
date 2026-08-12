@@ -31,7 +31,7 @@ def inject_mock_report(inbox: Path, stem: str) -> None:
         expected_tenant_name = "أحمد يوسف المريسل"
         expected_house_number = "504"
     else:
-        category = "contract"
+        category = "05-عقود"
         date = "2006-04-18" if "1273" in stem else "2015-05-05"
         expected_tenant_name = tenant_hint
         expected_house_number = stem.split(" ")[1] if len(stem.split(" ")) > 1 else "U"

@@ -30,9 +30,8 @@ class TestPhase08Grouping(unittest.TestCase):
         Expected outcome:
         The function should execute successfully and meet all assertions.
         """
-        self.assertIn("True Until Proven Guilty", LETTER_PROMPT)
-        self.assertIn("Hard Reset", LETTER_PROMPT)
-        self.assertIn("tables", LETTER_PROMPT)
+        self.assertIn("SPLIT into a new document", LETTER_PROMPT)
+        self.assertIn("Do NOT merge two separate", LETTER_PROMPT)
 
     def test_deterministic_bypass_contracts(self) -> None:
         """
@@ -42,9 +41,9 @@ class TestPhase08Grouping(unittest.TestCase):
         The function should execute successfully and meet all assertions.
         """
         pages = [
-            MockPage(10, "contract"),
-            MockPage(11, "contract"),
-            MockPage(12, "contract")
+            MockPage(10, "05-عقود"),
+            MockPage(11, "05-عقود"),
+            MockPage(12, "05-عقود")
         ]
         llm_client = MagicMock()
         groups = process_with_shrink(pages, llm_client)
@@ -52,7 +51,7 @@ class TestPhase08Grouping(unittest.TestCase):
         self.assertEqual(len(groups), 1)
         self.assertEqual(groups[0].start_page, 10)
         self.assertEqual(groups[0].end_page, 12)
-        self.assertEqual(groups[0].category, "contract")
+        self.assertEqual(groups[0].category, "05-عقود")
         llm_client.generate_content.assert_not_called()
 
     def test_deterministic_bypass_utility_bills(self) -> None:
@@ -97,9 +96,9 @@ class TestPhase08Grouping(unittest.TestCase):
         llm_client = MagicMock()
         process_with_shrink(pages, llm_client)
         
-        # For "others", CHUNK_SIZES = [2]
-        # First call should be current_page_index=0, end_index=2
-        mock_process_chunk.assert_any_call(pages, 0, 2, llm_client, OTHER_PROMPT, "content_explanation", model=None)
+        # For non-maintenance, CHUNK_SIZES = [4, 3, 2]
+        # First call should be current_page_index=0, end_index=min(4, 3)=3
+        mock_process_chunk.assert_any_call(pages, 0, 3, llm_client, LETTER_PROMPT, "dynamic", model=None)
 
     @patch('src.grouping.core._process_chunk')
     def test_dynamic_routing_letters(self, mock_process_chunk) -> None:
@@ -120,9 +119,9 @@ class TestPhase08Grouping(unittest.TestCase):
         llm_client = MagicMock()
         process_with_shrink(pages, llm_client)
         
-        # For "letters", CHUNK_SIZES = [4, 3, 2]
+        # For non-maintenance, CHUNK_SIZES = [4, 3, 2]
         # End index should be min(4, len(pages)=2) = 2
-        mock_process_chunk.assert_any_call(pages, 0, 2, llm_client, LETTER_PROMPT, "subject", model=None)
+        mock_process_chunk.assert_any_call(pages, 0, 2, llm_client, LETTER_PROMPT, "dynamic", model=None)
 
 if __name__ == "__main__":
     unittest.main()

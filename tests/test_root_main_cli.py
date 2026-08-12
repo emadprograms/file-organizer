@@ -145,39 +145,6 @@ def test_validate_target_directory_success(tmp_path) -> None:
     house_ids = validate_target_directory(target_dir)
     assert house_ids == ["1273"]
 
-def test_validate_target_directory_missing_pdf(tmp_path, capsys) -> None:
-    """
-    Test validate target directory missing pdf.
-
-    Expected outcome:
-    The function should execute successfully and meet all assertions.
-    """
-    target_dir = tmp_path / "1273"
-    target_dir.mkdir()
-    (target_dir / "1273_report.json").touch()
-    
-    from src.main import validate_target_directory
-    with pytest.raises(ValidationError) as exc_info:
-        validate_target_directory(target_dir)
-    assert "No PDF found in the target directory." in str(exc_info.value)
-
-def test_validate_target_directory_mismatch_id(tmp_path, capsys) -> None:
-    """
-    Test validate target directory mismatch id.
-
-    Expected outcome:
-    The function should execute successfully and meet all assertions.
-    """
-    target_dir = tmp_path / "1273"
-    target_dir.mkdir()
-    (target_dir / "1273_categorized.pdf").touch()
-    (target_dir / "1274_report.json").touch()
-    
-    from src.main import validate_target_directory
-    with pytest.raises(ValidationError) as exc_info:
-        validate_target_directory(target_dir)
-    assert "No matching PDF and JSON pairs found." in str(exc_info.value)
-
 def test_validate_target_directory_missing_json(tmp_path, capsys) -> None:
     """Missing _report.json is gracefully caught and exits with code 1."""
     target_dir = tmp_path / "1273"

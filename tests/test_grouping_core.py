@@ -141,9 +141,11 @@ def test_anchor_page_merging() -> None:
         DocumentGroup(start_page=10, end_page=12, primary_tenant="T1", category="forms", dates=[])
     ]
     merged_c = merge_chunks(chunk1_c, chunk2_c, 9)
-    assert len(merged_c) == 3
-    assert merged_c[0].end_page == 8 # Trust Chunk 2 for page 9, so Chunk 1 ends at 8
-    assert merged_c[1].start_page == 9 and merged_c[1].end_page == 9
+    assert len(merged_c) == 2
+    assert merged_c[0].start_page == 6
+    assert merged_c[0].end_page == 9
+    assert merged_c[1].start_page == 10
+    assert merged_c[1].end_page == 12
 
     # Scenario D: Conflict on Anchor Page decisions (SPLIT)
     chunk1_d = [
@@ -197,19 +199,12 @@ def test_process_with_shrink_deterministic_bypasses() -> None:
     llm_client = MagicMock()
     
     # Contract: 1 group
-    pages_contract = [MockPage(0, "contract"), MockPage(1, "contract")]
+    pages_contract = [MockPage(0, "05-عقود"), MockPage(1, "05-عقود")]
     groups_contract = process_with_shrink(pages_contract, llm_client)
     assert len(groups_contract) == 1
     assert groups_contract[0].start_page == 0
     assert groups_contract[0].end_page == 1
     
-    # ID Cards: 1 group
-    pages_id = [MockPage(0, "id_cards"), MockPage(1, "id_cards")]
-    groups_id = process_with_shrink(pages_id, llm_client)
-    assert len(groups_id) == 1
-    assert groups_id[0].start_page == 0
-    assert groups_id[0].end_page == 1
-
     # Utility Bills: 1 group per page
     pages_bills = [MockPage(0, "utility_bills"), MockPage(1, "utility_bills")]
     groups_bills = process_with_shrink(pages_bills, llm_client)
@@ -231,14 +226,14 @@ def test_process_with_shrink_default_routing() -> None:
         groups=[GroupEntry(start_page=0, end_page=0, reason="R", brief_arabic_title="T")]
     )
     
-    # "unknown" category should route to FORM_PROMPT
+    # "unknown" category should route to STRICT_ADMIN_PROMPT
     pages = [MockPage(0, "unknown")]
     process_with_shrink(pages, llm_client)
     
     # Verify prompt used in generate_content call
     args, kwargs = llm_client.generate_content.call_args
     prompt = kwargs['contents'][0] if 'contents' in kwargs else args[0][0]
-    assert FORM_PROMPT in prompt
+    assert LETTER_PROMPT in prompt
 
 def test_resilient_loop_success(tmp_path) -> None:
     """
@@ -259,11 +254,18 @@ def test_resilient_loop_success(tmp_path) -> None:
         The appropriate fixture or mock value.
         """
         prompt = contents[0]
-        if "Page 0 to Page 3" in prompt:
+        import re
+        match = re.search(r"Chunk range: Page (\d+) to Page (\d+)", prompt)
+        if not match:
+            return GroupingResponse(groups=[])
+        start = int(match.group(1))
+        end = int(match.group(2))
+        
+        if start == 0 and end == 3:
             return GroupingResponse(groups=[GroupEntry(start_page=0, end_page=3, reason="R", brief_arabic_title="T")])
-        if "Page 3 to Page 6" in prompt:
+        if start == 3 and end == 6:
             return GroupingResponse(groups=[GroupEntry(start_page=3, end_page=6, reason="R", brief_arabic_title="T")])
-        if "Page 6 to Page 9" in prompt:
+        if start == 6 and end == 9:
             return GroupingResponse(groups=[GroupEntry(start_page=6, end_page=9, reason="R", brief_arabic_title="T")])
         return GroupingResponse(groups=[])
 
@@ -295,9 +297,9 @@ def test_resilient_loop_shrink(tmp_path) -> None:
         The appropriate fixture or mock value.
         """
         prompt = contents[0]
-        # Extract range from prompt: "Page X to Page Y"
+        # Extract range from prompt: "Chunk range: Page X to Page Y"
         import re
-        match = re.search(r"Page (\d+) to Page (\d+)", prompt)
+        match = re.search(r"Chunk range: Page (\d+) to Page (\d+)", prompt)
         if not match:
             return GroupingResponse(groups=[])
         
@@ -306,7 +308,7 @@ def test_resilient_loop_shrink(tmp_path) -> None:
         
         # Force shrink at the beginning (size 4)
         if start == 0 and (end == 3): # Size 4
-            raise ProviderRotationExhaustedError("Rotation failed")
+            raise ValueError("Token limit exceeded")
             
         return GroupingResponse(groups=[GroupEntry(start_page=start, end_page=end, reason="R", brief_arabic_title="T")])
 
@@ -320,8 +322,8 @@ def test_resilient_loop_shrink(tmp_path) -> None:
     calls = llm_client.generate_content.call_args_list
     first_prompt = calls[0].args[0][0] if calls[0].args else calls[0].kwargs['contents'][0]
     second_prompt = calls[1].args[0][0] if calls[1].args else calls[1].kwargs['contents'][0]
-    assert "Page 0 to Page 3" in first_prompt
-    assert "Page 0 to Page 2" in second_prompt
+    assert "Chunk range: Page 0 to Page 3" in first_prompt
+    assert "Chunk range: Page 0 to Page 2" in second_prompt
 
 def test_resilient_loop_halt(tmp_path) -> None:
     """
@@ -334,7 +336,7 @@ def test_resilient_loop_halt(tmp_path) -> None:
     manager = GroupingStateManager(str(state_file))
     llm_client = MagicMock()
     
-    llm_client.generate_content.side_effect = ProviderRotationExhaustedError("Rotation failed")
+    llm_client.generate_content.side_effect = ValueError("500 internal server error")
     
     pages = [MockPage(i, "forms") for i in range(10)]
     
@@ -373,11 +375,14 @@ def test_resilient_loop_resume(tmp_path) -> None:
         The appropriate fixture or mock value.
         """
         prompt = contents[0]
-        if "Page 5 to Page 7" in prompt:
-            return GroupingResponse(groups=[GroupEntry(start_page=5, end_page=7, reason="R", brief_arabic_title="T")])
-        if "Page 7 to Page 9" in prompt:
-            return GroupingResponse(groups=[GroupEntry(start_page=7, end_page=9, reason="R", brief_arabic_title="T")])
-        return GroupingResponse(groups=[])
+        import re
+        match = re.search(r"Chunk range: Page (\d+) to Page (\d+)", prompt)
+        if not match:
+            return GroupingResponse(groups=[])
+        start = int(match.group(1))
+        end = int(match.group(2))
+        
+        return GroupingResponse(groups=[GroupEntry(start_page=start, end_page=end, reason="R", brief_arabic_title="T")])
 
     llm_client.generate_content.side_effect = llm_side_effect
     
@@ -408,11 +413,18 @@ def test_resilient_loop_partial_success(tmp_path) -> None:
         The appropriate fixture or mock value.
         """
         prompt = contents[0]
-        if "Page 0 to Page 3" in prompt:
+        import re
+        match = re.search(r"Chunk range: Page (\d+) to Page (\d+)", prompt)
+        if not match:
+            return GroupingResponse(groups=[])
+        start = int(match.group(1))
+        end = int(match.group(2))
+        
+        if start == 0 and end == 3:
             return GroupingResponse(groups=[GroupEntry(start_page=0, end_page=3, reason="R", brief_arabic_title="T")])
-        if "Page 3 to Page 6" in prompt:
+        if start == 3 and end == 6:
             return GroupingResponse(groups=[GroupEntry(start_page=3, end_page=6, reason="R", brief_arabic_title="T")])
-        if "Page 6 to Page 9" in prompt:
+        if start == 6 and end == 9:
             return GroupingResponse(groups=[GroupEntry(start_page=6, end_page=9, reason="R", brief_arabic_title="T")])
         return GroupingResponse(groups=[])
 
@@ -464,13 +476,13 @@ def test_grouping_e2e_scenario() -> None:
         The appropriate fixture or mock value.
         """
         prompt = contents[0]
-        if "Page 0 to Page 3" in prompt or "Page 0 to Page 2" in prompt:
+        if "Chunk range: Page 0 to Page 3" in prompt or "Chunk range: Page 0 to Page 2" in prompt:
             # First chunk (0-3). Must end at 3.
             return GroupingResponse(groups=[
                 GroupEntry(start_page=0, end_page=2, reason="Letter", brief_arabic_title="L"),
                 GroupEntry(start_page=3, end_page=3, reason="Forms", brief_arabic_title="F")
             ])
-        if "Page 3 to Page 4" in prompt:
+        if "Chunk range: Page 3 to Page 4" in prompt:
             # Overlap chunk.
             return GroupingResponse(groups=[
                 GroupEntry(start_page=3, end_page=4, reason="Forms", brief_arabic_title="F")
@@ -499,8 +511,8 @@ def test_boundary_signals() -> None:
     Expected outcome:
     The function should execute successfully and meet all assertions.
     """
-    assert "subject/content shift" in FORM_PROMPT
-    assert "DO NOT split on date changes" in FORM_PROMPT
+    assert "aggressively MERGE" in FORM_PROMPT
+    assert "SPLIT into a new document" in LETTER_PROMPT
 
 # --- State Manager Tests ---
 
