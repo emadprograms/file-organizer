@@ -2,7 +2,7 @@
 
 ## Milestones
 
-- 🏃 **v6.0 LLM Accuracy & Evaluation** — Phases 62-66 (Active)
+- ✅ **v6.0 LLM Accuracy & Evaluation** — Phases 62-67 (shipped 2026-08-12)
 - ⏸️ **v5.5 Pipeline Reversibility & Lossless Undo** — Phases 58-61 (Pivoted 2026-08-07)
 - ✅ **v5.4 Architectural Consistency Refactor** — Phases 49-57 (shipped 2026-08-02)
 - ✅ **v3.0 Unified File-System UI & Append Mode** — Phases 20-24.1 (shipped 2026-07-24)
@@ -14,27 +14,10 @@
 
 ## Phases
 
-<details open>
-<summary>🏃 v6.0 LLM Accuracy & Evaluation (Phases 62-66) — ACTIVE</summary>
+<details>
+<summary>✅ v6.0 LLM Accuracy & Evaluation (Phases 62-67) — SHIPPED 2026-08-12</summary>
 
-### Phase 62: OCR Golden Data Pre-processing
-**Goal:** Generate the OCR `raw_dump.json` for the 4 Golden PDFs (Houses 1155, 1166, 1176, 1492) using Gemini (rotating 4 different API keys from `.env` and `.env2`). Save them in `tests/golden_data/` so subsequent prompt testing is fast and doesn't require re-uploading PDFs.
-
-### Phase 63: Evaluation & Testing Harness
-**Goal:** Build a script (`run_eval.py`) that uses the pre-processed `raw_dump.json` and grades the output against the Golden YAMLs to output a clear accuracy scoreboard.
-
-### Phase 64: Name Canonicalization (Completed)
-**Goal:** (Using Gemma-4-31B) Recursively tweak prompts and logic until we hit 100% accuracy in mapping extracted names to existing `tenants.yaml` keys without creating duplicate/random folders.
-*Status: Hit 99.07% practical accuracy on clean dataset (1492).*
-
-### Phase 65: Integrate Pass 2 Categorization & Comprehensive Testing (Completed)
-**Goal:** Integrate the newly perfected "Pass 2 Fine Categorization" into the main production pipeline, and write comprehensive tests for it.
-
-### Phase 66: OCR Letter Continuation Detection (is_continuation)
-**Goal:** Implement the `is_continuation` fix for the OCR pass so that pages lacking subjects/addressees are marked as continuations.
-
-### Phase 67: Test Suite Cleanup & Missing Imports
-**Goal:** Fix pre-existing `NameError` bugs in `router.py` and align tests with Phase 64 & 65 changes to return the test suite to 100% green.
+See [.planning/milestones/v6.0-ROADMAP.md](milestones/v6.0-ROADMAP.md) for full phase details.
 
 </details>
 
@@ -190,7 +173,7 @@ See [.planning/milestones/v5.4-ROADMAP.md](milestones/v5.4-ROADMAP.md) for full 
 | 65. Integrate Pass 2 Categorization | v6.0 | 1/1 | Complete | 2026-08-11 |
 | 65. Integrate Pass 2 Categorization | v6.0 | 1/1 | Complete | 2026-08-11 |
 | 66. OCR Letter Continuation Detection | v6.0 | 1/1 | Complete | 2026-08-12 |
-| 67. Test Suite Cleanup & Missing Imports | v6.0 | 0/1 | Active | |
+| 67. Test Suite Cleanup & Missing Imports | v6.0 | 1/1 | Complete | 2026-08-12 |
 
 
 

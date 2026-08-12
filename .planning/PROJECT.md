@@ -4,15 +4,12 @@
 
 A document management system that processes scanned Arabic PDFs, categorizes them using LLM vision, groups related pages, and organizes them into a structured folder hierarchy per tenant household. The system runs on Windows and uses a Vault-based architecture with shortcuts for file organization and bidirectional reconciliation.
 
-## Current Milestone: v6.0 (LLM Accuracy & Evaluation)
+## Current Milestone: Next Milestone (TBD)
 
-**Goal:** Establish a rigorous automated testing framework using Golden Datasets, and recursively prompt-engineer the LLM to achieve extremely high accuracy in name canonicalization, grouping, and routing.
+**Goal:** Pending new roadmap planning.
 
 **Target features:**
-- **Evaluation Harness:** A programmatic test script that runs the pipeline on raw PDFs and grades the output against Golden YAMLs.
-- **Name Canonicalization:** 100% accuracy in matching LLM-extracted names to the correct `tenants.yaml` keys without hallucinating extra folders.
-- **Grouping Logic:** 95%+ accuracy in identifying document boundaries (falling back to 85% if LLM limits are hit).
-- **Routing Logic:** Maximize accuracy in placing documents into the correct structural folders.
+- TBD
 
 ## Core Value
 
@@ -85,6 +82,14 @@ Documents are safely stored once in an immutable vault; all organization is done
 
 - [Pending]
 
+### Shipped in v6.0
+- ✓ OCR Golden Data Pre-processing (REQ-01) (Phase 62) — v6.0
+- ✓ Automated Evaluation Harness (REQ-02) (Phase 63) — v6.0
+- ✓ Name Canonicalization Accuracy (REQ-03) (Phase 64) — v6.0
+- ✓ Pass 2 Fine Categorization (REQ-04) (Phase 65) — v6.0
+- ✓ OCR Letter Continuation Detection (REQ-05) (Phase 66) — v6.0
+- ✓ Test Suite Cleanup (Phase 67) — v6.0
+
 ### Out of Scope
 
 - macOS support — this milestone targets Windows only (`.lnk` shortcuts).
@@ -104,6 +109,7 @@ Documents are safely stored once in an immutable vault; all organization is done
 - ✅ Shipped v5.3 Reconciliation Engine Upgrade on 2026-08-01.
 - ✅ Shipped v5.4 Architectural Consistency Refactor on 2026-08-02.
 - ⏸️ Pivoted from v5.5 (Lossless Undo) to v6.0 (LLM Accuracy) on 2026-08-10.
+- ✅ Shipped v6.0 LLM Accuracy & Evaluation on 2026-08-12.
 
 ## Context
 
@@ -146,4 +152,4 @@ Documents are safely stored once in an immutable vault; all organization is done
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-08-02 — v5.4 Architectural Consistency Refactor SHIPPED. Transitioning to next.*
+*Last updated: 2026-08-12 — v6.0 LLM Accuracy & Evaluation SHIPPED. Transitioning to next.*
