@@ -177,3 +177,20 @@ See [.planning/milestones/v5.4-ROADMAP.md](milestones/v5.4-ROADMAP.md) for full 
 
 
 
+
+## v6.1: Reconciliation Polish
+
+- [ ] Phase 68: Create automated test script for Zero-Delta Reconciliation using the 574 sandbox.
+- [ ] Phase 69: Fix Timeline View sorting logic in \econcile/core.py\ to match \create\ mode.
+- [ ] Phase 70: Fix phantom shortcut modifications (six other locations bug).
+- [ ] Phase 71: Final E2E Zero-Delta Verification against House 574.
+
+
+## v7.0: The Ingest & Bulletproof Reconcile Engine
+
+- [x] Phase 72: Fix reconcile's "Unassigned" bug (extract metadata from folder path)
+- [x] Phase 73: Write E2E tests for the upgraded reconcile
+- [x] Phase 74: Build the ingest CLI command
+- [x] Phase 75: Write E2E tests for ingest + reconcile workflow
+- [x] Phase 76: Fix undo to use .trash/ instead of mtree
+- [x] Phase 77: Delete the watcher/prepend system and deprecated commands

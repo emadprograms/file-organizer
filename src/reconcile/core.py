@@ -268,6 +268,9 @@ def run_reconcile_mode(args) -> int:
                 
                 if should_lock:
                     p["user_locked"] = True
+                    inv_dict = {v: k for k, v in valid_tenant_folders.items()}
+                    new_tenant = inv_dict.get(top_level_folder, "Unassigned")
+                    p["canonical_tenant"] = new_tenant
                 else:
                     p["user_locked"] = False
                     logger.info(f"Top-level folder '{top_level_folder}' is not canonical. Snapping back.")
@@ -277,9 +280,11 @@ def run_reconcile_mode(args) -> int:
                 page_idx = p["page_index"]
                 if page_idx < len(pages) and should_lock:
                     pages[page_idx].user_locked = True
+                    pages[page_idx].canonical_tenant = new_tenant
                 for g in groups:
                     if g.start_page <= page_idx <= g.end_page and should_lock:
                         g.user_locked = True
+                        g.primary_tenant = new_tenant
                         break
             else:
                 logger.info(f"Detected deletion of duplicate shortcut for vault_id {vault_id}.")
@@ -325,6 +330,9 @@ def run_reconcile_mode(args) -> int:
                     should_lock = top_level_folder in valid_folder_names_set
                     if not should_lock:
                         logger.info(f"Top-level folder '{top_level_folder}' for ghost shortcut is not canonical. Snapping back.")
+                    
+                    inv_dict = {v: k for k, v in valid_tenant_folders.items()}
+                    new_tenant = inv_dict.get(top_level_folder, "Unassigned") if should_lock else "Unassigned"
                         
                     for i in range(num_pages):
                         new_page = PageData(
@@ -333,7 +341,8 @@ def run_reconcile_mode(args) -> int:
                             original_index=new_page_idx + i,
                             user_locked=should_lock,
                             date=extracted_date,
-                            resolved_date=extracted_date if extracted_date != "nodate" else None
+                            resolved_date=extracted_date if extracted_date != "nodate" else None,
+                            canonical_tenant=new_tenant if should_lock else None
                         )
                         pages.append(new_page)
                         
@@ -345,14 +354,15 @@ def run_reconcile_mode(args) -> int:
                             "dates": [extracted_date] if extracted_date != "nodate" else [],
                             "date": extracted_date,
                             "brief_arabic_title": lnk.stem,
-                            "user_locked": should_lock
+                            "user_locked": should_lock,
+                            "canonical_tenant": new_tenant if should_lock else None
                         }
                         routed_data.setdefault("per_page", []).append(new_p)
                         
                     new_group = DocumentGroup(
                         start_page=new_page_idx,
                         end_page=new_page_idx + num_pages - 1,
-                        primary_tenant="Unassigned",
+                        primary_tenant=new_tenant if should_lock else "Unassigned",
                         category="Unassigned",
                         dates=[extracted_date] if extracted_date != "nodate" else [],
                         brief_arabic_title=lnk.stem,
@@ -464,6 +474,16 @@ def run_reconcile_mode(args) -> int:
             lnk_path = pdf_path.with_suffix('.lnk')
             create_shortcut(str(dest_vault_pdf.resolve()), str(lnk_path.resolve()))
             
+            manifest_path = pdf_path.with_name(f"{pdf_path.stem}_ingest_manifest.json")
+            manifest_data = None
+            if manifest_path.exists():
+                with open(manifest_path, 'r', encoding='utf-8') as f:
+                    manifest_data = json.load(f)
+                try:
+                    os.remove(str(manifest_path))
+                except OSError:
+                    pass
+                    
             date_match = re.search(r'(\d{4}-\d{2}-\d{2})', pdf_path.name)
             extracted_date = _normalize_arabic_numerals(date_match.group(1)) if date_match else "nodate"
             
@@ -478,14 +498,28 @@ def run_reconcile_mode(args) -> int:
             if not should_lock:
                 logger.info(f"Top-level folder '{top_level_folder}' for raw PDF is not canonical. Snapping back.")
                 
+            inv_dict = {v: k for k, v in valid_tenant_folders.items()}
+            new_tenant = inv_dict.get(top_level_folder, "Unassigned") if should_lock else "Unassigned"
+            
             for i in range(num_pages):
+                m_data = manifest_data[i] if manifest_data and i < len(manifest_data) else {}
+                cat = m_data.get("category", "Unassigned")
+                exp = m_data.get("content_explanation", f"Ingested from raw PDF. (Page {i+1}/{num_pages})")
+                m_date = m_data.get("date", extracted_date)
+                m_exp_tenant = m_data.get("expected_tenant_name")
+                
+                # If we have a manifest, trust it more, but if should_lock, then we still prefer the folder's tenant
+                final_tenant = new_tenant if should_lock else m_exp_tenant
+                
                 new_page = PageData(
-                    category="Unassigned",
-                    content_explanation=f"Ingested from raw PDF. (Page {i+1}/{num_pages})",
+                    category=cat,
+                    content_explanation=exp,
+                    expected_tenant_name=m_exp_tenant,
                     original_index=new_page_idx + i,
                     user_locked=should_lock,
-                    date=extracted_date,
-                    resolved_date=extracted_date if extracted_date != "nodate" else None
+                    date=m_date,
+                    resolved_date=m_date if m_date != "nodate" else None,
+                    canonical_tenant=final_tenant
                 )
                 pages.append(new_page)
                 
@@ -494,19 +528,23 @@ def run_reconcile_mode(args) -> int:
                     "vault_id": new_vault_id,
                     "output_file": f"{target_dir.name}/{rel_path}",
                     "target_folder": new_target_folder,
-                    "dates": [extracted_date] if extracted_date != "nodate" else [],
-                    "date": extracted_date,
+                    "dates": [m_date] if m_date != "nodate" else [],
+                    "date": m_date,
                     "brief_arabic_title": lnk_path.stem,
-                    "user_locked": should_lock
+                    "user_locked": should_lock,
+                    "canonical_tenant": final_tenant,
+                    "expected_tenant_name": m_exp_tenant,
+                    "category": cat
                 }
                 routed_data.setdefault("per_page", []).append(new_p)
                 vault_id_to_pages.setdefault(new_vault_id, []).append(new_p)
                 
+            first_m = manifest_data[0] if manifest_data else {}
             new_group = DocumentGroup(
                 start_page=new_page_idx,
                 end_page=new_page_idx + num_pages - 1,
-                primary_tenant="Unassigned",
-                category="Unassigned",
+                primary_tenant=new_tenant if should_lock else first_m.get("expected_tenant_name", "Unassigned"),
+                category=first_m.get("category", "Unassigned"),
                 dates=[extracted_date] if extracted_date != "nodate" else [],
                 brief_arabic_title=lnk_path.stem,
                 vault_id=new_vault_id,

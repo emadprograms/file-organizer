@@ -53,6 +53,7 @@ def _process_chunk(
             else:
                 text = main_text
                 
+        text = text or ""
         fine_cat = getattr(p, 'fine_category', None)
         fine_cat_reason = getattr(p, 'fine_category_reason', None)
         if fine_cat:

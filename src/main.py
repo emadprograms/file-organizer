@@ -107,50 +107,6 @@ def validate_report_json(json_path: Path) -> None:
         if cat.lower() not in valid_categories:
             raise ValidationError(f"Page {i+1} in {json_path.name} has unknown category '{cat}'. Please fix the report JSON.")
 
-def run_prepend_mode(config: Any, skip_llm: bool = False) -> None:
-    """Run the listener in prepend mode with a process-exclusive lock.
-    
-    Args:
-        config (AppConfig): The application configuration.
-    """
-    import os
-    import sys
-    import logging
-    from pathlib import Path
-    from src.llm.llm import LLMClient
-    from src.watcher.lock import acquire_lock, release_lock, LockExistsError
-    from src.watcher.orchestrator import FSUIOrchestrator
-    from dotenv import load_dotenv
-
-    load_dotenv()
-
-    inbox_dir = Path(config.inbox_path)
-    os.makedirs(str(inbox_dir), exist_ok=True)
-    
-    llm_client = LLMClient(api_key=os.getenv("GEMINI_API_KEY") or "dummy")
-    llm_client.skip_llm = skip_llm
-    
-    import hashlib
-    inbox_hash = hashlib.md5(str(inbox_dir.resolve()).encode()).hexdigest()
-    lock_dir = Path.home() / ".file-organizer" / "locks"
-    lock_dir.mkdir(parents=True, exist_ok=True)
-    lock_path = lock_dir / f"inbox_{inbox_hash}.lock"
-    
-    try:
-        acquire_lock(lock_path)
-    except LockExistsError:
-        logger.info("Listener is already running (lockfile exists). Exiting gracefully.")
-        sys.exit(0)
-        return
-        
-    try:
-        setup_logging()
-        logger.info("Listener started...")
-        orchestrator = FSUIOrchestrator(config, llm_client)
-        orchestrator.process_inbox()
-    finally:
-        release_lock(lock_path)
-
 def get_parser() -> argparse.ArgumentParser:
     """Create and configure the command-line argument parser.
     
@@ -203,14 +159,18 @@ def get_parser() -> argparse.ArgumentParser:
         type=Path,
         help="Optional: Path to the output base directory. Defaults to the parent of the house folder if target_dir is the house folder, otherwise to target_dir."
     )
-    
-    # prepend mode
-    prepend_parser = subparsers.add_parser("prepend", help="Start the listener on the inbox")
-    prepend_parser.add_argument(
-        "--skip-llm", 
-        action="store_true", 
-        help="Skip LLM calls and return mocked schemas."
+    # ingest mode
+    ingest_parser = subparsers.add_parser("ingest", help="Ingest raw PDFs into target house folders")
+    ingest_parser.add_argument("input_path", type=Path, help="Path to the PDF file or directory to ingest")
+    ingest_parser.add_argument(
+        "--model", 
+        type=str, 
+        default="gemini-3.5-flash", 
+        help="LLM model to use for the main tasks"
     )
+    ingest_parser.add_argument("--dry-run", action="store_true", help="Preview the operations without moving files")
+    ingest_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+
     
     # reconcile mode
     reconcile_parser = subparsers.add_parser("reconcile", help="Reconcile existing categorized documents")
@@ -270,10 +230,16 @@ def main() -> int:
     except Exception as e:
         logger.exception(f"Unexpected error loading config: {e}")
         return 1
-
-    if args.command == "prepend":
-        run_prepend_mode(config, skip_llm=getattr(args, 'skip_llm', False))
-        return 0
+    if args.command == "ingest":
+        setup_logging(verbose=getattr(args, 'verbose', False))
+        set_verbosity(getattr(args, 'verbose', False))
+        from src.ingest.core import run_ingest_mode
+        llm_client = LLMClient(api_key=os.getenv("GEMINI_API_KEY"))
+        llm_client.default_model = getattr(args, 'model', "gemini-3.5-flash")
+        try:
+            return run_ingest_mode(args, config, llm_client)
+        finally:
+            llm_client.close()
 
     if args.command == "reconcile":
         setup_logging(verbose=getattr(args, 'verbose', False))
@@ -412,4 +378,7 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+
 

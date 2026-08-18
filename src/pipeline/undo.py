@@ -83,23 +83,26 @@ def run_undo(target_dir: Path) -> int:
                 for item in search_dir.iterdir():
                     if item.is_file():
                         name = item.name.lower()
-                        if ("raw_dump" in name) or ("report" in name and name.endswith(".json")) or ("tenant" in name and name.endswith(".yaml")) or ("categorization" in name and name.endswith(".json")):
+                        if ("raw_dump" in name) or ("tenant" in name and name.endswith(".yaml")) or ("categorization" in name and name.endswith(".json")):
                             dest = temp_dir / item.name
                             shutil.copy2(item, dest)
                             preserved.append(item.name)
 
-            # Wipe out everything except the newly created reconstructed PDF
+            import time
+            trash_dir = target_dir / ".trash"
+            trash_dir.mkdir(exist_ok=True)
+            timestamp = int(time.time())
+            
+            # Wipe out everything except the newly created reconstructed PDF and the trash dir itself
             for item in target_dir.iterdir():
-                if item.resolve() == output_pdf_path.resolve():
+                if item.resolve() == output_pdf_path.resolve() or item.resolve() == trash_dir.resolve():
                     continue
                     
                 try:
-                    if item.is_dir():
-                        shutil.rmtree(item)
-                    else:
-                        item.unlink()
+                    dest = trash_dir / f"{item.name}_{timestamp}"
+                    shutil.move(str(item), str(dest))
                 except Exception as e:
-                    logger.warning(f"Failed to delete {item}: {e}")
+                    logger.warning(f"Failed to move {item} to trash: {e}")
                     
             # Restore preserved files into .source_files/
             if preserved:

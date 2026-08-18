@@ -1,20 +1,10 @@
-# State
+# Milestone State
 
-**Current Milestone:** v6.0 (LLM Accuracy & Evaluation)
-**Current Phase:** Phase 67: Test Suite Cleanup & Missing Imports
-- **Status**: Active
-- **Outcome**: 
+**Current Milestone:** v7.0: The Ingest & Bulletproof Reconcile Engine
+**Current Phase:** Milestone Complete
 
-## Active Tasks
-- [ ] Fix NameError in router.py
-- [ ] Align tests with Phase 64 & 65 changes
-- [ ] Fix all test failures
-- [ ] Commit and push
+## Context
+This milestone focuses on decoupling the AI pipeline from the fragile background watcher loop. We are introducing the `ingest` command to act as an automated sorting hat, placing raw PDFs into target folders, and upgrading the `reconcile` engine to be the singular brain that securely vaults these files, updates state, and generates shortcuts and timelines.
 
-## Blockers
-- None
-
-## Quick Tasks Completed
-| Date | Slug | Description |
-| ---- | ---- | ----------- |
-| 2026-08-10 | build-golden | Built 4 golden datasets for Houses 1155, 1166, 1176, 1492 |
+## Pending Decisions
+- None.

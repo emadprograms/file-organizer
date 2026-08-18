@@ -127,14 +127,15 @@ class GeminiProvider:
             raise ValueError(f"LLM parsing error. Raw output: {raw_text}. Error: {e}")
 
     def upload_file(self, file_path: str) -> Any:
-        """Upload a file using the Gemini File API."""
-        return self.client.files.upload(file=file_path)
+        """Upload a file using the Gemini File API.
+        NOTE: Due to hidden Google Cloud Storage 403 Quotas, we now return a PIL Image
+        to be sent directly via base64 inline, completely bypassing the File API.
+        """
+        from PIL import Image
+        return Image.open(file_path)
         
     def delete_file(self, file_obj: Any) -> None:
-        """Delete a file from the Gemini File API."""
-        try:
-            self.client.files.delete(name=file_obj.name)
-        except Exception as e:
-            logger.warning(f"Failed to delete {file_obj.name} from cloud storage: {e}")
+        """No-op when using inline PIL images instead of the File API."""
+        pass
 
 
