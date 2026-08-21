@@ -54,7 +54,7 @@ def test_tenant_root_folder_renaming(tmp_path):
                 "vault_id": "v1"
             }
         ],
-        "manifest": {
+        "routed_documents": {
             "per_page": [
                 {
                     "page_index": 0,
@@ -95,6 +95,6 @@ def test_tenant_root_folder_renaming(tmp_path):
     
     # Check state
     state2 = State(house_id, source_dir)
-    p = state2.data["manifest"]["per_page"][0]
+    p = state2.data["routed_documents"]["per_page"][0]
     assert "Current Tenant" in p["target_folder"]
     assert not p.get("user_locked", False)

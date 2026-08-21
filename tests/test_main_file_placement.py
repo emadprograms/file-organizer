@@ -1,5 +1,12 @@
 from typing import Any
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 from pathlib import Path
 import shutil
 import logging
@@ -21,7 +28,7 @@ def test_file_placement_logic(tmp_path) -> None:
     
     # Create mock categorized pdf
     pdf_path = target_dir / f"{house_id}_categorized.pdf"
-    pdf_path.touch()
+    make_valid_pdf(pdf_path)
     
     # Create mock report json
     report_json = target_dir / f"{house_id}_report.json"
@@ -34,11 +41,11 @@ def test_file_placement_logic(tmp_path) -> None:
     source_files_dir = house_dir / ".source_files"
     source_files_dir.mkdir(parents=True)
     cleaned_path = source_files_dir / f"{house_id}_1_cleaned.json"
-    cleaned_path.touch()
+    make_valid_pdf(cleaned_path)
     grouped_path = source_files_dir / f"{house_id}_2_grouped.json"
-    grouped_path.touch()
+    make_valid_pdf(grouped_path)
     routed_path = source_files_dir / f"{house_id}_3_routed_and_finalized.json"
-    routed_path.touch()
+    make_valid_pdf(routed_path)
     
     # Mock dependencies inside run_generation_pass
     # Simulate what organize() does: renames target_dir to house_dir

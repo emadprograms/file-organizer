@@ -1,5 +1,12 @@
 from typing import Any
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 import json
 from pathlib import Path
 from unittest.mock import patch, MagicMock
@@ -36,7 +43,7 @@ def test_create_house_directory(mock_extract, organizer, mock_config, tmp_path) 
     """
     input_dir = tmp_path / "input"
     input_dir.mkdir()
-    (input_dir / "123.pdf").touch()
+    make_valid_pdf(input_dir / "123.pdf")
     docs = [
         DocumentGroup(start_page=0, end_page=1, primary_tenant="Resident A", category="BASIC_DETAILS", dates=["2023-01-01"], folder_path="بيانات أساسية", is_direct_routed=True),
     ]

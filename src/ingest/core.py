@@ -84,7 +84,7 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             
         pdf_path = None
         pdf_pages = 0
-        candidate_pdfs = list(json_path.parent.glob("*.pdf"))
+        candidate_pdfs = [p for p in json_path.parent.glob("*.pdf") if p.is_file()]
         for candidate in candidate_pdfs:
             if "_categorized" in candidate.name or "_finalized" in candidate.name:
                 continue
@@ -120,10 +120,10 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             cat = item.get("category")
             if not cat:
                 from src.core.exceptions import ValidationError
-                raise ValidationError(f"Page {i+1} in {json_path.name} is missing a category (found: {cat}).")
+                raise ValidationError(f"Page {i+1} in {json_path.name} is missing a category (found: {cat}). Please fix the report JSON.")
             if cat.lower() not in valid_categories:
                 from src.core.exceptions import ValidationError
-                raise ValidationError(f"Page {i+1} in {json_path.name} has unknown category '{cat}'.")
+                raise ValidationError(f"Page {i+1} in {json_path.name} has unknown category '{cat}'. Please fix the report JSON.")
                 
         if invalid_found:
             has_errors = True
@@ -181,7 +181,7 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
                     import yaml
                     with open(yaml_path, "r", encoding="utf-8") as yf:
                         existing_data = yaml.safe_load(yf)
-                    existing_names = [item.get("name") for item in existing_data if isinstance(item, dict)]
+                    existing_names = [item["name"] for item in existing_data if isinstance(item, dict)]
                     added = False
                     for tenant in found_tenants:
                         if tenant not in existing_names:

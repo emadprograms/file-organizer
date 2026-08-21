@@ -1,4 +1,11 @@
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 from pathlib import Path
 import json
 import yaml
@@ -30,7 +37,7 @@ def test_phase43_raw_pdf_ingestion(tmp_path):
         "house_id": house_id,
         "cleaned_pages": [],
         "grouped_documents": [],
-        "manifest": {"per_page": []}
+        "routed_documents": {"per_page": []}
     }
     with open(source_dir / f"{house_id}_state.json", "w") as f:
         json.dump(state_data, f)
@@ -69,7 +76,7 @@ def test_phase43_raw_pdf_ingestion(tmp_path):
         
     assert len(new_state["cleaned_pages"]) == 1
     assert len(new_state["grouped_documents"]) == 1
-    per_page = new_state["manifest"]["per_page"]
+    per_page = new_state["routed_documents"]["per_page"]
     assert len(per_page) == 1
     
     p = per_page[0]
@@ -99,7 +106,7 @@ def test_phase43_ghost_shortcut_adoption(tmp_path):
         "house_id": house_id,
         "cleaned_pages": [],
         "grouped_documents": [],
-        "manifest": {"per_page": []}
+        "routed_documents": {"per_page": []}
     }
     with open(source_dir / f"{house_id}_state.json", "w") as f:
         json.dump(state_data, f)
@@ -107,7 +114,7 @@ def test_phase43_ghost_shortcut_adoption(tmp_path):
     vault_dir = source_dir / "vault"
     vault_dir.mkdir(parents=True)
     vault_pdf = vault_dir / "doc_mockvault123.pdf"
-    vault_pdf.touch()
+    make_valid_pdf(vault_pdf)
     
     # Create ghost shortcut
     subfolder = target_dir / "GhostFolder"
@@ -129,7 +136,7 @@ def test_phase43_ghost_shortcut_adoption(tmp_path):
         new_state = json.load(f)
         
     assert len(new_state["cleaned_pages"]) == 1
-    per_page = new_state["manifest"]["per_page"]
+    per_page = new_state["routed_documents"]["per_page"]
     assert len(per_page) == 1
     
     p = per_page[0]

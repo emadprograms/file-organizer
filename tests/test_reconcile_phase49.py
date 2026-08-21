@@ -73,7 +73,7 @@ def setup_house_for_phase49(tmp_path):
                 "shortcuts": [f"{tenant_name}/رسائل/2020-01-01 - primary.lnk"]
             }
         ],
-        "manifest": {
+        "routed_documents": {
             "per_page": [
                 {
                     "page_index": 0,

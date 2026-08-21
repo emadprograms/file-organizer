@@ -1,4 +1,11 @@
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 from pathlib import Path
 from src.timeline.core import FileOrganizer
 
@@ -20,15 +27,15 @@ def test_pipeline_idempotency_cleans_old_artifacts(tmp_path: Path):
     # Create old artifacts
     vault_dir = house_dir / ".source_files" / "vault"
     vault_dir.mkdir(parents=True)
-    (vault_dir / "old_vault_file.pdf").touch()
+    make_valid_pdf(vault_dir / "old_vault_file.pdf")
     
     timeline_dir = house_dir / "[Timeline View]"
     timeline_dir.mkdir(parents=True)
-    (timeline_dir / "shortcut.lnk").touch()
+    make_valid_pdf(timeline_dir / "shortcut.lnk")
     
     old_tenant_dir = house_dir / "محمد (2000 - 2024) - old"
     old_tenant_dir.mkdir(parents=True)
-    (old_tenant_dir / "old_file.pdf").touch()
+    make_valid_pdf(old_tenant_dir / "old_file.pdf")
     
     # Create a non-tenant directory to ensure it is NOT deleted
     safe_dir = house_dir / "Should Not Delete"

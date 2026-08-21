@@ -1,6 +1,13 @@
 import os
 import json
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -57,14 +64,14 @@ def test_process_unclassified_pdf_checkpointing(mock_pil, mock_imread, mock_proc
     """
     # 1. Setup mock PDF and target directory
     test_pdf = tmp_path / "test.pdf"
-    test_pdf.touch()
+    make_valid_pdf(test_pdf)
     
     tmp_pdf_dir = tmp_path / ".tmp_test"
     tmp_pdf_dir.mkdir()
     
     # Create fake images so os.path.exists passes
     for i in range(5):
-        (tmp_pdf_dir / f"page_{i}.png").touch()
+        make_valid_pdf(tmp_pdf_dir / f"page_{i}.png")
         
     # Mock process_pdf to return a status dict with 5 extracted pages
     mock_status = {
@@ -160,11 +167,11 @@ def test_process_unclassified_pdf_rate_limit_halt(tmp_path):
     from src.core.exceptions import ProviderRotationExhaustedError
     
     test_pdf = tmp_path / "test.pdf"
-    test_pdf.touch()
+    make_valid_pdf(test_pdf)
     
     tmp_pdf_dir = tmp_path / ".tmp_test"
     tmp_pdf_dir.mkdir()
-    (tmp_pdf_dir / "page_1.png").touch()
+    make_valid_pdf(tmp_pdf_dir / "page_1.png")
     
     class MockRateLimitLLM:
         def upload_file(self, *args, **kwargs):

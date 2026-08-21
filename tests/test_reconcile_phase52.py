@@ -1,6 +1,13 @@
 import os
 from pathlib import Path
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 import json
 
 from src.reconcile.core import run_reconcile_mode
@@ -33,7 +40,7 @@ def test_reconcile_and_verification_corrupt_vault_pdf(tmp_path):
             }
         ],
         "grouped_documents": [],
-        "manifest": {
+        "routed_documents": {
             "per_page": [
                 {
                     "page_index": 0,
@@ -87,7 +94,7 @@ def test_verification_corrupt_vault_pdf(tmp_path):
     vault_dir.mkdir(parents=True, exist_ok=True)
     
     zero_pdf = vault_dir / "doc_zero.pdf"
-    zero_pdf.touch()
+    make_valid_pdf(zero_pdf)
     
     corrupt_pdf = vault_dir / "doc_corrupt.pdf"
     with open(corrupt_pdf, "wb") as f:

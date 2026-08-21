@@ -1,4 +1,11 @@
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 from pathlib import Path
 import json
 import yaml
@@ -41,7 +48,7 @@ def test_phase44_user_deletion(tmp_path):
             "category": "misc",
             "dates": []
         }],
-        "manifest": {"per_page": [{
+        "routed_documents": {"per_page": [{
             "page_index": 0,
             "vault_id": "delete_me_123",
             "target_folder": "Tenant/Misc",
@@ -55,7 +62,7 @@ def test_phase44_user_deletion(tmp_path):
     vault_dir = source_dir / "vault"
     vault_dir.mkdir()
     vault_pdf = vault_dir / "doc_delete_me_123.pdf"
-    vault_pdf.touch()
+    make_valid_pdf(vault_pdf)
     
     # We DO NOT create the shortcut, simulating user deletion
     args = DummyArgs(target_dir=target_dir)
@@ -74,7 +81,7 @@ def test_phase44_user_deletion(tmp_path):
     # Should be removed from state
     assert len(new_state["cleaned_pages"]) == 0
     assert len(new_state["grouped_documents"]) == 0
-    assert len(new_state["manifest"]["per_page"]) == 0
+    assert len(new_state["routed_documents"]["per_page"]) == 0
     
     # Vault PDF should be trashed
     assert not (new_house_dir / ".source_files" / "vault" / "doc_delete_me_123.pdf").exists()
@@ -97,7 +104,7 @@ def test_phase44_orphan_cleanup(tmp_path):
         "house_id": house_id,
         "cleaned_pages": [],
         "grouped_documents": [],
-        "manifest": {"per_page": []}
+        "routed_documents": {"per_page": []}
     }
     with open(source_dir / f"{house_id}_state.json", "w") as f:
         json.dump(state_data, f)
@@ -105,7 +112,7 @@ def test_phase44_orphan_cleanup(tmp_path):
     vault_dir = source_dir / "vault"
     vault_dir.mkdir()
     vault_pdf = vault_dir / "doc_orphan_456.pdf"
-    vault_pdf.touch()
+    make_valid_pdf(vault_pdf)
     
     args = DummyArgs(target_dir=target_dir)
     

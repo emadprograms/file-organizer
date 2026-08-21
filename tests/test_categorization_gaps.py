@@ -1,6 +1,13 @@
 import os
 import json
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -34,7 +41,7 @@ def test_bypass_if_report_exists(mock_process_pdf, tmp_path):
     """
     # Setup mock PDF
     test_pdf = tmp_path / "doc1.pdf"
-    test_pdf.touch()
+    make_valid_pdf(test_pdf)
     
     # Create the bypass file
     report_file = tmp_path / "doc1.raw_dump.json"
@@ -56,7 +63,7 @@ def test_bypass_if_global_report_exists(mock_process_pdf, tmp_path):
     Test CAT-02 with _report.json.
     """
     test_pdf = tmp_path / "doc2.pdf"
-    test_pdf.touch()
+    make_valid_pdf(test_pdf)
     
     report_file = tmp_path / ".raw_dump.json"
     report_file.write_text("[]")

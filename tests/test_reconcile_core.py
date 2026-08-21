@@ -1,4 +1,11 @@
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 from pathlib import Path
 import json
 import yaml
@@ -49,7 +56,7 @@ def test_run_reconcile_mode(tmp_path):
             "category": "personal",
             "dates": ["2021-05-11"]
         }],
-        "manifest": {
+        "routed_documents": {
             "per_page": [
                 {
                     "page_index": 0,
@@ -66,7 +73,7 @@ def test_run_reconcile_mode(tmp_path):
     # Create the old PDF file
     old_pdf_path = tmp_path / f"{house_id} - Ahmed Yousuf/Ahmed Yousuf/02_بيانات شخصية/2021-05-11.pdf"
     old_pdf_path.parent.mkdir(parents=True, exist_ok=True)
-    old_pdf_path.touch()
+    make_valid_pdf(old_pdf_path)
     
     args = DummyArgs(target_dir=target_dir)
     
@@ -116,7 +123,7 @@ def test_run_reconcile_mode_ghost_folders(tmp_path):
         "house_id": house_id,
         "cleaned_pages": [{"page_index": 0, "canonical_tenant": "Old Tenant", "resolved_date": "2024-05-11", "topics": ["02"], "is_junk": False, "category": "personal", "content_explanation": "", "original_index": 0}],
         "grouped_documents": [{"start_page": 0, "end_page": 0, "primary_tenant": "Old Tenant", "primary_topic": "02", "metadata": {"date": "2024-05-11"}, "issues": [], "language": "ar", "category": "personal", "dates": ["2024-05-11"]}],
-        "manifest": {"per_page": [{"page_index": 0, "tenant": "Old Tenant", "target_folder": "Old/02", "output_file": f"{house_id} - Old Tenant/Old/02/test.pdf"}]}
+        "routed_documents": {"per_page": [{"page_index": 0, "tenant": "Old Tenant", "target_folder": "Old/02", "output_file": f"{house_id} - Old Tenant/Old/02/test.pdf"}]}
     }
     with open(source_dir / f"{house_id}_state.json", "w") as f:
         json.dump(state_data, f)
@@ -158,7 +165,7 @@ def test_run_reconcile_timeline_generation(tmp_path):
         # NO vault_id in grouped_documents (simulating legacy bug)
         "grouped_documents": [{"start_page": 0, "end_page": 0, "primary_tenant": "Test Tenant", "primary_topic": "02", "metadata": {"date": "2021-05-11"}, "issues": [], "language": "ar", "category": "personal", "dates": ["2021-05-11"]}],
         # vault_id exists in per_page
-        "manifest": {"per_page": [{"page_index": 0, "tenant": "Test Tenant", "target_folder": "Test/02", "output_file": f"{house_id} - Test House/Test/02/test.pdf", "vault_id": "test_vault_id"}]}
+        "routed_documents": {"per_page": [{"page_index": 0, "tenant": "Test Tenant", "target_folder": "Test/02", "output_file": f"{house_id} - Test House/Test/02/test.pdf", "vault_id": "test_vault_id"}]}
     }
     with open(source_dir / f"{house_id}_state.json", "w") as f:
         json.dump(state_data, f)

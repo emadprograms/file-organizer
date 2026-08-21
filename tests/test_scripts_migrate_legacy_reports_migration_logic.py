@@ -1,6 +1,13 @@
 import json
 from pathlib import Path
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 
 from scripts.migrate_legacy_reports import migrate_house
 from src.core.state import State
@@ -33,8 +40,8 @@ def test_migrate_house(tmp_path):
     state_file.write_text(json.dumps(state_data))
     
     # Create vault targets
-    (vault_dir / "doc_v1.pdf").touch()
-    (vault_dir / "doc_v2.pdf").touch()
+    make_valid_pdf(vault_dir / "doc_v1.pdf")
+    make_valid_pdf(vault_dir / "doc_v2.pdf")
     
     # Create shortcuts in reverse order to test timeline chronological sorting
     # Timeline should sort alphabetically by name (which acts chronologically based on prefix)

@@ -106,7 +106,7 @@ def test_verification_missing_vault(mock_house):
     assert run_verification(mock_house) == 1
 
 def test_verification_legacy_json(mock_house):
-    (mock_house / ".source_files" / "123_1_cleaned.json").touch()
+    make_valid_pdf(mock_house / ".source_files" / "123_1_cleaned.json")
     assert run_verification(mock_house) == 1
 
 def test_verification_invalid_tenant(mock_house):
@@ -114,7 +114,7 @@ def test_verification_invalid_tenant(mock_house):
     assert run_verification(mock_house) == 1
 
 def test_verification_rogue_pdf(mock_house):
-    (mock_house / "Tenant A \u200e(2023 - 2024)\u200e" / "rogue.pdf").touch()
+    make_valid_pdf(mock_house / "Tenant A \u200e(2023 - 2024)\u200e" / "rogue.pdf")
     assert run_verification(mock_house) == 1
 
 def test_verification_broken_shortcut(mock_house):

@@ -51,7 +51,7 @@ def test_reconcile_auto_repair_hijacked_shortcut(tmp_path):
                 "vault_id": "v1"
             }
         ],
-        "manifest": {
+        "routed_documents": {
             "per_page": [
                 {
                     "page_index": 0,

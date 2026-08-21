@@ -1,4 +1,11 @@
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 from pathlib import Path
 import json
 import yaml
@@ -24,7 +31,7 @@ def test_run_reconcile_mode_timeline_view_after_rename(tmp_path):
     vault_dir.mkdir(parents=True)
     
     # Create dummy vault pdf
-    (vault_dir / "doc_vault123.pdf").touch()
+    make_valid_pdf(vault_dir / "doc_vault123.pdf")
     
     yaml_data = [
         {"name": "New Tenant", "start_date": "2021-01-01", "end_date": "present"}
@@ -57,7 +64,7 @@ def test_run_reconcile_mode_timeline_view_after_rename(tmp_path):
             "dates": ["2021-05-11"],
             "vault_id": "vault123"
         }],
-        "manifest": {
+        "routed_documents": {
             "per_page": [
                 {
                     "page_index": 0,
@@ -76,7 +83,7 @@ def test_run_reconcile_mode_timeline_view_after_rename(tmp_path):
         
     old_output_path = tmp_path / f"{house_id} - Old House/New Tenant/02/2021-05-11.lnk"
     old_output_path.parent.mkdir(parents=True, exist_ok=True)
-    old_output_path.touch()
+    make_valid_pdf(old_output_path)
         
     args = DummyArgs(target_dir=target_dir)
     

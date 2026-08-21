@@ -23,7 +23,7 @@ def test_reconcile_abort_on_missing_dir(tmp_path):
     mock_state = {
         "version": "5.0",
         "house_id": "123",
-        "manifest": {
+        "routed_documents": {
             "per_page": [
                 {
                     "page_index": 1,
@@ -57,7 +57,7 @@ def test_reconcile_abort_on_missing_dir(tmp_path):
     assert state_file.exists(), "State file must not be deleted."
     with open(state_file, "r", encoding="utf-8") as f:
         data = json.load(f)
-        assert len(data["manifest"]["per_page"]) == 1, "State manifest must not be wiped out!"
+        assert len(data["routed_documents"]["per_page"]) == 1, "State manifest must not be wiped out!"
         
     # Also verify that no .source_files/.trash directory was created inside the non-existent dir
     assert not (non_existent_dir / ".source_files").exists(), "Reconciler should not create .source_files in a non-existent directory."

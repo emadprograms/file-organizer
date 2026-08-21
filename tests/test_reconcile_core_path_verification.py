@@ -1,5 +1,12 @@
 import json
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 from pathlib import Path
 from unittest.mock import patch
 from src.reconcile.core import run_reconcile_mode
@@ -38,7 +45,7 @@ def test_reconcile_generates_correct_paths(tmp_path):
         "grouped_documents": [
             {"start_page": 0, "end_page": 0, "primary_tenant": tenant_base, "category": "forms", "dates": ["2024-03-24"]}
         ],
-        "manifest": {
+        "routed_documents": {
             "summary": {"total_input_pages": 1, "total_output_pages": 1, "output_file_count": 1},
             "per_page": [{
                 "page_index": 0,
@@ -56,7 +63,7 @@ def test_reconcile_generates_correct_paths(tmp_path):
     # Create the physical file using the old path so it can be moved
     old_file_path = house_dir / tenant_base / "01_بيانات أساسية" / "2024-03-24.pdf"
     old_file_path.parent.mkdir(parents=True, exist_ok=True)
-    old_file_path.touch()
+    make_valid_pdf(old_file_path)
     
     # 3. Run reconcile
     class Args:
@@ -76,7 +83,7 @@ def test_reconcile_generates_correct_paths(tmp_path):
     with open(new_routed_path, "r", encoding='utf-8') as f:
         new_routed_data = json.load(f)
         
-    per_page = new_routed_data["manifest"]["per_page"]
+    per_page = new_routed_data["routed_documents"]["per_page"]
     assert len(per_page) == 1
     
     output_file = per_page[0]["output_file"]

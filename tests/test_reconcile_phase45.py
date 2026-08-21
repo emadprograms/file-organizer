@@ -1,4 +1,11 @@
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 from pathlib import Path
 import json
 import yaml
@@ -40,7 +47,7 @@ def test_phase45_renamed_shortcut(tmp_path):
             "dates": [],
             "vault_id": "rename_me"
         }],
-        "manifest": {"per_page": [{
+        "routed_documents": {"per_page": [{
             "page_index": 0,
             "vault_id": "rename_me",
             "target_folder": "Tenant",
@@ -54,7 +61,7 @@ def test_phase45_renamed_shortcut(tmp_path):
     vault_dir = source_dir / "vault"
     vault_dir.mkdir()
     vault_pdf = vault_dir / "doc_rename_me.pdf"
-    vault_pdf.touch()
+    make_valid_pdf(vault_pdf)
     
     # Create the renamed shortcut
     tenant_dir = target_dir / "Tenant"
@@ -73,7 +80,7 @@ def test_phase45_renamed_shortcut(tmp_path):
     with open(new_house_dir / ".source_files" / f"{house_id}_state.json") as f:
         new_state = json.load(f)
         
-    p = new_state["manifest"]["per_page"][0]
+    p = new_state["routed_documents"]["per_page"][0]
     assert p["user_locked"] is True
     assert p["brief_arabic_title"] == "NewName"
     assert "NewName.lnk" in p["output_file"]
@@ -105,7 +112,7 @@ def test_phase45_duplicate_shortcut(tmp_path):
             "dates": [],
             "vault_id": "duplicate_me"
         }],
-        "manifest": {"per_page": [{
+        "routed_documents": {"per_page": [{
             "page_index": 0,
             "vault_id": "duplicate_me",
             "target_folder": "Tenant",
@@ -119,7 +126,7 @@ def test_phase45_duplicate_shortcut(tmp_path):
     vault_dir = source_dir / "vault"
     vault_dir.mkdir()
     vault_pdf = vault_dir / "doc_duplicate_me.pdf"
-    vault_pdf.touch()
+    make_valid_pdf(vault_pdf)
     
     tenant_dir = target_dir / "Tenant"
     tenant_dir.mkdir(parents=True)
@@ -145,10 +152,10 @@ def test_phase45_duplicate_shortcut(tmp_path):
         
     # Should now have 1 page still, but grouped_documents has 2 shortcuts
     assert len(new_state["cleaned_pages"]) == 1
-    assert len(new_state["manifest"]["per_page"]) == 1
+    assert len(new_state["routed_documents"]["per_page"]) == 1
     assert len(new_state["grouped_documents"][0]["shortcuts"]) == 2
     
-    p1 = new_state["manifest"]["per_page"][0]
+    p1 = new_state["routed_documents"]["per_page"][0]
     
     assert p1["vault_id"] == "duplicate_me"
     

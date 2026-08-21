@@ -2,6 +2,13 @@ from typing import Any
 import sys
 import os
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 import logging
 from pathlib import Path
 from unittest.mock import patch
@@ -128,7 +135,7 @@ def test_shortcut_creation_and_reading(tmp_path) -> None:
         pytest.skip("Windows shortcuts only supported on Windows")
         
     target_file = tmp_path / "target.pdf"
-    target_file.touch()
+    make_valid_pdf(target_file)
     link_file = tmp_path / "link.lnk"
     
     # Test create
@@ -148,11 +155,11 @@ def test_batch_shortcuts(tmp_path) -> None:
         pytest.skip("Windows shortcuts only supported on Windows")
         
     target1 = tmp_path / "target1.txt"
-    target1.touch()
+    make_valid_pdf(target1)
     link1 = tmp_path / "link1.lnk"
     
     target2 = tmp_path / "علي مسعد.txt"
-    target2.touch()
+    make_valid_pdf(target2)
     link2 = tmp_path / "عبد الله.lnk"
     
     items = [

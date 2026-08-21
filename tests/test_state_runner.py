@@ -1,4 +1,11 @@
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 from unittest.mock import MagicMock
 from pathlib import Path
 from src.core.state import State
@@ -106,7 +113,7 @@ def test_generation_pass_does_not_overwrite_manifest(mock_logger, tmp_path, monk
     monkeypatch.setattr("src.timeline.FileOrganizer", lambda: MockOrganizer())
     
     dummy_pdf = tmp_path / "dummy.pdf"
-    dummy_pdf.touch()
+    make_valid_pdf(dummy_pdf)
 
     class MockFitz:
         def __init__(self, *args, **kwargs):

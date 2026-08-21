@@ -1,6 +1,13 @@
 import os
 import json
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -47,13 +54,13 @@ def test_cat_01_extracts_metadata_and_copies_pdf(mock_pil, mock_imread, mock_pro
     from a raw PDF document using OCR and Gemini 3.1 Flash Lite.
     """
     test_pdf = tmp_path / "testdoc.pdf"
-    test_pdf.touch()
+    make_valid_pdf(test_pdf)
     
     tmp_pdf_dir = tmp_path / ".tmp_testdoc"
     tmp_pdf_dir.mkdir()
     
     # Fake one page
-    (tmp_pdf_dir / "page_0.png").touch()
+    make_valid_pdf(tmp_pdf_dir / "page_0.png")
     
     mock_status = {
         "page_0": {"status": "extracted"}

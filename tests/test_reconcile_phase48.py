@@ -1,4 +1,11 @@
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 import os
 import shutil
 import json
@@ -31,7 +38,7 @@ def test_reconcile_many_to_one_grouped_document_preservation(tmp_path):
     
     # Create the single physical vault PDF
     vault_pdf = vault_dir / "doc_test_vault_id.pdf"
-    vault_pdf.touch()
+    make_valid_pdf(vault_pdf)
     
     # Create the single physical shortcut on disk
     target_folder = valid_house_dir / "Main Category"
@@ -39,7 +46,7 @@ def test_reconcile_many_to_one_grouped_document_preservation(tmp_path):
     shortcut_path = target_folder / "Grouped Document.lnk"
     
     # Just touch the file so os.walk finds it. We mock the target resolution anyway.
-    shortcut_path.touch()
+    make_valid_pdf(shortcut_path)
     
     # Create mock state with 3 pages pointing to the exact same vault_id and output_file
     state_file = source_dir / "510_state.json"
@@ -61,7 +68,7 @@ def test_reconcile_many_to_one_grouped_document_preservation(tmp_path):
                 "dates": ["2026-08-01"]
             }
         ],
-        "manifest": {
+        "routed_documents": {
             "per_page": [
                 {
                     "page_index": 0,
@@ -111,7 +118,7 @@ def test_reconcile_many_to_one_grouped_document_preservation(tmp_path):
     with open(new_state_file, 'r', encoding='utf-8') as f:
         final_state = json.load(f)
         
-    final_manifest = final_state.get("manifest", {}).get("per_page", [])
+    final_manifest = final_state.get("routed_documents", {}).get("per_page", [])
     
     # The regression deleted 2 pages. We assert all 3 pages are still there.
     assert len(final_manifest) == 3, f"Expected 3 pages, found {len(final_manifest)}. Regression occurred: Many-to-One pages were deleted."

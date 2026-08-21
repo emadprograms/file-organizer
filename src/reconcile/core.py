@@ -68,10 +68,8 @@ def run_reconcile_mode(args) -> int:
             except PermissionError:
                 logger.error(f"ABORTED: The following file is currently locked by another process or user: {fpath}. Please ask the user to close it and try again.")
                 return 1
-            except Exception:
-                pass
                 
-    yaml_paths = list(source_dir.glob("*_tenants.yaml"))
+    yaml_paths = [p for p in source_dir.glob("*_tenants.yaml") if p.is_file()]
     if not yaml_paths:
         logger.error(f"No _tenants.yaml found in {source_dir}")
         return 1
@@ -92,7 +90,7 @@ def run_reconcile_mode(args) -> int:
         
     pages = [PageData(**p) for p in state.data.get("cleaned_pages", [])]
     groups = [DocumentGroup(**g) for g in state.data.get("grouped_documents", [])]
-    routed_data = state.data.get("manifest", {})
+    routed_data = state.data.get("routed_documents") or {}
     
     # Dynamically infer vault_id for legacy groups that didn't get it during migration
     for g in groups:
@@ -311,14 +309,8 @@ def run_reconcile_mode(args) -> int:
         if vault_id not in vault_id_to_pages:
             vault_pdf = source_dir / "vault" / f"doc_{vault_id}.pdf"
             if vault_pdf.exists():
-                num_pages = 1
-                try:
-                    with fitz.open(str(vault_pdf)) as doc:
-                        num_pages = doc.page_count
-                except Exception as e:
-                    report.setdefault("corrupt_vault_files", 0)
-                    report["corrupt_vault_files"] += 1
-                    logger.warning(f"Failed to read PDF {vault_pdf.name} to get page count, defaulting to 1: {e}")
+                with fitz.open(str(vault_pdf)) as doc:
+                    num_pages = doc.page_count
                     
                 for lnk in lnks:
                     report["ghost_adopted"] += 1
@@ -442,6 +434,8 @@ def run_reconcile_mode(args) -> int:
         trash_dir = source_dir / ".trash"
         trash_dir.mkdir(parents=True, exist_ok=True)
         for pdf_file in vault_dir.glob("doc_*.pdf"):
+            if not pdf_file.is_file():
+                continue
             vid = pdf_file.stem[4:] # doc_...
             if vid not in active_vault_ids:
                 report["orphans_trashed"] += 1
@@ -572,14 +566,8 @@ def run_reconcile_mode(args) -> int:
                             shutil.move(str(manifest_path), str(dest))
                         
             else:
-                num_pages = 1
-                try:
-                    with fitz.open(str(pdf_path)) as doc:
-                        num_pages = doc.page_count
-                except Exception as e:
-                    report.setdefault("corrupt_vault_files", 0)
-                    report["corrupt_vault_files"] += 1
-                    logger.warning(f"Failed to read PDF {pdf_path.name} to get page count, defaulting to 1: {e}")
+                with fitz.open(str(pdf_path)) as doc:
+                    num_pages = doc.page_count
                     
                 report["raw_pdf_ingested"] += 1
                 report["raw_pdf_pages_ingested"] += num_pages
@@ -676,7 +664,7 @@ def run_reconcile_mode(args) -> int:
             logger.info(f"[DRY RUN] Would ingest raw PDF {pdf_path.name} into vault.")
     timelines = []
     for t in yaml_data:
-        end_d = t.get("end_date")
+        end_d = t["end_date"]
         max_d = "9999-12-31" if end_d == "present" else end_d
         timelines.append(TenantTimeline(
             canonical_name=t["name"],
@@ -687,11 +675,11 @@ def run_reconcile_mode(args) -> int:
     final_mapping = {t["name"]: t["name"] for t in yaml_data}
     
     # Reprocess the tenant assignment with updated timelines for unlocked pages
-    unlocked_pages = [p for p in pages if not getattr(p, "user_locked", False)]
+    unlocked_pages = [p for p in pages if not p.user_locked]
     assign_pages_to_tenants(unlocked_pages, timelines, final_mapping)
     
     for g in groups:
-        if not getattr(g, "user_locked", False):
+        if not g.user_locked:
             # Re-assign primary_tenant using the first page's canonical tenant
             g.primary_tenant = pages[g.start_page].canonical_tenant
         
@@ -852,6 +840,8 @@ def run_reconcile_mode(args) -> int:
         
         final_lnks = []
         for child in new_house_dir.rglob("*.lnk"):
+            if not child.is_file():
+                continue
             if "[Timeline View]" not in child.parts:
                 final_lnks.append(child)
                 
@@ -905,7 +895,7 @@ def run_reconcile_mode(args) -> int:
                 continue
                 
             # If no shortcuts exist for this document group, skip
-            if not getattr(g, "shortcuts", None):
+            if not g.shortcuts:
                 continue
                 
             # Location tag
@@ -980,7 +970,7 @@ def run_reconcile_mode(args) -> int:
         if "summary" in routed_data:
             routed_data["summary"]["output_file_count"] = len(set([p["output_file"] for p in new_per_page]))
             
-        state.data["manifest"] = routed_data
+        state.data["routed_documents"] = routed_data
         state.save()
                 
         logger.info(f"Updated unified state JSON successfully in {source_dir}")
@@ -994,7 +984,7 @@ def run_reconcile_mode(args) -> int:
             if g.dates and len(g.dates) > 0 and g.dates[0] and g.dates[0] != "NONE":
                 date_str = normalize_date(g.dates[0])
             d["date"] = date_str
-            d["tenant"] = getattr(g, "primary_tenant", None) or "Unknown"
+            d["tenant"] = g.primary_tenant or "Unknown"
             
             if g.shortcuts:
                 d["filename"] = Path(g.shortcuts[0]).name

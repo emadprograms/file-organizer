@@ -1,4 +1,11 @@
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 from pathlib import Path
 from src.main import validate_target_directory
 from src.core.exceptions import ValidationError
@@ -9,16 +16,16 @@ def test_validate_target_directory_extracts_correct_ids(tmp_path: Path):
     completely ignoring backup files and correctly parsing different filename patterns.
     """
     # Create required .pdf file so validation passes
-    (tmp_path / "dummy.pdf").touch()
+    make_valid_pdf(tmp_path / "dummy.pdf")
 
     # Create dummy json files
-    (tmp_path / "568_report.json").touch()
-    (tmp_path / "568_report_old.json").touch()  # Should be ignored
-    (tmp_path / "568 - محمد عمران محمد أسلم_report.json").touch()
-    (tmp_path / "999_report_old.json").touch() # Should be ignored
+    make_valid_pdf(tmp_path / "568_report.json")
+    make_valid_pdf(tmp_path / "568_report_old.json")  # Should be ignored
+    make_valid_pdf(tmp_path / "568 - محمد عمران محمد أسلم_report.json")
+    make_valid_pdf(tmp_path / "999_report_old.json") # Should be ignored
     
     # .raw_dump.json is also a valid pattern
-    (tmp_path / "123.raw_dump.json").touch()
+    make_valid_pdf(tmp_path / "123.raw_dump.json")
     
     ids = validate_target_directory(tmp_path)
     
@@ -33,12 +40,12 @@ def test_validate_target_directory_source_files_directory(tmp_path: Path):
     """
     Test extraction of IDs from .source_files subdirectory.
     """
-    (tmp_path / "dummy.pdf").touch()
+    make_valid_pdf(tmp_path / "dummy.pdf")
     source_files = tmp_path / ".source_files"
     source_files.mkdir()
     
-    (source_files / "777_report.json").touch()
-    (source_files / "888_report_old.json").touch() # Should be ignored
+    make_valid_pdf(source_files / "777_report.json")
+    make_valid_pdf(source_files / "888_report_old.json") # Should be ignored
     
     ids = validate_target_directory(tmp_path)
     

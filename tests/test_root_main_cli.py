@@ -2,6 +2,13 @@ from typing import Any
 import os
 import sys
 import pytest
+from pypdf import PdfWriter
+def make_valid_pdf(path):
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(path, "wb") as f:
+        writer.write(f)
+
 import logging
 from pathlib import Path
 from unittest.mock import patch, MagicMock
@@ -138,8 +145,8 @@ def test_validate_target_directory_success(tmp_path) -> None:
     """
     target_dir = tmp_path / "1273"
     target_dir.mkdir()
-    (target_dir / "1273_categorized.pdf").touch()
-    (target_dir / "1273_report.json").touch()
+    make_valid_pdf(target_dir / "1273_categorized.pdf")
+    make_valid_pdf(target_dir / "1273_report.json")
     
     from src.main import validate_target_directory
     house_ids = validate_target_directory(target_dir)
@@ -150,7 +157,7 @@ def test_validate_target_directory_missing_json(tmp_path, capsys) -> None:
     target_dir = tmp_path / "1273"
     target_dir.mkdir()
     # Provide a PDF but NO matching _report.json
-    (target_dir / "1273_categorized.pdf").touch()
+    make_valid_pdf(target_dir / "1273_categorized.pdf")
 
     from src.main import validate_target_directory
     with pytest.raises(ValidationError) as exc_info:

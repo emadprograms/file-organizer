@@ -305,11 +305,11 @@ def run_verification(target_dir: Path) -> int:
                         else:
                             add_pass(f"{report_file.name} perfectly mirrors the expected vault documents count")
                 except Exception as e:
-                    add_error(f"Failed to parse {report_file.name}: {e}")
+                    raise
 
                 
         except Exception as e:
-            add_error(f"Failed to parse state file {state_file.name}: {e}")
+            raise
 
     if errors == 0:
         logger.info(f"Verification PASSED for {target_dir.name} (0 errors)")
