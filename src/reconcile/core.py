@@ -1016,5 +1016,13 @@ def run_reconcile_mode(args) -> int:
         except Exception as e:
             logger.error(f"Auto-verification failed to run: {e}")
             report["verification_status"] = "Error"
+    else:
+        from src.pipeline.visualizer import Visualizer
+        vis = Visualizer()
+        summary = {
+            "total_output_pages": len(new_per_page),
+            "output_file_count": len(set([p["output_file"] for p in new_per_page]))
+        }
+        vis.print_summary(full_house_id, summary, new_per_page, groups)
     
     return 0

@@ -102,3 +102,65 @@ def test_visualizer_print_summary_path_normalization(capsys) -> None:
     assert "receipt1.pdf" in output
     assert "receipt2.pdf" in output
     assert "contract1.pdf" in output
+
+from unittest.mock import patch, MagicMock
+import argparse
+from pathlib import Path
+from src.core.config import AppConfig
+
+@patch("src.pipeline.visualizer.Visualizer.print_summary")
+def test_ingest_dry_run_calls_visualizer(mock_print_summary, tmp_path) -> None:
+    from src.ingest.core import run_ingest_mode
+    areas_root = tmp_path / "areas"
+    areas_root.mkdir()
+    input_pdf = tmp_path / "1234_test.pdf"
+    input_pdf.write_text("dummy")
+    
+    args = argparse.Namespace(
+        input_path=str(input_pdf),
+        dry_run=True,
+        model=None
+    )
+    config = AppConfig(
+        areas_root_path=str(areas_root), 
+        inbox_path=str(tmp_path),
+        groq_api_key="mock", 
+        openai_api_key="mock"
+    )
+    
+    with patch("src.ingest.core.process_unclassified_pdf") as mock_process:
+        def mock_process_side_effect(**kwargs):
+            raw_dump_path = input_pdf.parent / f"{input_pdf.stem}.raw_dump.json"
+            raw_dump_path.write_text('{"groups": [{"expected_house_number": "1234", "expected_tenant_name": "Tenant", "category": "cat", "start_page": 0, "end_page": 0}]}')
+        mock_process.side_effect = mock_process_side_effect
+        
+        with patch("pypdf.PdfReader") as mock_pdf_reader:
+            mock_pdf_reader.return_value.pages = [1]
+            run_ingest_mode(args, config, None)
+            
+    mock_print_summary.assert_called_once()
+
+
+@patch("src.pipeline.visualizer.Visualizer.print_summary")
+def test_reconcile_dry_run_calls_visualizer(mock_print_summary, tmp_path) -> None:
+    from src.reconcile.core import run_reconcile_mode
+    target_dir = tmp_path / "1234 - Tenant"
+    target_dir.mkdir()
+    source_dir = target_dir / ".source_files"
+    source_dir.mkdir()
+    
+    yaml_path = source_dir / "1234_1_tenants.yaml"
+    yaml_path.write_text("- name: Tenant\n  start_date: '2020-01-01'\n  end_date: present\n")
+    
+    state_file = source_dir / "1234_state.json"
+    state_file.write_text('{"cleaned_pages": [], "grouped_documents": [], "manifest": {"per_page": []}}')
+    
+    args = argparse.Namespace(
+        target_dir=target_dir,
+        dry_run=True
+    )
+    
+    run_reconcile_mode(args)
+    
+    mock_print_summary.assert_called_once()
+

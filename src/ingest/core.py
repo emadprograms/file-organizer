@@ -41,6 +41,8 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
     areas_root = Path(config.areas_root_path).resolve()
     
     has_errors = False
+    dry_run_per_page = []
+    
     for pdf_path in pdf_files:
         if "_categorized" in pdf_path.name or "_finalized" in pdf_path.name:
             continue
@@ -175,5 +177,33 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             shutil.move(str(raw_dump_path), str(dest_raw_dump))
         else:
             logger.info(f"[DRY RUN] Would ingest {pdf_path.name} into {target_house_dir.name}")
+            if is_group_manifest:
+                for idx, group in enumerate(dump_data["groups"]):
+                    tenant = group.get("expected_tenant_name", "Unassigned") or "Unassigned"
+                    cat = group.get("category", "Unassigned") or "Unassigned"
+                    start = group.get("start_page", 0)
+                    end = group.get("end_page", 0)
+                    for i in range(start, end + 1):
+                        dry_run_per_page.append({
+                            "output_file": f"{target_house_dir.name}/{tenant}/{cat}/{pdf_path.stem}_part_{idx + 1}.pdf"
+                        })
+            else:
+                for idx, page in enumerate(dump_data):
+                    tenant = page.get("expected_tenant_name", "Unassigned") or "Unassigned"
+                    cat = page.get("category", "Unassigned") or "Unassigned"
+                    dry_run_per_page.append({
+                        "output_file": f"{target_house_dir.name}/{tenant}/{cat}/{pdf_path.stem}_page_{idx + 1}.pdf"
+                    })
+
+    if getattr(args, 'dry_run', False) and dry_run_per_page:
+        from src.pipeline.visualizer import Visualizer
+        vis = Visualizer()
+        summary = {
+            "total_output_pages": len(dry_run_per_page),
+            "output_file_count": len(set([p["output_file"] for p in dry_run_per_page]))
+        }
+        house_id = dry_run_per_page[0]["output_file"].split("/")[0] if dry_run_per_page else "Unknown"
+        vis.print_summary(house_id, summary, dry_run_per_page, [])
 
     return 1 if has_errors else 0
+
