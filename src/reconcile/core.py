@@ -965,6 +965,7 @@ def run_reconcile_mode(args) -> int:
         
         state.data["cleaned_pages"] = [p.model_dump() if hasattr(p, "model_dump") else p.dict() for p in pages]
         state.data["grouped_documents"] = [g.model_dump() if hasattr(g, "model_dump") else g.dict() for g in groups]
+        state.data["routed_documents"] = []
         
         routed_data["per_page"] = new_per_page
         

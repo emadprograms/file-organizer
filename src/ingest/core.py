@@ -114,6 +114,7 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
         valid_categories.update(FOLDER_PREFIXES.keys())
         for folder, prefix in FOLDER_PREFIXES.items():
             valid_categories.add(f"{prefix}_{folder}")
+        valid_categories.discard("unassigned")
 
         invalid_found = False
         items_to_check = dump_data.get("groups", []) if isinstance(dump_data, dict) and "groups" in dump_data else (dump_data if isinstance(dump_data, list) else [])
