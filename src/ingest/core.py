@@ -151,12 +151,12 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             if is_group_manifest:
                 for group in dump_data["groups"]:
                     t = group.get("expected_tenant_name")
-                    if t and t not in found_tenants and not t.startswith("Unassigned") and not t.startswith("??? ????"):
+                    if t and t not in found_tenants and not t.startswith("Unassigned") and not t.startswith("غير محدد"):
                         found_tenants.append(t)
             else:
                 for page in dump_data:
                     t = page.get("expected_tenant_name")
-                    if t and t not in found_tenants and not t.startswith("Unassigned") and not t.startswith("??? ????"):
+                    if t and t not in found_tenants and not t.startswith("Unassigned") and not t.startswith("غير محدد"):
                         found_tenants.append(t)
                         
             if found_tenants:

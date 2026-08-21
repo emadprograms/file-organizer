@@ -57,7 +57,7 @@ def run_reconcile_mode(args) -> int:
                     pass
             except PermissionError:
                 logger.error(f"ABORTED: The following file is currently locked by another process or user: {fpath}. Please ask the user to close it and try again.")
-                sys.exit(1)
+                return 1
             except Exception:
                 pass
                 
@@ -122,7 +122,6 @@ def run_reconcile_mode(args) -> int:
     }
         
     # Phase 33 & 43: Scan physical shortcuts and raw PDFs (RECON-01, RECON-02, RECON-03, RECON-07)
-    from src.utils.fs import read_shortcut_target
     
     physical_lnk_files = []
     physical_pdf_files = []
@@ -414,11 +413,6 @@ def run_reconcile_mode(args) -> int:
             g_obj.end_page = idx_map.get(g_obj.end_page, g_obj.end_page)
             new_groups.append(g_obj)
         groups = new_groups
-        
-        for p in old_per_page_filtered:
-            p["page_index"] = idx_map.get(p["page_index"], p["page_index"])
-        
-
         
         for p in old_per_page_filtered:
             p["page_index"] = idx_map.get(p["page_index"], p["page_index"])
