@@ -12,6 +12,7 @@ import re
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from dotenv import load_dotenv
+load_dotenv()
 
 from src.utils.logger import setup_logging
 from src.presentation.ui import set_verbosity
