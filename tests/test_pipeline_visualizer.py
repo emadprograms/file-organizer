@@ -121,7 +121,7 @@ def test_ingest_dry_run_calls_visualizer(mock_print_summary, tmp_path) -> None:
         writer.write(f)
     
     args = argparse.Namespace(
-        input_path=str(input_pdf),
+        input_path=str(tmp_path),
         dry_run=True,
         model=None
     )
@@ -132,14 +132,11 @@ def test_ingest_dry_run_calls_visualizer(mock_print_summary, tmp_path) -> None:
         openai_api_key="mock"
     )
     
-    with patch("src.ingest.core.process_unclassified_pdf") as mock_process:
-        def mock_process_side_effect(**kwargs):
-            raw_dump_path = input_pdf.parent / f"{input_pdf.stem}.raw_dump.json"
-            raw_dump_path.write_text('{"groups": [{"expected_house_number": "1234", "expected_tenant_name": "Tenant", "category": "others", "start_page": 0, "end_page": 0}]}')
-        mock_process.side_effect = mock_process_side_effect
-        
-        run_ingest_mode(args, config, None)
-            
+    raw_dump_path = input_pdf.parent / f"{input_pdf.stem}.raw_dump.json"
+    raw_dump_path.write_text('{"groups": [{"expected_house_number": "1234", "expected_tenant_name": "Tenant", "category": "others", "start_page": 0, "end_page": 0}]}')
+    
+    run_ingest_mode(args, config, None)
+
     mock_print_summary.assert_called_once()
 
 

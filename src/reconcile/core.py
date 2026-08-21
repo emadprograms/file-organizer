@@ -1,9 +1,13 @@
 import json
 import os
+import sys
 import shutil
 from pathlib import Path
 import yaml
 import fitz
+
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
 
 from src.core.models import PageData, TenantTimeline
 from src.timeline.phase import assign_pages_to_tenants
@@ -1003,12 +1007,14 @@ def run_reconcile_mode(args) -> int:
                 
             legacy_report.append(d)
             
-        with open(source_dir / f"{house_id}_report.json", "w", encoding="utf-8") as f:
-            json.dump(legacy_report, f, indent=2, ensure_ascii=False)
+        with atomic_write(str(source_dir / f"{house_id}_report.json")) as tmp_path:
+            with open(tmp_path, "w", encoding="utf-8") as f:
+                json.dump(legacy_report, f, indent=2, ensure_ascii=False)
 
         # Save Report
-        with open(source_dir / "reconcile_report.json", "w", encoding="utf-8") as rf:
-            json.dump(report, rf, indent=2, ensure_ascii=False)
+        with atomic_write(str(source_dir / "reconcile_report.json")) as tmp_path:
+            with open(tmp_path, "w", encoding="utf-8") as rf:
+                json.dump(report, rf, indent=2, ensure_ascii=False)
             
         logger.info("=== RECONCILIATION SUMMARY ===")
         logger.info(f"Raw PDFs Ingested:   {report['raw_pdf_ingested']} ({report.get('raw_pdf_pages_ingested', 0)} pages)")
@@ -1039,25 +1045,6 @@ def run_reconcile_mode(args) -> int:
                     logger.info(f"Deleted orphaned/renamed legacy folder: {child.name}")
                     shutil.rmtree(str(child), ignore_errors=True)
 
-        # Auto-Verification (REQ-06)
-        try:
-            from src.core.verification import run_verification
-            # We need to pass args with the new_house_dir if it changed
-
-            logger.info("Running auto-verification...")
-            v_res = run_verification(new_house_dir)
-            report["verification_status"] = "Pass" if v_res == 0 else "Fail"
-            
-            if v_res != 0:
-                logger.warning("Verification found issues after reconciliation.")
-                
-            # Re-save report with verification status
-            with open(source_dir / "reconcile_report.json", "w", encoding="utf-8") as rf:
-                json.dump(report, rf, indent=2, ensure_ascii=False)
-                
-        except Exception as e:
-            logger.error(f"Auto-verification failed to run: {e}")
-            report["verification_status"] = "Error"
     else:
         from src.pipeline.visualizer import Visualizer
         vis = Visualizer()

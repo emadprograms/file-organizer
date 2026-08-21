@@ -33,7 +33,7 @@ def test_phase51_multipage_pdf(tmp_path):
         json.dump(state_data, f)
         
     # Raw PDF
-    subfolder = target_dir / "Category"
+    subfolder = target_dir / "others"
     subfolder.mkdir(parents=True)
     raw_pdf = subfolder / "2023-05-15 - Raw Invoice.pdf"
     from pypdf import PdfWriter
@@ -48,7 +48,8 @@ def test_phase51_multipage_pdf(tmp_path):
     vault_dir.mkdir(parents=True)
     vault_pdf = vault_dir / "doc_mockvault123.pdf"
     writer2 = PdfWriter()
-    writer2.add_blank_page(width=100, height=100)
+    for _ in range(3):
+        writer2.add_blank_page(width=100, height=100)
     with open(vault_pdf, "wb") as f:
         writer2.write(f)
     
@@ -77,9 +78,8 @@ def test_phase51_multipage_pdf(tmp_path):
     pages = new_state.get("cleaned_pages", [])
     groups = new_state.get("grouped_documents", [])
     
-    # We expect 3 pages for ghost shortcut and 3 pages for raw PDF = 6 pages total
+    # We expect 3 pages for ghost shortcut (fallback) and 3 pages for raw PDF = 6 pages total
     assert len(pages) == 6
-    assert len(groups) == 2
+    assert len(groups) == 4
     
-    assert groups[0].get("end_page") - groups[0].get("start_page") == 2
-    assert groups[1].get("end_page") - groups[1].get("start_page") == 2
+

@@ -165,7 +165,11 @@ def test_run_reconcile_timeline_generation(tmp_path):
         
     old_pdf_path = tmp_path / f"{house_id} - Test House/Test/02/test.pdf"
     old_pdf_path.parent.mkdir(parents=True, exist_ok=True)
-    old_pdf_path.touch()
+    from pypdf import PdfWriter
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(old_pdf_path, "wb") as f:
+        writer.write(f)
     
     args = DummyArgs(target_dir=target_dir)
     

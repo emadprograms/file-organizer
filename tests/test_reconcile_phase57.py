@@ -40,10 +40,8 @@ def test_preflight_lock_detection_aborts_cleanly(tmp_path, monkeypatch, caplog):
         
     monkeypatch.setattr(builtins, "open", mocked_open)
     
-    with pytest.raises(SystemExit) as exc_info:
-        run_reconcile_mode(args)
-        
-    assert exc_info.value.code == 1
+    result = run_reconcile_mode(args)
+    assert result == 1
     
     assert "ABORTED: The following file is currently locked by another process or user:" in caplog.text
     assert str(test_lnk) in caplog.text

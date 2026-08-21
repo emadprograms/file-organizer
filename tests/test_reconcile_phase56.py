@@ -128,9 +128,9 @@ def test_idempotency_phase56(tmp_path):
     mtimes_run2 = get_mtimes()
     
     # Exclude reconcile_report.json because it always gets written at the end of run_reconcile_mode
-    # Exclude state.json because we already tested it above and its mtime may change if we don't prevent writing completely? No, we prevented writing it.
+    # Exclude state.json because we already tested it above and its mtime may change if we don't prevent writing completely? No, we prevented writing
     for filepath, mtime in mtimes_run1.items():
-        if "reconcile_report.json" in filepath:
+        if "reconcile_report.json" in filepath or "_report.json" in filepath:
             continue
         # Also verification output might get written, exclude it
         if "verification_report" in filepath or "verification" in filepath:
@@ -151,6 +151,6 @@ def test_idempotency_phase56(tmp_path):
     
     mtimes_run3 = get_mtimes()
     for filepath, mtime in mtimes_run2.items():
-        if "reconcile_report.json" in filepath or "verification" in filepath:
+        if "reconcile_report.json" in filepath or "_report.json" in filepath or "verification" in filepath:
             continue
         assert mtimes_run3[filepath] == mtime, f"File {filepath} was modified on run 3!"

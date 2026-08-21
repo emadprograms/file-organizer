@@ -15,7 +15,7 @@ def test_ingest_report_generated(tmp_path):
     # Setup directories
     input_dir = tmp_path / "input"
     input_dir.mkdir()
-    pdf_file = input_dir / "test1.pdf"
+    pdf_file = input_dir / "711.pdf"
     from pypdf import PdfWriter
     writer = PdfWriter()
     writer.add_blank_page(width=100, height=100)
@@ -28,47 +28,36 @@ def test_ingest_report_generated(tmp_path):
 
     config = AppConfig(areas_root_path=str(areas_root), provider="test", inbox_path=str(input_dir))
 
-    # Mock the dependencies inside core.py
-    with patch("src.ingest.core.process_unclassified_pdf") as mock_process:
-        
-        # Mock process_unclassified_pdf to create the raw dump
-        def fake_process(*args, **kwargs):
-            dump_data = {
-                "groups": [
-                    {
-                        "expected_house_number": "711",
-                        "expected_tenant_name": "John Doe",
-                        "category": "others",
-                        "start_page": 0,
-                        "end_page": 1
-                    }
-                ]
+    dump_data = {
+        "groups": [
+            {
+                "expected_house_number": "711",
+                "expected_tenant_name": "John Doe",
+                "category": "others",
+                "start_page": 0,
+                "end_page": 1
             }
-            dump_path = input_dir / "test1.raw_dump.json"
-            with open(dump_path, "w") as f:
-                json.dump(dump_data, f)
-                
-        mock_process.side_effect = fake_process
+        ]
+    }
+    dump_path = input_dir / "711.raw_dump.json"
+    with open(dump_path, "w") as f:
+        json.dump(dump_data, f)
+
+    args = DummyArgs(input_path=str(input_dir), dry_run=False)
+    llm_client = MagicMock()
+
+    ret = run_ingest_mode(args, config, llm_client)
+    assert ret == 0
+
+    target_house_dir = areas_root / "711"
+    source_files = target_house_dir / ".source_files"
+    assert source_files.exists()
         
+    report_path = source_files / "ingest_report.json"
+    assert report_path.exists(), "ingest_report.json was not generated"
         
-        
-        args = DummyArgs(input_path=str(input_dir), dry_run=False)
-        llm_client = MagicMock()
-        
-        ret = run_ingest_mode(args, config, llm_client)
-        assert ret == 0
-        
-        target_house_dir = areas_root / "711"
-        assert target_house_dir.exists()
-        
-        source_files = target_house_dir / ".source_files"
-        assert source_files.exists()
-        
-        report_path = source_files / "ingest_report.json"
-        assert report_path.exists(), "ingest_report.json was not generated"
-        
-        with open(report_path, "r") as f:
-            report_data = json.load(f)
+    with open(report_path, "r") as f:
+        report_data = json.load(f)
             
         assert report_data["pdfs_processed"] == 1
         assert report_data["errors"] == 0

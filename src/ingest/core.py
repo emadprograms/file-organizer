@@ -1,9 +1,13 @@
 import os
+import sys
 import json
 import logging
 import shutil
 from pathlib import Path
 from typing import Any
+
+if sys.platform == 'win32':
+    sys.stdout.reconfigure(encoding='utf-8')
 
 from src.core.config import AppConfig
 from src.categorization.categorization import process_unclassified_pdf
@@ -29,14 +33,14 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
         logger.error(f"Input path does not exist: {input_path}")
         return 1
         
-    pdf_files = []
-    if input_path.is_file() and input_path.suffix.lower() == '.pdf':
-        pdf_files.append(input_path)
+    json_files = []
+    if input_path.is_file() and input_path.name.endswith('.raw_dump.json'):
+        json_files.append(input_path)
     elif input_path.is_dir():
-        pdf_files.extend(list(input_path.glob("*.pdf")))
+        json_files.extend(list(input_path.glob("*.raw_dump.json")))
         
-    if not pdf_files:
-        logger.info(f"No PDFs found to ingest in {input_path}")
+    if not json_files:
+        logger.info(f"No JSON dumps found to ingest in {input_path}")
         return 0
         
     areas_root = Path(config.areas_root_path).resolve()
@@ -47,52 +51,62 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
     reports = {}
     touched_houses = set()
     
-    for pdf_path in pdf_files:
+    for raw_dump_path in json_files:
         target_house_dir = None
-        if "_categorized" in pdf_path.name or "_finalized" in pdf_path.name:
-            continue
-            
-        logger.info(f"Ingesting {pdf_path.name}...")
         
-        # 1. Process the PDF to get categorization data
-        # We can run process_unclassified_pdf on a temp directory, or directly in the input directory.
-        # It's cleaner to run it in the input directory, and then move files.
-        process_unclassified_pdf(
-            target_dir=pdf_path.parent,
-            llm_client=llm_client,
-            specific_pdf_path=pdf_path,
-            create_categorized_copy=False,
-            model=getattr(args, 'categorization_model', None) or getattr(args, 'model', None)
-        )
+        logger.info(f"Processing raw dump {raw_dump_path.name}...")
         
-        raw_dump_path = pdf_path.parent / f"{pdf_path.stem}.raw_dump.json"
-        if not raw_dump_path.exists():
-            logger.error(f"Failed to generate raw dump for {pdf_path.name}")
-            has_errors = True
-            reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
-            continue
-            
         try:
-            with fitz.open(str(pdf_path)) as doc:
-                pdf_pages = len(doc)
+            with open(raw_dump_path, 'r', encoding='utf-8') as f:
+                dump_data = json.load(f)
         except Exception as e:
-            logger.error(f"Failed to read PDF {pdf_path.name}: {e}")
+            logger.error(f"Failed to read JSON {raw_dump_path.name}: {e}")
             has_errors = True
             reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
             continue
-            
-        with open(raw_dump_path, 'r', encoding='utf-8') as f:
-            dump_data = json.load(f)
             
         if not dump_data:
-            logger.error(f"Raw dump is empty for {pdf_path.name}")
+            logger.error(f"Raw dump is empty for {raw_dump_path.name}")
+            has_errors = True
+            reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
+            continue
+
+        is_group_manifest = isinstance(dump_data, dict) and "groups" in dump_data
+        
+        if is_group_manifest:
+            dump_pages = 0
+            for g in dump_data["groups"]:
+                if g["end_page"] + 1 > dump_pages:
+                    dump_pages = g["end_page"] + 1
+        else:
+            dump_pages = len(dump_data)
+            
+        pdf_path = None
+        pdf_pages = 0
+        candidate_pdfs = list(raw_dump_path.parent.glob("*.pdf"))
+        for candidate in candidate_pdfs:
+            if "_categorized" in candidate.name or "_finalized" in candidate.name:
+                continue
+            try:
+                with fitz.open(str(candidate)) as doc:
+                    if len(doc) == dump_pages:
+                        pdf_path = candidate
+                        pdf_pages = len(doc)
+                        break
+            except Exception as e:
+                pass
+                
+        if not pdf_path:
+            logger.error(f"Could not find a matching PDF with {dump_pages} pages for {raw_dump_path.name}")
             has_errors = True
             reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
             continue
             
+        logger.info(f"Matched {raw_dump_path.name} to {pdf_path.name} ({pdf_pages} pages)")
+        
         # Validate report categories
         from src.routing.config import CATEGORY_TO_FOLDERS, DIRECT_ROUTING_MAP, FORM_CATEGORIES, LETTER_CATEGORIES, FOLDER_PREFIXES
-        valid_categories = {"others", "other_letters", "unassigned"}
+        valid_categories = {"others", "other_letters"}
         valid_categories.update(c.lower() for c in CATEGORY_TO_FOLDERS.keys())
         valid_categories.update(DIRECT_ROUTING_MAP.keys())
         valid_categories.update(c.lower() for c in FORM_CATEGORIES)
@@ -106,54 +120,22 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
         for i, item in enumerate(items_to_check):
             cat = item.get("category")
             if not cat:
-                logger.error(f"Page/Group {i+1} in {raw_dump_path.name} is missing a category.")
-                invalid_found = True
-                break
+                from src.core.exceptions import ValidationError
+                raise ValidationError(f"Page/Group {i+1} in {raw_dump_path.name} is missing a category. Please fix the report JSON.")
             if cat.lower() not in valid_categories:
-                logger.error(f"Page/Group {i+1} in {raw_dump_path.name} has unknown category '{cat}'.")
-                invalid_found = True
-                break
+                from src.core.exceptions import ValidationError
+                raise ValidationError(f"Page/Group {i+1} in {raw_dump_path.name} has unknown category (found: {cat}). Please fix the report JSON.")
                 
         if invalid_found:
             has_errors = True
             reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
             continue
             
-        is_group_manifest = isinstance(dump_data, dict) and "groups" in dump_data
-        
-        if is_group_manifest:
-            dump_pages = 0
-            for g in dump_data["groups"]:
-                if g["end_page"] + 1 > dump_pages:
-                    dump_pages = g["end_page"] + 1
-            if pdf_pages != dump_pages:
-                logger.error(f"Page count mismatch for {pdf_path.name}: PDF has {pdf_pages} pages, but group manifest covers up to {dump_pages} pages.")
-                has_errors = True
-                reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
-                continue
-        else:
-            dump_pages = len(dump_data)
-            if pdf_pages != dump_pages:
-                logger.error(f"Page count mismatch for {pdf_path.name}: PDF has {pdf_pages} pages, dump has {dump_pages} pages.")
-                has_errors = True
-                reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
-                continue
-            
         # Find expected house number
-        house_number = None
-        if is_group_manifest:
-            for group in dump_data["groups"]:
-                if group.get("expected_house_number"):
-                    house_number = group.get("expected_house_number")
-                    break
-        else:
-            for page in dump_data:
-                if page.get("expected_house_number"):
-                    house_number = page.get("expected_house_number")
-                    break
+        house_number = raw_dump_path.name.split('.raw_dump.json')[0]
                 
         if not house_number:
-            logger.error(f"Could not determine house number for {pdf_path.name}")
+            logger.error(f"Could not determine house number for {raw_dump_path.name}")
             has_errors = True
             reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
             continue
@@ -193,8 +175,9 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
                     yaml_content = ""
                     for tenant in found_tenants:
                         yaml_content += f"- name: {tenant}\n  start_date: '2000-01-01'\n  end_date: present\n"
-                    with open(yaml_path, "w", encoding="utf-8") as yf:
-                        yf.write(yaml_content)
+                    with atomic_write(str(yaml_path)) as tmp_path:
+                        with open(tmp_path, "w", encoding="utf-8") as yf:
+                            yf.write(yaml_content)
                 else:
                     import yaml
                     with open(yaml_path, "r", encoding="utf-8") as yf:
@@ -207,8 +190,9 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
                             existing_names.append(tenant)
                             added = True
                     if added:
-                        with open(yaml_path, "w", encoding="utf-8") as yf:
-                            yaml.dump(existing_data, yf, allow_unicode=True, default_flow_style=False, sort_keys=False)
+                        with atomic_write(str(yaml_path)) as tmp_path:
+                            with open(tmp_path, "w", encoding="utf-8") as yf:
+                                yaml.dump(existing_data, yf, allow_unicode=True, default_flow_style=False, sort_keys=False)
                         
             # Move PDF
 
@@ -269,8 +253,9 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             sf_dir = house_dir / ".source_files"
             sf_dir.mkdir(parents=True, exist_ok=True)
             report_path = sf_dir / "ingest_report.json"
-            with open(report_path, "w", encoding="utf-8") as rf:
-                json.dump(reports.get(house_dir, {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0}), rf, indent=2, ensure_ascii=False)
+            with atomic_write(str(report_path)) as tmp_path:
+                with open(tmp_path, "w", encoding="utf-8") as rf:
+                    json.dump(reports.get(house_dir, {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0}), rf, indent=2, ensure_ascii=False)
 
     return 1 if has_errors else 0
 

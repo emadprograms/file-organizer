@@ -36,10 +36,14 @@ def test_phase43_raw_pdf_ingestion(tmp_path):
         json.dump(state_data, f)
         
     # Drop a raw PDF in a subfolder inside a canonical tenant
-    subfolder = target_dir / "Tenant" / "Category"
+    subfolder = target_dir / "Tenant" / "others"
     subfolder.mkdir(parents=True)
     raw_pdf = subfolder / "2023-05-15 - Raw Invoice.pdf"
-    raw_pdf.touch()
+    from pypdf import PdfWriter
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(raw_pdf, "wb") as f:
+        writer.write(f)
     
     args = DummyArgs(target_dir=target_dir)
     
@@ -52,11 +56,11 @@ def test_phase43_raw_pdf_ingestion(tmp_path):
     
     # 1. Raw PDF should be gone from the subfolder
     new_house_dir = tmp_path / f"{house_id} - Tenant"
-    new_subfolder = new_house_dir / "Tenant" / "Category"
+    new_subfolder = new_house_dir / "Tenant" / "others"
     assert not (new_subfolder / "2023-05-15 - Raw Invoice.pdf").exists()
     
     # 2. A shortcut should be in its place
-    shortcut = new_subfolder / "2023-05-15 - Raw Invoice.lnk"
+    shortcut = new_subfolder / "2023-05-15---Raw-Invoice_page_1.lnk"
     assert shortcut.exists()
     
     # 3. State should have been updated with user_locked=True and vault_id
