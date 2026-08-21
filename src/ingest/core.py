@@ -43,6 +43,13 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
     has_errors = False
     dry_run_per_page = []
     
+    report = {
+        "pdfs_processed": 0,
+        "errors": 0,
+        "pages_ingested": 0
+    }
+    touched_houses = set()
+    
     for pdf_path in pdf_files:
         if "_categorized" in pdf_path.name or "_finalized" in pdf_path.name:
             continue
@@ -64,6 +71,7 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
         if not raw_dump_path.exists():
             logger.error(f"Failed to generate raw dump for {pdf_path.name}")
             has_errors = True
+            report['errors'] += 1
             continue
             
         import pypdf
@@ -73,6 +81,7 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
         except Exception as e:
             logger.error(f"Failed to read PDF {pdf_path.name}: {e}")
             has_errors = True
+            report['errors'] += 1
             continue
             
         with open(raw_dump_path, 'r', encoding='utf-8') as f:
@@ -81,6 +90,7 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
         if not dump_data:
             logger.error(f"Raw dump is empty for {pdf_path.name}")
             has_errors = True
+            report['errors'] += 1
             continue
             
         is_group_manifest = isinstance(dump_data, dict) and "groups" in dump_data
@@ -93,12 +103,14 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             if pdf_pages != dump_pages:
                 logger.error(f"Page count mismatch for {pdf_path.name}: PDF has {pdf_pages} pages, but group manifest covers up to {dump_pages} pages.")
                 has_errors = True
+                report['errors'] += 1
                 continue
         else:
             dump_pages = len(dump_data)
             if pdf_pages != dump_pages:
                 logger.error(f"Page count mismatch for {pdf_path.name}: PDF has {pdf_pages} pages, dump has {dump_pages} pages.")
                 has_errors = True
+                report['errors'] += 1
                 continue
             
         # Find expected house number
@@ -117,6 +129,7 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
         if not house_number:
             logger.error(f"Could not determine house number for {pdf_path.name}")
             has_errors = True
+            report['errors'] += 1
             continue
             
         # Find target house directory
@@ -175,6 +188,10 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             source_files_dir.mkdir(parents=True, exist_ok=True)
             dest_raw_dump = source_files_dir / raw_dump_path.name
             shutil.move(str(raw_dump_path), str(dest_raw_dump))
+            
+            report["pdfs_processed"] += 1
+            report["pages_ingested"] += pdf_pages
+            touched_houses.add(target_house_dir)
         else:
             logger.info(f"[DRY RUN] Would ingest {pdf_path.name} into {target_house_dir.name}")
             if is_group_manifest:
@@ -204,6 +221,15 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
         }
         house_id = dry_run_per_page[0]["output_file"].split("/")[0] if dry_run_per_page else "Unknown"
         vis.print_summary(house_id, summary, dry_run_per_page, [])
+
+
+    if not getattr(args, 'dry_run', False):
+        for house_dir in touched_houses:
+            sf_dir = house_dir / ".source_files"
+            sf_dir.mkdir(parents=True, exist_ok=True)
+            report_path = sf_dir / "ingest_report.json"
+            with open(report_path, "w", encoding="utf-8") as rf:
+                json.dump(report, rf, indent=2, ensure_ascii=False)
 
     return 1 if has_errors else 0
 
