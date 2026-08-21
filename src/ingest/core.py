@@ -64,6 +64,15 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             has_errors = True
             continue
             
+        import pypdf
+        try:
+            reader = pypdf.PdfReader(str(pdf_path))
+            pdf_pages = len(reader.pages)
+        except Exception as e:
+            logger.error(f"Failed to read PDF {pdf_path.name}: {e}")
+            has_errors = True
+            continue
+            
         with open(raw_dump_path, 'r', encoding='utf-8') as f:
             dump_data = json.load(f)
             
@@ -72,12 +81,36 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             has_errors = True
             continue
             
+        is_group_manifest = isinstance(dump_data, dict) and "groups" in dump_data
+        
+        if is_group_manifest:
+            dump_pages = 0
+            for g in dump_data["groups"]:
+                if g["end_page"] + 1 > dump_pages:
+                    dump_pages = g["end_page"] + 1
+            if pdf_pages != dump_pages:
+                logger.error(f"Page count mismatch for {pdf_path.name}: PDF has {pdf_pages} pages, but group manifest covers up to {dump_pages} pages.")
+                has_errors = True
+                continue
+        else:
+            dump_pages = len(dump_data)
+            if pdf_pages != dump_pages:
+                logger.error(f"Page count mismatch for {pdf_path.name}: PDF has {pdf_pages} pages, dump has {dump_pages} pages.")
+                has_errors = True
+                continue
+            
         # Find expected house number
         house_number = None
-        for page in dump_data:
-            if page.get("expected_house_number"):
-                house_number = page.get("expected_house_number")
-                break
+        if is_group_manifest:
+            for group in dump_data["groups"]:
+                if group.get("expected_house_number"):
+                    house_number = group.get("expected_house_number")
+                    break
+        else:
+            for page in dump_data:
+                if page.get("expected_house_number"):
+                    house_number = page.get("expected_house_number")
+                    break
                 
         if not house_number:
             logger.error(f"Could not determine house number for {pdf_path.name}")
@@ -92,12 +125,38 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
                 break
                 
         if not target_house_dir:
-            logger.error(f"Target house directory for {house_number} not found in {areas_root}")
-            has_errors = True
-            continue
+            target_house_dir = areas_root / house_number
+            target_house_dir.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Created new house directory: {target_house_dir.name}")
             
+
         if not getattr(args, 'dry_run', False):
+            # Extract tenants for YAML
+            found_tenants = []
+            if is_group_manifest:
+                for group in dump_data["groups"]:
+                    t = group.get("expected_tenant_name")
+                    if t and t not in found_tenants and not t.startswith("Unassigned") and not t.startswith("??? ????"):
+                        found_tenants.append(t)
+            else:
+                for page in dump_data:
+                    t = page.get("expected_tenant_name")
+                    if t and t not in found_tenants and not t.startswith("Unassigned") and not t.startswith("??? ????"):
+                        found_tenants.append(t)
+                        
+            if found_tenants:
+                source_files_dir = target_house_dir / ".source_files"
+                source_files_dir.mkdir(parents=True, exist_ok=True)
+                yaml_path = source_files_dir / f"{house_number}_1_tenants.yaml"
+                if not yaml_path.exists():
+                    yaml_content = ""
+                    for tenant in found_tenants:
+                        yaml_content += f"- name: {tenant}\n  start_date: '2000-01-01'\n  end_date: present\n"
+                    with open(yaml_path, "w", encoding="utf-8") as yf:
+                        yf.write(yaml_content)
+                        
             # Move PDF
+
             dest_pdf = target_house_dir / pdf_path.name
             shutil.move(str(pdf_path), str(dest_pdf))
             
@@ -108,13 +167,13 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
                     json.dump(dump_data, f, indent=2, ensure_ascii=False)
                     
             logger.info(f"Ingested {pdf_path.name} into {target_house_dir.name}")
+            
+            # Move raw dump to .source_files
+            source_files_dir = target_house_dir / ".source_files"
+            source_files_dir.mkdir(parents=True, exist_ok=True)
+            dest_raw_dump = source_files_dir / raw_dump_path.name
+            shutil.move(str(raw_dump_path), str(dest_raw_dump))
         else:
             logger.info(f"[DRY RUN] Would ingest {pdf_path.name} into {target_house_dir.name}")
-            
-        # Cleanup raw dump
-        try:
-            os.remove(str(raw_dump_path))
-        except OSError:
-            pass
 
     return 1 if has_errors else 0
