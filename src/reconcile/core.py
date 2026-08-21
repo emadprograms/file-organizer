@@ -585,109 +585,90 @@ def run_reconcile_mode(args) -> int:
                             shutil.move(str(manifest_path), str(dest))
                         
             else:
-                with fitz.open(str(pdf_path)) as doc:
-                    num_pages = doc.page_count
-                    
+                new_vault_id = uuid.uuid4().hex
+                dest_vault_pdf = vault_dir / f"doc_{new_vault_id}.pdf"
                 report["raw_pdf_ingested"] += 1
+                logger.info(f"Ingesting raw PDF: {pdf_path.name} -> vault_id {new_vault_id}")
+                import shutil
+                shutil.move(str(pdf_path), str(dest_vault_pdf))
+                
+                num_pages = 1
+                try:
+                    import fitz
+                    with fitz.open(str(dest_vault_pdf)) as doc:
+                        num_pages = doc.page_count
+                except Exception as e:
+                    report.setdefault("corrupt_vault_files", 0)
+                    report["corrupt_vault_files"] += 1
+                    logger.warning(f"Failed to read PDF {dest_vault_pdf.name} to get page count, defaulting to 1: {e}")
+                    
                 report["raw_pdf_pages_ingested"] += num_pages
                 
-                for i in range(num_pages):
-                    new_vault_id = uuid.uuid4().hex
-                    dest_vault_pdf = vault_dir / f"doc_{new_vault_id}.pdf"
-                    
-                    extract_pdf_segment(str(pdf_path), i, i, str(dest_vault_pdf))
+                lnk_path = pdf_path.with_suffix('.lnk')
+                create_shortcut(str(dest_vault_pdf.resolve()), str(lnk_path.resolve()))
+                
+                if manifest_path.exists():
                     try:
-                        compress_pdf(str(dest_vault_pdf), str(dest_vault_pdf) + ".tmp.pdf")
-                        shutil.move(str(dest_vault_pdf) + ".tmp.pdf", str(dest_vault_pdf))
-                    except Exception as e:
-                        logger.error(f"Compression failed for {dest_vault_pdf}, keeping original: {e}")
-                        if os.path.exists(str(dest_vault_pdf) + ".tmp.pdf"):
-                            try:
-                                os.remove(str(dest_vault_pdf) + ".tmp.pdf")
-                            except OSError:
-                                pass
-                    
-                    lnk_path = pdf_path.parent / f"{pdf_path.stem}_page_{i + 1}.lnk"
-                    create_shortcut(str(dest_vault_pdf.resolve()), str(lnk_path.resolve()))
-                    
-                    new_page_idx = len(pages)
-                    rel_path = lnk_path.relative_to(target_dir).as_posix()
-                    new_target_folder = str(Path(rel_path).parent.as_posix())
-                    if new_target_folder == ".":
-                        new_target_folder = ""
+                        import os
+                        os.remove(str(manifest_path))
+                    except OSError:
+                        pass
                         
-                    top_level_folder = Path(rel_path).parts[0] if Path(rel_path).parts else ""
-                    should_lock = top_level_folder in valid_folder_names_set
-                    if not should_lock:
-                        logger.info(f"Top-level folder '{top_level_folder}' for raw PDF is not canonical. Snapping back.")
-                        
-                    inv_dict = {v: k for k, v in valid_tenant_folders.items()}
-                    new_tenant = inv_dict.get(top_level_folder, "Unassigned") if should_lock else "Unassigned"
+                new_page_idx = len(pages)
+                rel_path = lnk_path.relative_to(target_dir).as_posix()
+                new_target_folder = str(Path(rel_path).parent.as_posix())
+                if new_target_folder == ".":
+                    new_target_folder = ""
                     
+                top_level_folder = Path(rel_path).parts[0] if Path(rel_path).parts else ""
+                should_lock = top_level_folder in valid_folder_names_set
+                if not should_lock:
+                    logger.info(f"Top-level folder '{top_level_folder}' for raw PDF is not canonical. Snapping back.")
+                    
+                inv_dict = {v: k for k, v in valid_tenant_folders.items()}
+                new_tenant = inv_dict.get(top_level_folder, "Unassigned") if should_lock else "Unassigned"
+                
+                for i in range(num_pages):
                     m_data = manifest_data[i] if manifest_data and isinstance(manifest_data, list) and i < len(manifest_data) else {}
-                    cat = m_data.get("category") or "Unassigned"
+                    cat = m_data.get("category", "Unassigned")
                     exp = m_data.get("content_explanation", f"Ingested from raw PDF. (Page {i+1}/{num_pages})")
-                    m_date = m_data.get("date", extracted_date)
+                    m_date = m_data.get("date", "nodate")
                     m_exp_tenant = m_data.get("expected_tenant_name")
-                    
-                    final_tenant = new_tenant if should_lock else m_exp_tenant
                     
                     new_page = PageData(
                         category=cat,
                         content_explanation=exp,
                         expected_tenant_name=m_exp_tenant,
-                        original_index=new_page_idx,
+                        original_index=new_page_idx + i,
                         user_locked=should_lock,
                         date=m_date,
                         resolved_date=m_date if m_date != "nodate" else None,
-                        canonical_tenant=final_tenant
+                        status="success"
                     )
                     pages.append(new_page)
                     
                     new_p = {
-                        "page_index": new_page_idx,
+                        "page_index": new_page_idx + i,
                         "vault_id": new_vault_id,
                         "output_file": f"{target_dir.name}/{rel_path}",
                         "target_folder": new_target_folder,
-                        "dates": [m_date] if m_date != "nodate" else [],
-                        "date": m_date,
-                        "brief_arabic_title": lnk_path.stem,
-                        "user_locked": should_lock,
-                        "canonical_tenant": final_tenant,
-                        "expected_tenant_name": m_exp_tenant,
-                        "category": cat
                     }
                     routed_data.setdefault("per_page", []).append(new_p)
                     vault_id_to_pages.setdefault(new_vault_id, []).append(new_p)
                     
-                    new_group = DocumentGroup(
-                        start_page=new_page_idx,
-                        end_page=new_page_idx,
-                        primary_tenant=final_tenant if final_tenant else "Unassigned",
-                        category=cat,
-                        dates=[m_date] if m_date != "nodate" else [],
-                        brief_arabic_title=lnk_path.stem,
-                        vault_id=new_vault_id,
-                        user_locked=should_lock,
-                        shortcuts=[rel_path]
-                    )
-                    groups.append(new_group)
-                    
-                try:
-                    os.remove(str(pdf_path))
-                except OSError as e:
-                    logger.warning(f"Failed to delete {pdf_path.name}: {e}")
-                    dest = source_dir / pdf_path.name
-                    if not dest.exists():
-                        shutil.move(str(pdf_path), str(dest))
-                if manifest_path.exists():
-                    try:
-                        os.remove(str(manifest_path))
-                    except OSError as e:
-                        logger.warning(f"Failed to delete {manifest_path.name}: {e}")
-                        dest = source_dir / manifest_path.name
-                        if not dest.exists():
-                            shutil.move(str(manifest_path), str(dest))
+                first_m = manifest_data[0] if manifest_data and isinstance(manifest_data, list) and len(manifest_data) > 0 else {}
+                new_group = DocumentGroup(
+                    start_page=new_page_idx,
+                    end_page=new_page_idx + num_pages - 1,
+                    primary_tenant=new_tenant if should_lock else first_m.get("expected_tenant_name", "Unassigned"),
+                    category=first_m.get("category", "Unassigned"),
+                    dates=[first_m.get("date", "nodate")] if first_m.get("date", "nodate") != "nodate" else [],
+                    brief_arabic_title=lnk_path.stem,
+                    vault_id=new_vault_id,
+                    user_locked=should_lock,
+                    shortcuts=[rel_path]
+                )
+                groups.append(new_group)
         else:
             logger.info(f"[DRY RUN] Would ingest raw PDF {pdf_path.name} into vault.")
     timelines = []

@@ -63,7 +63,7 @@ def validate_target_directory(target_dir: Path) -> list[str]:
     
     for json_file in json_files:
         name = json_file.name
-        if "_old" in name:
+        if "_old" in name or name == "ingest_report.json":
             continue
         if "_report" in name:
             json_id = name.split("_report")[0]

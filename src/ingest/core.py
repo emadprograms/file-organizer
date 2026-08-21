@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import json
 import logging
 import shutil
 from pathlib import Path
@@ -41,17 +42,14 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
         logger.error(f"Input path does not exist: {input_path}")
         return 1
         
-    json_files = []
-    if input_path.is_file() and input_path.name.endswith('.raw_dump.json'):
-        json_files.append(input_path)
+    pdf_files = []
+    if input_path.is_file() and input_path.suffix.lower() == '.pdf':
+        pdf_files.append(input_path)
     elif input_path.is_dir():
-        json_files.extend([p for p in input_path.glob("*.raw_dump.json") if p.is_file()])
-        source_dir = input_path / ".source_files"
-        if source_dir.exists() and source_dir.is_dir():
-            json_files.extend([p for p in source_dir.glob("*.raw_dump.json") if p.is_file()])
+        pdf_files.extend([p for p in input_path.glob("*.pdf") if p.is_file() and "_categorized" not in p.name and "_finalized" not in p.name])
         
-    if not json_files:
-        logger.info(f"No JSON dumps found to ingest in {input_path}")
+    if not pdf_files:
+        logger.info(f"No PDFs found to ingest in {input_path}")
         return 0
         
     areas_root = Path(config.areas_root_path).resolve()
@@ -62,46 +60,51 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
     reports = {}
     touched_houses = set()
     
-    for json_path in json_files:
+    for pdf_path in pdf_files:
         target_house_dir = None
         
-        logger.info(f"Processing raw dump {json_path.name}...")
+        logger.info(f"Processing PDF {pdf_path.name}...")
         
-        with open(json_path, 'r', encoding='utf-8') as f:
+        raw_dump_path = pdf_path.parent / f"{pdf_path.stem}.raw_dump.json"
+        
+        if not raw_dump_path.exists():
+            logger.info(f"Generating raw dump for {pdf_path.name} via LLM...")
+            try:
+                process_unclassified_pdf(
+                    target_dir=pdf_path.parent,
+                    llm_client=llm_client,
+                    specific_pdf_path=pdf_path,
+                    create_categorized_copy=False,
+                    model=getattr(args, 'categorization_model', None) or getattr(args, 'model', None)
+                )
+            except Exception as e:
+                logger.error(f"LLM processing failed for {pdf_path.name}: {e}")
+                has_errors = True
+                continue
+                
+            if not raw_dump_path.exists():
+                logger.error(f"Failed to generate raw dump for {pdf_path.name}")
+                has_errors = True
+                continue
+                
+        with open(raw_dump_path, 'r', encoding='utf-8') as f:
             dump_data = json.load(f)
             
         if not dump_data:
-            logger.error(f"Raw dump is empty for {json_path.name}")
+            logger.error(f"Raw dump is empty for {raw_dump_path.name}")
             has_errors = True
             reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
             continue
 
+        try:
+            with fitz.open(str(pdf_path)) as doc:
+                pdf_pages = doc.page_count
+        except Exception as e:
+            logger.error(f"Failed to read PDF {pdf_path.name}: {e}")
+            has_errors = True
+            continue
+
         is_group_manifest = isinstance(dump_data, dict) and "groups" in dump_data
-        
-        if is_group_manifest:
-            dump_pages = 0
-            for g in dump_data["groups"]:
-                if g["end_page"] + 1 > dump_pages:
-                    dump_pages = g["end_page"] + 1
-        else:
-            dump_pages = len(dump_data)
-            
-        pdf_path = None
-        pdf_pages = 0
-        candidate_pdfs = [p for p in json_path.parent.glob("*.pdf") if p.is_file()]
-        for candidate in candidate_pdfs:
-            if "_categorized" in candidate.name or "_finalized" in candidate.name:
-                continue
-            with fitz.open(str(candidate)) as doc:
-                if doc.page_count == dump_pages:
-                    pdf_path = candidate
-                    pdf_pages = doc.page_count
-                    break
-                
-        if not pdf_path:
-            raise ValueError(f"No PDF in {json_path.parent} matches page count ({dump_pages}) for {json_path.name}")
-            
-        logger.info(f"Matched {json_path.name} to {pdf_path.name} ({pdf_pages} pages)")
         
         # Validate report categories
         from src.routing.config import CATEGORY_TO_FOLDERS, DIRECT_ROUTING_MAP, FORM_CATEGORIES, LETTER_CATEGORIES, FOLDER_PREFIXES
@@ -119,51 +122,47 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             cat = item.get("category")
             if not cat:
                 from src.core.exceptions import ValidationError
-                raise ValidationError(f"Page {i+1} in {json_path.name} is missing a category (found: {cat}). Please fix the report JSON.")
+                raise ValidationError(f"Page {i+1} in {raw_dump_path.name} is missing a category (found: {cat}). Please fix the report JSON.")
             if cat.lower() not in valid_categories:
                 from src.core.exceptions import ValidationError
-                raise ValidationError(f"Page {i+1} in {json_path.name} has unknown category '{cat}'. Please fix the report JSON.")
+                raise ValidationError(f"Page {i+1} in {raw_dump_path.name} has unknown category '{cat}'. Please fix the report JSON.")
 
         # Find expected house number
-        house_number = json_path.name.split('.raw_dump.json')[0]
+        house_number = raw_dump_path.name.split('.raw_dump.json')[0]
                 
         if not house_number:
-            logger.error(f"Could not determine house number for {json_path.name}")
+            logger.error(f"Could not determine house number for {raw_dump_path.name}")
             has_errors = True
             reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
             continue
             
-        # Find target house directory
-        target_house_dir = None
-        for d in areas_root.iterdir():
-            if d.is_dir() and (d.name == house_number or d.name.startswith(f"{house_number} -")):
-                target_house_dir = d
-                break
-                
-        if not target_house_dir:
-            target_house_dir = areas_root / house_number
-            target_house_dir.mkdir(parents=True, exist_ok=True)
-            logger.info(f"Created new house directory: {target_house_dir.name}")
+        # PDF must already be in the target house directory
+        target_house_dir = pdf_path.parent
             
 
         if not getattr(args, 'dry_run', False):
-            # Extract tenants for YAML
-            found_tenants = []
-            if is_group_manifest:
-                for group in dump_data["groups"]:
-                    t = group.get("expected_tenant_name")
-                    if t and t not in found_tenants and not t.startswith("Unassigned") and not t.startswith("غير محدد"):
-                        found_tenants.append(t)
-            else:
-                for page in dump_data:
-                    t = page.get("expected_tenant_name")
-                    if t and t not in found_tenants and not t.startswith("Unassigned") and not t.startswith("غير محدد"):
-                        found_tenants.append(t)
-                        
+            # 1. Pipeline passes
+            from src.core.state import State
+            state_dir = target_house_dir / ".source_files"
+            state_dir.mkdir(parents=True, exist_ok=True)
+            state = State(house_number, state_dir)
+            
+            from src.pipeline.runner import run_cleaning_pass, run_fine_categorization_pass, run_grouping_pass, run_routing_pass
+            
+            cleaned_pages, yaml_data = run_cleaning_pass(raw_dump_path, state, llm_client, logger, getattr(args, 'dry_run', False), house_number, target_house_dir)
+            routing_model_to_use = getattr(args, 'routing_model', None) or getattr(args, 'model', None)
+            
+            fine_categorized_pages = run_fine_categorization_pass(cleaned_pages, state, llm_client, logger, getattr(args, 'dry_run', False), routing_model_to_use)
+            
+            documents = run_grouping_pass(fine_categorized_pages, state, house_number, target_house_dir, llm_client, logger, getattr(args, 'dry_run', False))
+            documents = run_routing_pass(documents, state, house_number, target_house_dir, llm_client, logger, getattr(args, 'dry_run', False), routing_model_to_use)
+            
+
+            
+            # Extract tenants for YAML from the state yaml_data instead of raw dump
+            found_tenants = [t["name"] for t in yaml_data] if yaml_data else []
             if found_tenants:
-                source_files_dir = target_house_dir / ".source_files"
-                source_files_dir.mkdir(parents=True, exist_ok=True)
-                yaml_path = source_files_dir / f"{house_number}_1_tenants.yaml"
+                yaml_path = state_dir / f"{house_number}_1_tenants.yaml"
                 if not yaml_path.exists():
                     yaml_content = ""
                     for tenant in found_tenants:
@@ -186,15 +185,43 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
                         with atomic_write(str(yaml_path)) as tmp_path:
                             with open(tmp_path, "w", encoding="utf-8") as yf:
                                 yaml.dump(existing_data, yf, allow_unicode=True, default_flow_style=False, sort_keys=False)
-                        
-            # Move PDF
 
-            dest_pdf = target_house_dir / pdf_path.name
-            if pdf_path.resolve() != dest_pdf.resolve():
-                shutil.move(str(pdf_path), str(dest_pdf))
-            
+
+            if not getattr(args, 'dry_run', False):
+                state.data["cleaned_pages"] = [p.model_dump() for p in cleaned_pages]
+                state.data["fine_categorized_pages"] = [doc.model_dump() for doc in fine_categorized_pages]
+                
+                from src.timeline import FileOrganizer
+                organizer = FileOrganizer()
+                
+                output_dir = target_house_dir.parent if target_house_dir.name == house_number or target_house_dir.name.startswith(f"{house_number} -") else target_house_dir
+                
+                per_page, full_house_id = organizer.organize(
+                    documents, str(pdf_path), house_number, output_dir, yaml_data=yaml_data, dry_run=getattr(args, 'dry_run', False), prepend_mode=False
+                )
+                
+                output_files = {p["output_file"] for p in per_page}
+                summary = {
+                    "total_output_pages": len(per_page),
+                    "output_file_count": len(output_files)
+                }
+                
+                state.data["routed_documents"] = {
+                    "summary": summary,
+                    "per_page": per_page
+                }
+                
+                # Because organize renamed the directory to full_house_id!
+                target_house_dir = output_dir / full_house_id
+                state_dir = target_house_dir / ".source_files"
+                state.state_file = state_dir / f"{full_house_id}_state.json"
+                
+                state.save()
+                logger.info(f"Saved pipeline state to {state.state_file.name}")
+                
             # Create _ingest_manifest.json
             dest_manifest = target_house_dir / f"{pdf_path.stem}_ingest_manifest.json"
+            from src.utils.fs import atomic_write
             with atomic_write(str(dest_manifest)) as tmp_path:
                 with open(tmp_path, "w", encoding="utf-8") as f:
                     json.dump(dump_data, f, indent=2, ensure_ascii=False)
@@ -202,11 +229,11 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             logger.info(f"Ingested {pdf_path.name} into {target_house_dir.name}")
             
             # Move raw dump to .source_files
-            source_files_dir = target_house_dir / ".source_files"
-            source_files_dir.mkdir(parents=True, exist_ok=True)
-            dest_raw_dump = source_files_dir / json_path.name
-            if json_path.resolve() != dest_raw_dump.resolve():
-                shutil.move(str(json_path), str(dest_raw_dump))
+            raw_dump_path = target_house_dir / raw_dump_path.name
+            dest_raw_dump = state_dir / raw_dump_path.name
+            if raw_dump_path.resolve() != dest_raw_dump.resolve() and not getattr(args, 'dry_run', False):
+                import shutil
+                shutil.move(str(raw_dump_path), str(dest_raw_dump))
             
             r = reports.setdefault(target_house_dir, {"pdfs_processed": 0, "errors": 0, "pages_ingested": 0})
             r["pdfs_processed"] += 1
@@ -253,4 +280,5 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
                     json.dump(reports.get(house_dir, {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0}), rf, indent=2, ensure_ascii=False)
 
     return 1 if has_errors else 0
+
 
