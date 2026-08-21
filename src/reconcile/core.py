@@ -496,7 +496,10 @@ def run_reconcile_mode(args) -> int:
                     except Exception as e:
                         logger.error(f"Compression failed for {dest_vault_pdf}, keeping original: {e}")
                         if os.path.exists(str(dest_vault_pdf) + ".tmp.pdf"):
-                            os.remove(str(dest_vault_pdf) + ".tmp.pdf")
+                            try:
+                                os.remove(str(dest_vault_pdf) + ".tmp.pdf")
+                            except OSError:
+                                pass
                     
                     report["raw_pdf_ingested"] += 1
                     report["raw_pdf_pages_ingested"] += num_pages
@@ -518,7 +521,7 @@ def run_reconcile_mode(args) -> int:
                     inv_dict = {v: k for k, v in valid_tenant_folders.items()}
                     new_tenant = inv_dict.get(top_level_folder, "Unassigned") if should_lock else "Unassigned"
                     
-                    cat = group.get("category", "Unassigned")
+                    cat = group.get("category") or "Unassigned"
                     m_exp_tenant = group.get("expected_tenant_name")
                     final_tenant = new_tenant if should_lock else m_exp_tenant
                     
@@ -599,7 +602,10 @@ def run_reconcile_mode(args) -> int:
                     except Exception as e:
                         logger.error(f"Compression failed for {dest_vault_pdf}, keeping original: {e}")
                         if os.path.exists(str(dest_vault_pdf) + ".tmp.pdf"):
-                            os.remove(str(dest_vault_pdf) + ".tmp.pdf")
+                            try:
+                                os.remove(str(dest_vault_pdf) + ".tmp.pdf")
+                            except OSError:
+                                pass
                     
                     lnk_path = pdf_path.parent / f"{pdf_path.stem}_page_{i + 1}.lnk"
                     create_shortcut(str(dest_vault_pdf.resolve()), str(lnk_path.resolve()))
@@ -619,7 +625,7 @@ def run_reconcile_mode(args) -> int:
                     new_tenant = inv_dict.get(top_level_folder, "Unassigned") if should_lock else "Unassigned"
                     
                     m_data = manifest_data[i] if manifest_data and isinstance(manifest_data, list) and i < len(manifest_data) else {}
-                    cat = m_data.get("category", "Unassigned")
+                    cat = m_data.get("category") or "Unassigned"
                     exp = m_data.get("content_explanation", f"Ingested from raw PDF. (Page {i+1}/{num_pages})")
                     m_date = m_data.get("date", extracted_date)
                     m_exp_tenant = m_data.get("expected_tenant_name")
