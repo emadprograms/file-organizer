@@ -10,6 +10,7 @@ from typing import Any
 from src.core.config import AppConfig
 from src.categorization.categorization import process_unclassified_pdf
 from src.utils.fs import atomic_write
+from src.core.exceptions import ValidationError
 import fitz
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
