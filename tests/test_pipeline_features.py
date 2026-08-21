@@ -14,8 +14,8 @@ class DummyArgs:
         self.dry_run = dry_run
         self.command = "reconcile"
 
-@patch("src.pdf.extract_pdf_segment")
-@patch("src.pdf.compress_pdf")
+@patch("src.pdf.extract_pdf_segment", autospec=True)
+@patch("src.pdf.compress_pdf", autospec=True)
 def test_group_manifest_ingestion(mock_compress, mock_extract, tmp_path):
     # Setup house structure
     house_id = "777"

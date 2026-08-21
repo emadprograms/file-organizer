@@ -10,14 +10,10 @@ from src.timeline.phase import assign_pages_to_tenants
 from src.timeline.core import FileOrganizer
 from src.core.schemas import DocumentGroup
 from src.utils.fs import atomic_write, create_shortcut
-from src.core.utils import sanitize_filename
+from src.core.utils import sanitize_filename, normalize_date
 import logging
 import uuid
 import re
-
-def _normalize_arabic_numerals(s: str) -> str:
-    if not isinstance(s, str): return s
-    return s.translate(str.maketrans('٠١٢٣٤٥٦٧٨٩', '0123456789'))
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
@@ -101,7 +97,7 @@ def run_reconcile_mode(args) -> int:
         logger.warning(f"Padding missing PageData: cleaned_pages has {len(pages)} but per_page has {expected_len}")
         for i in range(len(pages), expected_len):
             p_dict = routed_data["per_page"][i]
-            d = _normalize_arabic_numerals(p_dict.get("date", "nodate"))
+            d = normalize_date(p_dict.get("date", "nodate"))
             pages.append(PageData(
                 category="Unassigned",
                 content_explanation="Padded missing page.",
@@ -318,7 +314,7 @@ def run_reconcile_mode(args) -> int:
                     report["ghost_pages_adopted"] += num_pages
                     logger.info(f"Adopting completely new ghost shortcut for vault_id {vault_id} from {lnk.name} ({num_pages} pages)")
                     date_match = re.search(r'(\d{4}-\d{2}-\d{2})', lnk.name)
-                    extracted_date = _normalize_arabic_numerals(date_match.group(1)) if date_match else "nodate"
+                    extracted_date = normalize_date(date_match.group(1)) if date_match else "nodate"
                     
                     new_page_idx = len(pages)
                     rel_path = lnk.relative_to(target_dir).as_posix()
@@ -465,7 +461,7 @@ def run_reconcile_mode(args) -> int:
             is_group_manifest = isinstance(manifest_data, dict) and "groups" in manifest_data
             
             date_match = re.search(r'(\d{4}-\d{2}-\d{2})', pdf_path.name)
-            extracted_date = _normalize_arabic_numerals(date_match.group(1)) if date_match else "nodate"
+            extracted_date = normalize_date(date_match.group(1)) if date_match else "nodate"
             
             if is_group_manifest:
                 groups_data = manifest_data["groups"]
@@ -480,7 +476,7 @@ def run_reconcile_mode(args) -> int:
                     num_pages = end_page - start_page + 1
                     
                     extract_pdf_segment(str(pdf_path), start_page, end_page, str(dest_vault_pdf))
-                    compress_pdf(str(dest_vault_pdf))
+                    compress_pdf(str(dest_vault_pdf), str(dest_vault_pdf))
                     
                     report["raw_pdf_ingested"] += 1
                     report["raw_pdf_pages_ingested"] += num_pages
@@ -711,7 +707,7 @@ def run_reconcile_mode(args) -> int:
         if p.get("user_locked", False):
             new_target_folder = p["target_folder"]
             # Keep the old filename, but update the root folder to the new full_house_id
-            old_filename = _normalize_arabic_numerals(Path(p["output_file"]).name)
+            old_filename = normalize_date(Path(p["output_file"]).name)
             if new_target_folder:
                 new_output_file = f"{full_house_id}/{new_target_folder}/{old_filename}"
             else:
@@ -907,7 +903,7 @@ def run_reconcile_mode(args) -> int:
             doc_title = re.sub(r'[\\/:*?"<>|]', '', doc_title)
             
             dates = g.dates
-            date_str = _normalize_arabic_numerals(dates[0]) if dates and len(dates) > 0 and dates[0] and dates[0] != "NONE" else "nodate"
+            date_str = normalize_date(dates[0]) if dates and len(dates) > 0 and dates[0] and dates[0] != "NONE" else "nodate"
             
             link_name = f"{idx:03d} - {date_str} - {doc_title} [{location}]{extra}.lnk"
             lnk_path = timeline_dir / link_name
@@ -962,6 +958,39 @@ def run_reconcile_mode(args) -> int:
                 
         logger.info(f"Updated unified state JSON successfully in {source_dir}")
         
+        # Generate {house_id}_report.json format for legacy verification
+        legacy_report = []
+        for g in groups:
+            p_first = next((p for p in new_per_page if p["page_index"] == g.start_page), None)
+            folder_path = ""
+            if p_first:
+                out_file = p_first.get("output_file", "")
+                if "/" in out_file:
+                    parts = out_file.split("/", 1)
+                    rel_path = parts[1] if len(parts) > 1 else parts[0]
+                    folder_path = str(Path(rel_path).parent.as_posix())
+                    if folder_path == ".":
+                        folder_path = ""
+            
+            d = g.model_dump(exclude_none=True) if hasattr(g, "model_dump") else g.dict(exclude_none=True)
+            d["folder_path"] = folder_path or getattr(g, "folder_path", "") or ""
+            
+            date_str = "nodate"
+            if g.dates and len(g.dates) > 0 and g.dates[0] and g.dates[0] != "NONE":
+                date_str = normalize_date(g.dates[0])
+            d["date"] = date_str
+            d["tenant"] = getattr(g, "primary_tenant", None) or "Unknown"
+            
+            if hasattr(g, "shortcuts") and g.shortcuts:
+                d["filename"] = Path(g.shortcuts[0]).name
+            else:
+                d["filename"] = f"doc_{g.vault_id}.pdf"
+                
+            legacy_report.append(d)
+            
+        with open(source_dir / f"{house_id}_report.json", "w", encoding="utf-8") as f:
+            json.dump(legacy_report, f, indent=2, ensure_ascii=False)
+
         # Save Report
         with open(source_dir / "reconcile_report.json", "w", encoding="utf-8") as rf:
             json.dump(report, rf, indent=2, ensure_ascii=False)
