@@ -65,9 +65,8 @@ def test_ingest_page_count_validation(mock_process, tmp_path):
     config.areas_root_path = str(areas_root)
     args = DummyArgs(input_path=str(input_dir))
     
-    res = run_ingest_mode(args, config, None)
-    # Should fail due to page mismatch
-    assert res == 1
+    with pytest.raises(ValueError):
+        run_ingest_mode(args, config, None)
 
 @patch('src.ingest.core.process_unclassified_pdf')
 def test_ingest_writes_yaml_data(mock_process, tmp_path):

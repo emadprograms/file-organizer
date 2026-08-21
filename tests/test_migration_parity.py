@@ -197,9 +197,8 @@ def test_04_pdf_page_count_validation(mock_fitz, tmp_path):
     args.input_path = str(input_dir)
     args.dry_run = False
 
-    result = run_ingest_mode(args, config, MagicMock())
-    # Should report an error because page counts don't match
-    assert result == 1
+    with pytest.raises(ValueError, match="No PDF in .* matches page count"):
+        run_ingest_mode(args, config, MagicMock())
 
 
 # ===========================================================================

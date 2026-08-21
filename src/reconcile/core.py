@@ -39,8 +39,6 @@ def run_reconcile_mode(args) -> int:
 
     target_dir = args.target_dir.resolve()
     house_id = None
-    if target_dir.name and target_dir.name[0].isdigit():
-        house_id = target_dir.name.split(" - ")[0]
         
     if not target_dir.exists():
         logger.error(f"Target directory does not exist: {target_dir}")
@@ -75,7 +73,10 @@ def run_reconcile_mode(args) -> int:
         return 1
     yaml_path = yaml_paths[0]
     
-    if not house_id:
+    dumps = [p for p in source_dir.glob("*.raw_dump.json") if p.is_file()] + [p for p in source_dir.glob("*_report.json") if p.is_file()]
+    if dumps:
+        house_id = dumps[0].name.split(".raw_dump.json")[0].split("_report.json")[0]
+    else:
         house_id = yaml_path.name.split("_")[0]
         
     from src.core.state import State
@@ -489,7 +490,13 @@ def run_reconcile_mode(args) -> int:
                     num_pages = end_page - start_page + 1
                     
                     extract_pdf_segment(str(pdf_path), start_page, end_page, str(dest_vault_pdf))
-                    compress_pdf(str(dest_vault_pdf), str(dest_vault_pdf))
+                    try:
+                        compress_pdf(str(dest_vault_pdf), str(dest_vault_pdf) + ".tmp.pdf")
+                        shutil.move(str(dest_vault_pdf) + ".tmp.pdf", str(dest_vault_pdf))
+                    except Exception as e:
+                        logger.error(f"Compression failed for {dest_vault_pdf}, keeping original: {e}")
+                        if os.path.exists(str(dest_vault_pdf) + ".tmp.pdf"):
+                            os.remove(str(dest_vault_pdf) + ".tmp.pdf")
                     
                     report["raw_pdf_ingested"] += 1
                     report["raw_pdf_pages_ingested"] += num_pages
@@ -586,7 +593,13 @@ def run_reconcile_mode(args) -> int:
                     dest_vault_pdf = vault_dir / f"doc_{new_vault_id}.pdf"
                     
                     extract_pdf_segment(str(pdf_path), i, i, str(dest_vault_pdf))
-                    compress_pdf(str(dest_vault_pdf), str(dest_vault_pdf))
+                    try:
+                        compress_pdf(str(dest_vault_pdf), str(dest_vault_pdf) + ".tmp.pdf")
+                        shutil.move(str(dest_vault_pdf) + ".tmp.pdf", str(dest_vault_pdf))
+                    except Exception as e:
+                        logger.error(f"Compression failed for {dest_vault_pdf}, keeping original: {e}")
+                        if os.path.exists(str(dest_vault_pdf) + ".tmp.pdf"):
+                            os.remove(str(dest_vault_pdf) + ".tmp.pdf")
                     
                     lnk_path = pdf_path.parent / f"{pdf_path.stem}_page_{i + 1}.lnk"
                     create_shortcut(str(dest_vault_pdf.resolve()), str(lnk_path.resolve()))
@@ -1009,7 +1022,7 @@ def run_reconcile_mode(args) -> int:
         with atomic_write(str(report_out_path)) as tmp_path:
             with open(tmp_path, "w", encoding="utf-8") as f:
                 json.dump(legacy_report, f, indent=2, ensure_ascii=False)
-            logger.info(f"Generated new timeline-view report at {report_out_path}")
+        logger.info(f"Generated new timeline-view report at {report_out_path}")
 
         # Save Report
         with atomic_write(str(source_dir / "reconcile_report.json")) as tmp_path:
@@ -1055,7 +1068,7 @@ def run_reconcile_mode(args) -> int:
         vis.print_summary(full_house_id, summary, new_per_page, groups)
     
     if not getattr(args, 'dry_run', False):
-        output_file_count = len(groups)
+        output_file_count = len(set([p["output_file"] for p in new_per_page]))
         logger.info(f"Successfully generated {output_file_count} PDFs in {new_house_dir}")
 
     return 0

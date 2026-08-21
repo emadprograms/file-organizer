@@ -45,6 +45,9 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
         json_files.append(input_path)
     elif input_path.is_dir():
         json_files.extend([p for p in input_path.glob("*.raw_dump.json") if p.is_file()])
+        source_dir = input_path / ".source_files"
+        if source_dir.exists() and source_dir.is_dir():
+            json_files.extend([p for p in source_dir.glob("*.raw_dump.json") if p.is_file()])
         
     if not json_files:
         logger.info(f"No JSON dumps found to ingest in {input_path}")
@@ -95,10 +98,7 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
                     break
                 
         if not pdf_path:
-            logger.error(f"Could not find a matching PDF with {dump_pages} pages for {json_path.name}")
-            has_errors = True
-            reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
-            continue
+            raise ValueError(f"No PDF in {json_path.parent} matches page count ({dump_pages}) for {json_path.name}")
             
         logger.info(f"Matched {json_path.name} to {pdf_path.name} ({pdf_pages} pages)")
         
