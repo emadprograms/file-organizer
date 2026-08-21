@@ -114,7 +114,11 @@ def test_ingest_dry_run_calls_visualizer(mock_print_summary, tmp_path) -> None:
     areas_root = tmp_path / "areas"
     areas_root.mkdir()
     input_pdf = tmp_path / "1234_test.pdf"
-    input_pdf.write_text("dummy")
+    from pypdf import PdfWriter
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    with open(input_pdf, "wb") as f:
+        writer.write(f)
     
     args = argparse.Namespace(
         input_path=str(input_pdf),
@@ -131,12 +135,10 @@ def test_ingest_dry_run_calls_visualizer(mock_print_summary, tmp_path) -> None:
     with patch("src.ingest.core.process_unclassified_pdf") as mock_process:
         def mock_process_side_effect(**kwargs):
             raw_dump_path = input_pdf.parent / f"{input_pdf.stem}.raw_dump.json"
-            raw_dump_path.write_text('{"groups": [{"expected_house_number": "1234", "expected_tenant_name": "Tenant", "category": "cat", "start_page": 0, "end_page": 0}]}')
+            raw_dump_path.write_text('{"groups": [{"expected_house_number": "1234", "expected_tenant_name": "Tenant", "category": "others", "start_page": 0, "end_page": 0}]}')
         mock_process.side_effect = mock_process_side_effect
         
-        with patch("pypdf.PdfReader") as mock_pdf_reader:
-            mock_pdf_reader.return_value.pages = [1]
-            run_ingest_mode(args, config, None)
+        run_ingest_mode(args, config, None)
             
     mock_print_summary.assert_called_once()
 

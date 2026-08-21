@@ -28,7 +28,7 @@ def test_ingest_preserves_raw_dump(mock_process, tmp_path):
         
     raw_dump_path = input_dir / "514.raw_dump.json"
     with open(raw_dump_path, "w", encoding="utf-8") as f:
-        json.dump([{"expected_house_number": "514", "expected_tenant_name": "Test Tenant"}], f)
+        json.dump([{"expected_house_number": "514", "expected_tenant_name": "Test Tenant", "category": "others"}], f)
         
     config = AppConfig(inbox_path=str(input_dir), areas_root_path=str(areas_root))
     config.areas_root_path = str(areas_root)
@@ -59,7 +59,7 @@ def test_ingest_page_count_validation(mock_process, tmp_path):
     # Dump has only 1 page, PDF has 2
     raw_dump_path = input_dir / "514.raw_dump.json"
     with open(raw_dump_path, "w", encoding="utf-8") as f:
-        json.dump([{"expected_house_number": "514", "expected_tenant_name": "Test Tenant"}], f)
+        json.dump([{"expected_house_number": "514", "expected_tenant_name": "Test Tenant", "category": "others"}], f)
         
     config = AppConfig(inbox_path=str(input_dir), areas_root_path=str(areas_root))
     config.areas_root_path = str(areas_root)
@@ -85,7 +85,7 @@ def test_ingest_writes_yaml_data(mock_process, tmp_path):
         
     raw_dump_path = input_dir / "514.raw_dump.json"
     with open(raw_dump_path, "w", encoding="utf-8") as f:
-        json.dump({"groups": [{"start_page": 0, "end_page": 0, "expected_house_number": "514", "expected_tenant_name": "Real Tenant"}]}, f)
+        json.dump({"groups": [{"start_page": 0, "end_page": 0, "expected_house_number": "514", "expected_tenant_name": "Real Tenant", "category": "others"}]}, f)
         
     config = AppConfig(inbox_path=str(input_dir), areas_root_path=str(areas_root))
     config.areas_root_path = str(areas_root)

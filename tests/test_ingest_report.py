@@ -16,7 +16,12 @@ def test_ingest_report_generated(tmp_path):
     input_dir = tmp_path / "input"
     input_dir.mkdir()
     pdf_file = input_dir / "test1.pdf"
-    pdf_file.touch()
+    from pypdf import PdfWriter
+    writer = PdfWriter()
+    writer.add_blank_page(width=100, height=100)
+    writer.add_blank_page(width=100, height=100)
+    with open(pdf_file, "wb") as f:
+        writer.write(f)
 
     areas_root = tmp_path / "areas"
     areas_root.mkdir()
@@ -24,8 +29,7 @@ def test_ingest_report_generated(tmp_path):
     config = AppConfig(areas_root_path=str(areas_root), provider="test", inbox_path=str(input_dir))
 
     # Mock the dependencies inside core.py
-    with patch("src.ingest.core.process_unclassified_pdf") as mock_process, \
-         patch("pypdf.PdfReader") as mock_pdf_reader:
+    with patch("src.ingest.core.process_unclassified_pdf") as mock_process:
         
         # Mock process_unclassified_pdf to create the raw dump
         def fake_process(*args, **kwargs):
@@ -34,7 +38,7 @@ def test_ingest_report_generated(tmp_path):
                     {
                         "expected_house_number": "711",
                         "expected_tenant_name": "John Doe",
-                        "category": "Contracts",
+                        "category": "others",
                         "start_page": 0,
                         "end_page": 1
                     }
@@ -46,10 +50,7 @@ def test_ingest_report_generated(tmp_path):
                 
         mock_process.side_effect = fake_process
         
-        # Mock PDF pages
-        mock_reader_inst = MagicMock()
-        mock_reader_inst.pages = [1, 2] # 2 pages
-        mock_pdf_reader.return_value = mock_reader_inst
+        
         
         args = DummyArgs(input_path=str(input_dir), dry_run=False)
         llm_client = MagicMock()

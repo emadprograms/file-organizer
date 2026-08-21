@@ -36,13 +36,21 @@ def test_phase51_multipage_pdf(tmp_path):
     subfolder = target_dir / "Category"
     subfolder.mkdir(parents=True)
     raw_pdf = subfolder / "2023-05-15 - Raw Invoice.pdf"
-    raw_pdf.touch()
+    from pypdf import PdfWriter
+    writer = PdfWriter()
+    for _ in range(3):
+        writer.add_blank_page(width=100, height=100)
+    with open(raw_pdf, "wb") as f:
+        writer.write(f)
     
     # Ghost Shortcut
     vault_dir = source_dir / "vault"
     vault_dir.mkdir(parents=True)
     vault_pdf = vault_dir / "doc_mockvault123.pdf"
-    vault_pdf.touch()
+    writer2 = PdfWriter()
+    writer2.add_blank_page(width=100, height=100)
+    with open(vault_pdf, "wb") as f:
+        writer2.write(f)
     
     ghost_subfolder = target_dir / "GhostFolder"
     ghost_subfolder.mkdir(parents=True)
@@ -52,16 +60,10 @@ def test_phase51_multipage_pdf(tmp_path):
     args = DummyArgs(target_dir=target_dir)
     
     # Mock pypdf and FileOrganizer
-    with patch("src.reconcile.core.FileOrganizer") as mock_org, \
-         patch("src.reconcile.core.pypdf.PdfReader") as mock_pdf:
+    with patch("src.reconcile.core.FileOrganizer") as mock_org:
          
         mock_instance = mock_org.return_value
         mock_instance.compute_tenant_folders.return_value = ({"Tenant": "Tenant"}, "Tenant")
-        
-        # Mock PdfReader to return 3 pages
-        mock_reader = MagicMock()
-        mock_reader.pages = [1, 2, 3]
-        mock_pdf.return_value = mock_reader
         
         result = run_reconcile_mode(args)
         

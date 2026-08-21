@@ -8,7 +8,7 @@ from typing import Any
 from src.core.config import AppConfig
 from src.categorization.categorization import process_unclassified_pdf
 from src.utils.fs import atomic_write
-import pypdf
+import fitz
 
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
@@ -62,7 +62,7 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             llm_client=llm_client,
             specific_pdf_path=pdf_path,
             create_categorized_copy=False,
-            model=getattr(args, 'model', None)
+            model=getattr(args, 'categorization_model', None) or getattr(args, 'model', None)
         )
         
         raw_dump_path = pdf_path.parent / f"{pdf_path.stem}.raw_dump.json"
@@ -73,8 +73,8 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             continue
             
         try:
-            reader = pypdf.PdfReader(str(pdf_path))
-            pdf_pages = len(reader.pages)
+            with fitz.open(str(pdf_path)) as doc:
+                pdf_pages = len(doc)
         except Exception as e:
             logger.error(f"Failed to read PDF {pdf_path.name}: {e}")
             has_errors = True
@@ -86,6 +86,35 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             
         if not dump_data:
             logger.error(f"Raw dump is empty for {pdf_path.name}")
+            has_errors = True
+            reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
+            continue
+            
+        # Validate report categories
+        from src.routing.config import CATEGORY_TO_FOLDERS, DIRECT_ROUTING_MAP, FORM_CATEGORIES, LETTER_CATEGORIES, FOLDER_PREFIXES
+        valid_categories = {"others", "other_letters", "unassigned"}
+        valid_categories.update(c.lower() for c in CATEGORY_TO_FOLDERS.keys())
+        valid_categories.update(DIRECT_ROUTING_MAP.keys())
+        valid_categories.update(c.lower() for c in FORM_CATEGORIES)
+        valid_categories.update(c.lower() for c in LETTER_CATEGORIES)
+        valid_categories.update(FOLDER_PREFIXES.keys())
+        for folder, prefix in FOLDER_PREFIXES.items():
+            valid_categories.add(f"{prefix}_{folder}")
+
+        invalid_found = False
+        items_to_check = dump_data.get("groups", []) if isinstance(dump_data, dict) and "groups" in dump_data else (dump_data if isinstance(dump_data, list) else [])
+        for i, item in enumerate(items_to_check):
+            cat = item.get("category")
+            if not cat:
+                logger.error(f"Page/Group {i+1} in {raw_dump_path.name} is missing a category.")
+                invalid_found = True
+                break
+            if cat.lower() not in valid_categories:
+                logger.error(f"Page/Group {i+1} in {raw_dump_path.name} has unknown category '{cat}'.")
+                invalid_found = True
+                break
+                
+        if invalid_found:
             has_errors = True
             reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
             continue
@@ -166,6 +195,20 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
                         yaml_content += f"- name: {tenant}\n  start_date: '2000-01-01'\n  end_date: present\n"
                     with open(yaml_path, "w", encoding="utf-8") as yf:
                         yf.write(yaml_content)
+                else:
+                    import yaml
+                    with open(yaml_path, "r", encoding="utf-8") as yf:
+                        existing_data = yaml.safe_load(yf) or []
+                    existing_names = [item.get("name") for item in existing_data if isinstance(item, dict)]
+                    added = False
+                    for tenant in found_tenants:
+                        if tenant not in existing_names:
+                            existing_data.append({"name": tenant, "start_date": "2000-01-01", "end_date": "present"})
+                            existing_names.append(tenant)
+                            added = True
+                    if added:
+                        with open(yaml_path, "w", encoding="utf-8") as yf:
+                            yaml.dump(existing_data, yf, allow_unicode=True, default_flow_style=False, sort_keys=False)
                         
             # Move PDF
 
