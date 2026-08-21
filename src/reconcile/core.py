@@ -6,8 +6,6 @@ from pathlib import Path
 import yaml
 import fitz
 
-if sys.platform == 'win32':
-    sys.stdout.reconfigure(encoding='utf-8')
 
 from src.core.models import PageData, TenantTimeline
 from src.timeline.phase import assign_pages_to_tenants
@@ -30,6 +28,15 @@ def run_reconcile_mode(args) -> int:
     Returns:
         int: The exit status code.
     """
+    if getattr(args, 'dry_run', False) and sys.platform == 'win32':
+        if sys.stdout.encoding.lower() != 'utf-8':
+            logger.warning("Terminal encoding is not UTF-8. Arabic characters may not render correctly.")
+            logger.warning("Recommend setting environment variable: PYTHONIOENCODING=utf8")
+        try:
+            sys.stdout.reconfigure(encoding='utf-8')
+        except AttributeError:
+            pass
+
     target_dir = args.target_dir.resolve()
     house_id = None
     if target_dir.name and target_dir.name[0].isdigit():
@@ -81,7 +88,7 @@ def run_reconcile_mode(args) -> int:
         return 1
             
     with open(yaml_path, 'r', encoding='utf-8') as f:
-        yaml_data = yaml.safe_load(f) or []
+        yaml_data = yaml.safe_load(f)
         
     pages = [PageData(**p) for p in state.data.get("cleaned_pages", [])]
     groups = [DocumentGroup(**g) for g in state.data.get("grouped_documents", [])]
@@ -307,7 +314,7 @@ def run_reconcile_mode(args) -> int:
                 num_pages = 1
                 try:
                     with fitz.open(str(vault_pdf)) as doc:
-                        num_pages = len(doc)
+                        num_pages = doc.page_count
                 except Exception as e:
                     report.setdefault("corrupt_vault_files", 0)
                     report["corrupt_vault_files"] += 1
@@ -568,7 +575,7 @@ def run_reconcile_mode(args) -> int:
                 num_pages = 1
                 try:
                     with fitz.open(str(pdf_path)) as doc:
-                        num_pages = len(doc)
+                        num_pages = doc.page_count
                 except Exception as e:
                     report.setdefault("corrupt_vault_files", 0)
                     report["corrupt_vault_files"] += 1
@@ -963,9 +970,9 @@ def run_reconcile_mode(args) -> int:
         state.state_dir = source_dir
         state.state_file = source_dir / f"{house_id}_state.json"
         
-        state.data["cleaned_pages"] = [p.model_dump() if hasattr(p, "model_dump") else p.dict() for p in pages]
-        state.data["grouped_documents"] = [g.model_dump() if hasattr(g, "model_dump") else g.dict() for g in groups]
-        state.data["routed_documents"] = []
+        state.data["cleaned_pages"] = [p.model_dump() for p in pages]
+        state.data["grouped_documents"] = [g.model_dump() for g in groups]
+        state.data["routed_documents"] = [g.model_dump() for g in groups]
         
         routed_data["per_page"] = new_per_page
         
@@ -981,19 +988,7 @@ def run_reconcile_mode(args) -> int:
         # Generate {house_id}_report.json format for legacy verification
         legacy_report = []
         for g in groups:
-            p_first = next((p for p in new_per_page if p["page_index"] == g.start_page), None)
-            folder_path = ""
-            if p_first:
-                out_file = p_first.get("output_file", "")
-                if "/" in out_file:
-                    parts = out_file.split("/", 1)
-                    rel_path = parts[1] if len(parts) > 1 else parts[0]
-                    folder_path = str(Path(rel_path).parent.as_posix())
-                    if folder_path == ".":
-                        folder_path = ""
-            
-            d = g.model_dump(exclude_none=True) if hasattr(g, "model_dump") else g.dict(exclude_none=True)
-            d["folder_path"] = folder_path or getattr(g, "folder_path", "") or ""
+            d = g.model_dump(exclude_none=True)
             
             date_str = "nodate"
             if g.dates and len(g.dates) > 0 and g.dates[0] and g.dates[0] != "NONE":
@@ -1001,7 +996,7 @@ def run_reconcile_mode(args) -> int:
             d["date"] = date_str
             d["tenant"] = getattr(g, "primary_tenant", None) or "Unknown"
             
-            if hasattr(g, "shortcuts") and g.shortcuts:
+            if g.shortcuts:
                 d["filename"] = Path(g.shortcuts[0]).name
             else:
                 d["filename"] = f"doc_{g.vault_id}.pdf"

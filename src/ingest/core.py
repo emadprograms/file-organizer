@@ -6,8 +6,6 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-if sys.platform == 'win32':
-    sys.stdout.reconfigure(encoding='utf-8')
 
 from src.core.config import AppConfig
 from src.categorization.categorization import process_unclassified_pdf
@@ -27,6 +25,15 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
     Returns:
         int: The exit status code.
     """
+    if getattr(args, 'dry_run', False) and sys.platform == 'win32':
+        if sys.stdout.encoding.lower() != 'utf-8':
+            logger.warning("Terminal encoding is not UTF-8. Arabic characters may not render correctly.")
+            logger.warning("Recommend setting environment variable: PYTHONIOENCODING=utf8")
+        try:
+            sys.stdout.reconfigure(encoding='utf-8')
+        except AttributeError:
+            pass
+
     input_path = Path(args.input_path).resolve()
     
     if not input_path.exists():
@@ -37,7 +44,7 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
     if input_path.is_file() and input_path.name.endswith('.raw_dump.json'):
         json_files.append(input_path)
     elif input_path.is_dir():
-        json_files.extend(list(input_path.glob("*.raw_dump.json")))
+        json_files.extend([p for p in input_path.glob("*.raw_dump.json") if p.is_file()])
         
     if not json_files:
         logger.info(f"No JSON dumps found to ingest in {input_path}")
@@ -51,22 +58,16 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
     reports = {}
     touched_houses = set()
     
-    for raw_dump_path in json_files:
+    for json_path in json_files:
         target_house_dir = None
         
-        logger.info(f"Processing raw dump {raw_dump_path.name}...")
+        logger.info(f"Processing raw dump {json_path.name}...")
         
-        try:
-            with open(raw_dump_path, 'r', encoding='utf-8') as f:
-                dump_data = json.load(f)
-        except Exception as e:
-            logger.error(f"Failed to read JSON {raw_dump_path.name}: {e}")
-            has_errors = True
-            reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
-            continue
+        with open(json_path, 'r', encoding='utf-8') as f:
+            dump_data = json.load(f)
             
         if not dump_data:
-            logger.error(f"Raw dump is empty for {raw_dump_path.name}")
+            logger.error(f"Raw dump is empty for {json_path.name}")
             has_errors = True
             reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
             continue
@@ -83,26 +84,23 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             
         pdf_path = None
         pdf_pages = 0
-        candidate_pdfs = list(raw_dump_path.parent.glob("*.pdf"))
+        candidate_pdfs = list(json_path.parent.glob("*.pdf"))
         for candidate in candidate_pdfs:
             if "_categorized" in candidate.name or "_finalized" in candidate.name:
                 continue
-            try:
-                with fitz.open(str(candidate)) as doc:
-                    if len(doc) == dump_pages:
-                        pdf_path = candidate
-                        pdf_pages = len(doc)
-                        break
-            except Exception as e:
-                pass
+            with fitz.open(str(candidate)) as doc:
+                if doc.page_count == dump_pages:
+                    pdf_path = candidate
+                    pdf_pages = doc.page_count
+                    break
                 
         if not pdf_path:
-            logger.error(f"Could not find a matching PDF with {dump_pages} pages for {raw_dump_path.name}")
+            logger.error(f"Could not find a matching PDF with {dump_pages} pages for {json_path.name}")
             has_errors = True
             reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
             continue
             
-        logger.info(f"Matched {raw_dump_path.name} to {pdf_path.name} ({pdf_pages} pages)")
+        logger.info(f"Matched {json_path.name} to {pdf_path.name} ({pdf_pages} pages)")
         
         # Validate report categories
         from src.routing.config import CATEGORY_TO_FOLDERS, DIRECT_ROUTING_MAP, FORM_CATEGORIES, LETTER_CATEGORIES, FOLDER_PREFIXES
@@ -122,10 +120,10 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             cat = item.get("category")
             if not cat:
                 from src.core.exceptions import ValidationError
-                raise ValidationError(f"Page/Group {i+1} in {raw_dump_path.name} is missing a category. Please fix the report JSON.")
+                raise ValidationError(f"Page {i+1} in {json_path.name} is missing a category (found: {cat}).")
             if cat.lower() not in valid_categories:
                 from src.core.exceptions import ValidationError
-                raise ValidationError(f"Page/Group {i+1} in {raw_dump_path.name} has unknown category (found: {cat}). Please fix the report JSON.")
+                raise ValidationError(f"Page {i+1} in {json_path.name} has unknown category '{cat}'.")
                 
         if invalid_found:
             has_errors = True
@@ -133,10 +131,10 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             continue
             
         # Find expected house number
-        house_number = raw_dump_path.name.split('.raw_dump.json')[0]
+        house_number = json_path.name.split('.raw_dump.json')[0]
                 
         if not house_number:
-            logger.error(f"Could not determine house number for {raw_dump_path.name}")
+            logger.error(f"Could not determine house number for {json_path.name}")
             has_errors = True
             reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
             continue
@@ -182,7 +180,7 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
                 else:
                     import yaml
                     with open(yaml_path, "r", encoding="utf-8") as yf:
-                        existing_data = yaml.safe_load(yf) or []
+                        existing_data = yaml.safe_load(yf)
                     existing_names = [item.get("name") for item in existing_data if isinstance(item, dict)]
                     added = False
                     for tenant in found_tenants:
@@ -211,8 +209,8 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             # Move raw dump to .source_files
             source_files_dir = target_house_dir / ".source_files"
             source_files_dir.mkdir(parents=True, exist_ok=True)
-            dest_raw_dump = source_files_dir / raw_dump_path.name
-            shutil.move(str(raw_dump_path), str(dest_raw_dump))
+            dest_raw_dump = source_files_dir / json_path.name
+            shutil.move(str(json_path), str(dest_raw_dump))
             
             r = reports.setdefault(target_house_dir, {"pdfs_processed": 0, "errors": 0, "pages_ingested": 0})
             r["pdfs_processed"] += 1
