@@ -42,7 +42,6 @@ def run_reconcile_mode(args) -> int:
         
     # Phase 57: Preflight Lock Detection
     # Scan the target directory for any locked files before proceeding
-    import sys
     for root, dirs, files in os.walk(target_dir):
         if ".source_files" in dirs:
             dirs.remove(".source_files")
@@ -350,7 +349,8 @@ def run_reconcile_mode(args) -> int:
                             "date": extracted_date,
                             "brief_arabic_title": lnk.stem,
                             "user_locked": should_lock,
-                            "canonical_tenant": new_tenant if should_lock else None
+                            "canonical_tenant": new_tenant if should_lock else None,
+                            "category": "Unassigned"
                         }
                         routed_data.setdefault("per_page", []).append(new_p)
                         
@@ -388,29 +388,32 @@ def run_reconcile_mode(args) -> int:
         # Remove from pages and groups
         pages = [p for i, p in enumerate(pages) if i not in deleted_page_indices]
         
-        # Keep groups that have at least one valid page.
-        groups = [g for g in groups if g.start_page not in deleted_page_indices]
+        # Keep groups that have at least one valid page. We will handle filtering below.
         
         # Re-index:
         idx_map = {}
-        
-        for p in old_per_page_filtered:
-            # We don't really need to rebuild new_pages from raw dicts, we just need to update original_index and page_index
-            pass
+        for del_idx in deleted_page_indices:
+            idx_map[del_idx] = None
             
-        # Actually, let's just re-index `pages` properly
-        # The previous list comprehension already filtered `pages`:
-        # pages = [p for i, p in enumerate(pages) if i not in deleted_page_indices]
-        # BUT wait, the `enumerate(pages)` was on the pre-filtered list, which included the newly adopted pages!
-        # So `pages` is currently perfectly filtered. We just need to update their internal indices.
         for new_i, p_obj in enumerate(pages):
             idx_map[p_obj.original_index] = new_i
             p_obj.original_index = new_i
             
         new_groups = []
         for g_obj in groups:
-            g_obj.start_page = idx_map.get(g_obj.start_page, g_obj.start_page)
-            g_obj.end_page = idx_map.get(g_obj.end_page, g_obj.end_page)
+            curr_start = g_obj.start_page
+            while curr_start <= g_obj.end_page and idx_map.get(curr_start, curr_start) is None:
+                curr_start += 1
+                
+            if curr_start > g_obj.end_page:
+                continue  # Whole group deleted
+                
+            curr_end = g_obj.end_page
+            while curr_end >= g_obj.start_page and idx_map.get(curr_end, curr_end) is None:
+                curr_end -= 1
+                
+            g_obj.start_page = idx_map.get(curr_start, curr_start)
+            g_obj.end_page = idx_map.get(curr_end, curr_end)
             new_groups.append(g_obj)
         groups = new_groups
         
@@ -1022,9 +1025,7 @@ def run_reconcile_mode(args) -> int:
         try:
             from src.core.verification import run_verification
             # We need to pass args with the new_house_dir if it changed
-            class VerifyArgs:
-                target_dir = new_house_dir
-            
+
             logger.info("Running auto-verification...")
             v_res = run_verification(new_house_dir)
             report["verification_status"] = "Pass" if v_res == 0 else "Fail"
