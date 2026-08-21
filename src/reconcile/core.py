@@ -609,7 +609,6 @@ def run_reconcile_mode(args) -> int:
                 
                 if manifest_path.exists():
                     try:
-                        import os
                         os.remove(str(manifest_path))
                     except OSError:
                         pass
