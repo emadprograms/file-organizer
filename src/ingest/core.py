@@ -113,7 +113,6 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
         for folder, prefix in FOLDER_PREFIXES.items():
             valid_categories.add(f"{prefix}_{folder}")
 
-        invalid_found = False
         items_to_check = dump_data.get("groups", []) if isinstance(dump_data, dict) and "groups" in dump_data else (dump_data if isinstance(dump_data, list) else [])
         for i, item in enumerate(items_to_check):
             cat = item.get("category")
@@ -123,12 +122,7 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             if cat.lower() not in valid_categories:
                 from src.core.exceptions import ValidationError
                 raise ValidationError(f"Page {i+1} in {json_path.name} has unknown category '{cat}'. Please fix the report JSON.")
-                
-        if invalid_found:
-            has_errors = True
-            reports.setdefault(target_house_dir or 'unknown', {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
-            continue
-            
+
         # Find expected house number
         house_number = json_path.name.split('.raw_dump.json')[0]
                 

@@ -91,33 +91,29 @@ def run_reconcile_mode(args) -> int:
     pages = [PageData(**p) for p in (state.data.get("cleaned_pages") or [])]
     groups = [DocumentGroup(**g) for g in (state.data.get("grouped_documents") or [])]
     routed_data = state.data.get("routed_documents") or {}
-    
+    if isinstance(routed_data, list):
+        if len(routed_data) > 0 and "start_page" in routed_data[0]:
+            logger.info("Skipping Pass 2.5 Routing (found in state). Loading routed documents.")
+            groups = [DocumentGroup(**d) for d in routed_data]
+            routed_data = {"per_page": []}
+        elif len(routed_data) > 0 and "page_index" in routed_data[0]:
+            routed_data = {"per_page": routed_data}
+        else:
+            routed_data = {"per_page": routed_data}
     # Dynamically infer vault_id for legacy groups that didn't get it during migration
     for g in groups:
         if not g.vault_id:
-            if isinstance(routed_data, dict):
-                for p in routed_data.get("per_page", []):
-                    if p.get("page_index") == g.start_page and "vault_id" in p:
-                        g.vault_id = p["vault_id"]
-                        break
-            else:
-                for p in routed_data:
-                    if p.get("page_index") == g.start_page and "vault_id" in p:
-                        g.vault_id = p["vault_id"]
-                        break
+            for p in routed_data.get("per_page", []):
+                if p.get("page_index") == g.start_page and "vault_id" in p:
+                    g.vault_id = p["vault_id"]
+                    break
     
-    if isinstance(routed_data, dict):
-        expected_len = len(routed_data.get("per_page", []))
-    else:
-        expected_len = len(routed_data)
+    expected_len = len(routed_data.get("per_page", []))
         
     if len(pages) < expected_len:
         logger.warning(f"Padding missing PageData: cleaned_pages has {len(pages)} but per_page has {expected_len}")
         for i in range(len(pages), expected_len):
-            if isinstance(routed_data, dict):
-                p_dict = routed_data.get("per_page", [])[i]
-            else:
-                p_dict = routed_data[i]
+            p_dict = routed_data.get("per_page", [])[i]
             d = normalize_date(p_dict.get("date", "nodate"))
             pages.append(PageData(
                 category="Unassigned",
@@ -127,9 +123,6 @@ def run_reconcile_mode(args) -> int:
                 resolved_date=d if d != "nodate" else None,
                 user_locked=p_dict.get("user_locked", False)
             ))
-            
-    if isinstance(routed_data, list):
-        routed_data = {"per_page": routed_data}
         
     report = {
         "ghost_adopted": 0,
@@ -975,6 +968,9 @@ def run_reconcile_mode(args) -> int:
     if not getattr(args, 'dry_run', False):
         state.state_dir = source_dir
         state.state_file = source_dir / f"{house_id}_state.json"
+        if state.state_file.exists():
+            state.load()
+        
         
         state.data["cleaned_pages"] = [p.model_dump() for p in pages]
         state.data["grouped_documents"] = [g.model_dump() for g in groups]
@@ -992,7 +988,8 @@ def run_reconcile_mode(args) -> int:
         
         # Generate {house_id}_report.json format for legacy verification
         legacy_report = []
-        for g in groups:
+        sorted_docs = sorted(groups, key=lambda x: x.start_page)
+        for g in sorted_docs:
             d = g.model_dump(exclude_none=True)
             
             date_str = "nodate"
@@ -1008,9 +1005,11 @@ def run_reconcile_mode(args) -> int:
                 
             legacy_report.append(d)
             
-        with atomic_write(str(source_dir / f"{house_id}_report.json")) as tmp_path:
+        report_out_path = source_dir / f"{house_id}_report.json"
+        with atomic_write(str(report_out_path)) as tmp_path:
             with open(tmp_path, "w", encoding="utf-8") as f:
                 json.dump(legacy_report, f, indent=2, ensure_ascii=False)
+            logger.info(f"Generated new timeline-view report at {report_out_path}")
 
         # Save Report
         with atomic_write(str(source_dir / "reconcile_report.json")) as tmp_path:
@@ -1055,4 +1054,8 @@ def run_reconcile_mode(args) -> int:
         }
         vis.print_summary(full_house_id, summary, new_per_page, groups)
     
+    if not getattr(args, 'dry_run', False):
+        output_file_count = len(groups)
+        logger.info(f"Successfully generated {output_file_count} PDFs in {new_house_dir}")
+
     return 0
