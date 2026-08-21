@@ -86,25 +86,38 @@ def run_reconcile_mode(args) -> int:
         return 1
             
     with open(yaml_path, 'r', encoding='utf-8') as f:
-        yaml_data = yaml.safe_load(f)
+        yaml_data = yaml.safe_load(f) or []
         
-    pages = [PageData(**p) for p in state.data.get("cleaned_pages", [])]
-    groups = [DocumentGroup(**g) for g in state.data.get("grouped_documents", [])]
+    pages = [PageData(**p) for p in (state.data.get("cleaned_pages") or [])]
+    groups = [DocumentGroup(**g) for g in (state.data.get("grouped_documents") or [])]
     routed_data = state.data.get("routed_documents") or {}
     
     # Dynamically infer vault_id for legacy groups that didn't get it during migration
     for g in groups:
         if not g.vault_id:
-            for p in routed_data.get("per_page", []):
-                if p.get("page_index") == g.start_page and "vault_id" in p:
-                    g.vault_id = p["vault_id"]
-                    break
+            if isinstance(routed_data, dict):
+                for p in routed_data.get("per_page", []):
+                    if p.get("page_index") == g.start_page and "vault_id" in p:
+                        g.vault_id = p["vault_id"]
+                        break
+            else:
+                for p in routed_data:
+                    if p.get("page_index") == g.start_page and "vault_id" in p:
+                        g.vault_id = p["vault_id"]
+                        break
     
-    expected_len = len(routed_data.get("per_page", []))
+    if isinstance(routed_data, dict):
+        expected_len = len(routed_data.get("per_page", []))
+    else:
+        expected_len = len(routed_data)
+        
     if len(pages) < expected_len:
         logger.warning(f"Padding missing PageData: cleaned_pages has {len(pages)} but per_page has {expected_len}")
         for i in range(len(pages), expected_len):
-            p_dict = routed_data["per_page"][i]
+            if isinstance(routed_data, dict):
+                p_dict = routed_data.get("per_page", [])[i]
+            else:
+                p_dict = routed_data[i]
             d = normalize_date(p_dict.get("date", "nodate"))
             pages.append(PageData(
                 category="Unassigned",
@@ -114,6 +127,9 @@ def run_reconcile_mode(args) -> int:
                 resolved_date=d if d != "nodate" else None,
                 user_locked=p_dict.get("user_locked", False)
             ))
+            
+    if isinstance(routed_data, list):
+        routed_data = {"per_page": routed_data}
         
     report = {
         "ghost_adopted": 0,
@@ -962,7 +978,6 @@ def run_reconcile_mode(args) -> int:
         
         state.data["cleaned_pages"] = [p.model_dump() for p in pages]
         state.data["grouped_documents"] = [g.model_dump() for g in groups]
-        state.data["routed_documents"] = [g.model_dump() for g in groups]
         
         routed_data["per_page"] = new_per_page
         

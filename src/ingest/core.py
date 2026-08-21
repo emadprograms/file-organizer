@@ -112,7 +112,6 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
         valid_categories.update(FOLDER_PREFIXES.keys())
         for folder, prefix in FOLDER_PREFIXES.items():
             valid_categories.add(f"{prefix}_{folder}")
-        valid_categories.discard("unassigned")
 
         invalid_found = False
         items_to_check = dump_data.get("groups", []) if isinstance(dump_data, dict) and "groups" in dump_data else (dump_data if isinstance(dump_data, list) else [])
@@ -180,7 +179,7 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
                 else:
                     import yaml
                     with open(yaml_path, "r", encoding="utf-8") as yf:
-                        existing_data = yaml.safe_load(yf)
+                        existing_data = yaml.safe_load(yf) or []
                     existing_names = [item["name"] for item in existing_data if isinstance(item, dict)]
                     added = False
                     for tenant in found_tenants:

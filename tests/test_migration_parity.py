@@ -344,17 +344,21 @@ def test_09_skip_categorized_finalized():
 def test_10_empty_yaml_crash_guard(tmp_path):
     """reconcile must not crash when tenant YAML loads as None (empty file).
 
-    We verify this by checking the defensive pattern in code. A full
-    integration test would require a large setup; the source-level check
-    is sufficient as a regression gate.
+    Functional test: actually calls run_reconcile_mode with an empty
+    _tenants.yaml so that yaml.safe_load returns None.  The ``or []`` guard
+    in reconcile/core.py must absorb the None and let the function return 0
+    without raising AttributeError or TypeError.
     """
-    # The YAML is loaded and iterated.  If safe_load returns None the code
-    # would crash on iteration.  The current code processes it in a for-loop,
-    # so we just ensure safe_load is still being called (if someone replaces
-    # it with something unsafe, this test will need updating).
-    src_path = Path(__file__).resolve().parent.parent / "src" / "reconcile" / "core.py"
-    code = src_path.read_text(encoding="utf-8")
-    assert "yaml.safe_load" in code
+    from src.reconcile.core import run_reconcile_mode
+
+    target_dir, source_dir, vault_dir = _make_house(
+        tmp_path,
+        tenants_yaml=""  # Empty file → yaml.safe_load returns None → guarded with or []
+    )
+    args = DummyArgs(target_dir)
+    # Must not raise; must complete successfully
+    result = run_reconcile_mode(args)
+    assert result == 0
 
 
 # ===========================================================================
@@ -652,5 +656,91 @@ def test_bonus_routed_documents_missing_handled(mock_extract, mock_compress, tmp
         json.dump(state_data, f)
 
     args = DummyArgs(target_dir)
+    result = run_reconcile_mode(args)
+    assert result == 0
+
+
+# ===========================================================================
+# BONUS: V4 routed_documents populated list
+# ===========================================================================
+
+@patch("src.pdf.compress_pdf", autospec=True)
+@patch("src.pdf.extract_pdf_segment", autospec=True)
+def test_bonus_v4_routed_documents_list(mock_extract, mock_compress, tmp_path):
+    """reconcile must handle V4 state files where routed_documents is a
+    *populated* list (not a dict).  The list items use the flat-page format
+    V4 produced, e.g. [{"page_index": 0, "vault_id": "abc", ...}].
+    The code converts this to {"per_page": [...]} internally; the test
+    asserts that run_reconcile_mode returns 0 without crashing."""
+    from src.reconcile.core import run_reconcile_mode
+
+    house_id = "888"
+    target_dir = tmp_path / f"{house_id} - V4 House"
+    source_dir = target_dir / ".source_files"
+    vault_dir = source_dir / "vault"
+    vault_dir.mkdir(parents=True)
+
+    # Create a minimal vault PDF so reconcile finds the file
+    vault_id = "deadbeef01234567deadbeef01234567"
+    vault_pdf = vault_dir / f"doc_{vault_id}.pdf"
+    _create_minimal_pdf(vault_pdf, num_pages=1)
+
+    # Create a real .lnk-style shortcut path entry in the target directory
+    # (We simply don't place a .lnk, so the code will mark it user_deleted
+    # and trash the vault PDF — that's fine; we just need no crash.)
+
+    with open(source_dir / f"{house_id}_tenants.yaml", "w", encoding="utf-8") as f:
+        f.write("- name: Tenant A\n  start_date: '2020-01-01'\n  end_date: present\n")
+
+    # V4 state: routed_documents is a populated flat list
+    v4_routed_list = [
+        {
+            "page_index": 0,
+            "vault_id": vault_id,
+            "output_file": f"{target_dir.name}/Tenant A/doc.lnk",
+            "target_folder": "Tenant A",
+            "dates": ["2021-06-15"],
+            "date": "2021-06-15",
+            "brief_arabic_title": "Test Doc",
+            "user_locked": False,
+            "canonical_tenant": "Tenant A",
+            "category": "Contract",
+        }
+    ]
+
+    state_data = {
+        "house_id": house_id,
+        "cleaned_pages": [
+            {
+                "category": "Contract",
+                "content_explanation": "Test page",
+                "original_index": 0,
+                "date": "2021-06-15",
+                "resolved_date": "2021-06-15",
+                "user_locked": False,
+                "canonical_tenant": "Tenant A",
+            }
+        ],
+        "grouped_documents": [
+            {
+                "start_page": 0,
+                "end_page": 0,
+                "primary_tenant": "Tenant A",
+                "category": "Contract",
+                "dates": ["2021-06-15"],
+                "brief_arabic_title": "Test Doc",
+                "vault_id": vault_id,
+                "user_locked": False,
+                "shortcuts": [],
+            }
+        ],
+        # V4 format: a populated list, NOT a dict
+        "routed_documents": v4_routed_list,
+    }
+    with open(source_dir / f"{house_id}_state.json", "w", encoding="utf-8") as f:
+        json.dump(state_data, f)
+
+    args = DummyArgs(target_dir)
+    # Must not raise AttributeError/TypeError on list; must return 0
     result = run_reconcile_mode(args)
     assert result == 0
