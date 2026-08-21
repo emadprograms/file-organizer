@@ -1,3 +1,4 @@
+import fitz
 import json
 import os
 import sys
@@ -589,12 +590,10 @@ def run_reconcile_mode(args) -> int:
                 dest_vault_pdf = vault_dir / f"doc_{new_vault_id}.pdf"
                 report["raw_pdf_ingested"] += 1
                 logger.info(f"Ingesting raw PDF: {pdf_path.name} -> vault_id {new_vault_id}")
-                import shutil
                 shutil.move(str(pdf_path), str(dest_vault_pdf))
                 
                 num_pages = 1
                 try:
-                    import fitz
                     with fitz.open(str(dest_vault_pdf)) as doc:
                         num_pages = doc.page_count
                 except Exception as e:
