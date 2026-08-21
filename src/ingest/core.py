@@ -189,7 +189,8 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             # Move PDF
 
             dest_pdf = target_house_dir / pdf_path.name
-            shutil.move(str(pdf_path), str(dest_pdf))
+            if pdf_path.resolve() != dest_pdf.resolve():
+                shutil.move(str(pdf_path), str(dest_pdf))
             
             # Create _ingest_manifest.json
             dest_manifest = target_house_dir / f"{pdf_path.stem}_ingest_manifest.json"
@@ -203,7 +204,8 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             source_files_dir = target_house_dir / ".source_files"
             source_files_dir.mkdir(parents=True, exist_ok=True)
             dest_raw_dump = source_files_dir / json_path.name
-            shutil.move(str(json_path), str(dest_raw_dump))
+            if json_path.resolve() != dest_raw_dump.resolve():
+                shutil.move(str(json_path), str(dest_raw_dump))
             
             r = reports.setdefault(target_house_dir, {"pdfs_processed": 0, "errors": 0, "pages_ingested": 0})
             r["pdfs_processed"] += 1
