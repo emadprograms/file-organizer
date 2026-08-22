@@ -67,7 +67,7 @@ def test_phase43_raw_pdf_ingestion(tmp_path):
     assert not (new_subfolder / "2023-05-15 - Raw Invoice.pdf").exists()
     
     # 2. A shortcut should be in its place
-    shortcut = new_subfolder / "2023-05-15---Raw-Invoice_page_1.lnk"
+    shortcut = new_subfolder / "2023-05-15---Raw-Invoice.lnk"
     assert shortcut.exists()
     
     # 3. State should have been updated with user_locked=True and vault_id
