@@ -166,8 +166,14 @@ def get_parser() -> argparse.ArgumentParser:
     ingest_parser.add_argument(
         "--model", 
         type=str, 
-        default="gemini-3.5-flash", 
-        help="LLM model to use for the main tasks"
+        default="gemma-4-31b-it", 
+        help="LLM model to use for the main tasks (fine categorization, grouping, routing)"
+    )
+    ingest_parser.add_argument(
+        "--categorization-model", 
+        type=str, 
+        default="gemini-3.5-flash-lite", 
+        help="LLM model to use for the initial OCR categorization pass"
     )
     ingest_parser.add_argument("--dry-run", action="store_true", help="Preview the operations without moving files")
     ingest_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
@@ -236,7 +242,7 @@ def main() -> int:
         set_verbosity(getattr(args, 'verbose', False))
         from src.ingest.core import run_ingest_mode
         llm_client = LLMClient(api_key=os.getenv("GEMINI_API_KEY"))
-        llm_client.default_model = getattr(args, 'model', "gemini-3.5-flash")
+        llm_client.default_model = getattr(args, 'model', "gemma-4-31b-it")
         try:
             return run_ingest_mode(args, config, llm_client)
         finally:

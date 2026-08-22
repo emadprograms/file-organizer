@@ -52,7 +52,6 @@ def run_cleaning_pass(json_path: Path, state: Any, llm_client: Any, logger: logg
 def run_fine_categorization_pass(cleaned_pages: list[Any], state: Any, llm_client: Any, logger: logging.Logger, dry_run: bool, routing_model: str | None = None) -> list[Any]:
     """Run Pass 2: Fine-Grained Categorization."""
     from src.categorization.fine_categorization import process_fine_categorization
-    from src.core.config import CATEGORIZATION_MODEL
     
     if state.data.get("fine_categorized_pages"):
         logger.info(f"Skipping Pass 2 Fine Categorization (found in state). Loading fine-categorized data.")
@@ -65,7 +64,7 @@ def run_fine_categorization_pass(cleaned_pages: list[Any], state: Any, llm_clien
     fine_categorized_pages = process_fine_categorization(
         cleaned_pages, 
         llm_client, 
-        model=CATEGORIZATION_MODEL,
+        model=None,
         run_checkpoint_path=checkpoint_path
     )
     
