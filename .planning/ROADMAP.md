@@ -194,3 +194,14 @@ See [.planning/milestones/v5.4-ROADMAP.md](milestones/v5.4-ROADMAP.md) for full 
 - [x] Phase 75: Write E2E tests for ingest + reconcile workflow
 - [x] Phase 76: Fix undo to use .trash/ instead of mtree
 - [x] Phase 77: Delete the watcher/prepend system and deprecated commands
+# #   v 7 . 1 :   P r e p e n d   M o d e   R e s t o r a t i o n   i n   I n g e s t  
+  
+ -   [   ]   P h a s e   7 8 :   A u d i t   P r e p e n d   M o d e   L o g i c   f r o m   G i t   H i s t o r y  
+ -   [   ]   P h a s e   7 9 :   I m p l e m e n t   A p p e n d / P r e p e n d   M o d e   i n t o   i n g e s t   c o m m a n d  
+ -   [   ]   P h a s e   8 0 :   E 2 E   T e s t i n g   f o r   I n g e s t   A p p e n d   M o d e  
+ 
+## v7.1: Prepend Mode Restoration in Ingest
+
+- [ ] Phase 78: Audit Prepend Mode Logic from Git History
+- [ ] Phase 79: Implement Append/Prepend Mode into ingest command
+- [ ] Phase 80: E2E Testing for Ingest Append Mode

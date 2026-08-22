@@ -1,4 +1,4 @@
-﻿# File Organizer Refactoring
+# File Organizer Refactoring
 
 ## What This Is
 
