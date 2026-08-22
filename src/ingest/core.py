@@ -328,12 +328,6 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
                     state.save()
                     logger.info(f"Saved pipeline state to {state.state_file.name}")
                 
-            # Create _ingest_manifest.json
-            dest_manifest = target_house_dir / f"{pdf_path.stem}_ingest_manifest.json"
-            with atomic_write(str(dest_manifest)) as tmp_path:
-                with open(tmp_path, "w", encoding="utf-8") as f:
-                    json.dump(dump_data, f, indent=2, ensure_ascii=False)
-                    
             logger.info(f"Ingested {pdf_path.name} into {target_house_dir.name}")
             
             # Move raw dump to .source_files
@@ -377,16 +371,6 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
         }
         house_id = dry_run_per_page[0]["output_file"].split("/")[0] if dry_run_per_page else "Unknown"
         vis.print_summary(house_id, summary, dry_run_per_page, [])
-
-
-    if not getattr(args, 'dry_run', False):
-        for house_dir in touched_houses:
-            sf_dir = house_dir / ".source_files"
-            sf_dir.mkdir(parents=True, exist_ok=True)
-            report_path = sf_dir / "ingest_report.json"
-            with atomic_write(str(report_path)) as tmp_path:
-                with open(tmp_path, "w", encoding="utf-8") as rf:
-                    json.dump(reports.get(house_dir, {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0}), rf, indent=2, ensure_ascii=False)
 
     return 1 if has_errors else 0
 

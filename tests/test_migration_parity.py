@@ -69,38 +69,7 @@ def _make_house(tmp_path, house_id="999", *, tenants_yaml=None, state_extra=None
     return target_dir, source_dir, vault_dir
 
 
-# ===========================================================================
-# 1. PDF Slicing – reconcile calls extract_pdf_segment & compress_pdf for
-#    group manifests
-# ===========================================================================
 
-@patch("src.pdf.compress_pdf", autospec=True)
-@patch("src.pdf.extract_pdf_segment", autospec=True)
-def test_01_pdf_slicing_group_manifest(mock_extract, mock_compress, tmp_path):
-    """reconcile must invoke extract_pdf_segment + compress_pdf per group."""
-    from src.reconcile.core import run_reconcile_mode
-
-    target_dir, source_dir, vault_dir = _make_house(tmp_path)
-
-    # Place a raw PDF in the house dir
-    raw_pdf = target_dir / "2020-01-01 - Doc.pdf"
-    _create_minimal_pdf(raw_pdf, num_pages=4)
-
-    # Group manifest splitting at page 0-1 and 2-3
-    manifest = {
-        "groups": [
-            {"start_page": 0, "end_page": 1, "expected_tenant_name": "Tenant A", "category": "Contract", "content_explanation": "Part 1"},
-            {"start_page": 2, "end_page": 3, "expected_tenant_name": "Tenant A", "category": "Contract", "content_explanation": "Part 2"},
-        ]
-    }
-    with open(target_dir / "2020-01-01 - Doc_ingest_manifest.json", "w") as f:
-        json.dump(manifest, f)
-
-    args = DummyArgs(target_dir)
-    result = run_reconcile_mode(args)
-    assert result == 0
-    assert mock_extract.call_count == 2, "extract_pdf_segment must be called once per group"
-    assert mock_compress.call_count == 2, "compress_pdf must be called once per group"
 
 
 # ===========================================================================
@@ -219,16 +188,7 @@ def test_05b_ingest_dry_run_visualizer():
     assert "vis.print_summary" in code
 
 
-# ===========================================================================
-# 6. JSON Report Generation – ingest produces ingest_report.json
-# ===========================================================================
 
-def test_06_ingest_produces_report():
-    """ingest source code must write ingest_report.json via atomic_write."""
-    src_path = Path(__file__).resolve().parent.parent / "src" / "ingest" / "core.py"
-    code = src_path.read_text(encoding="utf-8")
-    assert "ingest_report.json" in code
-    assert "atomic_write" in code
 
 
 # ===========================================================================
