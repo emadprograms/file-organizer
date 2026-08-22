@@ -11,7 +11,30 @@ class DummyArgs:
         self.input_path = input_path
         self.dry_run = dry_run
 
-def test_ingest_report_generated(tmp_path):
+from src.core.models import PageData
+from src.core.schemas import DocumentGroup
+
+@patch("src.pipeline.pipeline.Pipeline._clean_documents")
+@patch("src.categorization.fine_categorization.process_fine_categorization")
+@patch("src.pipeline.pipeline.Pipeline._group_documents")
+@patch("src.pipeline.pipeline.Pipeline._route_documents")
+def test_ingest_report_generated(mock_route, mock_group, mock_fine, mock_clean, tmp_path):
+    mock_clean.return_value = (
+        [
+            PageData(category="others", date="2024-01-01", original_index=0, expected_tenant_name="John Doe", canonical_tenant="John Doe"),
+            PageData(category="others", date="2024-01-01", original_index=1, expected_tenant_name="John Doe", canonical_tenant="John Doe")
+        ],
+        [{"name": "John Doe", "start_date": "2021-01-01", "end_date": "present"}]
+    )
+    mock_fine.return_value = mock_clean.return_value[0]
+    mock_group.return_value = [DocumentGroup(
+        start_page=0, end_page=1, primary_tenant="John Doe",
+        category="others", dates=["2024-01-01"], reason="mock"
+    )]
+    mock_route.return_value = [DocumentGroup(
+        start_page=0, end_page=1, primary_tenant="John Doe",
+        category="others", dates=["2024-01-01"], reason="mock", vault_id="new_vault"
+    )]
     # Setup directories
     input_dir = tmp_path / "input"
     input_dir.mkdir()
@@ -28,17 +51,20 @@ def test_ingest_report_generated(tmp_path):
 
     config = AppConfig(areas_root_path=str(areas_root), provider="test", inbox_path=str(input_dir))
 
-    dump_data = {
-        "groups": [
-            {
-                "expected_house_number": "711",
-                "expected_tenant_name": "John Doe",
-                "category": "others",
-                "start_page": 0,
-                "end_page": 1
-            }
-        ]
-    }
+    dump_data = [
+        {
+            "expected_house_number": "711",
+            "expected_tenant_name": "John Doe",
+            "category": "others",
+            "date": "2024-01-01"
+        },
+        {
+            "expected_house_number": "711",
+            "expected_tenant_name": "John Doe",
+            "category": "others",
+            "date": "2024-01-01"
+        }
+    ]
     dump_path = input_dir / "711.raw_dump.json"
     with open(dump_path, "w") as f:
         json.dump(dump_data, f)
@@ -49,7 +75,7 @@ def test_ingest_report_generated(tmp_path):
     ret = run_ingest_mode(args, config, llm_client)
     assert ret == 0
 
-    target_house_dir = areas_root / "711"
+    target_house_dir = input_dir / "711 - John Doe"
     source_files = target_house_dir / ".source_files"
     assert source_files.exists()
         

@@ -145,9 +145,27 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             from src.core.state import State
             state_dir = target_house_dir / ".source_files"
             state_dir.mkdir(parents=True, exist_ok=True)
+            
+            master_state = State(house_number, state_dir)
+            if master_state.state_file.exists():
+                master_state.load()
+            
+            is_prepend_mode = bool(master_state.data.get("cleaned_pages"))
+            
             state = State(house_number, state_dir)
+            if state.state_file.exists():
+                state.load()
+                
+            if is_prepend_mode:
+                logger.info("Existing state found. Triggering PREPEND mode for new PDF.")
+                # Clear state arrays so we only process the new document
+                state.data.pop("cleaned_pages", None)
+                state.data.pop("fine_categorized_pages", None)
+                state.data.pop("grouped_documents", None)
+                state.data.pop("routed_documents", None)
             
             from src.pipeline.runner import run_cleaning_pass, run_fine_categorization_pass, run_grouping_pass, run_routing_pass
+
             
             cleaned_pages, yaml_data = run_cleaning_pass(raw_dump_path, state, llm_client, logger, getattr(args, 'dry_run', False), house_number, target_house_dir)
             routing_model_to_use = getattr(args, 'routing_model', None) or getattr(args, 'model', None)
@@ -197,7 +215,7 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
                 output_dir = target_house_dir.parent if target_house_dir.name == house_number or target_house_dir.name.startswith(f"{house_number} -") else target_house_dir
                 
                 per_page, full_house_id = organizer.organize(
-                    documents, str(pdf_path), house_number, output_dir, yaml_data=yaml_data, dry_run=getattr(args, 'dry_run', False), prepend_mode=False
+                    documents, str(pdf_path), house_number, output_dir, yaml_data=yaml_data, dry_run=True, prepend_mode=False
                 )
                 
                 output_files = {p["output_file"] for p in per_page}
@@ -211,13 +229,104 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
                     "per_page": per_page
                 }
                 
-                # Because organize renamed the directory to full_house_id!
+                # Because organize computed the full_house_id, we need to
+                # create the directory structure ourselves (organize ran with
+                # dry_run=True so it didn't create anything on disk).
                 target_house_dir = output_dir / full_house_id
                 state_dir = target_house_dir / ".source_files"
-                state.state_file = state_dir / f"{full_house_id}_state.json"
                 
-                state.save()
-                logger.info(f"Saved pipeline state to {state.state_file.name}")
+                # Rename existing house dir if needed (e.g., "777" -> "777 - Test Tenant")
+                if not target_house_dir.exists():
+                    # Look for any existing dir matching this house number
+                    old_house_dir = output_dir / house_number
+                    if not old_house_dir.exists():
+                        # Try finding a dir with the house number prefix
+                        candidates = [d for d in output_dir.iterdir() if d.is_dir() and d.name.startswith(f"{house_number} -")]
+                        if candidates:
+                            old_house_dir = candidates[0]
+                    if old_house_dir.exists() and old_house_dir != target_house_dir:
+                        # Save reference before rename
+                        saved_old = Path(str(old_house_dir))
+                        old_house_dir.rename(target_house_dir)
+                        # Fix raw_dump_path and pdf_path if they were inside the renamed dir
+                        try:
+                            rel = raw_dump_path.relative_to(saved_old)
+                            raw_dump_path = target_house_dir / rel
+                        except ValueError:
+                            pass
+                        try:
+                            rel = pdf_path.relative_to(saved_old)
+                            pdf_path = target_house_dir / rel
+                        except ValueError:
+                            pass
+                
+                # Ensure directories exist
+                target_house_dir.mkdir(parents=True, exist_ok=True)
+                state_dir.mkdir(parents=True, exist_ok=True)
+                
+                if is_prepend_mode:
+                    shift_amount = len(state.data.get("cleaned_pages", []))
+                    
+                    new_grouped = []
+                    for doc in documents:
+                        d_dict = doc.model_dump()
+                        d_dict["source_pdf"] = pdf_path.name
+                        d_dict["relative_start_page"] = d_dict["start_page"]
+                        d_dict["relative_end_page"] = d_dict["end_page"]
+                        new_grouped.append(d_dict)
+                        
+                    for doc_dict in master_state.data.get("grouped_documents", []):
+                        if "start_page" in doc_dict: doc_dict["start_page"] += shift_amount
+                        if "end_page" in doc_dict: doc_dict["end_page"] += shift_amount
+                            
+                    master_routed = master_state.data.get("routed_documents", {})
+                    if isinstance(master_routed, list):
+                        for route in master_routed:
+                            if "page_index" in route: route["page_index"] += shift_amount
+                    elif isinstance(master_routed, dict):
+                        for route in master_routed.get("per_page", []):
+                            if "page_index" in route: route["page_index"] += shift_amount
+                            
+                    for page in master_state.data.get("cleaned_pages", []):
+                        if "original_index" in page: page["original_index"] += shift_amount
+                    for page in master_state.data.get("fine_categorized_pages", []):
+                        if "original_index" in page: page["original_index"] += shift_amount
+                            
+                    master_state.data["cleaned_pages"] = state.data.get("cleaned_pages", []) + master_state.data.get("cleaned_pages", [])
+                    master_state.data["fine_categorized_pages"] = state.data.get("fine_categorized_pages", []) + master_state.data.get("fine_categorized_pages", [])
+                    master_state.data["grouped_documents"] = new_grouped + master_state.data.get("grouped_documents", [])
+                    
+                    if isinstance(master_routed, dict):
+                        master_routed["per_page"] = state.data["routed_documents"]["per_page"] + master_routed.get("per_page", [])
+                        if "summary" not in master_routed:
+                            master_routed["summary"] = {"total_output_pages": 0, "output_file_count": 0}
+                        master_routed["summary"]["total_output_pages"] += summary["total_output_pages"]
+                    else:
+                        master_state.data["routed_documents"] = state.data["routed_documents"]
+                        
+                    try:
+                        for p in master_state.data.get("routed_documents", {}).get("per_page", []):
+                            logger.info(f"DOC VAULT ID: {p.get('vault_id')}")
+                    except Exception: pass
+                    master_state.save()
+                    logger.info(f"Saved prepended pipeline state to {master_state.state_file.name}")
+                else:
+                    # Save grouped_documents with source_pdf metadata so reconcile
+                    # Phase 42 can extract vault PDFs from the source PDF.
+                    grouped_with_source = []
+                    for doc in documents:
+                        d_dict = doc.model_dump()
+                        d_dict["source_pdf"] = pdf_path.name
+                        d_dict["relative_start_page"] = d_dict["start_page"]
+                        d_dict["relative_end_page"] = d_dict["end_page"]
+                        grouped_with_source.append(d_dict)
+                    state.data["grouped_documents"] = grouped_with_source
+                    
+                    state.state_dir = state_dir
+                    state.house_id = house_number
+                    state.state_file = state_dir / f"{house_number}_state.json"
+                    state.save()
+                    logger.info(f"Saved pipeline state to {state.state_file.name}")
                 
             # Create _ingest_manifest.json
             dest_manifest = target_house_dir / f"{pdf_path.stem}_ingest_manifest.json"
@@ -229,7 +338,8 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             logger.info(f"Ingested {pdf_path.name} into {target_house_dir.name}")
             
             # Move raw dump to .source_files
-            raw_dump_path = target_house_dir / raw_dump_path.name
+            # The raw_dump_path is originally created next to the PDF.
+            # We move it to the state_dir.
             dest_raw_dump = state_dir / raw_dump_path.name
             if raw_dump_path.resolve() != dest_raw_dump.resolve() and not getattr(args, 'dry_run', False):
                 import shutil

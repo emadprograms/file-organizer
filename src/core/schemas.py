@@ -44,6 +44,9 @@ class DocumentGroup(BaseModel):
     vault_id: str | None = None
     shortcuts: list[str] = Field(default_factory=list)
     user_locked: bool = False
+    source_pdf: str | None = None
+    relative_start_page: int | None = None
+    relative_end_page: int | None = None
 
 class GroupEntry(BaseModel):
     """A document group defined by the LLM during the boundary detection phase."""

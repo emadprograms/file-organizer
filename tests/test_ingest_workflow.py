@@ -103,7 +103,8 @@ def test_ingest_and_reconcile_workflow(mock_route, mock_group, mock_fine, mock_c
         assert "cleaned_pages" in state_data
         assert "grouped_documents" in state_data
         assert "routed_documents" in state_data
-        assert len(state_data["routed_documents"]) == 1
+        assert "per_page" in state_data["routed_documents"]
+        assert len(state_data["routed_documents"]["per_page"]) == 1
         
     # Now run reconcile
     rec_args = DummyArgs(command="reconcile", target_dir=target_dir, dry_run=False, verbose=False, tenants=False)

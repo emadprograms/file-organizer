@@ -109,6 +109,56 @@ def run_reconcile_mode(args) -> int:
                 if p.get("page_index") == g.start_page and "vault_id" in p:
                     g.vault_id = p["vault_id"]
                     break
+
+    logger.info(f'RAW GROUPED DOCUMENTS: {state.data.get("grouped_documents")}')
+    # Phase 42: Extract Planned Vault PDFs (REQ-06)
+    # If the state JSON has a plan that says a vault file should exist, but it doesn't, we extract it.
+    vault_dir = source_dir / "vault"
+    vault_dir.mkdir(parents=True, exist_ok=True)
+    extracted_vault_ids = set()
+    if not getattr(args, 'dry_run', False):
+        from src.pdf import extract_pdf_segment, compress_pdf
+        import shutil
+        pdfs_to_delete = set()
+        for group in groups:
+            vid = group.vault_id
+            if not vid: continue
+            vault_pdf = vault_dir / f"doc_{vid}.pdf"
+            if not vault_pdf.exists():
+                src_pdf_name = getattr(group, 'source_pdf', None)
+                logger.warning(f'PHASE42: vid={vid}, src_pdf={src_pdf_name}, r_start={getattr(group, "relative_start_page", None)}, r_end={getattr(group, "relative_end_page", None)}, src_path={target_dir / src_pdf_name if src_pdf_name else None}, exists={(target_dir / src_pdf_name).exists() if src_pdf_name else False}')
+                logger.info(f'PHASE 42: vid={vid}, src_pdf={src_pdf_name}, r_start={getattr(group, "relative_start_page", None)}, r_end={getattr(group, "relative_end_page", None)}')
+                r_start = getattr(group, 'relative_start_page', None)
+                r_end = getattr(group, 'relative_end_page', None)
+                
+                if src_pdf_name and r_start is not None and r_end is not None:
+                    src_pdf_path = target_dir / src_pdf_name
+                    if src_pdf_path.exists():
+                        logger.info(f"Extracting planned vault PDF doc_{vid}.pdf from {src_pdf_name}")
+                        extract_pdf_segment(str(src_pdf_path), r_start, r_end, str(vault_pdf))
+                        logger.warning(f'EXISTS AFTER EXTRACT: {vault_pdf.exists()}')
+                        try:
+                            compress_pdf(str(vault_pdf), str(vault_pdf) + ".tmp.pdf")
+                            shutil.move(str(vault_pdf) + ".tmp.pdf", str(vault_pdf))
+                        except Exception as e:
+                            logger.error(f"Compression failed for {vault_pdf}, keeping original: {e}")
+                            if os.path.exists(str(vault_pdf) + ".tmp.pdf"):
+                                try: os.remove(str(vault_pdf) + ".tmp.pdf")
+                                except OSError: pass
+                        pdfs_to_delete.add(src_pdf_path)
+                        extracted_vault_ids.add(vid)
+                        
+                        # Clear source_pdf so it's not processed again
+                        group.source_pdf = None
+                        group.relative_start_page = None
+                        group.relative_end_page = None
+        for pdf_path in pdfs_to_delete:
+            try:
+                os.remove(str(pdf_path))
+                logger.info(f"Deleted source PDF {pdf_path.name} after extraction.")
+            except Exception as e:
+                logger.error(f"Failed to delete {pdf_path.name}: {e}")
+
     
     expected_len = len(routed_data.get("per_page", []))
         
@@ -216,8 +266,15 @@ def run_reconcile_mode(args) -> int:
     seen_vault_ids = set(physical_lnk_by_vault.keys())
     deleted_vault_ids = set()
     
+    new_ingestion_vault_ids = {g.vault_id for g in groups if getattr(g, 'source_pdf', None) is not None}
+    new_ingestion_vault_ids.update(extracted_vault_ids)
+    
     for vault_id, state_pages in vault_id_to_pages.items():
         if vault_id not in seen_vault_ids:
+            if vault_id in new_ingestion_vault_ids:
+                logger.info(f"Bypassing shortcut checks for {vault_id} as it is a new ingestion.")
+                continue
+            
             repaired_lnks_for_vault = [lnk for lnk, ev_id in hijacked_lnks.items() if ev_id == vault_id]
             if repaired_lnks_for_vault:
                 for lnk in repaired_lnks_for_vault:
@@ -236,15 +293,15 @@ def run_reconcile_mode(args) -> int:
         else:
             repaired_lnks_for_vault = [lnk for lnk, ev_id in hijacked_lnks.items() if ev_id == vault_id]
             for lnk in repaired_lnks_for_vault:
-                if lnk not in physical_lnk_by_vault[vault_id]:
+                if lnk not in physical_lnk_by_vault.get(vault_id, []):
                     logger.info("Auto-repairing hijacked shortcut...")
                     report["shortcuts_repaired"] += 1
-                    physical_lnk_by_vault[vault_id].append(lnk)
+                    physical_lnk_by_vault.setdefault(vault_id, []).append(lnk)
                     for other_vid, other_lnks in physical_lnk_by_vault.items():
                         if other_vid != vault_id and lnk in other_lnks:
                             other_lnks.remove(lnk)
             
-        lnks = physical_lnk_by_vault[vault_id]
+        lnks = physical_lnk_by_vault.get(vault_id, [])
         unmatched_lnks = []
         unmatched_pages = []
         matched_lnks = set()
@@ -438,10 +495,12 @@ def run_reconcile_mode(args) -> int:
             
         routed_data["per_page"] = old_per_page_filtered
         
+                
     # Phase 44: Detect Orphan Vault PDFs on Disk (REQ-02)
     vault_dir = source_dir / "vault"
     if vault_dir.exists() and not getattr(args, 'dry_run', False):
         active_vault_ids = {p.get("vault_id") for p in routed_data.get("per_page", []) if p.get("vault_id")}
+        logger.warning(f'PHASE44: active_vault_ids={active_vault_ids}')
         trash_dir = source_dir / ".trash"
         trash_dir.mkdir(parents=True, exist_ok=True)
         for pdf_file in vault_dir.glob("doc_*.pdf"):
@@ -1056,4 +1115,5 @@ def run_reconcile_mode(args) -> int:
         output_file_count = len(set([p["output_file"] for p in new_per_page]))
         logger.info(f"Successfully generated {output_file_count} PDFs in {new_house_dir}")
 
+    logger.warning(f'EXISTS AT END OF RECONCILE: {(source_dir / "vault" / "doc_new_vault.pdf").exists()}')
     return 0
