@@ -377,8 +377,14 @@ def run_reconcile_mode(args) -> int:
         if vault_id not in vault_id_to_pages:
             vault_pdf = source_dir / "vault" / f"doc_{vault_id}.pdf"
             if vault_pdf.exists():
-                with fitz.open(str(vault_pdf)) as doc:
-                    num_pages = doc.page_count
+                try:
+                    with fitz.open(str(vault_pdf)) as doc:
+                        num_pages = doc.page_count
+                except Exception as e:
+                    report.setdefault("corrupt_vault_files", 0)
+                    report["corrupt_vault_files"] += 1
+                    logger.warning(f"Ghost shortcut points to corrupt PDF {vault_pdf.name}: {e}")
+                    num_pages = 1
                     
                 for lnk in lnks:
                     report["ghost_adopted"] += 1
@@ -689,8 +695,11 @@ def run_reconcile_mode(args) -> int:
                     m_data = manifest_data[i] if manifest_data and isinstance(manifest_data, list) and i < len(manifest_data) else {}
                     cat = m_data.get("category", "Unassigned")
                     exp = m_data.get("content_explanation", f"Ingested from raw PDF. (Page {i+1}/{num_pages})")
-                    m_date = m_data.get("date", "nodate")
+                    date_match = re.search(r'(\d{4}-\d{2}-\d{2})', pdf_path.name)
+                    extracted_date = normalize_date(date_match.group(1)) if date_match else "nodate"
+                    m_date = m_data.get("date", extracted_date) if m_data.get("date") != "nodate" else extracted_date
                     m_exp_tenant = m_data.get("expected_tenant_name")
+                    final_tenant = new_tenant if should_lock else m_exp_tenant
                     
                     new_page = PageData(
                         category=cat,
@@ -700,6 +709,7 @@ def run_reconcile_mode(args) -> int:
                         user_locked=should_lock,
                         date=m_date,
                         resolved_date=m_date if m_date != "nodate" else None,
+                        canonical_tenant=final_tenant,
                         status="success"
                     )
                     pages.append(new_page)
@@ -709,6 +719,11 @@ def run_reconcile_mode(args) -> int:
                         "vault_id": new_vault_id,
                         "output_file": f"{target_dir.name}/{rel_path}",
                         "target_folder": new_target_folder,
+                        "user_locked": should_lock,
+                        "canonical_tenant": final_tenant,
+                        "date": m_date,
+                        "tenant": final_tenant,
+                        "page_in_output": i + 1,
                     }
                     routed_data.setdefault("per_page", []).append(new_p)
                     vault_id_to_pages.setdefault(new_vault_id, []).append(new_p)

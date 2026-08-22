@@ -32,7 +32,7 @@ def test_reconcile_many_to_one_grouped_document_preservation(tmp_path):
     vault_dir.mkdir(parents=True)
     
     # Reconciler requires a dummy tenants yaml file to proceed
-    tenants_yaml = source_dir / "_tenants.yaml"
+    tenants_yaml = source_dir / "510_tenants.yaml"
     with open(tenants_yaml, 'w') as f:
         f.write("- name: mock\n  start_date: '2020-01-01'\n  end_date: 'present'\n")
     

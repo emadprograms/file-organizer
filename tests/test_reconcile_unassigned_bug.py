@@ -39,7 +39,7 @@ def test_reconcile_unassigned_bug(tmp_path):
         json.dump(state_data, f)
         
     # Create a raw PDF in a canonical folder
-    canonical_folder = "Test Tenant \u200E(2021 - 2025)\u200E"
+    canonical_folder = "Test Tenant \u200e(2021 - 2025)\u200e"
     raw_pdf_path = target_dir / canonical_folder / "2021-01-01 - Raw Document.pdf"
     raw_pdf_path.parent.mkdir(parents=True)
     from pypdf import PdfWriter

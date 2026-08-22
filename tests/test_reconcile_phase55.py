@@ -64,11 +64,16 @@ def test_reconcile_auto_repair_hijacked_shortcut(tmp_path):
     }
     state.save()
     
+    from pypdf import PdfWriter
+    def create_mock_pdf(path):
+        writer = PdfWriter()
+        writer.add_blank_page(width=100, height=100)
+        with open(path, "wb") as f:
+            writer.write(f)
+
     # Create the correct vault PDF and a wrong one
-    with open(vault_dir / "doc_v1.pdf", "wb") as f:
-        f.write(b"%PDF-1.4\n")
-    with open(vault_dir / "doc_wrong.pdf", "wb") as f:
-        f.write(b"%PDF-1.4\n")
+    create_mock_pdf(vault_dir / "doc_v1.pdf")
+    create_mock_pdf(vault_dir / "doc_wrong.pdf")
         
     topic_folder = target_dir / "Test Tenant \u200e(2020 - الآن)\u200e" / "01_contract"
     topic_folder.mkdir(parents=True)

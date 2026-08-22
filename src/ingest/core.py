@@ -330,7 +330,6 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
                 
             # Create _ingest_manifest.json
             dest_manifest = target_house_dir / f"{pdf_path.stem}_ingest_manifest.json"
-            from src.utils.fs import atomic_write
             with atomic_write(str(dest_manifest)) as tmp_path:
                 with open(tmp_path, "w", encoding="utf-8") as f:
                     json.dump(dump_data, f, indent=2, ensure_ascii=False)

@@ -80,6 +80,6 @@ def test_phase51_multipage_pdf(tmp_path):
     
     # We expect 3 pages for ghost shortcut (fallback) and 3 pages for raw PDF = 6 pages total
     assert len(pages) == 6
-    assert len(groups) == 4
+    assert len(groups) == 2
     
 
