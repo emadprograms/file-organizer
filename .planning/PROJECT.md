@@ -4,12 +4,13 @@
 
 A document management system that processes scanned Arabic PDFs, categorizes them using LLM vision, groups related pages, and organizes them into a structured folder hierarchy per tenant household. The system runs on Windows and uses a Vault-based architecture with shortcuts for file organization and bidirectional reconciliation.
 
-## Current Milestone: Next Milestone (TBD)
+## Current Milestone: v8.0 Web-Based File Viewer
 
-**Goal:** Pending new roadmap planning.
+**Goal:** Build a read-only web GUI to browse the organized documents, driven by a REST API that can be ported to C# in the future.
 
 **Target features:**
-- TBD
+- Python REST API (exposing vault, timelines, and organized folders)
+- Read-only Web Frontend (browsing documents and metadata)
 
 ## Core Value
 
@@ -154,4 +155,4 @@ Documents are safely stored once in an immutable vault; all organization is done
 This document evolves at phase transitions and milestone boundaries.
 
 ---
-*Last updated: 2026-08-18 - v6.1 Reconcile Polish SHIPPED. Transitioning to v7.0: The Ingest & Bulletproof Reconcile Engine.*
+*Last updated: 2026-09-01 - Transitioning to v8.0: Web-Based File Viewer.*
