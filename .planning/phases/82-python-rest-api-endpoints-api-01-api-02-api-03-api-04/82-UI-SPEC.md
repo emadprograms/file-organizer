@@ -60,10 +60,10 @@ Exceptions: none
 |------|-------|-------|
 | Dominant (60%) | N/A | Background, surfaces |
 | Secondary (30%) | N/A | Cards, sidebar, nav |
-| Accent (10%) | N/A | N/A |
+| Accent (10%) | N/A | Primary CTA, active nav |
 | Destructive | N/A | Destructive actions only |
 
-Accent reserved for: N/A
+Accent reserved for: Primary CTA, Active navigation items, Highlighted API JSON keys
 
 ---
 
@@ -71,11 +71,11 @@ Accent reserved for: N/A
 
 | Element | Copy |
 |---------|------|
-| Primary CTA | N/A |
-| Empty state heading | N/A |
-| Empty state body | N/A |
-| Error state | N/A |
-| Destructive confirmation | N/A: N/A |
+| Primary CTA | "Execute API Call" |
+| Empty state heading | "No API endpoints configured." |
+| Empty state body | "The requested resource list is empty. Please verify your query parameters or create a new resource." |
+| Error state | "{\"error\": \"Resource not found.\", \"solution\": \"Verify the endpoint URL and the resource ID.\"}" |
+| Destructive confirmation | "Delete Resource": "Are you sure you want to delete this resource?" |
 
 ---
 
