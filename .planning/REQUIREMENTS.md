@@ -1,31 +1,52 @@
-# Requirements: Milestone v7.0 (The Ingest & Bulletproof Reconcile Engine)
+# Requirements: File Organizer
 
-## Objective
-Replace the fragile `watcher/prepend` background system with a decoupled, asynchronous pipeline consisting of an explicit `ingest` command and a bulletproof `reconcile` command. This achieves zero-delta idempotency for timeline views, eliminates complex PID locking, and provides a safe pre-reconcile undo mechanism.
+**Defined:** 2026-09-01
+**Core Value:** Documents are safely stored once in an immutable vault; all organization is done via lightweight shortcuts that can be freely rearranged by the user without risk of data loss.
 
-## Functional Requirements
-1. **Bulletproof Reconcile Upgrade**:
-   - `reconcile` must extract metadata (Category and Tenant) from the physical directory structure when a raw PDF is encountered without a manifest.
-   - Must ignore PDFs placed in the house root, tenant root, or non-canonical folders.
-   - `reconcile` becomes the singular engine for creating vault entries, generating `.lnk` shortcuts, building the `00_Timeline_View`, and updating `state.json`.
+## v1 Requirements (v8.0 Milestone)
 
-2. **The `ingest` Command**:
-   - Executes the AI pipeline (Pass 0 to Pass 5: Categorization, Cleaning, Fine Categorization, Grouping, Routing).
-   - Bootstraps new houses by generating `.source_files/`, `tenants.yaml`, and an empty `state.json` if they do not exist.
-   - Slices and compresses the original PDF into physical PDFs dropped directly into target category folders.
-   - Writes an `_ingest_manifest.json` sidecar file containing rich AI metadata.
+### Testing
+- [ ] **TEST-01**: Setup a dedicated folder for frontend tests (`tests/frontend/`)
+- [ ] **TEST-02**: Implement initial test suite for frontend components (Test-Driven Approach)
 
-3. **Manifest Integration**:
-   - If `reconcile` finds an `_ingest_manifest.json` matching a raw PDF, it must merge the rich metadata (content explanations, reasoning) directly into `state.json` instead of falling back to basic folder path extraction.
+### Backend API
+- [ ] **API-01**: Implement a REST API using Python (e.g. FastAPI/Flask)
+- [ ] **API-02**: Expose endpoints to list files in the vault
+- [ ] **API-03**: Expose endpoints to retrieve the Timeline View and categories
+- [ ] **API-04**: Expose endpoint to serve the actual PDF contents
 
-4. **Safe Undo Mechanisms**:
-   - `ingest --undo`: Deletes any raw `.pdf` files located in user-facing category folders (ignoring `.source_files/`).
-   - `undo`: The system `undo` command must be refactored to move vaulted PDFs to a `.trash/` directory (appending timestamps to prevent collisions) rather than permanently deleting them with `shutil.rmtree`.
+### Frontend UI
+- [ ] **GUI-01**: Build a read-only web interface (HTML/JS/CSS or light framework)
+- [ ] **GUI-02**: Display a dashboard with system statistics
+- [ ] **GUI-03**: Browse and view documents by category and timeline
+- [ ] **GUI-04**: View PDF documents directly in the browser
 
-5. **Code Deletions**:
-   - Delete the background watcher logic (`src/watcher/`, `src/inbox/`).
-   - Remove the `prepend` and `create` CLI commands entirely.
+## Out of Scope
 
-## Non-Functional Requirements
-- **Test-Driven**: E2E test files (e.g. `tests/m6_ingest_reconcile/`) utilizing `PyMuPDF` (`fitz`) to generate blank physical PDFs on-the-fly must be built and validated *before* any production code is written.
-- **Idempotency**: Running `ingest`, followed by `reconcile`, followed by `reconcile` again must result in 0 changes on the second reconcile.
+| Feature | Reason |
+|---------|--------|
+| Modifying / Categorizing files via Web GUI | Read-only version is the priority for v8.0. Write actions come later. |
+| Porting backend to C# | Deferred to a future milestone; building the REST API decoupling first. |
+
+## Traceability
+
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| TEST-01 | Phase 81 | Pending |
+| TEST-02 | Phase 81 | Pending |
+| API-01 | Phase 82 | Pending |
+| API-02 | Phase 82 | Pending |
+| API-03 | Phase 82 | Pending |
+| API-04 | Phase 82 | Pending |
+| GUI-01 | Phase 83 | Pending |
+| GUI-02 | Phase 83 | Pending |
+| GUI-03 | Phase 83 | Pending |
+| GUI-04 | Phase 83 | Pending |
+
+**Coverage:**
+- v1 requirements: 10 total
+- Mapped to phases: 10
+- Unmapped: 0
+
+---
+*Requirements defined: 2026-09-01*
