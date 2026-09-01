@@ -269,7 +269,8 @@ def run_verification(target_dir: Path) -> int:
                 add_pass("All known shortcuts point to their expected vault_id")
                 
             # Immutable Page Count Audit (Phase 48)
-            total_input_pages = state_data.get("manifest", {}).get("summary", {}).get("total_input_pages", 0)
+            manifest_data = state_data.get("manifest") or {}
+            total_input_pages = manifest_data.get("summary", {}).get("total_input_pages", 0)
             if total_input_pages and total_input_pages != len(manifest):
                 add_error(f"IMMUTABLE PAGE COUNT MISMATCH! System dropped data. Original raw pages: {total_input_pages}. Final reconciled pages: {len(manifest)}.")
             else:
