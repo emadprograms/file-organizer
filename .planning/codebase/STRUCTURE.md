@@ -290,3 +290,7 @@ The file `<house_id>_state.json` is located in `.source_files/`:
 | `11` | `11_صور ومعاينات` | On-site photo inspections and visual reports | `pictures` |
 | `12` | `12_تعديلات` | Physical house modification requests (garage, room extensions) | Letter / Form evaluation |
 | `13` | `13_رسائل متنوعة` | Miscellaneous correspondence, multi-person rosters | Fallback / General Letters |
+- `src/api/` - FastAPI web server providing REST endpoints for the file categorization system.
+  - `models.py` - Pydantic models for API responses.
+  - `routes.py` - Endpoint definitions.
+  - `server.py` - FastAPI app initialization.
