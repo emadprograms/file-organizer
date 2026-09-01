@@ -113,3 +113,4 @@ graph TD
 | **Provider & Mock Tests** | `pytest`, `MockLLMProvider` | Tests failover cascades, rate limits (429 recovery), timeout fallbacks |
 | **Reconciliation Tests** | `pytest`, temporary directory sandboxes | Tests ghost adoption, broken shortcut repair, tenant reallocation |
 | **Golden Data Evaluations** | `tests/golden_data/` | Evaluates classification accuracy, boundary detection, and routing against benchmark PDFs |
+- **FastAPI / Uvicorn** - Used for the web REST API to expose file reports.
