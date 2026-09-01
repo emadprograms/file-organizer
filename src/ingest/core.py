@@ -138,8 +138,19 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             
         # PDF must already be in the target house directory
         target_house_dir = pdf_path.parent
+        
+        # Fail fast if multiple folders for this house exist
+        output_dir = target_house_dir.parent
+        all_house_folders = [d for d in output_dir.iterdir() if d.is_dir() and (d.name == house_number or d.name.startswith(f"{house_number} -"))]
+        if len(all_house_folders) > 1:
+            logger.error(f"Found multiple folders for house {house_number} in {output_dir}. This can cause dangerous conflicts.")
+            for d in all_house_folders:
+                logger.error(f"  - {d.name}")
+            logger.error("Please consolidate the files into a single canonical folder and run ingest on that folder.")
+            has_errors = True
+            reports.setdefault(target_house_dir, {'pdfs_processed': 0, 'errors': 0, 'pages_ingested': 0})['errors'] += 1
+            continue
             
-
         if not getattr(args, 'dry_run', False):
             # 1. Pipeline passes
             from src.core.state import State
@@ -332,11 +343,11 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             
             # Move raw dump to .source_files
             # The raw_dump_path is originally created next to the PDF.
-            # We move it to the state_dir.
-            dest_raw_dump = state_dir / raw_dump_path.name
-            if raw_dump_path.resolve() != dest_raw_dump.resolve() and not getattr(args, 'dry_run', False):
-                import shutil
-                shutil.move(str(raw_dump_path), str(dest_raw_dump))
+            if raw_dump_path and raw_dump_path.exists():
+                dest_raw_dump = state_dir / raw_dump_path.name
+                if raw_dump_path.resolve() != dest_raw_dump.resolve() and not getattr(args, 'dry_run', False):
+                    import shutil
+                    shutil.move(str(raw_dump_path), str(dest_raw_dump))
             
             r = reports.setdefault(target_house_dir, {"pdfs_processed": 0, "errors": 0, "pages_ingested": 0})
             r["pdfs_processed"] += 1

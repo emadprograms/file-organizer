@@ -193,7 +193,8 @@ def run_verification(target_dir: Path) -> int:
             with open(state_file, 'r', encoding='utf-8') as f:
                 state_data = json.load(f)
                 
-            manifest = state_data.get("manifest", {}).get("per_page", [])
+            manifest_data = state_data.get("manifest") or {}
+            manifest = manifest_data.get("per_page", [])
             state_output_files = set()
             for p in manifest:
                 out_f = p.get("output_file")
