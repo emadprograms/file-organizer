@@ -205,6 +205,10 @@ def get_parser() -> argparse.ArgumentParser:
     undo_parser.add_argument("target_dir", type=Path, help="Path to the target house directory to undo")
     undo_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     
+    # serve mode
+    serve_parser = subparsers.add_parser("serve", help="Start the file organizer REST API")
+    serve_parser.add_argument("--port", type=int, default=8000, help="Port to bind the server")
+    
     return parser
 
 from src.reconcile.core import run_reconcile_mode
@@ -237,6 +241,11 @@ def main() -> int:
     except Exception as e:
         logger.exception(f"Unexpected error loading config: {e}")
         return 1
+    if args.command == "serve":
+        import uvicorn
+        uvicorn.run("src.api.server:app", host="127.0.0.1", port=args.port, reload=False)
+        return 0
+
     if args.command == "ingest":
         setup_logging(verbose=getattr(args, 'verbose', False))
         set_verbosity(getattr(args, 'verbose', False))
