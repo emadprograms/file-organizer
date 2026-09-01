@@ -205,3 +205,9 @@ See [.planning/milestones/v5.4-ROADMAP.md](milestones/v5.4-ROADMAP.md) for full 
 - [ ] Phase 78: Audit Prepend Mode Logic from Git History
 - [ ] Phase 79: Implement Append/Prepend Mode into ingest command
 - [ ] Phase 80: E2E Testing for Ingest Append Mode
+
+## v8.0: Web-Based File Viewer
+
+- [ ] Phase 81: Frontend Test Suite Foundation (TEST-01, TEST-02)
+- [ ] Phase 82: Python REST API endpoints (API-01, API-02, API-03, API-04)
+- [ ] Phase 83: Read-only Web GUI (GUI-01, GUI-02, GUI-03, GUI-04)
