@@ -1,13 +1,13 @@
 ---
-phase: 50
-slug: cross-house-contamination-immunity
+phase: 81
+slug: frontend-test-suite-foundation-test-01-test-02
 status: approved
 nyquist_compliant: true
 wave_0_complete: true
-created: 2026-08-01
+created: 2026-09-01
 ---
 
-# Phase 50 — Validation Strategy
+# Phase 81 — Validation Strategy
 
 > Per-phase validation contract for feedback sampling during execution.
 
@@ -17,20 +17,20 @@ created: 2026-08-01
 
 | Property | Value |
 |----------|-------|
-| **Framework** | pytest |
-| **Config file** | none |
-| **Quick run command** | `pytest tests/test_reconcile_phase50.py` |
-| **Full suite command** | `pytest` |
-| **Estimated runtime** | ~5 seconds |
+| **Framework** | vitest |
+| **Config file** | vitest.config.js |
+| **Quick run command** | `npm run test:frontend` |
+| **Full suite command** | `npm run test:frontend` |
+| **Estimated runtime** | ~2 seconds |
 
 ---
 
 ## Sampling Rate
 
-- **After every task commit:** Run `pytest tests/test_reconcile_phase50.py`
-- **After every plan wave:** Run `pytest`
-- **Before `/gsd:verify-work`:** Full suite must be green
-- **Max feedback latency:** 10 seconds
+- **After every task commit:** Run `npm run test:frontend`
+- **After every plan wave:** Run `npm run test:frontend`
+- **Before `/gsd-verify-work`:** Full suite must be green
+- **Max feedback latency:** 5 seconds
 
 ---
 
@@ -38,7 +38,8 @@ created: 2026-08-01
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 50-01-01 | PLAN | 1 | REQ-50-01 | T-50-01 | Ignore external shortcuts | unit | `pytest tests/test_reconcile_phase50.py` | ✅ W0 | ✅ green |
+| 81-01-01 | 01 | 1 | TEST-01 | — | N/A | setup | `npm run test:frontend -- --help` | ✅ | ✅ green |
+| 81-01-02 | 01 | 1 | TEST-02 | — | N/A | unit | `npm run test:frontend` | ✅ | ✅ green |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -46,7 +47,7 @@ created: 2026-08-01
 
 ## Wave 0 Requirements
 
-- [x] `tests/test_reconcile_phase50.py` — tests for REQ-50-01
+*Existing infrastructure covers all phase requirements.*
 
 ---
 
@@ -62,7 +63,7 @@ created: 2026-08-01
 - [x] Sampling continuity: no 3 consecutive tasks without automated verify
 - [x] Wave 0 covers all MISSING references
 - [x] No watch-mode flags
-- [x] Feedback latency < 10s
+- [x] Feedback latency < 5s
 - [x] `nyquist_compliant: true` set in frontmatter
 
-**Approval:** approved 2026-08-01
+**Approval:** approved 2026-09-01
