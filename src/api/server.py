@@ -44,3 +44,8 @@ app.add_middleware(
 )
 
 app.include_router(router)
+
+from fastapi.staticfiles import StaticFiles
+static_dir = Path(__file__).resolve().parent / "static"
+static_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/", StaticFiles(directory=str(static_dir), html=True), name="static")

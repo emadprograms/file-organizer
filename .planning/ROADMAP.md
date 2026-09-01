@@ -173,6 +173,10 @@ econcile/core.py\ to match \create\ mode.
 
 ### v8.0: Web-Based File Viewer
 
+- [x] Phase 81: Frontend Test Suite Foundation (TEST-01, TEST-02)
+- [x] Phase 82: Python REST API endpoints (API-01, API-02, API-03, API-04)
+- [x] Phase 83: Read-only Web GUI (GUI-01, GUI-02, GUI-03, GUI-04)
+
 ### Phase 81: Frontend Test Suite Foundation (TEST-01, TEST-02)
 
 **Goal:** Frontend Test Suite Foundation (TEST-01, TEST-02)

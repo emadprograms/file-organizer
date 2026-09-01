@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Organizer - Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .pdf-viewer { width: 100%; height: 80vh; border: none; }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans text-gray-800">
+    <div class="flex h-screen overflow-hidden">
+        
+        <!-- Sidebar: House Selection -->
+        <div class="w-64 bg-white border-r flex flex-col shadow-sm">
+            <div class="p-4 bg-blue-600 text-white font-bold text-lg">
+                File Organizer
+            </div>
+            <div class="p-4 border-b">
+                <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Vaults</h2>
+                <div id="house-list" class="space-y-1 overflow-y-auto">
+                    <p class="text-gray-400 text-sm">Loading...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col bg-gray-50 h-screen">
+            <!-- Header -->
+            <header class="bg-white p-4 border-b shadow-sm flex justify-between items-center z-10">
+                <h1 id="current-house-title" class="text-2xl font-semibold">Select a Vault</h1>
+                <div id="stats-badge" class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded hidden"></div>
+            </header>
+
+            <!-- Dashboard / Viewer Area -->
+            <main class="flex-1 overflow-y-auto flex">
+                <!-- Left panel: Documents List -->
+                <div id="document-list-panel" class="w-1/3 bg-white border-r overflow-y-auto hidden flex-col">
+                    <!-- Tabs -->
+                    <div class="flex border-b bg-gray-50">
+                        <button id="tab-timeline" class="flex-1 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600">Timeline</button>
+                        <button id="tab-categories" class="flex-1 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Categories</button>
+                    </div>
+                    
+                    <div id="document-list" class="p-2 space-y-2"></div>
+                </div>
+
+                <!-- Right panel: Document Viewer -->
+                <div id="document-viewer-panel" class="flex-1 p-6 bg-gray-100 flex-col items-center justify-center hidden">
+                    <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl overflow-hidden flex flex-col h-full">
+                        <div class="p-3 bg-gray-800 text-white flex justify-between items-center">
+                            <span id="viewer-title" class="font-medium truncate">Document</span>
+                            <a id="viewer-download" href="#" target="_blank" class="text-sm hover:text-blue-300">Open in New Tab</a>
+                        </div>
+                        <iframe id="pdf-frame" class="pdf-viewer"></iframe>
+                    </div>
+                </div>
+                
+                <!-- Placeholder when no house is selected -->
+                <div id="welcome-panel" class="flex-1 flex items-center justify-center">
+                    <div class="text-center">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">No vault selected</h3>
+                        <p class="mt-1 text-sm text-gray-500">Select a tenant or house from the sidebar to view documents.</p>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // API Base URL
+        const API_BASE = '/api/houses';
+        let currentHouse = null;
+
+        // Elements
+        const houseListEl = document.getElementById('house-list');
+        const currentHouseTitle = document.getElementById('current-house-title');
+        const statsBadge = document.getElementById('stats-badge');
+        
+        const docListPanel = document.getElementById('document-list-panel');
+        const docViewerPanel = document.getElementById('document-viewer-panel');
+        const welcomePanel = document.getElementById('welcome-panel');
+        const docListEl = document.getElementById('document-list');
+        
+        const pdfFrame = document.getElementById('pdf-frame');
+        const viewerTitle = document.getElementById('viewer-title');
+        const viewerDownload = document.getElementById('viewer-download');
+
+        // State
+        let currentTimeline = [];
+        let currentCategories = [];
+        let activeTab = 'timeline';
+
+        // Load Houses
+        async function loadHouses() {
+            try {
+                const res = await fetch(API_BASE);
+                if (!res.ok) throw new Error('Failed to load houses');
+                const houses = await res.json();
+                
+                houseListEl.innerHTML = '';
+                if (houses.length === 0) {
+                    houseListEl.innerHTML = '<p class="text-gray-400 text-sm">No vaults found.</p>';
+                    return;
+                }
+                
+                houses.forEach(house => {
+                    const btn = document.createElement('button');
+                    btn.className = 'w-full text-left px-3 py-2 rounded text-sm text-gray-700 hover:bg-blue-50 focus:outline-none';
+                    btn.textContent = house.name;
+                    btn.onclick = () => selectHouse(house.id, btn);
+                    houseListEl.appendChild(btn);
+                });
+            } catch (err) {
+                houseListEl.innerHTML = '<p class="text-red-400 text-sm">Error loading data.</p>';
+            }
+        }
+
+        async function selectHouse(houseId, btnElement) {
+            currentHouse = houseId;
+            currentHouseTitle.textContent = houseId;
+            
+            // Update active state in sidebar
+            Array.from(houseListEl.children).forEach(el => el.classList.remove('bg-blue-100', 'text-blue-800', 'font-medium'));
+            btnElement.classList.add('bg-blue-100', 'text-blue-800', 'font-medium');
+            
+            welcomePanel.classList.add('hidden');
+            docListPanel.classList.remove('hidden');
+            docListPanel.classList.add('flex');
+            docViewerPanel.classList.add('hidden'); // hide until a doc is selected
+            
+            // Load stats & timeline
+            await loadTimeline(houseId);
+        }
+
+        async function loadTimeline(houseId) {
+            docListEl.innerHTML = '<p class="text-sm text-gray-500 p-2">Loading documents...</p>';
+            try {
+                const res = await fetch(`${API_BASE}/${houseId}/timeline`);
+                if (!res.ok) throw new Error('Failed to load timeline');
+                currentTimeline = await res.json();
+                
+                statsBadge.textContent = `${currentTimeline.length} Documents`;
+                statsBadge.classList.remove('hidden');
+                
+                renderTimeline();
+            } catch (err) {
+                docListEl.innerHTML = '<p class="text-sm text-red-500 p-2">Error loading timeline.</p>';
+            }
+        }
+
+        function renderTimeline() {
+            docListEl.innerHTML = '';
+            if (currentTimeline.length === 0) {
+                docListEl.innerHTML = '<p class="text-sm text-gray-500 p-2">No documents found.</p>';
+                return;
+            }
+            
+            currentTimeline.forEach(doc => {
+                const card = document.createElement('div');
+                card.className = 'p-3 border rounded-md cursor-pointer hover:border-blue-400 hover:shadow-sm bg-white transition-all';
+                
+                const title = doc.brief_arabic_title || 'Untitled Document';
+                const date = (doc.dates && doc.dates.length > 0) ? doc.dates[0] : 'Unknown Date';
+                
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <h4 class="text-sm font-semibold text-gray-800 line-clamp-2">${title}</h4>
+                    </div>
+                    <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
+                        <span>${date}</span>
+                        <span class="bg-gray-100 px-2 py-0.5 rounded">${doc.primary_tenant || 'No Tenant'}</span>
+                    </div>
+                `;
+                
+                card.onclick = () => openDocument(doc.vault_id, title);
+                docListEl.appendChild(card);
+            });
+        }
+
+        function openDocument(vaultId, title) {
+            docViewerPanel.classList.remove('hidden');
+            docViewerPanel.classList.add('flex');
+            
+            viewerTitle.textContent = title;
+            const pdfUrl = `${API_BASE}/${currentHouse}/pdf/${vaultId}`;
+            pdfFrame.src = pdfUrl;
+            viewerDownload.href = pdfUrl;
+        }
+
+        // Init
+        loadHouses();
+    </script>
+</body>
+</html>
