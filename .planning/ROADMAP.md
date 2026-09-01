@@ -25,18 +25,22 @@ See [.planning/milestones/v6.0-ROADMAP.md](milestones/v6.0-ROADMAP.md) for full 
 <summary>⏸️ v5.5 Pipeline Reversibility & Lossless Undo (Phases 58-61) — PIVOTED</summary>
 
 ### Phase 58: Lossless Undo Command
+
 - [x] Implement `python src/main.py undo <target_dir>`
 - [x] Read `_state.json` routed documents
 - [x] Reconstruct `<house_id>.pdf` perfectly via `fitz` using vault files
 - [x] Wipe target_dir (except reconstructed PDF)
 
 ### Phase 59: _report.json Paradigm Shift
+
 **Goal:** Move raw AI extraction to `.raw_dump.json`. Generate a brand new `_report.json` at the end of generation (for both `create` and `append`) that perfectly mirrors the Timeline View's grouped structure.
 
 ### Phase 60: Migration Script (Completed)
+
 **Goal:** Build a script to ingest old messy `_report.json` files, generate the new chronological format, and bring legacy houses up to the v5.5 standard.
 
 ### Phase 61: Test Suite Update (Completed)
+
 **Goal:** Add E2E tests for the `undo` command, update existing assertions for the new `_report.json` format, and add migration tests.
 
 </details>
@@ -118,27 +122,28 @@ See [.planning/milestones/v5.4-ROADMAP.md](milestones/v5.4-ROADMAP.md) for full 
 
 </details>
 
-
 ### v6.1: Reconciliation Polish
 
 ### Phase 68: Create automated test script for Zero-Delta Reconciliation using the 574 sandbox.
 
 **Goal:** Create automated test script for Zero-Delta Reconciliation using the 574 sandbox.
 **Success Criteria:** Create automated test script for Zero-Delta Reconciliation using the 574 sandbox. implemented.
+
 ### Phase 69: Fix Timeline View sorting logic in \
 
 **Goal:** Fix Timeline View sorting logic in \
 **Success Criteria:** Fix Timeline View sorting logic in \ implemented.
 econcile/core.py\ to match \create\ mode.
+
 ### Phase 70: Fix phantom shortcut modifications (six other locations bug).
 
 **Goal:** Fix phantom shortcut modifications (six other locations bug).
 **Success Criteria:** Fix phantom shortcut modifications (six other locations bug). implemented.
+
 ### Phase 71: Final E2E Zero-Delta Verification against House 574.
 
 **Goal:** Final E2E Zero-Delta Verification against House 574.
 **Success Criteria:** Final E2E Zero-Delta Verification against House 574. implemented.
-
 
 ### v7.0: The Ingest & Bulletproof Reconcile Engine
 
@@ -155,10 +160,12 @@ econcile/core.py\ to match \create\ mode.
 
 **Goal:** Audit Prepend Mode Logic from Git History
 **Success Criteria:** Audit Prepend Mode Logic from Git History implemented.
+
 ### Phase 79: Implement Append/Prepend Mode into ingest command
 
 **Goal:** Implement Append/Prepend Mode into ingest command
 **Success Criteria:** Implement Append/Prepend Mode into ingest command implemented.
+
 ### Phase 80: E2E Testing for Ingest Append Mode
 
 **Goal:** E2E Testing for Ingest Append Mode
@@ -170,15 +177,16 @@ econcile/core.py\ to match \create\ mode.
 
 **Goal:** Frontend Test Suite Foundation (TEST-01, TEST-02)
 **Success Criteria:** Frontend Test Suite Foundation (TEST-01, TEST-02) implemented.
+
 ### Phase 82: Python REST API endpoints (API-01, API-02, API-03, API-04)
 
 **Goal:** Python REST API endpoints (API-01, API-02, API-03, API-04)
 **Success Criteria:** Python REST API endpoints (API-01, API-02, API-03, API-04) implemented.
+
 ### Phase 83: Read-only Web GUI (GUI-01, GUI-02, GUI-03, GUI-04)
 
 **Goal:** Read-only Web GUI (GUI-01, GUI-02, GUI-03, GUI-04)
 **Success Criteria:** Read-only Web GUI (GUI-01, GUI-02, GUI-03, GUI-04) implemented.
-
 
 ## Progress
 
@@ -235,7 +243,3 @@ econcile/core.py\ to match \create\ mode.
 | 65. Integrate Pass 2 Categorization | v6.0 | 1/1 | Complete | 2026-08-11 |
 | 66. OCR Letter Continuation Detection | v6.0 | 1/1 | Complete | 2026-08-12 |
 | 67. Test Suite Cleanup & Missing Imports | v6.0 | 1/1 | Complete | 2026-08-12 |
-
-
-
-
