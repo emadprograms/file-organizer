@@ -1,0 +1,149 @@
+---
+phase: 83
+plan: 1
+type: execute
+wave: 1
+depends_on: []
+files_modified:
+  - src/web/index.html
+  - src/web/styles.css
+  - src/web/app.js
+  - src/api/server.py
+autonomous: true
+requirements:
+  - GUI-01
+  - GUI-02
+  - GUI-03
+  - GUI-04
+must_haves:
+  truths:
+    - "A read-only web interface is accessible in the browser."
+    - "The interface displays system statistics (GUI-02)."
+    - "The interface allows browsing documents by category and timeline (GUI-03)."
+    - "The interface allows viewing PDF documents directly (GUI-04)."
+  artifacts:
+    - "src/web/index.html"
+    - "src/web/styles.css"
+    - "src/web/app.js"
+  key_links:
+    - "src/web/app.js must call the REST API endpoints to fetch data."
+    - "src/api/server.py must serve the src/web static files."
+---
+
+<objective>
+Build a read-only web interface (HTML/JS/CSS) that consumes the Phase 82 REST API. 
+
+Purpose: To provide a visual dashboard and document browser for users to explore the organized files.
+Output: Vanilla HTML/JS/CSS frontend in `src/web/`, served by the existing FastAPI server.
+</objective>
+
+<execution_context>
+@.agents/gsd-core/workflows/execute-plan.md
+@.agents/gsd-core/templates/summary.md
+</execution_context>
+
+<context>
+@.planning/PROJECT.md
+@.planning/ROADMAP.md
+@.planning/STATE.md
+@.planning/phases/83-read-only-web-gui-gui-01-gui-02-gui-03-gui-04/83-UI-SPEC.md
+</context>
+
+<tasks>
+
+<task type="auto">
+  <name>Task 1: Scaffold Web Directory and HTML Structure</name>
+  <files>src/web/index.html</files>
+  <action>
+    Create `src/web/index.html` as the main entry point for the SPA.
+    - Set up a layout with a Sidebar (for Houses/Categories) and a Main Content area (for Dashboard Stats, Timeline, and PDF Viewer).
+    - Include Lucide icons via CDN (e.g., `<script src="https://unpkg.com/lucide@latest"></script>`).
+    - Link `styles.css` and `app.js`.
+    - Provide empty container divs for the dynamic content: `#sidebar`, `#dashboard-stats`, `#timeline-view`, and `#pdf-viewer`.
+    - Use the literal text `View Document` for primary CTAs and `No Documents Found` for empty state headings.
+  </action>
+  <verify>
+    <automated>test -f src/web/index.html</automated>
+  </verify>
+  <done>HTML structure is in place with required containers and CDN links.</done>
+</task>
+
+<task type="auto">
+  <name>Task 2: Implement UI Styling based on UI-SPEC</name>
+  <files>src/web/styles.css</files>
+  <action>
+    Create `src/web/styles.css` adhering strictly to `83-UI-SPEC.md`.
+    - Use CSS variables for colors: `--color-dominant: #ffffff;`, `--color-secondary: #f3f4f6;`, `--color-accent: #3b82f6;`, `--color-destructive: #ef4444;`.
+    - Set the font family to `system-ui, -apple-system, sans-serif`.
+    - Define spacing variables using the specified scale (4px, 8px, 16px, 24px, 32px, 48px, 64px).
+    - Define typography classes for Body, Label, Heading, and Display.
+    - Style the sidebar, cards for statistics, timeline list items, and an iframe container for the PDF viewer.
+  </action>
+  <verify>
+    <automated>grep -c '3b82f6' src/web/styles.css</automated>
+  </verify>
+  <done>CSS file implements the design tokens from UI-SPEC.</done>
+</task>
+
+<task type="auto">
+  <name>Task 3: Implement Frontend Logic</name>
+  <files>src/web/app.js</files>
+  <action>
+    Create `src/web/app.js` to handle data fetching and DOM updates.
+    - Fetch `/api/houses` to populate a house selector in the sidebar.
+    - On house selection, fetch `/api/houses/{house_id}/categories` for dashboard stats (GUI-02).
+    - Fetch `/api/houses/{house_id}/timeline` to render the chronological timeline of documents (GUI-03).
+    - Implement a function `viewDocument(houseId, vaultId)` that sets the `src` of an `<iframe>` in `#pdf-viewer` to `/api/houses/{house_id}/pdf/{vault_id}` (GUI-04).
+    - Handle empty states gracefully using the exact text: `There are no documents in this category. Ingest documents via the CLI to view them here.`
+    - Handle errors using the exact text: `Error Loading Data — Please refresh the page or check the backend connection.`
+    - Call `lucide.createIcons()` after DOM updates.
+  </action>
+  <verify>
+    <automated>test -f src/web/app.js</automated>
+  </verify>
+  <done>JavaScript correctly fetches from API endpoints and updates the DOM.</done>
+</task>
+
+<task type="auto">
+  <name>Task 4: Serve Web Files via FastAPI</name>
+  <files>src/api/server.py</files>
+  <action>
+    Modify `src/api/server.py` to serve the `src/web` directory as static files.
+    - Import `StaticFiles` from `fastapi.staticfiles`.
+    - Add `app.mount("/", StaticFiles(directory="src/web", html=True), name="web")` at the end of the file.
+    - Note: ensure this doesn't conflict with `/api` routes (mount the static files AFTER all API routers are included).
+  </action>
+  <verify>
+    <automated>grep -c 'StaticFiles' src/api/server.py</automated>
+  </verify>
+  <done>FastAPI server mounts the static web directory.</done>
+</task>
+
+</tasks>
+
+<threat_model>
+## Trust Boundaries
+
+| Boundary | Description |
+|----------|-------------|
+| Browser → API | Client sends requests to FastAPI endpoints |
+
+## STRIDE Threat Register
+
+| Threat ID | Category | Component | Severity | Disposition | Mitigation Plan |
+|-----------|----------|-----------|----------|-------------|-----------------|
+| T-83-01 | Tampering | src/web/app.js | low | accept | Read-only GUI has no inputs to tamper with beyond standard API protections. |
+| T-83-02 | Info Disclosure | PDF Viewer | medium | mitigate | Rely on Phase 82 API protections against path traversal for vault_id. |
+</threat_model>
+
+<verification>
+Start the API server via `python src/main.py serve` and verify `http://127.0.0.1:8000/` loads the HTML interface.
+</verification>
+
+<success_criteria>
+The web UI is accessible, displays dashboard statistics, lists documents by timeline/category, and allows viewing PDFs directly in the browser, completely satisfying GUI-01, GUI-02, GUI-03, and GUI-04.
+</success_criteria>
+
+<output>
+Create `.planning/phases/83-read-only-web-gui-gui-01-gui-02-gui-03-gui-04/83-1-SUMMARY.md` when done
+</output>
