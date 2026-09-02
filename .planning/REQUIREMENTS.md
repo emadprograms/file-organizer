@@ -9,8 +9,8 @@
 - [x] **NAV-03**: User can navigate directly to specific tenants or timelines via URL routing (deep linking) which syncs with the sidebar.
 - [x] **NAV-04**: User receives clear visual feedback for empty folders or search queries with no results.
 - [x] **NAV-05**: User can execute a search with Enter and clear/close it with Esc.
-- [ ] **NAV-06**: User can open the search bar instantly using a Cmd/Ctrl+K keyboard shortcut.
-- [ ] **NAV-07**: User sees instant top matches for search queries as they type, before full submission (Zero-Click).
+- [x] **NAV-06**: User can open the search bar instantly using a Cmd/Ctrl+K keyboard shortcut.
+- [x] **NAV-07**: User sees instant top matches for search queries as they type, before full submission (Zero-Click).
 - [ ] **NAV-08**: User can find results even with slight spelling errors or Arabic OCR variations (Typo Tolerance).
 - [ ] **NAV-09**: User can search for text contained within the actual PDF documents (Full-text Search).
 
