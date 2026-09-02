@@ -105,15 +105,41 @@ async def list_categories(request: Request, area_id: str, house_id: str):
     except Exception:
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
 
-    counts: dict[tuple[str, str], int] = {}
+    from src.routing.config import FOLDER_PREFIXES
+    from src.api.models import VaultFileResponse
+
+    categories: dict[tuple[str, str], list[VaultFileResponse]] = {}
     for group in state_data.get("grouped_documents", []):
         tenant = group.get("primary_tenant")
-        cat = group.get("folder_path") or group.get("category")
-        if tenant and cat:
-            key = (tenant, cat)
-            counts[key] = counts.get(key, 0) + 1
+        cat_raw = group.get("folder_path") or group.get("category")
+        if tenant and cat_raw:
+            prefix = FOLDER_PREFIXES.get(cat_raw, "")
+            cat_numbered = f"{prefix} - {cat_raw}" if prefix else cat_raw
+            key = (tenant, cat_numbered)
+            
+            if key not in categories:
+                categories[key] = []
+            
+            doc = VaultFileResponse(
+                vault_id=group.get("vault_id", ""),
+                filename=group.get("filename", ""),
+                start_page=group.get("start_page", 1),
+                end_page=group.get("end_page", 1),
+                date=group.get("extracted_date_range", {}).get("start_date", "") if isinstance(group.get("extracted_date_range"), dict) else "",
+                tenant=tenant,
+                brief_arabic_title=group.get("brief_arabic_title", "")
+            )
+            categories[key].append(doc)
 
-    return [CategoryResponse(tenant=t, name=c, document_count=v) for (t, c), v in counts.items()]
+    return [
+        CategoryResponse(
+            tenant=t,
+            name=c,
+            document_count=len(docs),
+            documents=docs
+        )
+        for (t, c), docs in categories.items()
+    ]
 
 @router.get("/api/areas/{area_id}/houses/{house_id}/pdf/{vault_id}")
 async def get_pdf(request: Request, area_id: str, house_id: str, vault_id: str):

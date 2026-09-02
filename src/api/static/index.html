@@ -360,11 +360,16 @@
                 // If house level, aggregate categories by name across all tenants
                 const agg = {};
                 currentCategories.forEach(cat => {
-                    if (!agg[cat.name]) agg[cat.name] = 0;
-                    agg[cat.name] += cat.document_count;
+                    if (!agg[cat.name]) {
+                        agg[cat.name] = { count: 0, documents: [] };
+                    }
+                    agg[cat.name].count += cat.document_count;
+                    if (cat.documents) {
+                        agg[cat.name].documents = agg[cat.name].documents.concat(cat.documents);
+                    }
                 });
-                for (const [name, count] of Object.entries(agg)) {
-                    displayCategories.push({ name: name, document_count: count });
+                for (const [name, data] of Object.entries(agg)) {
+                    displayCategories.push({ name: name, document_count: data.count, documents: data.documents });
                 }
                 // Sort by name
                 displayCategories.sort((a, b) => a.name.localeCompare(b.name));
@@ -377,7 +382,7 @@
             
             displayCategories.forEach(cat => {
                 const card = document.createElement('div');
-                card.className = 'p-3 border rounded-md bg-white mb-2';
+                card.className = 'p-3 border rounded-md bg-white mb-2 cursor-pointer hover:bg-gray-50';
                 card.innerHTML = `
                     <div class="flex justify-between items-start">
                         <h4 class="text-sm font-semibold text-gray-800">${cat.name}</h4>
@@ -385,7 +390,31 @@
                     <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
                         <span class="bg-gray-100 px-2 py-0.5 rounded">${cat.document_count} Documents</span>
                     </div>
+                    <div class="category-docs hidden mt-3 pt-3 border-t">
+                    </div>
                 `;
+                
+                if (cat.documents && cat.documents.length > 0) {
+                    const docsContainer = card.querySelector('.category-docs');
+                    cat.documents.forEach(doc => {
+                        const docEl = document.createElement('div');
+                        docEl.className = 'text-sm text-blue-600 hover:underline cursor-pointer py-1 ml-2';
+                        const title = doc.brief_arabic_title || doc.filename || 'Document';
+                        docEl.textContent = title;
+                        docEl.onclick = (e) => {
+                            e.stopPropagation();
+                            openDocument(doc.vault_id, title);
+                        };
+                        docsContainer.appendChild(docEl);
+                    });
+                }
+                
+                card.onclick = () => {
+                    const docsContainer = card.querySelector('.category-docs');
+                    if (docsContainer) {
+                        docsContainer.classList.toggle('hidden');
+                    }
+                };
                 docListEl.appendChild(card);
             });
         }

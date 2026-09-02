@@ -66,3 +66,14 @@ See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md) for full 
 | 81. Frontend Test Suite Foundation | v8.0 | 1/1 | Complete | 2026-09-02 |
 | 82. Python REST API endpoints | v8.0 | 1/1 | Complete | 2026-09-02 |
 | 83. Read-only Web GUI | v8.0 | 1/1 | Complete | 2026-09-02 |
+
+### Phase 87.1: Make frontend tests detailed: simulate clicks, interactions, and deep assertions to prevent shallow testing (INSERTED)
+
+**Goal:** [Urgent work - to be planned]
+**Requirements**: TBD
+**Depends on:** Phase 87
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 87.1 to break down)

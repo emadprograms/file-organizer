@@ -2,24 +2,24 @@
 gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: Hierarchical Web Dashboard
-current_phase: 87
+current_phase: 87.1
 status: planning
 stopped_at: Created roadmap for v9.0
-last_updated: "2026-09-02T05:26:28.192Z"
+last_updated: "2026-09-02T10:07:55.078Z"
 last_activity: 2026-09-02
 last_activity_desc: Phase 87 complete
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
   total_plans: 4
   completed_plans: 4
-  percent: 100
+  percent: 80
 ---
 
 # Milestone State
 
 **Current Milestone:** v9.0: Hierarchical Web Dashboard
-**Current Phase:** 87
+**Current Phase:** 87.1
 
 ## Context
 
@@ -52,3 +52,9 @@ Last activity: 2026-09-02 — Phase 87 complete
 ## Operator Next Steps
 
 - Proceed with Phase 84 planning and execution.
+
+## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 87.1 inserted after Phase 87: Make frontend tests detailed: simulate clicks, interactions, and deep assertions to prevent shallow testing (URGENT)

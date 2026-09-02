@@ -12,11 +12,13 @@ class VaultFileResponse(BaseModel):
     end_page: int
     date: str
     tenant: str
+    brief_arabic_title: str | None = None
 
 class CategoryResponse(BaseModel):
     tenant: str
     name: str
     document_count: int
+    documents: list[VaultFileResponse] = []
 
 class TimelineGroupResponse(BaseModel):
     vault_id: str

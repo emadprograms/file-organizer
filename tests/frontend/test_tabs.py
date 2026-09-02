@@ -40,18 +40,23 @@ TIMELINE_RESPONSE = """[
 CATEGORIES_RESPONSE = """[
     {
         "tenant": "Ali",
-        "name": "Category A",
-        "document_count": 2
+        "name": "10 - Category A",
+        "document_count": 2,
+        "documents": [
+            {"vault_id": "doc101", "filename": "file1.pdf", "start_page": 1, "end_page": 1, "date": "2024", "tenant": "Ali", "brief_arabic_title": "Doc 101 Arabic"}
+        ]
     },
     {
         "tenant": "Ali",
-        "name": "Category B",
-        "document_count": 5
+        "name": "11 - Category B",
+        "document_count": 5,
+        "documents": []
     },
     {
         "tenant": "Bob",
-        "name": "Category C",
-        "document_count": 1
+        "name": "12 - Category C",
+        "document_count": 1,
+        "documents": []
     }
 ]"""
 
@@ -89,10 +94,20 @@ def test_tabs_switch_and_load_data(page: Page):
     # Click Categories tab
     page.click("text=Categories")
     
-    # Should load categories
-    expect(page.locator("#document-list")).to_contain_text("Category A", timeout=5000)
+    # Should load categories with numbering
+    expect(page.locator("#document-list")).to_contain_text("10 - Category A", timeout=5000)
     expect(page.locator("#document-list")).to_contain_text("2 Documents", timeout=5000)
     assert any("/categories" in u for u in captured)
+    
+    # Click to expand the category
+    page.click("text=10 - Category A")
+    # Should show the document
+    expect(page.locator("#document-list")).to_contain_text("Doc 101 Arabic", timeout=5000)
+    
+    # Click the document to open PDF
+    page.click("text=Doc 101 Arabic")
+    # Verify PDF viewer opens (viewer title should match document)
+    expect(page.locator("#viewer-title")).to_contain_text("Doc 101 Arabic", timeout=5000)
     
     # Click Timeline tab again
     page.click("text=Timeline")
@@ -115,6 +130,6 @@ def test_tabs_tenant_filtering(page: Page):
     # Click Categories tab
     page.click("text=Categories")
     
-    # Should show ONLY Category A and Category B without 'Ali/' prefix
-    expect(page.locator("#document-list")).to_contain_text("Category A", timeout=5000)
+    # Should show ONLY Category A and Category B without 'Ali/' prefix, and they should be numbered
+    expect(page.locator("#document-list")).to_contain_text("10 - Category A", timeout=5000)
     expect(page.locator("#document-list")).not_to_contain_text("Ali/Category A", timeout=5000)
