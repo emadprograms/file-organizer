@@ -1,6 +1,7 @@
 import json
 import re
 import difflib
+import time
 from pathlib import Path
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import FileResponse
@@ -79,13 +80,10 @@ async def list_timeline(request: Request, area_id: str, house_id: str):
     responses = []
     for group in state_data.get("grouped_documents", []):
         try:
-            date_range = group.get("extracted_date_range", {})
-            start_date = date_range.get("start_date") if isinstance(date_range, dict) else ""
-            dates = [start_date] if start_date else []
             responses.append(TimelineGroupResponse(
                 vault_id=group.get("vault_id", ""),
                 primary_tenant=group.get("primary_tenant", "") or "",
-                dates=dates,
+                dates=group.get("dates", []),
                 brief_arabic_title=group.get("brief_arabic_title", "")
             ))
         except ValidationError:
@@ -206,7 +204,7 @@ async def get_tree(request: Request):
             )
 
             state_path = house_entry / ".source_files" / f"{house_id}_state.json"
-            tenants: set[str] = set()
+            tenants_with_dates: dict[str, set[int]] = {}
             if state_path.exists():
                 try:
                     with open(state_path, "r", encoding="utf-8") as f:
@@ -214,20 +212,115 @@ async def get_tree(request: Request):
                     for group in state_data.get("grouped_documents", []):
                         tenant = group.get("primary_tenant")
                         if tenant:
-                            tenants.add(tenant)
+                            if tenant not in tenants_with_dates:
+                                tenants_with_dates[tenant] = set()
+                            
+                            doc_dates = group.get("dates", [])
+                            for d in doc_dates:
+                                if d and d != "NONE":
+                                    year_match = re.search(r'(\d{4})', d)
+                                    if year_match:
+                                        tenants_with_dates[tenant].add(int(year_match.group(1)))
                 except Exception:
                     pass
 
-            for t in sorted(tenants):
+            for t, years in sorted(tenants_with_dates.items()):
+                display_name = t
+                if years:
+                    min_val = min(years)
+                    max_val = max(years)
+                    if min_val == max_val:
+                        display_name = f"{t} ({min_val})"
+                    else:
+                        display_name = f"{t} ({min_val} - {max_val})"
                 house_node.children.append(TreeItemResponse(
                     id=f"{house_dir_name}_{t}",
-                    name=t,
+                    name=display_name,
                     type="tenant"
                 ))
 
             areas[area_name].children.append(house_node)
 
     return list(areas.values())
+
+_SEARCH_CACHE = None
+_SEARCH_CACHE_TIME = 0
+SEARCH_CACHE_TTL = 300  # 5 minutes
+
+def get_search_index(areas_root: Path):
+    global _SEARCH_CACHE, _SEARCH_CACHE_TIME
+    now = time.time()
+    if _SEARCH_CACHE is not None and (now - _SEARCH_CACHE_TIME) < SEARCH_CACHE_TTL:
+        return _SEARCH_CACHE
+
+    houses = []
+    tenants = []
+    documents = []
+
+    for area_entry in sorted(areas_root.iterdir()):
+        if not area_entry.is_dir():
+            continue
+
+        area_name = area_entry.name
+
+        for house_entry in sorted(area_entry.iterdir()):
+            if not house_entry.is_dir():
+                continue
+
+            house_dir_name = house_entry.name
+            house_id = house_dir_name.split(" - ")[0] if " - " in house_dir_name else house_dir_name
+
+            houses.append({
+                "house_dir_name": house_dir_name,
+                "area_name": area_name
+            })
+
+            state_path = house_entry / ".source_files" / f"{house_id}_state.json"
+            if state_path.exists():
+                try:
+                    with open(state_path, "r", encoding="utf-8") as f:
+                        state_data = json.load(f)
+
+                    house_tenants: set[str] = set()
+                    for group in state_data.get("grouped_documents", []):
+                        tenant = group.get("primary_tenant")
+                        if tenant:
+                            house_tenants.add(tenant)
+
+                    for t in house_tenants:
+                        tenants.append({
+                            "tenant_name": t,
+                            "house_dir_name": house_dir_name,
+                            "area_name": area_name
+                        })
+                except Exception:
+                    pass
+
+            report_path = house_entry / ".source_files" / f"{house_id}_report.json"
+            if report_path.exists():
+                try:
+                    with open(report_path, "r", encoding="utf-8") as f:
+                        report_data = json.load(f)
+
+                    for doc in report_data.get("documents", []):
+                        documents.append({
+                            "content": doc.get("content", "").lower(),
+                            "title_field": doc.get("brief_arabic_title", "").lower(),
+                            "vault_id": doc.get("vault_id", ""),
+                            "doc_title": doc.get("brief_arabic_title", "Document"),
+                            "house_dir_name": house_dir_name,
+                            "area_name": area_name
+                        })
+                except Exception:
+                    pass
+
+    _SEARCH_CACHE = {
+        "houses": houses,
+        "tenants": tenants,
+        "documents": documents
+    }
+    _SEARCH_CACHE_TIME = now
+    return _SEARCH_CACHE
 
 @router.get("/api/search", response_model=list[SearchResultResponse])
 async def search(request: Request, q: str = ""):
@@ -241,91 +334,51 @@ async def search(request: Request, q: str = ""):
         return []
 
     results = []
+    
+    index = get_search_index(areas_root)
+    
+    for h in index["houses"]:
+        if q in h["house_dir_name"].lower():
+            results.append(SearchResultResponse(
+                id=h["house_dir_name"],
+                type="house",
+                title=h["house_dir_name"],
+                subtitle=f"House in {h['area_name']}",
+                url=f"/#/area/{h['area_name']}/house/{h['house_dir_name']}"
+            ))
+            
+    for t in index["tenants"]:
+        t_name = t["tenant_name"]
+        t_lower = t_name.lower()
+        is_match = False
+        if q in t_lower:
+            is_match = True
+        else:
+            if len(q.split()) == 1:
+                if difflib.get_close_matches(q, t_lower.split(), n=1, cutoff=0.7):
+                    is_match = True
+            else:
+                if difflib.SequenceMatcher(None, q, t_lower).ratio() >= 0.7:
+                    is_match = True
+        if is_match:
+            results.append(SearchResultResponse(
+                id=f"{t['house_dir_name']}_{t_name}",
+                type="tenant",
+                title=t_name,
+                subtitle=f"Tenant in {t['house_dir_name']}",
+                url=f"/#/area/{t['area_name']}/house/{t['house_dir_name']}/tenant/{t['house_dir_name']}_{t_name}"
+            ))
 
-    # Walk: areas_root → Area folder → House folder
-    for area_entry in sorted(areas_root.iterdir()):
-        if not area_entry.is_dir():
-            continue
+    for d in index["documents"]:
+        if q in d["content"] or q in d["title_field"]:
+            results.append(SearchResultResponse(
+                id=f"{d['house_dir_name']}_doc_{d['vault_id']}",
+                type="document",
+                title=d["doc_title"],
+                subtitle=f"Document in {d['house_dir_name']}",
+                url=f"/#/area/{d['area_name']}/house/{d['house_dir_name']}"
+            ))
 
-        area_name = area_entry.name  # e.g. "Safra C"
-
-        for house_entry in sorted(area_entry.iterdir()):
-            if not house_entry.is_dir():
-                continue
-
-            house_dir_name = house_entry.name
-            house_id = house_dir_name.split(" - ")[0] if " - " in house_dir_name else house_dir_name
-
-            # Match house by name
-            if q in house_dir_name.lower():
-                results.append(SearchResultResponse(
-                    id=house_dir_name,
-                    type="house",
-                    title=house_dir_name,
-                    subtitle=f"House in {area_name}",
-                    url=f"/#/area/{area_name}/house/{house_dir_name}"
-                ))
-
-            state_path = house_entry / ".source_files" / f"{house_id}_state.json"
-            if state_path.exists():
-                try:
-                    with open(state_path, "r", encoding="utf-8") as f:
-                        state_data = json.load(f)
-
-                    tenants: set[str] = set()
-                    for group in state_data.get("grouped_documents", []):
-                        tenant = group.get("primary_tenant")
-                        if tenant:
-                            tenants.add(tenant)
-
-                    for t in tenants:
-                        t_lower = t.lower()
-                        is_match = False
-                        if q in t_lower:
-                            is_match = True
-                        else:
-                            # Fuzzy match for typo tolerance
-                            if len(q.split()) == 1:
-                                if difflib.get_close_matches(q, t_lower.split(), n=1, cutoff=0.7):
-                                    is_match = True
-                            else:
-                                if difflib.SequenceMatcher(None, q, t_lower).ratio() >= 0.7:
-                                    is_match = True
-
-                        if is_match:
-                            results.append(SearchResultResponse(
-                                id=f"{house_dir_name}_{t}",
-                                type="tenant",
-                                title=t,
-                                subtitle=f"Tenant in {house_dir_name}",
-                                url=f"/#/area/{area_name}/house/{house_dir_name}/tenant/{house_dir_name}_{t}"
-                            ))
-                except Exception:
-                    pass
-
-            report_path = house_entry / ".source_files" / f"{house_id}_report.json"
-            if report_path.exists():
-                try:
-                    with open(report_path, "r", encoding="utf-8") as f:
-                        report_data = json.load(f)
-
-                    for doc in report_data.get("documents", []):
-                        content = doc.get("content", "").lower()
-                        title_field = doc.get("brief_arabic_title", "").lower()
-                        if q in content or q in title_field:
-                            vault_id = doc.get("vault_id", "")
-                            doc_title = doc.get("brief_arabic_title", "Document")
-                            results.append(SearchResultResponse(
-                                id=f"{house_dir_name}_doc_{vault_id}",
-                                type="document",
-                                title=doc_title,
-                                subtitle=f"Document in {house_dir_name}",
-                                url=f"/#/area/{area_name}/house/{house_dir_name}"
-                            ))
-                except Exception:
-                    pass
-
-    # Deduplicate by id, preserve order
     seen: set[str] = set()
     unique_results = []
     for r in results:
