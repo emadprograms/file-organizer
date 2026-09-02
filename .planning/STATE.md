@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: Hierarchical Web Dashboard
 status: planning
-last_updated: "2026-09-02T04:35:22.873Z"
+last_updated: "2026-09-02T07:45:00.000Z"
 last_activity: 2026-09-02
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -15,28 +15,29 @@ progress:
 
 # Milestone State
 
-**Current Milestone:** v7.0: The Ingest & Bulletproof Reconcile Engine
-**Current Phase:** 83
+**Current Milestone:** v9.0: Hierarchical Web Dashboard
+**Current Phase:** 84
 
 ## Context
 
-This milestone focuses on decoupling the AI pipeline from the fragile background watcher loop. We are introducing the `ingest` command to act as an automated sorting hat, placing raw PDFs into target folders, and upgrading the `reconcile` engine to be the singular brain that securely vaults these files, updates state, and generates shortcuts and timelines.
+This milestone focuses on completely revamping the Web GUI into a hierarchical dashboard with global search functionality mirroring the native disk structure. It prioritizes navigation and fast access, integrating a collapsible sidebar and a robust search bar.
 
 ## Pending Decisions
 
-- None.
+- Strategy for large-scale caching in Phase 84/85 to prevent search API bottlenecking when directory sizes scale up.
+- Approach for fuzzy matching Arabic OCR variations and full-text document search in Phase 87.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 84
 Plan: —
-Status: Defining requirements
-Last activity: 2026-09-02 — Milestone v9.0 started
+Status: Planning Phase 84
+Last activity: 2026-09-02 — Milestone v9.0 ROADMAP created
 
 ## Session
 
-**Last session:** 2026-09-01T07:06:58.805Z
-**Stopped at:** Completed 82-1-PLAN.md
+**Last session:** 2026-09-02
+**Stopped at:** Created roadmap for v9.0
 **Resume file:** None
 
 ## Performance Metrics
@@ -47,4 +48,4 @@ Last activity: 2026-09-02 — Milestone v9.0 started
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Proceed with Phase 84 planning and execution.

@@ -23,3 +23,12 @@
 
 ## Traceability
 
+- **NAV-01**: Phase 84
+- **NAV-02**: Phase 85
+- **NAV-03**: Phase 84
+- **NAV-04**: Phase 85
+- **NAV-05**: Phase 85
+- **NAV-06**: Phase 86
+- **NAV-07**: Phase 86
+- **NAV-08**: Phase 87
+- **NAV-09**: Phase 87
