@@ -7,6 +7,44 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .pdf-viewer { width: 100%; height: 80vh; border: none; }
+
+        /* Hover PDF preview tooltip */
+        #pdf-preview-tooltip {
+            position: fixed;
+            z-index: 9999;
+            width: 380px;
+            height: 520px;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            overflow: hidden;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.15s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        #pdf-preview-tooltip.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #pdf-preview-tooltip .preview-header {
+            padding: 6px 10px;
+            background: #1f2937;
+            color: white;
+            font-size: 11px;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex-shrink: 0;
+        }
+        #pdf-preview-iframe {
+            width: 100%;
+            flex: 1;
+            border: none;
+        }
     </style>
 </head>
 <body class="bg-gray-100 font-sans text-gray-800">
@@ -352,6 +390,7 @@
                 `;
                 
                 card.onclick = () => openDocument(doc.vault_id, title);
+                attachPreview(card, doc.vault_id, title);
                 docListEl.appendChild(card);
             });
         }
@@ -434,6 +473,7 @@
                             e.stopPropagation();
                             openDocument(doc.vault_id, title);
                         };
+                        attachPreview(docEl, doc.vault_id, title);
                         docsContainer.appendChild(docEl);
                     });
                 }
@@ -616,6 +656,91 @@
         // Init
         loadTree();
 
+    </script>
+
+    <!-- PDF hover preview tooltip (singleton) -->
+    <div id="pdf-preview-tooltip">
+        <div class="preview-header" id="pdf-preview-title">Preview</div>
+        <iframe id="pdf-preview-iframe" src="about:blank"></iframe>
+    </div>
+
+    <script>
+        // ── PDF Hover Preview ─────────────────────────────────────────────────
+        const previewTooltip   = document.getElementById('pdf-preview-tooltip');
+        const previewIframe    = document.getElementById('pdf-preview-iframe');
+        const previewTitleEl   = document.getElementById('pdf-preview-title');
+
+        let previewShowTimer   = null;
+        let previewHideTimer   = null;
+        let previewCurrentUrl  = null;
+
+        const PREVIEW_GAP      = 12;   // px gap between cursor and tooltip
+        const PREVIEW_DELAY_MS = 350;  // ms before showing (avoids flicker on fast passes)
+
+        function positionTooltip(mouseX, mouseY) {
+            const tw = previewTooltip.offsetWidth;
+            const th = previewTooltip.offsetHeight;
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+
+            // Default: right of cursor
+            let left = mouseX + PREVIEW_GAP;
+            let top  = mouseY - 60; // slight vertical offset so it doesn't cover the link
+
+            // Flip left if would overflow right edge
+            if (left + tw > vw - 8) left = mouseX - tw - PREVIEW_GAP;
+            // Clamp vertically
+            if (top + th > vh - 8) top = vh - th - 8;
+            if (top < 8)           top = 8;
+
+            previewTooltip.style.left = `${left}px`;
+            previewTooltip.style.top  = `${top}px`;
+        }
+
+        function showPreview(vaultId, title, mouseX, mouseY) {
+            const pdfUrl = `/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/pdf/${vaultId}#view=FitH`;
+
+            clearTimeout(previewHideTimer);
+            clearTimeout(previewShowTimer);
+
+            previewShowTimer = setTimeout(() => {
+                // Only reload iframe if URL changed (avoids flicker when re-hovering same doc)
+                if (previewCurrentUrl !== pdfUrl) {
+                    previewCurrentUrl  = pdfUrl;
+                    previewIframe.src  = pdfUrl;
+                    previewTitleEl.textContent = title;
+                }
+                positionTooltip(mouseX, mouseY);
+                previewTooltip.classList.add('visible');
+            }, PREVIEW_DELAY_MS);
+        }
+
+        function hidePreview() {
+            clearTimeout(previewShowTimer);
+            previewHideTimer = setTimeout(() => {
+                previewTooltip.classList.remove('visible');
+            }, 100);
+        }
+
+        // Keep preview alive when mouse moves into the tooltip itself
+        previewTooltip.addEventListener('mouseenter', () => clearTimeout(previewHideTimer));
+        previewTooltip.addEventListener('mouseleave', hidePreview);
+
+        /**
+         * Attaches hover preview behaviour to an element.
+         * @param {HTMLElement} el       - The element to watch
+         * @param {string}      vaultId  - vault_id for the PDF URL
+         * @param {string}      title    - document title for the header bar
+         */
+        function attachPreview(el, vaultId, title) {
+            el.addEventListener('mouseenter', (e) => showPreview(vaultId, title, e.clientX, e.clientY));
+            el.addEventListener('mousemove',  (e) => {
+                if (previewTooltip.classList.contains('visible')) {
+                    positionTooltip(e.clientX, e.clientY);
+                }
+            });
+            el.addEventListener('mouseleave', hidePreview);
+        }
     </script>
 </body>
 </html>
