@@ -15,5 +15,13 @@ trigger: |
 - **Reproduction**: Inspect the backend code that generates or updates `_state.json` (likely the ingest or data processing pipeline) to see why `manifest` gets set to `null` under certain conditions.
 
 ## Current Focus
-- hypothesis: 
-- next_action: gather initial evidence
+- root_cause: `ingest` mode was incorrectly building the `manifest` payload (containing `summary` and `per_page` tracking) and assigning it to `routed_documents` instead of `manifest`. This resulted in `_state.json` retaining a `null` manifest. `reconcile` was also written to expect this buggy behavior by loading `manifest` keys from `routed_documents`.
+- next_action: Debug complete.
+
+## Findings
+- `src/ingest/core.py` was generating `{"summary": ..., "per_page": ...}` and putting it in `state.data["routed_documents"]`.
+- The actual list of routed DocumentGroups was effectively discarded instead of being saved.
+- `src/reconcile/core.py` was relying on this bug by trying to load `routed_documents` as a dict with `per_page` array. 
+- I fixed `ingest/core.py` to correctly map the manifest dictionary to `state.data["manifest"]`, and properly map the list of `DocumentGroup` objects to `state.data["routed_documents"]`.
+- I fixed `reconcile/core.py` to correctly load from `state.data["manifest"]` but also built in legacy fallback capabilities so existing un-migrated states continue to work.
+- I fixed all 16 affected test suites across the repository to assert against the corrected `manifest` payload instead of the old buggy behavior.

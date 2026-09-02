@@ -315,7 +315,8 @@ async def get_tree(request: Request):
                     with open(state_path, "r", encoding="utf-8") as f:
                         state_data = json.load(f)
                     
-                    per_page = state_data.get("manifest", {}).get("per_page", [])
+                    manifest = state_data.get("manifest") or {}
+                    per_page = manifest.get("per_page", [])
                     for doc in per_page:
                         tenant = doc.get("tenant")
                         if tenant:
@@ -346,14 +347,17 @@ async def get_tree(request: Request):
                     min_val = min(years)
                     max_val = max(years)
                     
-                    actual_max = current_year if tenant_is_present.get(t) else max_val
-                    duration = actual_max - min_val
-                    if duration < 5:
-                        duration_category = "short"
-                    elif duration < 10:
-                        duration_category = "medium"
-                    else:
-                        duration_category = "long"
+                    if tenant_is_present.get(t):
+                        # Only color-code currently active tenants
+                        actual_max = current_year
+                        duration = actual_max - min_val
+                        if duration < 5:
+                            duration_category = "short"
+                        elif duration < 10:
+                            duration_category = "medium"
+                        else:
+                            duration_category = "long"
+                    # Past tenants keep duration_category = None → grey badge
 
                     if tenant_is_present.get(t):
                         subtitle = f"{min_val} - Present"
