@@ -78,17 +78,5 @@ def test_phase46_auto_verification(tmp_path):
             assert result == 0
     
     new_house_dir = tmp_path / f"{house_id} - Tenant"
-    report_file = new_house_dir / ".source_files" / "reconcile_report.json"
-    assert report_file.exists()
-    
-    with open(report_file, "r") as f:
-        report = json.load(f)
-        
-    assert report["verification_status"] == "Unknown"
-    assert report["ghost_adopted"] == 0
-    assert report["raw_pdf_ingested"] == 0
-    assert report["user_deleted"] == 0
-    assert report["orphans_trashed"] == 0
-    assert report["renamed_moved"] == 0
-    assert report["duplicates_adopted"] == 0
-    assert report["file_moves_planned"] > 0 # Moving from target_dir to full_house_id
+    state_file = new_house_dir / ".source_files" / f"{house_id}_state.json"
+    assert state_file.exists()

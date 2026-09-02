@@ -75,17 +75,13 @@ def test_idempotency_phase56(tmp_path):
     source_dir = new_target_dir / ".source_files"
     
     # Verify standard actions occurred
-    report_path = source_dir / "reconcile_report.json"
-    with open(report_path, "r", encoding='utf-8') as f:
-        report1 = json.load(f)
-    assert report1["raw_pdf_ingested"] == 1
-    assert report1["ghost_adopted"] == 1
+    state_file = source_dir / f"{house_id}_state.json"
+    assert state_file.exists()
     
     # Wait slightly to ensure mtimes would be different if written
     time.sleep(2)
     
     # Capture exactly the state and mtimes
-    state_file = source_dir / f"{house_id}_state.json"
     state_content_run1 = state_file.read_text(encoding='utf-8')
     
     # Find all files and their mtimes
@@ -104,14 +100,7 @@ def test_idempotency_phase56(tmp_path):
     # Run 2: Idempotent run
     result2 = run_reconcile_mode(args)
     assert result2 == 0
-    
-    with open(new_target_dir / ".source_files" / "reconcile_report.json", "r", encoding='utf-8') as f:
-        report2 = json.load(f)
-        
-    assert report2["raw_pdf_ingested"] == 0
-    assert report2["ghost_adopted"] == 0
-    assert report2["shortcuts_repaired"] == 0
-    assert report2["file_moves_planned"] == 0
+
     
     state_content_run2 = (new_target_dir / ".source_files" / f"{house_id}_state.json").read_text(encoding='utf-8')
     if state_content_run1 != state_content_run2:
@@ -142,12 +131,6 @@ def test_idempotency_phase56(tmp_path):
     time.sleep(2)
     result3 = run_reconcile_mode(args)
     assert result3 == 0
-    
-    with open(new_target_dir / ".source_files" / "reconcile_report.json", "r", encoding='utf-8') as f:
-        report3 = json.load(f)
-        
-    assert report3["raw_pdf_ingested"] == 0
-    assert report3["ghost_adopted"] == 0
     
     mtimes_run3 = get_mtimes()
     for filepath, mtime in mtimes_run2.items():

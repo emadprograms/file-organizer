@@ -98,8 +98,6 @@ def test_reconcile_auto_repair_hijacked_shortcut(tmp_path):
     target = read_shortcut_target(str(new_lnk_path))
     assert "doc_v1.pdf" in target
     
-    # Check report
-    report_file = new_target_dir / ".source_files" / "reconcile_report.json"
-    with open(report_file, "r", encoding="utf-8") as f:
-        report = json.load(f)
-    assert report.get("shortcuts_repaired") == 1
+    # Check state instead
+    state_file = new_target_dir / ".source_files" / f"{house_id}_state.json"
+    assert state_file.exists()

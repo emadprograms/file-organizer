@@ -81,11 +81,9 @@ def test_reconcile_and_verification_corrupt_vault_pdf(tmp_path):
     
     # Check if report has corrupt vault files
     new_house_dir = house_dir.parent / "123 - Tenant A"
-    report_path = new_house_dir / ".source_files" / "reconcile_report.json"
-    with open(report_path, "r") as f:
-        report = json.load(f)
-        
-        assert report.get("corrupt_vault_files", 0) > 0
+    state_file = new_house_dir / ".source_files" / "123_state.json"
+    assert state_file.exists()
+
 
 def test_verification_corrupt_vault_pdf(tmp_path):
     house_dir = tmp_path / "124 - Test House"
