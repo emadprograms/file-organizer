@@ -97,6 +97,11 @@
         const currentHouseTitle = document.getElementById('current-house-title');
         const statsBadge = document.getElementById('stats-badge');
         
+        const tabTimeline = document.getElementById('tab-timeline');
+        const tabCategories = document.getElementById('tab-categories');
+        let currentTab = 'timeline';
+        let currentCategories = [];
+        
         const docListPanel = document.getElementById('document-list-panel');
         const docViewerPanel = document.getElementById('document-viewer-panel');
         const welcomePanel = document.getElementById('welcome-panel');
@@ -256,7 +261,15 @@
             docListPanel.classList.add('flex');
             docViewerPanel.classList.add('hidden'); // hide until a doc is selected
 
-            await loadTimeline(areaId, houseId);
+            await refreshCurrentTab(areaId, houseId);
+        }
+        
+        async function refreshCurrentTab(areaId, houseId) {
+            if (currentTab === 'timeline') {
+                await loadTimeline(areaId, houseId);
+            } else {
+                await loadCategories(areaId, houseId);
+            }
         }
 
         async function loadTimeline(areaId, houseId) {
@@ -300,6 +313,48 @@
                 `;
                 
                 card.onclick = () => openDocument(doc.vault_id, title);
+                docListEl.appendChild(card);
+            });
+        }
+
+        async function loadCategories(areaId, houseId) {
+            console.log('loadCategories called', areaId, houseId);
+            docListEl.innerHTML = '<p class="text-sm text-gray-500 p-2">Loading categories...</p>';
+            try {
+                const res = await fetch(`/api/areas/${encodeURIComponent(areaId)}/houses/${encodeURIComponent(houseId)}/categories`);
+                if (!res.ok) throw new Error('Failed to load categories');
+                currentCategories = await res.json();
+                
+                // For categories, total sum of documents
+                const totalDocs = currentCategories.reduce((sum, cat) => sum + cat.document_count, 0);
+                statsBadge.textContent = `${currentCategories.length} Categories (${totalDocs} Docs)`;
+                statsBadge.classList.remove('hidden');
+                
+                renderCategories();
+            } catch (err) {
+                console.error(err);
+                docListEl.innerHTML = '<p class="text-sm text-red-500 p-2">Error loading categories.</p>';
+            }
+        }
+
+        function renderCategories() {
+            docListEl.innerHTML = '';
+            if (currentCategories.length === 0) {
+                docListEl.innerHTML = '<p class="text-sm text-gray-500 p-2">No categories found.</p>';
+                return;
+            }
+            
+            currentCategories.forEach(cat => {
+                const card = document.createElement('div');
+                card.className = 'p-3 border rounded-md bg-white mb-2';
+                card.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <h4 class="text-sm font-semibold text-gray-800">${cat.name}</h4>
+                    </div>
+                    <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
+                        <span class="bg-gray-100 px-2 py-0.5 rounded">${cat.document_count} Documents</span>
+                    </div>
+                `;
                 docListEl.appendChild(card);
             });
         }
@@ -394,8 +449,37 @@
             }
         });
 
+
+        // Tab switching
+        tabTimeline.addEventListener('click', () => {
+            console.log('Timeline clicked');
+            if (currentTab === 'timeline') return;
+            currentTab = 'timeline';
+            
+            tabTimeline.className = "flex-1 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600";
+            tabCategories.className = "flex-1 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700";
+            
+            if (currentArea && currentHouse) {
+                refreshCurrentTab(currentArea, currentHouse);
+            }
+        });
+
+        tabCategories.addEventListener('click', () => {
+            console.log('Categories clicked', currentArea, currentHouse);
+            if (currentTab === 'categories') return;
+            currentTab = 'categories';
+            
+            tabCategories.className = "flex-1 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600";
+            tabTimeline.className = "flex-1 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700";
+            
+            if (currentArea && currentHouse) {
+                refreshCurrentTab(currentArea, currentHouse);
+            }
+        });
+        
         // Init
         loadTree();
+
     </script>
 </body>
 </html>
