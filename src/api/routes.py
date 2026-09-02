@@ -134,64 +134,74 @@ async def get_pdf(request: Request, house_id: str, vault_id: str):
 
 @router.get("/api/tree", response_model=list[TreeItemResponse])
 async def get_tree(request: Request):
+    """
+    Walk the real 3-level disk structure:
+        areas_root/
+            <Area folder>/     <- child of areas_root; name matches area_mappings key
+                <House folder>/ <- child of Area; e.g. "1245 - Ali"
+                    .source_files/
+                        <id>_state.json
+    """
     config = request.app.state.config
     areas_root = Path(config.areas_root_path)
     if not areas_root.exists():
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
-        
-    area_mappings = config.area_mappings or {}
-    
-    areas = {}
-    
-    def get_area_name(house_id: str) -> str:
-        for a_name, a_prefix in area_mappings.items():
-            if str(house_id).startswith(str(a_prefix)):
-                return a_name
-        return "Uncategorized Area"
 
-    for entry in areas_root.iterdir():
-        if entry.is_dir():
-            house_dir_name = entry.name
+    area_mappings = config.area_mappings or {}
+
+    areas: dict[str, TreeItemResponse] = {}
+
+    for area_entry in sorted(areas_root.iterdir()):
+        if not area_entry.is_dir():
+            continue
+
+        area_name = area_entry.name  # e.g. "Safra C"
+
+        if area_name not in areas:
+            areas[area_name] = TreeItemResponse(
+                id=f"area_{area_name}",
+                name=area_name,
+                type="area",
+                children=[]
+            )
+
+        # Walk house folders inside this area
+        for house_entry in sorted(area_entry.iterdir()):
+            if not house_entry.is_dir():
+                continue
+
+            house_dir_name = house_entry.name   # e.g. "1245 - Ali"
             house_id = house_dir_name.split(" - ")[0] if " - " in house_dir_name else house_dir_name
-            
-            area_name = get_area_name(house_id)
-            if area_name not in areas:
-                areas[area_name] = TreeItemResponse(
-                    id=f"area_{area_name}",
-                    name=area_name,
-                    type="area",
-                    children=[]
-                )
-            
+
             house_node = TreeItemResponse(
                 id=house_dir_name,
                 name=house_dir_name,
                 type="house",
                 children=[]
             )
-            
-            state_path = entry / ".source_files" / f"{house_id}_state.json"
-            tenants = set()
+
+            state_path = house_entry / ".source_files" / f"{house_id}_state.json"
+            tenants: set[str] = set()
             if state_path.exists():
                 try:
                     with open(state_path, "r", encoding="utf-8") as f:
                         state_data = json.load(f)
-                        for group in state_data.get("grouped_documents", []):
-                            tenant = group.get("primary_tenant")
-                            if tenant:
-                                tenants.add(tenant)
+                    for group in state_data.get("grouped_documents", []):
+                        tenant = group.get("primary_tenant")
+                        if tenant:
+                            tenants.add(tenant)
                 except Exception:
                     pass
-            
+
             for t in sorted(tenants):
                 house_node.children.append(TreeItemResponse(
                     id=f"{house_dir_name}_{t}",
                     name=t,
                     type="tenant"
                 ))
-            
+
             areas[area_name].children.append(house_node)
-            
+
     return list(areas.values())
 
 @router.get("/api/search", response_model=list[SearchResultResponse])
@@ -199,108 +209,103 @@ async def search(request: Request, q: str = ""):
     q = q.lower().strip()
     if not q:
         return []
-    
+
     config = request.app.state.config
     areas_root = Path(config.areas_root_path)
     if not areas_root.exists():
         return []
-        
-    area_mappings = config.area_mappings or {}
-    
-    def get_area_name(h_id: str) -> str:
-        for a_name, a_prefix in area_mappings.items():
-            if str(h_id).startswith(str(a_prefix)):
-                return a_name
-        return "Uncategorized Area"
-        
+
     results = []
-    
-    for entry in areas_root.iterdir():
-        if not entry.is_dir():
+
+    # Walk: areas_root → Area folder → House folder
+    for area_entry in sorted(areas_root.iterdir()):
+        if not area_entry.is_dir():
             continue
-            
-        house_dir_name = entry.name
-        house_id = house_dir_name.split(" - ")[0] if " - " in house_dir_name else house_dir_name
-        area_name = get_area_name(house_id)
-        area_path = f"area_{area_name}"
-        
-        if q in house_dir_name.lower():
-            results.append(SearchResultResponse(
-                id=house_dir_name,
-                type="house",
-                title=house_dir_name,
-                subtitle="House",
-                url=f"/#/area/{area_path}/house/{house_dir_name}"
-            ))
-            
-        state_path = entry / ".source_files" / f"{house_id}_state.json"
-        if state_path.exists():
-            try:
-                with open(state_path, "r", encoding="utf-8") as f:
-                    state_data = json.load(f)
-                    
-                tenants = set()
-                for group in state_data.get("grouped_documents", []):
-                    tenant = group.get("primary_tenant")
-                    if tenant:
-                        tenants.add(tenant)
-                        
-                for t in tenants:
-                    t_lower = t.lower()
-                    is_match = False
-                    if q in t_lower:
-                        is_match = True
-                    else:
-                        # Fuzzy match for typo tolerance
-                        if len(q.split()) == 1:
-                            if difflib.get_close_matches(q, t_lower.split(), n=1, cutoff=0.7):
-                                is_match = True
+
+        area_name = area_entry.name  # e.g. "Safra C"
+
+        for house_entry in sorted(area_entry.iterdir()):
+            if not house_entry.is_dir():
+                continue
+
+            house_dir_name = house_entry.name
+            house_id = house_dir_name.split(" - ")[0] if " - " in house_dir_name else house_dir_name
+
+            # Match house by name
+            if q in house_dir_name.lower():
+                results.append(SearchResultResponse(
+                    id=house_dir_name,
+                    type="house",
+                    title=house_dir_name,
+                    subtitle=f"House in {area_name}",
+                    url=f"/#/area/{area_name}/house/{house_dir_name}"
+                ))
+
+            state_path = house_entry / ".source_files" / f"{house_id}_state.json"
+            if state_path.exists():
+                try:
+                    with open(state_path, "r", encoding="utf-8") as f:
+                        state_data = json.load(f)
+
+                    tenants: set[str] = set()
+                    for group in state_data.get("grouped_documents", []):
+                        tenant = group.get("primary_tenant")
+                        if tenant:
+                            tenants.add(tenant)
+
+                    for t in tenants:
+                        t_lower = t.lower()
+                        is_match = False
+                        if q in t_lower:
+                            is_match = True
                         else:
-                            if difflib.SequenceMatcher(None, q, t_lower).ratio() >= 0.7:
-                                is_match = True
-                                
-                    if is_match:
-                        results.append(SearchResultResponse(
-                            id=f"{house_dir_name}_{t}",
-                            type="tenant",
-                            title=t,
-                            subtitle=f"Tenant in {house_dir_name}",
-                            url=f"/#/area/{area_path}/house/{house_dir_name}/tenant/{house_dir_name}_{t}"
-                        ))
-            except Exception:
-                pass
-                
-        report_path = entry / ".source_files" / f"{house_id}_report.json"
-        if report_path.exists():
-            try:
-                with open(report_path, "r", encoding="utf-8") as f:
-                    report_data = json.load(f)
-                    
-                for doc in report_data.get("documents", []):
-                    content = doc.get("content", "").lower()
-                    title = doc.get("brief_arabic_title", "").lower()
-                    if q in content or q in title:
-                        vault_id = doc.get("vault_id", "")
-                        doc_title = doc.get("brief_arabic_title", "Document")
-                        # URL routes to the house so they can see the timeline
-                        results.append(SearchResultResponse(
-                            id=f"{house_dir_name}_doc_{vault_id}",
-                            type="document",
-                            title=doc_title,
-                            subtitle=f"Document in {house_dir_name}",
-                            url=f"/#/area/{area_path}/house/{house_dir_name}"
-                        ))
-            except Exception:
-                pass
-                
-    # deduplicate results by id to avoid showing the same document or tenant multiple times
-    # actually, dict preserves insertion order since 3.7
-    seen = set()
+                            # Fuzzy match for typo tolerance
+                            if len(q.split()) == 1:
+                                if difflib.get_close_matches(q, t_lower.split(), n=1, cutoff=0.7):
+                                    is_match = True
+                            else:
+                                if difflib.SequenceMatcher(None, q, t_lower).ratio() >= 0.7:
+                                    is_match = True
+
+                        if is_match:
+                            results.append(SearchResultResponse(
+                                id=f"{house_dir_name}_{t}",
+                                type="tenant",
+                                title=t,
+                                subtitle=f"Tenant in {house_dir_name}",
+                                url=f"/#/area/{area_name}/house/{house_dir_name}/tenant/{house_dir_name}_{t}"
+                            ))
+                except Exception:
+                    pass
+
+            report_path = house_entry / ".source_files" / f"{house_id}_report.json"
+            if report_path.exists():
+                try:
+                    with open(report_path, "r", encoding="utf-8") as f:
+                        report_data = json.load(f)
+
+                    for doc in report_data.get("documents", []):
+                        content = doc.get("content", "").lower()
+                        title_field = doc.get("brief_arabic_title", "").lower()
+                        if q in content or q in title_field:
+                            vault_id = doc.get("vault_id", "")
+                            doc_title = doc.get("brief_arabic_title", "Document")
+                            results.append(SearchResultResponse(
+                                id=f"{house_dir_name}_doc_{vault_id}",
+                                type="document",
+                                title=doc_title,
+                                subtitle=f"Document in {house_dir_name}",
+                                url=f"/#/area/{area_name}/house/{house_dir_name}"
+                            ))
+                except Exception:
+                    pass
+
+    # Deduplicate by id, preserve order
+    seen: set[str] = set()
     unique_results = []
     for r in results:
         if r.id not in seen:
             seen.add(r.id)
             unique_results.append(r)
-            
-    return unique_results[:50]
 
+    return unique_results[:50]

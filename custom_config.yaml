@@ -1,5 +1,5 @@
-inbox_path: "D:/Inbox"
-areas_root_path: "D:/"
+inbox_path: "/Volumes/arshad-pc/Inbox"
+areas_root_path: "/Volumes/arshad-pc/Areas"
 area_mappings:
   "Safra C": "SAF C"
   "Safra D": "SAF D"
