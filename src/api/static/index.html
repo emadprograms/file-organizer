@@ -123,7 +123,7 @@
                 
                 const ul = document.createElement('ul');
                 ul.className = 'pl-2 space-y-1';
-                createTreeNodes(treeData, ul, '');
+                createTreeNodes(treeData, ul, '', '');
                 houseListEl.appendChild(ul);
 
                 // Check hash on load
@@ -133,7 +133,7 @@
             }
         }
 
-        function createTreeNodes(nodes, parentEl, parentPath) {
+        function createTreeNodes(nodes, parentEl, parentPath, parentArea) {
             nodes.forEach(node => {
                 const li = document.createElement('li');
                 const currentPath = parentPath ? `${parentPath}/${node.type}/${node.id}` : `/${node.type}/${node.id}`;
@@ -159,7 +159,7 @@
                 if (node.children && node.children.length > 0) {
                     childrenContainer = document.createElement('ul');
                     childrenContainer.className = 'pl-4 hidden space-y-1 mt-1';
-                    createTreeNodes(node.children, childrenContainer, currentPath);
+                    createTreeNodes(node.children, childrenContainer, currentPath, node.type === 'area' ? node.name : parentArea);
                     li.appendChild(childrenContainer);
 
                     btn.onclick = (e) => {
@@ -171,6 +171,10 @@
                         } else {
                             childrenContainer.classList.add('hidden');
                             icon.innerHTML = '▶';
+                        }
+                        // Also load timeline if this is a house node
+                        if (node.type === 'house' && parentArea) {
+                            window.location.hash = currentPath;
                         }
                     };
                 }
@@ -192,14 +196,32 @@
         }
 
         function handleHashChange() {
+            console.log("HASH CHANGE", window.location.hash);
             const hash = decodeURIComponent(window.location.hash.replace('#', ''));
             if (!hash) return;
+
+            // Always parse area + house from the hash first
+            // hash format: /area/area_id/house/house_id[/tenant/tenant_id]
+            const parts = hash.split('/');
+            let areaId = null, houseId = null;
+            for (let i = 0; i < parts.length; i++) {
+                // Strip the 'area_' prefix that the tree uses internally for node ids
+                if (parts[i] === 'area' && i + 1 < parts.length) areaId = decodeURIComponent(parts[i+1]).replace(/^area_/, '');
+                if (parts[i] === 'house' && i + 1 < parts.length) houseId = decodeURIComponent(parts[i+1]);
+            }
+
+            // Load timeline whenever we have area + house (regardless of DOM match)
+            console.log("PARSED", areaId, houseId);
+            if (areaId && houseId) {
+                selectHouse(areaId, houseId);
+            }
 
             // Clear previous selections
             document.querySelectorAll('.tree-item').forEach(el => {
                 el.classList.remove('bg-blue-100', 'text-blue-800', 'font-medium');
             });
 
+            // Highlight matching node and expand its parents if found in tree
             const targetLi = document.querySelector(`li[data-path="${hash}"]`);
             if (targetLi) {
                 const btn = targetLi.querySelector('.tree-item');
@@ -218,21 +240,7 @@
                     }
                     current = current.parentElement;
                 }
-                
                 targetLi.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-                // Extract areaId + houseId from hash
-                // hash format: /area/area_id/house/house_id/tenant/tenant_id
-                const parts = hash.split('/');
-                let areaId = null, houseId = null;
-                for (let i = 0; i < parts.length; i++) {
-                    if (parts[i] === 'area' && i + 1 < parts.length) areaId = decodeURIComponent(parts[i+1]);
-                    if (parts[i] === 'house' && i + 1 < parts.length) houseId = decodeURIComponent(parts[i+1]);
-                }
-
-                if (areaId && houseId) {
-                    selectHouse(areaId, houseId);
-                }
             }
         }
 
