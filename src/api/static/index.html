@@ -13,7 +13,7 @@
     <div class="flex h-screen w-full overflow-hidden">
         
         <!-- Sidebar (Resizable) -->
-        <div class="bg-gray-50 border-r overflow-y-auto flex-shrink-0 flex flex-col relative group" style="width: 288px; min-width: 200px; max-width: 50vw; resize: horizontal; overflow-x: hidden;">
+        <div id="main-sidebar" class="bg-gray-50 overflow-y-auto flex-shrink-0 flex flex-col relative group" style="width: 288px; min-width: 200px; max-width: 50vw;">
             <div class="p-4 bg-blue-600 text-white font-bold text-lg">
                 File Organizer
             </div>
@@ -24,9 +24,12 @@
                 </div>
             </div>
         </div>
+        
+        <!-- Resizer 1 -->
+        <div id="resizer-1" class="w-1.5 cursor-col-resize hover:bg-blue-400 bg-gray-200 z-10 transition-colors flex-shrink-0"></div>
 
         <!-- Main Content -->
-        <div class="flex-1 flex flex-col bg-gray-50 h-screen">
+        <div class="flex-1 flex flex-col bg-gray-50 h-screen overflow-hidden">
             
             <!-- Top Navbar with Search -->
             <nav id="top-navbar" class="bg-gray-800 p-3 flex justify-center relative shadow-md z-20">
@@ -41,15 +44,15 @@
             </nav>
 
             <!-- Header -->
-            <header class="bg-white p-4 border-b shadow-sm flex justify-between items-center z-10">
+            <header class="bg-white p-4 border-b shadow-sm flex justify-between items-center z-10 flex-shrink-0">
                 <h1 id="current-house-title" class="text-2xl font-semibold">Select a Vault</h1>
                 <div id="stats-badge" class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded hidden"></div>
             </header>
 
             <!-- Dashboard / Viewer Area -->
-            <main class="flex-1 overflow-y-auto flex">
+            <main class="flex-1 overflow-hidden flex">
                 <!-- Left panel: Documents List -->
-                <div id="document-list-panel" class="w-1/3 bg-white border-r overflow-y-auto hidden flex-col">
+                <div id="document-list-panel" class="bg-white overflow-y-auto hidden flex-col flex-shrink-0" style="width: 33%; min-width: 250px; max-width: 60vw;">
                     <!-- Tabs -->
                     <div class="flex border-b bg-gray-50">
                         <button id="tab-timeline" class="flex-1 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600">Timeline</button>
@@ -58,9 +61,12 @@
                     
                     <div id="document-list" class="p-2 space-y-2"></div>
                 </div>
+                
+                <!-- Resizer 2 -->
+                <div id="resizer-2" class="w-1.5 cursor-col-resize hover:bg-blue-400 bg-gray-200 z-10 transition-colors hidden flex-shrink-0"></div>
 
                 <!-- Right panel: Document Viewer -->
-                <div id="document-viewer-panel" class="flex-1 p-6 bg-gray-100 flex-col items-center justify-center hidden">
+                <div id="document-viewer-panel" class="flex-1 p-6 bg-gray-100 flex-col items-center justify-center hidden overflow-hidden">
                     <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl overflow-hidden flex flex-col h-full">
                         <div class="p-3 bg-gray-800 text-white flex justify-between items-center">
                             <span id="viewer-title" class="font-medium truncate">Document</span>
@@ -281,6 +287,7 @@
 
             welcomePanel.classList.add('hidden');
             docListPanel.classList.remove('hidden');
+            document.getElementById('resizer-2').classList.remove('hidden');
             docListPanel.classList.add('flex');
             docViewerPanel.classList.add('hidden'); // hide until a doc is selected
 
@@ -557,6 +564,52 @@
             }
         });
         
+        // Resizer Logic
+        function setupResizer(resizerId, panelId, isPercentage = false) {
+            const resizer = document.getElementById(resizerId);
+            const panel = document.getElementById(panelId);
+            let isResizing = false;
+            let startX;
+            let startWidth;
+
+            resizer.addEventListener('mousedown', (e) => {
+                isResizing = true;
+                startX = e.clientX;
+                startWidth = panel.getBoundingClientRect().width;
+                document.body.style.cursor = 'col-resize';
+                document.body.style.userSelect = 'none'; // Prevent text selection
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isResizing) return;
+                const deltaX = e.clientX - startX;
+                let newWidth = startWidth + deltaX;
+                
+                if (isPercentage) {
+                    const parentWidth = panel.parentElement.getBoundingClientRect().width;
+                    let percentage = (newWidth / parentWidth) * 100;
+                    // Clamp to min 20% and max 60%
+                    percentage = Math.max(20, Math.min(percentage, 60));
+                    panel.style.width = `${percentage}%`;
+                } else {
+                    // Clamp for pixel values
+                    newWidth = Math.max(200, Math.min(newWidth, window.innerWidth * 0.5));
+                    panel.style.width = `${newWidth}px`;
+                }
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isResizing) {
+                    isResizing = false;
+                    document.body.style.cursor = 'default';
+                    document.body.style.userSelect = '';
+                }
+            });
+        }
+
+        setupResizer('resizer-1', 'main-sidebar', false);
+        setupResizer('resizer-2', 'document-list-panel', true);
+
         // Init
         loadTree();
 
