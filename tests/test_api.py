@@ -110,7 +110,8 @@ def test_timeline_404_missing_state(tmp_path):
     app.state.config = MockConfig()
 
     res = client.get("/api/areas/Safra%20C/houses/1245%20-%20Ali/timeline")
-    assert res.status_code == 404
+    assert res.status_code == 200
+    assert res.json() == []
 
 
 def test_categories_uses_area_and_house(tmp_path):
@@ -198,3 +199,52 @@ def test_search_endpoint(tmp_path):
     res3 = client.get("/api/search?q=notfound")
     assert res3.status_code == 200
     assert len(res3.json()) == 0
+
+def test_search_phonetic_arabic_english(tmp_path):
+    """Test phonetic intermixing between Arabic and English names."""
+    areas_root = tmp_path / "areas"
+    areas_root.mkdir()
+    area_dir = areas_root / "Safra C"
+    area_dir.mkdir()
+    house_dir = area_dir / "789 - Phonetic House"
+    house_dir.mkdir()
+    sf = house_dir / ".source_files"
+    sf.mkdir()
+    import json
+    with open(sf / "789_state.json", "w") as f:
+        json.dump({"grouped_documents": [
+            {"primary_tenant": "محمد حسين"},
+            {"primary_tenant": "عبد الله"},
+            {"primary_tenant": "سحر ميرزا"},
+        ]}, f)
+
+    class MockConfig:
+        areas_root_path = str(areas_root)
+        area_mappings = {"Safra C": "SAF C"}
+    from src.api.server import app
+    app.state.config = MockConfig()
+    
+    # Force cache refresh if needed
+    import src.api.routes
+    src.api.routes._SEARCH_CACHE = None
+
+    # Test 1: English query -> Arabic result
+    res = client.get("/api/search?q=mohammad")
+    assert res.status_code == 200
+    assert len(res.json()) >= 1
+    assert any(item["title"] == "محمد حسين" for item in res.json())
+    
+    # Test 2: Another phonetic variant
+    res2 = client.get("/api/search?q=hussain")
+    assert res2.status_code == 200
+    assert any(item["title"] == "محمد حسين" for item in res2.json())
+    
+    # Test 3: Spaces and multi-word
+    res3 = client.get("/api/search?q=abdullah")
+    assert res3.status_code == 200
+    assert any(item["title"] == "عبد الله" for item in res3.json())
+    
+    # Test 4: Another English query
+    res4 = client.get("/api/search?q=sahar mirza")
+    assert res4.status_code == 200
+    assert any(item["title"] == "سحر ميرزا" for item in res4.json())

@@ -64,3 +64,4 @@ Last activity: 2026-09-02 — Phase 87.1 marked complete
 | Date | Slug | Description |
 |---|---|---|
 | 2026-09-02 | search-arabic-english-phonetics | Support Arabic-English phonetic intermixing in search |
+| 2026-09-02 | test-phonetic-search | Add API tests to verify cross-lingual phonetic search matching |
