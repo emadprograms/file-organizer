@@ -88,14 +88,7 @@ def test_tabs_switch_and_load_data(page: Page):
     page.click("text=Northside")
     page.click("text=123 - Test House")
 
-    # Should load timeline by default
-    expect(page.locator("#document-list")).to_contain_text("Timeline Document", timeout=5000)
-    assert any("/timeline" in u for u in captured)
-    
-    # Click Categories tab
-    page.click("text=Categories")
-    
-    # Should load categories with numbering
+    # Should load categories by default
     expect(page.locator("#document-list")).to_contain_text("10 - Category A", timeout=5000)
     expect(page.locator("#document-list")).to_contain_text("2 Documents", timeout=5000)
     assert any("/categories" in u for u in captured)
@@ -107,12 +100,13 @@ def test_tabs_switch_and_load_data(page: Page):
     
     # Click the document to open PDF
     page.click("text=Doc 101 Arabic")
-    # Verify PDF viewer opens (viewer title should match document)
+    # Verify PDF viewer opens
     expect(page.locator("#viewer-title")).to_contain_text("Doc 101 Arabic", timeout=5000)
     
-    # Click Timeline tab again
+    # Click Timeline tab
     page.click("text=Timeline")
     expect(page.locator("#document-list")).to_contain_text("Timeline Document", timeout=5000)
+    assert any("/timeline" in u for u in captured)
 
 def test_tabs_tenant_filtering(page: Page):
     captured = []
@@ -125,17 +119,17 @@ def test_tabs_tenant_filtering(page: Page):
     # Wait for house to expand and click tenant
     page.click("#house-list >> text=Ali")
 
-    # Should load timeline and filter to Ali
-    expect(page.locator("#document-list")).to_contain_text("Timeline Document", timeout=5000)
-    
-    # Click Categories tab
-    page.click("text=Categories")
-    
-    # Should show ONLY Category A and Category B without 'Ali/' prefix, and they should be numbered
+    # Should load categories and filter to Ali
     expect(page.locator("#document-list")).to_contain_text("10 - Category A", timeout=5000)
     expect(page.locator("#document-list")).not_to_contain_text("Ali/Category A", timeout=5000)
+    
+    # Click Timeline tab
+    page.click("text=Timeline")
+    
+    # Timeline should NOT filter by tenant - it should always show house timeline
+    expect(page.locator("#document-list")).to_contain_text("Timeline Document", timeout=5000)
 
-def test_tabs_auto_switch_to_timeline(page: Page):
+def test_tabs_auto_switch_to_categories(page: Page):
     captured = []
     _setup_routes(page, captured)
     
@@ -143,12 +137,12 @@ def test_tabs_auto_switch_to_timeline(page: Page):
     page.click("text=Northside")
     page.click("text=123 - Test House")
     
-    # Go to categories tab
-    page.click("text=Categories")
-    expect(page.locator("#document-list")).to_contain_text("10 - Category A", timeout=5000)
+    # Go to timeline tab
+    page.click("text=Timeline")
+    expect(page.locator("#document-list")).to_contain_text("Timeline Document", timeout=5000)
     
     # Click tenant
     page.click("#house-list >> text=Ali")
     
-    # It should automatically switch back to the Timeline tab and show Timeline Document
-    expect(page.locator("#document-list")).to_contain_text("Timeline Document", timeout=5000)
+    # It should automatically switch back to the Categories tab
+    expect(page.locator("#document-list")).to_contain_text("10 - Category A", timeout=5000)
