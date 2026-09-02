@@ -15,7 +15,14 @@ TREE_RESPONSE = """[
                 "id": "123 - Test House",
                 "name": "123 - Test House",
                 "type": "house",
-                "children": []
+                "children": [
+                    {
+                        "id": "123 - Test House_Ali",
+                        "name": "Ali",
+                        "type": "tenant",
+                        "children": []
+                    }
+                ]
             }
         ]
     }
@@ -83,3 +90,24 @@ def test_tabs_switch_and_load_data(page: Page):
     # Click Timeline tab again
     page.click("text=Timeline")
     expect(page.locator("#document-list")).to_contain_text("Timeline Document", timeout=5000)
+
+def test_tabs_tenant_filtering(page: Page):
+    captured = []
+    _setup_routes(page, captured)
+    
+    page.goto("http://localhost:9999/")
+    page.click("text=Northside")
+    page.click("text=123 - Test House")
+    
+    # Wait for house to expand and click tenant
+    page.click("#house-list >> text=Ali")
+
+    # Should load timeline and filter to Ali
+    expect(page.locator("#document-list")).to_contain_text("Timeline Document", timeout=5000)
+    
+    # Click Categories tab
+    page.click("text=Categories")
+    
+    # Should show ONLY Category A and Category B without 'Ali/' prefix
+    expect(page.locator("#document-list")).to_contain_text("Category A", timeout=5000)
+    expect(page.locator("#document-list")).not_to_contain_text("Ali/Category A", timeout=5000)

@@ -208,17 +208,21 @@
             // Always parse area + house from the hash first
             // hash format: /area/area_id/house/house_id[/tenant/tenant_id]
             const parts = hash.split('/');
-            let areaId = null, houseId = null;
+            let areaId = null, houseId = null, tenantId = null;
             for (let i = 0; i < parts.length; i++) {
-                // Strip the 'area_' prefix that the tree uses internally for node ids
                 if (parts[i] === 'area' && i + 1 < parts.length) areaId = decodeURIComponent(parts[i+1]).replace(/^area_/, '');
                 if (parts[i] === 'house' && i + 1 < parts.length) houseId = decodeURIComponent(parts[i+1]);
+                if (parts[i] === 'tenant' && i + 1 < parts.length) tenantId = decodeURIComponent(parts[i+1]);
             }
 
-            // Load timeline whenever we have area + house (regardless of DOM match)
-            console.log("PARSED", areaId, houseId);
+            let tenantName = null;
+            if (tenantId && houseId && tenantId.startsWith(houseId + '_')) {
+                tenantName = tenantId.substring(houseId.length + 1);
+            }
+
+            // Load data whenever we have area + house
             if (areaId && houseId) {
-                selectHouse(areaId, houseId);
+                selectHouse(areaId, houseId, tenantName);
             }
 
             // Clear previous selections
@@ -251,10 +255,11 @@
 
         window.addEventListener('hashchange', handleHashChange);
 
-        async function selectHouse(areaId, houseId) {
+        async function selectHouse(areaId, houseId, tenantName) {
             currentArea = areaId;
             currentHouse = houseId;
-            currentHouseTitle.textContent = houseId;
+            currentTenant = tenantName; // Will be null if no tenant selected
+            currentHouseTitle.textContent = tenantName ? `${houseId} - ${tenantName}` : houseId;
 
             welcomePanel.classList.add('hidden');
             docListPanel.classList.remove('hidden');
@@ -290,12 +295,18 @@
 
         function renderTimeline() {
             docListEl.innerHTML = '';
-            if (currentTimeline.length === 0) {
-                docListEl.innerHTML = '<p class="text-sm text-gray-500 p-2">No documents found.</p>';
+            
+            let displayTimeline = currentTimeline;
+            if (currentTenant) {
+                displayTimeline = displayTimeline.filter(doc => doc.primary_tenant === currentTenant);
+            }
+            
+            if (displayTimeline.length === 0) {
+                docListEl.innerHTML = '<p class="text-sm text-gray-500 p-2">No documents found for this selection.</p>';
                 return;
             }
             
-            currentTimeline.forEach(doc => {
+            displayTimeline.forEach(doc => {
                 const card = document.createElement('div');
                 card.className = 'p-3 border rounded-md cursor-pointer hover:border-blue-400 hover:shadow-sm bg-white transition-all';
                 
@@ -339,17 +350,28 @@
 
         function renderCategories() {
             docListEl.innerHTML = '';
-            if (currentCategories.length === 0) {
-                docListEl.innerHTML = '<p class="text-sm text-gray-500 p-2">No categories found.</p>';
+            
+            let displayCategories = currentCategories;
+            if (currentTenant) {
+                displayCategories = displayCategories.filter(cat => cat.name.startsWith(currentTenant + '/'));
+            }
+            
+            if (displayCategories.length === 0) {
+                docListEl.innerHTML = '<p class="text-sm text-gray-500 p-2">No categories found for this selection.</p>';
                 return;
             }
             
-            currentCategories.forEach(cat => {
+            displayCategories.forEach(cat => {
+                let displayName = cat.name;
+                if (currentTenant && displayName.startsWith(currentTenant + '/')) {
+                    displayName = displayName.substring(currentTenant.length + 1);
+                }
+                
                 const card = document.createElement('div');
                 card.className = 'p-3 border rounded-md bg-white mb-2';
                 card.innerHTML = `
                     <div class="flex justify-between items-start">
-                        <h4 class="text-sm font-semibold text-gray-800">${cat.name}</h4>
+                        <h4 class="text-sm font-semibold text-gray-800">${displayName}</h4>
                     </div>
                     <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
                         <span class="bg-gray-100 px-2 py-0.5 rounded">${cat.document_count} Documents</span>

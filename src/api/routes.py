@@ -108,7 +108,7 @@ async def list_categories(request: Request, area_id: str, house_id: str):
     counts: dict[str, int] = {}
     for group in state_data.get("grouped_documents", []):
         tenant = group.get("primary_tenant")
-        cat = group.get("category")
+        cat = group.get("fine_category") or group.get("category")
         if tenant and cat:
             key = f"{tenant}/{cat}"
             counts[key] = counts.get(key, 0) + 1
