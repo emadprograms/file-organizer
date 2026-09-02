@@ -62,7 +62,7 @@ See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md) for full 
 | 84. Core Navigation & Routing | v9.0 | 1/1 | Complete    | 2026-09-02 |
 | 85. Global Search & Empty States | v9.0 | 1/1 | Complete    | 2026-09-02 |
 | 86. Advanced Search UX | v9.0 | 1/1 | Complete    | 2026-09-02 |
-| 87. Extended Search Intelligence | v9.0 | 0/1 | Pending | |
+| 87. Extended Search Intelligence | v9.0 | 1/1 | Complete    | 2026-09-02 |
 | 81. Frontend Test Suite Foundation | v8.0 | 1/1 | Complete | 2026-09-02 |
 | 82. Python REST API endpoints | v8.0 | 1/1 | Complete | 2026-09-02 |
 | 83. Read-only Web GUI | v8.0 | 1/1 | Complete | 2026-09-02 |
