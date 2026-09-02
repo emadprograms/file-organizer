@@ -309,21 +309,16 @@
         const searchInput = document.getElementById('search-input');
         const searchResults = document.getElementById('search-results');
 
-        searchInput.addEventListener('keydown', async (e) => {
-            if (e.key === 'Escape') {
-                searchInput.value = '';
+        let searchTimeout = null;
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            const q = searchInput.value.trim();
+            if (!q) {
                 searchResults.classList.add('hidden');
-                searchInput.blur();
                 return;
             }
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const q = searchInput.value.trim();
-                if (!q) {
-                    searchResults.classList.add('hidden');
-                    return;
-                }
-                
+            
+            searchTimeout = setTimeout(async () => {
                 try {
                     searchResults.innerHTML = '<div class="p-4 text-center text-gray-500">Searching...</div>';
                     searchResults.classList.remove('hidden');
@@ -361,6 +356,25 @@
                 } catch (err) {
                     searchResults.innerHTML = '<div class="p-4 text-center text-red-500">Search error</div>';
                 }
+            }, 250);
+        });
+
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                searchInput.value = '';
+                searchResults.classList.add('hidden');
+                searchInput.blur();
+                return;
+            }
+            if (e.key === 'Enter') {
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                searchInput.focus();
             }
         });
 
