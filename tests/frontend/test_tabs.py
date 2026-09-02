@@ -19,6 +19,7 @@ TREE_RESPONSE = """[
                     {
                         "id": "123 - Test House_Ali",
                         "name": "Ali",
+                        "subtitle": "2024",
                         "type": "tenant",
                         "children": []
                     }
@@ -133,3 +134,21 @@ def test_tabs_tenant_filtering(page: Page):
     # Should show ONLY Category A and Category B without 'Ali/' prefix, and they should be numbered
     expect(page.locator("#document-list")).to_contain_text("10 - Category A", timeout=5000)
     expect(page.locator("#document-list")).not_to_contain_text("Ali/Category A", timeout=5000)
+
+def test_tabs_auto_switch_to_timeline(page: Page):
+    captured = []
+    _setup_routes(page, captured)
+    
+    page.goto("http://localhost:9999/")
+    page.click("text=Northside")
+    page.click("text=123 - Test House")
+    
+    # Go to categories tab
+    page.click("text=Categories")
+    expect(page.locator("#document-list")).to_contain_text("10 - Category A", timeout=5000)
+    
+    # Click tenant
+    page.click("#house-list >> text=Ali")
+    
+    # It should automatically switch back to the Timeline tab and show Timeline Document
+    expect(page.locator("#document-list")).to_contain_text("Timeline Document", timeout=5000)
