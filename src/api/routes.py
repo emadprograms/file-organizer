@@ -88,6 +88,13 @@ async def list_timeline(request: Request, area_id: str, house_id: str):
             ))
         except ValidationError:
             pass
+
+    def get_sort_date(r: TimelineGroupResponse) -> str:
+        if r.dates and r.dates[0] and r.dates[0] != "NONE":
+            return r.dates[0]
+        return "0000-00-00"
+        
+    responses.sort(key=get_sort_date, reverse=True)
     return responses
 
 @router.get("/api/areas/{area_id}/houses/{house_id}/categories", response_model=list[CategoryResponse])
@@ -151,9 +158,12 @@ async def get_pdf(request: Request, area_id: str, house_id: str, vault_id: str):
 
     if not pdf_path.exists() or not pdf_path.is_file():
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
-
     return FileResponse(pdf_path, media_type="application/pdf")
 
+def _house_sort_key(entry: Path) -> tuple[int, str]:
+    match = re.search(r'(\d+)', entry.name)
+    num = int(match.group(1)) if match else 999999999
+    return (num, entry.name)
 
 @router.get("/api/tree", response_model=list[TreeItemResponse])
 async def get_tree(request: Request):
@@ -189,7 +199,7 @@ async def get_tree(request: Request):
             )
 
         # Walk house folders inside this area
-        for house_entry in sorted(area_entry.iterdir()):
+        for house_entry in sorted(area_entry.iterdir(), key=_house_sort_key):
             if not house_entry.is_dir():
                 continue
 
@@ -205,10 +215,21 @@ async def get_tree(request: Request):
 
             state_path = house_entry / ".source_files" / f"{house_id}_state.json"
             tenants_with_dates: dict[str, set[int]] = {}
+            tenant_is_present: dict[str, bool] = {}
             if state_path.exists():
                 try:
                     with open(state_path, "r", encoding="utf-8") as f:
                         state_data = json.load(f)
+                    
+                    routed_docs = state_data.get("routed_documents", {})
+                    per_page = routed_docs.get("per_page", []) if isinstance(routed_docs, dict) else []
+                    for doc in per_page:
+                        tenant = doc.get("tenant")
+                        if tenant:
+                            tf = doc.get("target_folder", "")
+                            if "الآن" in tf or "present" in tf.lower():
+                                tenant_is_present[tenant] = True
+                    
                     for group in state_data.get("grouped_documents", []):
                         tenant = group.get("primary_tenant")
                         if tenant:
@@ -229,7 +250,9 @@ async def get_tree(request: Request):
                 if years:
                     min_val = min(years)
                     max_val = max(years)
-                    if min_val == max_val:
+                    if tenant_is_present.get(t):
+                        subtitle = f"{min_val} - Present"
+                    elif min_val == max_val:
                         subtitle = f"{min_val}"
                     else:
                         subtitle = f"{min_val} - {max_val}"
@@ -264,7 +287,7 @@ def get_search_index(areas_root: Path):
 
         area_name = area_entry.name
 
-        for house_entry in sorted(area_entry.iterdir()):
+        for house_entry in sorted(area_entry.iterdir(), key=_house_sort_key):
             if not house_entry.is_dir():
                 continue
 
