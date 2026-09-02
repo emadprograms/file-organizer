@@ -27,6 +27,19 @@
 
         <!-- Main Content -->
         <div class="flex-1 flex flex-col bg-gray-50 h-screen">
+            
+            <!-- Top Navbar with Search -->
+            <nav id="top-navbar" class="bg-gray-800 p-3 flex justify-center relative shadow-md z-20">
+                <div class="w-full max-w-2xl relative">
+                    <input id="search-input" type="search" placeholder="Search for tenant names or house numbers..." 
+                           class="w-full px-4 py-2 rounded-md border-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white placeholder-gray-400 focus:bg-white focus:text-gray-900 transition-colors" autocomplete="off" />
+                    
+                    <div id="search-results" class="hidden absolute top-full left-0 right-0 mt-2 bg-white border rounded-md shadow-xl overflow-hidden max-h-96 overflow-y-auto">
+                        <!-- Results will be injected here -->
+                    </div>
+                </div>
+            </nav>
+
             <!-- Header -->
             <header class="bg-white p-4 border-b shadow-sm flex justify-between items-center z-10">
                 <h1 id="current-house-title" class="text-2xl font-semibold">Select a Vault</h1>
@@ -73,8 +86,10 @@
 
     <script>
         // API Base URL
-        const API_BASE = '/api/houses';
+        const API_HOURSES_BASE = '/api/houses';
+        const API_TREE = '/api/tree';
         let currentHouse = null;
+        let currentTenant = null;
 
         // Elements
         const houseListEl = document.getElementById('house-list');
@@ -92,55 +107,153 @@
 
         // State
         let currentTimeline = [];
-        let currentCategories = [];
-        let activeTab = 'timeline';
 
-        // Load Houses
-        async function loadHouses() {
+        async function loadTree() {
             try {
-                const res = await fetch(API_BASE);
-                if (!res.ok) throw new Error('Failed to load houses');
-                const houses = await res.json();
+                const res = await fetch(API_TREE);
+                if (!res.ok) throw new Error('Failed to load tree');
+                const treeData = await res.json();
                 
                 houseListEl.innerHTML = '';
-                if (houses.length === 0) {
+                if (treeData.length === 0) {
                     houseListEl.innerHTML = '<p class="text-gray-400 text-sm">No vaults found.</p>';
                     return;
                 }
                 
-                houses.forEach(house => {
-                    const btn = document.createElement('button');
-                    btn.className = 'w-full text-left px-3 py-2 rounded text-sm text-gray-700 hover:bg-blue-50 focus:outline-none';
-                    btn.textContent = house.name;
-                    btn.onclick = () => selectHouse(house.id, btn);
-                    houseListEl.appendChild(btn);
-                });
+                const ul = document.createElement('ul');
+                ul.className = 'pl-2 space-y-1';
+                createTreeNodes(treeData, ul, '');
+                houseListEl.appendChild(ul);
+
+                // Check hash on load
+                handleHashChange();
             } catch (err) {
                 houseListEl.innerHTML = '<p class="text-red-400 text-sm">Error loading data.</p>';
             }
         }
 
-        async function selectHouse(houseId, btnElement) {
+        function createTreeNodes(nodes, parentEl, parentPath) {
+            nodes.forEach(node => {
+                const li = document.createElement('li');
+                const currentPath = parentPath ? `${parentPath}/${node.type}/${node.id}` : `/${node.type}/${node.id}`;
+                li.dataset.path = currentPath;
+                li.className = 'tree-node';
+
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left px-2 py-1 rounded text-sm text-gray-700 hover:bg-blue-50 focus:outline-none flex items-center tree-item';
+                
+                const icon = document.createElement('span');
+                icon.className = 'mr-2 text-gray-400 inline-block w-4 text-center';
+                icon.innerHTML = (node.children && node.children.length > 0) ? '▶' : '•';
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = node.name;
+                nameSpan.className = 'truncate';
+
+                btn.appendChild(icon);
+                btn.appendChild(nameSpan);
+                li.appendChild(btn);
+
+                let childrenContainer = null;
+                if (node.children && node.children.length > 0) {
+                    childrenContainer = document.createElement('ul');
+                    childrenContainer.className = 'pl-4 hidden space-y-1 mt-1';
+                    createTreeNodes(node.children, childrenContainer, currentPath);
+                    li.appendChild(childrenContainer);
+
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        const isHidden = childrenContainer.classList.contains('hidden');
+                        if (isHidden) {
+                            childrenContainer.classList.remove('hidden');
+                            icon.innerHTML = '▼';
+                        } else {
+                            childrenContainer.classList.add('hidden');
+                            icon.innerHTML = '▶';
+                        }
+                    };
+                }
+
+                if (node.type === 'tenant') {
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        window.location.hash = currentPath;
+                    };
+                } else if (node.type === 'house' && (!node.children || node.children.length === 0)) {
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        window.location.hash = currentPath;
+                    };
+                }
+
+                parentEl.appendChild(li);
+            });
+        }
+
+        function handleHashChange() {
+            const hash = decodeURIComponent(window.location.hash.replace('#', ''));
+            if (!hash) return;
+
+            // Clear previous selections
+            document.querySelectorAll('.tree-item').forEach(el => {
+                el.classList.remove('bg-blue-100', 'text-blue-800', 'font-medium');
+            });
+
+            const targetLi = document.querySelector(`li[data-path="${hash}"]`);
+            if (targetLi) {
+                const btn = targetLi.querySelector('.tree-item');
+                if (btn) btn.classList.add('bg-blue-100', 'text-blue-800', 'font-medium');
+
+                // Expand parents
+                let current = targetLi.parentElement;
+                while (current && current.id !== 'house-list') {
+                    if (current.tagName === 'UL') {
+                        current.classList.remove('hidden');
+                        const parentLi = current.parentElement;
+                        if (parentLi && parentLi.tagName === 'LI') {
+                            const icon = parentLi.querySelector('.tree-item span');
+                            if (icon) icon.innerHTML = '▼';
+                        }
+                    }
+                    current = current.parentElement;
+                }
+                
+                targetLi.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+                // Extract houseId and select it
+                // hash format: /area/area_id/house/house_id/tenant/tenant_id
+                const parts = hash.split('/');
+                let houseId = null;
+                for (let i = 0; i < parts.length; i++) {
+                    if (parts[i] === 'house' && i + 1 < parts.length) {
+                        houseId = parts[i+1];
+                    }
+                }
+                
+                if (houseId) {
+                    selectHouse(houseId);
+                }
+            }
+        }
+
+        window.addEventListener('hashchange', handleHashChange);
+
+        async function selectHouse(houseId) {
             currentHouse = houseId;
             currentHouseTitle.textContent = houseId;
-            
-            // Update active state in sidebar
-            Array.from(houseListEl.children).forEach(el => el.classList.remove('bg-blue-100', 'text-blue-800', 'font-medium'));
-            btnElement.classList.add('bg-blue-100', 'text-blue-800', 'font-medium');
             
             welcomePanel.classList.add('hidden');
             docListPanel.classList.remove('hidden');
             docListPanel.classList.add('flex');
             docViewerPanel.classList.add('hidden'); // hide until a doc is selected
             
-            // Load stats & timeline
             await loadTimeline(houseId);
         }
 
         async function loadTimeline(houseId) {
             docListEl.innerHTML = '<p class="text-sm text-gray-500 p-2">Loading documents...</p>';
             try {
-                const res = await fetch(`${API_BASE}/${houseId}/timeline`);
+                const res = await fetch(`${API_HOURSES_BASE}/${houseId}/timeline`);
                 if (!res.ok) throw new Error('Failed to load timeline');
                 currentTimeline = await res.json();
                 
@@ -187,13 +300,79 @@
             docViewerPanel.classList.add('flex');
             
             viewerTitle.textContent = title;
-            const pdfUrl = `${API_BASE}/${currentHouse}/pdf/${vaultId}`;
+            const pdfUrl = `${API_HOURSES_BASE}/${currentHouse}/pdf/${vaultId}`;
             pdfFrame.src = pdfUrl;
             viewerDownload.href = pdfUrl;
         }
 
+        // Search functionality
+        const searchInput = document.getElementById('search-input');
+        const searchResults = document.getElementById('search-results');
+
+        searchInput.addEventListener('keydown', async (e) => {
+            if (e.key === 'Escape') {
+                searchInput.value = '';
+                searchResults.classList.add('hidden');
+                searchInput.blur();
+                return;
+            }
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const q = searchInput.value.trim();
+                if (!q) {
+                    searchResults.classList.add('hidden');
+                    return;
+                }
+                
+                try {
+                    searchResults.innerHTML = '<div class="p-4 text-center text-gray-500">Searching...</div>';
+                    searchResults.classList.remove('hidden');
+                    
+                    const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+                    if (!res.ok) throw new Error('Search failed');
+                    const results = await res.json();
+                    
+                    if (results.length === 0) {
+                        searchResults.innerHTML = '<div class="p-4 text-center text-gray-500">No results</div>';
+                        return;
+                    }
+                    
+                    searchResults.innerHTML = '';
+                    const ul = document.createElement('ul');
+                    ul.className = 'divide-y divide-gray-100';
+                    
+                    results.forEach(item => {
+                        const li = document.createElement('li');
+                        const a = document.createElement('a');
+                        a.href = item.url;
+                        a.className = 'block p-3 hover:bg-blue-50 transition-colors';
+                        a.innerHTML = `
+                            <div class="font-medium text-gray-900">${item.title}</div>
+                            <div class="text-xs text-gray-500 mt-1">${item.subtitle}</div>
+                        `;
+                        a.onclick = () => {
+                            searchResults.classList.add('hidden');
+                        };
+                        li.appendChild(a);
+                        ul.appendChild(li);
+                    });
+                    
+                    searchResults.appendChild(ul);
+                } catch (err) {
+                    searchResults.innerHTML = '<div class="p-4 text-center text-red-500">Search error</div>';
+                }
+            }
+        });
+
+        // Close search results when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+                searchResults.classList.add('hidden');
+            }
+        });
+
         // Init
-        loadHouses();
+        loadTree();
     </script>
 </body>
 </html>

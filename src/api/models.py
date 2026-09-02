@@ -22,3 +22,16 @@ class TimelineGroupResponse(BaseModel):
     primary_tenant: str
     dates: list[str]
     brief_arabic_title: str
+
+class TreeItemResponse(BaseModel):
+    id: str
+    name: str
+    type: str
+    children: list["TreeItemResponse"] | None = None
+
+class SearchResultResponse(BaseModel):
+    id: str
+    type: str # "house" or "tenant"
+    title: str
+    subtitle: str | None = None
+    url: str # path to navigate to

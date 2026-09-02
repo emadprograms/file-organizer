@@ -9,7 +9,7 @@ from src.core.config import AppConfig
 from src.core.exceptions import ConfigurationError
 from src.api.routes import router
 
-logger = logging.getLogger("file_organizer.api")
+logger = logging.getLogger(f"file_organizer.{__name__}")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):

@@ -26,3 +26,8 @@ def test_dashboard_loads_static_file(page: Page):
     # Verify the welcome panel is visible instead
     expect(page.locator("#welcome-panel")).to_be_visible()
     expect(page.locator("text=No vault selected")).to_be_visible()
+
+    # Verify search UI elements exist
+    expect(page.locator("#search-input")).to_be_visible()
+    expect(page.locator("#search-input")).to_have_attribute("placeholder", "Search for tenant names or house numbers...")
+    expect(page.locator("#search-results")).to_be_attached()
