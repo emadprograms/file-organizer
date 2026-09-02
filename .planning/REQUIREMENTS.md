@@ -3,9 +3,10 @@
 ## Milestone v9.0 Requirements
 
 ### Global Navigation & Search
-- [ ] **NAV-01**: User can navigate a collapsible sidebar representing Areas, Houses, and Tenants (max 3 levels deep).
+
+- [x] **NAV-01**: User can navigate a collapsible sidebar representing Areas, Houses, and Tenants (max 3 levels deep).
 - [ ] **NAV-02**: User can search for a house number or person name using a global search bar.
-- [ ] **NAV-03**: User can navigate directly to specific tenants or timelines via URL routing (deep linking) which syncs with the sidebar.
+- [x] **NAV-03**: User can navigate directly to specific tenants or timelines via URL routing (deep linking) which syncs with the sidebar.
 - [ ] **NAV-04**: User receives clear visual feedback for empty folders or search queries with no results.
 - [ ] **NAV-05**: User can execute a search with Enter and clear/close it with Esc.
 - [ ] **NAV-06**: User can open the search bar instantly using a Cmd/Ctrl+K keyboard shortcut.
