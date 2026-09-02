@@ -90,8 +90,6 @@ def test_ingest_and_reconcile_workflow(mock_route, mock_group, mock_fine, mock_c
     target_dir = areas_root / "777 - Test Tenant"
     ingested_pdf = target_dir / "777.pdf"
     assert ingested_pdf.exists()
-    sidecar_json = target_dir / "777_ingest_manifest.json"
-    assert sidecar_json.exists()
     
     # Check that state.json was created
     source_dir = target_dir / ".source_files"

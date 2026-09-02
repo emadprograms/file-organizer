@@ -1,5 +1,6 @@
 import json
 import re
+import difflib
 from pathlib import Path
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import FileResponse
@@ -245,7 +246,20 @@ async def search(request: Request, q: str = ""):
                         tenants.add(tenant)
                         
                 for t in tenants:
-                    if q in t.lower():
+                    t_lower = t.lower()
+                    is_match = False
+                    if q in t_lower:
+                        is_match = True
+                    else:
+                        # Fuzzy match for typo tolerance
+                        if len(q.split()) == 1:
+                            if difflib.get_close_matches(q, t_lower.split(), n=1, cutoff=0.7):
+                                is_match = True
+                        else:
+                            if difflib.SequenceMatcher(None, q, t_lower).ratio() >= 0.7:
+                                is_match = True
+                                
+                    if is_match:
                         results.append(SearchResultResponse(
                             id=f"{house_dir_name}_{t}",
                             type="tenant",
@@ -256,5 +270,37 @@ async def search(request: Request, q: str = ""):
             except Exception:
                 pass
                 
-    return results[:50]
+        report_path = entry / ".source_files" / f"{house_id}_report.json"
+        if report_path.exists():
+            try:
+                with open(report_path, "r", encoding="utf-8") as f:
+                    report_data = json.load(f)
+                    
+                for doc in report_data.get("documents", []):
+                    content = doc.get("content", "").lower()
+                    title = doc.get("brief_arabic_title", "").lower()
+                    if q in content or q in title:
+                        vault_id = doc.get("vault_id", "")
+                        doc_title = doc.get("brief_arabic_title", "Document")
+                        # URL routes to the house so they can see the timeline
+                        results.append(SearchResultResponse(
+                            id=f"{house_dir_name}_doc_{vault_id}",
+                            type="document",
+                            title=doc_title,
+                            subtitle=f"Document in {house_dir_name}",
+                            url=f"/#/area/{area_path}/house/{house_dir_name}"
+                        ))
+            except Exception:
+                pass
+                
+    # deduplicate results by id to avoid showing the same document or tenant multiple times
+    # actually, dict preserves insertion order since 3.7
+    seen = set()
+    unique_results = []
+    for r in results:
+        if r.id not in seen:
+            seen.add(r.id)
+            unique_results.append(r)
+            
+    return unique_results[:50]
 

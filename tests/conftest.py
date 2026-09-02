@@ -36,3 +36,4 @@ def mock_tenant_timeline_dict() -> None:
         "min_date": "2023-01-01",
         "max_date": "2023-12-31"
     }
+

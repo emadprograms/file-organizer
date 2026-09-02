@@ -69,6 +69,17 @@ def test_search_endpoint(tmp_path):
     import json
     with open(source_files / "456_state.json", "w") as f:
         json.dump({"grouped_documents": [{"primary_tenant": "Zaid Searcher"}]}, f)
+        
+    with open(source_files / "456_report.json", "w") as f:
+        json.dump({
+            "documents": [
+                {
+                    "vault_id": "doc_abc",
+                    "brief_arabic_title": "Hidden Contract",
+                    "content": "some very specific hidden term inside the document text"
+                }
+            ]
+        }, f)
 
     class MockConfig:
         areas_root_path = str(areas_root)
@@ -83,13 +94,30 @@ def test_search_endpoint(tmp_path):
     assert data[0]["type"] == "house"
     assert data[0]["id"] == "456 - Search House"
     
-    # Search for tenant
+    # Search for tenant exact
     res2 = client.get("/api/search?q=zaid")
     assert res2.status_code == 200
     data2 = res2.json()
     assert len(data2) == 1
     assert data2[0]["type"] == "tenant"
     assert data2[0]["title"] == "Zaid Searcher"
+    
+    # Search for tenant fuzzy typo (zaid -> zeid)
+    res_fuzzy = client.get("/api/search?q=zeid")
+    assert res_fuzzy.status_code == 200
+    data_fuzzy = res_fuzzy.json()
+    assert len(data_fuzzy) == 1
+    assert data_fuzzy[0]["type"] == "tenant"
+    assert data_fuzzy[0]["title"] == "Zaid Searcher"
+    
+    # Search for document content
+    res_doc = client.get("/api/search?q=hidden term")
+    assert res_doc.status_code == 200
+    data_doc = res_doc.json()
+    assert len(data_doc) == 1
+    assert data_doc[0]["type"] == "document"
+    assert data_doc[0]["title"] == "Hidden Contract"
+    assert "456 - Search House" in data_doc[0]["id"]
 
     # Search empty
     res3 = client.get("/api/search?q=notfound")

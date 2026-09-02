@@ -31,7 +31,7 @@ class TreeItemResponse(BaseModel):
 
 class SearchResultResponse(BaseModel):
     id: str
-    type: str # "house" or "tenant"
+    type: str # "house", "tenant", or "document"
     title: str
     subtitle: str | None = None
     url: str # path to navigate to

@@ -89,6 +89,12 @@ def create_shortcut(target_path: str, link_path: str) -> None:
     import base64
     import os
     
+    if os.name != 'nt':
+        import codecs
+        with codecs.open(link_path, 'w', encoding='utf-8') as f:
+            f.write(target_path)
+        return
+        
     # Strip \\?\ prefix if present, WScript.Shell does not support it
     clean_target = str(target_path).replace('/', '\\')
     if clean_target.startswith("\\\\?\\UNC\\"):
@@ -121,6 +127,11 @@ def read_shortcut_target(link_path: str) -> str | None:
     if not os.path.exists(link_path):
         return None
         
+    if os.name != 'nt':
+        import codecs
+        with codecs.open(link_path, 'r', encoding='utf-8') as f:
+            return f.read()
+            
     results = batch_read_shortcut_targets([link_path])
     return results.get(os.path.abspath(link_path))
 
@@ -132,7 +143,13 @@ def batch_create_shortcuts(items: list[dict]) -> None:
     """
     import subprocess
     import tempfile
-    if os.name != 'nt' or not items:
+    import os
+    if not items:
+        return
+        
+    if os.name != 'nt':
+        for item in items:
+            create_shortcut(item['target'], item['link'])
         return
         
     import json
@@ -168,8 +185,17 @@ def batch_read_shortcut_targets(link_paths: list[str]) -> dict[str, str]:
     """
     import subprocess
     import tempfile
-    if os.name != 'nt' or not link_paths:
+    import os
+    if not link_paths:
         return {}
+        
+    if os.name != 'nt':
+        res = {}
+        for l in link_paths:
+            val = read_shortcut_target(l)
+            if val:
+                res[os.path.abspath(l)] = val
+        return res
         
     import json
     ps_script_path = os.path.join(os.path.dirname(__file__), "windows_shortcut.ps1")
