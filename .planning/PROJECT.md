@@ -4,13 +4,15 @@
 
 A document management system that processes scanned Arabic PDFs, categorizes them using LLM vision, groups related pages, and organizes them into a structured folder hierarchy per tenant household. The system runs on Windows and uses a Vault-based architecture with shortcuts for file organization and bidirectional reconciliation.
 
-## Current Milestone: v8.0 Web-Based File Viewer
+## Current Milestone: v9.0 Hierarchical Web Dashboard
 
-**Goal:** Build a read-only web GUI to browse the organized documents, driven by a REST API that can be ported to C# in the future.
+**Goal:** Completely revamp the Web GUI into a hierarchical dashboard with global search functionality mirroring the native disk structure.
 
 **Target features:**
-- Python REST API (exposing vault, timelines, and organized folders)
-- Read-only Web Frontend (browsing documents and metadata)
+- Hierarchical drill-down sidebar (Areas -> Houses -> Tenants/Timelines) reading from `areas_root_path`.
+- Top navigation search bar for instant jump by house number or person name.
+- Strict TDD for backend (pytest directory-scanning and search APIs).
+- Strict TDD for frontend (Playwright UI hierarchy E2E tests).
 
 ## Core Value
 
@@ -111,8 +113,9 @@ Documents are safely stored once in an immutable vault; all organization is done
 - âœ… Shipped v5.2 Deep Architecture Integrity & Verification on 2026-08-01.
 - âœ… Shipped v5.3 Reconciliation Engine Upgrade on 2026-08-01.
 - âœ… Shipped v5.4 Architectural Consistency Refactor on 2026-08-02.
-- â¸ï¸ Pivoted from v5.5 (Lossless Undo) to v6.0 (LLM Accuracy) on 2026-08-10.
+- â ¸ï¸  Pivoted from v5.5 (Lossless Undo) to v6.0 (LLM Accuracy) on 2026-08-10.
 - âœ… Shipped v6.0 LLM Accuracy & Evaluation on 2026-08-12.
+- âœ… Shipped v8.0 Web-Based File Viewer on 2026-09-02.
 
 ## Context
 
@@ -154,5 +157,18 @@ Documents are safely stored once in an immutable vault; all organization is done
 
 This document evolves at phase transitions and milestone boundaries.
 
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
+
 ---
-*Last updated: 2026-09-01 - Transitioning to v8.0: Web-Based File Viewer.*
+*Last updated: 2026-09-02 - Transitioning to v9.0: Hierarchical Web Dashboard.*

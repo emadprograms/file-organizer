@@ -1,20 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v8.0
-milestone_name: Web-Based File Viewer
-current_phase: 83
-status: Awaiting next milestone
-stopped_at: Completed 82-1-PLAN.md
-last_updated: "2026-09-02T04:10:12.846Z"
+milestone: v9.0
+milestone_name: Hierarchical Web Dashboard
+status: planning
+last_updated: "2026-09-02T04:35:22.873Z"
 last_activity: 2026-09-02
-last_activity_desc: Milestone v8.0 completed and archived
 progress:
-  total_phases: 3
-  completed_phases: 2
-  total_plans: 2
-  completed_plans: 2
-  percent: 67
-current_phase_name: read-only-web-gui-gui-01-gui-02-gui-03-gui-04
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Milestone State
@@ -32,10 +28,10 @@ This milestone focuses on decoupling the AI pipeline from the fragile background
 
 ## Current Position
 
-Phase: Milestone v8.0 complete
+Phase: Not started (defining requirements)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-09-02 — Milestone v8.0 completed and archived
+Status: Defining requirements
+Last activity: 2026-09-02 — Milestone v9.0 started
 
 ## Session
 
