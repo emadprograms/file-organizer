@@ -2,24 +2,24 @@
 gsd_state_version: 1.0
 milestone: v9.0
 milestone_name: Hierarchical Web Dashboard
-current_phase: 85 — Global Search & Empty States
+current_phase: 86 — Advanced Search UX
 status: planning
 stopped_at: Created roadmap for v9.0
-last_updated: "2026-09-02T05:00:44.345Z"
+last_updated: "2026-09-02T05:06:27.234Z"
 last_activity: 2026-09-02
-last_activity_desc: Phase 84 complete, transitioned to Phase 85
+last_activity_desc: Phase 85 complete, transitioned to Phase 86
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
-  percent: 25
+  completed_phases: 2
+  total_plans: 2
+  completed_plans: 2
+  percent: 50
 ---
 
 # Milestone State
 
 **Current Milestone:** v9.0: Hierarchical Web Dashboard
-**Current Phase:** 85 — Global Search & Empty States
+**Current Phase:** 86 — Advanced Search UX
 
 ## Context
 
@@ -35,7 +35,7 @@ This milestone focuses on completely revamping the Web GUI into a hierarchical d
 Phase: 84
 Plan: Not started
 Status: Planning Phase 84
-Last activity: 2026-09-02 — Phase 84 complete, transitioned to Phase 85
+Last activity: 2026-09-02 — Phase 85 complete, transitioned to Phase 86
 
 ## Session
 
