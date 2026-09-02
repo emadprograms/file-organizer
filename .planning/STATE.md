@@ -58,3 +58,9 @@ Last activity: 2026-09-02 — Phase 87.1 marked complete
 ### Roadmap Evolution
 
 - Phase 87.1 inserted after Phase 87: Make frontend tests detailed: simulate clicks, interactions, and deep assertions to prevent shallow testing (URGENT)
+
+## Quick Tasks Completed
+
+| Date | Slug | Description |
+|---|---|---|
+| 2026-09-02 | search-arabic-english-phonetics | Support Arabic-English phonetic intermixing in search |

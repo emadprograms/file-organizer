@@ -1,4 +1,5 @@
 import json
+import base64
 import re
 import difflib
 import time
@@ -14,6 +15,26 @@ router = APIRouter()
 
 NOT_FOUND_DETAIL = "{\"error\": \"Resource not found.\", \"solution\": \"Verify the endpoint URL and the resource ID.\"}"
 
+def phonetic_normalize(text: str) -> str:
+    text = text.lower()
+    ar_to_en = {
+        'ا': '', 'أ': '', 'إ': '', 'آ': '', 'ى': '',
+        'ب': 'b', 'ت': 't', 'ث': 'th', 'ج': 'j', 'ح': 'h', 'خ': 'kh',
+        'د': 'd', 'ذ': 'dh', 'ر': 'r', 'ز': 'z', 'س': 's', 'ش': 'sh',
+        'ص': 's', 'ض': 'd', 'ط': 't', 'ظ': 'dh', 'ع': '', 'غ': 'gh',
+        'ف': 'f', 'ق': 'q', 'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n',
+        'ه': 'h', 'ة': 'h', 'و': '', 'ي': '', 'ئ': '', 'ؤ': '', 'ء': ''
+    }
+    res = []
+    for char in text:
+        res.append(ar_to_en.get(char, char))
+    text = "".join(res)
+    text = re.sub(r'[aeiouyw]', '', text)
+    text = text.replace('ph', 'f').replace('ck', 'k').replace('c', 'k')
+    text = text.replace('th', 't').replace('dh', 'd').replace('kh', 'k').replace('gh', 'g').replace('sh', 's')
+    text = re.sub(r'(.)\1+', r'\1', text)
+    return text.strip()
+
 def validate_id(id_str: str, pattern: str) -> None:
     if not re.match(pattern, id_str):
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
@@ -26,10 +47,10 @@ def _get_document_groups(state_data: dict) -> list[dict]:
     grouped = state_data.get("grouped_documents", [])
     if isinstance(grouped, list) and grouped and grouped[0].get("vault_id"):
         return grouped
-    if isinstance(routed, list) and routed:
-        return routed
     if isinstance(grouped, list) and grouped:
         return grouped
+    if isinstance(routed, list) and routed:
+        return routed
     return []
 
 
@@ -84,26 +105,45 @@ async def list_timeline(request: Request, area_id: str, house_id: str):
     house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
     state_path = areas_root / area_id / house_id / ".source_files" / f"{house_num}_state.json"
 
-    if not state_path.exists():
-        raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
-
-    try:
-        with open(state_path, "r", encoding="utf-8") as f:
-            state_data = json.load(f)
-    except Exception:
-        raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
-
     responses = []
-    for group in _get_document_groups(state_data):
+    if state_path.exists():
         try:
-            responses.append(TimelineGroupResponse(
-                vault_id=group.get("vault_id", ""),
-                primary_tenant=group.get("primary_tenant", "") or "",
-                dates=group.get("dates", []),
-                brief_arabic_title=group.get("brief_arabic_title", "")
-            ))
-        except ValidationError:
-            pass
+            with open(state_path, "r", encoding="utf-8") as f:
+                state_data = json.load(f)
+        except Exception:
+            raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
+
+        for group in _get_document_groups(state_data):
+            try:
+                responses.append(TimelineGroupResponse(
+                    vault_id=group.get("vault_id", ""),
+                    primary_tenant=group.get("primary_tenant", "") or "",
+                    dates=group.get("dates", []),
+                    brief_arabic_title=group.get("brief_arabic_title", "")
+                ))
+            except ValidationError:
+                pass
+    else:
+        house_entry = areas_root / area_id / house_id
+        if house_entry.exists():
+            for tenant_dir in house_entry.iterdir():
+                if tenant_dir.is_dir() and tenant_dir.name != ".source_files":
+                    m = re.match(r'^(.*?)\s*‎?\((.*?)\)‎?$', tenant_dir.name)
+                    t_name = m.group(1).strip() if m else tenant_dir.name
+                    for cat_dir in tenant_dir.iterdir():
+                        if cat_dir.is_dir():
+                            for doc_file in cat_dir.glob("*.pdf"):
+                                doc_m = re.match(r'^(\d{4}-\d{2}-\d{2})\s*-\s*(.*?)\.pdf$', doc_file.name)
+                                date_str = doc_m.group(1) if doc_m else ""
+                                title = doc_m.group(2) if doc_m else doc_file.stem
+                                rel_path = str(doc_file.relative_to(house_entry))
+                                encoded = base64.urlsafe_b64encode(rel_path.encode('utf-8')).decode('utf-8').rstrip("=")
+                                responses.append(TimelineGroupResponse(
+                                    vault_id=f"fs_{encoded}",
+                                    primary_tenant=t_name,
+                                    dates=[date_str] if date_str else [],
+                                    brief_arabic_title=title
+                                ))
 
     def get_sort_date(r: TimelineGroupResponse) -> str:
         if r.dates and r.dates[0] and r.dates[0] != "NONE":
@@ -120,40 +160,68 @@ async def list_categories(request: Request, area_id: str, house_id: str):
     house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
     state_path = areas_root / area_id / house_id / ".source_files" / f"{house_num}_state.json"
 
-    if not state_path.exists():
-        raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
-
-    try:
-        with open(state_path, "r", encoding="utf-8") as f:
-            state_data = json.load(f)
-    except Exception:
-        raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
-
     from src.routing.config import FOLDER_PREFIXES
     from src.api.models import VaultFileResponse
-
+    
     categories: dict[tuple[str, str], list[VaultFileResponse]] = {}
-    for group in _get_document_groups(state_data):
-        tenant = group.get("primary_tenant")
-        cat_raw = group.get("folder_path") or group.get("category")
-        if tenant and cat_raw:
-            prefix = FOLDER_PREFIXES.get(cat_raw, "")
-            cat_numbered = f"{prefix} - {cat_raw}" if prefix else cat_raw
-            key = (tenant, cat_numbered)
-            
-            if key not in categories:
-                categories[key] = []
-            
-            doc = VaultFileResponse(
-                vault_id=group.get("vault_id", ""),
-                filename=group.get("filename", ""),
-                start_page=group.get("start_page", 1),
-                end_page=group.get("end_page", 1),
-                date=group.get("dates", [""])[0] if group.get("dates") else "",
-                tenant=tenant,
-                brief_arabic_title=group.get("brief_arabic_title", "")
-            )
-            categories[key].append(doc)
+    
+    if state_path.exists():
+        try:
+            with open(state_path, "r", encoding="utf-8") as f:
+                state_data = json.load(f)
+        except Exception:
+            raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
+
+        for group in _get_document_groups(state_data):
+            tenant = group.get("primary_tenant")
+            cat_raw = group.get("folder_path") or group.get("category")
+            if tenant and cat_raw:
+                prefix = FOLDER_PREFIXES.get(cat_raw, "")
+                cat_numbered = f"{prefix} - {cat_raw}" if prefix else cat_raw
+                key = (tenant, cat_numbered)
+                
+                if key not in categories:
+                    categories[key] = []
+                
+                doc = VaultFileResponse(
+                    vault_id=group.get("vault_id", ""),
+                    filename=group.get("filename", ""),
+                    start_page=group.get("start_page", 1),
+                    end_page=group.get("end_page", 1),
+                    date=group.get("dates", [""])[0] if group.get("dates") else "",
+                    tenant=tenant,
+                    brief_arabic_title=group.get("brief_arabic_title", "")
+                )
+                categories[key].append(doc)
+    else:
+        house_entry = areas_root / area_id / house_id
+        if house_entry.exists():
+            for tenant_dir in house_entry.iterdir():
+                if tenant_dir.is_dir() and tenant_dir.name != ".source_files":
+                    m = re.match(r'^(.*?)\s*‎?\((.*?)\)‎?$', tenant_dir.name)
+                    t_name = m.group(1).strip() if m else tenant_dir.name
+                    for cat_dir in tenant_dir.iterdir():
+                        if cat_dir.is_dir():
+                            cat_raw = cat_dir.name
+                            key = (t_name, cat_raw)
+                            if key not in categories:
+                                categories[key] = []
+                            for doc_file in cat_dir.glob("*.pdf"):
+                                doc_m = re.match(r'^(\d{4}-\d{2}-\d{2})\s*-\s*(.*?)\.pdf$', doc_file.name)
+                                date_str = doc_m.group(1) if doc_m else ""
+                                title = doc_m.group(2) if doc_m else doc_file.stem
+                                rel_path = str(doc_file.relative_to(house_entry))
+                                encoded = base64.urlsafe_b64encode(rel_path.encode('utf-8')).decode('utf-8').rstrip("=")
+                                doc = VaultFileResponse(
+                                    vault_id=f"fs_{encoded}",
+                                    filename=doc_file.name,
+                                    start_page=1,
+                                    end_page=1,
+                                    date=date_str,
+                                    tenant=t_name,
+                                    brief_arabic_title=title
+                                )
+                                categories[key].append(doc)
 
     return [
         CategoryResponse(
@@ -170,7 +238,17 @@ async def get_pdf(request: Request, area_id: str, house_id: str, vault_id: str):
     validate_id(vault_id, r"^[a-zA-Z0-9_-]+$")
     config = request.app.state.config
     areas_root = Path(config.areas_root_path)
-    pdf_path = areas_root / area_id / house_id / ".source_files" / "vault" / f"doc_{vault_id}.pdf"
+    house_dir = areas_root / area_id / house_id
+    if vault_id.startswith("fs_"):
+        try:
+            b64_str = vault_id[3:]
+            b64_str += "=" * ((4 - len(b64_str) % 4) % 4)
+            rel_path = base64.urlsafe_b64decode(b64_str).decode('utf-8')
+            pdf_path = house_dir / rel_path
+        except Exception:
+            raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
+    else:
+        pdf_path = house_dir / ".source_files" / "vault" / f"doc_{vault_id}.pdf"
 
     if not pdf_path.exists() or not pdf_path.is_file():
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
@@ -328,17 +406,49 @@ def get_search_index(areas_root: Path):
             })
 
             state_path = house_entry / ".source_files" / f"{house_id}_state.json"
+            house_tenants: set[str] = set()
             if state_path.exists():
                 try:
                     with open(state_path, "r", encoding="utf-8") as f:
                         state_data = json.load(f)
 
-                    house_tenants: set[str] = set()
                     for group in _get_document_groups(state_data):
                         tenant = group.get("primary_tenant")
                         if tenant:
                             house_tenants.add(tenant)
 
+                    for t in house_tenants:
+                        tenants.append({
+                            "tenant_name": t,
+                            "house_dir_name": house_dir_name,
+                            "area_name": area_name
+                        })
+                except Exception:
+                    pass
+            else:
+                try:
+                    for tenant_dir in house_entry.iterdir():
+                        if tenant_dir.is_dir() and tenant_dir.name != ".source_files":
+                            m = re.match(r'^(.*?)\s*‎?\((.*?)\)‎?$', tenant_dir.name)
+                            t_name = m.group(1).strip() if m else tenant_dir.name
+                            house_tenants.add(t_name)
+                            
+                            for cat_dir in tenant_dir.iterdir():
+                                if cat_dir.is_dir():
+                                    for doc_file in cat_dir.glob("*.pdf"):
+                                        doc_m = re.match(r'^(\d{4}-\d{2}-\d{2})\s*-\s*(.*?)\.pdf$', doc_file.name)
+                                        title = doc_m.group(2) if doc_m else doc_file.stem
+                                        rel_path = str(doc_file.relative_to(house_entry))
+                                        encoded = base64.urlsafe_b64encode(rel_path.encode('utf-8')).decode('utf-8').rstrip("=")
+                                        documents.append({
+                                            "content": "",
+                                            "title_field": title.lower(),
+                                            "vault_id": f"fs_{encoded}",
+                                            "doc_title": title,
+                                            "house_dir_name": house_dir_name,
+                                            "area_name": area_name
+                                        })
+                                        
                     for t in house_tenants:
                         tenants.append({
                             "tenant_name": t,
@@ -399,18 +509,25 @@ async def search(request: Request, q: str = ""):
                 url=f"/#/area/{h['area_name']}/house/{h['house_dir_name']}"
             ))
             
+    q_phonetic = phonetic_normalize(q)
+    
     for t in index["tenants"]:
         t_name = t["tenant_name"]
         t_lower = t_name.lower()
+        t_phonetic = phonetic_normalize(t_lower)
         is_match = False
         if q in t_lower:
             is_match = True
+        elif q_phonetic.replace(" ", "") in t_phonetic.replace(" ", ""):
+            is_match = True
         else:
             if len(q.split()) == 1:
-                if difflib.get_close_matches(q, t_lower.split(), n=1, cutoff=0.7):
+                if difflib.get_close_matches(q, t_lower.split(), n=1, cutoff=0.7) or \
+                   difflib.get_close_matches(q_phonetic, t_phonetic.split(), n=1, cutoff=0.7):
                     is_match = True
             else:
-                if difflib.SequenceMatcher(None, q, t_lower).ratio() >= 0.7:
+                if difflib.SequenceMatcher(None, q, t_lower).ratio() >= 0.7 or \
+                   difflib.SequenceMatcher(None, q_phonetic, t_phonetic).ratio() >= 0.7:
                     is_match = True
         if is_match:
             results.append(SearchResultResponse(
