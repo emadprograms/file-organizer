@@ -371,9 +371,10 @@
                 for (const [name, data] of Object.entries(agg)) {
                     displayCategories.push({ name: name, document_count: data.count, documents: data.documents });
                 }
-                // Sort by name
-                displayCategories.sort((a, b) => a.name.localeCompare(b.name));
             }
+            
+            // Unconditionally sort by name, using natural numeric sorting (e.g. 2 comes before 10)
+            displayCategories.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
             
             if (displayCategories.length === 0) {
                 docListEl.innerHTML = '<p class="text-sm text-gray-500 p-2">No categories found for this selection.</p>';
