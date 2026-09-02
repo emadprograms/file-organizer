@@ -56,7 +56,7 @@ function buildPreviewModule({ viewportW = 1280, viewportH = 800 } = {}) {
   }
 
   function showPreview(vaultId, title, mx, my, area = 'TestArea', house = 'TestHouse') {
-    const pdfUrl = `/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/pdf/${vaultId}#view=FitH`;
+    const pdfUrl = `/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/pdf/${vaultId}#toolbar=0&view=FitH`;
 
     clearTimeout(hideTimer);
     clearTimeout(showTimer);
@@ -172,12 +172,13 @@ describe('PDF Hover Preview — iframe URL and title', () => {
   beforeEach(() => { setupDOM(); vi.useFakeTimers(); });
   afterEach(() => { document.body.innerHTML = ''; vi.useRealTimers(); });
 
-  it('sets correct PDF URL on the iframe', () => {
+  it('sets correct PDF URL on the iframe with toolbar suppressed', () => {
     const { iframe, showPreview, PREVIEW_DELAY_MS } = buildPreviewModule();
     showPreview('abc123', 'My Doc', 100, 100, 'Eastside', '55 - House');
     vi.advanceTimersByTime(PREVIEW_DELAY_MS);
     expect(iframe.src).toContain('/api/areas/Eastside/houses/55%20-%20House/pdf/abc123');
-    expect(iframe.src).toContain('#view=FitH');
+    expect(iframe.src).toContain('toolbar=0');
+    expect(iframe.src).toContain('view=FitH');
   });
 
   it('sets the preview title in the header bar', () => {

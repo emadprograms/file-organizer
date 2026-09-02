@@ -147,6 +147,7 @@ def test_tooltip_iframe_uses_correct_pdf_url_timeline(page: Page):
     assert "preview_doc_1" in iframe_src, f"Expected vault_id in iframe src, got: {iframe_src}"
     assert "Northside" in iframe_src, f"Expected area name in iframe src, got: {iframe_src}"
     assert "55" in iframe_src, f"Expected house in iframe src, got: {iframe_src}"
+    assert "toolbar=0" in iframe_src, f"Expected toolbar=0 in iframe src to hide PDF toolbar, got: {iframe_src}"
 
 
 def test_tooltip_disappears_on_mouseleave_timeline(page: Page):

@@ -698,7 +698,7 @@
         }
 
         function showPreview(vaultId, title, mouseX, mouseY) {
-            const pdfUrl = `/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/pdf/${vaultId}#view=FitH`;
+            const pdfUrl = `/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/pdf/${vaultId}#toolbar=0&view=FitH`;
 
             clearTimeout(previewHideTimer);
             clearTimeout(previewShowTimer);
