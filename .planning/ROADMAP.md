@@ -72,8 +72,10 @@ See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md) for full 
 **Goal:** [Urgent work - to be planned]
 **Requirements**: TBD
 **Depends on:** Phase 87
-**Plans:** 0 plans
+**Plans:** 1/1 plans complete
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 87.1 to break down)
+- [x] 1-frontend-tests-PLAN.md
+
+- [x] TBD (run /gsd-plan-phase 87.1 to break down) (completed 2026-09-02)
