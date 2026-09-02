@@ -105,15 +105,15 @@ async def list_categories(request: Request, area_id: str, house_id: str):
     except Exception:
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
 
-    counts: dict[str, int] = {}
+    counts: dict[tuple[str, str], int] = {}
     for group in state_data.get("grouped_documents", []):
         tenant = group.get("primary_tenant")
-        cat = group.get("fine_category") or group.get("category")
+        cat = group.get("folder_path") or group.get("category")
         if tenant and cat:
-            key = f"{tenant}/{cat}"
+            key = (tenant, cat)
             counts[key] = counts.get(key, 0) + 1
 
-    return [CategoryResponse(name=k, document_count=v) for k, v in counts.items()]
+    return [CategoryResponse(tenant=t, name=c, document_count=v) for (t, c), v in counts.items()]
 
 @router.get("/api/areas/{area_id}/houses/{house_id}/pdf/{vault_id}")
 async def get_pdf(request: Request, area_id: str, house_id: str, vault_id: str):

@@ -351,9 +351,23 @@
         function renderCategories() {
             docListEl.innerHTML = '';
             
-            let displayCategories = currentCategories;
+            let displayCategories = [];
+            
             if (currentTenant) {
-                displayCategories = displayCategories.filter(cat => cat.name.startsWith(currentTenant + '/'));
+                // Show categories for this tenant
+                displayCategories = currentCategories.filter(cat => cat.tenant === currentTenant);
+            } else {
+                // If house level, aggregate categories by name across all tenants
+                const agg = {};
+                currentCategories.forEach(cat => {
+                    if (!agg[cat.name]) agg[cat.name] = 0;
+                    agg[cat.name] += cat.document_count;
+                });
+                for (const [name, count] of Object.entries(agg)) {
+                    displayCategories.push({ name: name, document_count: count });
+                }
+                // Sort by name
+                displayCategories.sort((a, b) => a.name.localeCompare(b.name));
             }
             
             if (displayCategories.length === 0) {
@@ -362,16 +376,11 @@
             }
             
             displayCategories.forEach(cat => {
-                let displayName = cat.name;
-                if (currentTenant && displayName.startsWith(currentTenant + '/')) {
-                    displayName = displayName.substring(currentTenant.length + 1);
-                }
-                
                 const card = document.createElement('div');
                 card.className = 'p-3 border rounded-md bg-white mb-2';
                 card.innerHTML = `
                     <div class="flex justify-between items-start">
-                        <h4 class="text-sm font-semibold text-gray-800">${displayName}</h4>
+                        <h4 class="text-sm font-semibold text-gray-800">${cat.name}</h4>
                     </div>
                     <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
                         <span class="bg-gray-100 px-2 py-0.5 rounded">${cat.document_count} Documents</span>

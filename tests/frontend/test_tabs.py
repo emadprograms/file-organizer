@@ -39,12 +39,19 @@ TIMELINE_RESPONSE = """[
 
 CATEGORIES_RESPONSE = """[
     {
-        "name": "Ali/Category A",
+        "tenant": "Ali",
+        "name": "Category A",
         "document_count": 2
     },
     {
-        "name": "Ali/Category B",
+        "tenant": "Ali",
+        "name": "Category B",
         "document_count": 5
+    },
+    {
+        "tenant": "Bob",
+        "name": "Category C",
+        "document_count": 1
     }
 ]"""
 

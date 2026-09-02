@@ -128,9 +128,9 @@ def test_categories_uses_area_and_house(tmp_path):
     import json
     with open(sf / "1245_state.json", "w") as f:
         json.dump({"grouped_documents": [
-            {"primary_tenant": "Ali", "fine_category": "03_عقد", "category": "عقد"},
-            {"primary_tenant": "Ali", "fine_category": "03_عقد", "category": "عقد"},
-            {"primary_tenant": "Bob", "fine_category": "09_إيصال", "category": "إيصال"},
+            {"primary_tenant": "Ali", "folder_path": "عقد", "category": "عقد"},
+            {"primary_tenant": "Ali", "folder_path": "عقد", "category": "عقد"},
+            {"primary_tenant": "Bob", "folder_path": "إيصال", "category": "إيصال"},
         ]}, f)
 
     class MockConfig:
@@ -142,8 +142,8 @@ def test_categories_uses_area_and_house(tmp_path):
     assert res.status_code == 200
     data = res.json()
     names = {d["name"] for d in data}
-    assert "Ali/03_عقد" in names
-    assert "Bob/09_إيصال" in names
+    assert any(c.get("tenant") == "Ali" and c["name"] == "عقد" for c in res.json()), res.json()
+    assert any(c.get("tenant") == "Bob" and c["name"] == "إيصال" for c in res.json())
 
 
 def test_search_endpoint(tmp_path):

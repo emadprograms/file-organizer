@@ -14,6 +14,7 @@ class VaultFileResponse(BaseModel):
     tenant: str
 
 class CategoryResponse(BaseModel):
+    tenant: str
     name: str
     document_count: int
 
