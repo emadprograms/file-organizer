@@ -31,22 +31,20 @@
         <!-- Main Content -->
         <div class="flex-1 flex flex-col bg-gray-50 h-screen overflow-hidden">
             
-            <!-- Top Navbar with Search -->
-            <nav id="top-navbar" class="bg-gray-800 p-3 flex justify-center relative shadow-md z-20">
-                <div class="w-full max-w-2xl relative">
-                    <input id="search-input" type="search" placeholder="Search for tenant names or house numbers..." 
-                           class="w-full px-4 py-2 rounded-md border-none focus:ring-2 focus:ring-blue-500 bg-gray-700 text-white placeholder-gray-400 focus:bg-white focus:text-gray-900 transition-colors" autocomplete="off" />
+            <!-- Combined Header Bar: title left, search right -->
+            <header id="top-navbar" class="bg-white p-3 border-b shadow-sm flex items-center justify-between z-20 flex-shrink-0 gap-4">
+                <div class="flex items-center gap-3 min-w-0">
+                    <h1 id="current-house-title" class="text-xl font-semibold truncate">Select an Area</h1>
+                    <div id="stats-badge" class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded hidden flex-shrink-0"></div>
+                </div>
+                <div class="relative flex-shrink-0 w-64">
+                    <input id="search-input" type="search" placeholder="Search tenants or houses..." 
+                           class="w-full px-3 py-1.5 rounded-md border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-gray-50 text-gray-900 placeholder-gray-400 transition-colors" autocomplete="off" />
                     
-                    <div id="search-results" class="hidden absolute top-full left-0 right-0 mt-2 bg-white border rounded-md shadow-xl overflow-hidden max-h-96 overflow-y-auto">
+                    <div id="search-results" class="hidden absolute top-full right-0 mt-2 bg-white border rounded-md shadow-xl overflow-hidden max-h-96 overflow-y-auto" style="width: 360px;">
                         <!-- Results will be injected here -->
                     </div>
                 </div>
-            </nav>
-
-            <!-- Header -->
-            <header class="bg-white p-4 border-b shadow-sm flex justify-between items-center z-10 flex-shrink-0">
-                <h1 id="current-house-title" class="text-2xl font-semibold">Select a Vault</h1>
-                <div id="stats-badge" class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded hidden"></div>
             </header>
 
             <!-- Dashboard / Viewer Area -->
