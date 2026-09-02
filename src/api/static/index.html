@@ -426,7 +426,8 @@
             
             viewerTitle.textContent = title;
             const pdfUrl = `/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/pdf/${vaultId}`;
-            pdfFrame.src = pdfUrl;
+            // Append #view=FitH to make the PDF fit the iframe width rather than zooming in
+            pdfFrame.src = pdfUrl + '#view=FitH';
             viewerDownload.href = pdfUrl;
         }
 
