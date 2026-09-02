@@ -30,6 +30,7 @@ class TreeItemResponse(BaseModel):
     id: str
     name: str
     type: str
+    subtitle: str | None = None
     children: list["TreeItemResponse"] | None = None
 
 class SearchResultResponse(BaseModel):

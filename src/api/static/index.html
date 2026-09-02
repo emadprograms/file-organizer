@@ -149,15 +149,26 @@
                 btn.className = 'w-full text-left px-2 py-1 rounded text-sm text-gray-700 hover:bg-blue-50 focus:outline-none flex items-center tree-item';
                 
                 const icon = document.createElement('span');
-                icon.className = 'mr-2 text-gray-400 inline-block w-4 text-center';
+                icon.className = 'mr-2 text-gray-400 inline-block w-4 text-center flex-shrink-0';
                 icon.innerHTML = (node.children && node.children.length > 0) ? '▶' : '•';
+                
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'flex items-center justify-between w-full overflow-hidden';
                 
                 const nameSpan = document.createElement('span');
                 nameSpan.textContent = node.name;
-                nameSpan.className = 'truncate';
+                nameSpan.className = 'truncate text-left';
+                contentDiv.appendChild(nameSpan);
+
+                if (node.subtitle) {
+                    const subSpan = document.createElement('span');
+                    subSpan.textContent = node.subtitle;
+                    subSpan.className = 'text-[10px] text-gray-500 bg-white border px-1.5 py-0.5 rounded ml-2 flex-shrink-0 font-medium';
+                    contentDiv.appendChild(subSpan);
+                }
 
                 btn.appendChild(icon);
-                btn.appendChild(nameSpan);
+                btn.appendChild(contentDiv);
                 li.appendChild(btn);
 
                 let childrenContainer = null;

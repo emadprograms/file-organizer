@@ -225,17 +225,18 @@ async def get_tree(request: Request):
                     pass
 
             for t, years in sorted(tenants_with_dates.items()):
-                display_name = t
+                subtitle = None
                 if years:
                     min_val = min(years)
                     max_val = max(years)
                     if min_val == max_val:
-                        display_name = f"{t} ({min_val})"
+                        subtitle = f"{min_val}"
                     else:
-                        display_name = f"{t} ({min_val} - {max_val})"
+                        subtitle = f"{min_val} - {max_val}"
                 house_node.children.append(TreeItemResponse(
                     id=f"{house_dir_name}_{t}",
-                    name=display_name,
+                    name=t,
+                    subtitle=subtitle,
                     type="tenant"
                 ))
 
