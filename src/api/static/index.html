@@ -10,10 +10,10 @@
     </style>
 </head>
 <body class="bg-gray-100 font-sans text-gray-800">
-    <div class="flex h-screen overflow-hidden">
+    <div class="flex h-screen w-full overflow-hidden">
         
-        <!-- Sidebar: House Selection -->
-        <div class="w-64 bg-white border-r flex flex-col shadow-sm">
+        <!-- Sidebar (Resizable) -->
+        <div class="bg-gray-50 border-r overflow-y-auto flex-shrink-0 flex flex-col relative group" style="width: 288px; min-width: 200px; max-width: 50vw; resize: horizontal; overflow-x: hidden;">
             <div class="p-4 bg-blue-600 text-white font-bold text-lg">
                 File Organizer
             </div>
@@ -218,6 +218,13 @@
             let tenantName = null;
             if (tenantId && houseId && tenantId.startsWith(houseId + '_')) {
                 tenantName = tenantId.substring(houseId.length + 1);
+            }
+
+            // Auto-switch to timeline when a specific person/tenant is clicked
+            if (tenantName && currentTab !== 'timeline') {
+                currentTab = 'timeline';
+                tabTimeline.className = "flex-1 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600";
+                tabCategories.className = "flex-1 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700";
             }
 
             // Load data whenever we have area + house

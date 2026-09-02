@@ -79,10 +79,13 @@ async def list_timeline(request: Request, area_id: str, house_id: str):
     responses = []
     for group in state_data.get("grouped_documents", []):
         try:
+            date_range = group.get("extracted_date_range", {})
+            start_date = date_range.get("start_date") if isinstance(date_range, dict) else ""
+            dates = [start_date] if start_date else []
             responses.append(TimelineGroupResponse(
                 vault_id=group.get("vault_id", ""),
                 primary_tenant=group.get("primary_tenant", "") or "",
-                dates=group.get("dates", []),
+                dates=dates,
                 brief_arabic_title=group.get("brief_arabic_title", "")
             ))
         except ValidationError:
