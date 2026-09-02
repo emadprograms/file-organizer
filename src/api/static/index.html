@@ -88,6 +88,7 @@
         // API Base URL
         const API_HOURSES_BASE = '/api/houses';
         const API_TREE = '/api/tree';
+        let currentArea = null;
         let currentHouse = null;
         let currentTenant = null;
 
@@ -220,40 +221,40 @@
                 
                 targetLi.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-                // Extract houseId and select it
+                // Extract areaId + houseId from hash
                 // hash format: /area/area_id/house/house_id/tenant/tenant_id
                 const parts = hash.split('/');
-                let houseId = null;
+                let areaId = null, houseId = null;
                 for (let i = 0; i < parts.length; i++) {
-                    if (parts[i] === 'house' && i + 1 < parts.length) {
-                        houseId = parts[i+1];
-                    }
+                    if (parts[i] === 'area' && i + 1 < parts.length) areaId = decodeURIComponent(parts[i+1]);
+                    if (parts[i] === 'house' && i + 1 < parts.length) houseId = decodeURIComponent(parts[i+1]);
                 }
-                
-                if (houseId) {
-                    selectHouse(houseId);
+
+                if (areaId && houseId) {
+                    selectHouse(areaId, houseId);
                 }
             }
         }
 
         window.addEventListener('hashchange', handleHashChange);
 
-        async function selectHouse(houseId) {
+        async function selectHouse(areaId, houseId) {
+            currentArea = areaId;
             currentHouse = houseId;
             currentHouseTitle.textContent = houseId;
-            
+
             welcomePanel.classList.add('hidden');
             docListPanel.classList.remove('hidden');
             docListPanel.classList.add('flex');
             docViewerPanel.classList.add('hidden'); // hide until a doc is selected
-            
-            await loadTimeline(houseId);
+
+            await loadTimeline(areaId, houseId);
         }
 
-        async function loadTimeline(houseId) {
+        async function loadTimeline(areaId, houseId) {
             docListEl.innerHTML = '<p class="text-sm text-gray-500 p-2">Loading documents...</p>';
             try {
-                const res = await fetch(`${API_HOURSES_BASE}/${houseId}/timeline`);
+                const res = await fetch(`/api/areas/${encodeURIComponent(areaId)}/houses/${encodeURIComponent(houseId)}/timeline`);
                 if (!res.ok) throw new Error('Failed to load timeline');
                 currentTimeline = await res.json();
                 
@@ -300,7 +301,7 @@
             docViewerPanel.classList.add('flex');
             
             viewerTitle.textContent = title;
-            const pdfUrl = `${API_HOURSES_BASE}/${currentHouse}/pdf/${vaultId}`;
+            const pdfUrl = `/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/pdf/${vaultId}`;
             pdfFrame.src = pdfUrl;
             viewerDownload.href = pdfUrl;
         }

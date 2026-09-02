@@ -60,22 +60,22 @@ async def list_vault_files(request: Request, house_id: str):
             pass
     return responses
 
-@router.get("/api/houses/{house_id}/timeline", response_model=list[TimelineGroupResponse])
-async def list_timeline(request: Request, house_id: str):
-    validate_id(house_id, r"^[a-zA-Z0-9_\-\s]+$")
+@router.get("/api/areas/{area_id}/houses/{house_id}/timeline", response_model=list[TimelineGroupResponse])
+async def list_timeline(request: Request, area_id: str, house_id: str):
     config = request.app.state.config
     areas_root = Path(config.areas_root_path)
-    state_path = areas_root / house_id / ".source_files" / f"{house_id}_state.json"
-    
+    house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
+    state_path = areas_root / area_id / house_id / ".source_files" / f"{house_num}_state.json"
+
     if not state_path.exists():
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
-        
+
     try:
         with open(state_path, "r", encoding="utf-8") as f:
             state_data = json.load(f)
     except Exception:
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
-        
+
     responses = []
     for group in state_data.get("grouped_documents", []):
         try:
@@ -89,46 +89,42 @@ async def list_timeline(request: Request, house_id: str):
             pass
     return responses
 
-@router.get("/api/houses/{house_id}/categories", response_model=list[CategoryResponse])
-async def list_categories(request: Request, house_id: str):
-    validate_id(house_id, r"^[a-zA-Z0-9_\-\s]+$")
+@router.get("/api/areas/{area_id}/houses/{house_id}/categories", response_model=list[CategoryResponse])
+async def list_categories(request: Request, area_id: str, house_id: str):
     config = request.app.state.config
     areas_root = Path(config.areas_root_path)
-    state_path = areas_root / house_id / ".source_files" / f"{house_id}_state.json"
-    tenants_path = areas_root / house_id / "tenants.yaml"
-    
+    house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
+    state_path = areas_root / area_id / house_id / ".source_files" / f"{house_num}_state.json"
+
     if not state_path.exists():
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
-        
+
     try:
         with open(state_path, "r", encoding="utf-8") as f:
             state_data = json.load(f)
     except Exception:
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
-        
-    counts = {}
+
+    counts: dict[str, int] = {}
     for group in state_data.get("grouped_documents", []):
         tenant = group.get("primary_tenant")
         cat = group.get("category")
         if tenant and cat:
             key = f"{tenant}/{cat}"
             counts[key] = counts.get(key, 0) + 1
-            
-    responses = [CategoryResponse(name=k, document_count=v) for k, v in counts.items()]
-    return responses
 
-@router.get("/api/houses/{house_id}/pdf/{vault_id}")
-async def get_pdf(request: Request, house_id: str, vault_id: str):
-    validate_id(house_id, r"^[a-zA-Z0-9_\-\s]+$")
+    return [CategoryResponse(name=k, document_count=v) for k, v in counts.items()]
+
+@router.get("/api/areas/{area_id}/houses/{house_id}/pdf/{vault_id}")
+async def get_pdf(request: Request, area_id: str, house_id: str, vault_id: str):
     validate_id(vault_id, r"^[a-zA-Z0-9_-]+$")
     config = request.app.state.config
     areas_root = Path(config.areas_root_path)
-    
-    pdf_path = areas_root / house_id / ".source_files" / "vault" / f"doc_{vault_id}.pdf"
-    
+    pdf_path = areas_root / area_id / house_id / ".source_files" / "vault" / f"doc_{vault_id}.pdf"
+
     if not pdf_path.exists() or not pdf_path.is_file():
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
-        
+
     return FileResponse(pdf_path, media_type="application/pdf")
 
 
