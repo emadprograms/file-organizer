@@ -263,14 +263,19 @@ async def get_tree(request: Request):
             current_year = datetime.now().year
             for t, years in sorted(tenants_with_dates.items()):
                 subtitle = None
-                is_long_term = False
+                duration_category = None
                 if years:
                     min_val = min(years)
                     max_val = max(years)
                     
                     actual_max = current_year if tenant_is_present.get(t) else max_val
-                    if actual_max - min_val > 5:
-                        is_long_term = True
+                    duration = actual_max - min_val
+                    if duration < 5:
+                        duration_category = "short"
+                    elif duration < 10:
+                        duration_category = "medium"
+                    else:
+                        duration_category = "long"
 
                     if tenant_is_present.get(t):
                         subtitle = f"{min_val} - Present"
@@ -282,7 +287,7 @@ async def get_tree(request: Request):
                     id=f"{house_dir_name}_{t}",
                     name=t,
                     subtitle=subtitle,
-                    is_long_term=is_long_term,
+                    duration_category=duration_category,
                     type="tenant"
                 ))
 

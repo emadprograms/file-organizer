@@ -31,7 +31,7 @@ class TreeItemResponse(BaseModel):
     name: str
     type: str
     subtitle: str | None = None
-    is_long_term: bool = False
+    duration_category: str | None = None
     children: list["TreeItemResponse"] | None = None
 
 class SearchResultResponse(BaseModel):

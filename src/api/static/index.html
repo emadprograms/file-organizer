@@ -103,7 +103,7 @@
         
         const tabTimeline = document.getElementById('tab-timeline');
         const tabCategories = document.getElementById('tab-categories');
-        let currentTab = 'timeline';
+        let currentTab = 'categories';
         let currentCategories = [];
         
         const docListPanel = document.getElementById('document-list-panel');
@@ -167,7 +167,11 @@
                 if (node.subtitle) {
                     const subSpan = document.createElement('span');
                     subSpan.textContent = node.subtitle;
-                    if (node.is_long_term) {
+                    if (node.duration_category === 'short') {
+                        subSpan.className = 'text-[9px] leading-none text-green-700 bg-green-50 border-[1.5px] border-green-400 px-1 py-[2px] rounded-sm ml-1 flex-shrink-0 font-medium';
+                    } else if (node.duration_category === 'medium') {
+                        subSpan.className = 'text-[9px] leading-none text-yellow-700 bg-yellow-50 border-[1.5px] border-yellow-400 px-1 py-[2px] rounded-sm ml-1 flex-shrink-0 font-medium';
+                    } else if (node.duration_category === 'long') {
                         subSpan.className = 'text-[9px] leading-none text-red-700 bg-red-50 border-[1.5px] border-red-400 px-1 py-[2px] rounded-sm ml-1 flex-shrink-0 font-medium';
                     } else {
                         subSpan.className = 'text-[9px] leading-none text-gray-500 bg-white border border-gray-200 px-1 py-[2px] rounded-sm ml-1 flex-shrink-0';
