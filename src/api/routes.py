@@ -3,6 +3,7 @@ import re
 import difflib
 import time
 from pathlib import Path
+from datetime import datetime
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import ValidationError
@@ -16,6 +17,21 @@ NOT_FOUND_DETAIL = "{\"error\": \"Resource not found.\", \"solution\": \"Verify 
 def validate_id(id_str: str, pattern: str) -> None:
     if not re.match(pattern, id_str):
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
+
+
+def _get_document_groups(state_data: dict) -> list[dict]:
+    routed = state_data.get("routed_documents", [])
+    if isinstance(routed, list) and routed and routed[0].get("vault_id"):
+        return routed
+    grouped = state_data.get("grouped_documents", [])
+    if isinstance(grouped, list) and grouped and grouped[0].get("vault_id"):
+        return grouped
+    if isinstance(routed, list) and routed:
+        return routed
+    if isinstance(grouped, list) and grouped:
+        return grouped
+    return []
+
 
 @router.get("/api/houses", response_model=list[HouseResponse])
 async def list_houses(request: Request):
@@ -78,7 +94,7 @@ async def list_timeline(request: Request, area_id: str, house_id: str):
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
 
     responses = []
-    for group in state_data.get("grouped_documents", []):
+    for group in _get_document_groups(state_data):
         try:
             responses.append(TimelineGroupResponse(
                 vault_id=group.get("vault_id", ""),
@@ -117,7 +133,7 @@ async def list_categories(request: Request, area_id: str, house_id: str):
     from src.api.models import VaultFileResponse
 
     categories: dict[tuple[str, str], list[VaultFileResponse]] = {}
-    for group in state_data.get("grouped_documents", []):
+    for group in _get_document_groups(state_data):
         tenant = group.get("primary_tenant")
         cat_raw = group.get("folder_path") or group.get("category")
         if tenant and cat_raw:
@@ -133,7 +149,7 @@ async def list_categories(request: Request, area_id: str, house_id: str):
                 filename=group.get("filename", ""),
                 start_page=group.get("start_page", 1),
                 end_page=group.get("end_page", 1),
-                date=group.get("extracted_date_range", {}).get("start_date", "") if isinstance(group.get("extracted_date_range"), dict) else "",
+                date=group.get("dates", [""])[0] if group.get("dates") else "",
                 tenant=tenant,
                 brief_arabic_title=group.get("brief_arabic_title", "")
             )
@@ -221,8 +237,7 @@ async def get_tree(request: Request):
                     with open(state_path, "r", encoding="utf-8") as f:
                         state_data = json.load(f)
                     
-                    routed_docs = state_data.get("routed_documents", {})
-                    per_page = routed_docs.get("per_page", []) if isinstance(routed_docs, dict) else []
+                    per_page = state_data.get("manifest", {}).get("per_page", [])
                     for doc in per_page:
                         tenant = doc.get("tenant")
                         if tenant:
@@ -230,7 +245,7 @@ async def get_tree(request: Request):
                             if "الآن" in tf or "present" in tf.lower():
                                 tenant_is_present[tenant] = True
                     
-                    for group in state_data.get("grouped_documents", []):
+                    for group in _get_document_groups(state_data):
                         tenant = group.get("primary_tenant")
                         if tenant:
                             if tenant not in tenants_with_dates:
@@ -245,11 +260,18 @@ async def get_tree(request: Request):
                 except Exception:
                     pass
 
+            current_year = datetime.now().year
             for t, years in sorted(tenants_with_dates.items()):
                 subtitle = None
+                is_long_term = False
                 if years:
                     min_val = min(years)
                     max_val = max(years)
+                    
+                    actual_max = current_year if tenant_is_present.get(t) else max_val
+                    if actual_max - min_val > 5:
+                        is_long_term = True
+
                     if tenant_is_present.get(t):
                         subtitle = f"{min_val} - Present"
                     elif min_val == max_val:
@@ -260,6 +282,7 @@ async def get_tree(request: Request):
                     id=f"{house_dir_name}_{t}",
                     name=t,
                     subtitle=subtitle,
+                    is_long_term=is_long_term,
                     type="tenant"
                 ))
 
@@ -306,7 +329,7 @@ def get_search_index(areas_root: Path):
                         state_data = json.load(f)
 
                     house_tenants: set[str] = set()
-                    for group in state_data.get("grouped_documents", []):
+                    for group in _get_document_groups(state_data):
                         tenant = group.get("primary_tenant")
                         if tenant:
                             house_tenants.add(tenant)

@@ -167,7 +167,11 @@
                 if (node.subtitle) {
                     const subSpan = document.createElement('span');
                     subSpan.textContent = node.subtitle;
-                    subSpan.className = 'text-[9px] leading-none text-gray-500 bg-white border border-gray-200 px-1 py-[2px] rounded-sm ml-1 flex-shrink-0';
+                    if (node.is_long_term) {
+                        subSpan.className = 'text-[9px] leading-none text-red-700 bg-red-50 border-[1.5px] border-red-400 px-1 py-[2px] rounded-sm ml-1 flex-shrink-0 font-medium';
+                    } else {
+                        subSpan.className = 'text-[9px] leading-none text-gray-500 bg-white border border-gray-200 px-1 py-[2px] rounded-sm ml-1 flex-shrink-0';
+                    }
                     contentDiv.appendChild(subSpan);
                 }
 

@@ -16,5 +16,5 @@ trigger: |
 - **Reproduction**: Click on Safra D houses in the sidebar > click on the name > check timeline and categories tabs.
 
 ## Current Focus
-- hypothesis: 
-- next_action: gather initial evidence
+- hypothesis: The API endpoints for timeline and categories are reading from `grouped_documents` which doesn't contain `vault_id`s in the newer pipeline version used for Safra D, resulting in silent validation failures.
+- next_action: implement fix to read from `routed_documents` if it contains `vault_id`s, preserving backward compatibility.
