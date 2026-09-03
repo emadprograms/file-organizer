@@ -1,0 +1,277 @@
+import json
+import re
+import shutil
+import logging
+from pathlib import Path
+from datetime import datetime
+from typing import Any
+
+from src.core.config import AppConfig
+
+logger = logging.getLogger(f"file_organizer.{__name__}")
+
+def _house_sort_key(entry: Path) -> tuple[int, str]:
+    match = re.search(r'(\d+)', entry.name)
+    num = int(match.group(1)) if match else 999999999
+    return (num, entry.name)
+
+def _get_document_groups(state_data: dict) -> list[dict]:
+    routed = state_data.get("routed_documents", [])
+    if isinstance(routed, list) and routed and routed[0].get("vault_id"):
+        return routed
+    grouped = state_data.get("grouped_documents", [])
+    if isinstance(grouped, list) and grouped and grouped[0].get("vault_id"):
+        return grouped
+    if isinstance(routed, list) and routed:
+        return routed
+    if isinstance(grouped, list) and grouped:
+        return grouped
+    return []
+
+def build_tree_data(areas_root: Path) -> list[dict[str, Any]]:
+    """Build the tree hierarchy matching the API /api/tree schema."""
+    if not areas_root.exists():
+        return []
+
+    areas: dict[str, dict[str, Any]] = {}
+
+    for area_entry in sorted(areas_root.iterdir()):
+        if not area_entry.is_dir() or area_entry.name.startswith("."):
+            continue
+
+        area_name = area_entry.name
+
+        if area_name not in areas:
+            areas[area_name] = {
+                "id": f"area_{area_name}",
+                "name": area_name,
+                "type": "area",
+                "children": []
+            }
+
+        # Walk house folders inside this area
+        for house_entry in sorted(area_entry.iterdir(), key=_house_sort_key):
+            if not house_entry.is_dir() or house_entry.name.startswith("."):
+                continue
+
+            house_dir_name = house_entry.name
+            house_id = house_dir_name.split(" - ")[0] if " - " in house_dir_name else house_dir_name
+
+            house_node: dict[str, Any] = {
+                "id": house_dir_name,
+                "name": house_dir_name,
+                "type": "house",
+                "children": []
+            }
+
+            state_path = house_entry / ".source_files" / f"{house_id}_state.json"
+            tenants_with_dates: dict[str, set[int]] = {}
+            tenant_is_present: dict[str, bool] = {}
+            if state_path.exists():
+                try:
+                    with open(state_path, "r", encoding="utf-8") as f:
+                        state_data = json.load(f)
+
+                    per_page = state_data.get("manifest", {}).get("per_page", [])
+                    for doc in per_page:
+                        tenant = doc.get("tenant")
+                        if tenant:
+                            tf = doc.get("target_folder", "")
+                            if "الآن" in tf or "present" in tf.lower():
+                                tenant_is_present[tenant] = True
+
+                    for group in _get_document_groups(state_data):
+                        tenant = group.get("primary_tenant")
+                        if tenant:
+                            if tenant not in tenants_with_dates:
+                                tenants_with_dates[tenant] = set()
+
+                            doc_dates = group.get("dates", [])
+                            for d in doc_dates:
+                                if d and d != "NONE":
+                                    year_match = re.search(r'(\d{4})', d)
+                                    if year_match:
+                                        tenants_with_dates[tenant].add(int(year_match.group(1)))
+                except Exception as e:
+                    logger.warning(f"Error reading state file {state_path}: {e}")
+
+            current_year = datetime.now().year
+            for t, years in sorted(tenants_with_dates.items()):
+                subtitle = None
+                duration_category = None
+                if years:
+                    min_val = min(years)
+                    max_val = max(years)
+
+                    actual_max = current_year if tenant_is_present.get(t) else max_val
+                    duration = actual_max - min_val
+                    if duration < 5:
+                        duration_category = "short"
+                    elif duration < 10:
+                        duration_category = "medium"
+                    else:
+                        duration_category = "long"
+
+                    if tenant_is_present.get(t):
+                        subtitle = f"{min_val} - Present"
+                    elif min_val == max_val:
+                        subtitle = f"{min_val}"
+                    else:
+                        subtitle = f"{min_val} - {max_val}"
+
+                house_node["children"].append({
+                    "id": f"{house_dir_name}_{t}",
+                    "name": t,
+                    "subtitle": subtitle,
+                    "duration_category": duration_category,
+                    "type": "tenant"
+                })
+
+            areas[area_name]["children"].append(house_node)
+
+    return list(areas.values())
+
+def build_search_index(areas_root: Path) -> dict[str, list[dict[str, Any]]]:
+    """Build the search index matching the API /api/search schema."""
+    houses: list[dict[str, Any]] = []
+    tenants: list[dict[str, Any]] = []
+    documents: list[dict[str, Any]] = []
+
+    if not areas_root.exists():
+        return {"houses": [], "tenants": [], "documents": []}
+
+    for area_entry in sorted(areas_root.iterdir()):
+        if not area_entry.is_dir() or area_entry.name.startswith("."):
+            continue
+
+        area_name = area_entry.name
+
+        for house_entry in sorted(area_entry.iterdir(), key=_house_sort_key):
+            if not house_entry.is_dir() or house_entry.name.startswith("."):
+                continue
+
+            house_dir_name = house_entry.name
+            house_id = house_dir_name.split(" - ")[0] if " - " in house_dir_name else house_dir_name
+
+            houses.append({
+                "house_dir_name": house_dir_name,
+                "area_name": area_name
+            })
+
+            state_path = house_entry / ".source_files" / f"{house_id}_state.json"
+            if state_path.exists():
+                try:
+                    with open(state_path, "r", encoding="utf-8") as f:
+                        state_data = json.load(f)
+
+                    house_tenants: set[str] = set()
+                    for group in _get_document_groups(state_data):
+                        tenant = group.get("primary_tenant")
+                        if tenant:
+                            house_tenants.add(tenant)
+
+                    for t in house_tenants:
+                        tenants.append({
+                            "tenant_name": t,
+                            "house_dir_name": house_dir_name,
+                            "area_name": area_name
+                        })
+                except Exception as e:
+                    logger.warning(f"Error reading state file for search in {state_path}: {e}")
+
+            report_path = house_entry / ".source_files" / f"{house_id}_report.json"
+            if report_path.exists():
+                try:
+                    with open(report_path, "r", encoding="utf-8") as f:
+                        report_data = json.load(f)
+
+                    for doc in report_data.get("documents", []):
+                        documents.append({
+                            "content": doc.get("content", "").lower(),
+                            "title_field": doc.get("brief_arabic_title", "").lower(),
+                            "vault_id": doc.get("vault_id", ""),
+                            "doc_title": doc.get("brief_arabic_title", "Document"),
+                            "house_dir_name": house_dir_name,
+                            "area_name": area_name
+                        })
+                except Exception as e:
+                    logger.warning(f"Error reading report file for search in {report_path}: {e}")
+
+    return {
+        "houses": houses,
+        "tenants": tenants,
+        "documents": documents
+    }
+
+WEB_CONFIG_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <system.webServer>
+        <staticContent>
+            <remove fileExtension=".json" />
+            <mimeMap fileExtension=".json" mimeType="application/json" />
+            <remove fileExtension=".pdf" />
+            <mimeMap fileExtension=".pdf" mimeType="application/pdf" />
+        </staticContent>
+        <defaultDocument>
+            <files>
+                <clear />
+                <add value="index.html" />
+            </files>
+        </defaultDocument>
+        <httpProtocol>
+            <customHeaders>
+                <add name="Access-Control-Allow-Origin" value="*" />
+            </customHeaders>
+        </httpProtocol>
+    </system.webServer>
+</configuration>
+"""
+
+def export_static_web(config: AppConfig, output_dir: Path | None = None) -> int:
+    """Export static web files (tree.json, search_index.json, web.config, index.html) to output_dir."""
+    areas_root = Path(config.areas_root_path).resolve()
+    target_dir = output_dir.resolve() if output_dir else areas_root
+
+    if not areas_root.exists():
+        logger.error(f"Areas root path does not exist: {areas_root}")
+        return 1
+
+    target_dir.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Generating static web bundle in: {target_dir}")
+
+    # 1. Build tree.json
+    tree_data = build_tree_data(areas_root)
+    tree_path = target_dir / "tree.json"
+    with open(tree_path, "w", encoding="utf-8") as f:
+        json.dump(tree_data, f, ensure_ascii=False, indent=2)
+    logger.info(f"Wrote tree data ({len(tree_data)} areas) to {tree_path}")
+
+    # 2. Build search_index.json
+    search_data = build_search_index(areas_root)
+    search_path = target_dir / "search_index.json"
+    with open(search_path, "w", encoding="utf-8") as f:
+        json.dump(search_data, f, ensure_ascii=False, indent=2)
+    logger.info(f"Wrote search index ({len(search_data['houses'])} houses, {len(search_data['tenants'])} tenants, {len(search_data['documents'])} docs) to {search_path}")
+
+    # 3. Write web.config for IIS
+    web_config_path = target_dir / "web.config"
+    with open(web_config_path, "w", encoding="utf-8") as f:
+        f.write(WEB_CONFIG_TEMPLATE)
+    logger.info(f"Wrote IIS web.config to {web_config_path}")
+
+    # 4. Copy index.html from static dir
+    src_index = Path(__file__).resolve().parent.parent / "api" / "static" / "index.html"
+    if src_index.exists():
+        dst_index = target_dir / "index.html"
+        shutil.copy2(src_index, dst_index)
+        logger.info(f"Copied index.html to {dst_index}")
+    else:
+        logger.warning(f"Could not find source index.html at {src_index}")
+
+    print(f"Static web bundle successfully exported to: {target_dir}")
+    print("Files created:")
+    print(f"  - {tree_path.name}")
+    print(f"  - {search_path.name}")
+    print(f"  - {web_config_path.name}")
+    print(f"  - index.html")
+    return 0

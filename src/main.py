@@ -207,7 +207,12 @@ def get_parser() -> argparse.ArgumentParser:
     
     # serve mode
     serve_parser = subparsers.add_parser("serve", help="Start the file organizer REST API")
+    serve_parser.add_argument("--host", type=str, default="0.0.0.0", help="Host address to bind the server (default: 0.0.0.0 for network access)")
     serve_parser.add_argument("--port", type=int, default=8000, help="Port to bind the server")
+    
+    # export-web mode
+    export_parser = subparsers.add_parser("export-web", help="Export static web bundle for IIS hosting")
+    export_parser.add_argument("--output-dir", type=Path, default=None, help="Output directory (defaults to areas_root_path)")
     
     return parser
 
@@ -243,8 +248,12 @@ def main() -> int:
         return 1
     if args.command == "serve":
         import uvicorn
-        uvicorn.run("src.api.server:app", host="127.0.0.1", port=args.port, reload=False)
+        uvicorn.run("src.api.server:app", host=getattr(args, 'host', '0.0.0.0'), port=args.port, reload=False)
         return 0
+
+    if args.command == "export-web":
+        from src.presentation.export_static import export_static_web
+        return export_static_web(config, output_dir=args.output_dir)
 
     if args.command == "ingest":
         setup_logging(verbose=getattr(args, 'verbose', False))
