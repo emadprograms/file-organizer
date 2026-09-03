@@ -7,7 +7,7 @@ import io
 # Force UTF-8 for Windows stdout
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-AREA_DIR = r"D:\Areas\Safra Flats"
+AREA_DIR = r"D:\Areas\Safra C"
 ENV_PATH = r"C:\Users\Emad\Documents\GitHub\file-organizer\.env"
 
 def load_keys():
