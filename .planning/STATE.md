@@ -5,9 +5,9 @@ milestone_name: Hierarchical Web Dashboard
 current_phase: 87.1
 status: completed
 stopped_at: Created roadmap for v9.0
-last_updated: "2026-09-02T10:31:01.770Z"
-last_activity: 2026-09-02
-last_activity_desc: Phase 87.1 marked complete
+last_updated: "2026-09-03T07:25:00.000Z"
+last_activity: 2026-09-03
+last_activity_desc: Completed quick task 260903-ecg: Make the frontend static-first and exportable for IIS without Python on PC2
 progress:
   total_phases: 5
   completed_phases: 5
@@ -53,15 +53,16 @@ Last activity: 2026-09-02 — Phase 87.1 marked complete
 
 - Proceed with Phase 84 planning and execution.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260903-ecg | Make the frontend static-first and exportable for IIS without Python on PC2 | 2026-09-03 | ed479f1 | [260903-ecg-make-the-frontend-static-first-and-expor](./quick/260903-ecg-make-the-frontend-static-first-and-expor/) |
+| 20260902-search | Support Arabic-English phonetic intermixing in search | 2026-09-02 | 8c35cfe | [20260902-search-arabic-english-phonetics](./quick/20260902-search-arabic-english-phonetics/) |
+| 20260902-test | Add API tests to verify cross-lingual phonetic search matching | 2026-09-02 | 8e11c39 | [20260902-test-phonetic-search](./quick/20260902-test-phonetic-search/) |
+
 ## Accumulated Context
 
 ### Roadmap Evolution
 
 - Phase 87.1 inserted after Phase 87: Make frontend tests detailed: simulate clicks, interactions, and deep assertions to prevent shallow testing (URGENT)
-
-## Quick Tasks Completed
-
-| Date | Slug | Description |
-|---|---|---|
-| 2026-09-02 | search-arabic-english-phonetics | Support Arabic-English phonetic intermixing in search |
-| 2026-09-02 | test-phonetic-search | Add API tests to verify cross-lingual phonetic search matching |

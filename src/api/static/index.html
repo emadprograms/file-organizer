@@ -130,9 +130,36 @@
         // API Base URL
         const API_HOURSES_BASE = '/api/houses';
         const API_TREE = '/api/tree';
+        let isStaticMode = false;
+        let searchIndexData = null;
         let currentArea = null;
         let currentHouse = null;
         let currentTenant = null;
+
+        function getPdfUrl(areaId, houseId, vaultId) {
+            if (isStaticMode) {
+                return `./${encodeURIComponent(areaId)}/${encodeURIComponent(houseId)}/.source_files/vault/doc_${vaultId}.pdf`;
+            }
+            return `/api/areas/${encodeURIComponent(areaId)}/houses/${encodeURIComponent(houseId)}/pdf/${vaultId}`;
+        }
+
+        function getDocumentGroups(stateData) {
+            const routed = stateData.routed_documents || [];
+            if (Array.isArray(routed) && routed.length > 0 && routed[0].vault_id) return routed;
+            const grouped = stateData.grouped_documents || [];
+            if (Array.isArray(grouped) && grouped.length > 0 && grouped[0].vault_id) return grouped;
+            if (Array.isArray(routed) && routed.length > 0) return routed;
+            if (Array.isArray(grouped) && grouped.length > 0) return grouped;
+            return [];
+        }
+
+        async function fetchHouseState(areaId, houseId) {
+            const houseNum = houseId.includes(' - ') ? houseId.split(' - ')[0] : houseId;
+            const stateUrl = `./${encodeURIComponent(areaId)}/${encodeURIComponent(houseId)}/.source_files/${encodeURIComponent(houseNum)}_state.json`;
+            const res = await fetch(stateUrl);
+            if (!res.ok) throw new Error(`Failed to load state from ${stateUrl}`);
+            return await res.json();
+        }
 
         // Elements
         const houseListEl = document.getElementById('house-list');
@@ -158,8 +185,17 @@
 
         async function loadTree() {
             try {
-                const res = await fetch(API_TREE);
-                if (!res.ok) throw new Error('Failed to load tree');
+                let res = null;
+                try {
+                    res = await fetch(API_TREE);
+                    if (!res.ok) throw new Error();
+                } catch (e) {
+                    res = await fetch('./tree.json');
+                    if (res && res.ok) {
+                        isStaticMode = true;
+                    }
+                }
+                if (!res || !res.ok) throw new Error('Failed to load tree');
                 const treeData = await res.json();
                 
                 houseListEl.innerHTML = '';
@@ -346,18 +382,49 @@
             }
         }
 
+        const FOLDER_PREFIXES = {
+            "بيانات شخصية": "01",
+            "عقد الإيجار": "02",
+            "سند أمر": "03",
+            "إشعار": "04",
+            "مخالصة": "05",
+            "سند قبض": "06",
+            "استقطاع": "07",
+            "إلغاء استقطاع": "08",
+            "حكم قضائي": "09",
+            "طلب إخلاء": "10",
+            "مستندات أخرى": "99"
+        };
+
         async function loadTimeline(areaId, houseId) {
             docListEl.innerHTML = '<p class="text-sm text-gray-500 p-2">Loading documents...</p>';
             try {
-                const res = await fetch(`/api/areas/${encodeURIComponent(areaId)}/houses/${encodeURIComponent(houseId)}/timeline`);
-                if (!res.ok) throw new Error('Failed to load timeline');
-                currentTimeline = await res.json();
+                if (isStaticMode) {
+                    const stateData = await fetchHouseState(areaId, houseId);
+                    const groups = getDocumentGroups(stateData);
+                    currentTimeline = groups.map(g => ({
+                        vault_id: g.vault_id || '',
+                        primary_tenant: g.primary_tenant || '',
+                        dates: g.dates || [],
+                        brief_arabic_title: g.brief_arabic_title || ''
+                    }));
+                    currentTimeline.sort((a, b) => {
+                        const dateA = (a.dates && a.dates[0] && a.dates[0] !== 'NONE') ? a.dates[0] : '0000-00-00';
+                        const dateB = (b.dates && b.dates[0] && b.dates[0] !== 'NONE') ? b.dates[0] : '0000-00-00';
+                        return dateB.localeCompare(dateA);
+                    });
+                } else {
+                    const res = await fetch(`/api/areas/${encodeURIComponent(areaId)}/houses/${encodeURIComponent(houseId)}/timeline`);
+                    if (!res.ok) throw new Error('Failed to load timeline');
+                    currentTimeline = await res.json();
+                }
                 
                 statsBadge.textContent = `${currentTimeline.length} Documents`;
                 statsBadge.classList.remove('hidden');
                 
                 renderTimeline();
             } catch (err) {
+                console.error(err);
                 docListEl.innerHTML = '<p class="text-sm text-red-500 p-2">Error loading timeline.</p>';
             }
         }
@@ -399,9 +466,48 @@
             console.log('loadCategories called', areaId, houseId);
             docListEl.innerHTML = '<p class="text-sm text-gray-500 p-2">Loading categories...</p>';
             try {
-                const res = await fetch(`/api/areas/${encodeURIComponent(areaId)}/houses/${encodeURIComponent(houseId)}/categories`);
-                if (!res.ok) throw new Error('Failed to load categories');
-                currentCategories = await res.json();
+                if (isStaticMode) {
+                    const stateData = await fetchHouseState(areaId, houseId);
+                    const groups = getDocumentGroups(stateData);
+                    const catMap = {};
+                    
+                    groups.forEach(g => {
+                        const tenant = g.primary_tenant;
+                        const catRaw = g.folder_path || g.category;
+                        if (tenant && catRaw) {
+                            const prefix = FOLDER_PREFIXES[catRaw] || '';
+                            const catNumbered = prefix ? `${prefix} - ${catRaw}` : catRaw;
+                            const key = `${tenant}:::${catNumbered}`;
+                            if (!catMap[key]) {
+                                catMap[key] = {
+                                    tenant: tenant,
+                                    name: catNumbered,
+                                    documents: []
+                                };
+                            }
+                            catMap[key].documents.push({
+                                vault_id: g.vault_id || '',
+                                filename: g.filename || '',
+                                start_page: g.start_page || 1,
+                                end_page: g.end_page || 1,
+                                date: (g.dates && g.dates[0]) ? g.dates[0] : '',
+                                tenant: tenant,
+                                brief_arabic_title: g.brief_arabic_title || ''
+                            });
+                        }
+                    });
+                    
+                    currentCategories = Object.values(catMap).map(c => ({
+                        tenant: c.tenant,
+                        name: c.name,
+                        document_count: c.documents.length,
+                        documents: c.documents
+                    }));
+                } else {
+                    const res = await fetch(`/api/areas/${encodeURIComponent(areaId)}/houses/${encodeURIComponent(houseId)}/categories`);
+                    if (!res.ok) throw new Error('Failed to load categories');
+                    currentCategories = await res.json();
+                }
                 
                 // For categories, total sum of documents
                 const totalDocs = currentCategories.reduce((sum, cat) => sum + cat.document_count, 0);
@@ -493,7 +599,7 @@
             docViewerPanel.classList.add('flex');
             
             viewerTitle.textContent = title;
-            const pdfUrl = `/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/pdf/${vaultId}`;
+            const pdfUrl = getPdfUrl(currentArea, currentHouse, vaultId);
             // Append #view=FitH to make the PDF fit the iframe width rather than zooming in
             pdfFrame.src = pdfUrl + '#view=FitH';
             viewerDownload.href = pdfUrl;
@@ -517,9 +623,54 @@
                     searchResults.innerHTML = '<div class="p-4 text-center text-gray-500">Searching...</div>';
                     searchResults.classList.remove('hidden');
                     
-                    const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
-                    if (!res.ok) throw new Error('Search failed');
-                    const results = await res.json();
+                    let results = [];
+                    if (isStaticMode) {
+                        if (!searchIndexData) {
+                            try {
+                                const sRes = await fetch('./search_index.json');
+                                if (sRes.ok) searchIndexData = await sRes.json();
+                            } catch (e) {
+                                console.error('Failed to load search_index.json', e);
+                            }
+                        }
+                        if (searchIndexData) {
+                            const qLow = q.toLowerCase();
+                            (searchIndexData.houses || []).forEach(h => {
+                                if (h.house_dir_name.toLowerCase().includes(qLow)) {
+                                    results.push({
+                                        id: h.house_dir_name,
+                                        title: h.house_dir_name,
+                                        subtitle: `House in ${h.area_name}`,
+                                        url: `/#/area/${encodeURIComponent(h.area_name)}/house/${encodeURIComponent(h.house_dir_name)}`
+                                    });
+                                }
+                            });
+                            (searchIndexData.tenants || []).forEach(t => {
+                                if (t.tenant_name.toLowerCase().includes(qLow)) {
+                                    results.push({
+                                        id: `${t.house_dir_name}_${t.tenant_name}`,
+                                        title: t.tenant_name,
+                                        subtitle: `Tenant in ${t.house_dir_name}`,
+                                        url: `/#/area/${encodeURIComponent(t.area_name)}/house/${encodeURIComponent(t.house_dir_name)}/tenant/${encodeURIComponent(t.house_dir_name + '_' + t.tenant_name)}`
+                                    });
+                                }
+                            });
+                            (searchIndexData.documents || []).forEach(d => {
+                                if ((d.content && d.content.includes(qLow)) || (d.title_field && d.title_field.includes(qLow))) {
+                                    results.push({
+                                        id: `${d.house_dir_name}_doc_${d.vault_id}`,
+                                        title: d.doc_title,
+                                        subtitle: `Document in ${d.house_dir_name}`,
+                                        url: `/#/area/${encodeURIComponent(d.area_name)}/house/${encodeURIComponent(d.house_dir_name)}`
+                                    });
+                                }
+                            });
+                        }
+                    } else {
+                        const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+                        if (!res.ok) throw new Error('Search failed');
+                        results = await res.json();
+                    }
                     
                     if (results.length === 0) {
                         searchResults.innerHTML = '<div class="p-4 text-center text-gray-500">No results</div>';
@@ -698,7 +849,7 @@
         }
 
         function showPreview(vaultId, title, mouseX, mouseY) {
-            const pdfUrl = `/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/pdf/${vaultId}#toolbar=0&view=FitH`;
+            const pdfUrl = getPdfUrl(currentArea, currentHouse, vaultId) + '#toolbar=0&view=FitH';
 
             clearTimeout(previewHideTimer);
             clearTimeout(previewShowTimer);
