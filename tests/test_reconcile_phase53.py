@@ -56,7 +56,7 @@ def test_nested_folder_trap_phase53(tmp_path):
             "dates": ["2021-05-11"],
             "vault_id": "test_vault_1"
         }],
-        "routed_documents": {
+        "manifest": {
             "per_page": [
                 {
                     "page_index": 0,
@@ -100,4 +100,4 @@ def test_nested_folder_trap_phase53(tmp_path):
     with open(new_house_dir / ".source_files" / f"{house_id}_state.json") as f:
         new_state = json.load(f)
         
-    assert new_state["routed_documents"]["per_page"][0]["target_folder"] == "Ahmed Folder/01_Cat/Sub/Deep", "State should preserve nested hierarchy."
+    assert new_state["manifest"]["per_page"][0]["target_folder"] == "Ahmed Folder/01_Cat/Sub/Deep", "State should preserve nested hierarchy."

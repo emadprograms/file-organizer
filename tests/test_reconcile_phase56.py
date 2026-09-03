@@ -32,7 +32,7 @@ def test_idempotency_phase56(tmp_path):
         "house_id": house_id,
         "cleaned_pages": [],
         "grouped_documents": [],
-        "routed_documents": {
+        "manifest": {
             "per_page": []
         }
     }

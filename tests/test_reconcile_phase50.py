@@ -65,7 +65,7 @@ def setup_house_for_phase50(tmp_path):
                 "shortcuts": [f"{tenant_name}/عقود/2020-01-01 - valid.lnk"]
             }
         ],
-        "routed_documents": {
+        "manifest": {
             "per_page": [
                 {
                     "page_index": 0,

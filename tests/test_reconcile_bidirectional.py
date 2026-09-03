@@ -62,7 +62,7 @@ def test_bidirectional_reconciliation_user_locking(tmp_path):
                 "vault_id": "mock_vault"
             }
         ],
-        "routed_documents": {
+        "manifest": {
             "per_page": [
                 {
                     "page_index": 0,
@@ -99,7 +99,7 @@ def test_bidirectional_reconciliation_user_locking(tmp_path):
     with open(new_source_dir / "502_state.json", 'r') as f:
         new_data = json.load(f)
         
-    p = new_data["routed_documents"]["per_page"][0]
+    p = new_data["manifest"]["per_page"][0]
     # Under Phase 54, custom root folders are snapped back. It should NOT be MovedByUser.
     # It should revert to Unassigned (or NewTenant if reassigned)
     # Since it was unassigned, and latest tenant is NewTenant, it probably maps back.

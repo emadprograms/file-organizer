@@ -197,4 +197,5 @@ def test_verification_null_state_arrays(mock_house):
     with open(state_file, "w", encoding="utf-8") as f:
         json.dump(state_data, f)
         
-    assert run_verification(mock_house) == 0
+    # With false-passes eliminated, missing document arrays in state must fail verification
+    assert run_verification(mock_house) == 1

@@ -40,7 +40,7 @@ def test_reconcile_and_verification_corrupt_vault_pdf(tmp_path):
             }
         ],
         "grouped_documents": [],
-        "routed_documents": {
+        "manifest": {
             "per_page": [
                 {
                     "page_index": 0,

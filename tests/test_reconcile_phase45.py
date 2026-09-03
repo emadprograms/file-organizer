@@ -47,7 +47,7 @@ def test_phase45_renamed_shortcut(tmp_path):
             "dates": [],
             "vault_id": "rename_me"
         }],
-        "routed_documents": {"per_page": [{
+        "manifest": {"per_page": [{
             "page_index": 0,
             "vault_id": "rename_me",
             "target_folder": "Tenant",
@@ -80,7 +80,7 @@ def test_phase45_renamed_shortcut(tmp_path):
     with open(new_house_dir / ".source_files" / f"{house_id}_state.json") as f:
         new_state = json.load(f)
         
-    p = new_state["routed_documents"]["per_page"][0]
+    p = new_state["manifest"]["per_page"][0]
     assert p["user_locked"] is True
     assert p["brief_arabic_title"] == "NewName"
     assert "NewName.lnk" in p["output_file"]
@@ -112,7 +112,7 @@ def test_phase45_duplicate_shortcut(tmp_path):
             "dates": [],
             "vault_id": "duplicate_me"
         }],
-        "routed_documents": {"per_page": [{
+        "manifest": {"per_page": [{
             "page_index": 0,
             "vault_id": "duplicate_me",
             "target_folder": "Tenant",
@@ -152,10 +152,10 @@ def test_phase45_duplicate_shortcut(tmp_path):
         
     # Should now have 1 page still, but grouped_documents has 2 shortcuts
     assert len(new_state["cleaned_pages"]) == 1
-    assert len(new_state["routed_documents"]["per_page"]) == 1
+    assert len(new_state["manifest"]["per_page"]) == 1
     assert len(new_state["grouped_documents"][0]["shortcuts"]) == 2
     
-    p1 = new_state["routed_documents"]["per_page"][0]
+    p1 = new_state["manifest"]["per_page"][0]
     
     assert p1["vault_id"] == "duplicate_me"
     

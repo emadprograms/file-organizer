@@ -56,7 +56,7 @@ def test_run_reconcile_mode(tmp_path):
             "category": "personal",
             "dates": ["2021-05-11"]
         }],
-        "routed_documents": {
+        "manifest": {
             "per_page": [
                 {
                     "page_index": 0,
@@ -123,7 +123,7 @@ def test_run_reconcile_mode_ghost_folders(tmp_path):
         "house_id": house_id,
         "cleaned_pages": [{"page_index": 0, "canonical_tenant": "Old Tenant", "resolved_date": "2024-05-11", "topics": ["02"], "is_junk": False, "category": "personal", "content_explanation": "", "original_index": 0}],
         "grouped_documents": [{"start_page": 0, "end_page": 0, "primary_tenant": "Old Tenant", "primary_topic": "02", "metadata": {"date": "2024-05-11"}, "issues": [], "language": "ar", "category": "personal", "dates": ["2024-05-11"]}],
-        "routed_documents": {"per_page": [{"page_index": 0, "tenant": "Old Tenant", "target_folder": "Old/02", "output_file": f"{house_id} - Old Tenant/Old/02/test.pdf"}]}
+        "manifest": {"per_page": [{"page_index": 0, "tenant": "Old Tenant", "target_folder": "Old/02", "output_file": f"{house_id} - Old Tenant/Old/02/test.pdf"}]}
     }
     with open(source_dir / f"{house_id}_state.json", "w") as f:
         json.dump(state_data, f)
@@ -165,7 +165,7 @@ def test_run_reconcile_timeline_generation(tmp_path):
         # NO vault_id in grouped_documents (simulating legacy bug)
         "grouped_documents": [{"start_page": 0, "end_page": 0, "primary_tenant": "Test Tenant", "primary_topic": "02", "metadata": {"date": "2021-05-11"}, "issues": [], "language": "ar", "category": "personal", "dates": ["2021-05-11"]}],
         # vault_id exists in per_page
-        "routed_documents": {"per_page": [{"page_index": 0, "tenant": "Test Tenant", "target_folder": "Test/02", "output_file": f"{house_id} - Test House/Test/02/test.pdf", "vault_id": "test_vault_id"}]}
+        "manifest": {"per_page": [{"page_index": 0, "tenant": "Test Tenant", "target_folder": "Test/02", "output_file": f"{house_id} - Test House/Test/02/test.pdf", "vault_id": "test_vault_id"}]}
     }
     with open(source_dir / f"{house_id}_state.json", "w") as f:
         json.dump(state_data, f)

@@ -101,8 +101,9 @@ def test_ingest_and_reconcile_workflow(mock_route, mock_group, mock_fine, mock_c
         assert "cleaned_pages" in state_data
         assert "grouped_documents" in state_data
         assert "routed_documents" in state_data
-        assert "per_page" in state_data["routed_documents"]
-        assert len(state_data["routed_documents"]["per_page"]) == 1
+        assert "manifest" in state_data and state_data["manifest"] is not None
+        assert "per_page" in state_data["manifest"]
+        assert len(state_data["manifest"]["per_page"]) == 1
         
     # Now run reconcile
     rec_args = DummyArgs(command="reconcile", target_dir=target_dir, dry_run=False, verbose=False, tenants=False)
@@ -114,10 +115,10 @@ def test_ingest_and_reconcile_workflow(mock_route, mock_group, mock_fine, mock_c
     with open(new_state_file, "r", encoding="utf-8") as f:
         state_data = json.load(f)
         
-        assert "per_page" in state_data["routed_documents"]
-        assert len(state_data["routed_documents"]["per_page"]) == 1
+        assert "per_page" in state_data["manifest"]
+        assert len(state_data["manifest"]["per_page"]) == 1
         
-        page = state_data["routed_documents"]["per_page"][0]
+        page = state_data["manifest"]["per_page"][0]
         assert "output_file" in page
         assert "vault_id" in page
 

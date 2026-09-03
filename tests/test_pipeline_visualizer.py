@@ -152,7 +152,7 @@ def test_reconcile_dry_run_calls_visualizer(mock_print_summary, tmp_path) -> Non
     yaml_path.write_text("- name: Tenant\n  start_date: '2020-01-01'\n  end_date: present\n")
     
     state_file = source_dir / "1234_state.json"
-    state_file.write_text('{"cleaned_pages": [], "grouped_documents": [], "routed_documents": {"per_page": []}}')
+    state_file.write_text('{"cleaned_pages": [], "grouped_documents": [], "manifest": {"per_page": []}}')
     
     args = argparse.Namespace(
         target_dir=target_dir,

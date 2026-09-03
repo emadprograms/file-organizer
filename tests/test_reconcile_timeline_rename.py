@@ -64,7 +64,7 @@ def test_run_reconcile_mode_timeline_view_after_rename(tmp_path):
             "dates": ["2021-05-11"],
             "vault_id": "vault123"
         }],
-        "routed_documents": {
+        "manifest": {
             "per_page": [
                 {
                     "page_index": 0,

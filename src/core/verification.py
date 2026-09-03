@@ -192,7 +192,17 @@ def run_verification(target_dir: Path) -> int:
         try:
             with open(state_file, 'r', encoding='utf-8') as f:
                 state_data = json.load(f)
-                
+
+            # Explicit manifest null check — must be a dict, not null.
+            # A null manifest means the ingest pipeline did not complete the
+            # reconciliation save correctly. Page integrity cannot be verified.
+            if state_data.get("manifest") is None:
+                add_error(
+                    f"manifest is null in {state_file.name}. "
+                    "Page integrity cannot be verified. "
+                    "Re-run ingest or backfill the manifest from routed_documents."
+                )
+
             manifest_data = state_data.get("manifest") or {}
             manifest = manifest_data.get("per_page", [])
             state_output_files = set()
@@ -232,7 +242,9 @@ def run_verification(target_dir: Path) -> int:
             else:
                 timeline_lnks = list(timeline_dir.glob("*.lnk"))
                 expected_timeline_count = len([g for g in (state_data.get("grouped_documents") or []) if g.get("vault_id") and g.get("shortcuts")])
-                if not timeline_lnks and expected_timeline_count > 0:
+                if expected_timeline_count == 0:
+                    add_error("State expected 0 document groups with shortcuts. Cannot verify [Timeline View].")
+                elif not timeline_lnks and expected_timeline_count > 0:
                     add_error(f"[Timeline View] is empty but {expected_timeline_count} document groups have shortcuts.")
                 elif len(timeline_lnks) < expected_timeline_count:
                     add_error(f"[Timeline View] has {len(timeline_lnks)} shortcuts but expected at least {expected_timeline_count}.")
@@ -271,7 +283,9 @@ def run_verification(target_dir: Path) -> int:
             # Immutable Page Count Audit (Phase 48)
             manifest_data = state_data.get("manifest") or {}
             total_input_pages = manifest_data.get("summary", {}).get("total_input_pages", 0)
-            if total_input_pages and total_input_pages != len(manifest):
+            if not total_input_pages:
+                add_error("Immutable Page Count Audit failed: total_input_pages is 0 or missing in manifest summary.")
+            elif total_input_pages != len(manifest):
                 add_error(f"IMMUTABLE PAGE COUNT MISMATCH! System dropped data. Original raw pages: {total_input_pages}. Final reconciled pages: {len(manifest)}.")
             else:
                 add_pass(f"Immutable Page Count verified ({len(manifest)} pages preserved)")
@@ -302,7 +316,9 @@ def run_verification(target_dir: Path) -> int:
                         routed_docs = state_data.get("routed_documents") or state_data.get("grouped_documents") or []
                         unique_vids = {g.get("vault_id") for g in routed_docs if g.get("vault_id")}
                         expected_report_count = len(unique_vids)
-                        if expected_report_count > 0 and len(report_data) != expected_report_count:
+                        if expected_report_count == 0:
+                            add_error(f"State expected 0 vault documents. Cannot verify {report_file.name}.")
+                        elif len(report_data) != expected_report_count:
                             add_error(f"{report_file.name} has {len(report_data)} items but state expected {expected_report_count} vault documents.")
                         else:
                             add_pass(f"{report_file.name} perfectly mirrors the expected vault documents count")

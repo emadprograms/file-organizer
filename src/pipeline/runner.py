@@ -280,11 +280,21 @@ def run_generation_pass(documents: list[Any], target_dir: Path, house_id: str, o
         visualizer.print_summary(full_house_id, summary, per_page, documents)
         
     if state is not None and not dry_run:
-        state.load()  # Reload to pick up manifest changes from run_reconciliation
+        # Instead of state.load() which wipes in-memory fields like cleaned_pages,
+        # we specifically only read the manifest from disk that run_reconciliation wrote.
+        if state.state_file.exists():
+            try:
+                with open(state.state_file, 'r', encoding='utf-8') as f:
+                    disk_data = json.load(f)
+                    if "manifest" in disk_data:
+                        state.data["manifest"] = disk_data["manifest"]
+            except Exception as e:
+                logger.error(f"Failed to load updated manifest from {state.state_file}: {e}")
+                
         state.data["routed_documents"] = [doc.model_dump() for doc in documents]
         state.save()
         logger.info("Saved updated documents with vault_ids to state.")
-        
+
     if not dry_run:
         sorted_docs = sorted(documents, key=lambda x: x.start_page)
         

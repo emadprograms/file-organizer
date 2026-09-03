@@ -45,7 +45,7 @@ def test_reconcile_generates_correct_paths(tmp_path):
         "grouped_documents": [
             {"start_page": 0, "end_page": 0, "primary_tenant": tenant_base, "category": "forms", "dates": ["2024-03-24"]}
         ],
-        "routed_documents": {
+        "manifest": {
             "summary": {"total_input_pages": 1, "total_output_pages": 1, "output_file_count": 1},
             "per_page": [{
                 "page_index": 0,
@@ -83,7 +83,7 @@ def test_reconcile_generates_correct_paths(tmp_path):
     with open(new_routed_path, "r", encoding='utf-8') as f:
         new_routed_data = json.load(f)
         
-    per_page = new_routed_data["routed_documents"]["per_page"]
+    per_page = new_routed_data["manifest"]["per_page"]
     assert len(per_page) == 1
     
     output_file = per_page[0]["output_file"]

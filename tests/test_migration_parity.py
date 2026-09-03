@@ -59,7 +59,7 @@ def _make_house(tmp_path, house_id="999", *, tenants_yaml=None, state_extra=None
         "house_id": house_id,
         "cleaned_pages": [],
         "grouped_documents": [],
-        "routed_documents": {"per_page": []},
+        "manifest": {"per_page": []},
     }
     if state_extra:
         state_data.update(state_extra)
@@ -456,8 +456,8 @@ def test_17c_routed_documents_or_dict():
     """reconcile must use `or {}` pattern for routed_documents to avoid None crash."""
     src_path = Path(__file__).resolve().parent.parent / "src" / "reconcile" / "core.py"
     code = src_path.read_text(encoding="utf-8")
-    assert 'state.data.get("routed_documents") or {}' in code, (
-        "routed_documents must use `or {}` to handle None/list/missing"
+    assert 'state.data.get("manifest")' in code, (
+        "manifest must use `or {}` or if not check to handle None/list/missing"
     )
 
 

@@ -68,7 +68,7 @@ def test_reconcile_many_to_one_grouped_document_preservation(tmp_path):
                 "dates": ["2026-08-01"]
             }
         ],
-        "routed_documents": {
+        "manifest": {
             "per_page": [
                 {
                     "page_index": 0,
@@ -118,7 +118,7 @@ def test_reconcile_many_to_one_grouped_document_preservation(tmp_path):
     with open(new_state_file, 'r', encoding='utf-8') as f:
         final_state = json.load(f)
         
-    final_manifest = final_state.get("routed_documents", {}).get("per_page", [])
+    final_manifest = final_state.get("manifest", {}).get("per_page", [])
     
     # The regression deleted 2 pages. We assert all 3 pages are still there.
     assert len(final_manifest) == 3, f"Expected 3 pages, found {len(final_manifest)}. Regression occurred: Many-to-One pages were deleted."

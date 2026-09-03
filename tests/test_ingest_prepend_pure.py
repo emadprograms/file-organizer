@@ -48,7 +48,7 @@ def test_pure_ingest_prepend(mock_route, mock_group, mock_fine, mock_clean, tmp_
         "grouped_documents": [
             {"start_page": 0, "end_page": 0, "primary_tenant": "John Doe", "category": "letters", "vault_id": old_vault_id, "dates": ["2023-01-01"]}
         ],
-        "routed_documents": {
+        "manifest": {
             "summary": {"total_output_pages": 1, "output_file_count": 1},
             "per_page": [
                 {
@@ -126,7 +126,12 @@ def test_pure_ingest_prepend(mock_route, mock_group, mock_fine, mock_clean, tmp_
     assert new_doc.get("relative_start_page") == 0
     assert new_doc.get("relative_end_page") == 1
     
-    print("ROUTED_DOCUMENTS_PER_PAGE:", state_data["routed_documents"]["per_page"])
+    print("ROUTED_DOCUMENTS_PER_PAGE:", state_data["manifest"]["per_page"])
+    old_route = state_data["manifest"]["per_page"][2]
+    assert old_route["page_index"] == 2
+    
+    assert state_data["manifest"]["summary"]["total_output_pages"] == 3
+    
     # 5. Run reconcile
     rec_args = DummyArgs(command="reconcile", target_dir=target_dir, dry_run=False, verbose=False, tenants=False)
     result = run_reconcile_mode(rec_args)

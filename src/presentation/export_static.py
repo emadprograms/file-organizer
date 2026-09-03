@@ -268,10 +268,10 @@ def export_static_web(config: AppConfig, output_dir: Path | None = None) -> int:
     else:
         logger.warning(f"Could not find source index.html at {src_index}")
 
-    print(f"Static web bundle successfully exported to: {target_dir}")
-    print("Files created:")
-    print(f"  - {tree_path.name}")
-    print(f"  - {search_path.name}")
-    print(f"  - {web_config_path.name}")
-    print(f"  - index.html")
+    logger.info(f"Static web bundle successfully exported to: {target_dir}")
+    logger.info("Files created:")
+    logger.info(f"  - {tree_path.name}")
+    logger.info(f"  - {search_path.name}")
+    logger.info(f"  - {web_config_path.name}")
+    logger.info("  - index.html")
     return 0

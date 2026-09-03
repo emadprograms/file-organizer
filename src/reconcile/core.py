@@ -92,16 +92,25 @@ def run_reconcile_mode(args) -> int:
         
     pages = [PageData(**p) for p in (state.data.get("cleaned_pages") or [])]
     groups = [DocumentGroup(**g) for g in (state.data.get("grouped_documents") or [])]
-    routed_data = state.data.get("routed_documents") or {}
+    
+    routed_docs_list = state.data.get("routed_documents")
+    if routed_docs_list and isinstance(routed_docs_list, list) and len(routed_docs_list) > 0 and "start_page" in routed_docs_list[0]:
+        logger.info("Loading routed documents for groups.")
+        groups = [DocumentGroup(**d) for d in routed_docs_list]
+
+    routed_data = state.data.get("manifest")
+    if not routed_data:
+        legacy_routed = state.data.get("routed_documents")
+        if legacy_routed and isinstance(legacy_routed, dict) and "per_page" in legacy_routed:
+            routed_data = legacy_routed
+    if not routed_data:
+        routed_data = {}
     if isinstance(routed_data, list):
-        if len(routed_data) > 0 and "start_page" in routed_data[0]:
-            logger.info("Skipping Pass 2.5 Routing (found in state). Loading routed documents.")
-            groups = [DocumentGroup(**d) for d in routed_data]
-            routed_data = {"per_page": []}
-        elif len(routed_data) > 0 and "page_index" in routed_data[0]:
+        if len(routed_data) > 0 and "page_index" in routed_data[0]:
             routed_data = {"per_page": routed_data}
         else:
             routed_data = {"per_page": routed_data}
+
     # Dynamically infer vault_id for legacy groups that didn't get it during migration
     for g in groups:
         if not g.vault_id:
@@ -926,7 +935,8 @@ def run_reconcile_mode(args) -> int:
         if "summary" in routed_data:
             routed_data["summary"]["output_file_count"] = len(set([p["output_file"] for p in new_per_page]))
             
-        state.data["routed_documents"] = routed_data
+        state.data["manifest"] = routed_data
+        state.data["routed_documents"] = [g.model_dump() for g in groups]
         state.save()
                 
         logger.info(f"Updated unified state JSON successfully in {source_dir}")

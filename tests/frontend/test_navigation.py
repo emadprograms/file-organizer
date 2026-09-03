@@ -80,6 +80,11 @@ def _setup_routes(page: Page, *, timeline_status=200, captured_urls=None):
                       body='{"detail": "old URL still in use"}')
     page.route(re.compile(r".*/api/houses/.+/timeline"), reject_old_timeline)
 
+    def handle_categories(route):
+        route.fulfill(status=200, content_type="application/json", body="[]")
+    page.route(re.compile(r".*/api/areas/.+/houses/.+/categories"), handle_categories)
+
+
 
 def test_sidebar_renders_areas_and_houses(page: Page):
     """Tree renders 3 levels: Area → House → Tenant."""
@@ -112,6 +117,7 @@ def test_clicking_tenant_loads_timeline(page: Page):
     page.click("text=Northside")
     page.click("text=123 - Test House")
     page.click("text=Ali")
+    page.click("text=Timeline")
 
     # Timeline panel must show a document card, not an error
     expect(page.locator("#document-list")).not_to_contain_text("Error loading timeline", timeout=5000)
@@ -137,6 +143,7 @@ def test_clicking_house_without_tenants_loads_timeline(page: Page):
 
     page.click("text=Northside")
     page.click("text=999 - Empty House")
+    page.click("text=Timeline")
 
     expect(page.locator("#document-list")).not_to_contain_text("Error loading timeline", timeout=5000)
     expect(page.locator("#document-list")).to_contain_text("عقد إيجار", timeout=5000)
@@ -157,6 +164,7 @@ def test_area_name_not_prefixed_in_api_call(page: Page):
     page.click("text=Northside")
     page.click("text=123 - Test House")
     page.click("text=Ali")
+    page.click("text=Timeline")
 
     page.wait_for_timeout(500)
     for url in captured:
@@ -175,6 +183,7 @@ def test_deep_link_expands_tree_and_loads_timeline(page: Page):
     # Hash uses the tree node id (area_Northside) for matching nodes,
     # but the API call must strip the 'area_' prefix
     page.goto("http://localhost:9999/#/area/area_Northside/house/123 - Test House/tenant/123 - Test House_Ali")
+    page.click("text=Timeline")
 
     # Tree must expand automatically
     expect(page.locator("#house-list").locator("text=123 - Test House")).to_be_visible(timeout=5000)
@@ -197,6 +206,7 @@ def test_timeline_error_state_shown_on_404(page: Page):
 
     page.click("text=Northside")
     page.click("text=999 - Empty House")
+    page.click("text=Timeline")
 
     expect(page.locator("#document-list")).to_contain_text("Error loading timeline",
                                                        timeout=5000)

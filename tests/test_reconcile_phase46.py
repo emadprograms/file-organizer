@@ -39,7 +39,7 @@ def test_phase46_auto_verification(tmp_path):
             "category": "others",
             "dates": []
         }],
-        "routed_documents": {"per_page": [{
+        "manifest": {"per_page": [{
             "page_index": 0,
             "vault_id": "test_page_1",
             "target_folder": "Tenant",

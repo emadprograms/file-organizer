@@ -48,7 +48,7 @@ def test_phase44_user_deletion(tmp_path):
             "category": "misc",
             "dates": []
         }],
-        "routed_documents": {"per_page": [{
+        "manifest": {"per_page": [{
             "page_index": 0,
             "vault_id": "delete_me_123",
             "target_folder": "Tenant/Misc",
@@ -81,7 +81,7 @@ def test_phase44_user_deletion(tmp_path):
     # Should be removed from state
     assert len(new_state["cleaned_pages"]) == 0
     assert len(new_state["grouped_documents"]) == 0
-    assert len(new_state["routed_documents"]["per_page"]) == 0
+    assert len(new_state["manifest"]["per_page"]) == 0
     
     # Vault PDF should be trashed
     assert not (new_house_dir / ".source_files" / "vault" / "doc_delete_me_123.pdf").exists()
@@ -104,7 +104,7 @@ def test_phase44_orphan_cleanup(tmp_path):
         "house_id": house_id,
         "cleaned_pages": [],
         "grouped_documents": [],
-        "routed_documents": {"per_page": []}
+        "manifest": {"per_page": []}
     }
     with open(source_dir / f"{house_id}_state.json", "w") as f:
         json.dump(state_data, f)

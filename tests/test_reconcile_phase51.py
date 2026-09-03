@@ -27,7 +27,7 @@ def test_phase51_multipage_pdf(tmp_path):
         "house_id": house_id,
         "cleaned_pages": [],
         "grouped_documents": [],
-        "routed_documents": {"per_page": []}
+        "manifest": {"per_page": []}
     }
     with open(source_dir / f"{house_id}_state.json", "w", encoding="utf-8") as f:
         json.dump(state_data, f)

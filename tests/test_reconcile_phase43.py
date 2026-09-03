@@ -37,7 +37,7 @@ def test_phase43_raw_pdf_ingestion(tmp_path):
         "house_id": house_id,
         "cleaned_pages": [],
         "grouped_documents": [],
-        "routed_documents": {"per_page": []}
+        "manifest": {"per_page": []}
     }
     with open(source_dir / f"{house_id}_state.json", "w") as f:
         json.dump(state_data, f)
@@ -76,7 +76,7 @@ def test_phase43_raw_pdf_ingestion(tmp_path):
         
     assert len(new_state["cleaned_pages"]) == 1
     assert len(new_state["grouped_documents"]) == 1
-    per_page = new_state["routed_documents"]["per_page"]
+    per_page = new_state["manifest"]["per_page"]
     assert len(per_page) == 1
     
     p = per_page[0]
@@ -106,7 +106,7 @@ def test_phase43_ghost_shortcut_adoption(tmp_path):
         "house_id": house_id,
         "cleaned_pages": [],
         "grouped_documents": [],
-        "routed_documents": {"per_page": []}
+        "manifest": {"per_page": []}
     }
     with open(source_dir / f"{house_id}_state.json", "w") as f:
         json.dump(state_data, f)
@@ -136,7 +136,7 @@ def test_phase43_ghost_shortcut_adoption(tmp_path):
         new_state = json.load(f)
         
     assert len(new_state["cleaned_pages"]) == 1
-    per_page = new_state["routed_documents"]["per_page"]
+    per_page = new_state["manifest"]["per_page"]
     assert len(per_page) == 1
     
     p = per_page[0]
