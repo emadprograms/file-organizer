@@ -314,7 +314,9 @@ def run_verification(target_dir: Path) -> int:
                             
                         # Also check if it matches the number of expected vault documents
                         routed_docs = state_data.get("routed_documents") or state_data.get("grouped_documents") or []
-                        unique_vids = {g.get("vault_id") for g in routed_docs if g.get("vault_id")}
+                        if isinstance(routed_docs, dict):
+                            routed_docs = list(routed_docs.values())
+                        unique_vids = {g.get("vault_id") for g in routed_docs if isinstance(g, dict) and g.get("vault_id")}
                         expected_report_count = len(unique_vids)
                         if expected_report_count == 0:
                             add_error(f"State expected 0 vault documents. Cannot verify {report_file.name}.")
