@@ -310,6 +310,9 @@ async def get_tree(request: Request):
             state_path = house_entry / ".source_files" / f"{house_id}_state.json"
             tenants_with_dates: dict[str, set[int]] = {}
             tenant_is_present: dict[str, bool] = {}
+            category_counts: dict[str, int] = {}
+            total_docs = 0
+
             if state_path.exists():
                 try:
                     with open(state_path, "r", encoding="utf-8") as f:
@@ -324,7 +327,13 @@ async def get_tree(request: Request):
                             if "الآن" in tf or "present" in tf.lower():
                                 tenant_is_present[tenant] = True
                     
-                    for group in _get_document_groups(state_data):
+                    doc_groups = _get_document_groups(state_data)
+                    total_docs = len(doc_groups)
+                    for group in doc_groups:
+                        cat_raw = group.get("folder_path") or group.get("category")
+                        if cat_raw:
+                            clean_cat = re.sub(r'^\d+\s*-\s*', '', cat_raw)
+                            category_counts[clean_cat] = category_counts.get(clean_cat, 0) + 1
                         tenant = group.get("primary_tenant")
                         if tenant:
                             if tenant not in tenants_with_dates:
@@ -338,6 +347,24 @@ async def get_tree(request: Request):
                                         tenants_with_dates[tenant].add(int(year_match.group(1)))
                 except Exception:
                     pass
+            elif house_entry.exists():
+                for tenant_dir in house_entry.iterdir():
+                    if tenant_dir.is_dir() and tenant_dir.name != ".source_files":
+                        m = re.match(r'^(.*?)\s*‎?\((.*?)\)‎?$', tenant_dir.name)
+                        t_name = m.group(1).strip() if m else tenant_dir.name
+                        if "الآن" in tenant_dir.name or "present" in tenant_dir.name.lower():
+                            tenant_is_present[t_name] = True
+                        if t_name not in tenants_with_dates:
+                            tenants_with_dates[t_name] = set()
+                        for cat_dir in tenant_dir.iterdir():
+                            if cat_dir.is_dir():
+                                clean_cat = re.sub(r'^\d+\s*-\s*', '', cat_dir.name)
+                                for doc_file in cat_dir.glob("*.pdf"):
+                                    total_docs += 1
+                                    category_counts[clean_cat] = category_counts.get(clean_cat, 0) + 1
+                                    doc_m = re.match(r'^(\d{4}-\d{2}-\d{2})\s*-\s*(.*?)\.pdf$', doc_file.name)
+                                    if doc_m:
+                                        tenants_with_dates[t_name].add(int(doc_m.group(1)[:4]))
 
             current_year = datetime.now().year
             for t, years in sorted(tenants_with_dates.items()):
@@ -372,6 +399,49 @@ async def get_tree(request: Request):
                     duration_category=duration_category,
                     type="tenant"
                 ))
+
+            # Determine active tenant and house-level metrics for grid view
+            active_tenant = None
+            for t in tenants_with_dates.keys():
+                if tenant_is_present.get(t):
+                    active_tenant = t
+                    break
+            
+            if not active_tenant and " - " in house_dir_name:
+                cand = house_dir_name.split(" - ", 1)[1].strip()
+                if cand in tenants_with_dates:
+                    active_tenant = cand
+
+            if not active_tenant and len(tenants_with_dates) == 1:
+                active_tenant = next(iter(tenants_with_dates.keys()))
+
+            house_duration_cat = None
+            house_sub = None
+
+            if active_tenant and tenants_with_dates.get(active_tenant):
+                years = tenants_with_dates[active_tenant]
+                min_val = min(years)
+                max_val = max(years)
+                is_pres = tenant_is_present.get(active_tenant, False)
+                if is_pres or active_tenant == (house_dir_name.split(" - ", 1)[1].strip() if " - " in house_dir_name else ""):
+                    duration = current_year - min_val
+                    if duration < 5:
+                        house_duration_cat = "short"
+                    elif duration < 10:
+                        house_duration_cat = "medium"
+                    else:
+                        house_duration_cat = "long"
+                    house_sub = f"Since {min_val} ({duration}y)"
+                elif min_val == max_val:
+                    house_sub = f"{min_val}"
+                else:
+                    house_sub = f"{min_val} - {max_val}"
+
+            house_node.current_tenant = active_tenant
+            house_node.duration_category = house_duration_cat
+            house_node.subtitle = house_sub
+            house_node.total_documents = total_docs
+            house_node.category_counts = category_counts
 
             areas[area_name].children.append(house_node)
 

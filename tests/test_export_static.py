@@ -52,6 +52,9 @@ def test_build_tree_data_and_search(tmp_path):
     assert len(tree[0]["children"]) == 1
     house_node = tree[0]["children"][0]
     assert house_node["name"] == "1245 - Ali"
+    assert house_node["current_tenant"] == "Ali"
+    assert house_node["total_documents"] == 1
+    assert "عقد الإيجار" in house_node["category_counts"]
     assert len(house_node["children"]) == 1
     assert house_node["children"][0]["name"] == "Ali"
 

@@ -66,38 +66,44 @@ function buildTreeData(areasRoot) {
             const stateFile = path.join(sfPath, `${houseId}_state.json`);
 
             const tenantChildren = [];
-            const seenTenants = new Set();
+            const tenantsWithDates = {};
+            const tenantIsPresent = {};
+            const categoryCounts = {};
+            let totalDocs = 0;
 
             if (fs.existsSync(stateFile)) {
                 try {
                     const raw = fs.readFileSync(stateFile, 'utf8');
                     const stateData = JSON.parse(raw);
-                    const groups = getDocumentGroups(stateData);
 
-                    for (const doc of groups) {
-                        const tenant = doc.primary_tenant;
-                        if (tenant && !seenTenants.has(tenant)) {
-                            seenTenants.add(tenant);
-                            tenantChildren.push({
-                                id: `${houseEntry.name}_${tenant}`,
-                                name: tenant,
-                                type: 'tenant',
-                                children: []
-                            });
+                    if (stateData.manifest && Array.isArray(stateData.manifest.per_page)) {
+                        for (const page of stateData.manifest.per_page) {
+                            const tenant = page.tenant;
+                            const tf = page.target_folder || '';
+                            if (tenant && (tf.includes('الآن') || tf.toLowerCase().includes('present'))) {
+                                tenantIsPresent[tenant] = true;
+                            }
                         }
                     }
 
-                    if (tenantChildren.length === 0 && stateData.manifest && Array.isArray(stateData.manifest.per_page)) {
-                        for (const page of stateData.manifest.per_page) {
-                            const tenant = page.tenant;
-                            if (tenant && !seenTenants.has(tenant)) {
-                                seenTenants.add(tenant);
-                                tenantChildren.push({
-                                    id: `${houseEntry.name}_${tenant}`,
-                                    name: tenant,
-                                    type: 'tenant',
-                                    children: []
-                                });
+                    const groups = getDocumentGroups(stateData);
+                    totalDocs = groups.length;
+                    for (const doc of groups) {
+                        const tenant = doc.primary_tenant;
+                        const catRaw = doc.folder_path || doc.category;
+                        if (catRaw) {
+                            const cleanCat = catRaw.replace(/^\d+\s*-\s*/, '');
+                            categoryCounts[cleanCat] = (categoryCounts[cleanCat] || 0) + 1;
+                        }
+
+                        if (tenant) {
+                            if (!tenantsWithDates[tenant]) tenantsWithDates[tenant] = [];
+                            const dates = doc.dates || [];
+                            for (const d of dates) {
+                                if (d && d !== 'NONE') {
+                                    const m = d.match(/(\d{4})/);
+                                    if (m) tenantsWithDates[tenant].push(parseInt(m[1], 10));
+                                }
                             }
                         }
                     }
@@ -106,10 +112,82 @@ function buildTreeData(areasRoot) {
                 }
             }
 
+            const currentYear = new Date().getFullYear();
+            for (const [t, years] of Object.entries(tenantsWithDates)) {
+                let subtitle = null;
+                let durationCategory = null;
+                if (years.length > 0) {
+                    const minVal = Math.min(...years);
+                    const maxVal = Math.max(...years);
+
+                    if (tenantIsPresent[t]) {
+                        const duration = currentYear - minVal;
+                        if (duration < 5) durationCategory = 'short';
+                        else if (duration < 10) durationCategory = 'medium';
+                        else durationCategory = 'long';
+                        subtitle = `${minVal} - Present`;
+                    } else if (minVal === maxVal) {
+                        subtitle = `${minVal}`;
+                    } else {
+                        subtitle = `${minVal} - ${maxVal}`;
+                    }
+                }
+
+                tenantChildren.push({
+                    id: `${houseEntry.name}_${t}`,
+                    name: t,
+                    subtitle: subtitle,
+                    duration_category: durationCategory,
+                    type: 'tenant',
+                    children: []
+                });
+            }
+
+            // Determine active tenant and house-level metrics
+            let activeTenant = null;
+            for (const t of Object.keys(tenantsWithDates)) {
+                if (tenantIsPresent[t]) {
+                    activeTenant = t;
+                    break;
+                }
+            }
+            if (!activeTenant && houseEntry.name.includes(' - ')) {
+                const cand = houseEntry.name.split(' - ')[1].trim();
+                if (tenantsWithDates[cand]) activeTenant = cand;
+            }
+            if (!activeTenant && Object.keys(tenantsWithDates).length === 1) {
+                activeTenant = Object.keys(tenantsWithDates)[0];
+            }
+
+            let houseDurationCat = null;
+            let houseSub = null;
+            if (activeTenant && tenantsWithDates[activeTenant] && tenantsWithDates[activeTenant].length > 0) {
+                const years = tenantsWithDates[activeTenant];
+                const minVal = Math.min(...years);
+                const maxVal = Math.max(...years);
+                const isPres = !!tenantIsPresent[activeTenant];
+                if (isPres || activeTenant === (houseEntry.name.includes(' - ') ? houseEntry.name.split(' - ')[1].trim() : '')) {
+                    const duration = currentYear - minVal;
+                    if (duration < 5) houseDurationCat = 'short';
+                    else if (duration < 10) houseDurationCat = 'medium';
+                    else houseDurationCat = 'long';
+                    houseSub = `Since ${minVal} (${duration}y)`;
+                } else if (minVal === maxVal) {
+                    houseSub = `${minVal}`;
+                } else {
+                    houseSub = `${minVal} - ${maxVal}`;
+                }
+            }
+
             houseChildren.push({
                 id: houseEntry.name,
                 name: houseEntry.name,
                 type: 'house',
+                current_tenant: activeTenant,
+                duration_category: houseDurationCat,
+                subtitle: houseSub,
+                total_documents: totalDocs,
+                category_counts: categoryCounts,
                 children: tenantChildren
             });
         }

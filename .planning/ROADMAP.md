@@ -59,7 +59,7 @@ See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md) for full 
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 88. View Mode Switcher & Area Grid Layout | v10.0 | 0/1 | In Progress | - |
-| 89. House Card Metrics & Tenure Color-Coding | v10.0 | 0/1 | Pending | - |
-| 90. Drill-down Navigation & Static Parity | v10.0 | 0/1 | Pending | - |
-| 91. Playwright E2E Test Suite & Milestone Verification | v10.0 | 0/1 | Pending | - |
+| 88. View Mode Switcher & Area Grid Layout | v10.0 | 1/1 | Complete | 2026-09-06 |
+| 89. House Card Metrics & Tenure Color-Coding | v10.0 | 1/1 | Complete | 2026-09-06 |
+| 90. Drill-down Navigation & Static Parity | v10.0 | 1/1 | Complete | 2026-09-06 |
+| 91. Playwright E2E Test Suite & Milestone Verification | v10.0 | 1/1 | Complete | 2026-09-06 |

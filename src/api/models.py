@@ -32,6 +32,9 @@ class TreeItemResponse(BaseModel):
     type: str
     subtitle: str | None = None
     duration_category: str | None = None
+    current_tenant: str | None = None
+    total_documents: int | None = 0
+    category_counts: dict[str, int] | None = None
     children: list["TreeItemResponse"] | None = None
 
 class SearchResultResponse(BaseModel):

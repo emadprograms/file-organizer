@@ -51,12 +51,23 @@
     <div class="flex h-screen w-full overflow-hidden">
         
         <!-- Sidebar (Resizable) -->
-        <div id="main-sidebar" class="bg-gray-50 overflow-y-auto flex-shrink-0 flex flex-col relative group" style="width: 288px; min-width: 200px; max-width: 50vw;">
-            <div class="p-4 bg-blue-600 text-white font-bold text-lg">
-                File Organizer
+        <div id="main-sidebar" class="bg-gray-50 overflow-y-auto flex-shrink-0 flex flex-col relative group border-r border-gray-200" style="width: 288px; min-width: 200px; max-width: 50vw;">
+            <div class="p-4 bg-blue-600 text-white font-bold text-lg flex items-center justify-between shadow-xs">
+                <span>File Organizer</span>
             </div>
-            <div class="p-4 border-b">
-                <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Areas</h2>
+            
+            <!-- View Mode Switcher -->
+            <div class="p-2 bg-gray-100 border-b border-gray-200 flex gap-1 flex-shrink-0">
+                <button id="view-mode-tree" class="flex-1 py-1.5 px-2 text-xs font-semibold rounded bg-white text-blue-700 shadow-xs border border-gray-300 flex items-center justify-center gap-1 transition-all">
+                    <span>🌳</span> Tree View
+                </button>
+                <button id="view-mode-grid" class="flex-1 py-1.5 px-2 text-xs font-semibold rounded text-gray-600 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center gap-1 transition-all">
+                    <span>🔲</span> Grid Overview
+                </button>
+            </div>
+
+            <div class="p-4 border-b flex-1 overflow-y-auto">
+                <h2 id="sidebar-section-title" class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Areas & Houses</h2>
                 <div id="house-list" class="space-y-1 overflow-y-auto">
                     <p class="text-gray-400 text-sm">Loading...</p>
                 </div>
@@ -72,6 +83,9 @@
             <!-- Combined Header Bar: title left, search right -->
             <header id="top-navbar" class="bg-white p-3 border-b shadow-sm flex items-center justify-between z-20 flex-shrink-0 gap-4">
                 <div class="flex items-center gap-3 min-w-0">
+                    <button id="back-to-grid-btn" class="hidden items-center gap-1 text-xs font-semibold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1.5 rounded transition-colors flex-shrink-0">
+                        ← Back to Grid
+                    </button>
                     <h1 id="current-house-title" class="text-xl font-semibold truncate">Select an Area</h1>
                     <div id="stats-badge" class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded hidden flex-shrink-0"></div>
                 </div>
@@ -86,7 +100,33 @@
             </header>
 
             <!-- Dashboard / Viewer Area -->
-            <main class="flex-1 overflow-hidden flex">
+            <main class="flex-1 overflow-hidden flex relative">
+                <!-- Area Grid Panel (for Grid Overview Mode) -->
+                <div id="area-grid-panel" class="flex-1 p-6 bg-gray-50 overflow-y-auto hidden flex-col">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 pb-4 border-b border-gray-200 gap-2 flex-shrink-0">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-2xl">🏘️</span>
+                                <h2 id="grid-area-title" class="text-2xl font-bold text-gray-900">Select an Area</h2>
+                            </div>
+                            <p id="grid-area-subtitle" class="text-xs text-gray-500 mt-1">Overview of houses, current residents, residency tenure, and documents.</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <div class="flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-white px-2.5 py-1.5 rounded-md border border-gray-200 shadow-xs">
+                                <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span> &lt; 5y (Green)
+                                <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-500 ml-1.5"></span> 5–10y (Yellow)
+                                <span class="inline-block w-2.5 h-2.5 rounded-full bg-rose-500 ml-1.5"></span> &gt; 10y (Red)
+                            </div>
+                            <div id="grid-area-stats" class="bg-blue-50 text-blue-800 border border-blue-200 px-3 py-1.5 rounded-md text-xs font-bold">0 Houses</div>
+                        </div>
+                    </div>
+                    
+                    <!-- House Cards Grid -->
+                    <div id="house-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8">
+                        <!-- Dynamic house cards rendered here -->
+                    </div>
+                </div>
+
                 <!-- Left panel: Documents List -->
                 <div id="document-list-panel" class="bg-white overflow-y-auto hidden flex-col flex-shrink-0" style="width: 33%; min-width: 250px; max-width: 60vw;">
                     <!-- Tabs -->
@@ -119,7 +159,7 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                         </svg>
                         <h3 class="mt-2 text-sm font-medium text-gray-900">No area selected</h3>
-                        <p class="mt-1 text-sm text-gray-500">Select a tenant or house from the sidebar to view documents.</p>
+                        <p class="mt-1 text-sm text-gray-500">Select an area or house from the sidebar to view details.</p>
                     </div>
                 </div>
             </main>
@@ -166,6 +206,15 @@
         const currentHouseTitle = document.getElementById('current-house-title');
         const statsBadge = document.getElementById('stats-badge');
         
+        const viewModeTreeBtn = document.getElementById('view-mode-tree');
+        const viewModeGridBtn = document.getElementById('view-mode-grid');
+        const backToGridBtn = document.getElementById('back-to-grid-btn');
+        const areaGridPanel = document.getElementById('area-grid-panel');
+        const gridAreaTitle = document.getElementById('grid-area-title');
+        const gridAreaStats = document.getElementById('grid-area-stats');
+        const houseCardsContainer = document.getElementById('house-cards-container');
+        const sidebarSectionTitle = document.getElementById('sidebar-section-title');
+
         const tabTimeline = document.getElementById('tab-timeline');
         const tabCategories = document.getElementById('tab-categories');
         let currentTab = 'categories';
@@ -182,6 +231,8 @@
 
         // State
         let currentTimeline = [];
+        let globalTreeData = [];
+        let currentViewMode = 'tree'; // 'tree' or 'grid'
 
         async function loadTree() {
             try {
@@ -197,17 +248,9 @@
                 }
                 if (!res || !res.ok) throw new Error('Failed to load tree');
                 const treeData = await res.json();
+                globalTreeData = treeData;
                 
-                houseListEl.innerHTML = '';
-                if (treeData.length === 0) {
-                    houseListEl.innerHTML = '<p class="text-gray-400 text-sm">No areas found.</p>';
-                    return;
-                }
-                
-                const ul = document.createElement('ul');
-                ul.className = 'pl-2 space-y-1';
-                createTreeNodes(treeData, ul, '', '');
-                houseListEl.appendChild(ul);
+                renderSidebar();
 
                 // Check hash on load
                 handleHashChange();
@@ -215,6 +258,243 @@
                 houseListEl.innerHTML = '<p class="text-red-400 text-sm">Error loading data.</p>';
             }
         }
+
+        function renderSidebar() {
+            houseListEl.innerHTML = '';
+            if (!globalTreeData || globalTreeData.length === 0) {
+                houseListEl.innerHTML = '<p class="text-gray-400 text-sm">No areas found.</p>';
+                return;
+            }
+
+            if (currentViewMode === 'tree') {
+                const ul = document.createElement('ul');
+                ul.className = 'pl-2 space-y-1';
+                createTreeNodes(globalTreeData, ul, '', '');
+                houseListEl.appendChild(ul);
+            } else {
+                // Grid mode: Show only the list of areas
+                const ul = document.createElement('ul');
+                ul.className = 'space-y-1';
+                globalTreeData.forEach(areaNode => {
+                    const li = document.createElement('li');
+                    const btn = document.createElement('button');
+                    btn.className = 'area-grid-btn w-full text-left px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 focus:outline-none flex items-center justify-between transition-colors border border-transparent';
+                    btn.dataset.areaName = areaNode.name;
+                    if (currentArea === areaNode.name && areaGridPanel && !areaGridPanel.classList.contains('hidden')) {
+                        btn.classList.add('bg-blue-100', 'text-blue-800', 'font-semibold', 'border-blue-200');
+                    }
+                    const houseCount = (areaNode.children || []).length;
+                    btn.innerHTML = `
+                        <div class="flex items-center gap-2 truncate">
+                            <span class="text-base">📁</span>
+                            <span class="truncate">${areaNode.name}</span>
+                        </div>
+                        <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full font-normal">${houseCount} Houses</span>
+                    `;
+                    btn.onclick = (e) => {
+                        e.stopPropagation();
+                        selectAreaGrid(areaNode);
+                    };
+                    li.appendChild(btn);
+                    ul.appendChild(li);
+                });
+                houseListEl.appendChild(ul);
+            }
+        }
+
+        function selectAreaGrid(areaNode) {
+            currentArea = areaNode.name;
+            currentHouse = null;
+            currentTenant = null;
+            window.location.hash = `/grid/area/${encodeURIComponent(areaNode.name)}`;
+            renderAreaGrid(areaNode);
+        }
+
+        function renderAreaGrid(areaNode) {
+            // Update sidebar selection
+            document.querySelectorAll('.area-grid-btn').forEach(b => {
+                if (b.dataset.areaName === areaNode.name) {
+                    b.classList.add('bg-blue-100', 'text-blue-800', 'font-semibold', 'border-blue-200');
+                } else {
+                    b.classList.remove('bg-blue-100', 'text-blue-800', 'font-semibold', 'border-blue-200');
+                }
+            });
+
+            // Adjust panel visibilities
+            welcomePanel.classList.add('hidden');
+            docListPanel.classList.add('hidden');
+            docListPanel.classList.remove('flex');
+            docViewerPanel.classList.add('hidden');
+            document.getElementById('resizer-2').classList.add('hidden');
+            backToGridBtn.classList.add('hidden');
+
+            areaGridPanel.classList.remove('hidden');
+            areaGridPanel.classList.add('flex');
+
+            currentHouseTitle.textContent = `${areaNode.name} — Houses Overview`;
+            statsBadge.classList.add('hidden');
+
+            gridAreaTitle.textContent = areaNode.name;
+            const houses = areaNode.children || [];
+            gridAreaStats.textContent = `${houses.length} Houses`;
+
+            houseCardsContainer.innerHTML = '';
+            if (houses.length === 0) {
+                houseCardsContainer.innerHTML = '<p class="text-gray-500 text-sm col-span-full py-8 text-center">No houses found in this area.</p>';
+                return;
+            }
+
+            houses.forEach(house => {
+                const card = document.createElement('div');
+                card.className = 'house-card group bg-white rounded-lg p-4 border border-gray-200 shadow-xs transition-all duration-150 hover:shadow-md cursor-pointer flex flex-col justify-between';
+                card.dataset.houseId = house.id;
+
+                let borderClass = 'border-l-[6px] border-l-gray-300';
+                let badgeClass = 'bg-gray-100 text-gray-700 border-gray-200';
+                let badgeLabel = '⚪ Unknown';
+
+                if (house.duration_category === 'short') {
+                    borderClass = 'border-l-[6px] border-l-emerald-500 hover:border-emerald-300';
+                    badgeClass = 'bg-emerald-50 text-emerald-800 border-emerald-300 font-semibold';
+                    badgeLabel = '🟢 < 5 Yrs';
+                } else if (house.duration_category === 'medium') {
+                    borderClass = 'border-l-[6px] border-l-amber-500 hover:border-amber-300';
+                    badgeClass = 'bg-amber-50 text-amber-800 border-amber-300 font-semibold';
+                    badgeLabel = '🟡 5–10 Yrs';
+                } else if (house.duration_category === 'long') {
+                    borderClass = 'border-l-[6px] border-l-rose-500 hover:border-rose-300';
+                    badgeClass = 'bg-rose-50 text-rose-800 border-rose-300 font-semibold';
+                    badgeLabel = '🔴 > 10 Yrs';
+                }
+                card.className += ` ${borderClass}`;
+
+                const tenantName = house.current_tenant || (house.children && house.children.length > 0 ? house.children[0].name : 'No Active Tenant');
+                const tenureSubtitle = house.subtitle || (house.children && house.children.length > 0 && house.children[0].subtitle ? house.children[0].subtitle : 'Tenure unrecorded');
+
+                let categoryPillsHtml = '';
+                if (house.category_counts && Object.keys(house.category_counts).length > 0) {
+                    const sortedCats = Object.entries(house.category_counts).sort((a, b) => b[1] - a[1]);
+                    categoryPillsHtml = sortedCats.map(([cat, count]) => `
+                        <span class="inline-flex items-center text-[10px] bg-gray-100 text-gray-700 px-2 py-0.5 rounded border border-gray-200">
+                            ${cat}: <b class="ml-1 text-gray-900">${count}</b>
+                        </span>
+                    `).join('');
+                } else {
+                    categoryPillsHtml = '<span class="text-[10px] text-gray-400">No documents</span>';
+                }
+
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-start justify-between gap-2 mb-2">
+                            <h3 class="font-bold text-gray-900 text-sm group-hover:text-blue-600 transition-colors line-clamp-1" title="${house.name}">
+                                🏠 ${house.name}
+                            </h3>
+                            <span class="tenure-badge text-[10px] px-2 py-0.5 rounded border flex-shrink-0 ${badgeClass}">${badgeLabel}</span>
+                        </div>
+                        
+                        <div class="space-y-1 text-xs text-gray-600 mt-2">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-gray-400 flex-shrink-0">👤</span>
+                                <span class="tenant-name font-semibold text-gray-800 truncate" title="${tenantName}">${tenantName}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5 text-[11px] text-gray-500">
+                                <span class="text-gray-400 flex-shrink-0">📅</span>
+                                <span class="tenure-text truncate" title="${tenureSubtitle}">${tenureSubtitle}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-t border-gray-100">
+                        <div class="flex items-center justify-between text-xs mb-2">
+                            <span class="text-gray-500 text-[11px]">Total Documents:</span>
+                            <span class="doc-count font-bold text-gray-800 bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-[11px] border border-blue-100">${house.total_documents || 0} Docs</span>
+                        </div>
+                        <div class="flex flex-wrap gap-1 max-h-20 overflow-hidden">
+                            ${categoryPillsHtml}
+                        </div>
+                    </div>
+                `;
+
+                card.onclick = () => {
+                    openHouseFromGrid(areaNode.name, house.id);
+                };
+
+                houseCardsContainer.appendChild(card);
+            });
+        }
+
+        function openHouseFromGrid(areaName, houseId) {
+            currentArea = areaName;
+            currentHouse = houseId;
+            currentTenant = null;
+
+            areaGridPanel.classList.add('hidden');
+            areaGridPanel.classList.remove('flex');
+
+            window.location.hash = `/area/${encodeURIComponent(areaName)}/house/${encodeURIComponent(houseId)}`;
+        }
+
+        function switchToViewMode(mode) {
+            if (currentViewMode === mode) return;
+            currentViewMode = mode;
+
+            if (currentViewMode === 'tree') {
+                viewModeTreeBtn.className = "flex-1 py-1.5 px-2 text-xs font-semibold rounded bg-white text-blue-700 shadow-xs border border-gray-300 flex items-center justify-center gap-1 transition-all";
+                viewModeGridBtn.className = "flex-1 py-1.5 px-2 text-xs font-semibold rounded text-gray-600 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center gap-1 transition-all";
+                sidebarSectionTitle.textContent = "Areas & Houses";
+
+                areaGridPanel.classList.add('hidden');
+                areaGridPanel.classList.remove('flex');
+                backToGridBtn.classList.add('hidden');
+
+                renderSidebar();
+
+                if (currentArea && currentHouse) {
+                    welcomePanel.classList.add('hidden');
+                    docListPanel.classList.remove('hidden');
+                    docListPanel.classList.add('flex');
+                    document.getElementById('resizer-2').classList.remove('hidden');
+                } else {
+                    welcomePanel.classList.remove('hidden');
+                    docListPanel.classList.add('hidden');
+                    docListPanel.classList.remove('flex');
+                    docViewerPanel.classList.add('hidden');
+                    currentHouseTitle.textContent = 'Select an Area';
+                }
+            } else {
+                viewModeGridBtn.className = "flex-1 py-1.5 px-2 text-xs font-semibold rounded bg-white text-blue-700 shadow-xs border border-gray-300 flex items-center justify-center gap-1 transition-all";
+                viewModeTreeBtn.className = "flex-1 py-1.5 px-2 text-xs font-semibold rounded text-gray-600 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center gap-1 transition-all";
+                sidebarSectionTitle.textContent = "Areas";
+
+                renderSidebar();
+
+                if (currentArea) {
+                    const areaNode = globalTreeData.find(a => a.name === currentArea);
+                    if (areaNode) {
+                        selectAreaGrid(areaNode);
+                    } else if (globalTreeData.length > 0) {
+                        selectAreaGrid(globalTreeData[0]);
+                    }
+                } else if (globalTreeData.length > 0) {
+                    selectAreaGrid(globalTreeData[0]);
+                }
+            }
+        }
+
+        viewModeTreeBtn.addEventListener('click', () => switchToViewMode('tree'));
+        viewModeGridBtn.addEventListener('click', () => switchToViewMode('grid'));
+        backToGridBtn.addEventListener('click', () => {
+            if (currentArea) {
+                const areaNode = globalTreeData.find(a => a.name === currentArea);
+                if (areaNode) {
+                    selectAreaGrid(areaNode);
+                } else {
+                    window.location.hash = `/grid/area/${encodeURIComponent(currentArea)}`;
+                }
+            } else if (globalTreeData.length > 0) {
+                selectAreaGrid(globalTreeData[0]);
+            }
+        });
 
         function createTreeNodes(nodes, parentEl, parentPath, parentArea) {
             nodes.forEach(node => {
@@ -302,6 +582,23 @@
             const hash = decodeURIComponent(window.location.hash.replace('#', ''));
             if (!hash) return;
 
+            // Check if grid area hash: /grid/area/:area_name
+            if (hash.startsWith('/grid/area/')) {
+                const areaName = decodeURIComponent(hash.replace('/grid/area/', ''));
+                if (currentViewMode !== 'grid') {
+                    currentViewMode = 'grid';
+                    viewModeGridBtn.className = "flex-1 py-1.5 px-2 text-xs font-semibold rounded bg-white text-blue-700 shadow-xs border border-gray-300 flex items-center justify-center gap-1 transition-all";
+                    viewModeTreeBtn.className = "flex-1 py-1.5 px-2 text-xs font-semibold rounded text-gray-600 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center gap-1 transition-all";
+                    sidebarSectionTitle.textContent = "Areas";
+                    renderSidebar();
+                }
+                const areaNode = globalTreeData.find(a => a.name === areaName);
+                if (areaNode) {
+                    renderAreaGrid(areaNode);
+                }
+                return;
+            }
+
             // Always parse area + house from the hash first
             // hash format: /area/area_id/house/house_id[/tenant/tenant_id]
             const parts = hash.split('/');
@@ -364,6 +661,18 @@
             currentHouse = houseId;
             currentTenant = tenantName; // Will be null if no tenant selected
             currentHouseTitle.textContent = tenantName ? `${houseId} - ${tenantName}` : houseId;
+
+            // Hide grid panel
+            areaGridPanel.classList.add('hidden');
+            areaGridPanel.classList.remove('flex');
+
+            if (currentViewMode === 'grid') {
+                backToGridBtn.classList.remove('hidden');
+                backToGridBtn.classList.add('flex');
+                backToGridBtn.textContent = `← Back to ${areaId} Grid`;
+            } else {
+                backToGridBtn.classList.add('hidden');
+            }
 
             welcomePanel.classList.add('hidden');
             docListPanel.classList.remove('hidden');
