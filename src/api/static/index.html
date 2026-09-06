@@ -233,8 +233,11 @@
         let currentTimeline = [];
         let globalTreeData = [];
         let currentViewMode = 'tree'; // 'tree' or 'grid'
+        let isTreeLoading = true;
 
         async function loadTree() {
+            isTreeLoading = true;
+            renderSidebar();
             try {
                 let res = null;
                 try {
@@ -249,18 +252,24 @@
                 if (!res || !res.ok) throw new Error('Failed to load tree');
                 const treeData = await res.json();
                 globalTreeData = treeData;
+                isTreeLoading = false;
                 
                 renderSidebar();
 
                 // Check hash on load
                 handleHashChange();
             } catch (err) {
-                houseListEl.innerHTML = '<p class="text-red-400 text-sm">Error loading data.</p>';
+                isTreeLoading = false;
+                houseListEl.innerHTML = '<div class="p-2 text-red-500 text-sm">Error loading data. <button onclick="loadTree()" class="ml-2 underline text-blue-600 hover:text-blue-800">Retry</button></div>';
             }
         }
 
         function renderSidebar() {
             houseListEl.innerHTML = '';
+            if (isTreeLoading) {
+                houseListEl.innerHTML = '<p class="text-gray-400 text-sm">Loading...</p>';
+                return;
+            }
             if (!globalTreeData || globalTreeData.length === 0) {
                 houseListEl.innerHTML = '<p class="text-gray-400 text-sm">No areas found.</p>';
                 return;
@@ -468,15 +477,17 @@
 
                 renderSidebar();
 
-                if (currentArea) {
-                    const areaNode = globalTreeData.find(a => a.name === currentArea);
-                    if (areaNode) {
-                        selectAreaGrid(areaNode);
-                    } else if (globalTreeData.length > 0) {
+                if (!isTreeLoading && globalTreeData && globalTreeData.length > 0) {
+                    if (currentArea) {
+                        const areaNode = globalTreeData.find(a => a.name === currentArea);
+                        if (areaNode) {
+                            selectAreaGrid(areaNode);
+                        } else {
+                            selectAreaGrid(globalTreeData[0]);
+                        }
+                    } else {
                         selectAreaGrid(globalTreeData[0]);
                     }
-                } else if (globalTreeData.length > 0) {
-                    selectAreaGrid(globalTreeData[0]);
                 }
             }
         }

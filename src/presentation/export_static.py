@@ -64,13 +64,41 @@ def build_tree_data(areas_root: Path) -> list[dict[str, Any]]:
                 "children": []
             }
 
+            report_path = house_entry / ".source_files" / f"{house_id}_report.json"
             state_path = house_entry / ".source_files" / f"{house_id}_state.json"
             tenants_with_dates: dict[str, set[int]] = {}
             tenant_is_present: dict[str, bool] = {}
             category_counts: dict[str, int] = {}
             total_docs = 0
 
-            if state_path.exists():
+            if report_path.exists():
+                try:
+                    with open(report_path, "r", encoding="utf-8") as f:
+                        rep_data = json.load(f)
+                    doc_list = rep_data if isinstance(rep_data, list) else rep_data.get("documents", [])
+                    if isinstance(doc_list, list):
+                        total_docs = len(doc_list)
+                        for doc in doc_list:
+                            cat_raw = doc.get("folder_path") or doc.get("category")
+                            if cat_raw:
+                                clean_cat = re.sub(r'^\d+\s*-\s*', '', cat_raw)
+                                category_counts[clean_cat] = category_counts.get(clean_cat, 0) + 1
+                            tenant = doc.get("primary_tenant") or doc.get("tenant")
+                            if tenant:
+                                if tenant not in tenants_with_dates:
+                                    tenants_with_dates[tenant] = set()
+                                for d in doc.get("dates", []):
+                                    if d and d != "NONE":
+                                        year_match = re.search(r'(\d{4})', d)
+                                        if year_match:
+                                            tenants_with_dates[tenant].add(int(year_match.group(1)))
+                                for sc in doc.get("shortcuts", []):
+                                    if "الآن" in sc or "present" in sc.lower():
+                                        tenant_is_present[tenant] = True
+                except Exception as e:
+                    logger.warning(f"Error reading report file {report_path}: {e}")
+
+            if not tenants_with_dates and state_path.exists():
                 try:
                     with open(state_path, "r", encoding="utf-8") as f:
                         state_data = json.load(f)
@@ -84,7 +112,8 @@ def build_tree_data(areas_root: Path) -> list[dict[str, Any]]:
                                 tenant_is_present[tenant] = True
 
                     doc_groups = _get_document_groups(state_data)
-                    total_docs = len(doc_groups)
+                    if not total_docs:
+                        total_docs = len(doc_groups)
                     for group in doc_groups:
                         cat_raw = group.get("folder_path") or group.get("category")
                         if cat_raw:
@@ -103,24 +132,21 @@ def build_tree_data(areas_root: Path) -> list[dict[str, Any]]:
                                         tenants_with_dates[tenant].add(int(year_match.group(1)))
                 except Exception as e:
                     logger.warning(f"Error reading state file {state_path}: {e}")
-            elif house_entry.exists():
+
+            if not tenants_with_dates and house_entry.exists():
+                # Fast fallback: examine directory names directly without recursive globbing
                 for tenant_dir in house_entry.iterdir():
-                    if tenant_dir.is_dir() and tenant_dir.name != ".source_files":
+                    if tenant_dir.is_dir() and not tenant_dir.name.startswith("."):
                         m = re.match(r'^(.*?)\s*‎?\((.*?)\)‎?$', tenant_dir.name)
                         t_name = m.group(1).strip() if m else tenant_dir.name
                         if "الآن" in tenant_dir.name or "present" in tenant_dir.name.lower():
                             tenant_is_present[t_name] = True
                         if t_name not in tenants_with_dates:
                             tenants_with_dates[t_name] = set()
-                        for cat_dir in tenant_dir.iterdir():
-                            if cat_dir.is_dir():
-                                clean_cat = re.sub(r'^\d+\s*-\s*', '', cat_dir.name)
-                                for doc_file in cat_dir.glob("*.pdf"):
-                                    total_docs += 1
-                                    category_counts[clean_cat] = category_counts.get(clean_cat, 0) + 1
-                                    doc_m = re.match(r'^(\d{4}-\d{2}-\d{2})\s*-\s*(.*?)\.pdf$', doc_file.name)
-                                    if doc_m:
-                                        tenants_with_dates[t_name].add(int(doc_m.group(1)[:4]))
+                        if m and m.group(2):
+                            year_matches = re.findall(r'(\d{4})', m.group(2))
+                            for y in year_matches:
+                                tenants_with_dates[t_name].add(int(y))
 
             current_year = datetime.now().year
             for t, years in sorted(tenants_with_dates.items()):

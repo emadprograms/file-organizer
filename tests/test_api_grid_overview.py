@@ -99,3 +99,102 @@ def test_get_tree_house_overview_metrics(tmp_path):
     assert house3["current_tenant"] == "LongTenant"
     assert house3["duration_category"] == "long"
     assert house3["total_documents"] == 1
+
+
+def test_get_tree_ignores_hidden_directories(tmp_path):
+    """Ensure get_tree ignores system hidden directories like .Spotlight-V100, .Trashes, .DS_Store."""
+    areas_root = tmp_path / "areas"
+    areas_root.mkdir()
+    (areas_root / "Safra C").mkdir()
+    (areas_root / ".Spotlight-V100").mkdir()
+    (areas_root / ".Trashes").mkdir()
+    (areas_root / ".DS_Store").write_text("dummy")
+
+    class MockConfig:
+        areas_root_path = str(areas_root)
+        area_mappings = {"Safra C": "SAF C"}
+
+    app.state.config = MockConfig()
+    import src.api.routes as routes
+    routes.clear_tree_cache() if hasattr(routes, "clear_tree_cache") else None
+
+    res = client.get("/api/tree")
+    assert res.status_code == 200
+    data = res.json()
+    assert len(data) == 1
+    assert data[0]["name"] == "Safra C"
+
+
+def test_get_tree_unorganized_houses_no_hang(tmp_path):
+    """Ensure get_tree processes unorganized houses (without .source_files) rapidly without hanging or deep globbing."""
+    import time
+    areas_root = tmp_path / "areas"
+    areas_root.mkdir()
+    area_dir = areas_root / "Safra D"
+    area_dir.mkdir()
+
+    # Create 20 unorganized houses with nested subfolders
+    for i in range(950, 970):
+        h_dir = area_dir / str(i)
+        h_dir.mkdir()
+        sub = h_dir / "RandomFolder" / "SubFolder"
+        sub.mkdir(parents=True)
+        (sub / f"{i}.pdf").write_bytes(b"%PDF-1.4 dummy")
+
+    class MockConfig:
+        areas_root_path = str(areas_root)
+        area_mappings = {"Safra D": "SAF D"}
+
+    app.state.config = MockConfig()
+    import src.api.routes as routes
+    routes.clear_tree_cache() if hasattr(routes, "clear_tree_cache") else None
+
+    t0 = time.time()
+    res = client.get("/api/tree")
+    elapsed = time.time() - t0
+
+    assert res.status_code == 200
+    assert elapsed < 1.0, f"get_tree took {elapsed:.2f}s, expected < 1.0s"
+    data = res.json()
+    assert len(data) == 1
+    area = data[0]
+    assert area["name"] == "Safra D"
+    assert len(area["children"]) == 20
+
+
+def test_get_tree_caching(tmp_path):
+    """Ensure get_tree caches the result and serves subsequent calls from cache."""
+    areas_root = tmp_path / "areas"
+    areas_root.mkdir()
+    (areas_root / "Safra C").mkdir()
+
+    class MockConfig:
+        areas_root_path = str(areas_root)
+        area_mappings = {"Safra C": "SAF C"}
+
+    app.state.config = MockConfig()
+    import src.api.routes as routes
+    routes.clear_tree_cache() if hasattr(routes, "clear_tree_cache") else None
+
+    res1 = client.get("/api/tree")
+    assert res1.status_code == 200
+    data1 = res1.json()
+    assert len(data1) == 1
+
+    # Modify disk directly without clearing cache
+    (areas_root / "Safra C" / "NewHouse").mkdir()
+
+    res2 = client.get("/api/tree")
+    assert res2.status_code == 200
+    data2 = res2.json()
+    # Should be served from cache, so NewHouse is not in data2
+    assert len(data2[0]["children"]) == len(data1[0]["children"])
+
+    # Now clear cache and verify it reflects the update
+    if hasattr(routes, "clear_tree_cache"):
+        routes.clear_tree_cache()
+        res3 = client.get("/api/tree")
+        assert res3.status_code == 200
+        data3 = res3.json()
+        assert len(data3[0]["children"]) == 1
+

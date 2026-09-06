@@ -26,6 +26,21 @@ async def lifespan(app: FastAPI):
         config = AppConfig.load(config_path)
         app.state.config = config
         logger.info("Configuration loaded successfully.")
+
+        # Pre-warm tree cache in a background thread so initial requests are instant
+        import threading
+        import asyncio
+        from unittest.mock import MagicMock
+        def _prewarm():
+            try:
+                from src.api.routes import get_tree
+                mock_req = MagicMock()
+                mock_req.app.state.config = config
+                asyncio.run(get_tree(mock_req))
+                logger.info("Tree cache pre-warmed successfully.")
+            except Exception as ex:
+                logger.warning(f"Tree cache pre-warm failed: {ex}")
+        threading.Thread(target=_prewarm, daemon=True).start()
     except Exception as e:
         logger.error(f"Failed to load configuration on startup: {e}")
         raise e

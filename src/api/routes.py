@@ -259,6 +259,17 @@ def _house_sort_key(entry: Path) -> tuple[int, str]:
     num = int(match.group(1)) if match else 999999999
     return (num, entry.name)
 
+_TREE_CACHE = None
+_TREE_CACHE_TIME = 0
+_TREE_CACHE_PATH = None
+TREE_CACHE_TTL = 300  # 5 minutes
+
+def clear_tree_cache():
+    global _TREE_CACHE, _TREE_CACHE_TIME, _TREE_CACHE_PATH
+    _TREE_CACHE = None
+    _TREE_CACHE_TIME = 0
+    _TREE_CACHE_PATH = None
+
 @router.get("/api/tree", response_model=list[TreeItemResponse])
 async def get_tree(request: Request):
     """
@@ -267,19 +278,28 @@ async def get_tree(request: Request):
             <Area folder>/     <- child of areas_root; name matches area_mappings key
                 <House folder>/ <- child of Area; e.g. "1245 - Ali"
                     .source_files/
-                        <id>_state.json
+                        <id>_state.json or <id>_report.json
     """
     config = request.app.state.config
     areas_root = Path(config.areas_root_path)
     if not areas_root.exists():
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
 
+    global _TREE_CACHE, _TREE_CACHE_TIME, _TREE_CACHE_PATH
+    now = time.time()
+    if (
+        _TREE_CACHE is not None
+        and _TREE_CACHE_PATH == str(areas_root)
+        and (now - _TREE_CACHE_TIME) < TREE_CACHE_TTL
+    ):
+        return _TREE_CACHE
+
     area_mappings = config.area_mappings or {}
 
     areas: dict[str, TreeItemResponse] = {}
 
     for area_entry in sorted(areas_root.iterdir()):
-        if not area_entry.is_dir():
+        if not area_entry.is_dir() or area_entry.name.startswith("."):
             continue
 
         area_name = area_entry.name  # e.g. "Safra C"
@@ -294,7 +314,7 @@ async def get_tree(request: Request):
 
         # Walk house folders inside this area
         for house_entry in sorted(area_entry.iterdir(), key=_house_sort_key):
-            if not house_entry.is_dir():
+            if not house_entry.is_dir() or house_entry.name.startswith("."):
                 continue
 
             house_dir_name = house_entry.name   # e.g. "1245 - Ali"
@@ -307,13 +327,41 @@ async def get_tree(request: Request):
                 children=[]
             )
 
+            report_path = house_entry / ".source_files" / f"{house_id}_report.json"
             state_path = house_entry / ".source_files" / f"{house_id}_state.json"
             tenants_with_dates: dict[str, set[int]] = {}
             tenant_is_present: dict[str, bool] = {}
             category_counts: dict[str, int] = {}
             total_docs = 0
 
-            if state_path.exists():
+            if report_path.exists():
+                try:
+                    with open(report_path, "r", encoding="utf-8") as f:
+                        rep_data = json.load(f)
+                    doc_list = rep_data if isinstance(rep_data, list) else rep_data.get("documents", [])
+                    if isinstance(doc_list, list):
+                        total_docs = len(doc_list)
+                        for doc in doc_list:
+                            cat_raw = doc.get("folder_path") or doc.get("category")
+                            if cat_raw:
+                                clean_cat = re.sub(r'^\d+\s*-\s*', '', cat_raw)
+                                category_counts[clean_cat] = category_counts.get(clean_cat, 0) + 1
+                            tenant = doc.get("primary_tenant") or doc.get("tenant")
+                            if tenant:
+                                if tenant not in tenants_with_dates:
+                                    tenants_with_dates[tenant] = set()
+                                for d in doc.get("dates", []):
+                                    if d and d != "NONE":
+                                        year_match = re.search(r'(\d{4})', d)
+                                        if year_match:
+                                            tenants_with_dates[tenant].add(int(year_match.group(1)))
+                                for sc in doc.get("shortcuts", []):
+                                    if "الآن" in sc or "present" in sc.lower():
+                                        tenant_is_present[tenant] = True
+                except Exception:
+                    pass
+
+            if not tenants_with_dates and state_path.exists():
                 try:
                     with open(state_path, "r", encoding="utf-8") as f:
                         state_data = json.load(f)
@@ -328,7 +376,8 @@ async def get_tree(request: Request):
                                 tenant_is_present[tenant] = True
                     
                     doc_groups = _get_document_groups(state_data)
-                    total_docs = len(doc_groups)
+                    if not total_docs:
+                        total_docs = len(doc_groups)
                     for group in doc_groups:
                         cat_raw = group.get("folder_path") or group.get("category")
                         if cat_raw:
@@ -347,24 +396,21 @@ async def get_tree(request: Request):
                                         tenants_with_dates[tenant].add(int(year_match.group(1)))
                 except Exception:
                     pass
-            elif house_entry.exists():
+
+            if not tenants_with_dates and house_entry.exists():
+                # Fast fallback: examine directory names directly without recursive globbing
                 for tenant_dir in house_entry.iterdir():
-                    if tenant_dir.is_dir() and tenant_dir.name != ".source_files":
+                    if tenant_dir.is_dir() and not tenant_dir.name.startswith("."):
                         m = re.match(r'^(.*?)\s*‎?\((.*?)\)‎?$', tenant_dir.name)
                         t_name = m.group(1).strip() if m else tenant_dir.name
                         if "الآن" in tenant_dir.name or "present" in tenant_dir.name.lower():
                             tenant_is_present[t_name] = True
                         if t_name not in tenants_with_dates:
                             tenants_with_dates[t_name] = set()
-                        for cat_dir in tenant_dir.iterdir():
-                            if cat_dir.is_dir():
-                                clean_cat = re.sub(r'^\d+\s*-\s*', '', cat_dir.name)
-                                for doc_file in cat_dir.glob("*.pdf"):
-                                    total_docs += 1
-                                    category_counts[clean_cat] = category_counts.get(clean_cat, 0) + 1
-                                    doc_m = re.match(r'^(\d{4}-\d{2}-\d{2})\s*-\s*(.*?)\.pdf$', doc_file.name)
-                                    if doc_m:
-                                        tenants_with_dates[t_name].add(int(doc_m.group(1)[:4]))
+                        if m and m.group(2):
+                            year_matches = re.findall(r'(\d{4})', m.group(2))
+                            for y in year_matches:
+                                tenants_with_dates[t_name].add(int(y))
 
             current_year = datetime.now().year
             for t, years in sorted(tenants_with_dates.items()):
@@ -445,7 +491,11 @@ async def get_tree(request: Request):
 
             areas[area_name].children.append(house_node)
 
-    return list(areas.values())
+    result = list(areas.values())
+    _TREE_CACHE = result
+    _TREE_CACHE_TIME = time.time()
+    _TREE_CACHE_PATH = str(areas_root)
+    return result
 
 _SEARCH_CACHE = None
 _SEARCH_CACHE_TIME = 0

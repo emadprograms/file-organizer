@@ -233,3 +233,60 @@ def test_deep_link_grid_area(page: Page):
     expect(page.locator("#area-grid-panel")).to_be_visible()
     expect(page.locator("#grid-area-title")).to_have_text("Safra C")
     expect(page.locator(".house-card")).to_have_count(3)
+
+
+def test_loading_state_prevents_premature_no_areas_found(page: Page):
+    """Switching to Grid View while data is still loading must show Loading indicator, NOT 'No areas found.'"""
+    page.route("http://localhost:9999/", lambda r: r.fulfill(
+        status=200, content_type="text/html", body=HTML.read_text()))
+    
+    # Hold /api/tree request until we assert the loading state
+    tree_route = []
+    def handle_tree(route):
+        tree_route.append(route)
+    page.route("http://localhost:9999/api/tree", handle_tree)
+
+    page.goto("http://localhost:9999/")
+    # Click Grid View immediately before tree response arrives
+    page.click("#view-mode-grid")
+
+    # MUST NOT display "No areas found."
+    expect(page.locator("#house-list")).not_to_contain_text("No areas found.")
+    expect(page.locator("#house-list")).to_contain_text("Loading...")
+
+    # Now fulfill the suspended request
+    assert len(tree_route) > 0
+    tree_route[0].fulfill(status=200, content_type="application/json", body=json.dumps(MOCK_TREE))
+
+    # Once loaded, areas appear
+    expect(page.locator(".area-grid-btn >> text=Safra C")).to_be_visible()
+    expect(page.locator("#house-list")).not_to_contain_text("No areas found.")
+
+
+
+
+def test_empty_state_shows_no_areas_found(page: Page):
+    """When /api/tree genuinely returns an empty list, show 'No areas found.'"""
+    page.route("http://localhost:9999/", lambda r: r.fulfill(
+        status=200, content_type="text/html", body=HTML.read_text()))
+    page.route("http://localhost:9999/api/tree", lambda r: r.fulfill(
+        status=200, content_type="application/json", body="[]"))
+
+    page.goto("http://localhost:9999/")
+    expect(page.locator("#house-list")).to_contain_text("No areas found.")
+
+    # Switch to Grid View
+    page.click("#view-mode-grid")
+    expect(page.locator("#house-list")).to_contain_text("No areas found.")
+
+
+def test_error_state_shows_error_message(page: Page):
+    """When /api/tree fails (e.g. 500 or timeout), show error state instead of 'No areas found.'"""
+    page.route("http://localhost:9999/", lambda r: r.fulfill(
+        status=200, content_type="text/html", body=HTML.read_text()))
+    page.route("http://localhost:9999/api/tree", lambda r: r.abort("failed"))
+
+    page.goto("http://localhost:9999/")
+    expect(page.locator("#house-list")).to_contain_text("Error loading data.")
+    expect(page.locator("#house-list")).not_to_contain_text("No areas found.")
+

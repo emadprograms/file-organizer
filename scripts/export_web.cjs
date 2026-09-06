@@ -63,6 +63,7 @@ function buildTreeData(areasRoot) {
             const housePath = path.join(areaPath, houseEntry.name);
             const sfPath = path.join(housePath, '.source_files');
             const houseId = houseEntry.name.includes(' - ') ? houseEntry.name.split(' - ')[0] : houseEntry.name;
+            const reportFile = path.join(sfPath, `${houseId}_report.json`);
             const stateFile = path.join(sfPath, `${houseId}_state.json`);
 
             const tenantChildren = [];
@@ -71,7 +72,41 @@ function buildTreeData(areasRoot) {
             const categoryCounts = {};
             let totalDocs = 0;
 
-            if (fs.existsSync(stateFile)) {
+            if (fs.existsSync(reportFile)) {
+                try {
+                    const raw = fs.readFileSync(reportFile, 'utf8');
+                    const docList = JSON.parse(raw);
+                    if (Array.isArray(docList)) {
+                        totalDocs = docList.length;
+                        for (const doc of docList) {
+                            const catRaw = doc.folder_path || doc.category;
+                            if (catRaw) {
+                                const cleanCat = catRaw.replace(/^\d+\s*-\s*/, '');
+                                categoryCounts[cleanCat] = (categoryCounts[cleanCat] || 0) + 1;
+                            }
+                            const tenant = doc.primary_tenant || doc.tenant;
+                            if (tenant) {
+                                if (!tenantsWithDates[tenant]) tenantsWithDates[tenant] = [];
+                                const dates = doc.dates || [];
+                                for (const d of dates) {
+                                    if (d && d !== 'NONE') {
+                                        const m = String(d).match(/(\d{4})/);
+                                        if (m) tenantsWithDates[tenant].push(parseInt(m[1], 10));
+                                    }
+                                }
+                                const shortcuts = doc.shortcuts || [];
+                                for (const sc of shortcuts) {
+                                    if (sc.includes('الآن') || sc.toLowerCase().includes('present')) {
+                                        tenantIsPresent[tenant] = true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error(`Error parsing ${reportFile}:`, e.message);
+                }
+            } else if (fs.existsSync(stateFile)) {
                 try {
                     const raw = fs.readFileSync(stateFile, 'utf8');
                     const stateData = JSON.parse(raw);
