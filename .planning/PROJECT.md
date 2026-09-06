@@ -4,15 +4,33 @@
 
 A document management system that processes scanned Arabic PDFs, categorizes them using LLM vision, groups related pages, and organizes them into a structured folder hierarchy per tenant household. The system runs on Windows and uses a Vault-based architecture with shortcuts for file organization and bidirectional reconciliation.
 
-## Current Milestone: v9.0 Hierarchical Web Dashboard
+## Current Milestone: v10.0 Area Grid Overview & Tenure Visualization
 
-**Goal:** Completely revamp the Web GUI into a hierarchical dashboard with global search functionality mirroring the native disk structure.
+**Goal:** Provide a dual-view UI supporting both the existing Tree View and a new Area Grid Overview featuring tenure-color-coded house cards, current tenant details, document count breakdowns, and drill-down navigation.
 
 **Target features:**
-- Hierarchical drill-down sidebar (Areas -> Houses -> Tenants/Timelines) reading from `areas_root_path`.
-- Top navigation search bar for instant jump by house number or person name.
-- Strict TDD for backend (pytest directory-scanning and search APIs).
-- Strict TDD for frontend (Playwright UI hierarchy E2E tests).
+- View Switcher toggle: seamless switching between Tree View and Grid/Overview View.
+- Area-only sidebar in Grid View mode listing areas (Safra C, Safra D, Safra Flats, etc.).
+- Responsive House Cards Grid populated when an area is selected.
+- Card metrics & metadata: house name, current tenant ("الآن / Present"), residency start date/years, total document count, and per-category counts.
+- Tenure color-coded visual styling: Green (< 5 years), Yellow (5–10 years), Red (> 10 years).
+- Drill-down navigation: clicking a house card opens its Categories and Timeline views, with a clear back-navigation link to return to the area grid.
+- Zero-Python IIS static export compatibility (`tree.json`, `search_index.json`, static runner).
+- Strict TDD & Playwright UI interaction tests simulating view switching, card rendering, and navigation.
+
+## Past Milestones
+
+<details>
+<summary>v9.0 Hierarchical Web Dashboard (Shipped: 2026-09-06)</summary>
+
+- Hierarchical drill-down sidebar (Areas -> Houses -> Tenants/Timelines).
+- Global search bar with Cmd/Ctrl+K, Esc, instant zero-click search dropdown.
+- Arabic-English phonetic intermixing and OCR typo tolerance.
+- Full-text document search inside PDF contents.
+- PDF hover preview tooltips and static IIS export pipeline.
+- Frontend interaction test suite.
+
+</details>
 
 ## Core Value
 

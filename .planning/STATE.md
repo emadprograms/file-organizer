@@ -1,68 +1,34 @@
 ---
 gsd_state_version: 1.0
-milestone: v9.0
-milestone_name: Hierarchical Web Dashboard
-current_phase: 87.1
-status: completed
-stopped_at: Created roadmap for v9.0
-last_updated: "2026-09-03T07:25:00.000Z"
-last_activity: 2026-09-03
-last_activity_desc: Completed quick task 260903-ecg: Make the frontend static-first and exportable for IIS without Python on PC2
+milestone: v10.0
+milestone_name: Area Grid Overview & Tenure Visualization
+current_phase: 88
+status: in_progress
+stopped_at: Initialized milestone v10.0
+last_updated: "2026-09-06T21:20:00.000Z"
+last_activity: 2026-09-06
+last_activity_desc: Starting autonomous execution of milestone v10.0
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 5
-  completed_plans: 5
-  percent: 100
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 4
+  completed_plans: 0
+  percent: 0
 ---
 
 # Milestone State
 
-**Current Milestone:** v9.0: Hierarchical Web Dashboard
-**Current Phase:** 87.1
+**Current Milestone:** v10.0: Area Grid Overview & Tenure Visualization
+**Current Phase:** 88
+**Phase Name:** View Mode Switcher & Area Grid Layout
 
 ## Context
 
-This milestone focuses on completely revamping the Web GUI into a hierarchical dashboard with global search functionality mirroring the native disk structure. It prioritizes navigation and fast access, integrating a collapsible sidebar and a robust search bar.
-
-## Pending Decisions
-
-- Strategy for large-scale caching in Phase 84/85 to prevent search API bottlenecking when directory sizes scale up.
-- Approach for fuzzy matching Arabic OCR variations and full-text document search in Phase 87.
+This milestone introduces an Area Grid Overview mode allowing users to switch between the classic Tree View and a high-level Grid View. In Grid View, users select an Area to view a responsive grid of House Cards showcasing current resident, residency duration (color-coded by tenure: <5y green, 5-10y yellow, >10y red), total document counts, and category breakdowns, with drill-down capability into document categories and timeline.
 
 ## Current Position
 
-Phase: 87.1 — COMPLETE
-Plan: Not started
-Status: Phase 87.1 complete
-Last activity: 2026-09-02 — Phase 87.1 marked complete
-
-## Session
-
-**Last session:** 2026-09-02
-**Stopped at:** Created roadmap for v9.0
-**Resume file:** None
-
-## Performance Metrics
-
-| Phase | Plan | Duration | Notes |
-|-------|------|----------|-------|
-| Phase 82 P1 | 10 min | 4 tasks | 5 files |
-
-## Operator Next Steps
-
-- Proceed with Phase 84 planning and execution.
-
-### Quick Tasks Completed
-
-| # | Description | Date | Commit | Directory |
-|---|-------------|------|--------|-----------|
-| 260903-ecg | Make the frontend static-first and exportable for IIS without Python on PC2 | 2026-09-03 | ed479f1 | [260903-ecg-make-the-frontend-static-first-and-expor](./quick/260903-ecg-make-the-frontend-static-first-and-expor/) |
-| 20260902-search | Support Arabic-English phonetic intermixing in search | 2026-09-02 | 8c35cfe | [20260902-search-arabic-english-phonetics](./quick/20260902-search-arabic-english-phonetics/) |
-| 20260902-test | Add API tests to verify cross-lingual phonetic search matching | 2026-09-02 | 8e11c39 | [20260902-test-phonetic-search](./quick/20260902-test-phonetic-search/) |
-
-## Accumulated Context
-
-### Roadmap Evolution
-
-- Phase 87.1 inserted after Phase 87: Make frontend tests detailed: simulate clicks, interactions, and deep assertions to prevent shallow testing (URGENT)
+Phase: 88 — IN PROGRESS
+Plan: 1-view-switcher-grid-layout-PLAN.md
+Status: Executing Phase 88
+Last activity: 2026-09-06 — Milestone initialized in autonomous mode

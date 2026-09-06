@@ -1,35 +1,36 @@
-# Requirements
+# Requirements: Milestone v10.0 Area Grid Overview & Tenure Visualization
 
-## Milestone v9.0 Requirements
+## Milestone v10.0 Requirements
 
-### Global Navigation & Search
+### Dual View & Navigation
+- [ ] **GRID-01**: User can toggle between "Tree View" and "Grid View" via an intuitive view switcher control.
+- [ ] **GRID-02**: In Grid View, the sidebar shows only the Area list (e.g. Safra C, Safra D, Safra Flats) without hierarchical sub-trees.
+- [ ] **GRID-03**: Selecting an area in Grid View renders a responsive grid of House Cards/Boxes in the main content dashboard.
 
-- [x] **NAV-01**: User can navigate a collapsible sidebar representing Areas, Houses, and Tenants (max 3 levels deep).
-- [x] **NAV-02**: User can search for a house number or person name using a global search bar.
-- [x] **NAV-03**: User can navigate directly to specific tenants or timelines via URL routing (deep linking) which syncs with the sidebar.
-- [x] **NAV-04**: User receives clear visual feedback for empty folders or search queries with no results.
-- [x] **NAV-05**: User can execute a search with Enter and clear/close it with Esc.
-- [x] **NAV-06**: User can open the search bar instantly using a Cmd/Ctrl+K keyboard shortcut.
-- [x] **NAV-07**: User sees instant top matches for search queries as they type, before full submission (Zero-Click).
-- [x] **NAV-08**: User can find results even with slight spelling errors or Arabic OCR variations (Typo Tolerance).
-- [x] **NAV-09**: User can search for text contained within the actual PDF documents (Full-text Search).
+### House Card Data & Visuals
+- [ ] **GRID-04**: Each house card displays the house name/id, the current active tenant ("الآن / Present"), and residency start date/tenure.
+- [ ] **GRID-05**: Each house card has tenure-based color-coding: Green (< 5 years), Yellow (5–10 years), Red (> 10 years).
+- [ ] **GRID-06**: Each house card displays the total document count and per-category document count breakdown.
 
-## Future Requirements
+### Interactions & Static Parity
+- [ ] **GRID-07**: Clicking any house card navigates directly into that house's detailed Categories/Timeline view.
+- [ ] **GRID-08**: A breadcrumb or "Back to Area Grid" button allows instant return to the area card grid.
+- [ ] **GRID-09**: Both live API mode and static IIS export mode (`tree.json`, static bundle) support all grid view features seamlessly.
 
-(None)
-
-## Out of Scope
-
-(None)
+### Quality & Verification
+- [ ] **GRID-10**: End-to-end Playwright tests verify view toggling, card rendering, tenure color badges/borders, document count breakdowns, and drill-down navigation.
 
 ## Traceability
 
-- **NAV-01**: Phase 84
-- **NAV-02**: Phase 85
-- **NAV-03**: Phase 84
-- **NAV-04**: Phase 85
-- **NAV-05**: Phase 85
-- **NAV-06**: Phase 86
-- **NAV-07**: Phase 86
-- **NAV-08**: Phase 87
-- **NAV-09**: Phase 87
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| GRID-01 | Phase 88 | Pending |
+| GRID-02 | Phase 88 | Pending |
+| GRID-03 | Phase 88 | Pending |
+| GRID-04 | Phase 89 | Pending |
+| GRID-05 | Phase 89 | Pending |
+| GRID-06 | Phase 89 | Pending |
+| GRID-07 | Phase 90 | Pending |
+| GRID-08 | Phase 90 | Pending |
+| GRID-09 | Phase 90 | Pending |
+| GRID-10 | Phase 91 | Pending |

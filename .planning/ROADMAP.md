@@ -2,51 +2,51 @@
 
 ## Milestones
 
-- 🚧 **v9.0 Hierarchical Web Dashboard** — Phases 84-87 (in progress)
+- 🚧 **v10.0 Area Grid Overview & Tenure Visualization** — Phases 88-91 (in progress)
+- ✅ **v9.0 Hierarchical Web Dashboard** — Phases 84-87.1 (shipped 2026-09-06)
 - ✅ **v8.0 Web-Based File Viewer** — Phases 81-83 (shipped 2026-09-02)
 
 ## Phases
 
-### 🚧 v9.0 Hierarchical Web Dashboard
+### 🚧 v10.0 Area Grid Overview & Tenure Visualization
 
-#### Phase 84: Core Navigation & Routing
-
-**Requirements:** [NAV-01, NAV-03]
-**Description:** Build the foundational sidebar hierarchy and URL routing system to allow deep linking.
+#### Phase 88: View Mode Switcher & Area Grid Layout
+**Requirements:** [GRID-01, GRID-02, GRID-03]
+**Description:** Build the dual-view toggle (Tree View vs Grid View), adapt the sidebar to show only areas in Grid View mode, and create the responsive house card grid container.
 **Success Criteria:**
+- User can toggle between Tree View and Grid View from the UI.
+- In Grid View mode, the sidebar displays only the list of areas.
+- Clicking an area renders the house grid container in the main view.
 
-- User sees a collapsible sidebar populated with Areas, Houses, and Tenants up to 3 levels deep.
-- User can expand and collapse levels in the sidebar.
-- User visiting a deep link sees the sidebar automatically expand to highlight the corresponding item.
-
-#### Phase 85: Global Search & Empty States
-
-**Requirements:** [NAV-02, NAV-04, NAV-05]
-**Description:** Implement the core global search functionality for finding houses and people, handling keyboard interactions and empty states.
+#### Phase 89: House Card Metrics & Tenure Color-Coding
+**Requirements:** [GRID-04, GRID-05, GRID-06]
+**Description:** Extract and display house metadata: current active tenant, residency start year/duration, tenure color styling (Green < 5 yrs, Yellow 5-10 yrs, Red > 10 yrs), total doc counts, and category breakdown.
 **Success Criteria:**
+- Each house card shows house name, active tenant, and tenure duration.
+- Visual colors reflect tenure length accurately (green, yellow, red).
+- Document counts and category badges are clearly visible on each card.
 
-- User typing a name or house number in the search bar and pressing Enter sees relevant matching results.
-- User searching for a non-existent item sees a clear "No results" visual indicator instead of a blank page.
-- User pressing Esc clears the search input and closes the search results.
-
-#### Phase 86: Advanced Search UX
-
-**Requirements:** [NAV-06, NAV-07]
-**Description:** Enhance the search experience with keyboard shortcuts and instant zero-click search results.
+#### Phase 90: Drill-down Navigation & Static Parity
+**Requirements:** [GRID-07, GRID-08, GRID-09]
+**Description:** Enable clicking house cards to navigate into detailed category/timeline views with breadcrumb navigation to return to the grid, and ensure static IIS export parity.
 **Success Criteria:**
+- Clicking a card opens the Categories/Timeline panel for that house.
+- A "Back to Area Grid" breadcrumb returns smoothly to the grid overview.
+- Static export pipeline generates complete data for IIS offline viewing.
 
-- User pressing Cmd/Ctrl+K focuses the search bar from anywhere on the page.
-- User typing in the search bar sees top results appear instantly below the bar without pressing Enter.
-- User clicking on an instant result navigates immediately to the relevant view.
-
-#### Phase 87: Extended Search Intelligence
-
-**Requirements:** [NAV-08, NAV-09]
-**Description:** Implement complex search capabilities including typo tolerance for Arabic OCR variations and full-text document search.
+#### Phase 91: Playwright E2E Test Suite & Milestone Verification
+**Requirements:** [GRID-10]
+**Description:** Create end-to-end Playwright tests verifying all grid interactions, color classifications, data rendering, and navigation flows.
 **Success Criteria:**
+- Playwright tests simulate view toggling, card rendering, and drill-downs.
+- All backend and frontend tests pass 100%.
 
-- User searching with a minor typo in an Arabic name still sees the correct tenant in results.
-- User searching for a specific term found only inside a PDF document sees the document in results.
+<details>
+<summary>✅ v9.0 Hierarchical Web Dashboard (Phases 84-87.1) — SHIPPED 2026-09-06</summary>
+
+See [.planning/milestones/v9.0-ROADMAP.md](milestones/v9.0-ROADMAP.md) for full phase details.
+
+</details>
 
 <details>
 <summary>✅ v8.0 Web-Based File Viewer (Phases 81-83) — SHIPPED 2026-09-02</summary>
@@ -59,23 +59,7 @@ See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md) for full 
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 84. Core Navigation & Routing | v9.0 | 1/1 | Complete    | 2026-09-02 |
-| 85. Global Search & Empty States | v9.0 | 1/1 | Complete    | 2026-09-02 |
-| 86. Advanced Search UX | v9.0 | 1/1 | Complete    | 2026-09-02 |
-| 87. Extended Search Intelligence | v9.0 | 1/1 | Complete    | 2026-09-02 |
-| 81. Frontend Test Suite Foundation | v8.0 | 1/1 | Complete | 2026-09-02 |
-| 82. Python REST API endpoints | v8.0 | 1/1 | Complete | 2026-09-02 |
-| 83. Read-only Web GUI | v8.0 | 1/1 | Complete | 2026-09-02 |
-
-### Phase 87.1: Make frontend tests detailed: simulate clicks, interactions, and deep assertions to prevent shallow testing (INSERTED)
-
-**Goal:** [Urgent work - to be planned]
-**Requirements**: TBD
-**Depends on:** Phase 87
-**Plans:** 1/1 plans complete
-
-Plans:
-
-- [x] 1-frontend-tests-PLAN.md
-
-- [x] TBD (run /gsd-plan-phase 87.1 to break down) (completed 2026-09-02)
+| 88. View Mode Switcher & Area Grid Layout | v10.0 | 0/1 | In Progress | - |
+| 89. House Card Metrics & Tenure Color-Coding | v10.0 | 0/1 | Pending | - |
+| 90. Drill-down Navigation & Static Parity | v10.0 | 0/1 | Pending | - |
+| 91. Playwright E2E Test Suite & Milestone Verification | v10.0 | 0/1 | Pending | - |

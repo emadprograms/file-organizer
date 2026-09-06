@@ -1,5 +1,19 @@
 # Milestones History
 
+## v9.0 Hierarchical Web Dashboard (Shipped: 2026-09-06)
+
+**Phases completed:** 5 phases, 5 plans
+
+**Key accomplishments:**
+- Implemented 3-level hierarchical sidebar navigation (Area -> House -> Tenant) with deep URL linking and synchronized active node selection.
+- Developed global search across houses, tenants, and full-text PDF documents with instant zero-click search dropdown and keyboard shortcuts (`Cmd/Ctrl+K`, `Esc`).
+- Added Arabic-English phonetic intermixing and fuzzy matching for Arabic OCR names.
+- Enhanced document viewer with PDF hover preview tooltips and tabbed Category / Timeline views.
+- Created static IIS export pipeline (`tree.json`, `search_index.json`) for zero-Python runtime environments.
+- Built comprehensive interaction test suite in `tests/frontend/`.
+
+---
+
 ## v8.0 Web-Based File Viewer (Shipped: 2026-09-02)
 
 **Phases completed:** 4 phases, 3 plans, 0 tasks
