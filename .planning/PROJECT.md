@@ -4,21 +4,31 @@
 
 A document management system that processes scanned Arabic PDFs, categorizes them using LLM vision, groups related pages, and organizes them into a structured folder hierarchy per tenant household. The system runs on Windows and uses a Vault-based architecture with shortcuts for file organization and bidirectional reconciliation.
 
-## Current Milestone: v10.0 Area Grid Overview & Tenure Visualization
+## Current Milestone: v11.0 Database Backend & Clean Storage Architecture
 
-**Goal:** Provide a dual-view UI supporting both the existing Tree View and a new Area Grid Overview featuring tenure-color-coded house cards, current tenant details, document count breakdowns, and drill-down navigation.
+**Goal:** Transform the file organizer from a filesystem/JSON-dependent setup into a robust, database-backed application. Replace Windows shortcuts, multi-level Arabic folders, and the reconciler with a clean SQLite database and a simple two-folder disk structure (`{area}/{house}/{batches,vault}`).
 
 **Target features:**
-- View Switcher toggle: seamless switching between Tree View and Grid/Overview View.
-- Area-only sidebar in Grid View mode listing areas (Safra C, Safra D, Safra Flats, etc.).
-- Responsive House Cards Grid populated when an area is selected.
-- Card metrics & metadata: house name, current tenant ("الآن / Present"), residency start date/years, total document count, and per-category counts.
-- Tenure color-coded visual styling: Green (< 5 years), Yellow (5–10 years), Red (> 10 years).
-- Drill-down navigation: clicking a house card opens its Categories and Timeline views, with a clear back-navigation link to return to the area grid.
-- Zero-Python IIS static export compatibility (`tree.json`, `search_index.json`, static runner).
-- Strict TDD & Playwright UI interaction tests simulating view switching, card rendering, and navigation.
+- SQLite database schema with clean relational models: `areas`, `houses`, `tenants`, `batches`, `pages`, and `documents`.
+- Zero-downtime / idempotent migration script importing existing houses, tenants, vault PDFs, and OCR pages from `state.json`/`report.json` into SQLite.
+- Clean physical disk reorganization: `{area}/{house}/batches/` (master scans) and `{area}/{house}/vault/` (sliced PDFs). Eliminate `.lnk` shortcuts, Arabic directory paths, and JSON state files.
+- Redesigned ingestion pipeline: Ingestion registers `batches`, caches OCR text in `pages`, groups documents, slices PDFs into `vault/`, and writes to `documents` table without index shifting or reconciliation loops.
+- Instantaneous FastAPI backend: Re-implement API endpoints (`/api/tree`, `/api/houses/{id}/timeline`, `/api/houses/{id}/categories`, `/api/search`) using optimized SQLite SQL queries (sub-millisecond responses, eliminating SMB network lag).
+- Full regression & integration test suite: TDD approach covering database models, migration accuracy, ingestion flow, API performance, and Playwright frontend verification.
 
 ## Past Milestones
+
+<details>
+<summary>v10.0 Area Grid Overview & Tenure Visualization (Shipped: 2026-09-06)</summary>
+
+- Built dual-view toggle supporting both classic Tree View and new Area Grid Overview.
+- Designed responsive house card grid featuring current resident, tenure duration, and tenure color coding (<5y green, 5-10y yellow, >10y red).
+- Implemented card metrics with total document counts and category breakdowns.
+- Added smooth drill-down navigation from house cards into categories and timeline views with breadcrumb return.
+- Resolved SMB mount filesystem hangs with intelligent in-memory TTL caching and fast regex scanning.
+- Maintained 100% test pass rate with full Playwright E2E and backend integration suites.
+
+</details>
 
 <details>
 <summary>v9.0 Hierarchical Web Dashboard (Shipped: 2026-09-06)</summary>

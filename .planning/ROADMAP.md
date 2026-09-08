@@ -2,44 +2,60 @@
 
 ## Milestones
 
-- 🚧 **v10.0 Area Grid Overview & Tenure Visualization** — Phases 88-91 (in progress)
+- 🚧 **v11.0 Database Backend & Clean Storage Architecture** — Phases 92-96 (in progress)
+- ✅ **v10.0 Area Grid Overview & Tenure Visualization** — Phases 88-91 (shipped 2026-09-06)
 - ✅ **v9.0 Hierarchical Web Dashboard** — Phases 84-87.1 (shipped 2026-09-06)
 - ✅ **v8.0 Web-Based File Viewer** — Phases 81-83 (shipped 2026-09-02)
 
 ## Phases
 
-### 🚧 v10.0 Area Grid Overview & Tenure Visualization
+### 🚧 v11.0 Database Backend & Clean Storage Architecture
 
-#### Phase 88: View Mode Switcher & Area Grid Layout
-**Requirements:** [GRID-01, GRID-02, GRID-03]
-**Description:** Build the dual-view toggle (Tree View vs Grid View), adapt the sidebar to show only areas in Grid View mode, and create the responsive house card grid container.
+#### Phase 92: Database Layer & Relational Schema
+**Requirements:** [DB-01, DB-02]
+**Description:** Design and implement the SQLite database schema (`areas`, `houses`, `tenants`, `batches`, `pages`, `documents`), connection factory, repository functions, and comprehensive unit tests.
 **Success Criteria:**
-- User can toggle between Tree View and Grid View from the UI.
-- In Grid View mode, the sidebar displays only the list of areas.
-- Clicking an area renders the house grid container in the main view.
+- SQLite database initializes with all tables, constraints, foreign keys, and indexes.
+- Repository layer provides CRUD methods for all entities with full test coverage.
+- Transactions and foreign key enforcement are strictly verified.
 
-#### Phase 89: House Card Metrics & Tenure Color-Coding
-**Requirements:** [GRID-04, GRID-05, GRID-06]
-**Description:** Extract and display house metadata: current active tenant, residency start year/duration, tenure color styling (Green < 5 yrs, Yellow 5-10 yrs, Red > 10 yrs), total doc counts, and category breakdown.
+#### Phase 93: Legacy Data Migration & Storage Restructuring
+**Requirements:** [MIG-01, MIG-02]
+**Description:** Build and execute an idempotent migration script that parses `state.json`/`report.json` and reorganizes disk folders into `{area}/{house}/batches/` and `{area}/{house}/vault/`.
 **Success Criteria:**
-- Each house card shows house name, active tenant, and tenure duration.
-- Visual colors reflect tenure length accurately (green, yellow, red).
-- Document counts and category badges are clearly visible on each card.
+- All existing houses, tenants, batches, pages, and documents are imported into SQLite without data loss.
+- Filesystem is restructured: `.lnk` shortcuts, complex Arabic directory trees, and JSON files are removed or migrated into clean two-folder structures.
+- Integrity check validates 100% of vault PDFs match their database records.
 
-#### Phase 90: Drill-down Navigation & Static Parity
-**Requirements:** [GRID-07, GRID-08, GRID-09]
-**Description:** Enable clicking house cards to navigate into detailed category/timeline views with breadcrumb navigation to return to the grid, and ensure static IIS export parity.
+#### Phase 94: Ingestion Pipeline Redesign
+**Requirements:** [ING-01, ING-02]
+**Description:** Refactor the ingestion engine to write raw scans into `batches`, page OCR/extractions into `pages`, slice vault PDFs, and record final items in `documents`.
 **Success Criteria:**
-- Clicking a card opens the Categories/Timeline panel for that house.
-- A "Back to Area Grid" breadcrumb returns smoothly to the grid overview.
-- Static export pipeline generates complete data for IIS offline viewing.
+- New PDF ingestion registers batch, creates page cache rows, groups documents, and writes directly to `documents`.
+- "Prepend" mode cleanly adds new batch and page records without any index shifting on old records.
+- Reconciler dependency is completely eliminated.
 
-#### Phase 91: Playwright E2E Test Suite & Milestone Verification
-**Requirements:** [GRID-10]
-**Description:** Create end-to-end Playwright tests verifying all grid interactions, color classifications, data rendering, and navigation flows.
+#### Phase 95: FastAPI High-Performance Backend
+**Requirements:** [API-01, API-02, API-03]
+**Description:** Rewrite FastAPI endpoints (`/api/tree`, `/api/houses`, `/api/timeline`, `/api/categories`, `/api/search`) to read directly from SQLite with indexed SQL queries.
 **Success Criteria:**
-- Playwright tests simulate view toggling, card rendering, and drill-downs.
-- All backend and frontend tests pass 100%.
+- `/api/tree` and grid overview queries execute in < 10ms.
+- Search endpoint queries database indexes directly instead of walking files.
+- SMB globbing overhead is 100% eliminated; in-memory cache workarounds are removed.
+
+#### Phase 96: E2E Verification & UI Parity
+**Requirements:** [VER-01, VER-02]
+**Description:** Run comprehensive backend unit/integration tests and Playwright E2E tests validating that Tree View, Grid Overview, Categories, Timeline, and PDF previews work seamlessly against the database.
+**Success Criteria:**
+- 100% test pass rate across backend pytest suite.
+- Playwright E2E tests verify all UI flows, card rendering, drill-downs, and search against live SQLite database.
+
+<details>
+<summary>✅ v10.0 Area Grid Overview & Tenure Visualization (Phases 88-91) — SHIPPED 2026-09-06</summary>
+
+See [.planning/milestones/v10.0-ROADMAP.md](milestones/v10.0-ROADMAP.md) for full phase details.
+
+</details>
 
 <details>
 <summary>✅ v9.0 Hierarchical Web Dashboard (Phases 84-87.1) — SHIPPED 2026-09-06</summary>
@@ -63,3 +79,8 @@ See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md) for full 
 | 89. House Card Metrics & Tenure Color-Coding | v10.0 | 1/1 | Complete | 2026-09-06 |
 | 90. Drill-down Navigation & Static Parity | v10.0 | 1/1 | Complete | 2026-09-06 |
 | 91. Playwright E2E Test Suite & Milestone Verification | v10.0 | 1/1 | Complete | 2026-09-06 |
+| 92. Database Layer & Relational Schema | v11.0 | 0/1 | Planned | - |
+| 93. Legacy Data Migration & Storage Restructuring | v11.0 | 0/1 | Planned | - |
+| 94. Ingestion Pipeline Redesign | v11.0 | 0/1 | Planned | - |
+| 95. FastAPI High-Performance Backend | v11.0 | 0/1 | Planned | - |
+| 96. E2E Verification & UI Parity | v11.0 | 0/1 | Planned | - |

@@ -1,5 +1,19 @@
 # Milestones History
 
+## v10.0 Area Grid Overview & Tenure Visualization (Shipped: 2026-09-06)
+
+**Phases completed:** 4 phases (88-91)
+
+**Key accomplishments:**
+- Built dual-view toggle supporting both classic Tree View and new Area Grid Overview.
+- Designed responsive house card grid featuring current resident, tenure duration, and tenure color coding (<5y green, 5-10y yellow, >10y red).
+- Implemented card metrics with total document counts and category breakdowns.
+- Added smooth drill-down navigation from house cards into categories and timeline views with breadcrumb return.
+- Resolved SMB mount filesystem hangs with intelligent in-memory TTL caching and fast regex scanning.
+- Maintained 100% test pass rate with full Playwright E2E and backend integration suites.
+
+---
+
 ## v9.0 Hierarchical Web Dashboard (Shipped: 2026-09-06)
 
 **Phases completed:** 5 phases, 5 plans

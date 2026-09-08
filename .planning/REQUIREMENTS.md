@@ -1,36 +1,40 @@
-# Requirements: Milestone v10.0 Area Grid Overview & Tenure Visualization
+# Requirements: Milestone v11.0 Database Backend & Clean Storage Architecture
 
-## Milestone v10.0 Requirements
+## Milestone v11.0 Requirements
 
-### Dual View & Navigation
-- [x] **GRID-01**: User can toggle between "Tree View" and "Grid View" via an intuitive view switcher control.
-- [x] **GRID-02**: In Grid View, the sidebar shows only the Area list (e.g. Safra C, Safra D, Safra Flats) without hierarchical sub-trees.
-- [x] **GRID-03**: Selecting an area in Grid View renders a responsive grid of House Cards/Boxes in the main content dashboard.
+### Database Layer & Data Models
+- [ ] **DB-01**: Implement SQLite schema (`areas`, `houses`, `tenants`, `batches`, `pages`, `documents`) with foreign keys, cascading deletes, unique constraints, and performance indices.
+- [ ] **DB-02**: Implement a clean Data Access Layer / Repository with connection management, transactions, and comprehensive unit tests.
 
-### House Card Data & Visuals
-- [x] **GRID-04**: Each house card displays the house name/id, the current active tenant ("الآن / Present"), and residency start date/tenure.
-- [x] **GRID-05**: Each house card has tenure-based color-coding: Green (< 5 years), Yellow (5–10 years), Red (> 10 years).
-- [x] **GRID-06**: Each house card displays the total document count and per-category document count breakdown.
+### Legacy Data Migration & Storage Restructuring
+- [ ] **MIG-01**: Build an idempotent migration pipeline that ingests all existing houses from `state.json`/`report.json` and legacy vault directories into SQLite.
+- [ ] **MIG-02**: Restructure physical house storage on disk to clean two-folder layout (`{area}/{house_id}/batches/` and `{area}/{house_id}/vault/`), removing `.lnk` shortcuts, Arabic subfolder trees, and JSON files safely.
 
-### Interactions & Static Parity
-- [x] **GRID-07**: Clicking any house card navigates directly into that house's detailed Categories/Timeline view.
-- [x] **GRID-08**: A breadcrumb or "Back to Area Grid" button allows instant return to the area card grid.
-- [x] **GRID-09**: Both live API mode and static IIS export mode (`tree.json`, static bundle) support all grid view features seamlessly.
+### Ingestion Pipeline Redesign
+- [ ] **ING-01**: Redesign the ingestion workflow to register raw uploads as `batches` and persist page-level OCR/classifications in `pages`.
+- [ ] **ING-02**: Directly slice PDFs into `{house}/vault/` and insert records into `documents`, completely eliminating index-shifting math and the reconciliation loop.
 
-### Quality & Verification
-- [x] **GRID-10**: End-to-end Playwright tests verify view toggling, card rendering, tenure color badges/borders, document count breakdowns, and drill-down navigation.
+### FastAPI High-Performance Backend
+- [ ] **API-01**: Rewrite core API endpoints (`/api/tree`, `/api/areas/{area}/houses/{house}/timeline`, `/api/areas/{area}/houses/{house}/categories`) to query SQLite with indexed joins.
+- [ ] **API-02**: Implement fast SQLite search endpoint (`/api/search`) across houses, tenants, and documents.
+- [ ] **API-03**: Eliminate SMB filesystem glob latency and remove in-memory tree cache workarounds, achieving sub-10ms response times.
+
+### Comprehensive Testing & Verification
+- [ ] **VER-01**: Full pytest test suite covering database models, repository queries, migration parity, and ingestion workflows.
+- [ ] **VER-02**: Playwright E2E verification confirming Tree View, Grid Overview, Timeline, Categories, and PDF viewers function flawlessly on the database backend.
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| GRID-01 | Phase 88 | Complete |
-| GRID-02 | Phase 88 | Complete |
-| GRID-03 | Phase 88 | Complete |
-| GRID-04 | Phase 89 | Complete |
-| GRID-05 | Phase 89 | Complete |
-| GRID-06 | Phase 89 | Complete |
-| GRID-07 | Phase 90 | Complete |
-| GRID-08 | Phase 90 | Complete |
-| GRID-09 | Phase 90 | Complete |
-| GRID-10 | Phase 91 | Complete |
+| DB-01 | Phase 92 | Pending |
+| DB-02 | Phase 92 | Pending |
+| MIG-01 | Phase 93 | Pending |
+| MIG-02 | Phase 93 | Pending |
+| ING-01 | Phase 94 | Pending |
+| ING-02 | Phase 94 | Pending |
+| API-01 | Phase 95 | Pending |
+| API-02 | Phase 95 | Pending |
+| API-03 | Phase 95 | Pending |
+| VER-01 | Phase 96 | Pending |
+| VER-02 | Phase 96 | Pending |
