@@ -108,6 +108,8 @@ def run_verification(target_dir: Path) -> int:
     vault_pdfs = set()
     if vault_dir.exists():
         for f in vault_dir.glob("*.pdf"):
+            if f.name.startswith("._"):
+                continue
             vault_pdfs.add(f.name)
             if f.stat().st_size == 0:
                 add_error(f"Corrupt (0-byte) Vault PDF detected: {f.name}")
@@ -129,6 +131,8 @@ def run_verification(target_dir: Path) -> int:
             continue
             
         for f in files:
+            if f.startswith("._"):
+                continue
             p = root_path / f
             if f.lower().endswith(".lnk"):
                 lnk_files.append(p)
@@ -157,15 +161,20 @@ def run_verification(target_dir: Path) -> int:
                     broken_links += 1
                     continue
                     
-                target_path_clean = target_path
-                if target_path_clean.startswith("\\\\?\\"):
+                target_path_clean = target_path.replace("\\", "/")
+                if target_path_clean.startswith("//?/"):
                     target_path_clean = target_path_clean[4:]
             
                 resolved_target = Path(target_path_clean)
+                if not resolved_target.exists() and os.name != 'nt':
+                    candidate = vault_dir / resolved_target.name
+                    if candidate.exists():
+                        resolved_target = candidate
+
                 if not resolved_target.exists():
                     add_error(f"Broken shortcut: {lnk_path.relative_to(target_dir)} points to missing file: {target_path_clean}")
                     broken_links += 1
-                elif vault_dir.resolve() not in resolved_target.parents:
+                elif vault_dir.resolve() != resolved_target.parent.resolve() and vault_dir.resolve() not in resolved_target.parents:
                     add_error(f"Shortcut target outside vault: {lnk_path.relative_to(target_dir)} -> {target_path_clean}")
                     broken_links += 1
                 else:
@@ -241,7 +250,10 @@ def run_verification(target_dir: Path) -> int:
                 add_error("Missing [Timeline View] directory")
             else:
                 timeline_lnks = list(timeline_dir.glob("*.lnk"))
-                expected_timeline_count = len([g for g in (state_data.get("grouped_documents") or []) if g.get("vault_id") and g.get("shortcuts")])
+                doc_list = state_data.get("routed_documents") or state_data.get("grouped_documents") or []
+                expected_timeline_count = len([g for g in doc_list if g.get("vault_id") and g.get("shortcuts")])
+                if expected_timeline_count == 0:
+                    expected_timeline_count = len({p.get("vault_id") for p in manifest if p.get("vault_id")})
                 if expected_timeline_count == 0:
                     add_error("State expected 0 document groups with shortcuts. Cannot verify [Timeline View].")
                 elif not timeline_lnks and expected_timeline_count > 0:
@@ -269,8 +281,8 @@ def run_verification(target_dir: Path) -> int:
                     if not target_path:
                         continue
                         
-                    target_path_clean = target_path
-                    if target_path_clean.startswith("\\\\?\\"):
+                    target_path_clean = target_path.replace("\\", "/")
+                    if target_path_clean.startswith("//?/"):
                         target_path_clean = target_path_clean[4:]
                     resolved_target = Path(target_path_clean)
                     

@@ -301,7 +301,10 @@ def extract_documents_data(
             or (item.get("dates")[0] if item.get("dates") else None)
         )
         title = item.get("brief_arabic_title") or item.get("arabic_title") or item.get("title")
-        category = item.get("category") or item.get("folder_path") or item.get("fine_category")
+        # Use folder_path (the routed Arabic folder name, e.g. "صيانة", "عقود") as category.
+        # This is what users see as "category" in the app. The 'category' field is the LLM
+        # classification label ("letters", "forms", etc.) which is NOT the folder name.
+        category = item.get("folder_path") or item.get("fine_category") or item.get("category")
 
         start_p = item.get("start_page")
         end_p = item.get("end_page")
@@ -310,7 +313,14 @@ def extract_documents_data(
         else:
             p_count = int(item.get("page_count", 1))
 
-        tenant_name = item.get("tenant") or item.get("tenant_name") or item.get("expected_tenant_name")
+        # primary_tenant is the canonical field in routed_documents.
+        # 'tenant' and 'tenant_name' are often None there; they appear in other formats.
+        tenant_name = (
+            item.get("primary_tenant")
+            or item.get("tenant")
+            or item.get("tenant_name")
+            or item.get("expected_tenant_name")
+        )
 
         docs.append({
             "vault_id": str(vid),
@@ -663,7 +673,10 @@ def migrate_house_to_v11(
                 if not dest.exists():
                     shutil.move(str(vf), str(dest))
 
-        # Move raw master PDF into batches/
+        # Move raw master PDF into batches/ (only if one actually exists).
+        # The batch PDF is a UX convenience (a merged scan of all vault docs) — it is NOT
+        # required for migration. The DB batch record captures the metadata.
+        # We never create blank placeholder PDFs; that would produce garbage files.
         dest = target_batches / batch_filename
         if raw_pdf_path and raw_pdf_path.exists():
             if raw_pdf_path.resolve() != dest.resolve():
@@ -671,17 +684,8 @@ def migrate_house_to_v11(
                     raw_pdf_path.unlink()
                 else:
                     shutil.move(str(raw_pdf_path), str(dest))
-        elif not dest.exists():
-            # Create placeholder batch file if no raw master scan exists
-            try:
-                import fitz
-                doc = fitz.open()
-                for _ in range(max(batch_page_count, 1)):
-                    doc.new_page(width=100, height=100)
-                doc.save(str(dest))
-                doc.close()
-            except Exception:
-                dest.touch()
+        # No else — if there's no raw scan, leave batches/ empty; the PDF can be
+        # generated later by merging vault docs if desired.
 
         # Remove shortcuts (*.lnk)
         for lnk in list(house_path.rglob("*.lnk")):
@@ -706,14 +710,22 @@ def migrate_house_to_v11(
         target_house_dir = house_path
         if rename_folder and house_path.name != house_id:
             dest_dir = house_path.parent / house_id
-            if not dest_dir.exists():
-                house_path.rename(dest_dir)
+            if dest_dir.exists() and dest_dir != house_path:
+                logger.warning(f"Renaming skipped: target {dest_dir} already exists.")
                 target_house_dir = dest_dir
             elif dest_dir == house_path:
                 target_house_dir = dest_dir
             else:
-                logger.warning(f"Renaming skipped: target {dest_dir} already exists.")
-                target_house_dir = dest_dir
+                try:
+                    house_path.rename(dest_dir)
+                    target_house_dir = dest_dir
+                except PermissionError as e:
+                    # Common on SMB/network volumes — not a fatal error, DB is already committed.
+                    logger.warning(
+                        f"Could not rename '{house_path.name}' → '{house_id}': {e}. "
+                        "Folder retains original name; migration data is complete."
+                    )
+                    target_house_dir = house_path
 
         logger.info(f"Migration completed successfully for house '{house_id}'.")
         return {

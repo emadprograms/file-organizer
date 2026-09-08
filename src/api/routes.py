@@ -1122,3 +1122,114 @@ async def search(request: Request, q: str = ""):
             unique_results.append(r)
 
     return unique_results[:50]
+
+
+ALLOWED_DB_TABLES = {"areas", "houses", "tenants", "batches", "pages", "documents"}
+
+
+@router.get("/api/db/info")
+async def get_db_info(request: Request):
+    repo = get_db_repo(request)
+    if not repo:
+        config = getattr(request.app.state, "config", None)
+        areas_root = Path(config.areas_root_path) if config and getattr(config, "areas_root_path", None) else None
+        candidates = []
+        if areas_root:
+            candidates.extend([areas_root / "organizer.db", *areas_root.glob("*/organizer.db")])
+        candidates.append(Path("organizer.db"))
+        for cand in candidates:
+            if cand.exists():
+                from src.db.connection import get_db_connection
+                conn = get_db_connection(str(cand))
+                repo = Repository(conn)
+                request.app.state.repo = repo
+                request.app.state.db_path = str(cand)
+                break
+
+    if not repo:
+        return {
+            "connected": False,
+            "db_path": None,
+            "tables": {}
+        }
+
+    conn = repo.conn
+    db_path = getattr(request.app.state, "db_path", "organizer.db")
+    tables_counts = {}
+    for tbl in ["areas", "houses", "tenants", "batches", "pages", "documents"]:
+        try:
+            cursor = conn.execute(f"SELECT COUNT(*) FROM {tbl}")
+            tables_counts[tbl] = cursor.fetchone()[0]
+        except Exception:
+            tables_counts[tbl] = 0
+
+    return {
+        "connected": True,
+        "db_path": str(db_path),
+        "tables": tables_counts
+    }
+
+
+@router.get("/api/db/tables/{table_name}")
+async def get_db_table_data(
+    table_name: str,
+    request: Request,
+    limit: int = 50,
+    offset: int = 0,
+    search: Optional[str] = None
+):
+    if table_name not in ALLOWED_DB_TABLES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid table '{table_name}'. Allowed tables: {sorted(list(ALLOWED_DB_TABLES))}"
+        )
+
+    repo = get_db_repo(request)
+    if not repo:
+        config = getattr(request.app.state, "config", None)
+        areas_root = Path(config.areas_root_path) if config and getattr(config, "areas_root_path", None) else None
+        candidates = []
+        if areas_root:
+            candidates.extend([areas_root / "organizer.db", *areas_root.glob("*/organizer.db")])
+        candidates.append(Path("organizer.db"))
+        for cand in candidates:
+            if cand.exists():
+                from src.db.connection import get_db_connection
+                conn = get_db_connection(str(cand))
+                repo = Repository(conn)
+                request.app.state.repo = repo
+                request.app.state.db_path = str(cand)
+                break
+
+    if not repo:
+        raise HTTPException(status_code=503, detail="Database not connected.")
+
+    conn = repo.conn
+    cursor = conn.execute(f"PRAGMA table_info({table_name})")
+    columns = [row[1] for row in cursor.fetchall()]
+
+    where_clause = ""
+    params = []
+    if search and search.strip():
+        search_term = f"%{search.strip()}%"
+        clauses = [f"CAST({col} AS TEXT) LIKE ?" for col in columns]
+        where_clause = f" WHERE {' OR '.join(clauses)}"
+        params = [search_term] * len(columns)
+
+    count_sql = f"SELECT COUNT(*) FROM {table_name}{where_clause}"
+    total = conn.execute(count_sql, params).fetchone()[0]
+
+    data_sql = f"SELECT * FROM {table_name}{where_clause} LIMIT ? OFFSET ?"
+    query_params = list(params) + [limit, offset]
+    cursor = conn.execute(data_sql, query_params)
+    rows = [dict(row) for row in cursor.fetchall()]
+
+    return {
+        "table": table_name,
+        "columns": columns,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "rows": rows
+    }
+

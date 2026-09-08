@@ -1,0 +1,5 @@
+inbox_path: "/Volumes/arshad-pc/Inbox"
+areas_root_path: "/Volumes/arshad-pc/areas_20260908_v11test"
+db_path: "/Volumes/arshad-pc/areas_20260908_v11test/organizer.db"
+area_mappings:
+  "Safra D": "SAF D"

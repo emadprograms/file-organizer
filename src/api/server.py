@@ -15,7 +15,7 @@ logger = logging.getLogger(f"file_organizer.{__name__}")
 async def lifespan(app: FastAPI):
     # Startup
     try:
-        config_env = os.getenv("FILE_ORGANIZER_CONFIG")
+        config_env = os.getenv("FILE_ORGANIZER_CONFIG") or os.getenv("ORGANIZER_CONFIG")
         if config_env:
             config_path = Path(config_env)
         else:

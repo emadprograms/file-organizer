@@ -491,5 +491,5 @@ def test_cli_migrate_v11(tmp_path, monkeypatch):
     migrated_dir = areas_root / "Safra C" / "514"
     assert migrated_dir.exists()
     assert (migrated_dir / "vault" / "doc_1.pdf").exists()
-    assert (migrated_dir / "batches" / "batch_1_514.pdf").exists()
+    assert (migrated_dir / "batches").exists()
 

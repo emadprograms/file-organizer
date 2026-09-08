@@ -324,3 +324,45 @@ def test_benchmark_get_tree_performance(db_setup):
     max_ms = max(times)
     assert avg_ms < 50.0, f"Average /api/tree latency {avg_ms:.2f}ms exceeds 50ms threshold"
     assert max_ms < 50.0, f"Max /api/tree latency {max_ms:.2f}ms exceeds 50ms threshold"
+
+
+def test_db_info_endpoint(db_setup):
+    """Test /api/db/info returns connection status and table row counts."""
+    res = client.get("/api/db/info")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["connected"] is True
+    assert "tables" in data
+    assert data["tables"]["areas"] == 2
+    assert data["tables"]["houses"] == 4
+    assert data["tables"]["tenants"] == 4
+    assert data["tables"]["batches"] == 2
+    assert data["tables"]["documents"] == 3
+    assert data["tables"]["pages"] == 2
+
+
+def test_db_tables_endpoint(db_setup):
+    """Test /api/db/tables/{table_name} returns rows, columns, and supports pagination/search."""
+    res = client.get("/api/db/tables/houses")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["table"] == "houses"
+    assert "id" in data["columns"]
+    assert data["total"] == 4
+    assert len(data["rows"]) == 4
+
+    # Test pagination
+    res_page = client.get("/api/db/tables/houses?limit=2&offset=0")
+    assert res_page.status_code == 200
+    data_page = res_page.json()
+    assert len(data_page["rows"]) == 2
+
+    # Test search filter
+    res_search = client.get("/api/db/tables/houses?search=Riffa")
+    assert res_search.status_code == 200
+    assert len(res_search.json()["rows"]) == 1
+
+    # Invalid table returns 400
+    res_invalid = client.get("/api/db/tables/invalid_table")
+    assert res_invalid.status_code == 400
+

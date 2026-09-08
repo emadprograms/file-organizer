@@ -128,9 +128,22 @@ def read_shortcut_target(link_path: str) -> str | None:
         return None
         
     if os.name != 'nt':
+        try:
+            import pylnk3
+            lnk = pylnk3.parse(link_path)
+            target = getattr(lnk, 'path', None)
+            if not target and hasattr(lnk, 'link_info') and lnk.link_info:
+                target = getattr(lnk.link_info, 'local_base_path', None)
+            if target:
+                return target
+        except Exception:
+            pass
         import codecs
-        with codecs.open(link_path, 'r', encoding='utf-8') as f:
-            return f.read()
+        try:
+            with codecs.open(link_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception:
+            return None
             
     results = batch_read_shortcut_targets([link_path])
     return results.get(os.path.abspath(link_path))

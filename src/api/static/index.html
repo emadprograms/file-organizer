@@ -58,11 +58,14 @@
             
             <!-- View Mode Switcher -->
             <div class="p-2 bg-gray-100 border-b border-gray-200 flex gap-1 flex-shrink-0">
-                <button id="view-mode-tree" class="flex-1 py-1.5 px-2 text-xs font-semibold rounded bg-white text-blue-700 shadow-xs border border-gray-300 flex items-center justify-center gap-1 transition-all">
-                    <span>🌳</span> Tree View
+                <button id="view-mode-tree" class="flex-1 py-1.5 px-1 text-xs font-semibold rounded bg-white text-blue-700 shadow-xs border border-gray-300 flex items-center justify-center gap-1 transition-all">
+                    <span>🌳</span> Tree
                 </button>
-                <button id="view-mode-grid" class="flex-1 py-1.5 px-2 text-xs font-semibold rounded text-gray-600 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center gap-1 transition-all">
-                    <span>🔲</span> Grid Overview
+                <button id="view-mode-grid" class="flex-1 py-1.5 px-1 text-xs font-semibold rounded text-gray-600 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center gap-1 transition-all">
+                    <span>🔲</span> Grid
+                </button>
+                <button id="view-mode-db" class="flex-1 py-1.5 px-1 text-xs font-semibold rounded text-gray-600 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center gap-1 transition-all">
+                    <span>🗄️</span> DB
                 </button>
             </div>
 
@@ -127,11 +130,61 @@
                     </div>
                 </div>
 
+                <!-- Database Inspector Panel -->
+                <div id="database-inspector-panel" class="flex-1 p-6 bg-gray-50 overflow-y-auto hidden flex-col">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 pb-4 border-b border-gray-200 gap-2 flex-shrink-0">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-2xl">🗄️</span>
+                                <h2 class="text-2xl font-bold text-gray-900">Database Inspector</h2>
+                            </div>
+                            <p id="db-inspector-subtitle" class="text-xs text-gray-500 mt-1">Direct view of SQLite database records and tables.</p>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span id="db-status-badge" class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-1 rounded-full border border-emerald-300">Connected</span>
+                            <span id="db-path-badge" class="bg-gray-100 text-gray-600 text-xs font-mono px-2.5 py-1 rounded border border-gray-300 truncate max-w-xs">organizer.db</span>
+                        </div>
+                    </div>
+
+                    <!-- Table Navigation Tabs & Search -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 flex-shrink-0">
+                        <!-- Table Tabs -->
+                        <div id="db-table-tabs" class="flex flex-wrap gap-1.5">
+                            <!-- Injected dynamically: buttons for areas, houses, tenants, batches, pages, documents with badges -->
+                        </div>
+                        <!-- Search & Refresh -->
+                        <div class="flex items-center gap-2">
+                            <input id="db-table-search" type="search" placeholder="Filter rows..." class="px-3 py-1.5 rounded-md border border-gray-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900 w-48" />
+                            <button id="db-refresh-btn" class="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-semibold hover:bg-blue-700 transition-colors flex items-center gap-1">
+                                🔄 Refresh
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Table Container -->
+                    <div class="flex-1 bg-white rounded-lg border border-gray-200 shadow-xs flex flex-col min-h-0 overflow-hidden">
+                        <div class="flex-1 overflow-auto">
+                            <table id="db-data-table" class="min-w-full divide-y divide-gray-200 text-left text-xs">
+                                <thead id="db-table-head" class="bg-gray-100 text-gray-700 font-semibold sticky top-0 z-10"></thead>
+                                <tbody id="db-table-body" class="divide-y divide-gray-100 bg-white"></tbody>
+                            </table>
+                        </div>
+                        <!-- Pagination Bar -->
+                        <div class="p-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-xs text-gray-600 flex-shrink-0">
+                            <span id="db-pagination-info">Showing 0 of 0</span>
+                            <div class="flex items-center gap-2">
+                                <button id="db-prev-page" class="px-2.5 py-1 border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-50" disabled>Previous</button>
+                                <button id="db-next-page" class="px-2.5 py-1 border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-50" disabled>Next</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Left panel: Documents List -->
                 <div id="document-list-panel" class="bg-white overflow-y-auto hidden flex-col flex-shrink-0" style="width: 33%; min-width: 250px; max-width: 60vw;">
                     <!-- Tabs -->
                     <div class="flex border-b bg-gray-50">
-                        <button id="tab-categories" class="flex-1 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600">Categories</button>
+                        <button id="tab-categories" class="flex-1 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600">📁 Folders</button>
                         <button id="tab-timeline" class="flex-1 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Timeline</button>
                     </div>
                     
@@ -208,8 +261,10 @@
         
         const viewModeTreeBtn = document.getElementById('view-mode-tree');
         const viewModeGridBtn = document.getElementById('view-mode-grid');
+        const viewModeDbBtn = document.getElementById('view-mode-db');
         const backToGridBtn = document.getElementById('back-to-grid-btn');
         const areaGridPanel = document.getElementById('area-grid-panel');
+        const databaseInspectorPanel = document.getElementById('database-inspector-panel');
         const gridAreaTitle = document.getElementById('grid-area-title');
         const gridAreaStats = document.getElementById('grid-area-stats');
         const houseCardsContainer = document.getElementById('area-grid-container') || document.getElementById('house-cards-container');
@@ -447,13 +502,20 @@
             if (currentViewMode === mode) return;
             currentViewMode = mode;
 
+            const activeBtnClass = "flex-1 py-1.5 px-1 text-xs font-semibold rounded bg-white text-blue-700 shadow-xs border border-gray-300 flex items-center justify-center gap-1 transition-all";
+            const inactiveBtnClass = "flex-1 py-1.5 px-1 text-xs font-semibold rounded text-gray-600 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center gap-1 transition-all";
+
+            viewModeTreeBtn.className = mode === 'tree' ? activeBtnClass : inactiveBtnClass;
+            viewModeGridBtn.className = mode === 'grid' ? activeBtnClass : inactiveBtnClass;
+            viewModeDbBtn.className = mode === 'db' ? activeBtnClass : inactiveBtnClass;
+
             if (currentViewMode === 'tree') {
-                viewModeTreeBtn.className = "flex-1 py-1.5 px-2 text-xs font-semibold rounded bg-white text-blue-700 shadow-xs border border-gray-300 flex items-center justify-center gap-1 transition-all";
-                viewModeGridBtn.className = "flex-1 py-1.5 px-2 text-xs font-semibold rounded text-gray-600 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center gap-1 transition-all";
                 sidebarSectionTitle.textContent = "Areas & Houses";
 
                 areaGridPanel.classList.add('hidden');
                 areaGridPanel.classList.remove('flex');
+                databaseInspectorPanel.classList.add('hidden');
+                databaseInspectorPanel.classList.remove('flex');
                 backToGridBtn.classList.add('hidden');
 
                 renderSidebar();
@@ -470,10 +532,11 @@
                     docViewerPanel.classList.add('hidden');
                     currentHouseTitle.textContent = 'Select an Area';
                 }
-            } else {
-                viewModeGridBtn.className = "flex-1 py-1.5 px-2 text-xs font-semibold rounded bg-white text-blue-700 shadow-xs border border-gray-300 flex items-center justify-center gap-1 transition-all";
-                viewModeTreeBtn.className = "flex-1 py-1.5 px-2 text-xs font-semibold rounded text-gray-600 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center gap-1 transition-all";
+            } else if (currentViewMode === 'grid') {
                 sidebarSectionTitle.textContent = "Areas";
+
+                databaseInspectorPanel.classList.add('hidden');
+                databaseInspectorPanel.classList.remove('flex');
 
                 renderSidebar();
 
@@ -489,11 +552,32 @@
                         selectAreaGrid(globalTreeData[0]);
                     }
                 }
+            } else if (currentViewMode === 'db') {
+                sidebarSectionTitle.textContent = "Database";
+
+                welcomePanel.classList.add('hidden');
+                docListPanel.classList.add('hidden');
+                docListPanel.classList.remove('flex');
+                docViewerPanel.classList.add('hidden');
+                document.getElementById('resizer-2').classList.add('hidden');
+                backToGridBtn.classList.add('hidden');
+                areaGridPanel.classList.add('hidden');
+                areaGridPanel.classList.remove('flex');
+
+                databaseInspectorPanel.classList.remove('hidden');
+                databaseInspectorPanel.classList.add('flex');
+
+                currentHouseTitle.textContent = "Database Inspector";
+                statsBadge.classList.add('hidden');
+                window.location.hash = "/database";
+
+                loadDbInspector();
             }
         }
 
         viewModeTreeBtn.addEventListener('click', () => switchToViewMode('tree'));
         viewModeGridBtn.addEventListener('click', () => switchToViewMode('grid'));
+        viewModeDbBtn.addEventListener('click', () => switchToViewMode('db'));
         backToGridBtn.addEventListener('click', () => {
             if (currentArea) {
                 const areaNode = globalTreeData.find(a => a.name === currentArea);
@@ -504,6 +588,125 @@
                 }
             } else if (globalTreeData.length > 0) {
                 selectAreaGrid(globalTreeData[0]);
+            }
+        });
+
+        // Database Inspector State & Logic
+        let currentDbTable = 'houses';
+        let dbTableOffset = 0;
+        const dbTableLimit = 50;
+        let dbTableTotal = 0;
+        let dbTableSearchTerm = '';
+
+        async function loadDbInspector(tableName = null) {
+            if (tableName) currentDbTable = tableName;
+            try {
+                const infoRes = await fetch('/api/db/info');
+                if (!infoRes.ok) throw new Error('Failed to fetch DB info');
+                const info = await infoRes.json();
+
+                const statusBadge = document.getElementById('db-status-badge');
+                const pathBadge = document.getElementById('db-path-badge');
+                if (info.connected) {
+                    statusBadge.textContent = 'Connected';
+                    statusBadge.className = 'bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-1 rounded-full border border-emerald-300';
+                    pathBadge.textContent = info.db_path || 'organizer.db';
+                } else {
+                    statusBadge.textContent = 'Disconnected';
+                    statusBadge.className = 'bg-rose-100 text-rose-800 text-xs font-semibold px-2.5 py-1 rounded-full border border-rose-300';
+                    pathBadge.textContent = 'No DB Found';
+                }
+
+                const tabsContainer = document.getElementById('db-table-tabs');
+                tabsContainer.innerHTML = '';
+                const tables = ['areas', 'houses', 'tenants', 'batches', 'pages', 'documents'];
+                tables.forEach(t => {
+                    const count = info.tables && info.tables[t] !== undefined ? info.tables[t] : 0;
+                    const btn = document.createElement('button');
+                    const isActive = t === currentDbTable;
+                    btn.className = `px-3 py-1.5 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                        isActive
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                    }`;
+                    btn.innerHTML = `<span>${t}</span><span class="px-1.5 py-0.2 text-[10px] rounded-full ${isActive ? 'bg-blue-700 text-blue-100' : 'bg-gray-100 text-gray-600 font-bold'}">${count}</span>`;
+                    btn.onclick = () => {
+                        currentDbTable = t;
+                        dbTableOffset = 0;
+                        loadDbInspector(t);
+                    };
+                    tabsContainer.appendChild(btn);
+                });
+
+                await loadDbTableRows();
+            } catch (err) {
+                console.error('Failed to load DB info:', err);
+            }
+        }
+
+        async function loadDbTableRows() {
+            const thead = document.getElementById('db-table-head');
+            const tbody = document.getElementById('db-table-body');
+            const paginationInfo = document.getElementById('db-pagination-info');
+            const prevBtn = document.getElementById('db-prev-page');
+            const nextBtn = document.getElementById('db-next-page');
+
+            tbody.innerHTML = '<tr><td colspan="15" class="text-center py-8 text-gray-400">Loading records...</td></tr>';
+
+            try {
+                let url = `/api/db/tables/${currentDbTable}?limit=${dbTableLimit}&offset=${dbTableOffset}`;
+                if (dbTableSearchTerm) {
+                    url += `&search=${encodeURIComponent(dbTableSearchTerm)}`;
+                }
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('Failed to fetch table rows');
+                const data = await res.json();
+
+                dbTableTotal = data.total;
+
+                thead.innerHTML = '<tr>' + data.columns.map(c => `<th class="px-3 py-2 border-b border-gray-200 uppercase tracking-wider font-bold text-gray-600">${c}</th>`).join('') + '</tr>';
+
+                if (data.rows.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="${data.columns.length || 1}" class="text-center py-8 text-gray-400">No records found in table '${currentDbTable}'.</td></tr>`;
+                } else {
+                    tbody.innerHTML = data.rows.map((row, idx) => {
+                        const bg = idx % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                        const cells = data.columns.map(c => {
+                            const val = row[c];
+                            const display = val === null || val === undefined ? '<span class="text-gray-300 italic">null</span>' : String(val);
+                            return `<td class="px-3 py-1.5 border-b border-gray-100 max-w-xs truncate" title="${display.replace(/"/g, '&quot;')}">${display}</td>`;
+                        }).join('');
+                        return `<tr class="${bg} hover:bg-blue-50 transition-colors">${cells}</tr>`;
+                    }).join('');
+                }
+
+                const start = dbTableTotal === 0 ? 0 : dbTableOffset + 1;
+                const end = Math.min(dbTableOffset + data.rows.length, dbTableTotal);
+                paginationInfo.textContent = `Showing ${start}–${end} of ${dbTableTotal} records`;
+                prevBtn.disabled = dbTableOffset === 0;
+                nextBtn.disabled = (dbTableOffset + dbTableLimit) >= dbTableTotal;
+
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="15" class="text-center py-8 text-rose-500">Failed to load data: ${err.message}</td></tr>`;
+            }
+        }
+
+        document.getElementById('db-refresh-btn').addEventListener('click', () => loadDbInspector());
+        document.getElementById('db-table-search').addEventListener('input', (e) => {
+            dbTableSearchTerm = e.target.value.trim();
+            dbTableOffset = 0;
+            loadDbTableRows();
+        });
+        document.getElementById('db-prev-page').addEventListener('click', () => {
+            if (dbTableOffset >= dbTableLimit) {
+                dbTableOffset -= dbTableLimit;
+                loadDbTableRows();
+            }
+        });
+        document.getElementById('db-next-page').addEventListener('click', () => {
+            if (dbTableOffset + dbTableLimit < dbTableTotal) {
+                dbTableOffset += dbTableLimit;
+                loadDbTableRows();
             }
         });
 
@@ -604,6 +807,13 @@
             console.log("HASH CHANGE", window.location.hash);
             const hash = decodeURIComponent(window.location.hash.replace('#', ''));
             if (!hash) return;
+
+            if (hash === '/database' || hash === '/db') {
+                if (currentViewMode !== 'db') {
+                    switchToViewMode('db');
+                }
+                return;
+            }
 
             // Check if grid area hash: /grid/area/:area_name
             if (hash.startsWith('/grid/area/')) {
@@ -882,7 +1092,7 @@
             displayCategories.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
             
             if (displayCategories.length === 0) {
-                docListEl.innerHTML = '<p class="text-sm text-gray-500 p-2">No categories found for this selection.</p>';
+                docListEl.innerHTML = '<p class="text-sm text-gray-500 p-2">No folders found for this selection.</p>';
                 return;
             }
             
