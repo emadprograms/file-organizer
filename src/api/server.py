@@ -27,6 +27,16 @@ async def lifespan(app: FastAPI):
         app.state.config = config
         logger.info("Configuration loaded successfully.")
 
+        db_path = getattr(config, "db_path", None)
+        app.state.db_path = db_path
+        app.state.repo = None
+        if db_path and (db_path == ":memory:" or Path(db_path).exists()):
+            from src.db.connection import get_db_connection
+            from src.db.repository import Repository
+            conn = get_db_connection(db_path)
+            app.state.repo = Repository(conn)
+            logger.info(f"SQLite repository initialized from {db_path}")
+
         # Pre-warm tree cache in a background thread so initial requests are instant
         import threading
         import asyncio
@@ -36,6 +46,8 @@ async def lifespan(app: FastAPI):
                 from src.api.routes import get_tree
                 mock_req = MagicMock()
                 mock_req.app.state.config = config
+                mock_req.app.state.repo = app.state.repo
+                mock_req.app.state.db_path = app.state.db_path
                 asyncio.run(get_tree(mock_req))
                 logger.info("Tree cache pre-warmed successfully.")
             except Exception as ex:
@@ -47,6 +59,11 @@ async def lifespan(app: FastAPI):
     
     yield
     # Shutdown
+    if getattr(app.state, "repo", None) and hasattr(app.state.repo, "conn"):
+        try:
+            app.state.repo.conn.close()
+        except Exception:
+            pass
 
 app = FastAPI(title="File Organizer API", lifespan=lifespan)
 

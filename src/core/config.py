@@ -7,7 +7,8 @@ import time
 import logging
 from pathlib import Path
 import yaml
-from pydantic import BaseModel, Field
+from typing import Optional
+from pydantic import BaseModel, Field, model_validator
 from src.core.exceptions import ConfigurationError
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -40,6 +41,21 @@ class AppConfig(BaseModel):
     inbox_path: str = Field(description="Path to the inbox directory")
     areas_root_path: str = Field(description="Path to the areas root directory")
     area_mappings: dict[str, str] = Field(default_factory=dict, description="Mapping of area names to area IDs")
+    db_path: Optional[str] = Field(default=None, description="Path to the SQLite database file")
+
+    @model_validator(mode="after")
+    def resolve_db_path(self) -> "AppConfig":
+        if not self.db_path:
+            candidates = [
+                Path(self.areas_root_path) / "organizer.db",
+                PROJECT_ROOT / "organizer.db",
+                Path("organizer.db"),
+            ]
+            for candidate in candidates:
+                if candidate.exists():
+                    self.db_path = str(candidate.resolve())
+                    break
+        return self
 
     @classmethod
     def load(cls, path: Path | str) -> "AppConfig":

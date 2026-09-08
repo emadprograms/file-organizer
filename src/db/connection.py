@@ -18,7 +18,7 @@ def get_db_connection(db_path: DbPathType = "file_organizer.db") -> sqlite3.Conn
         Configured sqlite3.Connection instance.
     """
     path_str = str(db_path)
-    conn = sqlite3.connect(path_str, timeout=30.0)
+    conn = sqlite3.connect(path_str, timeout=30.0, check_same_thread=False)
     conn.row_factory = sqlite3.Row
 
     # Always enforce foreign keys

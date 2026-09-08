@@ -4,16 +4,57 @@ import re
 import difflib
 import time
 from pathlib import Path
-from datetime import datetime
+from datetime import date, datetime
+from typing import Optional
 from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import ValidationError
 
 from src.api.models import HouseResponse, VaultFileResponse, CategoryResponse, TimelineGroupResponse, TreeItemResponse, SearchResultResponse
+from src.db.repository import Repository
 
 router = APIRouter()
 
 NOT_FOUND_DETAIL = "{\"error\": \"Resource not found.\", \"solution\": \"Verify the endpoint URL and the resource ID.\"}"
+
+def _house_sort_key_str(house_id: str) -> tuple[int, str]:
+    match = re.search(r'(\d+)', house_id)
+    num = int(match.group(1)) if match else 999999999
+    return (num, house_id)
+
+def get_db_repo(request: Request) -> Optional[Repository]:
+    repo = getattr(request.app.state, "repo", None)
+    if repo is not None:
+        try:
+            repo.conn.execute("SELECT 1")
+            return repo
+        except Exception:
+            request.app.state.repo = None
+            repo = None
+
+    conn = getattr(request.app.state, "db_conn", None)
+    if conn is not None:
+        try:
+            conn.execute("SELECT 1")
+            repo = Repository(conn)
+            request.app.state.repo = repo
+            return repo
+        except Exception:
+            request.app.state.db_conn = None
+
+    config = getattr(request.app.state, "config", None)
+    db_path = getattr(request.app.state, "db_path", None) or (getattr(config, "db_path", None) if config else None)
+    if db_path and (db_path == ":memory:" or Path(db_path).exists()):
+        try:
+            from src.db.connection import get_db_connection
+            conn = get_db_connection(db_path)
+            conn.execute("SELECT 1")
+            repo = Repository(conn)
+            request.app.state.repo = repo
+            return repo
+        except Exception:
+            return None
+    return None
 
 def phonetic_normalize(text: str) -> str:
     text = text.lower()
@@ -56,7 +97,16 @@ def _get_document_groups(state_data: dict) -> list[dict]:
 
 @router.get("/api/houses", response_model=list[HouseResponse])
 async def list_houses(request: Request):
-    config = request.app.state.config
+    repo = get_db_repo(request)
+    if repo:
+        cursor = repo.conn.execute("SELECT id FROM houses ORDER BY id")
+        rows = cursor.fetchall()
+        if rows:
+            return [HouseResponse(id=row["id"], name=row["id"]) for row in rows]
+
+    config = getattr(request.app.state, "config", None)
+    if not config or not hasattr(config, "areas_root_path"):
+        raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
     areas_root = Path(config.areas_root_path)
     if not areas_root.exists():
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
@@ -70,7 +120,35 @@ async def list_houses(request: Request):
 @router.get("/api/houses/{house_id}/vault", response_model=list[VaultFileResponse])
 async def list_vault_files(request: Request, house_id: str):
     validate_id(house_id, r"^[a-zA-Z0-9_\-\s]+$")
-    config = request.app.state.config
+    repo = get_db_repo(request)
+    if repo:
+        house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
+        cursor = repo.conn.execute("""
+            SELECT d.vault_id, d.primary_date, d.arabic_title, d.page_count, t.name as tenant_name, b.filename
+            FROM documents d
+            LEFT JOIN tenants t ON d.tenant_id = t.id
+            LEFT JOIN batches b ON d.batch_id = b.id
+            WHERE d.house_id = ? OR d.house_id = ?
+            ORDER BY d.primary_date DESC
+        """, (house_id, house_num))
+        rows = cursor.fetchall()
+        if rows:
+            return [
+                VaultFileResponse(
+                    vault_id=r["vault_id"],
+                    filename=r["filename"] or f"doc_{r['vault_id']}.pdf",
+                    start_page=1,
+                    end_page=r["page_count"] or 1,
+                    date=str(r["primary_date"]) if r["primary_date"] else "",
+                    tenant=r["tenant_name"] or "",
+                    brief_arabic_title=r["arabic_title"] or ""
+                )
+                for r in rows
+            ]
+
+    config = getattr(request.app.state, "config", None)
+    if not config or not hasattr(config, "areas_root_path"):
+        raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
     areas_root = Path(config.areas_root_path)
     report_path = areas_root / house_id / ".source_files" / f"{house_id}_report.json"
     
@@ -100,7 +178,36 @@ async def list_vault_files(request: Request, house_id: str):
 
 @router.get("/api/areas/{area_id}/houses/{house_id}/timeline", response_model=list[TimelineGroupResponse])
 async def list_timeline(request: Request, area_id: str, house_id: str):
-    config = request.app.state.config
+    repo = get_db_repo(request)
+    if repo:
+        conn = repo.conn
+        house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
+        cursor = conn.execute("""
+            SELECT d.vault_id, d.primary_date, d.arabic_title, d.category, t.name as tenant_name
+            FROM documents d
+            LEFT JOIN tenants t ON d.tenant_id = t.id
+            WHERE d.house_id = ? OR d.house_id = ?
+            ORDER BY d.primary_date DESC
+        """, (house_id, house_num))
+        rows = cursor.fetchall()
+        if rows:
+            return [
+                TimelineGroupResponse(
+                    vault_id=r["vault_id"],
+                    primary_tenant=r["tenant_name"] or "",
+                    dates=[str(r["primary_date"])] if r["primary_date"] else [],
+                    brief_arabic_title=r["arabic_title"] or ""
+                )
+                for r in rows
+            ]
+        # Check if house exists in DB
+        h_cur = conn.execute("SELECT id FROM houses WHERE id = ? OR id = ?", (house_id, house_num))
+        if h_cur.fetchone():
+            return []
+
+    config = getattr(request.app.state, "config", None)
+    if not config or not hasattr(config, "areas_root_path"):
+        return []
     areas_root = Path(config.areas_root_path)
     house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
     state_path = areas_root / area_id / house_id / ".source_files" / f"{house_num}_state.json"
@@ -155,13 +262,61 @@ async def list_timeline(request: Request, area_id: str, house_id: str):
 
 @router.get("/api/areas/{area_id}/houses/{house_id}/categories", response_model=list[CategoryResponse])
 async def list_categories(request: Request, area_id: str, house_id: str):
-    config = request.app.state.config
+    from src.routing.config import FOLDER_PREFIXES
+    repo = get_db_repo(request)
+    if repo:
+        conn = repo.conn
+        house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
+        cursor = conn.execute("""
+            SELECT d.vault_id, d.primary_date, d.arabic_title, d.category, d.page_count,
+                   t.name as tenant_name, b.filename as batch_filename
+            FROM documents d
+            LEFT JOIN tenants t ON d.tenant_id = t.id
+            LEFT JOIN batches b ON d.batch_id = b.id
+            WHERE d.house_id = ? OR d.house_id = ?
+            ORDER BY d.category ASC, d.primary_date DESC
+        """, (house_id, house_num))
+        rows = cursor.fetchall()
+        if rows:
+            categories: dict[tuple[str, str], list[VaultFileResponse]] = {}
+            for r in rows:
+                tenant = r["tenant_name"] or ""
+                cat_raw = r["category"] or ""
+                prefix = FOLDER_PREFIXES.get(cat_raw, "")
+                cat_numbered = f"{prefix} - {cat_raw}" if (prefix and not re.match(r'^\d+\s*-\s*', cat_raw)) else cat_raw
+                key = (tenant, cat_numbered)
+                if key not in categories:
+                    categories[key] = []
+                categories[key].append(VaultFileResponse(
+                    vault_id=r["vault_id"],
+                    filename=r["batch_filename"] or f"doc_{r['vault_id']}.pdf",
+                    start_page=1,
+                    end_page=r["page_count"] or 1,
+                    date=str(r["primary_date"]) if r["primary_date"] else "",
+                    tenant=tenant,
+                    brief_arabic_title=r["arabic_title"] or ""
+                ))
+            return [
+                CategoryResponse(
+                    tenant=t,
+                    name=c,
+                    document_count=len(docs),
+                    documents=docs
+                )
+                for (t, c), docs in categories.items()
+            ]
+        h_cur = conn.execute("SELECT id FROM houses WHERE id = ? OR id = ?", (house_id, house_num))
+        if h_cur.fetchone():
+            return []
+
+    config = getattr(request.app.state, "config", None)
+    if not config or not hasattr(config, "areas_root_path"):
+        return []
     areas_root = Path(config.areas_root_path)
     house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
     state_path = areas_root / area_id / house_id / ".source_files" / f"{house_num}_state.json"
 
     from src.routing.config import FOLDER_PREFIXES
-    from src.api.models import VaultFileResponse
     
     categories: dict[tuple[str, str], list[VaultFileResponse]] = {}
     
@@ -236,9 +391,11 @@ async def list_categories(request: Request, area_id: str, house_id: str):
 @router.get("/api/areas/{area_id}/houses/{house_id}/pdf/{vault_id}")
 async def get_pdf(request: Request, area_id: str, house_id: str, vault_id: str):
     validate_id(vault_id, r"^[a-zA-Z0-9_-]+$")
-    config = request.app.state.config
-    areas_root = Path(config.areas_root_path)
+    config = getattr(request.app.state, "config", None)
+    areas_root = Path(config.areas_root_path) if (config and hasattr(config, "areas_root_path")) else Path(".")
     house_dir = areas_root / area_id / house_id
+
+    pdf_path = None
     if vault_id.startswith("fs_"):
         try:
             b64_str = vault_id[3:]
@@ -248,9 +405,30 @@ async def get_pdf(request: Request, area_id: str, house_id: str, vault_id: str):
         except Exception:
             raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
     else:
-        pdf_path = house_dir / ".source_files" / "vault" / f"doc_{vault_id}.pdf"
+        # Check modern DB vault path first, then legacy .source_files/vault
+        candidates = [
+            house_dir / "vault" / f"doc_{vault_id}.pdf",
+            house_dir / "vault" / f"{vault_id}.pdf",
+            house_dir / ".source_files" / "vault" / f"doc_{vault_id}.pdf",
+            house_dir / ".source_files" / "vault" / f"{vault_id}.pdf",
+        ]
+        repo = get_db_repo(request)
+        if repo:
+            cur = repo.conn.execute("""
+                SELECT b.file_path, b.filename FROM documents d
+                JOIN batches b ON d.batch_id = b.id
+                WHERE d.vault_id = ?
+            """, (vault_id,))
+            b_row = cur.fetchone()
+            if b_row and b_row["file_path"]:
+                candidates.append(Path(b_row["file_path"]))
 
-    if not pdf_path.exists() or not pdf_path.is_file():
+        for cand in candidates:
+            if cand.exists() and cand.is_file():
+                pdf_path = cand
+                break
+
+    if not pdf_path or not pdf_path.exists() or not pdf_path.is_file():
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
     return FileResponse(pdf_path, media_type="application/pdf")
 
@@ -271,16 +449,192 @@ def clear_tree_cache():
     _TREE_CACHE_PATH = None
 
 @router.get("/api/tree", response_model=list[TreeItemResponse])
-async def get_tree(request: Request):
+async def get_tree(request: Request, include_categories: bool = False, include_timeline: bool = False):
     """
-    Walk the real 3-level disk structure:
-        areas_root/
-            <Area folder>/     <- child of areas_root; name matches area_mappings key
-                <House folder>/ <- child of Area; e.g. "1245 - Ali"
-                    .source_files/
-                        <id>_state.json or <id>_report.json
+    Walk the database or disk structure:
+        If SQLite repo is available, execute optimized queries directly.
+        Otherwise walk the real 3-level disk structure.
     """
-    config = request.app.state.config
+    repo = get_db_repo(request)
+    if repo:
+        conn = repo.conn
+        cursor = conn.execute("SELECT id, code FROM areas ORDER BY id")
+        areas_rows = cursor.fetchall()
+
+        cursor = conn.execute("SELECT id, area_id FROM houses ORDER BY id")
+        houses_rows = cursor.fetchall()
+
+        cursor = conn.execute("SELECT id, house_id, name, start_date, end_date FROM tenants ORDER BY start_date ASC, id ASC")
+        tenants_rows = cursor.fetchall()
+
+        cursor = conn.execute("SELECT house_id, category, COUNT(*) as doc_count FROM documents GROUP BY house_id, category")
+        doc_rows = cursor.fetchall()
+
+        timeline_by_house: dict[str, list[dict]] = {}
+        if include_timeline:
+            t_cur = conn.execute("SELECT vault_id, house_id, primary_date, arabic_title, category FROM documents ORDER BY primary_date DESC")
+            for r in t_cur.fetchall():
+                timeline_by_house.setdefault(r["house_id"], []).append(r)
+
+        houses_by_area: dict[str, list[dict]] = {}
+        for h in houses_rows:
+            houses_by_area.setdefault(h["area_id"], []).append(h)
+
+        tenants_by_house: dict[str, list[dict]] = {}
+        for t in tenants_rows:
+            tenants_by_house.setdefault(t["house_id"], []).append(t)
+
+        cat_counts_by_house: dict[str, dict[str, int]] = {}
+        total_docs_by_house: dict[str, int] = {}
+        for d in doc_rows:
+            h_id = d["house_id"]
+            cat_raw = d["category"]
+            cnt = d["doc_count"]
+            total_docs_by_house[h_id] = total_docs_by_house.get(h_id, 0) + cnt
+            if cat_raw:
+                clean_cat = re.sub(r'^\d+\s*-\s*', '', cat_raw)
+                cat_counts_by_house.setdefault(h_id, {})
+                cat_counts_by_house[h_id][clean_cat] = cat_counts_by_house[h_id].get(clean_cat, 0) + cnt
+
+        current_year = datetime.now().year
+        today_str = date.today().isoformat()
+        result: list[TreeItemResponse] = []
+
+        for a in areas_rows:
+            area_id = a["id"]
+            area_houses = houses_by_area.get(area_id, [])
+            area_houses.sort(key=lambda h: _house_sort_key_str(h["id"]))
+
+            house_nodes: list[TreeItemResponse] = []
+            for h in area_houses:
+                house_id = h["id"]
+                h_tenants = tenants_by_house.get(house_id, [])
+
+                active_t = None
+                for t in reversed(h_tenants):
+                    end_d = t["end_date"]
+                    if not end_d or str(end_d) >= today_str:
+                        active_t = t
+                        break
+
+                if not active_t and " - " in house_id:
+                    cand = house_id.split(" - ", 1)[1].strip()
+                    for t in h_tenants:
+                        if t["name"] == cand:
+                            active_t = t
+                            break
+
+                if not active_t and len(h_tenants) == 1:
+                    active_t = h_tenants[0]
+
+                house_duration_cat = None
+                house_subtitle = None
+                active_tenant_name = None
+
+                if active_t:
+                    active_tenant_name = active_t["name"]
+                    s_date_str = str(active_t["start_date"]) if active_t["start_date"] else ""
+                    m_year = re.search(r'(\d{4})', s_date_str)
+                    if m_year:
+                        start_year = int(m_year.group(1))
+                        duration = current_year - start_year
+                        if duration < 5:
+                            house_duration_cat = "short"
+                        elif duration < 10:
+                            house_duration_cat = "medium"
+                        else:
+                            house_duration_cat = "long"
+                        house_subtitle = f"Since {start_year} ({duration}y)"
+                elif h_tenants:
+                    latest = h_tenants[-1]
+                    s_str = str(latest["start_date"])[:4] if latest["start_date"] else ""
+                    e_str = str(latest["end_date"])[:4] if latest["end_date"] else ""
+                    if s_str and e_str and s_str != e_str:
+                        house_subtitle = f"{s_str} - {e_str}"
+                    elif s_str:
+                        house_subtitle = f"{s_str}"
+
+                tenant_nodes: list[TreeItemResponse] = []
+                for t in h_tenants:
+                    t_name = t["name"]
+                    t_start = str(t["start_date"]) if t["start_date"] else ""
+                    t_end = str(t["end_date"]) if t["end_date"] else ""
+                    s_m = re.search(r'(\d{4})', t_start)
+                    e_m = re.search(r'(\d{4})', t_end)
+                    s_y = int(s_m.group(1)) if s_m else None
+                    e_y = int(e_m.group(1)) if e_m else None
+
+                    is_active = (active_t and t["id"] == active_t["id"])
+                    t_dur_cat = None
+                    t_sub = None
+
+                    if s_y:
+                        if is_active:
+                            duration = current_year - s_y
+                            if duration < 5:
+                                t_dur_cat = "short"
+                            elif duration < 10:
+                                t_dur_cat = "medium"
+                            else:
+                                t_dur_cat = "long"
+                            t_sub = f"{s_y} - Present"
+                        elif e_y and e_y != s_y:
+                            t_sub = f"{s_y} - {e_y}"
+                        else:
+                            t_sub = f"{s_y}"
+
+                    tenant_nodes.append(TreeItemResponse(
+                        id=f"{house_id}_{t_name}",
+                        name=t_name,
+                        subtitle=t_sub,
+                        duration_category=t_dur_cat,
+                        type="tenant"
+                    ))
+
+                h_cat_counts = cat_counts_by_house.get(house_id, {})
+                h_total_docs = total_docs_by_house.get(house_id, 0)
+
+                house_children = list(tenant_nodes)
+                if include_categories:
+                    for cat_name, cat_count in sorted(h_cat_counts.items()):
+                        house_children.append(TreeItemResponse(
+                            id=f"{house_id}_cat_{cat_name}",
+                            name=cat_name,
+                            subtitle=f"{cat_count} docs",
+                            type="category"
+                        ))
+                if include_timeline and house_id in timeline_by_house:
+                    for t_doc in timeline_by_house[house_id]:
+                        house_children.append(TreeItemResponse(
+                            id=f"{house_id}_timeline_{t_doc['vault_id']}",
+                            name=t_doc["arabic_title"] or t_doc["category"] or "Doc",
+                            subtitle=str(t_doc["primary_date"]) if t_doc["primary_date"] else None,
+                            type="document"
+                        ))
+
+                house_nodes.append(TreeItemResponse(
+                    id=house_id,
+                    name=house_id,
+                    type="house",
+                    subtitle=house_subtitle,
+                    duration_category=house_duration_cat,
+                    current_tenant=active_tenant_name,
+                    total_documents=h_total_docs,
+                    category_counts=h_cat_counts,
+                    children=house_children
+                ))
+
+            result.append(TreeItemResponse(
+                id=f"area_{area_id}",
+                name=area_id,
+                type="area",
+                children=house_nodes
+            ))
+        return result
+
+    config = getattr(request.app.state, "config", None)
+    if not config or not hasattr(config, "areas_root_path"):
+        raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
     areas_root = Path(config.areas_root_path)
     if not areas_root.exists():
         raise HTTPException(status_code=404, detail=NOT_FOUND_DETAIL)
@@ -614,7 +968,95 @@ async def search(request: Request, q: str = ""):
     if not q:
         return []
 
-    config = request.app.state.config
+    repo = get_db_repo(request)
+    if repo:
+        conn = repo.conn
+        results = []
+
+        # 1. Houses matching q
+        cursor = conn.execute(
+            "SELECT id, area_id FROM houses WHERE LOWER(id) LIKE ? OR LOWER(area_id) LIKE ? ORDER BY id",
+            (f"%{q}%", f"%{q}%")
+        )
+        for row in cursor.fetchall():
+            h_id = row["id"]
+            a_id = row["area_id"]
+            results.append(SearchResultResponse(
+                id=h_id,
+                type="house",
+                title=h_id,
+                subtitle=f"House in {a_id}",
+                url=f"/#/area/{a_id}/house/{h_id}"
+            ))
+
+        # 2. Tenants matching q (with phonetic and fuzzy matching)
+        cursor = conn.execute("""
+            SELECT DISTINCT t.name as tenant_name, t.house_id, h.area_id
+            FROM tenants t
+            JOIN houses h ON t.house_id = h.id
+        """)
+        q_phonetic = phonetic_normalize(q)
+        for t in cursor.fetchall():
+            t_name = t["tenant_name"]
+            t_lower = t_name.lower()
+            t_phonetic = phonetic_normalize(t_lower)
+            is_match = False
+            if q in t_lower:
+                is_match = True
+            elif q_phonetic.replace(" ", "") in t_phonetic.replace(" ", ""):
+                is_match = True
+            else:
+                if len(q.split()) == 1:
+                    if difflib.get_close_matches(q, t_lower.split(), n=1, cutoff=0.7) or \
+                       difflib.get_close_matches(q_phonetic, t_phonetic.split(), n=1, cutoff=0.7):
+                        is_match = True
+                else:
+                    if difflib.SequenceMatcher(None, q, t_lower).ratio() >= 0.7 or \
+                       difflib.SequenceMatcher(None, q_phonetic, t_phonetic).ratio() >= 0.7:
+                        is_match = True
+            if is_match:
+                results.append(SearchResultResponse(
+                    id=f"{t['house_id']}_{t_name}",
+                    type="tenant",
+                    title=t_name,
+                    subtitle=f"Tenant in {t['house_id']}",
+                    url=f"/#/area/{t['area_id']}/house/{t['house_id']}/tenant/{t['house_id']}_{t_name}"
+                ))
+
+        # 3. Documents matching arabic_title or category or content_explanation in pages
+        cursor = conn.execute("""
+            SELECT DISTINCT d.vault_id, d.arabic_title, d.category, d.house_id, h.area_id
+            FROM documents d
+            JOIN houses h ON d.house_id = h.id
+            LEFT JOIN pages p ON (p.vault_id = d.vault_id OR (p.vault_id IS NULL AND p.batch_id = d.batch_id))
+            WHERE LOWER(COALESCE(d.arabic_title, '')) LIKE ?
+               OR LOWER(COALESCE(d.category, '')) LIKE ?
+               OR LOWER(COALESCE(p.content_explanation, '')) LIKE ?
+               OR LOWER(COALESCE(p.subject, '')) LIKE ?
+            ORDER BY d.primary_date DESC
+        """, (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"))
+
+        for d in cursor.fetchall():
+            title = d["arabic_title"] or d["category"] or "Document"
+            results.append(SearchResultResponse(
+                id=f"{d['house_id']}_doc_{d['vault_id']}",
+                type="document",
+                title=title,
+                subtitle=f"Document in {d['house_id']}",
+                url=f"/#/area/{d['area_id']}/house/{d['house_id']}"
+            ))
+
+        seen: set[str] = set()
+        unique_results = []
+        for r in results:
+            if r.id not in seen:
+                seen.add(r.id)
+                unique_results.append(r)
+        return unique_results[:50]
+
+    config = getattr(request.app.state, "config", None)
+    if not config or not hasattr(config, "areas_root_path"):
+        return []
     areas_root = Path(config.areas_root_path)
     if not areas_root.exists():
         return []
