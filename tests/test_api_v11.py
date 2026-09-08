@@ -203,10 +203,13 @@ def test_get_tree_with_db(db_setup):
     assert h101["category_counts"]["عقود"] == 1
     assert h101["category_counts"]["كهرباء وماء"] == 1
     
-    # Check tenant children
+    # Check tenant children ordering: latest tenant comes first, then older tenants
     assert len(h101["children"]) == 2
-    active_t_node = next(t for t in h101["children"] if t["name"] == "Ali Short")
-    past_t_node = next(t for t in h101["children"] if t["name"] == "Old Ali")
+    assert h101["children"][0]["name"] == "Ali Short"
+    assert h101["children"][1]["name"] == "Old Ali"
+
+    active_t_node = h101["children"][0]
+    past_t_node = h101["children"][1]
     assert active_t_node["duration_category"] in ("short", "<5y")
     assert "Present" in active_t_node["subtitle"]
     assert past_t_node["duration_category"] is None

@@ -309,3 +309,25 @@ class TestBatchHandling:
         assert db_count == source_count, (
             f"DB has {db_count} documents but source has {source_count} routed_documents."
         )
+
+    def test_tree_view_tenant_ordering_latest_first(self, conn):
+        """Tenants for house 500 in tree view must be ordered latest tenant first."""
+        from src.db.repository import Repository
+        from src.api.server import app
+        from fastapi.testclient import TestClient
+        client = TestClient(app)
+        app.state.repo = Repository(conn)
+        app.state.db_path = str(DB_PATH)
+        res = client.get("/api/tree")
+        assert res.status_code == 200
+        tree = res.json()
+        safra = next((a for a in tree if "Safra" in a["name"]), None)
+        assert safra is not None
+        h500 = next((h for h in safra["children"] if "500" in h["id"]), None)
+        assert h500 is not None
+        tenant_names = [t["name"] for t in h500["children"]]
+        assert tenant_names == [
+            "فواز خليل الطارش",
+            "عبد الله حميدة رضا فرج",
+            "عادل عبد الرحيم جاسم"
+        ], f"Expected latest tenant first, got {tenant_names}"

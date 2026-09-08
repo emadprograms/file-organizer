@@ -464,7 +464,11 @@ async def get_tree(request: Request, include_categories: bool = False, include_t
         cursor = conn.execute("SELECT id, area_id FROM houses ORDER BY id")
         houses_rows = cursor.fetchall()
 
-        cursor = conn.execute("SELECT id, house_id, name, start_date, end_date FROM tenants ORDER BY start_date ASC, id ASC")
+        cursor = conn.execute(
+            "SELECT id, house_id, name, start_date, end_date FROM tenants "
+            "ORDER BY (CASE WHEN end_date IS NULL OR end_date = '' OR LOWER(end_date) = 'present' THEN 1 ELSE 0 END) DESC, "
+            "start_date DESC, id DESC"
+        )
         tenants_rows = cursor.fetchall()
 
         cursor = conn.execute("SELECT house_id, category, COUNT(*) as doc_count FROM documents GROUP BY house_id, category")
@@ -511,9 +515,9 @@ async def get_tree(request: Request, include_categories: bool = False, include_t
                 h_tenants = tenants_by_house.get(house_id, [])
 
                 active_t = None
-                for t in reversed(h_tenants):
+                for t in h_tenants:
                     end_d = t["end_date"]
-                    if not end_d or str(end_d) >= today_str:
+                    if not end_d or str(end_d) >= today_str or str(end_d).lower() == "present":
                         active_t = t
                         break
 
@@ -524,7 +528,7 @@ async def get_tree(request: Request, include_categories: bool = False, include_t
                             active_t = t
                             break
 
-                if not active_t and len(h_tenants) == 1:
+                if not active_t and h_tenants:
                     active_t = h_tenants[0]
 
                 house_duration_cat = None
@@ -546,7 +550,7 @@ async def get_tree(request: Request, include_categories: bool = False, include_t
                             house_duration_cat = "long"
                         house_subtitle = f"Since {start_year} ({duration}y)"
                 elif h_tenants:
-                    latest = h_tenants[-1]
+                    latest = h_tenants[0]
                     s_str = str(latest["start_date"])[:4] if latest["start_date"] else ""
                     e_str = str(latest["end_date"])[:4] if latest["end_date"] else ""
                     if s_str and e_str and s_str != e_str:
@@ -767,7 +771,15 @@ async def get_tree(request: Request, include_categories: bool = False, include_t
                                 tenants_with_dates[t_name].add(int(y))
 
             current_year = datetime.now().year
-            for t, years in sorted(tenants_with_dates.items()):
+
+            def _tenant_sort_key(item):
+                t_name, years = item
+                is_pres = 1 if tenant_is_present.get(t_name) else 0
+                max_year = max(years) if years else 0
+                return (is_pres, max_year)
+
+            sorted_tenants = sorted(tenants_with_dates.items(), key=_tenant_sort_key, reverse=True)
+            for t, years in sorted_tenants:
                 subtitle = None
                 duration_category = None
                 if years:
