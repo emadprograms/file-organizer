@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Core LLM orchestration and client management.
 
 This module provides the `LLMClient` which manages LLM requests via Google Gemini.

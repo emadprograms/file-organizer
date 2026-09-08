@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import os
 import sys
@@ -16,11 +18,7 @@ load_dotenv()
 
 from src.utils.logger import setup_logging
 from src.presentation.ui import set_verbosity
-from src.llm.llm import LLMClient
-from src.timeline.phase import process_cleaning_phase
 from src.core.exceptions import ConfigurationError, ValidationError, FileOrganizerError
-from src.categorization.categorization import process_unclassified_pdf
-from src.pipeline.runner import run_cleaning_pass, run_fine_categorization_pass, run_grouping_pass, run_routing_pass, run_generation_pass
 logger = logging.getLogger(f"file_organizer.{__name__}")
 
 def validate_environment() -> None:
@@ -214,9 +212,16 @@ def get_parser() -> argparse.ArgumentParser:
     export_parser = subparsers.add_parser("export-web", help="Export static web bundle for IIS hosting")
     export_parser.add_argument("--output-dir", type=Path, default=None, help="Output directory (defaults to areas_root_path)")
     
+    # migrate-v11 mode
+    migrate_v11_parser = subparsers.add_parser("migrate-v11", help="Migrate legacy v5-v10 houses to v11 SQLite database and clean storage")
+    migrate_v11_parser.add_argument("--areas-root", type=Path, default=None, help="Path to areas root directory (defaults to areas_root_path in config)")
+    migrate_v11_parser.add_argument("--target-dir", type=Path, default=None, help="Optional specific house directory to migrate")
+    migrate_v11_parser.add_argument("--db-path", type=Path, default=None, help="Path to SQLite database file")
+    migrate_v11_parser.add_argument("--dry-run", action="store_true", help="Preview changes without modifying files or database")
+    migrate_v11_parser.add_argument("--no-rename", action="store_true", help="Do not rename house directory to clean house ID")
+    migrate_v11_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+    
     return parser
-
-from src.reconcile.core import run_reconcile_mode
 
 
 def main() -> int:
@@ -269,6 +274,7 @@ def main() -> int:
     if args.command == "reconcile":
         setup_logging(verbose=getattr(args, 'verbose', False))
         set_verbosity(getattr(args, 'verbose', False))
+        from src.reconcile.core import run_reconcile_mode
         return run_reconcile_mode(args)
 
     if args.command == "migrate":
@@ -276,6 +282,45 @@ def main() -> int:
         set_verbosity(getattr(args, 'verbose', False))
         from src.migration.v5_migration import migrate_to_v5
         return migrate_to_v5(args.target_dir.resolve(), dry_run=getattr(args, 'dry_run', False))
+
+    if args.command == "migrate-v11":
+        setup_logging(verbose=getattr(args, 'verbose', False))
+        set_verbosity(getattr(args, 'verbose', False))
+        from src.migration.v11_migration import migrate_house_to_v11, migrate_areas
+        
+        db_path = getattr(args, 'db_path', None) or "file_organizer.db"
+        rename_folder = not getattr(args, 'no_rename', False)
+        dry_run = getattr(args, 'dry_run', False)
+        
+        target_dir = getattr(args, 'target_dir', None)
+        if target_dir:
+            target_path = target_dir.resolve()
+            area_name = target_path.parent.name
+            area_code = config.area_mappings.get(area_name)
+            res = migrate_house_to_v11(
+                house_dir=target_path,
+                area_id=area_name,
+                db_path=db_path,
+                area_code=area_code,
+                dry_run=dry_run,
+                rename_folder=rename_folder,
+            )
+            logger.info(f"Migration completed: {res}")
+            return 0 if res.get("status") == "success" else 1
+
+        areas_root_val = getattr(args, 'areas_root', None) or Path(config.areas_root_path)
+        areas_root = Path(areas_root_val).resolve()
+        logger.info(f"Running migrate-v11 on areas root: {areas_root}")
+        results = migrate_areas(
+            areas_root_path=areas_root,
+            db_path=db_path,
+            area_mappings=config.area_mappings,
+            dry_run=dry_run,
+            rename_folder=rename_folder,
+        )
+        logger.info(f"Migrated {len(results)} houses.")
+        has_errors = any(r.get("status") == "error" for r in results)
+        return 1 if has_errors else 0
 
     if args.command == "verify":
         setup_logging(verbose=getattr(args, 'verbose', False))
@@ -307,6 +352,15 @@ def main() -> int:
             
     llm_client = None
     try:
+        from src.llm.llm import LLMClient
+        from src.categorization.categorization import process_unclassified_pdf
+        from src.pipeline.runner import (
+            run_cleaning_pass,
+            run_fine_categorization_pass,
+            run_grouping_pass,
+            run_routing_pass,
+            run_generation_pass,
+        )
         validate_environment()
         
         try:

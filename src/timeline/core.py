@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """File organization and PDF segmentation.
 
 This module translates logically grouped documents into a structured

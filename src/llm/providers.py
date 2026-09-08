@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """LLM Provider implementations using the Strategy Pattern.
 
 This module defines the `LLMProvider` protocol and provides concrete implementations

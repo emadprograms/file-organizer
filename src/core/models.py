@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Optional, Any
 from pydantic import BaseModel, field_validator
 import logging

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Core grouping logic."""
 import logging
 from typing import Any, Optional

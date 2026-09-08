@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Data schemas and models used across the File Categorizer application.
 
 These schemas leverage Pydantic for validation and structured data representation.
