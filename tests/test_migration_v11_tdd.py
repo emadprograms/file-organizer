@@ -27,7 +27,9 @@ TEST_AREA_DIR = Path("/Volumes/arshad-pc/areas_20260908_v11test/Safra D")
 _renamed = TEST_AREA_DIR / "500"
 _original = TEST_AREA_DIR / "500 - فواز خليل الطارش"
 MIGRATED_HOUSE_DIR = _renamed if _renamed.exists() else _original
-DB_PATH = TEST_AREA_DIR / "organizer.db"
+_db_root = TEST_AREA_DIR.parent / "organizer.db"
+_db_local = TEST_AREA_DIR / "organizer.db"
+DB_PATH = _db_root if _db_root.exists() else _db_local
 
 
 # ── Fixtures ───────────────────────────────────────────────────────────────────
