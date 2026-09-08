@@ -81,6 +81,6 @@ See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md) for full 
 | 91. Playwright E2E Test Suite & Milestone Verification | v10.0 | 1/1 | Complete | 2026-09-06 |
 | 92. Database Layer & Relational Schema | v11.0 | 1/1 | Complete | 2026-09-08 |
 | 93. Legacy Data Migration & Storage Restructuring | v11.0 | 1/1 | Complete | 2026-09-08 |
-| 94. Ingestion Pipeline Redesign | v11.0 | 0/1 | Planned | - |
+| 94. Ingestion Pipeline Redesign | v11.0 | 1/1 | Complete | 2026-09-08 |
 | 95. FastAPI High-Performance Backend | v11.0 | 0/1 | Planned | - |
 | 96. E2E Verification & UI Parity | v11.0 | 0/1 | Planned | - |

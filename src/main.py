@@ -175,6 +175,11 @@ def get_parser() -> argparse.ArgumentParser:
     )
     ingest_parser.add_argument("--dry-run", action="store_true", help="Preview the operations without moving files")
     ingest_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+    ingest_parser.add_argument("--v11", action="store_true", help="Use v11 database-backed ingestion workflow")
+    ingest_parser.add_argument("--house-id", type=str, default=None, help="Target house ID for v11 ingestion")
+    ingest_parser.add_argument("--area-id", type=str, default=None, help="Target area ID for v11 ingestion")
+    ingest_parser.add_argument("--db-path", type=Path, default=None, help="SQLite database path for v11 ingestion")
+    ingest_parser.add_argument("--areas-root", type=Path, default=None, help="Areas root directory for v11 ingestion")
 
     
     # reconcile mode
@@ -263,13 +268,28 @@ def main() -> int:
     if args.command == "ingest":
         setup_logging(verbose=getattr(args, 'verbose', False))
         set_verbosity(getattr(args, 'verbose', False))
-        from src.ingest.core import run_ingest_mode
-        llm_client = LLMClient(api_key=os.getenv("GEMINI_API_KEY"))
-        llm_client.default_model = getattr(args, 'model', "gemma-4-31b-it")
+        
+        llm_client = None
+        gemini_key = os.getenv("GEMINI_API_KEY")
+        if gemini_key:
+            from src.llm.llm import LLMClient
+            llm_client = LLMClient(api_key=gemini_key)
+            llm_client.default_model = getattr(args, 'model', "gemma-4-31b-it")
+
         try:
-            return run_ingest_mode(args, config, llm_client)
+            if getattr(args, 'v11', False):
+                from src.ingest.v11_ingest import run_v11_ingest_mode
+                return run_v11_ingest_mode(args, config, llm_client)
+            else:
+                from src.ingest.core import run_ingest_mode
+                if not llm_client:
+                    from src.llm.llm import LLMClient
+                    llm_client = LLMClient(api_key=gemini_key)
+                    llm_client.default_model = getattr(args, 'model', "gemma-4-31b-it")
+                return run_ingest_mode(args, config, llm_client)
         finally:
-            llm_client.close()
+            if llm_client:
+                llm_client.close()
 
     if args.command == "reconcile":
         setup_logging(verbose=getattr(args, 'verbose', False))
