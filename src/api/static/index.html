@@ -122,7 +122,7 @@
                     </div>
                     
                     <!-- House Cards Grid -->
-                    <div id="house-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8">
+                    <div id="area-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8">
                         <!-- Dynamic house cards rendered here -->
                     </div>
                 </div>
@@ -212,7 +212,7 @@
         const areaGridPanel = document.getElementById('area-grid-panel');
         const gridAreaTitle = document.getElementById('grid-area-title');
         const gridAreaStats = document.getElementById('grid-area-stats');
-        const houseCardsContainer = document.getElementById('house-cards-container');
+        const houseCardsContainer = document.getElementById('area-grid-container') || document.getElementById('house-cards-container');
         const sidebarSectionTitle = document.getElementById('sidebar-section-title');
 
         const tabTimeline = document.getElementById('tab-timeline');
@@ -529,20 +529,32 @@
                 nameSpan.className = 'truncate text-left';
                 contentDiv.appendChild(nameSpan);
 
+                const metaDiv = document.createElement('div');
+                metaDiv.className = 'flex items-center ml-1 flex-shrink-0';
+
                 if (node.subtitle) {
                     const subSpan = document.createElement('span');
                     subSpan.textContent = node.subtitle;
                     if (node.duration_category === 'short') {
-                        subSpan.className = 'text-[9px] leading-none text-green-700 bg-green-50 border-[1.5px] border-green-400 px-1 py-[2px] rounded-sm ml-1 flex-shrink-0 font-medium';
+                        subSpan.className = 'text-[9px] leading-none text-green-700 bg-green-50 border-[1.5px] border-green-400 px-1 py-[2px] rounded-sm font-medium';
                     } else if (node.duration_category === 'medium') {
-                        subSpan.className = 'text-[9px] leading-none text-yellow-700 bg-yellow-50 border-[1.5px] border-yellow-400 px-1 py-[2px] rounded-sm ml-1 flex-shrink-0 font-medium';
+                        subSpan.className = 'text-[9px] leading-none text-yellow-700 bg-yellow-50 border-[1.5px] border-yellow-400 px-1 py-[2px] rounded-sm font-medium';
                     } else if (node.duration_category === 'long') {
-                        subSpan.className = 'text-[9px] leading-none text-red-700 bg-red-50 border-[1.5px] border-red-400 px-1 py-[2px] rounded-sm ml-1 flex-shrink-0 font-medium';
+                        subSpan.className = 'text-[9px] leading-none text-red-700 bg-red-50 border-[1.5px] border-red-400 px-1 py-[2px] rounded-sm font-medium';
                     } else {
-                        subSpan.className = 'text-[9px] leading-none text-gray-500 bg-white border border-gray-200 px-1 py-[2px] rounded-sm ml-1 flex-shrink-0';
+                        subSpan.className = 'text-[9px] leading-none text-gray-500 bg-white border border-gray-200 px-1 py-[2px] rounded-sm';
                     }
-                    contentDiv.appendChild(subSpan);
+                    metaDiv.appendChild(subSpan);
                 }
+
+                if (node.type === 'house' && typeof node.total_documents === 'number') {
+                    const docSpan = document.createElement('span');
+                    docSpan.className = 'tree-doc-count text-[9px] leading-none text-blue-700 bg-blue-50 border border-blue-200 px-1 py-[2px] rounded-sm ml-1 font-medium';
+                    docSpan.textContent = `${node.total_documents} docs`;
+                    metaDiv.appendChild(docSpan);
+                }
+
+                contentDiv.appendChild(metaDiv);
 
                 btn.appendChild(icon);
                 btn.appendChild(contentDiv);
