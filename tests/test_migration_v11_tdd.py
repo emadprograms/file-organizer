@@ -230,6 +230,63 @@ class TestTenantAssignment:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# BUG 4: Page tenant assignment — pages must inherit document's tenant
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestPageTenantAssignment:
+    """
+    Every page in the `pages` table must have its `tenant_id` properly assigned:
+    1. If a page has a vault_id linking it to a document, it must inherit that
+       document's tenant_id.
+    2. If a page is unlinked, it should resolve from expected_tenant_name or
+       its resolved_date falling within a tenant's tenancy range.
+    3. Pages must NOT all be assigned to tenant_id=1.
+    """
+
+    def test_pages_linked_to_documents_inherit_document_tenant_id(self, conn):
+        """All pages with a vault_id must have tenant_id matching the document's tenant_id."""
+        mismatches = conn.execute("""
+            SELECT p.page_number, p.tenant_id as page_t, d.tenant_id as doc_t
+            FROM pages p
+            JOIN documents d ON p.vault_id = d.vault_id
+            WHERE p.house_id = '500' AND p.tenant_id != d.tenant_id
+        """).fetchall()
+        assert len(mismatches) == 0, (
+            f"{len(mismatches)} pages have tenant_id differing from their parent document:\n"
+            f"{[dict(m) for m in mismatches[:10]]}"
+        )
+
+    def test_pages_distributed_across_all_tenants(self, conn):
+        """Pages must be distributed across Fawaz, Abdulla, and Adel."""
+        counts = conn.execute("""
+            SELECT t.name, COUNT(p.id) as page_count
+            FROM tenants t
+            JOIN pages p ON p.tenant_id = t.id
+            WHERE t.house_id = '500'
+            GROUP BY t.id
+        """).fetchall()
+        tenant_page_map = {r["name"]: r["page_count"] for r in counts}
+        assert "فواز خليل الطارش" in tenant_page_map, f"Fawaz missing from {tenant_page_map}"
+        assert "عبد الله حميدة رضا فرج" in tenant_page_map, f"Abdulla missing from {tenant_page_map}"
+        assert "عادل عبد الرحيم جاسم" in tenant_page_map, f"Adel missing from {tenant_page_map}"
+        assert tenant_page_map["فواز خليل الطارش"] >= 50
+        assert tenant_page_map["عبد الله حميدة رضا فرج"] >= 50
+        assert tenant_page_map["عادل عبد الرحيم جاسم"] >= 5
+
+    def test_page_131_assigned_to_adel(self, conn):
+        """Page 131 contains Adel's ID cards and resolved_date 2000-10-08; must belong to Adel."""
+        page_131 = conn.execute(
+            "SELECT p.*, t.name as tenant_name FROM pages p "
+            "LEFT JOIN tenants t ON p.tenant_id = t.id "
+            "WHERE p.house_id = '500' AND p.page_number = 131"
+        ).fetchone()
+        assert page_131 is not None, "Page 131 not found"
+        assert page_131["tenant_name"] == "عادل عبد الرحيم جاسم", (
+            f"Page 131 expected Adel, but got '{page_131['tenant_name']}' (tenant_id={page_131['tenant_id']})"
+        )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # BUG 3: No raw scan PDF needed — batch record is DB-only, no garbage placeholder
 # ══════════════════════════════════════════════════════════════════════════════
 

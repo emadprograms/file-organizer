@@ -395,7 +395,12 @@ def extract_pages_data(
                 "page_number": page_num,
                 "category": p.get("category"),
                 "content_explanation": p.get("content_explanation"),
-                "expected_tenant_name": p.get("expected_tenant_name") or p.get("tenant"),
+                "expected_tenant_name": (
+                    p.get("canonical_tenant")
+                    or p.get("expected_tenant_name")
+                    or p.get("tenant")
+                    or p.get("tenant_name")
+                ),
                 "expected_house_number": str(p.get("expected_house_number") or house_id),
                 "raw_date": raw_d,
                 "sender": p.get("sender"),
@@ -450,13 +455,15 @@ def extract_pages_data(
             })
 
     # Link page vault_id if start_page/end_page matches
+    is_zero_indexed = any(d.get("start_page") == 0 for d in documents_data)
     for p in pages:
         if not p.get("vault_id"):
             p_num = p["page_number"]
+            idx_to_match = (p_num - 1) if is_zero_indexed else p_num
             for d in documents_data:
                 s_p = d.get("start_page")
                 e_p = d.get("end_page")
-                if s_p is not None and e_p is not None and s_p <= p_num <= e_p:
+                if s_p is not None and e_p is not None and s_p <= idx_to_match <= e_p:
                     p["vault_id"] = d["vault_id"]
                     break
 
@@ -597,13 +604,15 @@ def migrate_house_to_v11(
         assert batch_id is not None
 
         # 5. Documents
+        doc_tenant_map: Dict[str, int] = {}
         for d in extracted_docs:
             vid = d["vault_id"]
-            if not repo.get_document(vid):
-                t_id = default_tenant_id
-                if d.get("tenant_name"):
-                    t_key = d["tenant_name"].strip().lower()
-                    t_id = tenant_map.get(t_key, default_tenant_id)
+            t_id = default_tenant_id
+            if d.get("tenant_name"):
+                t_key = d["tenant_name"].strip().lower()
+                t_id = tenant_map.get(t_key, default_tenant_id)
+            existing_doc = repo.get_document(vid)
+            if not existing_doc:
                 repo.add_document(
                     vault_id=vid,
                     house_id=house_id,
@@ -614,24 +623,65 @@ def migrate_house_to_v11(
                     category=d.get("category"),
                     page_count=d.get("page_count", 1),
                 )
+            else:
+                if t_id and existing_doc.tenant_id != t_id:
+                    conn.execute(
+                        "UPDATE documents SET tenant_id = ? WHERE vault_id = ?",
+                        (t_id, vid),
+                    )
+            doc_tenant_map[vid] = t_id
 
         # 6. Pages
+        house_tenants = repo.list_tenants_by_house(house_id)
+
+        def resolve_page_tenant(p: Dict[str, Any], v_id: Optional[str]) -> int:
+            # 1. Inherit from parent document if linked
+            if v_id and v_id in doc_tenant_map:
+                return doc_tenant_map[v_id]
+
+            # 2. Match expected_tenant_name against tenant_map
+            exp_tenant = p.get("expected_tenant_name")
+            if exp_tenant:
+                exp_name = str(exp_tenant).strip().lower()
+                if exp_name in tenant_map:
+                    return tenant_map[exp_name]
+                for t_k, tid in tenant_map.items():
+                    if t_k in exp_name or exp_name in t_k:
+                        return tid
+
+            # 3. Match resolved_date or raw_date against tenancy range
+            p_date = p.get("resolved_date") or p.get("raw_date")
+            if p_date:
+                p_date_str = str(p_date)[:10]
+                for ht in house_tenants:
+                    s_d = str(ht.start_date)[:10] if ht.start_date else "1900-01-01"
+                    e_d = str(ht.end_date)[:10] if ht.end_date else "9999-12-31"
+                    if s_d <= p_date_str <= e_d:
+                        return ht.id  # type: ignore
+
+            # 4. Fallback
+            return default_tenant_id
+
         existing_pages = repo.get_pages_by_batch(batch_id)
         existing_p_nums = {p.page_number for p in existing_pages}
         pages_to_add = []
         for p in extracted_pages:
             p_num = p["page_number"]
-            if p_num in existing_p_nums:
-                continue
-
-            t_id = default_tenant_id
-            if p.get("expected_tenant_name"):
-                t_key = p["expected_tenant_name"].strip().lower()
-                t_id = tenant_map.get(t_key, default_tenant_id)
-
             v_id = p.get("vault_id")
             if v_id and not repo.get_document(v_id):
                 v_id = None
+
+            t_id = resolve_page_tenant(p, v_id)
+
+            if p_num in existing_p_nums:
+                conn.execute(
+                    """UPDATE pages
+                       SET tenant_id = ?,
+                           vault_id = COALESCE(?, vault_id)
+                       WHERE batch_id = ? AND page_number = ?""",
+                    (t_id, v_id, batch_id, p_num),
+                )
+                continue
 
             pages_to_add.append({
                 "batch_id": batch_id,
