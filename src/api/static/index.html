@@ -750,13 +750,6 @@
                     metaDiv.appendChild(subSpan);
                 }
 
-                if (node.type === 'house' && typeof node.total_documents === 'number') {
-                    const docSpan = document.createElement('span');
-                    docSpan.className = 'tree-doc-count text-[9px] leading-none text-blue-700 bg-blue-50 border border-blue-200 px-1 py-[2px] rounded-sm ml-1 font-medium';
-                    docSpan.textContent = `${node.total_documents} docs`;
-                    metaDiv.appendChild(docSpan);
-                }
-
                 contentDiv.appendChild(metaDiv);
 
                 btn.appendChild(icon);

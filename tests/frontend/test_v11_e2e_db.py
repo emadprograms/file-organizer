@@ -251,17 +251,17 @@ def test_tree_view_renders_db_hierarchy(page: Page, server_url: str):
     expect(h202_btn).to_be_visible()
     expect(h303_btn).to_be_visible()
 
-    # Verify tenure subtitles & tenure badges in tree view
+    # Verify tenure subtitles & tenure badges in tree view (no doc counts)
     expect(h101_btn).to_contain_text("Since 2023")
-    expect(h101_btn).to_contain_text("3 docs")
+    expect(h101_btn).not_to_contain_text("docs")
     expect(h101_btn.locator(".text-green-700")).to_be_visible()
 
     expect(h202_btn).to_contain_text("Since 2017")
-    expect(h202_btn).to_contain_text("2 docs")
+    expect(h202_btn).not_to_contain_text("docs")
     expect(h202_btn.locator(".text-yellow-700")).to_be_visible()
 
     expect(h303_btn).to_contain_text("Since 2008")
-    expect(h303_btn).to_contain_text("5 docs")
+    expect(h303_btn).not_to_contain_text("docs")
     expect(h303_btn.locator(".text-red-700")).to_be_visible()
 
 
