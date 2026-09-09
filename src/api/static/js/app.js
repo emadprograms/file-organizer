@@ -8,6 +8,7 @@
     let viewModeGridBtn = null;
     let viewModeDbBtn = null;
     let backToGridBtn = null;
+    let backToTenantsBtn = null;
     let areaGridPanel = null;
     let databaseInspectorPanel = null;
     let gridAreaTitle = null;
@@ -65,6 +66,7 @@
         viewModeGridBtn = document.getElementById('view-mode-grid');
         viewModeDbBtn = document.getElementById('view-mode-db');
         backToGridBtn = document.getElementById('back-to-grid-btn');
+        backToTenantsBtn = document.getElementById('back-to-tenants-btn');
         areaGridPanel = document.getElementById('area-grid-panel');
         databaseInspectorPanel = document.getElementById('database-inspector-panel');
         gridAreaTitle = document.getElementById('grid-area-title');
@@ -93,10 +95,18 @@
             previewTooltip.addEventListener('mouseleave', hidePreview);
         }
 
-        // View mode tabs
-        if (viewModeTreeBtn) viewModeTreeBtn.addEventListener('click', () => switchToViewMode('tree'));
-        if (viewModeGridBtn) viewModeGridBtn.addEventListener('click', () => switchToViewMode('grid'));
-        if (viewModeDbBtn) viewModeDbBtn.addEventListener('click', () => switchToViewMode('db'));
+        // View mode & navigation controls
+        if (viewModeTreeBtn) viewModeTreeBtn.addEventListener('click', () => switchToViewMode('overview'));
+        if (viewModeGridBtn) viewModeGridBtn.addEventListener('click', () => switchToViewMode('overview'));
+        if (viewModeDbBtn) {
+            viewModeDbBtn.addEventListener('click', () => {
+                if (currentViewMode === 'db') {
+                    switchToViewMode('overview');
+                } else {
+                    switchToViewMode('db');
+                }
+            });
+        }
         
         if (backToGridBtn) {
             backToGridBtn.addEventListener('click', () => {
@@ -105,10 +115,18 @@
                     if (areaNode) {
                         selectAreaGrid(areaNode);
                     } else {
-                        window.location.hash = `/grid/area/${encodeURIComponent(currentArea)}`;
+                        window.location.hash = `#/area/${encodeURIComponent(currentArea)}`;
                     }
                 } else if (globalTreeData.length > 0) {
                     selectAreaGrid(globalTreeData[0]);
+                }
+            });
+        }
+
+        if (backToTenantsBtn) {
+            backToTenantsBtn.addEventListener('click', () => {
+                if (currentArea && currentHouse) {
+                    window.location.hash = `#/area/${encodeURIComponent(currentArea)}/house/${encodeURIComponent(currentHouse)}`;
                 }
             });
         }
@@ -275,159 +293,43 @@
             return;
         }
 
-        if (currentViewMode === 'tree') {
-            const ul = document.createElement('ul');
-            ul.className = 'space-y-0.5';
-            createTreeNodes(globalTreeData, ul, '', '');
-            houseListEl.appendChild(ul);
-        } else {
-            const ul = document.createElement('ul');
-            ul.className = 'space-y-1';
-            globalTreeData.forEach(areaNode => {
-                const li = document.createElement('li');
-                const btn = document.createElement('button');
-                btn.className = 'area-grid-btn w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white focus:outline-none flex items-center justify-between transition-colors border border-transparent';
-                btn.dataset.areaName = areaNode.name;
-                if (currentArea === areaNode.name && areaGridPanel && !areaGridPanel.classList.contains('hidden')) {
-                    btn.classList.add('bg-slate-800', 'text-white', 'border-slate-700');
-                    btn.classList.remove('text-slate-300');
-                }
-                const houseCount = (areaNode.children || []).length;
-                btn.innerHTML = `
-                    <div class="flex items-center gap-2 truncate">
-                        <span class="text-slate-400 flex-shrink-0">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-                        </span>
-                        <span class="truncate">${areaNode.name}</span>
-                    </div>
-                    <span class="text-[10px] font-mono text-slate-400 bg-slate-800/80 border border-slate-700/60 px-2 py-0.5 rounded-full">${houseCount} Houses</span>
-                `;
-                btn.onclick = (e) => {
-                    e.stopPropagation();
-                    selectAreaGrid(areaNode);
-                };
-                li.appendChild(btn);
-                ul.appendChild(li);
-            });
-            houseListEl.appendChild(ul);
-        }
-    }
-
-    function createTreeNodes(nodes, parentEl, parentPath, parentArea) {
-        nodes.forEach(node => {
+        const ul = document.createElement('ul');
+        ul.className = 'space-y-1';
+        globalTreeData.forEach(areaNode => {
             const li = document.createElement('li');
-            const currentPath = parentPath ? `${parentPath}/${node.type}/${node.id}` : `/${node.type}/${node.id}`;
-            li.dataset.path = currentPath;
-            li.className = 'tree-node group/node select-none';
-
             const btn = document.createElement('button');
-            btn.className = 'w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white focus:outline-none flex items-center tree-item transition-all';
-            
-            const icon = document.createElement('span');
-            icon.className = 'tree-chevron mr-2 text-slate-400 text-[10px] w-3.5 h-3.5 inline-flex items-center justify-center flex-shrink-0 font-mono select-none transition-colors';
-            icon.innerHTML = (node.children && node.children.length > 0) ? '▶' : '•';
-            btn.appendChild(icon);
-
-            const typeIcon = document.createElement('span');
-            typeIcon.className = 'mr-1.5 flex-shrink-0 flex items-center justify-center';
-            if (node.type === 'area') {
-                typeIcon.innerHTML = `<svg class="w-4 h-4 text-blue-400 flex-shrink-0 tree-type-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>`;
-            } else if (node.type === 'house') {
-                typeIcon.innerHTML = `<svg class="w-3.5 h-3.5 text-slate-400 group-hover/node:text-slate-300 flex-shrink-0 tree-type-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>`;
-            } else if (node.type === 'tenant') {
-                typeIcon.innerHTML = `<svg class="w-3.5 h-3.5 text-slate-400 group-hover/node:text-slate-300 flex-shrink-0 tree-type-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>`;
+            btn.className = 'area-grid-btn w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white focus:outline-none flex items-center justify-between transition-colors border border-transparent';
+            btn.dataset.areaName = areaNode.name;
+            if (currentArea === areaNode.name && areaGridPanel && !areaGridPanel.classList.contains('hidden')) {
+                btn.classList.add('bg-slate-800', 'text-white', 'border-slate-700');
+                btn.classList.remove('text-slate-300');
             }
-            btn.appendChild(typeIcon);
-            
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'flex items-center justify-between w-full overflow-hidden min-w-0';
-            
-            const nameSpan = document.createElement('span');
-            nameSpan.textContent = node.name;
-            nameSpan.className = (node.type === 'area') 
-                ? 'truncate text-left font-semibold text-slate-200 text-xs tracking-tight' 
-                : (node.type === 'house' ? 'truncate text-left text-xs font-medium text-slate-200' : 'truncate text-left text-xs text-slate-300');
-            contentDiv.appendChild(nameSpan);
-
-            const metaDiv = document.createElement('div');
-            metaDiv.className = 'flex items-center ml-2 flex-shrink-0 gap-1.5';
-
-            if (node.subtitle) {
-                const subSpan = document.createElement('span');
-                subSpan.textContent = node.subtitle;
-                if (node.duration_category === 'short') {
-                    subSpan.className = 'text-[9px] leading-none text-green-700 text-emerald-400 bg-emerald-950/80 border border-emerald-500/40 px-2 py-0.5 rounded-full font-bold shadow-2xs';
-                } else if (node.duration_category === 'medium') {
-                    subSpan.className = 'text-[9px] leading-none text-yellow-700 text-amber-300 bg-amber-950/80 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold shadow-2xs';
-                } else if (node.duration_category === 'long') {
-                    subSpan.className = 'text-[9px] leading-none text-red-700 text-rose-300 bg-rose-950/80 border border-rose-500/40 px-2 py-0.5 rounded-full font-bold shadow-2xs';
-                } else {
-                    subSpan.className = 'text-[9px] leading-none text-slate-400 bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded-full font-medium';
-                }
-                metaDiv.appendChild(subSpan);
-            } else if (node.type === 'area' && node.children && node.children.length > 0) {
-                const countSpan = document.createElement('span');
-                countSpan.className = 'text-[10px] font-mono text-slate-400 bg-slate-800/90 border border-slate-700/60 px-1.5 py-0.2 rounded-full font-normal';
-                countSpan.textContent = `${node.children.length}`;
-                metaDiv.appendChild(countSpan);
-            }
-
-            contentDiv.appendChild(metaDiv);
-            btn.appendChild(contentDiv);
+            const houseCount = (areaNode.children || []).length;
+            btn.innerHTML = `
+                <div class="flex items-center gap-2 truncate">
+                    <span class="text-slate-400 flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                    </span>
+                    <span class="truncate">${areaNode.name}</span>
+                </div>
+                <span class="text-[10px] font-mono text-slate-400 bg-slate-800/80 border border-slate-700/60 px-2 py-0.5 rounded-full">${houseCount} Houses</span>
+            `;
+            btn.onclick = (e) => {
+                e.stopPropagation();
+                selectAreaGrid(areaNode);
+            };
             li.appendChild(btn);
-
-            let childrenContainer = null;
-            if (node.children && node.children.length > 0) {
-                childrenContainer = document.createElement('ul');
-                childrenContainer.className = 'pl-2.5 hidden space-y-0.5 mt-0.5 border-l border-slate-800 ml-3.5';
-                createTreeNodes(node.children, childrenContainer, currentPath, node.type === 'area' ? node.name : parentArea);
-                li.appendChild(childrenContainer);
-
-                btn.onclick = (e) => {
-                    e.stopPropagation();
-                    const isHidden = childrenContainer.classList.contains('hidden');
-                    if (isHidden) {
-                        childrenContainer.classList.remove('hidden');
-                        icon.innerHTML = '▼';
-                    } else {
-                        childrenContainer.classList.add('hidden');
-                        icon.innerHTML = '▶';
-                    }
-                    if (node.type === 'house' && parentArea) {
-                        window.location.hash = currentPath;
-                    }
-                };
-            }
-
-            if (node.type === 'tenant') {
-                btn.setAttribute('data-tenant-name', node.name);
-                if (typeof window.handleTenantTreeDragOver === 'function') {
-                    btn.ondragover = (e) => window.handleTenantTreeDragOver(e, btn, parentPath);
-                    btn.ondragleave = (e) => window.handleTenantTreeDragLeave(e, btn);
-                    btn.ondrop = (e) => window.handleTenantTreeDrop(e, node.name, btn, parentPath);
-                }
-
-                btn.onclick = (e) => {
-                    e.stopPropagation();
-                    window.location.hash = currentPath;
-                };
-            } else if (node.type === 'house' && (!node.children || node.children.length === 0)) {
-                btn.onclick = (e) => {
-                    e.stopPropagation();
-                    window.location.hash = currentPath;
-                };
-            }
-
-            parentEl.appendChild(li);
+            ul.appendChild(li);
         });
+        houseListEl.appendChild(ul);
     }
 
-    // ── Area Grid View ───────────────────────────────────────────────────────
+    // ── Area Houses View ─────────────────────────────────────────────────────
     function selectAreaGrid(areaNode) {
         currentArea = areaNode.name;
         currentHouse = null;
         currentTenant = null;
-        window.location.hash = `/grid/area/${encodeURIComponent(areaNode.name)}`;
+        window.location.hash = `#/area/${encodeURIComponent(areaNode.name)}`;
         renderAreaGrid(areaNode);
     }
 
@@ -451,6 +353,10 @@
         const resizer2 = document.getElementById('resizer-2');
         if (resizer2) resizer2.classList.add('hidden');
         if (backToGridBtn) backToGridBtn.classList.add('hidden');
+        if (backToTenantsBtn) {
+            backToTenantsBtn.classList.add('hidden');
+            backToTenantsBtn.classList.remove('flex');
+        }
 
         if (areaGridPanel) {
             areaGridPanel.classList.remove('hidden');
@@ -495,50 +401,77 @@
             }
             card.className += ` ${borderClass}`;
 
-            const tenantName = house.current_tenant || (house.children && house.children.length > 0 ? house.children[0].name : 'No Active Tenant');
-            const tenureSubtitle = house.subtitle || (house.children && house.children.length > 0 && house.children[0].subtitle ? house.children[0].subtitle : 'Tenure unrecorded');
+            const tenants = (house.children || []).filter(c => c.type === 'tenant');
+            const totalDocs = house.total_documents || 0;
 
-            let categoryPillsHtml = '';
-            if (house.category_counts && Object.keys(house.category_counts).length > 0) {
-                const sortedCats = Object.entries(house.category_counts).sort((a, b) => b[1] - a[1]);
-                categoryPillsHtml = sortedCats.map(([cat, count]) => `
-                    <span class="inline-flex items-center text-[10px] bg-slate-50 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
-                        ${cat}: <b class="ml-1 text-slate-900">${count}</b>
-                    </span>
-                `).join('');
+            let tenantsHtml = '';
+            if (tenants.length === 0) {
+                tenantsHtml = `
+                    <div class="py-2.5 px-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
+                        <p class="text-[11px] text-slate-400 italic">No tenants recorded</p>
+                    </div>
+                `;
             } else {
-                categoryPillsHtml = '<span class="text-[10px] text-slate-400">No documents</span>';
+                tenantsHtml = `
+                    <div class="space-y-1.5">
+                        ${tenants.map((t, idx) => {
+                            const isCurrent = (house.current_tenant && t.name === house.current_tenant) 
+                                || (t.subtitle && (t.subtitle.includes('Present') || t.subtitle.includes('الآن')))
+                                || (idx === 0 && !t.subtitle?.includes('-'));
+                            const dotColor = isCurrent ? '🟢' : '⚪';
+                            const cardBg = isCurrent ? 'bg-emerald-50/70 border-emerald-200/80' : 'bg-slate-50 border-slate-200/60';
+                            const nameClass = isCurrent ? 'font-bold text-slate-900' : 'font-medium text-slate-700';
+                            const statusBadge = isCurrent 
+                                ? '<span class="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded border border-emerald-300">Current</span>' 
+                                : '<span class="text-[9px] bg-slate-100 text-slate-500 font-medium px-1.5 py-0.2 rounded border border-slate-200">Past</span>';
+                            
+                            return `
+                                <div class="tenant-overview-item flex items-center justify-between text-xs p-1.5 rounded-lg border ${cardBg}">
+                                    <div class="flex items-center gap-1.5 min-w-0">
+                                        <span class="text-xs flex-shrink-0">${dotColor}</span>
+                                        <span class="tenant-name ${nameClass} truncate text-xs" title="${t.name}">${t.name}</span>
+                                        ${statusBadge}
+                                    </div>
+                                    <span class="tenure-text text-[10px] font-mono text-slate-500 ml-2 flex-shrink-0" title="${t.subtitle || ''}">
+                                        ${t.subtitle || ''}
+                                    </span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
             }
 
             card.innerHTML = `
                 <div>
-                    <div class="flex items-start justify-between gap-2 mb-2">
+                    <div class="flex items-start justify-between gap-2 mb-3">
                         <h3 class="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors line-clamp-1" title="${house.name}">
                             🏠 ${house.name}
                         </h3>
                         <span class="tenure-badge text-[10px] px-2 py-0.5 rounded border flex-shrink-0 ${badgeClass}">${badgeLabel}</span>
                     </div>
-                    
-                    <div class="space-y-1 text-xs text-slate-600 mt-2">
-                        <div class="flex items-center gap-1.5">
-                            <span class="text-slate-400 flex-shrink-0">👤</span>
-                            <span class="tenant-name font-semibold text-slate-800 truncate" title="${tenantName}">${tenantName}</span>
+
+                    <div class="tenants-overview-section">
+                        <div class="flex items-center justify-between text-[11px] mb-2">
+                            <span class="font-bold text-slate-400 uppercase tracking-wider text-[10px] flex items-center gap-1">
+                                <span>👥</span>
+                                <span>Tenants Overview</span>
+                            </span>
+                            <span class="tenants-count text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                                ${tenants.length} ${tenants.length === 1 ? 'Tenant' : 'Tenants'}
+                            </span>
                         </div>
-                        <div class="flex items-center gap-1.5 text-[11px] text-slate-500">
-                            <span class="text-slate-400 flex-shrink-0">📅</span>
-                            <span class="tenure-text truncate" title="${tenureSubtitle}">${tenureSubtitle}</span>
-                        </div>
+                        ${tenantsHtml}
                     </div>
                 </div>
 
-                <div class="mt-4 pt-3 border-t border-slate-100">
-                    <div class="flex items-center justify-between text-xs mb-2">
-                        <span class="text-slate-500 text-[11px]">Total Documents:</span>
-                        <span class="doc-count font-bold text-slate-800 bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-[11px] border border-blue-100">${house.total_documents || 0} Docs</span>
-                    </div>
-                    <div class="flex flex-wrap gap-1 max-h-20 overflow-hidden">
-                        ${categoryPillsHtml}
-                    </div>
+                <div class="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span class="text-slate-400 text-[11px] font-medium flex items-center gap-1">
+                        <span>📄 Total Archive</span>
+                    </span>
+                    <span class="doc-count font-bold text-slate-700 bg-blue-50/80 text-blue-700 px-2 py-0.5 rounded-md text-[11px] border border-blue-100">
+                        ${totalDocs} Docs
+                    </span>
                 </div>
             `;
 
@@ -560,7 +493,7 @@
             areaGridPanel.classList.remove('flex');
         }
 
-        window.location.hash = `/area/${encodeURIComponent(areaName)}/house/${encodeURIComponent(houseId)}`;
+        window.location.hash = `#/area/${encodeURIComponent(areaName)}/house/${encodeURIComponent(houseId)}`;
     }
 
     // ── Mode Switching ───────────────────────────────────────────────────────
@@ -568,46 +501,39 @@
         if (currentViewMode === mode) return;
         currentViewMode = mode;
 
-        const activeBtnClass = "flex-1 py-1.5 px-1.5 text-xs font-semibold rounded-lg bg-slate-800 text-white shadow-xs border border-slate-700 flex items-center justify-center gap-1.5 transition-all";
-        const inactiveBtnClass = "flex-1 py-1.5 px-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center justify-center gap-1.5 transition-all";
+        if (currentViewMode === 'db') {
+            if (sidebarSectionTitle) sidebarSectionTitle.textContent = "Database";
 
-        if (viewModeTreeBtn) viewModeTreeBtn.className = mode === 'tree' ? activeBtnClass : inactiveBtnClass;
-        if (viewModeGridBtn) viewModeGridBtn.className = mode === 'grid' ? activeBtnClass : inactiveBtnClass;
-        if (viewModeDbBtn) viewModeDbBtn.className = mode === 'db' ? activeBtnClass : inactiveBtnClass;
-
-        if (currentViewMode === 'tree') {
-            if (sidebarSectionTitle) sidebarSectionTitle.textContent = "Areas & Houses";
-
+            if (welcomePanel) welcomePanel.classList.add('hidden');
+            if (docListPanel) {
+                docListPanel.classList.add('hidden');
+                docListPanel.classList.remove('flex');
+            }
+            if (docViewerPanel) docViewerPanel.classList.add('hidden');
+            const resizer2 = document.getElementById('resizer-2');
+            if (resizer2) resizer2.classList.add('hidden');
+            if (backToGridBtn) backToGridBtn.classList.add('hidden');
+            if (backToTenantsBtn) {
+                backToTenantsBtn.classList.add('hidden');
+                backToTenantsBtn.classList.remove('flex');
+            }
             if (areaGridPanel) {
                 areaGridPanel.classList.add('hidden');
                 areaGridPanel.classList.remove('flex');
             }
+
             if (databaseInspectorPanel) {
-                databaseInspectorPanel.classList.add('hidden');
-                databaseInspectorPanel.classList.remove('flex');
+                databaseInspectorPanel.classList.remove('hidden');
+                databaseInspectorPanel.classList.add('flex');
             }
-            if (backToGridBtn) backToGridBtn.classList.add('hidden');
 
-            renderSidebar();
+            if (currentHouseTitle) currentHouseTitle.textContent = "Database Inspector";
+            if (statsBadge) statsBadge.classList.add('hidden');
+            window.location.hash = "/database";
 
-            if (currentArea && currentHouse) {
-                if (welcomePanel) welcomePanel.classList.add('hidden');
-                if (docListPanel) {
-                    docListPanel.classList.remove('hidden');
-                    docListPanel.classList.add('flex');
-                }
-                const resizer2 = document.getElementById('resizer-2');
-                if (resizer2) resizer2.classList.remove('hidden');
-            } else {
-                if (welcomePanel) welcomePanel.classList.remove('hidden');
-                if (docListPanel) {
-                    docListPanel.classList.add('hidden');
-                    docListPanel.classList.remove('flex');
-                }
-                if (docViewerPanel) docViewerPanel.classList.add('hidden');
-                if (currentHouseTitle) currentHouseTitle.textContent = 'Select an Area';
-            }
-        } else if (currentViewMode === 'grid') {
+            loadDbInspector();
+        } else {
+            currentViewMode = 'overview';
             if (sidebarSectionTitle) sidebarSectionTitle.textContent = "Areas";
 
             if (databaseInspectorPanel) {
@@ -629,33 +555,6 @@
                     selectAreaGrid(globalTreeData[0]);
                 }
             }
-        } else if (currentViewMode === 'db') {
-            if (sidebarSectionTitle) sidebarSectionTitle.textContent = "Database";
-
-            if (welcomePanel) welcomePanel.classList.add('hidden');
-            if (docListPanel) {
-                docListPanel.classList.add('hidden');
-                docListPanel.classList.remove('flex');
-            }
-            if (docViewerPanel) docViewerPanel.classList.add('hidden');
-            const resizer2 = document.getElementById('resizer-2');
-            if (resizer2) resizer2.classList.add('hidden');
-            if (backToGridBtn) backToGridBtn.classList.add('hidden');
-            if (areaGridPanel) {
-                areaGridPanel.classList.add('hidden');
-                areaGridPanel.classList.remove('flex');
-            }
-
-            if (databaseInspectorPanel) {
-                databaseInspectorPanel.classList.remove('hidden');
-                databaseInspectorPanel.classList.add('flex');
-            }
-
-            if (currentHouseTitle) currentHouseTitle.textContent = "Database Inspector";
-            if (statsBadge) statsBadge.classList.add('hidden');
-            window.location.hash = "/database";
-
-            loadDbInspector();
         }
     }
 
@@ -762,8 +661,14 @@
 
     // ── Hash Router ──────────────────────────────────────────────────────────
     function handleHashChange() {
-        const hash = decodeURIComponent(window.location.hash.replace('#', ''));
-        if (!hash) return;
+        const rawHash = decodeURIComponent(window.location.hash.replace('#', ''));
+        const hash = rawHash.startsWith('/') ? rawHash : '/' + rawHash;
+        if (!rawHash || hash === '/') {
+            if (globalTreeData && globalTreeData.length > 0) {
+                selectAreaGrid(globalTreeData[0]);
+            }
+            return;
+        }
 
         if (hash === '/database' || hash === '/db') {
             if (currentViewMode !== 'db') {
@@ -774,19 +679,9 @@
 
         if (hash.startsWith('/grid/area/')) {
             const areaName = decodeURIComponent(hash.replace('/grid/area/', ''));
-            if (currentViewMode !== 'grid') {
-                currentViewMode = 'grid';
-                const activeBtnClass = "flex-1 py-1.5 px-1.5 text-xs font-semibold rounded-lg bg-slate-800 text-white shadow-xs border border-slate-700 flex items-center justify-center gap-1.5 transition-all";
-                const inactiveBtnClass = "flex-1 py-1.5 px-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center justify-center gap-1.5 transition-all";
-                if (viewModeGridBtn) viewModeGridBtn.className = activeBtnClass;
-                if (viewModeTreeBtn) viewModeTreeBtn.className = inactiveBtnClass;
-                if (viewModeDbBtn) viewModeDbBtn.className = inactiveBtnClass;
-                if (sidebarSectionTitle) sidebarSectionTitle.textContent = "Areas";
-                renderSidebar();
-            }
             const areaNode = globalTreeData.find(a => a.name === areaName);
             if (areaNode) {
-                renderAreaGrid(areaNode);
+                selectAreaGrid(areaNode);
             }
             return;
         }
@@ -797,6 +692,14 @@
             if (parts[i] === 'area' && i + 1 < parts.length) areaId = decodeURIComponent(parts[i+1]).replace(/^area_/, '');
             if (parts[i] === 'house' && i + 1 < parts.length) houseId = decodeURIComponent(parts[i+1]);
             if (parts[i] === 'tenant' && i + 1 < parts.length) tenantId = decodeURIComponent(parts[i+1]);
+        }
+
+        if (areaId && !houseId) {
+            const areaNode = globalTreeData.find(a => a.name === areaId);
+            if (areaNode) {
+                selectAreaGrid(areaNode);
+            }
+            return;
         }
 
         let tenantName = null;
@@ -814,33 +717,15 @@
             selectHouse(areaId, houseId, tenantName);
         }
 
-        document.querySelectorAll('.tree-item').forEach(el => {
-            el.classList.remove('tree-item-active', 'bg-blue-600', 'text-white', 'font-semibold');
-            el.classList.add('text-slate-300');
+        document.querySelectorAll('.area-grid-btn').forEach(b => {
+            if (b.dataset.areaName === areaId) {
+                b.classList.add('bg-slate-800', 'text-white', 'border-slate-700');
+                b.classList.remove('text-slate-300');
+            } else {
+                b.classList.remove('bg-slate-800', 'text-white', 'border-slate-700');
+                b.classList.add('text-slate-300');
+            }
         });
-
-        const targetLi = document.querySelector(`li[data-path="${hash}"]`);
-        if (targetLi) {
-            const btn = targetLi.querySelector('.tree-item');
-            if (btn) {
-                btn.classList.add('tree-item-active', 'bg-blue-600', 'text-white', 'font-semibold');
-                btn.classList.remove('text-slate-300');
-            }
-
-            let current = targetLi.parentElement;
-            while (current && current.id !== 'house-list') {
-                if (current.tagName === 'UL') {
-                    current.classList.remove('hidden');
-                    const parentLi = current.parentElement;
-                    if (parentLi && parentLi.tagName === 'LI') {
-                        const icon = parentLi.querySelector('.tree-item span.tree-chevron') || parentLi.querySelector('.tree-item span');
-                        if (icon) icon.innerHTML = '▼';
-                    }
-                }
-                current = current.parentElement;
-            }
-            targetLi.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
     }
 
     window.addEventListener('hashchange', handleHashChange);
@@ -854,20 +739,12 @@
         if (currentHouseTitle) {
             if (tenantName) {
                 currentHouseTitle.innerHTML = `
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <span>${houseId} - ${tenantName}</span>
-                        <button id="btn-back-to-house-register" type="button" class="text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-md transition-all cursor-pointer inline-flex items-center gap-1 shadow-2xs" title="العودة لسجل المستأجرين">
-                            <span>← سجل المنزل</span>
-                        </button>
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-500 font-medium">${houseId}</span>
+                        <span class="text-slate-300 font-light">/</span>
+                        <span class="text-slate-900 font-bold">${tenantName}</span>
                     </div>
                 `;
-                const backBtn = document.getElementById('btn-back-to-house-register');
-                if (backBtn) {
-                    backBtn.onclick = (e) => {
-                        e.preventDefault();
-                        window.location.hash = `#/area/${encodeURIComponent(areaId)}/house/${encodeURIComponent(houseId)}`;
-                    };
-                }
             } else {
                 currentHouseTitle.textContent = `${houseId}`;
             }
@@ -885,17 +762,24 @@
             areaGridPanel.classList.remove('flex');
         }
 
-        if (backToGridBtn) {
-            if (currentViewMode === 'grid') {
-                backToGridBtn.classList.remove('hidden');
-                backToGridBtn.classList.add('flex');
-                backToGridBtn.innerHTML = `
-                    <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                    <span>← Back to ${areaId} Grid</span>
-                `;
+        if (backToTenantsBtn) {
+            if (tenantName) {
+                backToTenantsBtn.classList.remove('hidden');
+                backToTenantsBtn.classList.add('flex');
             } else {
-                backToGridBtn.classList.add('hidden');
+                backToTenantsBtn.classList.add('hidden');
+                backToTenantsBtn.classList.remove('flex');
             }
+        }
+
+        if (backToGridBtn) {
+            backToGridBtn.classList.remove('hidden');
+            backToGridBtn.classList.add('flex');
+            const gridLabel = tenantName ? `← ${areaId} Houses` : `← Back to ${areaId} Houses`;
+            backToGridBtn.innerHTML = `
+                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                <span>${gridLabel}</span>
+            `;
         }
 
         if (welcomePanel) welcomePanel.classList.add('hidden');
@@ -1306,6 +1190,36 @@
     function renderCategories() {
         if (!docListEl) return;
         docListEl.innerHTML = '';
+
+        if (currentTenant) {
+            const banner = document.createElement('div');
+            banner.className = 'tenant-breadcrumb-banner bg-blue-50/60 border border-blue-200/80 rounded-xl p-2.5 mb-3 flex items-center justify-between gap-2 shadow-2xs';
+            banner.innerHTML = `
+                <div class="flex items-center gap-2 min-w-0">
+                    <div class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs flex-shrink-0">
+                        👤
+                    </div>
+                    <div class="min-w-0">
+                        <h3 class="text-xs font-bold text-slate-900 truncate">${currentTenant}</h3>
+                        <p class="text-[10px] text-blue-600 font-medium truncate">سجل مستندات المستأجر</p>
+                    </div>
+                </div>
+                <button id="btn-back-to-tenants-list" type="button" class="flex-shrink-0 text-xs font-semibold text-blue-700 hover:text-blue-900 bg-white hover:bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg transition-all shadow-2xs flex items-center gap-1 cursor-pointer" title="العودة لسجل المستأجرين">
+                    <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                    <span>← Back to Tenants</span>
+                </button>
+            `;
+            const bannerBackBtn = banner.querySelector('#btn-back-to-tenants-list');
+            if (bannerBackBtn) {
+                bannerBackBtn.onclick = (e) => {
+                    e.preventDefault();
+                    if (currentArea && currentHouse) {
+                        window.location.hash = `#/area/${encodeURIComponent(currentArea)}/house/${encodeURIComponent(currentHouse)}`;
+                    }
+                };
+            }
+            docListEl.appendChild(banner);
+        }
         
         let displayCategories = [];
         
@@ -1330,7 +1244,10 @@
         displayCategories.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
         
         if (displayCategories.length === 0) {
-            docListEl.innerHTML = '<p class="text-xs text-slate-400 p-3 text-center">No folders found for this selection.</p>';
+            const emptyP = document.createElement('p');
+            emptyP.className = 'text-xs text-slate-400 p-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200';
+            emptyP.textContent = 'No folders found for this selection.';
+            docListEl.appendChild(emptyP);
             return;
         }
         

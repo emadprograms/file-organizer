@@ -160,8 +160,8 @@ def test_tabs_tenant_filtering(page: Page):
     page.click("text=Northside")
     page.click("text=123 - Test House")
     
-    # Wait for house to expand and click tenant
-    page.click("#house-list >> text=Ali")
+    # Click tenant card in tenancy register
+    page.click(".tenant-profile-card >> text=Ali")
 
     # Should load categories and filter to Ali
     expect(page.locator("#document-list")).to_contain_text("10 - Category A", timeout=5000)
@@ -185,8 +185,9 @@ def test_tabs_auto_switch_to_categories(page: Page):
     page.click("text=Timeline")
     expect(page.locator("#document-list")).to_contain_text("Timeline Document", timeout=5000)
     
-    # Click tenant
-    page.click("#house-list >> text=Ali")
+    # Deep-link to tenant URL
+    page.goto("http://localhost:9999/#/area/Northside/house/123 - Test House/tenant/123 - Test House_Ali")
     
     # It should automatically switch back to the Categories tab
+    expect(page.locator("#tab-categories-label")).to_contain_text("Folders", timeout=5000)
     expect(page.locator("#document-list")).to_contain_text("10 - Category A", timeout=5000)

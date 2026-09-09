@@ -205,9 +205,10 @@ def test_click_tenant_card_drills_down_to_folders(page: Page, server_url: str):
     # URL hash updates to Fawaz
     expect(page).to_have_url(re.compile(r".*tenant.*"))
 
-    # Header updates with tenant name and back button
-    expect(page.locator("#current-house-title")).to_contain_text("500 - فواز خليل الطارش")
-    back_btn = page.locator("#btn-back-to-house-register")
+    # Header updates with tenant name and back to tenants button
+    expect(page.locator("#current-house-title")).to_contain_text("500")
+    expect(page.locator("#current-house-title")).to_contain_text("فواز خليل الطارش")
+    back_btn = page.locator("#back-to-tenants-btn")
     expect(back_btn).to_be_visible()
 
     # Tab 1 changes label to Folders
@@ -218,7 +219,7 @@ def test_click_tenant_card_drills_down_to_folders(page: Page, server_url: str):
     expect(page.locator("#document-list")).to_contain_text("01 - عقود الإيجار")
     expect(page.locator("#document-list")).to_contain_text("06 - كهرباء وماء")
 
-    # Click back to house register button
+    # Click back to tenants button
     back_btn.click()
 
     # Restores house register view

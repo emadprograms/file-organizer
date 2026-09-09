@@ -120,34 +120,27 @@ def _setup_grid_routes(page: Page):
 
 
 def test_view_mode_toggle(page: Page):
-    """User can toggle between Tree View and Grid Overview modes."""
+    """Areas overview is default on load; DB inspector can be opened from header."""
     _setup_grid_routes(page)
     page.goto("http://localhost:9999/")
 
-    # On load, Tree View is default
-    expect(page.locator("#view-mode-tree")).to_be_visible()
-    expect(page.locator("#view-mode-grid")).to_be_visible()
-    expect(page.locator("#sidebar-section-title")).to_have_text("Areas & Houses")
-
-    # Switch to Grid View
-    page.click("#view-mode-grid")
+    # On load, sidebar shows Areas and segmented control is removed
     expect(page.locator("#sidebar-section-title")).to_have_text("Areas")
-    # In Grid view, sidebar shows areas with house counts
+    expect(page.locator("#view-mode-tree")).to_have_count(0)
+    expect(page.locator("#view-mode-grid")).to_have_count(0)
+
+    # In Areas view, sidebar shows areas with house counts
     expect(page.locator(".area-grid-btn >> text=Safra C")).to_be_visible()
     expect(page.locator(".area-grid-btn >> text=Safra D")).to_be_visible()
 
-    # Switch back to Tree View
-    page.click("#view-mode-tree")
-    expect(page.locator("#sidebar-section-title")).to_have_text("Areas & Houses")
+    # DB Inspector button exists in navigation header
+    expect(page.locator("#view-mode-db")).to_be_visible()
 
 
 def test_grid_area_selection_and_house_cards(page: Page):
-    """Selecting an area in Grid View displays responsive house cards with metrics."""
+    """Selecting an area displays responsive house cards with metrics and short tenants overview."""
     _setup_grid_routes(page)
     page.goto("http://localhost:9999/")
-
-    # Switch to Grid View
-    page.click("#view-mode-grid")
 
     # Click Safra C area
     page.click(".area-grid-btn >> text=Safra C")
@@ -165,10 +158,14 @@ def test_grid_area_selection_and_house_cards(page: Page):
     green_card = page.locator('.house-card[data-house-id="101 - GreenHouse"]')
     expect(green_card).to_contain_text("101 - GreenHouse")
     expect(green_card).to_contain_text("Ahmad Green")
-    expect(green_card).to_contain_text("Since 2023 (1y)")
+    expect(green_card).to_contain_text("2023 - Present")
     expect(green_card).to_contain_text("5 Docs")
-    expect(green_card).to_contain_text("عقد الإيجار")
-    expect(green_card).to_contain_text("سند قبض")
+    expect(green_card.locator(".tenants-overview-section")).to_be_visible()
+    expect(green_card.locator(".tenants-overview-section")).to_contain_text("Current")
+    expect(green_card.locator(".tenants-overview-section")).to_contain_text("1 Tenant")
+    # Category pills should NOT be present on the card
+    expect(green_card).not_to_contain_text("عقد الإيجار")
+    expect(green_card).not_to_contain_text("سند قبض")
 
 
 def test_tenure_color_coding(page: Page):
@@ -176,7 +173,6 @@ def test_tenure_color_coding(page: Page):
     _setup_grid_routes(page)
     page.goto("http://localhost:9999/")
 
-    page.click("#view-mode-grid")
     page.click(".area-grid-btn >> text=Safra C")
 
     # House 1: < 5 years -> Green styling & badge
@@ -196,11 +192,10 @@ def test_tenure_color_coding(page: Page):
 
 
 def test_drill_down_and_back_navigation(page: Page):
-    """Clicking a house card opens Categories/Timeline, and Back button returns to grid."""
+    """Clicking a house card opens Categories/Timeline, and Back button returns to area houses."""
     _setup_grid_routes(page)
     page.goto("http://localhost:9999/")
 
-    page.click("#view-mode-grid")
     page.click(".area-grid-btn >> text=Safra C")
 
     # Click on Green House card
@@ -210,33 +205,33 @@ def test_drill_down_and_back_navigation(page: Page):
     expect(page.locator("#area-grid-panel")).to_be_hidden()
     expect(page.locator("#document-list-panel")).to_be_visible()
 
-    # Back to Grid button visible with label
+    # Back to Houses button visible with label
     back_btn = page.locator("#back-to-grid-btn")
     expect(back_btn).to_be_visible()
-    expect(back_btn).to_contain_text("← Back to Safra C Grid")
+    expect(back_btn).to_contain_text("← Back to Safra C Houses")
 
-    # Click Back to Grid button
+    # Click Back button
     back_btn.click()
 
-    # Should return to Safra C grid panel
+    # Should return to Safra C houses panel
     expect(page.locator("#area-grid-panel")).to_be_visible()
     expect(page.locator("#document-list-panel")).to_be_hidden()
     expect(back_btn).to_be_hidden()
 
 
 def test_deep_link_grid_area(page: Page):
-    """Direct deep-link #/grid/area/Safra%20C opens Grid View on Safra C automatically."""
+    """Direct deep-link #/grid/area/Safra%20C opens Area Houses Overview on Safra C automatically."""
     _setup_grid_routes(page)
     page.goto("http://localhost:9999/#/grid/area/Safra%20C")
 
-    # Should be in Grid View mode
+    # Should be in Area Houses Overview
     expect(page.locator("#area-grid-panel")).to_be_visible()
     expect(page.locator("#grid-area-title")).to_have_text("Safra C")
     expect(page.locator(".house-card")).to_have_count(3)
 
 
 def test_loading_state_prevents_premature_no_areas_found(page: Page):
-    """Switching to Grid View while data is still loading must show Loading indicator, NOT 'No areas found.'"""
+    """While data is still loading, must show Loading indicator, NOT 'No areas found.'"""
     page.route("http://localhost:9999/", lambda r: r.fulfill(
         status=200, content_type="text/html", body=HTML.read_text()))
     
@@ -247,8 +242,6 @@ def test_loading_state_prevents_premature_no_areas_found(page: Page):
     page.route("http://localhost:9999/api/tree", handle_tree)
 
     page.goto("http://localhost:9999/")
-    # Click Grid View immediately before tree response arrives
-    page.click("#view-mode-grid")
 
     # MUST NOT display "No areas found."
     expect(page.locator("#house-list")).not_to_contain_text("No areas found.")
@@ -263,8 +256,6 @@ def test_loading_state_prevents_premature_no_areas_found(page: Page):
     expect(page.locator("#house-list")).not_to_contain_text("No areas found.")
 
 
-
-
 def test_empty_state_shows_no_areas_found(page: Page):
     """When /api/tree genuinely returns an empty list, show 'No areas found.'"""
     page.route("http://localhost:9999/", lambda r: r.fulfill(
@@ -273,10 +264,6 @@ def test_empty_state_shows_no_areas_found(page: Page):
         status=200, content_type="application/json", body="[]"))
 
     page.goto("http://localhost:9999/")
-    expect(page.locator("#house-list")).to_contain_text("No areas found.")
-
-    # Switch to Grid View
-    page.click("#view-mode-grid")
     expect(page.locator("#house-list")).to_contain_text("No areas found.")
 
 

@@ -48,12 +48,13 @@ def test_safra_c_tree_has_arrows(page: Page, mock_areas_server):
     # Open Safra C
     page.click("text=Safra C")
     
-    # Check that the toggle icon for 508 - Test is ▶ (which indicates it has children)
-    button = page.locator("button:has-text('508 - Test')")
-    expect(button.locator("span.mr-2")).to_contain_text("▶")
+    # Verify house card for 508 - Test renders with tenant in overview
+    card = page.locator('.house-card[data-house-id="508 - Test"]')
+    expect(card).to_be_visible(timeout=5000)
+    expect(card.locator(".tenant-name")).to_contain_text("Tenant508")
     
-    # Click on the house to expand it
-    page.click("text=508 - Test")
+    # Click on the house card to open house
+    card.click()
     
-    # Check that we can see the tenant
-    expect(page.locator("text=Tenant508")).to_be_visible(timeout=5000)
+    # Back button is visible
+    expect(page.locator("#back-to-grid-btn")).to_be_visible(timeout=5000)

@@ -11,7 +11,7 @@ let currentTab = 'categories';
 let currentTimeline = [];
 let currentCategories = [];
 let globalTreeData = [];
-let currentViewMode = 'tree'; // 'tree' or 'grid'
+let currentViewMode = 'overview'; // 'overview' or 'db'
 let isTreeLoading = true;
 
 function getPdfUrl(areaId, houseId, vaultId) {

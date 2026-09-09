@@ -60,7 +60,6 @@ def test_safra_d_backend_fix_with_playwright(page: Page, mock_areas_server):
     page.goto(mock_areas_server)
     page.click("text=Safra D")
     page.click("text=502 - Test")
-    page.click("text=NewTenant")
     page.click("text=Timeline")
     expect(page.locator("#document-list")).to_contain_text("Test Title Routed", timeout=5000)
 
@@ -68,6 +67,5 @@ def test_safra_c_backward_compatibility(page: Page, mock_areas_server):
     page.goto(mock_areas_server)
     page.click("text=Safra C")
     page.click("text=123 - Old Format")
-    page.click("text=OldTenant")
     page.click("text=Timeline")
     expect(page.locator("#document-list")).to_contain_text("Test Title Old Format", timeout=5000)

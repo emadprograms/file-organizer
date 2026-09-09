@@ -41,6 +41,7 @@ Transitioning the document management system from a filesystem/JSON-dependent se
 - `260909-doc-management-move-copy-rename`: Safe UI-Based Document Management (Rename, Move/Copy Folder, Tenant Reassign, Permanent Manual Lock, Sequential Custom Folders; 7 API tests in `test_document_management_api.py` and 5 Playwright E2E tests in `test_v11_e2e_db.py`).
 - `260909-spotlight-search-and-modularize-ui`: macOS Spotlight Command Palette (`⌘K`) with section grouping (Houses, Tenants, Documents), full breadcrumbs (`Area › House › Tenant › Folder`), keyboard navigation (`↑`/`↓`/`Enter`/`Esc`), and `index.html` refactoring (~2,400 to ~500 lines) with 5 modular JS files. 17 frontend Playwright E2E tests and 30 backend tests passing.
 - `260909-house-tenancy-register-and-archive-profile`: Arabic House Tenancy Register (`سجل المستأجرين المتعاقبين`) & Digital Archive Profile (`بيانات الأرشيف الرقمي للمنزل`). Clicking a house renders the tenancy register with active/past tenant cards, tenure duration, document counts, and archive stats. Clicking a tenant card or tree node drills down into that tenant's category folders with a `← سجل المنزل` back button. Verified by 2 new backend tests and 2 new Playwright E2E tests; all 52 frontend and 59 backend tests passing.
+- `260909-remove-tree-view-and-enhance-tenants-overview`: Remove tree view entirely, make houses overview default, short tenants overview on cards, and intuitive back-to-tenants navigation (`#back-to-tenants-btn` and category banner). All 90 frontend and backend tests passing.
 
 ## Current Position
 

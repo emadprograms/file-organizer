@@ -178,11 +178,7 @@ def test_tooltip_appears_on_category_doc_link_hover(page: Page):
     """Hovering a category document link shows the PDF preview tooltip."""
     pdf_captured = []
     _setup_routes(page, pdf_captured)
-    page.goto("http://localhost:9999/")
-
-    page.click("text=Northside")
-    page.click("text=55 - Preview House")
-    page.click("text=Ali")  # click tenant to get tenant-level categories
+    page.goto("http://localhost:9999/#/area/Northside/house/55 - Preview House/tenant/55 - Preview House_Ali")
 
     # Default tab is categories; expand the category
     expect(page.locator("#document-list")).to_contain_text("01 - Lease Contracts", timeout=5000)
@@ -200,11 +196,8 @@ def test_tooltip_iframe_uses_correct_pdf_url_category(page: Page):
     """Category doc link: iframe src contains the correct vault_id."""
     pdf_captured = []
     _setup_routes(page, pdf_captured)
-    page.goto("http://localhost:9999/")
+    page.goto("http://localhost:9999/#/area/Northside/house/55 - Preview House/tenant/55 - Preview House_Ali")
 
-    page.click("text=Northside")
-    page.click("text=55 - Preview House")
-    page.click("text=Ali")
     expect(page.locator("#document-list")).to_contain_text("01 - Lease Contracts", timeout=5000)
     page.click("text=01 - Lease Contracts")
     expect(page.locator("text=وثيقة الإيجار")).to_be_visible(timeout=3000)
@@ -220,11 +213,8 @@ def test_tooltip_disappears_on_mouseleave_category(page: Page):
     """Moving mouse away from a category doc link hides the tooltip."""
     pdf_captured = []
     _setup_routes(page, pdf_captured)
-    page.goto("http://localhost:9999/")
+    page.goto("http://localhost:9999/#/area/Northside/house/55 - Preview House/tenant/55 - Preview House_Ali")
 
-    page.click("text=Northside")
-    page.click("text=55 - Preview House")
-    page.click("text=Ali")
     expect(page.locator("#document-list")).to_contain_text("01 - Lease Contracts", timeout=5000)
     page.click("text=01 - Lease Contracts")
     expect(page.locator("text=وثيقة الإيجار")).to_be_visible(timeout=3000)

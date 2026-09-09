@@ -229,48 +229,43 @@ def server_url(tmp_path_factory):
 
 
 def test_tree_view_renders_db_hierarchy(page: Page, server_url: str):
-    """Verifies areas and houses render from DB with tenure subtitles and doc counts."""
+    """Verifies areas and houses render from DB with tenure badges and tenant overview."""
     page.goto(server_url)
 
-    # Verify Areas & Houses section header
-    expect(page.locator("#sidebar-section-title")).to_have_text("Areas & Houses")
+    # Verify Areas section header
+    expect(page.locator("#sidebar-section-title")).to_have_text("Areas")
 
-    # Safra C is visible in the sidebar tree
-    area_btn = page.locator("#house-list button:has-text('Safra C')")
+    # Safra C is visible in the sidebar
+    area_btn = page.locator(".area-grid-btn:has-text('Safra C')")
     expect(area_btn).to_be_visible()
 
-    # Expand Safra C in tree view
+    # Click Safra C
     area_btn.click()
 
-    # Houses 101, 202, 303 appear in tree
-    h101_btn = page.locator('li[data-path$="/house/101"] > button')
-    h202_btn = page.locator('li[data-path$="/house/202"] > button')
-    h303_btn = page.locator('li[data-path$="/house/303"] > button')
+    # Houses 101, 202, 303 appear as cards in area grid
+    card_101 = page.locator('.house-card[data-house-id="101"]')
+    card_202 = page.locator('.house-card[data-house-id="202"]')
+    card_303 = page.locator('.house-card[data-house-id="303"]')
 
-    expect(h101_btn).to_be_visible()
-    expect(h202_btn).to_be_visible()
-    expect(h303_btn).to_be_visible()
+    expect(card_101).to_be_visible()
+    expect(card_202).to_be_visible()
+    expect(card_303).to_be_visible()
 
-    # Verify tenure subtitles & tenure badges in tree view (no doc counts)
-    expect(h101_btn).to_contain_text("Since 2023")
-    expect(h101_btn).not_to_contain_text("docs")
-    expect(h101_btn.locator(".text-green-700")).to_be_visible()
+    # Verify tenure badges & colors:
+    expect(card_101).to_have_class(re.compile(r"border-l-emerald-500"))
+    expect(card_101.locator(".tenure-badge")).to_contain_text("< 5 Yrs")
 
-    expect(h202_btn).to_contain_text("Since 2017")
-    expect(h202_btn).not_to_contain_text("docs")
-    expect(h202_btn.locator(".text-yellow-700")).to_be_visible()
+    expect(card_202).to_have_class(re.compile(r"border-l-amber-500"))
+    expect(card_202.locator(".tenure-badge")).to_contain_text("5–10 Yrs")
 
-    expect(h303_btn).to_contain_text("Since 2008")
-    expect(h303_btn).not_to_contain_text("docs")
-    expect(h303_btn.locator(".text-red-700")).to_be_visible()
+    expect(card_303).to_have_class(re.compile(r"border-l-rose-500"))
+    expect(card_303.locator(".tenure-badge")).to_contain_text("> 10 Yrs")
 
 
 def test_grid_view_mode_and_tenure_badges(page: Page, server_url: str):
-    """Toggles to Grid View and verifies cards with tenure color-coding and doc counts."""
+    """Verifies house cards with tenure color-coding, doc counts, and tenants overview."""
     page.goto(server_url)
 
-    # Toggle to Grid View
-    page.click("#view-mode-grid")
     expect(page.locator("#sidebar-section-title")).to_have_text("Areas")
 
     # Click Safra C area in sidebar
@@ -304,11 +299,10 @@ def test_grid_view_mode_and_tenure_badges(page: Page, server_url: str):
 
 
 def test_drill_down_navigation_to_categories_and_timeline(page: Page, server_url: str):
-    """Clicking house card in grid opens categories and timeline, and Back to Grid returns."""
+    """Clicking house card in houses overview opens categories and timeline, and Back returns."""
     page.goto(server_url)
 
-    # Navigate to Grid View
-    page.click("#view-mode-grid")
+    # Select Safra C
     page.click(".area-grid-btn:has-text('Safra C')")
 
     # Click House 101 card
@@ -319,7 +313,11 @@ def test_drill_down_navigation_to_categories_and_timeline(page: Page, server_url
     expect(page.locator("#document-list-panel")).to_be_visible()
     expect(page.locator("#current-house-title")).to_contain_text("101")
 
-    # Categories tab active by default: shows categories
+    # Tenancy Register shows Ahmad Al-Short
+    expect(page.locator("#document-list")).to_contain_text("Ahmad Al-Short")
+
+    # Drill down into tenant categories by clicking tenant profile card
+    page.click(".tenant-profile-card")
     expect(page.locator("#document-list")).to_contain_text("عقود")
     expect(page.locator("#document-list")).to_contain_text("كهرباء وماء")
 
@@ -328,15 +326,16 @@ def test_drill_down_navigation_to_categories_and_timeline(page: Page, server_url
     expect(page.locator("#document-list")).to_contain_text("عقد إيجار 101")
     expect(page.locator("#document-list")).to_contain_text("فاتورة كهرباء 101")
 
-    # Back to Area Grid button is visible
+    # Back to Area Houses button and Back to Tenants button are visible
     back_btn = page.locator("#back-to-grid-btn")
     expect(back_btn).to_be_visible()
-    expect(back_btn).to_contain_text("Back to Safra C Grid")
+    expect(back_btn).to_contain_text("Safra C Houses")
+    expect(page.locator("#back-to-tenants-btn")).to_be_visible()
 
-    # Click Back to Grid button
+    # Click Back button
     back_btn.click()
 
-    # Returns to Grid View
+    # Returns to Area Houses View
     expect(page.locator("#area-grid-panel")).to_be_visible()
     expect(page.locator("#document-list-panel")).to_be_hidden()
     expect(back_btn).to_be_hidden()

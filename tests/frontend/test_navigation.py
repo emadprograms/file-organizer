@@ -87,25 +87,26 @@ def _setup_routes(page: Page, *, timeline_status=200, captured_urls=None):
 
 
 def test_sidebar_renders_areas_and_houses(page: Page):
-    """Tree renders 3 levels: Area → House → Tenant."""
+    """Sidebar renders areas; selecting an area renders house cards with tenants overview."""
     _setup_routes(page)
     page.goto("http://localhost:9999/")
 
-    # Area visible on load
-    expect(page.locator("text=Northside")).to_be_visible()
+    # Area visible in sidebar
+    expect(page.locator(".area-grid-btn >> text=Northside")).to_be_visible()
 
-    # Click area to expand houses
-    page.click("text=Northside")
-    expect(page.locator("#house-list").locator("text=123 - Test House")).to_be_visible()
+    # Click area (or default active) shows house cards in main panel
+    page.click(".area-grid-btn >> text=Northside")
+    expect(page.locator("#area-grid-container").locator("text=123 - Test House")).to_be_visible()
+    expect(page.locator("#area-grid-container").locator("text=999 - Empty House")).to_be_visible()
 
-    # Click house to expand tenants
-    page.click("text=123 - Test House")
-    expect(page.locator("#house-list").locator("text=Ali")).to_be_visible()
+    # House card displays tenant overview
+    card = page.locator('.house-card[data-house-id="123 - Test House"]')
+    expect(card.locator(".tenant-name")).to_contain_text("Ali")
 
 
 def test_clicking_tenant_loads_timeline(page: Page):
     """
-    Clicking a tenant triggers timeline load via the correct URL:
+    Navigating into a house and clicking timeline triggers load via the correct URL:
     /api/areas/{area_name}/houses/{house_id}/timeline
     — NOT the old /api/houses/{house_id}/timeline.
     """
@@ -113,15 +114,13 @@ def test_clicking_tenant_loads_timeline(page: Page):
     _setup_routes(page, captured_urls=captured)
     page.goto("http://localhost:9999/")
 
-    # Expand area → house → click tenant
-    page.click("text=Northside")
+    # Select area → click house card → click Timeline tab
+    page.click(".area-grid-btn >> text=Northside")
     page.click("text=123 - Test House")
-    page.click("text=Ali")
     page.click("text=Timeline")
 
     # Timeline panel must show a document card, not an error
     expect(page.locator("#document-list")).not_to_contain_text("Error loading timeline", timeout=5000)
-    expect(page.locator("#document-list")).to_contain_text("عقد إيجار", timeout=5000)
     expect(page.locator("#document-list")).to_contain_text("عقد إيجار", timeout=5000)
 
     # Assert the URL used was the 3-level one
@@ -134,14 +133,14 @@ def test_clicking_tenant_loads_timeline(page: Page):
 
 def test_clicking_house_without_tenants_loads_timeline(page: Page):
     """
-    Houses with no children (999 - Empty House) must also load the timeline
-    when clicked directly — not just silently expand/collapse.
+    Houses with no tenants (999 - Empty House) also load the timeline
+    when clicked.
     """
     captured = []
     _setup_routes(page, captured_urls=captured)
     page.goto("http://localhost:9999/")
 
-    page.click("text=Northside")
+    page.click(".area-grid-btn >> text=Northside")
     page.click("text=999 - Empty House")
     page.click("text=Timeline")
 
@@ -161,9 +160,8 @@ def test_area_name_not_prefixed_in_api_call(page: Page):
     _setup_routes(page, captured_urls=captured)
     page.goto("http://localhost:9999/")
 
-    page.click("text=Northside")
+    page.click(".area-grid-btn >> text=Northside")
     page.click("text=123 - Test House")
-    page.click("text=Ali")
     page.click("text=Timeline")
 
     page.wait_for_timeout(500)
@@ -176,22 +174,20 @@ def test_area_name_not_prefixed_in_api_call(page: Page):
 
 
 def test_deep_link_expands_tree_and_loads_timeline(page: Page):
-    """Navigating to a hash URL auto-expands the tree and loads timeline."""
+    """Navigating to a hash URL loads house and timeline."""
     captured = []
     _setup_routes(page, captured_urls=captured)
 
-    # Hash uses the tree node id (area_Northside) for matching nodes,
-    # but the API call must strip the 'area_' prefix
-    page.goto("http://localhost:9999/#/area/area_Northside/house/123 - Test House/tenant/123 - Test House_Ali")
+    # Hash uses the area node id (area_Northside), but API call strips 'area_' prefix
+    page.goto("http://localhost:9999/#/area/area_Northside/house/123 - Test House")
     page.click("text=Timeline")
 
-    # Tree must expand automatically
-    expect(page.locator("#house-list").locator("text=123 - Test House")).to_be_visible(timeout=5000)
-    expect(page.locator("#house-list").locator("text=Ali")).to_be_visible(timeout=5000)
+    # Document list panel must be visible and title matches
+    expect(page.locator("#document-list-panel")).to_be_visible(timeout=5000)
+    expect(page.locator("#current-house-title")).to_contain_text("123 - Test House", timeout=5000)
 
     # Timeline must load without error
     expect(page.locator("#document-list")).not_to_contain_text("Error loading timeline", timeout=5000)
-    expect(page.locator("#document-list")).to_contain_text("عقد إيجار", timeout=5000)
     expect(page.locator("#document-list")).to_contain_text("عقد إيجار", timeout=5000)
 
     # Correct URL used
@@ -204,7 +200,7 @@ def test_timeline_error_state_shown_on_404(page: Page):
     _setup_routes(page, timeline_status=404)
     page.goto("http://localhost:9999/")
 
-    page.click("text=Northside")
+    page.click(".area-grid-btn >> text=Northside")
     page.click("text=999 - Empty House")
     page.click("text=Timeline")
 
