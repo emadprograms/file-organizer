@@ -87,13 +87,13 @@ def init_db(conn: sqlite3.Connection) -> None:
         conn: SQLite database connection with foreign keys enabled.
     """
     conn.executescript(SCHEMA_SQL)
-    conn.executescript(INDICES_SQL)
 
-    # Automatic migration for existing databases
+    # Automatic migration for existing databases before creating indices
     cursor = conn.execute("PRAGMA table_info(documents)")
     existing_cols = [row[1] for row in cursor.fetchall()]
     if existing_cols and "is_manual" not in existing_cols:
         conn.execute("ALTER TABLE documents ADD COLUMN is_manual INTEGER DEFAULT 0")
 
+    conn.executescript(INDICES_SQL)
     conn.commit()
 

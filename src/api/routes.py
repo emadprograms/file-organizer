@@ -69,7 +69,9 @@ def get_db_repo(request: Request) -> Optional[Repository]:
     if db_path and (db_path == ":memory:" or Path(db_path).exists()):
         try:
             from src.db.connection import get_db_connection
+            from src.db.schema import init_db
             conn = get_db_connection(db_path)
+            init_db(conn)
             conn.execute("SELECT 1")
             repo = Repository(conn)
             request.app.state.repo = repo

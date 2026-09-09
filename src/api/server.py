@@ -33,7 +33,9 @@ async def lifespan(app: FastAPI):
         if db_path and (db_path == ":memory:" or Path(db_path).exists()):
             from src.db.connection import get_db_connection
             from src.db.repository import Repository
+            from src.db.schema import init_db
             conn = get_db_connection(db_path)
+            init_db(conn)
             app.state.repo = Repository(conn)
             logger.info(f"SQLite repository initialized from {db_path}")
 
