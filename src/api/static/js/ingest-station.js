@@ -417,6 +417,20 @@
         populateTenants(areaName, houseSelect.value);
     }
 
+    function compareDatesDesc(aDate, bDate) {
+        if (!aDate && !bDate) return 0;
+        if (!aDate) return 1;
+        if (!bDate) return -1;
+        const strA = String(aDate).trim();
+        const strB = String(bDate).trim();
+        const timeA = new Date(strA).getTime();
+        const timeB = new Date(strB).getTime();
+        if (!isNaN(timeA) && !isNaN(timeB) && timeA !== timeB) {
+            return timeB - timeA;
+        }
+        return strB.localeCompare(strA);
+    }
+
     async function populateTenants(areaName, houseName, targetTenantId = null) {
         if (!tenantSelect) return;
         tenantSelect.innerHTML = '<option value="">(Auto-detect or Select Tenant)</option>';
@@ -424,40 +438,49 @@
         if (!areaName || !houseName) return;
 
         const currentSeq = ++tenantFetchSeq;
+        let fetchedTenants = null;
+        let fallbackChildren = null;
+        let isFallback = false;
 
         try {
             const res = await fetch(`/api/areas/${encodeURIComponent(areaName)}/houses/${encodeURIComponent(houseName)}/tenants`);
             if (currentSeq !== tenantFetchSeq) return;
-            if (res.ok) {
-                const tenants = await res.json();
-                if (currentSeq !== tenantFetchSeq) return;
-                tenantSelect.innerHTML = '<option value="">(Auto-detect or Select Tenant)</option>';
-                const seen = new Set();
-                if (Array.isArray(tenants)) {
-                    tenants.forEach(t => {
-                        const normName = (t.name || '').trim().toLowerCase();
-                        if (t.id != null && seen.has(`id:${t.id}`)) return;
-                        if (normName && seen.has(`name:${normName}`)) return;
-                        if (t.id != null) seen.add(`id:${t.id}`);
-                        if (normName) seen.add(`name:${normName}`);
+            if (!res.ok) throw new Error('Failed to fetch tenants');
+            const tenants = await res.json();
+            if (currentSeq !== tenantFetchSeq) return;
+            tenantSelect.innerHTML = '<option value="">(Auto-detect or Select Tenant)</option>';
+            const seen = new Set();
+            fetchedTenants = [];
+            if (Array.isArray(tenants)) {
+                tenants.forEach(t => {
+                    const normName = (t.name || '').trim().toLowerCase();
+                    if (t.id != null && seen.has(`id:${t.id}`)) return;
+                    if (normName && seen.has(`name:${normName}`)) return;
+                    if (t.id != null) seen.add(`id:${t.id}`);
+                    if (normName) seen.add(`name:${normName}`);
 
-                        const opt = document.createElement('option');
-                        opt.value = t.id;
-                        const yearHint = t.start_date ? ` (${t.start_date.substring(0, 4)})` : '';
-                        opt.textContent = `${t.name}${yearHint}`;
-                        tenantSelect.appendChild(opt);
-                    });
-                }
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.dataset.id = t.id != null ? String(t.id) : '';
+                    opt.dataset.name = t.name || '';
+                    const yearHint = t.start_date ? ` (${t.start_date.substring(0, 4)})` : '';
+                    opt.textContent = `${t.name}${yearHint}`;
+                    tenantSelect.appendChild(opt);
+                    fetchedTenants.push(t);
+                });
             }
         } catch (err) {
             if (currentSeq !== tenantFetchSeq) return;
+            isFallback = true;
             // Fallback: check tree node children
             const tree = (typeof globalTreeData !== 'undefined' ? globalTreeData : window.globalTreeData) || [];
             const areaNode = tree.find(a => a.name === areaName);
             const houseNode = areaNode?.children?.find(h => h.name === houseName);
             tenantSelect.innerHTML = '<option value="">(Auto-detect or Select Tenant)</option>';
             const seen = new Set();
+            fallbackChildren = [];
             if (houseNode && Array.isArray(houseNode.children)) {
+                fallbackChildren = houseNode.children;
                 houseNode.children.forEach(tNode => {
                     const normName = (tNode.name || '').trim().toLowerCase();
                     if (normName && seen.has(`name:${normName}`)) return;
@@ -465,6 +488,8 @@
 
                     const opt = document.createElement('option');
                     opt.value = tNode.name;
+                    opt.dataset.id = tNode.id != null ? String(tNode.id) : '';
+                    opt.dataset.name = tNode.name || '';
                     opt.textContent = tNode.name;
                     tenantSelect.appendChild(opt);
                 });
@@ -473,8 +498,88 @@
 
         if (currentSeq !== tenantFetchSeq) return;
 
-        if (targetTenantId) {
-            tenantSelect.value = targetTenantId;
+        const availableOptions = Array.from(tenantSelect.options).filter(opt => opt.value !== '');
+        if (availableOptions.length === 0) {
+            tenantSelect.value = '';
+            return;
+        }
+
+        // 1. If targetTenantId is provided and exists in the options, select it.
+        if (targetTenantId != null && targetTenantId !== '') {
+            const targetStr = String(targetTenantId).trim();
+            const targetMatch = availableOptions.find(opt =>
+                opt.value === targetStr ||
+                opt.dataset.id === targetStr ||
+                (opt.dataset.name && opt.dataset.name.trim().toLowerCase() === targetStr.toLowerCase())
+            );
+            if (targetMatch) {
+                tenantSelect.value = targetMatch.value;
+                return;
+            }
+        }
+
+        // 2. Else if window.currentTenant is set and matches a tenant in the options (by ID or name), select it.
+        const currentTenant = typeof window !== 'undefined' ? window.currentTenant : null;
+        if (currentTenant != null && currentTenant !== '') {
+            let curId = null;
+            let curName = null;
+            if (typeof currentTenant === 'object') {
+                curId = currentTenant.id != null ? String(currentTenant.id).trim() : null;
+                curName = currentTenant.name != null ? String(currentTenant.name).trim().toLowerCase() : null;
+            } else {
+                const s = String(currentTenant).trim();
+                curId = s;
+                curName = s.toLowerCase();
+            }
+            const currentMatch = availableOptions.find(opt => {
+                if (curId && (opt.value === curId || opt.dataset.id === curId)) return true;
+                if (curName && ((opt.dataset.name && opt.dataset.name.trim().toLowerCase() === curName) || opt.value.trim().toLowerCase() === curName)) return true;
+                return false;
+            });
+            if (currentMatch) {
+                tenantSelect.value = currentMatch.value;
+                return;
+            }
+        }
+
+        // 3. Otherwise (by default when a house is selected), identify the latest tenant:
+        if (!isFallback && Array.isArray(fetchedTenants) && fetchedTenants.length > 0) {
+            const isActive = (t) => !t.end_date || t.end_date === null || (typeof t.end_date === 'string' && (t.end_date.trim() === '' || t.end_date.trim().toLowerCase() === 'present' || t.end_date.trim().toLowerCase() === 'active'));
+            const activeTenants = fetchedTenants.filter(isActive);
+
+            if (activeTenants.length > 0) {
+                // Priority 1: An active tenant. If multiple exist, the one with latest start_date.
+                const sortedActive = [...activeTenants].sort((a, b) => {
+                    const cmp = compareDatesDesc(a.start_date, b.start_date);
+                    if (cmp !== 0) return cmp;
+                    return (b.id != null && a.id != null) ? b.id - a.id : 0;
+                });
+                const chosen = sortedActive[0];
+                const opt = availableOptions.find(o => o.value === String(chosen.id) || (o.dataset.name && o.dataset.name === chosen.name));
+                if (opt) tenantSelect.value = opt.value;
+            } else {
+                // Priority 2: If all tenants have ended, the tenant with latest end_date or start_date.
+                const sortedEnded = [...fetchedTenants].sort((a, b) => {
+                    const aLatest = a.end_date || a.start_date;
+                    const bLatest = b.end_date || b.start_date;
+                    const cmp = compareDatesDesc(aLatest, bLatest);
+                    if (cmp !== 0) return cmp;
+                    return compareDatesDesc(a.start_date, b.start_date);
+                });
+                const chosen = sortedEnded[0];
+                const opt = availableOptions.find(o => o.value === String(chosen.id) || (o.dataset.name && o.dataset.name === chosen.name));
+                if (opt) tenantSelect.value = opt.value;
+            }
+        } else if (isFallback && Array.isArray(fallbackChildren) && fallbackChildren.length > 0) {
+            // Priority 3 (DOM fallback): The last tenant in houseNode.children.
+            const lastTenant = fallbackChildren[fallbackChildren.length - 1];
+            const lastVal = typeof lastTenant === 'string' ? lastTenant : (lastTenant?.name || '');
+            const opt = availableOptions.find(o => o.value === lastVal || (o.dataset.name && o.dataset.name === lastVal));
+            if (opt) {
+                tenantSelect.value = opt.value;
+            } else if (availableOptions.length > 0) {
+                tenantSelect.value = availableOptions[availableOptions.length - 1].value;
+            }
         }
     }
 

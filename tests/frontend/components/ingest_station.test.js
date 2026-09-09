@@ -535,5 +535,161 @@ describe('Ingest Station Component', () => {
         expect(alphaOptions.length).toBe(1);
         expect(betaOptions.length).toBe(1);
     });
+
+    it('selects latest active tenant by default when a house with tenants is populated', async () => {
+        global.fetch = vi.fn().mockResolvedValueOnce({
+            ok: true,
+            json: async () => [
+                { id: 101, name: 'Tenant Past', start_date: '2020-01-01', end_date: '2021-12-31' },
+                { id: 102, name: 'Tenant Active Older', start_date: '2022-01-01', end_date: null },
+                { id: 103, name: 'Tenant Active Latest', start_date: '2023-06-01', end_date: '' },
+            ],
+        });
+
+        await populateTenants('Area 1', '501');
+
+        const tenantSelect = document.getElementById('ingest-tenant-select');
+        expect(tenantSelect.value).toBe('103');
+
+        // Verify user can freely change selection to another tenant or back to empty
+        tenantSelect.value = '101';
+        expect(tenantSelect.value).toBe('101');
+        tenantSelect.value = '';
+        expect(tenantSelect.value).toBe('');
+    });
+
+    it('selects tenant with latest end_date or start_date when all tenants have ended', async () => {
+        global.fetch = vi.fn().mockResolvedValueOnce({
+            ok: true,
+            json: async () => [
+                { id: 201, name: 'Historical A', start_date: '2019-01-01', end_date: '2020-12-31' },
+                { id: 202, name: 'Historical B', start_date: '2021-01-01', end_date: '2023-05-31' },
+                { id: 203, name: 'Historical C', start_date: '2023-01-01', end_date: '2023-05-31' },
+            ],
+        });
+
+        await populateTenants('Area 1', '501');
+
+        const tenantSelect = document.getElementById('ingest-tenant-select');
+        // Historical B and C both ended on 2023-05-31, but Historical C started later (2023-01-01 > 2021-01-01)
+        expect(tenantSelect.value).toBe('203');
+    });
+
+    it('selects the last tenant in houseNode.children when using DOM fallback', async () => {
+        global.fetch = vi.fn().mockRejectedValueOnce(new Error('Network failure'));
+
+        window.globalTreeData = [
+            {
+                name: 'Area Fallback',
+                children: [
+                    {
+                        name: 'House Fallback',
+                        children: [
+                            { name: 'First Tenant' },
+                            { name: 'Last Tenant' },
+                        ],
+                    },
+                ],
+            },
+        ];
+
+        await populateTenants('Area Fallback', 'House Fallback');
+
+        const tenantSelect = document.getElementById('ingest-tenant-select');
+        expect(tenantSelect.value).toBe('Last Tenant');
+    });
+
+    it('selects the latest tenant of the newly selected house when switching between houses', async () => {
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (url.includes('house-a')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => [
+                        { id: 10, name: 'House A Past', start_date: '2020-01-01', end_date: '2021-01-01' },
+                        { id: 11, name: 'House A Active', start_date: '2021-02-01', end_date: null },
+                    ],
+                });
+            }
+            if (url.includes('house-b')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => [
+                        { id: 20, name: 'House B Past', start_date: '2019-01-01', end_date: '2020-01-01' },
+                        { id: 21, name: 'House B Active Latest', start_date: '2024-01-01', end_date: null },
+                    ],
+                });
+            }
+            return Promise.reject(new Error('Unknown url'));
+        });
+
+        const areaSelect = document.getElementById('ingest-area-select');
+        const houseSelect = document.getElementById('ingest-house-select');
+        const tenantSelect = document.getElementById('ingest-tenant-select');
+
+        areaSelect.innerHTML = '<option value="Area 1">Area 1</option>';
+        areaSelect.value = 'Area 1';
+        houseSelect.innerHTML = `
+            <option value="">Select House...</option>
+            <option value="house-a">House A</option>
+            <option value="house-b">House B</option>
+        `;
+
+        // Switch to house-a
+        houseSelect.value = 'house-a';
+        houseSelect.dispatchEvent(new Event('change'));
+        await new Promise((r) => setTimeout(r, 10));
+
+        expect(tenantSelect.value).toBe('11');
+
+        // Switch to house-b
+        houseSelect.value = 'house-b';
+        houseSelect.dispatchEvent(new Event('change'));
+        await new Promise((r) => setTimeout(r, 10));
+
+        expect(tenantSelect.value).toBe('21');
+    });
+
+    it('respects targetTenantId when explicitly provided', async () => {
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => [
+                { id: 101, name: 'Tenant Past', start_date: '2020-01-01', end_date: '2021-12-31' },
+                { id: 102, name: 'Tenant Active 1', start_date: '2022-01-01', end_date: null },
+                { id: 103, name: 'Tenant Active Latest', start_date: '2023-06-01', end_date: null },
+            ],
+        });
+
+        // Explicit ID as integer
+        await populateTenants('Area 1', '501', 101);
+        const tenantSelect = document.getElementById('ingest-tenant-select');
+        expect(tenantSelect.value).toBe('101');
+
+        // Explicit ID as string
+        await populateTenants('Area 1', '501', '102');
+        expect(tenantSelect.value).toBe('102');
+    });
+
+    it('selects tenant matching window.currentTenant by name or ID when targetTenantId is not provided', async () => {
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => [
+                { id: 101, name: 'Tenant Alpha', start_date: '2020-01-01', end_date: null },
+                { id: 102, name: 'Tenant Beta', start_date: '2023-01-01', end_date: null },
+            ],
+        });
+
+        const tenantSelect = document.getElementById('ingest-tenant-select');
+
+        // Match by tenant name
+        window.currentTenant = 'Tenant Alpha';
+        await populateTenants('Area 1', '501');
+        expect(tenantSelect.value).toBe('101');
+
+        // Match by tenant ID
+        window.currentTenant = '101';
+        await populateTenants('Area 1', '501');
+        expect(tenantSelect.value).toBe('101');
+    });
 });
+
 
