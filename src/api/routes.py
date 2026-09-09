@@ -1305,26 +1305,41 @@ async def search(request: Request, q: str = ""):
         results = []
 
         # 1. Houses matching q
-        cursor = conn.execute(
-            "SELECT id, area_id FROM houses WHERE LOWER(id) LIKE ? OR LOWER(area_id) LIKE ? ORDER BY id",
-            (f"%{q}%", f"%{q}%")
-        )
+        cursor = conn.execute("""
+            SELECT h.id, h.area_id, 
+                   (SELECT COUNT(*) FROM documents WHERE house_id = h.id) as doc_count,
+                   (SELECT name FROM tenants WHERE house_id = h.id AND (end_date IS NULL OR end_date = '' OR LOWER(end_date) = 'present') ORDER BY start_date DESC LIMIT 1) as current_tenant
+            FROM houses h 
+            WHERE LOWER(h.id) LIKE ? OR LOWER(h.area_id) LIKE ? 
+            ORDER BY h.id
+        """, (f"%{q}%", f"%{q}%"))
         for row in cursor.fetchall():
             h_id = row["id"]
             a_id = row["area_id"]
+            d_cnt = row["doc_count"] or 0
+            c_tenant = row["current_tenant"]
+            sub_parts = [a_id]
+            if c_tenant:
+                sub_parts.append(c_tenant)
+            sub_parts.append(f"{d_cnt} Documents")
             results.append(SearchResultResponse(
                 id=h_id,
                 type="house",
-                title=h_id,
-                subtitle=f"House in {a_id}",
-                url=f"/#/area/{a_id}/house/{h_id}"
+                title=f"House {h_id}",
+                subtitle=" • ".join(sub_parts),
+                url=f"/#/area/{a_id}/house/{h_id}",
+                area_id=a_id,
+                house_id=h_id,
+                tenant_name=c_tenant,
+                extra_info=f"{d_cnt} Docs"
             ))
 
         # 2. Tenants matching q (with phonetic and fuzzy matching)
         cursor = conn.execute("""
-            SELECT DISTINCT t.name as tenant_name, t.house_id, h.area_id
+            SELECT t.id, t.name as tenant_name, t.start_date, t.end_date, t.house_id, h.area_id
             FROM tenants t
             JOIN houses h ON t.house_id = h.id
+            ORDER BY t.start_date DESC
         """)
         q_phonetic = phonetic_normalize(q)
         for t in cursor.fetchall():
@@ -1333,6 +1348,8 @@ async def search(request: Request, q: str = ""):
             t_phonetic = phonetic_normalize(t_lower)
             is_match = False
             if q in t_lower:
+                is_match = True
+            elif q in str(t["house_id"]).lower():
                 is_match = True
             elif q_phonetic.replace(" ", "") in t_phonetic.replace(" ", ""):
                 is_match = True
@@ -1346,19 +1363,28 @@ async def search(request: Request, q: str = ""):
                        difflib.SequenceMatcher(None, q_phonetic, t_phonetic).ratio() >= 0.7:
                         is_match = True
             if is_match:
+                s_yr = t["start_date"][:4] if t["start_date"] else ""
+                e_yr = "Present" if not t["end_date"] or str(t["end_date"]).lower() == "present" else str(t["end_date"])[:4]
+                tenure_str = f"{s_yr} - {e_yr}" if s_yr else ""
+                sub_label = f"House {t['house_id']} ({tenure_str}) • {t['area_id']}" if tenure_str else f"House {t['house_id']} • {t['area_id']}"
                 results.append(SearchResultResponse(
                     id=f"{t['house_id']}_{t_name}",
                     type="tenant",
                     title=t_name,
-                    subtitle=f"Tenant in {t['house_id']}",
-                    url=f"/#/area/{t['area_id']}/house/{t['house_id']}/tenant/{t['house_id']}_{t_name}"
+                    subtitle=sub_label,
+                    url=f"/#/area/{t['area_id']}/house/{t['house_id']}",
+                    area_id=t["area_id"],
+                    house_id=t["house_id"],
+                    tenant_name=t_name,
+                    extra_info=tenure_str
                 ))
 
         # 3. Documents matching arabic_title or category or content_explanation in pages
         cursor = conn.execute("""
-            SELECT DISTINCT d.vault_id, d.arabic_title, d.category, d.house_id, h.area_id
+            SELECT DISTINCT d.vault_id, d.arabic_title, d.category, d.primary_date, d.is_manual, d.house_id, h.area_id, t.name as tenant_name
             FROM documents d
             JOIN houses h ON d.house_id = h.id
+            LEFT JOIN tenants t ON d.tenant_id = t.id
             LEFT JOIN pages p ON (p.vault_id = d.vault_id OR (p.vault_id IS NULL AND p.batch_id = d.batch_id))
             WHERE LOWER(COALESCE(d.arabic_title, '')) LIKE ?
                OR LOWER(COALESCE(d.category, '')) LIKE ?
@@ -1369,12 +1395,23 @@ async def search(request: Request, q: str = ""):
 
         for d in cursor.fetchall():
             title = d["arabic_title"] or d["category"] or "Document"
+            cat = d["category"] or "Uncategorized"
+            t_name = d["tenant_name"] or "No Tenant"
+            p_date = str(d["primary_date"]) if d["primary_date"] else ""
+            path_str = f"{d['area_id']} › House {d['house_id']} › {t_name} › {cat}"
             results.append(SearchResultResponse(
                 id=f"{d['house_id']}_doc_{d['vault_id']}",
                 type="document",
                 title=title,
-                subtitle=f"Document in {d['house_id']}",
-                url=f"/#/area/{d['area_id']}/house/{d['house_id']}"
+                subtitle=path_str,
+                url=f"/#/area/{d['area_id']}/house/{d['house_id']}",
+                area_id=d["area_id"],
+                house_id=d["house_id"],
+                tenant_name=d["tenant_name"],
+                category=cat,
+                date=p_date,
+                vault_id=d["vault_id"],
+                is_manual=int(d["is_manual"] or 0)
             ))
 
         seen: set[str] = set()
@@ -1383,7 +1420,7 @@ async def search(request: Request, q: str = ""):
             if r.id not in seen:
                 seen.add(r.id)
                 unique_results.append(r)
-        return unique_results[:50]
+        return unique_results[:60]
 
     config = getattr(request.app.state, "config", None)
     if not config or not hasattr(config, "areas_root_path"):
@@ -1403,7 +1440,9 @@ async def search(request: Request, q: str = ""):
                 type="house",
                 title=h["house_dir_name"],
                 subtitle=f"House in {h['area_name']}",
-                url=f"/#/area/{h['area_name']}/house/{h['house_dir_name']}"
+                url=f"/#/area/{h['area_name']}/house/{h['house_dir_name']}",
+                area_id=h["area_name"],
+                house_id=h["house_dir_name"]
             ))
             
     q_phonetic = phonetic_normalize(q)
@@ -1431,28 +1470,35 @@ async def search(request: Request, q: str = ""):
                 id=f"{t['house_dir_name']}_{t_name}",
                 type="tenant",
                 title=t_name,
-                subtitle=f"Tenant in {t['house_dir_name']}",
-                url=f"/#/area/{t['area_name']}/house/{t['house_dir_name']}/tenant/{t['house_dir_name']}_{t_name}"
+                subtitle=f"Tenant in {t['house_dir_name']} • {t['area_name']}",
+                url=f"/#/area/{t['area_name']}/house/{t['house_dir_name']}",
+                area_id=t["area_name"],
+                house_id=t["house_dir_name"],
+                tenant_name=t_name
             ))
 
     for d in index["documents"]:
         if q in d["content"] or q in d["title_field"]:
+            path_str = f"{d['area_name']} › {d['house_dir_name']}"
             results.append(SearchResultResponse(
                 id=f"{d['house_dir_name']}_doc_{d['vault_id']}",
                 type="document",
                 title=d["doc_title"],
-                subtitle=f"Document in {d['house_dir_name']}",
-                url=f"/#/area/{d['area_name']}/house/{d['house_dir_name']}"
+                subtitle=path_str,
+                url=f"/#/area/{d['area_name']}/house/{d['house_dir_name']}",
+                area_id=d["area_name"],
+                house_id=d["house_dir_name"],
+                vault_id=d["vault_id"]
             ))
 
-    seen: set[str] = set()
+    seen = set()
     unique_results = []
     for r in results:
         if r.id not in seen:
             seen.add(r.id)
             unique_results.append(r)
 
-    return unique_results[:50]
+    return unique_results[:60]
 
 
 ALLOWED_DB_TABLES = {"areas", "houses", "tenants", "batches", "pages", "documents"}

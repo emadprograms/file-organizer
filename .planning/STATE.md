@@ -39,6 +39,7 @@ Transitioning the document management system from a filesystem/JSON-dependent se
 - `260909-3b2`: UI-Based Tenant Management & Document Reallocation (with unit tests in `test_tenant_repository_unit.py`, API tests in `test_tenant_reallocation_api.py`, and Playwright E2E tests in `test_v11_e2e_db.py`).
 - `260909-405`: Modern UI Layout Overhaul, Settings Button Placement & Lucide-style Iconography (all 65 backend and frontend tests passed).
 - `260909-doc-management-move-copy-rename`: Safe UI-Based Document Management (Rename, Move/Copy Folder, Tenant Reassign, Permanent Manual Lock, Sequential Custom Folders; 7 API tests in `test_document_management_api.py` and 5 Playwright E2E tests in `test_v11_e2e_db.py`).
+- `260909-spotlight-search-and-modularize-ui`: macOS Spotlight Command Palette (`⌘K`) with section grouping (Houses, Tenants, Documents), full breadcrumbs (`Area › House › Tenant › Folder`), keyboard navigation (`↑`/`↓`/`Enter`/`Esc`), and `index.html` refactoring (~2,400 to ~500 lines) with 5 modular JS files. 17 frontend Playwright E2E tests and 30 backend tests passing.
 
 ## Current Position
 

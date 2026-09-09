@@ -45,10 +45,18 @@ class TreeItemResponse(BaseModel):
 
 class SearchResultResponse(BaseModel):
     id: str
-    type: str # "house", "tenant", or "document"
+    type: str  # "house", "tenant", or "document"
     title: str
     subtitle: str | None = None
-    url: str # path to navigate to
+    url: str  # path to navigate to
+    area_id: str | None = None
+    house_id: str | None = None
+    tenant_name: str | None = None
+    category: str | None = None
+    date: str | None = None
+    vault_id: str | None = None
+    is_manual: int | None = 0
+    extra_info: str | None = None
 
 class TenantItem(BaseModel):
     id: int | None = None
