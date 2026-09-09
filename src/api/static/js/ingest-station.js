@@ -65,6 +65,14 @@
         return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
     }
 
+    function getTodayIsoDate() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
     function getCurrentArea() {
         return (typeof currentArea !== 'undefined' && currentArea) ? currentArea : (window.currentArea || null);
     }
@@ -614,6 +622,10 @@
         ingestModal.classList.remove('hidden');
         resetStatusMsg();
 
+        if (dateInput && !dateInput.value) {
+            dateInput.value = getTodayIsoDate();
+        }
+
         const activeArea = getCurrentArea();
         const activeHouse = getCurrentHouse();
         populateAreas(activeArea, activeHouse);
@@ -632,7 +644,7 @@
     function resetIngestForm() {
         removeFile();
         if (titleInput) titleInput.value = '';
-        if (dateInput) dateInput.value = '';
+        if (dateInput) dateInput.value = getTodayIsoDate();
         if (notesInput) notesInput.value = '';
         if (newTenantInput) newTenantInput.value = '';
         if (newTenantContainer) newTenantContainer.classList.add('hidden');
@@ -851,6 +863,8 @@
     window.autofillWithAi = autofillWithAi;
     window.submitIngestForm = submitIngestForm;
     window.formatFileSize = formatFileSize;
+    window.getTodayIsoDate = getTodayIsoDate;
+    window.resetIngestForm = resetIngestForm;
 
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = {
@@ -866,6 +880,8 @@
             populateHouses,
             populateTenants,
             updateModeUI,
+            getTodayIsoDate,
+            resetIngestForm,
         };
     }
 })();

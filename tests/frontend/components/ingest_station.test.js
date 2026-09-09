@@ -12,6 +12,8 @@ const {
     populateHouses,
     populateTenants,
     updateModeUI,
+    getTodayIsoDate,
+    resetIngestForm,
 } = require('../../../src/api/static/js/ingest-station.js');
 
 function setupDOM() {
@@ -689,6 +691,76 @@ describe('Ingest Station Component', () => {
         window.currentTenant = '101';
         await populateTenants('Area 1', '501');
         expect(tenantSelect.value).toBe('101');
+    });
+
+    it("defaults #ingest-date-input to today's date (YYYY-MM-DD) on openIngestStation()", () => {
+        const dateInput = document.getElementById('ingest-date-input');
+        expect(dateInput.value).toBe('');
+
+        openIngestStation();
+
+        const today = new Date();
+        const expectedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        expect(dateInput.value).toBe(expectedDate);
+        expect(dateInput.value).toBe(getTodayIsoDate());
+    });
+
+    it("keeps or resets #ingest-date-input to today's date when resetting the form or closing the modal", () => {
+        openIngestStation();
+        const dateInput = document.getElementById('ingest-date-input');
+        const expectedDate = getTodayIsoDate();
+        expect(dateInput.value).toBe(expectedDate);
+
+        // User changes the date
+        dateInput.value = '2021-04-10';
+        expect(dateInput.value).toBe('2021-04-10');
+
+        // Form reset resets date to today's date
+        resetIngestForm();
+        expect(dateInput.value).toBe(expectedDate);
+
+        // User changes the date again and closes modal
+        dateInput.value = '2022-08-15';
+        closeIngestStation();
+        expect(dateInput.value).toBe(expectedDate);
+    });
+
+    it("allows the user to freely edit or clear the primary date", () => {
+        openIngestStation();
+        const dateInput = document.getElementById('ingest-date-input');
+        expect(dateInput.value).toBe(getTodayIsoDate());
+
+        // User edits the date
+        dateInput.value = '2023-11-20';
+        dateInput.dispatchEvent(new Event('input', { bubbles: true }));
+        dateInput.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(dateInput.value).toBe('2023-11-20');
+
+        // User clears the date
+        dateInput.value = '';
+        dateInput.dispatchEvent(new Event('input', { bubbles: true }));
+        dateInput.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(dateInput.value).toBe('');
+    });
+
+    it("allows AI auto-fill to overwrite default date with detected document date", async () => {
+        openIngestStation();
+        const dateInput = document.getElementById('ingest-date-input');
+        expect(dateInput.value).toBe(getTodayIsoDate());
+
+        const mockFile = new File(['%PDF-1.4 content'], 'doc.pdf', { type: 'application/pdf' });
+        handleFileSelected(mockFile);
+
+        global.fetch = vi.fn().mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({
+                status: 'success',
+                suggested_date: '2022-01-15',
+            }),
+        });
+
+        await autofillWithAi();
+        expect(dateInput.value).toBe('2022-01-15');
     });
 });
 
