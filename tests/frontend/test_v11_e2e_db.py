@@ -374,8 +374,11 @@ def test_pdf_serving_and_modal(page: Page, server_url: str):
 
     expect(page.locator("#document-list-panel")).to_be_visible()
 
+    # House level shows Tenancy Register; click tenant card to drill down into folders
+    page.locator(".tenant-profile-card").first.click()
+
     # Expand category '05 - عقود' / 'عقود'
-    cat_card = page.locator("#document-list div:has-text('عقود')").first
+    cat_card = page.locator(".category-folder-card:has-text('عقود')").first
     cat_card.click()
 
     # Click on the document link
@@ -473,11 +476,11 @@ def test_tenant_modal_present_checkbox_toggle(page: Page, server_url: str):
 
 def test_viewer_manual_tenant_override_e2e(page: Page, server_url: str):
     """Document viewer shows tenant dropdown allowing manual assignment."""
-    page.goto(f"{server_url}/#/area/Safra%20C/house/101")
+    page.goto(f"{server_url}/#/area/Safra%20C/house/101/tenant/101_Ahmad%20Al-Short")
     expect(page.locator("#document-list-panel")).to_be_visible()
 
     # Open category and document
-    page.locator("#document-list div:has-text('عقود')").first.click()
+    page.locator(".category-folder-card:has-text('عقود')").first.click()
     doc_link = page.locator("#document-list div:has-text('عقد إيجار 101')").last
     expect(doc_link).to_be_visible()
     doc_link.click()
@@ -493,11 +496,11 @@ def test_viewer_manual_tenant_override_e2e(page: Page, server_url: str):
 
 def test_document_action_modal_rename_and_lock_badge_e2e(page: Page, server_url: str):
     """Renaming document via action modal updates title and shows manual lock indicator."""
-    page.goto(f"{server_url}/#/area/Safra%20C/house/101")
+    page.goto(f"{server_url}/#/area/Safra%20C/house/101/tenant/101_Ahmad%20Al-Short")
     expect(page.locator("#document-list-panel")).to_be_visible()
 
     # Expand category '05 - عقود'
-    page.locator("#document-list div:has-text('عقود')").first.click()
+    page.locator(".category-folder-card:has-text('عقود')").first.click()
 
     # Click document action button (...) using data-vault-id
     menu_btn = page.locator(".doc-menu-btn[data-vault-id='v101_1']")
@@ -517,18 +520,18 @@ def test_document_action_modal_rename_and_lock_badge_e2e(page: Page, server_url:
     expect(modal).to_be_hidden()
 
     # Verify updated title in category list
-    page.locator("#document-list div:has-text('عقود')").first.click()
+    page.locator(".category-folder-card:has-text('عقود')").first.click()
     expect(page.locator("#document-list")).to_contain_text("عقد إيجار محدث 101")
     expect(page.locator("#document-list")).to_contain_text("🔒")
 
 
 def test_document_action_modal_custom_folder_e2e(page: Page, server_url: str):
     """Creating a custom folder in the modal assigns next sequential folder number (14)."""
-    page.goto(f"{server_url}/#/area/Safra%20C/house/101")
+    page.goto(f"{server_url}/#/area/Safra%20C/house/101/tenant/101_Ahmad%20Al-Short")
     expect(page.locator("#document-list-panel")).to_be_visible()
 
     # Open 'كهرباء وماء'
-    page.locator("#document-list div:has-text('كهرباء وماء')").first.click()
+    page.locator(".category-folder-card:has-text('كهرباء وماء')").first.click()
 
     # Open menu
     menu_btn = page.locator(".doc-menu-btn[data-vault-id='v101_2']")
@@ -550,17 +553,17 @@ def test_document_action_modal_custom_folder_e2e(page: Page, server_url: str):
     expect(modal).to_be_hidden()
 
     # Verify new category card exists with prefix 14
-    new_cat = page.locator("#document-list div:has-text('14 - مستندات بنكية جديدة')").first
+    new_cat = page.locator(".category-folder-card:has-text('14 - مستندات بنكية جديدة')").first
     expect(new_cat).to_be_visible()
 
 
 def test_document_action_modal_copy_e2e(page: Page, server_url: str):
     """Copying a document duplicates it into target folder while preserving original."""
-    page.goto(f"{server_url}/#/area/Safra%20C/house/101")
+    page.goto(f"{server_url}/#/area/Safra%20C/house/101/tenant/101_Ahmad%20Al-Short")
     expect(page.locator("#document-list-panel")).to_be_visible()
 
     # Open '05 - عقود'
-    page.locator("#document-list div:has-text('عقود')").first.click()
+    page.locator(".category-folder-card:has-text('عقود')").first.click()
 
     # Open modal on v101_3
     menu_btn = page.locator(".doc-menu-btn[data-vault-id='v101_3']")
@@ -582,11 +585,11 @@ def test_document_action_modal_copy_e2e(page: Page, server_url: str):
     expect(modal).to_be_hidden()
 
     # Check that original document still exists in '05 - عقود'
-    page.locator("#document-list div:has-text('عقود')").first.click()
+    page.locator(".category-folder-card:has-text('عقود')").first.click()
     expect(page.locator("#document-list")).to_contain_text("ملحق عقد 101")
 
     # Check that copy exists in '06 - كهرباء وماء'
-    page.locator("#document-list div:has-text('كهرباء وماء')").first.click()
+    page.locator(".category-folder-card:has-text('كهرباء وماء')").first.click()
     expect(page.locator("#document-list")).to_contain_text("ملحق عقد 101")
 
 
@@ -599,11 +602,11 @@ def test_document_action_modal_reset_lock_e2e(page: Page, server_url: str):
     )
     assert resp.status == 200
 
-    page.goto(f"{server_url}/#/area/Safra%20C/house/101")
+    page.goto(f"{server_url}/#/area/Safra%20C/house/101/tenant/101_Ahmad%20Al-Short")
     expect(page.locator("#document-list-panel")).to_be_visible()
 
     # Open 'عقود'
-    page.locator("#document-list div:has-text('عقود')").first.click()
+    page.locator(".category-folder-card:has-text('عقود')").first.click()
 
     # Open menu for v101_1
     menu_btn = page.locator(".doc-menu-btn[data-vault-id='v101_1']")

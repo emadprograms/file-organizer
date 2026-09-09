@@ -26,6 +26,10 @@ from src.api.models import (
     DocumentUpdateRequest,
     DocumentCopyRequest,
     DocumentActionResponse,
+    HouseTenantProfile,
+    CategoryBreakdownItem,
+    HouseArchiveProfile,
+    HouseProfileResponse,
 )
 from src.db.repository import (
     Repository,
@@ -289,6 +293,262 @@ async def list_timeline(request: Request, area_id: str, house_id: str):
         
     responses.sort(key=get_sort_date, reverse=True)
     return responses
+
+
+def _format_arabic_duration(start_date_str: str, end_date_str: str | None = None) -> tuple[int, str]:
+    """Calculate duration in years and format an Arabic description."""
+    try:
+        start_d = datetime.strptime(start_date_str[:10], "%Y-%m-%d").date()
+    except Exception:
+        return 0, ""
+    
+    if end_date_str:
+        try:
+            end_d = datetime.strptime(end_date_str[:10], "%Y-%m-%d").date()
+        except Exception:
+            end_d = date.today()
+        is_active = False
+    else:
+        end_d = date.today()
+        is_active = True
+
+    days = max((end_d - start_d).days, 0)
+    years_int = int(round(days / 365.25))
+
+    start_yr = start_d.year
+    if is_active:
+        if years_int <= 0:
+            dur_str = f"بدء الإيجار {start_yr} (مستمر منذ أقل من سنة)"
+        elif years_int == 1:
+            dur_str = f"بدء الإيجار {start_yr} (مستمر منذ سنة واحدة)"
+        elif years_int == 2:
+            dur_str = f"بدء الإيجار {start_yr} (مستمر منذ سنتين)"
+        elif 3 <= years_int <= 10:
+            dur_str = f"بدء الإيجار {start_yr} (مستمر منذ {years_int} سنوات)"
+        else:
+            dur_str = f"بدء الإيجار {start_yr} (مستمر منذ {years_int} سنة)"
+    else:
+        end_yr = end_d.year
+        if years_int <= 0:
+            dur_str = f"فترة الإيجار: {start_yr} (أقل من سنة)"
+        elif years_int == 1:
+            dur_str = f"فترة الإيجار: {start_yr} – {end_yr} (سنة واحدة)"
+        elif years_int == 2:
+            dur_str = f"فترة الإيجار: {start_yr} – {end_yr} (سنتان)"
+        elif 3 <= years_int <= 10:
+            dur_str = f"فترة الإيجار: {start_yr} – {end_yr} ({years_int} سنوات)"
+        else:
+            dur_str = f"فترة الإيجار: {start_yr} – {end_yr} ({years_int} سنة)"
+
+    return years_int, dur_str
+
+
+def _format_arabic_timespan(oldest_str: str | None, newest_str: str | None) -> tuple[int, str]:
+    if not oldest_str or not newest_str:
+        return 0, "لا توجد وثائق مسجلة"
+    try:
+        d1 = datetime.strptime(oldest_str[:10], "%Y-%m-%d").date()
+        d2 = datetime.strptime(newest_str[:10], "%Y-%m-%d").date()
+    except Exception:
+        return 0, f"من {oldest_str} إلى {newest_str}"
+    
+    if d1 > d2:
+        d1, d2 = d2, d1
+    
+    years = max(int(round((d2 - d1).days / 365.25)), 1) if (d2 - d1).days > 180 else 0
+    y1, y2 = d1.year, d2.year
+    if y1 == y2:
+        return 1, f"سجلات عام {y1}"
+    
+    if years <= 1:
+        return 1, f"من {y1} إلى {y2} (سنة واحدة)"
+    elif years == 2:
+        return 2, f"من {y1} إلى {y2} (سنتان)"
+    elif 3 <= years <= 10:
+        return years, f"من {y1} إلى {y2} ({years} سنوات)"
+    else:
+        return years, f"من {y1} إلى {y2} ({years} سنة)"
+
+
+@router.get("/api/areas/{area_id}/houses/{house_id}/profile", response_model=HouseProfileResponse)
+async def get_house_profile(request: Request, area_id: str, house_id: str):
+    repo = get_db_repo(request)
+    house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
+
+    if repo:
+        conn = repo.conn
+        h_cur = conn.execute("SELECT id FROM houses WHERE id = ? OR id = ?", (house_id, house_num))
+        h_row = h_cur.fetchone()
+        if not h_row:
+            raise HTTPException(status_code=404, detail="House not found.")
+        db_house_id = h_row["id"]
+
+        tenants_db = repo.list_tenants_by_house(db_house_id)
+
+        doc_cursor = conn.execute("""
+            SELECT vault_id, tenant_id, primary_date, category, page_count, batch_id
+            FROM documents
+            WHERE house_id = ?
+        """, (db_house_id,))
+        docs = doc_cursor.fetchall()
+
+        batch_cursor = conn.execute("SELECT id, page_count FROM batches WHERE house_id = ?", (db_house_id,))
+        batches = batch_cursor.fetchall()
+
+        tenant_doc_counts = {}
+        tenant_cat_sets = {}
+        for d in docs:
+            tid = d["tenant_id"]
+            tenant_doc_counts[tid] = tenant_doc_counts.get(tid, 0) + 1
+            if tid not in tenant_cat_sets:
+                tenant_cat_sets[tid] = set()
+            if d["category"]:
+                tenant_cat_sets[tid].add(d["category"])
+
+        tenant_profiles = []
+        for t in tenants_db:
+            is_active = (t.end_date is None)
+            y_int, dur_str = _format_arabic_duration(str(t.start_date), str(t.end_date) if t.end_date else None)
+            tenant_profiles.append(HouseTenantProfile(
+                id=t.id,
+                name=t.name,
+                start_date=str(t.start_date),
+                end_date=str(t.end_date) if t.end_date else None,
+                is_active=is_active,
+                duration_str_ar=dur_str,
+                document_count=tenant_doc_counts.get(t.id, 0),
+                category_count=len(tenant_cat_sets.get(t.id, set())),
+            ))
+
+        tenant_profiles.sort(key=lambda x: (not x.is_active, x.start_date), reverse=False)
+
+        valid_dates = [str(d["primary_date"]) for d in docs if d["primary_date"] and str(d["primary_date"]).upper() != "NONE"]
+        oldest_date = min(valid_dates) if valid_dates else None
+        newest_date = max(valid_dates) if valid_dates else None
+        ts_years, ts_str = _format_arabic_timespan(oldest_date, newest_date)
+
+        from src.routing.config import FOLDER_PREFIXES
+        cat_counts = {}
+        total_pages = 0
+        for d in docs:
+            cat_raw = d["category"] or "غير مصنف"
+            prefix = FOLDER_PREFIXES.get(cat_raw, "")
+            cat_numbered = f"{prefix} - {cat_raw}" if (prefix and not re.match(r'^\d+\s*-\s*', cat_raw)) else cat_raw
+            cat_counts[cat_numbered] = cat_counts.get(cat_numbered, 0) + 1
+            total_pages += (d["page_count"] or 1)
+
+        cat_items = [
+            CategoryBreakdownItem(category=c, document_count=cnt)
+            for c, cnt in sorted(cat_counts.items(), key=lambda x: x[1], reverse=True)
+        ]
+
+        archive = HouseArchiveProfile(
+            total_documents=len(docs),
+            total_pages=total_pages if total_pages > 0 else sum(b["page_count"] for b in batches),
+            batch_count=len(batches),
+            oldest_date=oldest_date,
+            newest_date=newest_date,
+            timespan_years=ts_years,
+            timespan_str_ar=ts_str,
+            categories=cat_items,
+        )
+
+        return HouseProfileResponse(
+            house_id=house_id,
+            area_id=area_id,
+            tenants=tenant_profiles,
+            archive=archive,
+        )
+
+    # Legacy filesystem/JSON fallback
+    config = getattr(request.app.state, "config", None)
+    if not config or not hasattr(config, "areas_root_path"):
+        raise HTTPException(status_code=404, detail="House not found.")
+
+    areas_root = Path(config.areas_root_path)
+    state_path = areas_root / area_id / house_id / ".source_files" / f"{house_num}_state.json"
+    if not state_path.exists():
+        state_path = areas_root / area_id / house_id / ".source_files" / f"{house_id}_state.json"
+
+    if not state_path.exists():
+        return HouseProfileResponse(
+            house_id=house_id,
+            area_id=area_id,
+            tenants=[],
+            archive=HouseArchiveProfile(),
+        )
+
+    with open(state_path, "r", encoding="utf-8") as f:
+        state_data = json.load(f)
+
+    known_tenants = state_data.get("known_tenants", [])
+    documents = state_data.get("documents", [])
+    
+    tenant_profiles = []
+    tenant_doc_counts = {}
+    for d in documents:
+        pt = d.get("primary_tenant")
+        if pt:
+            tenant_doc_counts[pt] = tenant_doc_counts.get(pt, 0) + 1
+
+    for idx, t in enumerate(known_tenants, 1):
+        s_date = t.get("start_date") or "2020-01-01"
+        e_date = t.get("end_date")
+        is_active = (e_date is None or e_date == "PRESENT" or e_date == "")
+        actual_e_date = None if is_active else str(e_date)
+        y_int, dur_str = _format_arabic_duration(str(s_date), actual_e_date)
+        t_name = t.get("name", f"Tenant {idx}")
+        tenant_profiles.append(HouseTenantProfile(
+            id=idx,
+            name=t_name,
+            start_date=str(s_date),
+            end_date=actual_e_date,
+            is_active=is_active,
+            duration_str_ar=dur_str,
+            document_count=tenant_doc_counts.get(t_name, 0),
+            category_count=0,
+        ))
+
+    tenant_profiles.sort(key=lambda x: (not x.is_active, x.start_date), reverse=False)
+
+    valid_dates = []
+    cat_counts = {}
+    total_pages = 0
+    for d in documents:
+        for dt in d.get("dates", []):
+            if dt and dt != "NONE":
+                valid_dates.append(dt)
+        cat = d.get("category") or d.get("folder_path") or "غير مصنف"
+        cat_counts[cat] = cat_counts.get(cat, 0) + 1
+        total_pages += len(d.get("pages", [1]))
+
+    oldest_date = min(valid_dates) if valid_dates else None
+    newest_date = max(valid_dates) if valid_dates else None
+    ts_years, ts_str = _format_arabic_timespan(oldest_date, newest_date)
+
+    cat_items = [
+        CategoryBreakdownItem(category=c, document_count=cnt)
+        for c, cnt in sorted(cat_counts.items(), key=lambda x: x[1], reverse=True)
+    ]
+
+    archive = HouseArchiveProfile(
+        total_documents=len(documents),
+        total_pages=total_pages,
+        batch_count=1,
+        oldest_date=oldest_date,
+        newest_date=newest_date,
+        timespan_years=ts_years,
+        timespan_str_ar=ts_str,
+        categories=cat_items,
+    )
+
+    return HouseProfileResponse(
+        house_id=house_id,
+        area_id=area_id,
+        tenants=tenant_profiles,
+        archive=archive,
+    )
+
 
 @router.get("/api/areas/{area_id}/houses/{house_id}/tenants", response_model=list[TenantItem])
 async def list_house_tenants(request: Request, area_id: str, house_id: str):

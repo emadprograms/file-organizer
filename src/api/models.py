@@ -99,3 +99,34 @@ class DocumentActionResponse(BaseModel):
     tenant_name: str | None = None
     is_manual: int = 1
 
+class HouseTenantProfile(BaseModel):
+    id: int
+    name: str
+    start_date: str
+    end_date: str | None = None
+    is_active: bool = False
+    duration_str_ar: str = ""
+    document_count: int = 0
+    category_count: int = 0
+
+class CategoryBreakdownItem(BaseModel):
+    category: str
+    document_count: int
+
+class HouseArchiveProfile(BaseModel):
+    total_documents: int = 0
+    total_pages: int = 0
+    batch_count: int = 0
+    oldest_date: str | None = None
+    newest_date: str | None = None
+    timespan_years: int = 0
+    timespan_str_ar: str = ""
+    categories: list[CategoryBreakdownItem] = []
+
+class HouseProfileResponse(BaseModel):
+    house_id: str
+    area_id: str
+    tenants: list[HouseTenantProfile] = []
+    archive: HouseArchiveProfile
+
+

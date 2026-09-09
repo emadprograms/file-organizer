@@ -61,6 +61,35 @@ CATEGORIES_RESPONSE = """[
     }
 ]"""
 
+PROFILE_RESPONSE = """{
+    "house_id": "123 - Test House",
+    "area_id": "area_Northside",
+    "tenants": [
+        {
+            "id": 1,
+            "name": "Ali",
+            "start_date": "2024-01-01",
+            "end_date": null,
+            "is_active": true,
+            "duration_str_ar": "سنة واحدة (مستمر)",
+            "document_count": 2,
+            "category_count": 1
+        }
+    ],
+    "archive": {
+        "total_documents": 2,
+        "total_pages": 4,
+        "batch_count": 1,
+        "oldest_date": "2024-01-01",
+        "newest_date": "2024-01-01",
+        "timespan_years": 1,
+        "timespan_str_ar": "2024",
+        "categories": [
+            {"category": "10 - Category A", "document_count": 2}
+        ]
+    }
+}"""
+
 def _setup_routes(page: Page, captured_urls: list):
     page.on('console', lambda msg: print(f'CONSOLE: {msg.text}'))
 
@@ -80,6 +109,11 @@ def _setup_routes(page: Page, captured_urls: list):
         route.fulfill(status=200, content_type="application/json", body=CATEGORIES_RESPONSE)
     page.route(re.compile(r".*/categories"), handle_categories)
 
+    def handle_profile(route):
+        captured_urls.append(route.request.url)
+        route.fulfill(status=200, content_type="application/json", body=PROFILE_RESPONSE)
+    page.route(re.compile(r".*/profile"), handle_profile)
+
 def test_tabs_switch_and_load_data(page: Page):
     captured = []
     _setup_routes(page, captured)
@@ -88,7 +122,17 @@ def test_tabs_switch_and_load_data(page: Page):
     page.click("text=Northside")
     page.click("text=123 - Test House")
 
-    # Should load categories by default
+    # House level shows Tenancy Register and archive profile by default
+    expect(page.locator("#tab-categories-label")).to_contain_text("سجل المستأجرين", timeout=5000)
+    expect(page.locator("#document-list")).to_contain_text("سجل المستأجرين المتعاقبين", timeout=5000)
+    expect(page.locator("#document-list")).to_contain_text("Ali", timeout=5000)
+    assert any("/profile" in u for u in captured)
+
+    # Click tenant card to drill down into categories
+    page.click(".tenant-profile-card >> text=Ali")
+
+    # Should now switch to Folders and load categories
+    expect(page.locator("#tab-categories-label")).to_contain_text("Folders", timeout=5000)
     expect(page.locator("#document-list")).to_contain_text("10 - Category A", timeout=5000)
     expect(page.locator("#document-list")).to_contain_text("2 Documents", timeout=5000)
     assert any("/categories" in u for u in captured)
