@@ -288,7 +288,6 @@ describe('PDF Preview & macOS Quick Look — Live Component Tests', () => {
           <span class="truncate">Contract 2026</span>
         </div>
         <div class="flex items-center gap-1 flex-shrink-0">
-          <button class="doc-info-btn doc-quick-look-btn">Info</button>
           <button class="doc-menu-btn">Menu</button>
         </div>
       </div>

@@ -96,9 +96,6 @@
                     <div class="flex items-center gap-1 flex-shrink-0">
                         ${noteBadgeHtml}
                         ${lockBadgeHtml}
-                        <button type="button" class="doc-info-btn doc-quick-look-btn opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-opacity" title="Document Details & Notes (Spacebar)">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        </button>
                         <button type="button" class="doc-menu-btn opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-opacity" data-vault-id="${doc.vault_id}" title="Manage Document (Rename, Move, Copy)">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
                         </button>
@@ -114,7 +111,6 @@
             `;
             
             const previewIcon = card.querySelector('.doc-icon-preview');
-            const infoBtn = card.querySelector('.doc-info-btn') || card.querySelector('.doc-quick-look-btn');
             const menuBtn = card.querySelector('.doc-menu-btn');
 
             // Zero-click Live Peek in the right panel on hover (250ms debounce)
@@ -122,23 +118,9 @@
                 window.attachPreview(card, doc.vault_id, title, doc);
             }
 
+            // Info icon on left before name: opens Document Inspector & Notes modal
             if (previewIcon) {
                 previewIcon.onclick = (e) => {
-                    e.stopPropagation();
-                    if (typeof window.setSelectedDoc === 'function') {
-                        window.setSelectedDoc(doc, title, card);
-                    }
-                    if (typeof window.openDocInspector === 'function') {
-                        window.openDocInspector(doc.vault_id, title, doc);
-                    } else if (typeof window.openQuickLook === 'function') {
-                        window.openQuickLook(doc.vault_id, title, doc);
-                    }
-                };
-            }
-
-            // Info button: opens the centered macOS-style Document Inspector & Notes modal
-            if (infoBtn) {
-                infoBtn.onclick = (e) => {
                     e.stopPropagation();
                     if (typeof window.setSelectedDoc === 'function') {
                         window.setSelectedDoc(doc, title, card);
