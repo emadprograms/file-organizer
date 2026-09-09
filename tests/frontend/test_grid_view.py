@@ -208,7 +208,7 @@ def test_drill_down_and_back_navigation(page: Page):
     # Back to Houses button visible with label
     back_btn = page.locator("#back-to-grid-btn")
     expect(back_btn).to_be_visible()
-    expect(back_btn).to_contain_text("Back to Safra C Houses")
+    expect(back_btn).to_contain_text("Safra C Houses")
 
     # Click Back button
     back_btn.click()

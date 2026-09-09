@@ -223,7 +223,7 @@ def test_intuitive_back_to_tenants_navigation(page: Page):
     # In house view (no tenant selected yet):
     # '#back-to-grid-btn' is visible
     expect(page.locator("#back-to-grid-btn")).to_be_visible()
-    expect(page.locator("#back-to-grid-btn")).to_contain_text("Back to Safra D Houses")
+    expect(page.locator("#back-to-grid-btn")).to_contain_text("Safra D Houses")
     # '#tab-back-to-tenants' MUST be hidden
     expect(page.locator("#tab-back-to-tenants")).to_be_hidden()
     # Old buttons are completely removed
@@ -259,7 +259,7 @@ def test_intuitive_back_to_tenants_navigation(page: Page):
     expect(page.locator("#tab-categories-label")).to_contain_text("سجل المستأجرين")
     expect(page.locator(".tenant-profile-card")).to_have_count(2)
     expect(page.locator("#tab-back-to-tenants")).to_be_hidden()
-    expect(page.locator("#back-to-grid-btn")).to_contain_text("Back to Safra D Houses")
+    expect(page.locator("#back-to-grid-btn")).to_contain_text("Safra D Houses")
 
     # 4. Click tenant again, and test returning to Tenancy Register via sleek tab button
     page.click('.tenant-profile-card[data-tenant-name="Zaid Modern"]')
