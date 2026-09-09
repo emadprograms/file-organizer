@@ -1,5 +1,5 @@
 ---
-status: investigating
+status: resolved
 trigger: "Why are maintenance documents all named 'siyana' (صيانة) and electricity ones named 'فاتورة خدمات'? Do these documents actually get a title that later gets discarded?"
 created: 2026-09-02
 updated: 2026-09-02

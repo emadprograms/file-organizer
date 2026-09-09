@@ -1,5 +1,5 @@
 ---
-status: investigating
+status: resolved
 trigger: |
   DATA_START
   Investigate if there are other issues like the manifest=null bug — where the pipeline

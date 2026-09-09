@@ -1,10 +1,26 @@
 # Milestones History
 
+## v11.0 Database Backend & Clean Storage Architecture (Shipped: 2026-09-09)
+
+**Phases completed:** 5 phases (92-96), 5 plans, 67 tests passing
+
+**Key accomplishments:**
+
+- Designed and implemented the relational SQLite schema (`areas`, `houses`, `tenants`, `batches`, `pages`, `documents`) with WAL mode, foreign keys, cascading deletes, unique constraints, and performance indices in `src/db/`.
+- Built an idempotent migration engine (`src/migration/v11_migration.py`) restructuring legacy houses into clean `{house}/batches/` and `{house}/vault/` structures, eliminating `.lnk` shortcuts, legacy JSONs, and directory clutter.
+- Redesigned multi-page scanned PDF ingestion (`src/ingest/v11_ingest.py`) to register batches and slice standalone vault PDFs directly, completely eliminating index shifting and the reconciliation loop.
+- Rebuilt the FastAPI backend (`/api/tree`, `/api/houses`, `/api/timeline`, `/api/categories`, `/api/search`) to execute indexed SQL queries directly in <10ms, eliminating SMB filesystem walks and memory caching overhead.
+- Established comprehensive Playwright E2E UI test suite (`tests/frontend/test_v11_e2e_db.py`) verifying 100% feature parity for Tree View, Area Grid Overview, Tenure Color-Coding (<5y, 5–10y, >10y), Drill-Down, Search, and PDF previews.
+- Verified live migration integrity against real house data (House 500: 3 historical tenants, 65 vault docs, 131 pages accurately mapped with 0 unlinked pages).
+
+---
+
 ## v10.0 Area Grid Overview & Tenure Visualization (Shipped: 2026-09-06)
 
 **Phases completed:** 4 phases (88-91)
 
 **Key accomplishments:**
+
 - Built dual-view toggle supporting both classic Tree View and new Area Grid Overview.
 - Designed responsive house card grid featuring current resident, tenure duration, and tenure color coding (<5y green, 5-10y yellow, >10y red).
 - Implemented card metrics with total document counts and category breakdowns.
@@ -19,6 +35,7 @@
 **Phases completed:** 5 phases, 5 plans
 
 **Key accomplishments:**
+
 - Implemented 3-level hierarchical sidebar navigation (Area -> House -> Tenant) with deep URL linking and synchronized active node selection.
 - Developed global search across houses, tenants, and full-text PDF documents with instant zero-click search dropdown and keyboard shortcuts (`Cmd/Ctrl+K`, `Esc`).
 - Added Arabic-English phonetic intermixing and fuzzy matching for Arabic OCR names.

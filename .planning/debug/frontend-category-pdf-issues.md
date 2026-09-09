@@ -1,5 +1,5 @@
 ---
-status: investigating
+status: resolved
 trigger: "There are lot of issues in the current milestone. clicking on the categories inside the catgories doesn't open the pdfs. the categories are not numbered like how it is in the folders. I want you to hunt for more issues. what other issues can you find. and the biggest issue that the tests are not fully developed. they don't catch these issues. so first things first. I want you to hunt of issues (frontend related only.)"
 created: 2026-09-02
 ---

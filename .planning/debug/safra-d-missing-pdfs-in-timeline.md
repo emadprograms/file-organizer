@@ -1,5 +1,5 @@
 ---
-status: investigating
+status: resolved
 trigger: |
   DATA_START
   the app is working for safra c. I can see the pdfs in the timeline but I don't see anything for safra d in the app. check

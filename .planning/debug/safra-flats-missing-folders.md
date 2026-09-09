@@ -1,5 +1,5 @@
 ---
-status: investigating
+status: resolved
 trigger: |
   DATA_START
   safra flats isn't working. its not even detecting the folders and files. just the house names.
