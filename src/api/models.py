@@ -141,3 +141,28 @@ class HouseProfileResponse(BaseModel):
     archive: HouseArchiveProfile
 
 
+class IngestResponse(BaseModel):
+    status: str
+    mode: str
+    vault_id: str | None = None
+    vault_ids: list[str] | None = None
+    batch_id: int | None = None
+    page_count: int
+    documents_created: int = 1
+    house_id: str
+    area_id: str
+    message: str
+
+
+class AIPreviewResponse(BaseModel):
+    status: str
+    page_count: int
+    suggested_title: str | None = None
+    suggested_category: str | None = None
+    suggested_date: str | None = None
+    suggested_tenant_name: str | None = None
+    suggested_house_id: str | None = None
+    suggested_area_id: str | None = None
+
+
+

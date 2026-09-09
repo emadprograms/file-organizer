@@ -13,3 +13,4 @@ opencv-python
 numpy
 filelock
 pylnk3
+python-multipart

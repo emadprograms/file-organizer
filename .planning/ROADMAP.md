@@ -22,6 +22,7 @@
 - Page inheritance records correctly populated in `pages` referencing batch and document.
 
 #### Phase 98: FastAPI Ingest API Endpoints (POST /api/ingest & POST /api/ingest/preview-ai)
+- [x] Plan 1/1: FastAPI Ingest API Endpoints & Preview-AI — completed 2026-09-09
 **Requirements:** [API-04, API-05]
 **Description:** Create FastAPI endpoints for file ingestion: `POST /api/ingest` supporting modes `manual`, `assisted`, and `auto_split`, and `POST /api/ingest/preview-ai` for single-document preview analysis before committing to storage.
 **Success Criteria:**
@@ -93,8 +94,8 @@ See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md) for full 
 | 94. Ingestion Pipeline Redesign | v11.0 | 1/1 | Complete | 2026-09-08 |
 | 95. FastAPI High-Performance Backend | v11.0 | 1/1 | Complete | 2026-09-08 |
 | 96. E2E Verification & UI Parity | v11.0 | 1/1 | Complete | 2026-09-08 |
-| 97. Ingest Engine Core (Manual Ingest Pipeline & Page Inheritance) | v12.0 | 0/1 | Pending | — |
-| 98. FastAPI Ingest API Endpoints (POST /api/ingest & POST /api/ingest/preview-ai) | v12.0 | 0/1 | Pending | — |
+| 97. Ingest Engine Core (Manual Ingest Pipeline & Page Inheritance) | v12.0 | 1/1 | Complete | 2026-09-09 |
+| 98. FastAPI Ingest API Endpoints (POST /api/ingest & POST /api/ingest/preview-ai) | v12.0 | 1/1 | Complete | 2026-09-09 |
 | 99. Ingest Station Web UI (Navbar Trigger, Dropzone & Ingest Drawer) | v12.0 | 0/1 | Pending | — |
 | 100. Comprehensive Automated Testing & End-to-End Verification | v12.0 | 0/1 | Pending | — |
 

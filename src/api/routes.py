@@ -5,10 +5,13 @@ import difflib
 import time
 import shutil
 import uuid
+import tempfile
+import unicodedata
+import fitz
 from pathlib import Path
 from datetime import date, datetime
-from typing import Optional
-from fastapi import APIRouter, Request, HTTPException
+from typing import Optional, Union, Any
+from fastapi import APIRouter, Request, HTTPException, UploadFile, File, Form
 from fastapi.responses import FileResponse
 from pydantic import ValidationError
 
@@ -32,6 +35,8 @@ from src.api.models import (
     CategoryBreakdownItem,
     HouseArchiveProfile,
     HouseProfileResponse,
+    IngestResponse,
+    AIPreviewResponse,
 )
 from src.db.repository import (
     Repository,
@@ -40,6 +45,9 @@ from src.db.repository import (
     copy_document,
     reset_document_manual_lock,
 )
+from src.migration.v11_migration import extract_house_id, normalize_date
+from src.ingest.manual_ingest import ingest_document_manual
+from src.ingest.v11_ingest import ingest_pdf_to_house
 
 router = APIRouter()
 
@@ -1955,4 +1963,500 @@ async def get_db_table_data(
         "offset": offset,
         "rows": rows
     }
+
+
+def get_db_path_for_ingest(request: Request) -> str:
+    db_path = getattr(request.app.state, "db_path", None)
+    if db_path:
+        return str(db_path)
+    config = getattr(request.app.state, "config", None)
+    if config and getattr(config, "db_path", None):
+        return str(config.db_path)
+    repo = get_db_repo(request)
+    if repo and repo.conn:
+        try:
+            cursor = repo.conn.execute("PRAGMA database_list")
+            for row in cursor.fetchall():
+                if row[1] == "main" and row[2]:
+                    return str(row[2])
+        except Exception:
+            pass
+    areas_root = get_areas_root_for_ingest(request)
+    candidates = [
+        areas_root / "organizer.db",
+        *areas_root.glob("*/organizer.db"),
+        Path("organizer.db"),
+        Path("file_organizer.db"),
+    ]
+    for cand in candidates:
+        if cand.exists():
+            return str(cand)
+    return "organizer.db"
+
+
+def get_areas_root_for_ingest(request: Request) -> Path:
+    config = getattr(request.app.state, "config", None)
+    if config and getattr(config, "areas_root_path", None):
+        return Path(config.areas_root_path)
+    return Path("areas")
+
+
+def extract_preview_metadata(
+    pdf_source: Union[str, Path, bytes],
+    area_id: Optional[str] = None,
+    house_id: Optional[str] = None,
+    repo: Optional[Repository] = None,
+    llm_client: Any = None,
+    filename: Optional[str] = None,
+) -> AIPreviewResponse:
+    if isinstance(pdf_source, bytes):
+        try:
+            doc = fitz.open(stream=pdf_source, filetype="pdf")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid or corrupted PDF file: {e}")
+    else:
+        try:
+            doc = fitz.open(str(pdf_source))
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid or corrupted PDF file: {e}")
+
+    try:
+        page_count = len(doc)
+        if page_count == 0:
+            raise HTTPException(status_code=400, detail="PDF contains zero pages.")
+
+        pages_text = []
+        for p_idx in range(min(3, page_count)):
+            pages_text.append(doc[p_idx].get_text() or "")
+        full_text = "\n".join(pages_text).strip()
+    finally:
+        doc.close()
+
+    # Unicode NFKC normalization and formatting cleanup
+    full_text = unicodedata.normalize("NFKC", full_text)
+    full_text = full_text.replace("\xad", "-").replace("\xa0", " ")
+
+    # Digits normalization: Eastern Arabic-Indic numerals (٠-٩) to Latin digits (0-9)
+    ar_to_en_digits = str.maketrans("٠١٢٣٤٥٦٧٨٩", "0123456789")
+    text_normalized = full_text.translate(ar_to_en_digits)
+
+    # Provide dual-orientation text so both standard logical and reversed visual-order Arabic match seamlessly
+    reversed_lines = [line[::-1] for line in text_normalized.splitlines()]
+    searchable_text = text_normalized + "\n" + "\n".join(reversed_lines)
+
+    # 1. Date extraction
+    suggested_date = None
+    ar_months = {
+        "يناير": 1, "فبراير": 2, "مارس": 3, "أبريل": 4, "مايو": 5, "يونيو": 6,
+        "يوليو": 7, "أغسطس": 8, "سبتمبر": 9, "أكتوبر": 10, "نوفمبر": 11, "ديسمبر": 12
+    }
+    m_ar = re.search(
+        r"\b(\d{1,2})\s+(يناير|فبراير|مارس|أبريل|مايو|يونيو|يوليو|أغسطس|سبتمبر|أكتوبر|نوفمبر|ديسمبر)\s+(\d{4})\b",
+        searchable_text
+    )
+    if m_ar:
+        d = int(m_ar.group(1))
+        m = ar_months.get(m_ar.group(2), 1)
+        y = int(m_ar.group(3))
+        suggested_date = f"{y:04d}-{m:02d}-{d:02d}"
+
+    if not suggested_date:
+        m_iso = re.search(r"(?<!\d)(19\d{2}|20\d{2})[-/.](0?[1-9]|1[0-2])[-/.](0?[1-9]|[12]\d|3[01])(?!\d)", text_normalized)
+        if m_iso:
+            y, m, d = int(m_iso.group(1)), int(m_iso.group(2)), int(m_iso.group(3))
+            if 1 <= m <= 12 and 1 <= d <= 31:
+                suggested_date = f"{y:04d}-{m:02d}-{d:02d}"
+
+    if not suggested_date:
+        m_dmy = re.search(r"(?<!\d)(0?[1-9]|[12]\d|3[01])[-/.](0?[1-9]|1[0-2])[-/.](19\d{2}|20\d{2})(?!\d)", text_normalized)
+        if m_dmy:
+            d, m, y = int(m_dmy.group(1)), int(m_dmy.group(2)), int(m_dmy.group(3))
+            if 1 <= m <= 12 and 1 <= d <= 31:
+                suggested_date = f"{y:04d}-{m:02d}-{d:02d}"
+
+    if suggested_date:
+        suggested_date = normalize_date(suggested_date)
+
+    # 2. Category extraction (bilingual + normal/reversed Arabic)
+    category_rules = [
+        ("05-عقود", ["عقد", "دقع", "إيجار", "راجيإ", "اتفاقية", "تأجير", "شروط العقد", "contract", "contracts", "lease", "agreement", "طرف أول", "طرف ثاني"]),
+        ("06-كهرباء وماء", ["كهرباء", "ءابرهك", "ماء", "فاتورة", "ةروطاف", "فواتير", "استهلاك", "هيئة الكهرباء", "ewa", "electricity", "water", "utility", "bill", "حساب كهرباء"]),
+        ("03-أمر تخصيص", ["أمر تخصيص", "تخصيص مسكن", "تخصيص وحدة", "قرار تخصيص", "تسكين", "وزارة الإسكان", "allocation", "allotment", "amar takhsees"]),
+        ("04-محضر تسليم مفتاح", ["تسليم مفتاح", "محضر تسليم", "استلام مفتاح", "تسليم المسكن", "مفاتيح", "key handover", "keys"]),
+        ("07-استقطاع إيجار", ["استقطاع إيجار", "استقطاع شهري", "خصم إيجار", "استقطاع", "rent deduction", "salary deduction"]),
+        ("08-وقف استقطاع بدل", ["وقف استقطاع", "بدل سكن", "وقف بدل", "stop allowance", "allowance"]),
+        ("10-صيانة", ["صيانة", "ةنايص", "إصلاح", "ترميم", "عطل", "تسريب", "كهربائي", "سباكة", "maintenance", "repair"]),
+        ("02-بيانات شخصية", ["بطاقة هوية", "جواز سفر", "جواز", "عقد زواج", "رخصة قيادة", "cpr", "passport", "id card", "personal details"]),
+        ("01-بيانات أساسية", ["بيانات أساسية", "استمارة", "إقرار", "طلب سكن", "براءة ذمة", "تقرير حالة", "basic details", "application form"]),
+        ("12-تعديلات", ["تعديل", "تعديلات", "إضافة غرفة", "كراج", "بناء ملحق", "توسعة", "modification", "modifications", "renovation"]),
+        ("11-صور ومعاينات", ["معاينة", "تقرير معاينة", "صور", "كشف ميداني", "inspection", "pictures", "photos"]),
+        ("09-إشعارات", ["إشعار", "إنذار", "تنبيه", "إخلاء", "warning", "notice", "eviction"]),
+    ]
+
+    lower_text = searchable_text.lower()
+    best_category = None
+    max_score = 0
+    for cat, keywords in category_rules:
+        score = sum(1 for kw in keywords if kw in lower_text)
+        if score > max_score:
+            max_score = score
+            best_category = cat
+
+    suggested_category = best_category if max_score > 0 else "13-رسائل متنوعة"
+
+    # 3. Suggested title
+    subject_match = re.search(r"(?:الموضوع|بشأن|subject)\s*[:/–—\-]\s*([^\n\r]+)", searchable_text, re.IGNORECASE)
+    if subject_match:
+        subj = subject_match.group(1).strip()
+        if 3 <= len(subj) <= 80:
+            suggested_title = subj
+        else:
+            suggested_title = None
+    else:
+        suggested_title = None
+
+    if not suggested_title:
+        category_titles = {
+            "05-عقود": "عقد إيجار",
+            "06-كهرباء وماء": "فاتورة كهرباء وماء",
+            "03-أمر تخصيص": "أمر تخصيص مسكن",
+            "04-محضر تسليم مفتاح": "محضر تسليم مفتاح",
+            "07-استقطاع إيجار": "إشعار استقطاع إيجار",
+            "08-وقف استقطاع بدل": "طلب وقف استقطاع بدل سكن",
+            "10-صيانة": "طلب صيانة وإصلاح",
+            "02-بيانات شخصية": "وثيقة بيانات شخصية",
+            "01-بيانات أساسية": "استمارة بيانات أساسية",
+            "12-تعديلات": "طلب تعديلات على المسكن",
+            "11-صور ومعاينات": "تقرير معاينة وصور",
+            "09-إشعارات": "إشعار رسمي",
+            "13-رسائل متنوعة": "مستند رسمي",
+        }
+        suggested_title = category_titles.get(suggested_category, "مستند رسمي")
+        if filename and Path(filename).stem and Path(filename).stem.lower() not in ("scan", "document", "upload", "test", "file"):
+            suggested_title = f"{suggested_title} - {Path(filename).stem}"
+
+    # 4. Tenant name suggestion
+    clean_house = extract_house_id(house_id) if house_id else None
+    suggested_tenant_name = None
+    if repo and clean_house:
+        try:
+            tenants = repo.list_tenants_by_house(clean_house)
+            for t in tenants:
+                t_name = t.name.strip()
+                if t_name and t_name in searchable_text:
+                    suggested_tenant_name = t_name
+                    break
+        except Exception:
+            pass
+
+    if not suggested_tenant_name:
+        tenant_match = re.search(
+            r"(?:المستأجر|السيد|المواطن|الاسم|Tenant|Name)\s*[:/–—\-]\s*([^\n\r,–—\(\)]+)",
+            searchable_text,
+            re.IGNORECASE,
+        )
+        if tenant_match:
+            raw_name = tenant_match.group(1).strip()
+            for suffix in ["المحترم", "حفظه الله", "ورعاه", "وفقه الله"]:
+                raw_name = raw_name.replace(suffix, "").strip()
+            if 2 <= len(raw_name) <= 60:
+                suggested_tenant_name = raw_name
+
+    # 5. House number and Area
+    suggested_house_id = clean_house
+    if not suggested_house_id:
+        house_match = re.search(r"(?:منزل|بيت|شقة|House|Villa|Unit)\s*(?:رقم|#)?\s*(\d+)", searchable_text, re.IGNORECASE)
+        if house_match:
+            suggested_house_id = house_match.group(1)
+
+    suggested_area_id = area_id
+
+    # 6. Optional LLM enhancement
+    if llm_client is not None and hasattr(llm_client, "generate_content"):
+        try:
+            prompt = (
+                "Analyze the following Arabic document text and provide suggestions in JSON format with fields: "
+                "suggested_title, suggested_category, suggested_date, suggested_tenant_name, suggested_house_id.\n"
+                f"Document text:\n{text_normalized[:1500]}"
+            )
+            res = llm_client.generate_content(contents=[prompt])
+            if hasattr(res, "suggested_title") and res.suggested_title:
+                suggested_title = res.suggested_title
+            if hasattr(res, "suggested_category") and res.suggested_category:
+                suggested_category = res.suggested_category
+            if hasattr(res, "suggested_date") and res.suggested_date:
+                suggested_date = res.suggested_date
+            if hasattr(res, "suggested_tenant_name") and res.suggested_tenant_name:
+                suggested_tenant_name = res.suggested_tenant_name
+            if hasattr(res, "suggested_house_id") and res.suggested_house_id:
+                suggested_house_id = res.suggested_house_id
+        except Exception as e:
+            pass
+
+    return AIPreviewResponse(
+        status="success",
+        page_count=page_count,
+        suggested_title=suggested_title,
+        suggested_category=suggested_category,
+        suggested_date=suggested_date,
+        suggested_tenant_name=suggested_tenant_name,
+        suggested_house_id=suggested_house_id,
+        suggested_area_id=suggested_area_id,
+    )
+
+
+@router.post("/api/ingest/preview-ai", response_model=AIPreviewResponse)
+async def preview_ai(
+    request: Request,
+    file: UploadFile = File(...),
+    area_id: Optional[str] = Form(None),
+    house_id: Optional[str] = Form(None),
+):
+    """Analyze single document text and return metadata predictions without committing to DB or vault."""
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Only PDF files (.pdf) are supported."
+        )
+
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+    if not content.startswith(b"%PDF"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file format. File does not begin with %PDF header."
+        )
+
+    repo = get_db_repo(request)
+    llm_client = getattr(request.app.state, "llm_client", None)
+
+    return extract_preview_metadata(
+        pdf_source=content,
+        area_id=area_id,
+        house_id=house_id,
+        repo=repo,
+        llm_client=llm_client,
+        filename=file.filename,
+    )
+
+
+@router.post("/api/ingest", response_model=IngestResponse)
+async def ingest_document(
+    request: Request,
+    file: UploadFile = File(...),
+    mode: str = Form("manual"),
+    area_id: str = Form(...),
+    house_id: str = Form(...),
+    tenant_id: Optional[int] = Form(None),
+    tenant_name: Optional[str] = Form(None),
+    category: Optional[str] = Form(None),
+    arabic_title: Optional[str] = Form(None),
+    primary_date: Optional[str] = Form(None),
+    notes: Optional[str] = Form(None),
+    dry_run: bool = Form(False),
+):
+    """Unified document ingestion endpoint supporting manual, assisted, and auto_split modes."""
+    if not file.filename or not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file type. Only PDF files (.pdf) are supported."
+        )
+
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Uploaded file is empty.")
+    if not content.startswith(b"%PDF"):
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid file format. File does not begin with %PDF header."
+        )
+
+    valid_modes = {"manual", "assisted", "auto_split"}
+    if mode not in valid_modes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid mode '{mode}'. Supported modes: {', '.join(sorted(valid_modes))}"
+        )
+
+    repo = get_db_repo(request)
+    if not repo:
+        db_path_candidate = get_db_path_for_ingest(request)
+        if Path(db_path_candidate).exists():
+            from src.db.connection import get_db_connection
+            from src.db.schema import init_db
+            conn = get_db_connection(db_path_candidate)
+            init_db(conn)
+            repo = Repository(conn)
+            request.app.state.repo = repo
+            request.app.state.db_path = db_path_candidate
+
+    if not repo:
+        raise HTTPException(status_code=503, detail="Database not connected.")
+
+    db_path = get_db_path_for_ingest(request)
+    areas_root = get_areas_root_for_ingest(request)
+    clean_house_id = extract_house_id(house_id)
+
+    # Ensure Area and House exist in DB
+    if not repo.get_area(area_id):
+        repo.add_area(area_id=area_id)
+    if not repo.get_house(clean_house_id):
+        repo.add_house(house_id=clean_house_id, area_id=area_id)
+    if not repo.autocommit:
+        repo.conn.commit()
+
+    temp_dir = Path(tempfile.mkdtemp(prefix="api_ingest_"))
+    original_name = Path(file.filename).name if file.filename else f"upload_{uuid.uuid4().hex[:8]}.pdf"
+    temp_pdf_path = temp_dir / original_name
+
+    try:
+        temp_pdf_path.write_bytes(content)
+
+        if mode == "auto_split":
+            llm_client = getattr(request.app.state, "llm_client", None)
+            try:
+                result = ingest_pdf_to_house(
+                    pdf_path=temp_pdf_path,
+                    house_id=clean_house_id,
+                    area_id=area_id,
+                    db_path=Path(db_path),
+                    areas_root=Path(areas_root),
+                    llm_client=llm_client,
+                    dry_run=dry_run,
+                )
+            except ValueError as ve:
+                raise HTTPException(status_code=400, detail=str(ve))
+            except Exception as e:
+                raise HTTPException(status_code=500, detail=f"Auto-split ingestion failed: {e}")
+
+            clear_tree_cache()
+            return IngestResponse(
+                status="success",
+                mode="auto_split",
+                vault_ids=result.get("vault_ids", []),
+                batch_id=result.get("batch_id"),
+                page_count=result.get("pages_ingested", 0),
+                documents_created=result.get("documents_created", 1),
+                house_id=clean_house_id,
+                area_id=area_id,
+                message=f"Batch successfully auto-split into {result.get('documents_created', 1)} documents.",
+            )
+
+        if mode == "assisted":
+            needs_preview = (
+                not category or not category.strip()
+                or not arabic_title or not arabic_title.strip()
+                or not primary_date or not primary_date.strip()
+                or (tenant_id is None and (not tenant_name or not tenant_name.strip()))
+            )
+            if needs_preview:
+                preview = extract_preview_metadata(
+                    pdf_source=temp_pdf_path,
+                    area_id=area_id,
+                    house_id=clean_house_id,
+                    repo=repo,
+                    llm_client=getattr(request.app.state, "llm_client", None),
+                    filename=original_name,
+                )
+                if not category or not category.strip():
+                    category = preview.suggested_category or "13-رسائل متنوعة"
+                if not arabic_title or not arabic_title.strip():
+                    arabic_title = preview.suggested_title or Path(original_name).stem
+                if not primary_date or not primary_date.strip():
+                    primary_date = preview.suggested_date
+                if tenant_id is None and (not tenant_name or not tenant_name.strip()) and preview.suggested_tenant_name:
+                    tenant_name = preview.suggested_tenant_name
+
+        # Manual / assisted defaults
+        if not category or not category.strip():
+            category = "13-رسائل متنوعة"
+        else:
+            category = category.strip()
+
+        if not arabic_title or not arabic_title.strip():
+            arabic_title = Path(original_name).stem
+        else:
+            arabic_title = arabic_title.strip()
+
+        primary_date = primary_date.strip() if (primary_date and primary_date.strip()) else None
+
+        # Resolve tenant
+        if tenant_name and tenant_name.strip() and tenant_id is None:
+            existing_tenants = repo.list_tenants_by_house(clean_house_id)
+            target_tenant = next((t for t in existing_tenants if t.name.strip().lower() == tenant_name.strip().lower()), None)
+            if target_tenant:
+                resolved_tenant_id = target_tenant.id
+            else:
+                new_t = repo.add_tenant(
+                    house_id=clean_house_id,
+                    name=tenant_name.strip(),
+                    start_date=primary_date or date.today().isoformat(),
+                    end_date=None,
+                )
+                if not repo.autocommit:
+                    repo.conn.commit()
+                resolved_tenant_id = new_t.id
+        elif tenant_id is None and (not tenant_name or not tenant_name.strip()):
+            active_t = repo.get_active_tenant(clean_house_id, target_date=primary_date)
+            if active_t:
+                resolved_tenant_id = active_t.id
+            else:
+                existing_tenants = repo.list_tenants_by_house(clean_house_id)
+                if existing_tenants:
+                    resolved_tenant_id = existing_tenants[0].id
+                else:
+                    def_t = repo.add_tenant(
+                        house_id=clean_house_id,
+                        name="Default Tenant",
+                        start_date="1970-01-01",
+                        end_date=None,
+                    )
+                    if not repo.autocommit:
+                        repo.conn.commit()
+                    resolved_tenant_id = def_t.id
+        else:
+            t = repo.get_tenant(tenant_id)
+            if not t:
+                raise HTTPException(status_code=400, detail=f"Tenant ID {tenant_id} does not exist.")
+            if str(t.house_id) != str(clean_house_id):
+                raise HTTPException(status_code=400, detail=f"Tenant {tenant_id} belongs to house '{t.house_id}', not '{clean_house_id}'.")
+            resolved_tenant_id = tenant_id
+
+        try:
+            result = ingest_document_manual(
+                pdf_path=temp_pdf_path,
+                house_id=clean_house_id,
+                area_id=area_id,
+                tenant_id=resolved_tenant_id,
+                category=category,
+                arabic_title=arabic_title,
+                primary_date=primary_date,
+                db_path=db_path,
+                areas_root=areas_root,
+                notes=notes.strip() if notes else None,
+                dry_run=dry_run,
+            )
+        except ValueError as ve:
+            raise HTTPException(status_code=400, detail=str(ve))
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Ingestion failed: {e}")
+
+        clear_tree_cache()
+        v_id = result.get("vault_id")
+        return IngestResponse(
+            status="success",
+            mode=mode,
+            vault_id=v_id,
+            vault_ids=[v_id] if v_id else None,
+            batch_id=result.get("batch_id"),
+            page_count=result.get("page_count", 0),
+            documents_created=1,
+            house_id=clean_house_id,
+            area_id=area_id,
+            message=f"Document successfully ingested {mode}ly into house {clean_house_id}.",
+        )
+    finally:
+        shutil.rmtree(temp_dir, ignore_errors=True)
+
 

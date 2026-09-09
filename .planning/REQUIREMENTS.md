@@ -13,11 +13,11 @@ Provide a unified document ingestion system enabling instant manual ingestion (z
 
 ### FastAPI Ingest Endpoints
 
-- [ ] **API-04**: `POST /api/ingest` endpoint supporting multipart form uploads with modes:
+- [x] **API-04**: `POST /api/ingest` endpoint supporting multipart form uploads with modes:
   - `manual`: Direct ingest bypassing LLM vision/classification.
   - `assisted`: User-confirmed metadata ingest with optional AI pre-population.
   - `auto_split`: Batch split and classification pipeline.
-- [ ] **API-05**: `POST /api/ingest/preview-ai` endpoint for single-document preview analysis, returning suggested metadata (category, subfolder, dates, tenant) without writing to disk or database.
+- [x] **API-05**: `POST /api/ingest/preview-ai` endpoint for single-document preview analysis, returning suggested metadata (category, subfolder, dates, tenant) without writing to disk or database.
 
 ### Modern Web UI (Ingest Station)
 
@@ -40,8 +40,8 @@ Provide a unified document ingestion system enabling instant manual ingestion (z
 |-------------|-------|--------|
 | ING-03 | Phase 97 | Completed |
 | ING-04 | Phase 97 | Completed |
-| API-04 | Phase 98 | Pending |
-| API-05 | Phase 98 | Pending |
+| API-04 | Phase 98 | Completed |
+| API-05 | Phase 98 | Completed |
 | UI-01 | Phase 99 | Pending |
 | UI-02 | Phase 99 | Pending |
 | VER-03 | Phase 100 | Pending |
