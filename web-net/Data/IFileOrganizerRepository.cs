@@ -28,6 +28,14 @@ public interface IFileOrganizerRepository
         string? targetTitle = null,
         string? newVaultId = null,
         string? areasRoot = null);
+    Task<DocumentDetailsDto?> GetDocumentDetailsAsync(string vaultId, string? areasRoot = null);
+    Task<DocumentActionResponseDto?> ResetDocumentLockAsync(string vaultId);
+    Task<DocumentActionResponseDto?> UpdateDocumentNotesAsync(string vaultId, string notes);
+    Task<DocumentActionResponseDto?> UpdateDocumentTenantAsync(string vaultId, int tenantId);
+    Task<TenantReallocationResponseDto> BulkUpdateTenantsAsync(string houseId, IReadOnlyList<TenantDto> tenants, bool reallocate);
+    Task<int> DeleteCategoryAsync(string houseId, string categoryName);
+    Task<DbInfoResponseDto> GetDbStatsAsync();
+    Task<DbTableResponseDto> GetDbTableDataAsync(string tableName, int limit = 50, int offset = 0, string? search = null);
 
     // Helpers for database seeding and testing
     Task<Area> AddAreaAsync(string areaId, string? code = null);
@@ -37,3 +45,4 @@ public interface IFileOrganizerRepository
     Task<IReadOnlyList<Page>> GetPagesByVaultIdAsync(string vaultId);
     Task EnsureSchemaAsync();
 }
+

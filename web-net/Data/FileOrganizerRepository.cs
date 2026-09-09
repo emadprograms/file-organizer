@@ -1269,4 +1269,281 @@ public class FileOrganizerRepository : IFileOrganizerRepository
 
         return pages.ToList();
     }
+
+    private static readonly HashSet<string> AllowedDbTables = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "areas", "houses", "tenants", "batches", "pages", "documents"
+    };
+
+    public Task<DocumentDetailsDto?> GetDocumentDetailsAsync(string vaultId, string? areasRoot = null)
+        => GetDocumentByVaultIdAsync(vaultId, areasRoot);
+
+    public async Task<DocumentActionResponseDto?> ResetDocumentLockAsync(string vaultId)
+    {
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+        var existing = await conn.QueryFirstOrDefaultAsync<Document>(
+            "SELECT vault_id AS VaultId, house_id AS HouseId, tenant_id AS TenantId, category AS Category, arabic_title AS ArabicTitle, is_manual AS IsManual FROM documents WHERE vault_id = @VaultId;",
+            new { VaultId = vaultId });
+
+        if (existing == null)
+            return null;
+
+        await conn.ExecuteAsync("UPDATE documents SET is_manual = 0 WHERE vault_id = @VaultId;", new { VaultId = vaultId });
+
+        var tenantName = await conn.QueryFirstOrDefaultAsync<string>(
+            "SELECT name FROM tenants WHERE id = @TenantId;",
+            new { TenantId = existing.TenantId });
+
+        return new DocumentActionResponseDto
+        {
+            Status = "success",
+            VaultId = vaultId,
+            ArabicTitle = existing.ArabicTitle,
+            Category = existing.Category,
+            TenantId = existing.TenantId,
+            TenantName = tenantName,
+            IsManual = 0
+        };
+    }
+
+    public async Task<DocumentActionResponseDto?> UpdateDocumentNotesAsync(string vaultId, string notes)
+    {
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+        var existing = await conn.QueryFirstOrDefaultAsync<Document>(
+            "SELECT vault_id AS VaultId, house_id AS HouseId, tenant_id AS TenantId, category AS Category, arabic_title AS ArabicTitle, is_manual AS IsManual FROM documents WHERE vault_id = @VaultId;",
+            new { VaultId = vaultId });
+
+        if (existing == null)
+            return null;
+
+        await conn.ExecuteAsync("UPDATE documents SET notes = @Notes WHERE vault_id = @VaultId;",
+            new { VaultId = vaultId, Notes = notes.Trim() });
+
+        var tenantName = await conn.QueryFirstOrDefaultAsync<string>(
+            "SELECT name FROM tenants WHERE id = @TenantId;",
+            new { TenantId = existing.TenantId });
+
+        return new DocumentActionResponseDto
+        {
+            Status = "success",
+            VaultId = vaultId,
+            ArabicTitle = existing.ArabicTitle,
+            Category = existing.Category,
+            TenantId = existing.TenantId,
+            TenantName = tenantName,
+            IsManual = existing.IsManual
+        };
+    }
+
+    public async Task<DocumentActionResponseDto?> UpdateDocumentTenantAsync(string vaultId, int tenantId)
+    {
+        return await UpdateDocumentAsync(vaultId, tenantId: tenantId, isManual: 1);
+    }
+
+    public async Task<TenantReallocationResponseDto> BulkUpdateTenantsAsync(string houseId, IReadOnlyList<TenantDto> tenants, bool reallocate)
+    {
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+        await using var tx = await conn.BeginTransactionAsync();
+
+        var cleanHouseId = TextUtils.ExtractHouseNumber(houseId);
+
+        var currentTenants = (await conn.QueryAsync<Tenant>(
+            "SELECT id, house_id AS HouseId, name, start_date AS StartDate, end_date AS EndDate FROM tenants WHERE house_id = @HouseId OR house_id = @CleanHouseId;",
+            new { HouseId = houseId, CleanHouseId = cleanHouseId }, tx)).ToList();
+
+        if (tenants.Count > 0)
+        {
+            var payloadIds = tenants.Where(t => t.Id.HasValue).Select(t => t.Id!.Value).ToHashSet();
+
+            // 1. Delete removed tenants
+            foreach (var ct in currentTenants)
+            {
+                if (!payloadIds.Contains(ct.Id))
+                {
+                    await conn.ExecuteAsync("DELETE FROM tenants WHERE id = @Id;", new { Id = ct.Id }, tx);
+                }
+            }
+
+            // 2. Insert or update tenants
+            foreach (var t in tenants)
+            {
+                var sDate = !string.IsNullOrWhiteSpace(t.StartDate) ? (t.StartDate.Length >= 10 ? t.StartDate[..10] : t.StartDate) : "1970-01-01";
+                string? eDate = null;
+                if (!string.IsNullOrWhiteSpace(t.EndDate) && !t.EndDate.Equals("none", StringComparison.OrdinalIgnoreCase) && !t.EndDate.Equals("null", StringComparison.OrdinalIgnoreCase) && !t.EndDate.Equals("present", StringComparison.OrdinalIgnoreCase))
+                {
+                    eDate = t.EndDate.Length >= 10 ? t.EndDate[..10] : t.EndDate;
+                }
+
+                if (t.Id.HasValue && currentTenants.Any(ct => ct.Id == t.Id.Value))
+                {
+                    await conn.ExecuteAsync(
+                        "UPDATE tenants SET name = @Name, start_date = @StartDate, end_date = @EndDate WHERE id = @Id;",
+                        new { Name = t.Name.Trim(), StartDate = sDate, EndDate = eDate, Id = t.Id.Value }, tx);
+                }
+                else
+                {
+                    await conn.ExecuteAsync(
+                        "INSERT INTO tenants (house_id, name, start_date, end_date) VALUES (@HouseId, @Name, @StartDate, @EndDate);",
+                        new { HouseId = cleanHouseId, Name = t.Name.Trim(), StartDate = sDate, EndDate = eDate }, tx);
+                }
+            }
+        }
+
+
+        int reallocatedCount = 0;
+        if (reallocate)
+        {
+            var updatedTenants = (await conn.QueryAsync<Tenant>(
+                "SELECT id, house_id AS HouseId, name, start_date AS StartDate, end_date AS EndDate FROM tenants WHERE house_id = @HouseId OR house_id = @CleanHouseId ORDER BY start_date DESC;",
+                new { HouseId = houseId, CleanHouseId = cleanHouseId }, tx)).ToList();
+
+            var docs = (await conn.QueryAsync<Document>(
+                "SELECT vault_id AS VaultId, tenant_id AS TenantId, primary_date AS PrimaryDate, is_manual AS IsManual FROM documents WHERE (house_id = @HouseId OR house_id = @CleanHouseId) AND (is_manual IS NULL OR is_manual = 0);",
+                new { HouseId = houseId, CleanHouseId = cleanHouseId }, tx)).ToList();
+
+            foreach (var doc in docs)
+            {
+                if (string.IsNullOrEmpty(doc.PrimaryDate)) continue;
+                var docDate = doc.PrimaryDate.Length >= 10 ? doc.PrimaryDate[..10] : doc.PrimaryDate;
+
+                var targetTenant = updatedTenants.FirstOrDefault(ut =>
+                {
+                    var start = ut.StartDate.Length >= 10 ? ut.StartDate[..10] : ut.StartDate;
+                    if (string.Compare(docDate, start, StringComparison.Ordinal) < 0) return false;
+                    if (string.IsNullOrEmpty(ut.EndDate) || ut.EndDate.Equals("present", StringComparison.OrdinalIgnoreCase)) return true;
+                    var end = ut.EndDate.Length >= 10 ? ut.EndDate[..10] : ut.EndDate;
+                    return string.Compare(docDate, end, StringComparison.Ordinal) <= 0;
+                }) ?? updatedTenants.FirstOrDefault();
+
+                if (targetTenant != null && targetTenant.Id != doc.TenantId)
+                {
+                    await conn.ExecuteAsync("UPDATE documents SET tenant_id = @TenantId WHERE vault_id = @VaultId;",
+                        new { TenantId = targetTenant.Id, VaultId = doc.VaultId }, tx);
+                    await conn.ExecuteAsync("UPDATE pages SET tenant_id = @TenantId WHERE vault_id = @VaultId;",
+                        new { TenantId = targetTenant.Id, VaultId = doc.VaultId }, tx);
+                    reallocatedCount++;
+                }
+            }
+        }
+
+        await tx.CommitAsync();
+
+        var totalDocs = await conn.ExecuteScalarAsync<int>(
+            "SELECT COUNT(*) FROM documents WHERE house_id = @HouseId OR house_id = @CleanHouseId;",
+            new { HouseId = houseId, CleanHouseId = cleanHouseId });
+
+        var totalTenants = await conn.ExecuteScalarAsync<int>(
+            "SELECT COUNT(*) FROM tenants WHERE house_id = @HouseId OR house_id = @CleanHouseId;",
+            new { HouseId = houseId, CleanHouseId = cleanHouseId });
+
+        return new TenantReallocationResponseDto
+        {
+            Status = "success",
+            ReallocatedCount = reallocatedCount,
+            TotalDocuments = totalDocs,
+            TenantsCount = totalTenants
+        };
+    }
+
+    public async Task<int> DeleteCategoryAsync(string houseId, string categoryName)
+    {
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+        var cleanHouseId = TextUtils.ExtractHouseNumber(houseId);
+        const string defaultTarget = "13 - رسائل متنوعة";
+        var cleanName = categoryName.Trim();
+
+        return await conn.ExecuteAsync(@"
+            UPDATE documents
+            SET category = @DefaultTarget
+            WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
+              AND (category = @CleanName OR category LIKE @Pattern);",
+            new
+            {
+                DefaultTarget = defaultTarget,
+                HouseId = houseId,
+                CleanHouseId = cleanHouseId,
+                CleanName = cleanName,
+                Pattern = $"%{cleanName}%"
+            });
+    }
+
+    public async Task<DbInfoResponseDto> GetDbStatsAsync()
+    {
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+        var tables = new[] { "areas", "houses", "tenants", "batches", "pages", "documents" };
+        var tableCounts = new Dictionary<string, int>();
+
+        foreach (var tbl in tables)
+        {
+            try
+            {
+                var count = await conn.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM {tbl};");
+                tableCounts[tbl] = count;
+            }
+            catch
+            {
+                tableCounts[tbl] = 0;
+            }
+        }
+
+        return new DbInfoResponseDto
+        {
+            Connected = true,
+            DbPath = _connectionFactory.DatabasePath,
+            Tables = tableCounts
+        };
+    }
+
+    public async Task<DbTableResponseDto> GetDbTableDataAsync(string tableName, int limit = 50, int offset = 0, string? search = null)
+    {
+        if (!AllowedDbTables.Contains(tableName))
+            throw new ArgumentException($"Invalid table '{tableName}'. Allowed tables: {string.Join(", ", AllowedDbTables)}");
+
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+
+        // Get columns
+        var colRows = (await conn.QueryAsync<(int Cid, string Name, string Type)>($"PRAGMA table_info({tableName});")).ToList();
+        var columns = colRows.Select(c => c.Name).ToList();
+
+        var whereClause = "";
+        var parameters = new DynamicParameters();
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var searchConditions = columns.Select(c => $"CAST({c} AS TEXT) LIKE @Search");
+            whereClause = $" WHERE {string.Join(" OR ", searchConditions)}";
+            parameters.Add("Search", $"%{search.Trim()}%");
+        }
+
+        var countSql = $"SELECT COUNT(*) FROM {tableName}{whereClause};";
+        var total = await conn.ExecuteScalarAsync<int>(countSql, parameters);
+
+        var dataSql = $"SELECT * FROM {tableName}{whereClause} LIMIT @Limit OFFSET @Offset;";
+        parameters.Add("Limit", limit);
+        parameters.Add("Offset", offset);
+
+        var rowsRaw = (await conn.QueryAsync(dataSql, parameters)).ToList();
+        var rows = new List<Dictionary<string, object?>>();
+
+        foreach (var r in rowsRaw)
+        {
+            var dict = new Dictionary<string, object?>();
+            var rowDict = (IDictionary<string, object>)r;
+            foreach (var col in columns)
+            {
+                dict[col] = rowDict.TryGetValue(col, out var val) ? val : null;
+            }
+            rows.Add(dict);
+        }
+
+        return new DbTableResponseDto
+        {
+            Table = tableName,
+            Columns = columns,
+            Total = total,
+            Limit = limit,
+            Offset = offset,
+            Rows = rows
+        };
+    }
 }

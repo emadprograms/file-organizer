@@ -32,7 +32,7 @@
 - Queries execute with sub-10ms performance matching or exceeding Python SQLite benchmarks.
 
 #### Phase 103: ASP.NET Core Minimal API Endpoints & Static Serving
-- [ ] Plan 1/1: Minimal API routes, manual ingest pipeline & static asset hosting
+- [x] Plan 1/1: Minimal API routes, manual ingest pipeline & static asset hosting
 **Requirements:** [NET-02, NET-03, NET-04]
 **Description:** Build ASP.NET Core Minimal API endpoints matching Python FastAPI routes with 100% JSON parity (`/api/tree`, `/api/houses`, `/api/areas/{area}/houses/{house}`, `/api/timeline`, `/api/categories`, `/api/tenants`, `/api/search`, `/api/pdf/{vault_id}`). Implement zero-Python manual ingestion endpoint (`POST /api/ingest`). Configure static file serving from `wwwroot/` with existing vanilla JS/HTML frontend assets.
 **Success Criteria:**
@@ -40,6 +40,7 @@
 - `POST /api/ingest` accepts manual multipart uploads, writes to vault storage, and inserts SQLite records directly in .NET.
 - Existing frontend (`index.html`, `js/`, `css/`) served smoothly from `wwwroot/` with zero modifications.
 - Vault PDF streaming endpoint supports byte-ranges and fast browser rendering.
+
 
 #### Phase 104: Parity Verification, Windows Single-File Build & Milestone Audit
 - [ ] Plan 1/1: Parity test suite, single-file win-x64 build & milestone audit
@@ -116,7 +117,7 @@ See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md) for full 
 | 100. Comprehensive Automated Testing & End-to-End Verification | v12.0 | 1/1 | Complete | 2026-09-09 |
 | 101. Architecture & Monorepo Restructuring Research | v13.0 | 1/1 | Complete | 2026-09-09 |
 | 102. ASP.NET Core Data Layer & Repository (Dapper + SQLite WAL) | v13.0 | 1/1 | Complete | 2026-09-09 |
-| 103. ASP.NET Core Minimal API Endpoints & Static Serving | v13.0 | 0/1 | Pending | - |
+| 103. ASP.NET Core Minimal API Endpoints & Static Serving | v13.0 | 1/1 | Complete | 2026-09-09 |
 | 104. Parity Verification, Windows Single-File Build & Milestone Audit | v13.0 | 0/1 | Pending | - |
 
 

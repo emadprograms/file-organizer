@@ -493,3 +493,133 @@ public record DocumentActionResponseDto
     [JsonPropertyName("is_manual")]
     public int IsManual { get; init; } = 1;
 }
+
+public record AIPreviewResponseDto
+{
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = "success";
+
+    [JsonPropertyName("page_count")]
+    public int PageCount { get; init; } = 1;
+
+    [JsonPropertyName("suggested_title")]
+    public string? SuggestedTitle { get; init; }
+
+    [JsonPropertyName("suggested_category")]
+    public string? SuggestedCategory { get; init; }
+
+    [JsonPropertyName("suggested_date")]
+    public string? SuggestedDate { get; init; }
+
+    [JsonPropertyName("suggested_tenant_name")]
+    public string? SuggestedTenantName { get; init; }
+
+    [JsonPropertyName("suggested_house_id")]
+    public string? SuggestedHouseId { get; init; }
+
+    [JsonPropertyName("suggested_area_id")]
+    public string? SuggestedAreaId { get; init; }
+}
+
+public record DocumentUpdateRequestDto
+{
+    [JsonPropertyName("arabic_title")]
+    public string? ArabicTitle { get; init; }
+
+    [JsonPropertyName("category")]
+    public string? Category { get; init; }
+
+    [JsonPropertyName("tenant_id")]
+    public int? TenantId { get; init; }
+
+    [JsonPropertyName("primary_date")]
+    public string? PrimaryDate { get; init; }
+
+    [JsonPropertyName("is_manual")]
+    public int? IsManual { get; init; }
+
+    [JsonPropertyName("notes")]
+    public string? Notes { get; init; }
+}
+
+public record DocumentCopyRequestDto
+{
+    [JsonPropertyName("target_category")]
+    public string? TargetCategory { get; init; }
+
+    [JsonPropertyName("target_tenant_id")]
+    public int? TargetTenantId { get; init; }
+
+    [JsonPropertyName("target_title")]
+    public string? TargetTitle { get; init; }
+}
+
+public record DocumentNotesRequestDto
+{
+    [JsonPropertyName("notes")]
+    public string Notes { get; init; } = string.Empty;
+}
+
+public record DocumentTenantUpdateRequestDto
+{
+    [JsonPropertyName("tenant_id")]
+    public int TenantId { get; init; }
+}
+
+public record TenantBulkUpdateRequestDto
+{
+    [JsonPropertyName("tenants")]
+    public List<TenantDto> Tenants { get; init; } = new();
+
+    [JsonPropertyName("reallocate")]
+    public bool Reallocate { get; init; } = false;
+}
+
+public record TenantReallocationResponseDto
+{
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = "success";
+
+    [JsonPropertyName("reallocated_count")]
+    public int ReallocatedCount { get; init; }
+
+    [JsonPropertyName("total_documents")]
+    public int TotalDocuments { get; init; }
+
+    [JsonPropertyName("tenants_count")]
+    public int TenantsCount { get; init; }
+}
+
+public record DbInfoResponseDto
+{
+    [JsonPropertyName("connected")]
+    public bool Connected { get; init; }
+
+    [JsonPropertyName("db_path")]
+    public string? DbPath { get; init; }
+
+    [JsonPropertyName("tables")]
+    public Dictionary<string, int> Tables { get; init; } = new();
+}
+
+public record DbTableResponseDto
+{
+    [JsonPropertyName("table")]
+    public string Table { get; init; } = string.Empty;
+
+    [JsonPropertyName("columns")]
+    public List<string> Columns { get; init; } = new();
+
+    [JsonPropertyName("total")]
+    public int Total { get; init; }
+
+    [JsonPropertyName("limit")]
+    public int Limit { get; init; }
+
+    [JsonPropertyName("offset")]
+    public int Offset { get; init; }
+
+    [JsonPropertyName("rows")]
+    public List<Dictionary<string, object?>> Rows { get; init; } = new();
+}
+
