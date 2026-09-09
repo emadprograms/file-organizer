@@ -84,6 +84,13 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 - Client-side document mutation / editing (vault PDFs are immutable).
 - Complex multi-master database replication (single SQLite file with WAL mode satisfies all performance requirements).
 
+## Current Milestone: v12.0 Unified Document Ingestion System
+
+- Zero-AI manual ingest pipeline storing clean batches, documents with `is_manual=1`, and page inheritance.
+- FastAPI endpoints: `POST /api/ingest` and `POST /api/ingest/preview-ai`.
+- Modern UI Ingest Station (navbar button, contextual drag-and-drop, slide-over drawer, single doc vs multi-doc split, real-time UI refresh).
+- Full test coverage (backend pytest & frontend vitest).
+
 ## Current State
 
 - ✅ Shipped v11.0 Database Backend & Clean Storage Architecture on 2026-09-09.
@@ -108,4 +115,4 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 | Playwright E2E Verification | Verifies real browser behavior against actual database records, guaranteeing zero regressions across Tree, Grid, Search, and PDF viewing. | ✓ Completed (Phase 96). |
 
 ---
-*Last updated: 2026-09-09 after v11.0 milestone*
+*Last updated: 2026-09-09 for v12.0 milestone initialization*

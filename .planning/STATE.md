@@ -1,38 +1,37 @@
 ---
 gsd_state_version: 1.0
-milestone: v11.0
-milestone_name: Database Backend & Clean Storage Architecture
-current_phase: 96 (All Complete)
-status: completed
-last_updated: "2026-09-09T03:54:29.141Z"
+milestone: v12.0
+milestone_name: Unified Document Ingestion System
+current_phase: 97
+status: in_progress
+last_updated: "2026-09-09T14:50:00.000Z"
 last_activity: 2026-09-09
-last_activity_desc: Milestone v11.0 completed and archived
+last_activity_desc: Initialized milestone v12.0 unified document ingestion
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 5
-  completed_plans: 5
-  percent: 100
-stopped_at: Completed all 5 phases and verification for milestone v11.0
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
+stopped_at: Initialized milestone v12.0
 ---
 
 # Milestone State
 
-**Current Milestone:** v11.0: Database Backend & Clean Storage Architecture
-**Current Phase:** 96 (All Complete)
-**Status:** v11.0 milestone complete
+**Current Milestone:** v12.0: Unified Document Ingestion System
+**Current Phase:** 97 (Ingest Engine Core)
+**Status:** in_progress
 
 ## Context
 
-Transitioning the document management system from a filesystem/JSON-dependent setup with Windows shortcuts and reconciler into a high-performance SQLite database backend with clean on-disk storage (`{area}/{house}/batches/` and `{area}/{house}/vault/`).
+Implementing a unified document ingestion system enabling instant manual ingestion (zero-AI), AI-assisted single-document preview & auto-fill, and multi-document auto-split batch ingestion, fully integrated with FastAPI endpoints and a modern Ingest Station web UI.
 
 ## Target Phases
 
-- Phase 92: Database Layer & Relational Schema (areas, houses, tenants, batches, pages, documents)
-- Phase 93: Legacy Data Migration & Storage Restructuring
-- Phase 94: Ingestion Pipeline Redesign (direct DB writes, zero index shifting)
-- Phase 95: FastAPI High-Performance Backend (sub-10ms SQL queries)
-- Phase 96: E2E Verification & UI Parity (Playwright & pytest verification)
+- Phase 97: Ingest Engine Core (Manual Ingest Pipeline & Page Inheritance)
+- Phase 98: FastAPI Ingest API Endpoints (POST /api/ingest & POST /api/ingest/preview-ai)
+- Phase 99: Ingest Station Web UI (Navbar Trigger, Dropzone & Ingest Drawer)
+- Phase 100: Comprehensive Automated Testing & End-to-End Verification
 
 ## Quick Tasks Completed
 
@@ -47,11 +46,11 @@ Transitioning the document management system from a filesystem/JSON-dependent se
 
 ## Current Position
 
-Phase: Milestone v11.0 complete
+Phase: Phase 97: Ingest Engine Core (Manual Ingest Pipeline & Page Inheritance)
 Plan: —
-Status: Awaiting next milestone
-Last activity: 2026-09-09 — Milestone v11.0 completed and archived
+Status: Ready to plan phase 97
+Last activity: 2026-09-09 — Initialized milestone v12.0 unified document ingestion
 
 ## Operator Next Steps
 
-- Start the next milestone with /gsd-new-milestone
+- Proceed with planning Phase 97 (/gsd-plan-phase 97)
