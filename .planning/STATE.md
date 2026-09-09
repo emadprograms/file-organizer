@@ -1,37 +1,37 @@
 ---
 gsd_state_version: 1.0
-milestone: v12.0
-milestone_name: Unified Document Ingestion System
-current_phase: 100 (All Complete)
-status: completed
-last_updated: "2026-09-09T15:30:00.000Z"
+milestone: v13.0
+milestone_name: Decoupled Monorepo Architecture & Native ASP.NET Core Web Server
+current_phase: 101
+status: in_progress
+last_updated: "2026-09-09T18:05:00.000Z"
 last_activity: 2026-09-09
-last_activity_desc: "Completed Phase 100: Comprehensive Automated Testing & End-to-End Milestone Verification. Shipped Milestone v12.0."
+last_activity_desc: "Initialized Milestone v13.0: Decoupled Monorepo Architecture & Native ASP.NET Core Web Server."
 progress:
   total_phases: 4
-  completed_phases: 4
+  completed_phases: 0
   total_plans: 4
-  completed_plans: 4
-  percent: 100
-stopped_at: Completed Milestone v12.0
+  completed_plans: 0
+  percent: 0
+stopped_at: Initialized Milestone v13.0 (Ready for Phase 101)
 ---
 
 # Milestone State
 
-**Current Milestone:** v12.0: Unified Document Ingestion System
-**Current Phase:** 100 (All Complete)
-**Status:** completed
+**Current Milestone:** v13.0: Decoupled Monorepo Architecture & Native ASP.NET Core Web Server
+**Current Phase:** 101: Architecture & Monorepo Restructuring Research
+**Status:** in_progress
 
 ## Context
 
-Implementing a unified document ingestion system enabling instant manual ingestion (zero-AI), AI-assisted single-document preview & auto-fill, and multi-document auto-split batch ingestion, fully integrated with FastAPI endpoints and a modern Ingest Station web UI.
+Decoupling the lightweight web dashboard/UI completely from the Python AI batch ingestion pipeline. The web server will be an ASP.NET Core 8.0 Minimal API application in `web-net/`, sharing only `organizer.db` (SQLite in WAL mode) and the clean disk vault (`{area}/{house}/vault/`). The existing vanilla JS/HTML frontend remains 100% identical and is served from `wwwroot/`. The Python pipeline remains in `src/` for offline/batch AI processing.
 
 ## Target Phases
 
-- Phase 97: Ingest Engine Core (Manual Ingest Pipeline & Page Inheritance)
-- Phase 98: FastAPI Ingest API Endpoints (POST /api/ingest & POST /api/ingest/preview-ai)
-- Phase 99: Ingest Station Web UI (Navbar Trigger, Dropzone & Ingest Drawer)
-- Phase 100: Comprehensive Automated Testing & End-to-End Verification
+- Phase 101: Architecture & Monorepo Restructuring Research
+- Phase 102: ASP.NET Core Data Layer & Repository (Dapper + SQLite WAL)
+- Phase 103: ASP.NET Core Minimal API Endpoints & Static Serving
+- Phase 104: Parity Verification, Windows Single-File Build & Milestone Audit
 
 ## Quick Tasks Completed
 
@@ -46,11 +46,11 @@ Implementing a unified document ingestion system enabling instant manual ingesti
 
 ## Current Position
 
-Phase: Phase 100: Comprehensive Automated Testing & End-to-End Verification (Completed)
-Plan: Plan 1/1 Complete
-Status: Milestone v12.0 Shipped
-Last activity: 2026-09-09 — Completed Phase 100: Comprehensive Automated Testing & End-to-End Milestone Verification. Shipped Milestone v12.0.
+Phase: Phase 101: Architecture & Monorepo Restructuring Research (Pending)
+Plan: Ready to plan
+Status: Milestone v13.0 In Progress
+Last activity: 2026-09-09 — Initialized Milestone v13.0: Decoupled Monorepo Architecture & Native ASP.NET Core Web Server.
 
 ## Operator Next Steps
 
-- Milestone v12.0 is complete and archived. Ready for next milestone cycle.
+- Run Phase 101: Architecture & Monorepo Restructuring Research.

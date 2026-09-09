@@ -4,6 +4,16 @@
 
 A document management system that processes scanned Arabic PDFs, categorizes them using LLM vision, groups related pages, and stores them in a high-performance relational SQLite database with a clean two-folder disk structure (`batches/` and `vault/`). The system features a responsive web dashboard with dual Tree/Grid views, tenure color-coding, multi-tenant chronological timelines, category drill-downs, phonetic/fuzzy global search, and in-browser PDF viewing.
 
+## Current Milestone: v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server
+
+Decoupling the lightweight web dashboard/UI completely from the Python AI batch ingestion pipeline into a native ASP.NET Core 8.0 Minimal API backend:
+- **Complete decoupling of user-facing web dashboard from Python runtime:** Web serving and document queries run independently of Python dependencies or virtual environments.
+- **Standalone ASP.NET Core 8.0 Minimal API (`web-net/`):** High-throughput, lightweight C# web application utilizing Dapper and `Microsoft.Data.Sqlite`.
+- **Zero-frontend rewrite:** Existing vanilla JS/HTML (`index.html`, `js/`, `css/`) served directly without modification from `wwwroot/`.
+- **Shared SQLite contract:** Concurrency handled natively via SQLite WAL mode (`organizer.db`) shared between the .NET web server and the Python ingestion pipeline.
+- **Instant zero-Python manual file uploads in .NET:** Direct file upload and vault storage pipeline written in .NET for instant manual document ingestion without invoking Python.
+- **Self-contained Windows single-file executable (`FileOrganizer.exe`):** Single portable binary publish target (`win-x64`) for seamless zero-dependency deployment in restricted Windows server environments.
+
 ## Past Milestones
 
 <details>
@@ -65,6 +75,16 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 
 ## Requirements
 
+### In Progress (v13.0)
+
+- [ ] Decoupled monorepo structure (`web-net/` for ASP.NET Core, `src/` for Python AI pipeline, shared `organizer.db`) (ARCH-01) — Phase 101
+- [ ] ASP.NET Core 8.0 project with Dapper and `Microsoft.Data.Sqlite` in WAL mode (NET-01) — Phase 102
+- [ ] Port all read API endpoints with 100% JSON parity (NET-02) — Phase 103
+- [ ] Implement zero-Python manual ingestion endpoint (`POST /api/ingest`) in .NET (NET-03) — Phase 103
+- [ ] Static file serving from `wwwroot/` with existing frontend assets (NET-04) — Phase 103
+- [ ] API parity test suite verifying response parity between Python and .NET backends (VER-05) — Phase 104
+- [ ] Windows self-contained single-file publish verification (`win-x64`) (VER-06) — Phase 104
+
 ### Validated
 
 - ✓ Zero-AI manual ingest pipeline in Python with PyMuPDF page counting (ING-03) — v12.0
@@ -105,6 +125,7 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 
 ## Current State
 
+- 🚧 In progress: Milestone v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server.
 - ✅ Shipped v12.0 Unified Document Ingestion System on 2026-09-09.
 - ✅ Shipped v11.0 Database Backend & Clean Storage Architecture on 2026-09-09.
 - 105 tests passing across backend pytest (62) and frontend Vitest (43) test suites.
@@ -120,6 +141,7 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 
 | Decision | Rationale | Outcome |
 |---|---|---|
+| Decoupled Monorepo & ASP.NET Core Web Server | Decouple read-heavy web dashboard into a high-efficiency native .NET 8 binary (`web-net/`) using Dapper and SQLite in WAL mode. Preserves Python strictly for offline/batch AI ingestion while giving Windows servers a zero-Python runtime footprint. | In Progress (Milestone v13.0). |
 | SQLite Relational Schema | Single file with WAL mode provides ACID transactions, sub-10ms query execution, and eliminates SMB directory traversal overhead. | ✓ Completed (Phase 92). |
 | Two-Folder Disk Structure (`batches/` and `vault/`) | Clear separation between raw scanned inputs and sliced standalone documents. Eliminates deep Arabic directory nesting. | ✓ Completed (Phase 93). |
 | Ingestion Without Reconciler | Slicing directly into `vault/` and recording in `documents` avoids index-shifting math and brittle two-way file moves. | ✓ Completed (Phase 94). |
@@ -127,4 +149,4 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 | Playwright E2E Verification | Verifies real browser behavior against actual database records, guaranteeing zero regressions across Tree, Grid, Search, and PDF viewing. | ✓ Completed (Phase 96). |
 
 ---
-*Last updated: 2026-09-09 after shipping Milestone v12.0*
+*Last updated: 2026-09-09 for Milestone v13.0 initialization*

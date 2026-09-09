@@ -1,49 +1,46 @@
-# Requirements: Milestone v12.0 Unified Document Ingestion System
+# Requirements: Milestone v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server
 
-## Milestone v12.0 Goals
+## Milestone v13.0 Goals
 
-Provide a unified document ingestion system enabling instant manual ingestion (zero-AI), AI-assisted single-document preview & auto-fill, and multi-document auto-split batch ingestion, fully integrated with FastAPI endpoints and a modern Ingest Station web UI.
+Decouple the lightweight web dashboard/UI completely from the Python AI batch ingestion pipeline by building an ASP.NET Core 8.0 Minimal API application in `web-net/`. The web server shares only `organizer.db` (SQLite in WAL mode) and the clean disk vault (`{area}/{house}/vault/`), serving the existing vanilla JS/HTML frontend from `wwwroot/` with 100% JSON parity. The Python pipeline remains in `src/` for offline/batch AI processing, and a self-contained Windows single-file executable (`FileOrganizer.exe`) is provided for restricted Windows server environments.
 
 ## Requirements
 
-### Ingestion Engine Core
+### Monorepo Architecture
 
-- [x] **ING-03**: Manual ingest pipeline in Python (`src/ingest/manual_ingest.py`). Uses PyMuPDF for page count, performs local text extraction, requires zero LLM API calls, copies files into `{house}/batches/` and writes documents directly to `{house}/vault/` with `is_manual=1`.
-- [x] **ING-04**: Relational page inheritance for manual documents in SQLite `pages` table, linking batch pages to the newly created document.
+- [ ] **ARCH-01**: Decoupled monorepo structure (`web-net/` for ASP.NET Core, `src/` for Python AI pipeline, shared `organizer.db`). Clear directory boundary where the .NET runtime has zero dependency on the Python virtual environment, sharing only SQLite database contracts and vault file paths.
 
-### FastAPI Ingest Endpoints
+### ASP.NET Core Data Layer
 
-- [x] **API-04**: `POST /api/ingest` endpoint supporting multipart form uploads with modes:
-  - `manual`: Direct ingest bypassing LLM vision/classification.
-  - `assisted`: User-confirmed metadata ingest with optional AI pre-population.
-  - `auto_split`: Batch split and classification pipeline.
-- [x] **API-05**: `POST /api/ingest/preview-ai` endpoint for single-document preview analysis, returning suggested metadata (category, subfolder, dates, tenant) without writing to disk or database.
+- [ ] **NET-01**: ASP.NET Core 8.0 project with Dapper and `Microsoft.Data.Sqlite` in WAL mode. Database connection pooling, read-optimized parameterized queries, model mapping matching existing SQLite schema (`areas`, `houses`, `tenants`, `batches`, `pages`, `documents`), and robust transaction handling.
 
-### Modern Web UI (Ingest Station)
+### API Endpoints & Frontend Serving
 
-- [x] **UI-01**: Top navbar `+ Ingest` button with keyboard shortcut (`⌘I` / `Ctrl+I`) and global contextual drag-and-drop dropzone with visual drag-over feedback.
-- [x] **UI-02**: 'Ingest Station' slide-over drawer / modal featuring:
-  - Live PDF page preview.
-  - Mode switcher (`Manual`, `AI-Assisted`, `Auto-Split`).
-  - Target selection metadata form (Area, House, Tenant, Category/Folder, Year, Notes).
-  - Quick action buttons: `✨ Auto-Fill with AI` and `⚡ Ingest Directly`.
-  - Seamless real-time UI refresh of house/tenant document lists upon completion.
+- [ ] **NET-02**: Port all read API endpoints with 100% JSON parity:
+  - `GET /api/tree`: Hierarchical navigation tree matching Python schema.
+  - `GET /api/houses`: Area & house summaries with metrics.
+  - `GET /api/areas/{area}/houses/{house}` (and profile/vault): Specific house metadata, vault document lists, and tenancy profile.
+  - `GET /api/timeline`: Multi-tenant chronological document timeline.
+  - `GET /api/categories`: Category breakdown and folder groupings.
+  - `GET /api/tenants`: Tenant listings and document allocations.
+  - `GET /api/search`: Global search across houses, tenants, and documents (with Arabic normalization / fuzzy matching parity).
+  - `GET /api/pdf/{vault_id}`: Stream PDF files directly from vault storage with proper headers and byte-range support.
+- [ ] **NET-03**: Implement zero-Python manual ingestion endpoint (`POST /api/ingest`) in .NET directly writing vault PDFs and SQLite records with transactional integrity, supporting multipart form upload, page counting, and folder allocation.
+- [ ] **NET-04**: Static file serving from `wwwroot/` with existing frontend assets (`index.html`, `js/`, `css/`), guaranteeing zero frontend rewrite.
 
-### Comprehensive Testing & Verification
+### Verification & Deployment
 
-- [x] **VER-03**: Backend pytest test suite covering `POST /api/ingest`, `POST /api/ingest/preview-ai`, manual ingest pipeline, and page inheritance.
-- [x] **VER-04**: Frontend Vitest test suite covering Ingest Station drawer open/close, drag-and-drop dropzone, mode switching, form validation, and API submission flow.
+- [ ] **VER-05**: API parity test suite verifying response parity between Python and .NET backends, ensuring identical JSON keys, data types, and status codes across all read and ingest endpoints.
+- [ ] **VER-06**: Windows self-contained single-file publish verification (`win-x64`), generating a standalone executable (`FileOrganizer.exe`) requiring zero pre-installed .NET runtimes or Python environments.
 
 ## Traceability
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| ING-03 | Phase 97 | Complete |
-| ING-04 | Phase 97 | Complete |
-| API-04 | Phase 98 | Complete |
-| API-05 | Phase 98 | Complete |
-| UI-01 | Phase 99 | Complete |
-| UI-02 | Phase 99 | Complete |
-| VER-03 | Phase 100 | Complete |
-| VER-04 | Phase 100 | Complete |
-
+| Requirement | Description | Phase | Status |
+|-------------|-------------|-------|--------|
+| ARCH-01 | Decoupled monorepo structure (`web-net/`, `src/`, shared `organizer.db`) | Phase 101 | Pending |
+| NET-01 | ASP.NET Core 8.0 with Dapper & `Microsoft.Data.Sqlite` in WAL mode | Phase 102 | Pending |
+| NET-02 | Port all read API endpoints with 100% JSON parity | Phase 103 | Pending |
+| NET-03 | Zero-Python manual ingestion endpoint (`POST /api/ingest`) in .NET | Phase 103 | Pending |
+| NET-04 | Static file serving from `wwwroot/` with existing frontend assets | Phase 103 | Pending |
+| VER-05 | API parity test suite verifying Python vs .NET response parity | Phase 104 | Pending |
+| VER-06 | Windows self-contained single-file publish verification (`win-x64`) | Phase 104 | Pending |

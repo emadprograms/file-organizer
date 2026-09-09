@@ -2,6 +2,7 @@
 
 ## Milestones
 
+- 🚧 **v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server** — Phases 101-104
 - ✅ **v12.0 Unified Document Ingestion System** — Phases 97-100 (shipped 2026-09-09)
 - ✅ **v11.0 Database Backend & Clean Storage Architecture** — Phases 92-96 (shipped 2026-09-09)
 - ✅ **v10.0 Area Grid Overview & Tenure Visualization** — Phases 88-91 (shipped 2026-09-06)
@@ -10,44 +11,57 @@
 
 ## Phases
 
-### 🚧 v12.0 Unified Document Ingestion System (Phases 97-100)
+### 🚧 v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server (Phases 101-104)
 
-#### Phase 97: Ingest Engine Core (Manual Ingest Pipeline & Page Inheritance)
-- [x] Plan 1/1: Zero-AI manual ingest pipeline & relational page inheritance — completed 2026-09-09
-**Requirements:** [ING-03, ING-04]
-**Description:** Implement zero-AI manual ingestion pipeline in Python (`src/ingest/manual_ingest.py`), integrating PyMuPDF for page counting and local text extraction, storing clean batch files, saving documents directly to `vault/` with `is_manual=1`, and recording relational page inheritance in the `pages` table.
+#### Phase 101: Architecture & Monorepo Restructuring Research
+- [ ] Plan 1/1: Architecture analysis, contract specification & project scaffolding
+**Requirements:** [ARCH-01]
+**Description:** Establish the decoupled monorepo boundary separating `web-net/` (ASP.NET Core 8.0 web dashboard) from `src/` (Python AI ingestion pipeline). Document the shared SQLite WAL database contract and clean storage paths (`{area}/{house}/vault/`), ensuring zero Python runtime dependency for web operations.
 **Success Criteria:**
-- Manual ingestion copies scanned files into `{house}/batches/` and `{house}/vault/`.
-- Document record created with `is_manual=1` and exact page count without calling any LLM.
-- Page inheritance records correctly populated in `pages` referencing batch and document.
+- Monorepo folder structure established with clear separation between `web-net/` and `src/`.
+- Shared SQLite WAL database contract and schema mapping formally documented.
+- Project scaffold for ASP.NET Core 8.0 Minimal API in `web-net/` created with modern C# project configuration.
 
-#### Phase 98: FastAPI Ingest API Endpoints (POST /api/ingest & POST /api/ingest/preview-ai)
-- [x] Plan 1/1: FastAPI Ingest API Endpoints & Preview-AI — completed 2026-09-09
-**Requirements:** [API-04, API-05]
-**Description:** Create FastAPI endpoints for file ingestion: `POST /api/ingest` supporting modes `manual`, `assisted`, and `auto_split`, and `POST /api/ingest/preview-ai` for single-document preview analysis before committing to storage.
+#### Phase 102: ASP.NET Core Data Layer & Repository (Dapper + SQLite WAL)
+- [ ] Plan 1/1: Data access layer, SQLite connection manager & Dapper repository
+**Requirements:** [NET-01]
+**Description:** Implement high-performance data access layer in C# using Dapper and `Microsoft.Data.Sqlite` in WAL mode. Map models for `areas`, `houses`, `tenants`, `batches`, `pages`, and `documents`. Implement efficient read-optimized queries with connection management and transactional safety.
 **Success Criteria:**
-- `POST /api/ingest` accepts multipart form upload with target house, tenant, category, subfolder, and ingestion mode.
-- `POST /api/ingest/preview-ai` runs single-document preview extraction and returns suggested metadata without modifying storage.
-- Proper error handling and validation for file types and missing parameters.
+- SQLite connection factory configured with WAL journal mode, busy timeout, and connection pooling.
+- Dapper repositories implemented for houses, tenants, categories, documents, and search.
+- Queries execute with sub-10ms performance matching or exceeding Python SQLite benchmarks.
 
-#### Phase 99: Ingest Station Web UI (Navbar Trigger, Dropzone & Ingest Drawer)
-- [x] Plan 1/1: Ingest Station Web UI (Navbar Trigger, Dropzone & Ingest Drawer) — completed 2026-09-09
-**Requirements:** [UI-01, UI-02]
-**Description:** Build the Ingest Station frontend experience, featuring a top navbar `+ Ingest` button with `⌘I` / `Ctrl+I` keyboard shortcut, global/contextual drag-and-drop dropzone, slide-over drawer with PDF preview, mode switcher (`Manual`, `AI-Assisted`, `Auto-Split`), metadata form, '✨ Auto-Fill with AI', and '⚡ Ingest Directly'.
+#### Phase 103: ASP.NET Core Minimal API Endpoints & Static Serving
+- [ ] Plan 1/1: Minimal API routes, manual ingest pipeline & static asset hosting
+**Requirements:** [NET-02, NET-03, NET-04]
+**Description:** Build ASP.NET Core Minimal API endpoints matching Python FastAPI routes with 100% JSON parity (`/api/tree`, `/api/houses`, `/api/areas/{area}/houses/{house}`, `/api/timeline`, `/api/categories`, `/api/tenants`, `/api/search`, `/api/pdf/{vault_id}`). Implement zero-Python manual ingestion endpoint (`POST /api/ingest`). Configure static file serving from `wwwroot/` with existing vanilla JS/HTML frontend assets.
 **Success Criteria:**
-- Navbar button and `Cmd/Ctrl+I` shortcut trigger the Ingest Station drawer.
-- Drag-and-drop dropzone highlights and loads dropped PDFs into the ingest flow.
-- Slide-over drawer provides PDF preview, mode selection, form fields (House, Tenant, Folder/Category, Year), and action buttons.
-- Real-time UI refresh triggers after successful ingestion without requiring page reload.
+- All read API endpoints return exact JSON shape and status codes matching Python FastAPI.
+- `POST /api/ingest` accepts manual multipart uploads, writes to vault storage, and inserts SQLite records directly in .NET.
+- Existing frontend (`index.html`, `js/`, `css/`) served smoothly from `wwwroot/` with zero modifications.
+- Vault PDF streaming endpoint supports byte-ranges and fast browser rendering.
 
-#### Phase 100: Comprehensive Automated Testing & End-to-End Verification
-- [x] Plan 1/1: Comprehensive automated testing & milestone verification — completed 2026-09-09
-**Requirements:** [VER-03, VER-04]
-**Description:** Build comprehensive automated test suites for both backend and frontend, including pytest integration tests for ingestion endpoints/engines and Vitest test suite for Ingest Station UI interactions.
+#### Phase 104: Parity Verification, Windows Single-File Build & Milestone Audit
+- [ ] Plan 1/1: Parity test suite, single-file win-x64 build & milestone audit
+**Requirements:** [VER-05, VER-06]
+**Description:** Build automated parity test suite comparing responses between Python and .NET backends across all endpoints. Verify Windows self-contained single-file publish (`win-x64`) creating `FileOrganizer.exe` for zero-dependency deployment in restricted Windows environments. Conduct milestone audit against requirements.
 **Success Criteria:**
-- Pytest suite verifies `POST /api/ingest`, `POST /api/ingest/preview-ai`, manual ingest pipeline, and page inheritance.
-- Vitest suite tests Ingest Station drawer opening, dropzone drag-and-drop, mode toggling, form submission, and UI updates.
-- 100% test pass rate across backend and frontend suites.
+- Parity test suite passes with 100% agreement on response payloads, schema, and status codes.
+- Windows self-contained single-file build succeeds (`dotnet publish -r win-x64 -c Release /p:PublishSingleFile=true /p:SelfContained=true`).
+- Standalone executable runs without requiring pre-installed .NET runtime or Python environment.
+- Milestone audit confirms all requirements ARCH-01, NET-01, NET-02, NET-03, NET-04, VER-05, and VER-06 are fulfilled.
+
+<details>
+<summary>✅ v12.0 Unified Document Ingestion System (Phases 97-100) — SHIPPED 2026-09-09</summary>
+
+See [.planning/milestones/v12.0-ROADMAP.md](milestones/v12.0-ROADMAP.md) for full phase details.
+
+- [x] Phase 97: Ingest Engine Core (Manual Ingest Pipeline & Page Inheritance) (1/1 plan) — completed 2026-09-09
+- [x] Phase 98: FastAPI Ingest API Endpoints (POST /api/ingest & POST /api/ingest/preview-ai) (1/1 plan) — completed 2026-09-09
+- [x] Phase 99: Ingest Station Web UI (Navbar Trigger, Dropzone & Ingest Drawer) (1/1 plan) — completed 2026-09-09
+- [x] Phase 100: Comprehensive Automated Testing & End-to-End Verification (1/1 plan) — completed 2026-09-09
+
+</details>
 
 <details>
 <summary>✅ v11.0 Database Backend & Clean Storage Architecture (Phases 92-96) — SHIPPED 2026-09-09</summary>
@@ -100,4 +114,9 @@ See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md) for full 
 | 98. FastAPI Ingest API Endpoints (POST /api/ingest & POST /api/ingest/preview-ai) | v12.0 | 1/1 | Complete | 2026-09-09 |
 | 99. Ingest Station Web UI (Navbar Trigger, Dropzone & Ingest Drawer) | v12.0 | 1/1 | Complete | 2026-09-09 |
 | 100. Comprehensive Automated Testing & End-to-End Verification | v12.0 | 1/1 | Complete | 2026-09-09 |
+| 101. Architecture & Monorepo Restructuring Research | v13.0 | 0/1 | Pending | - |
+| 102. ASP.NET Core Data Layer & Repository (Dapper + SQLite WAL) | v13.0 | 0/1 | Pending | - |
+| 103. ASP.NET Core Minimal API Endpoints & Static Serving | v13.0 | 0/1 | Pending | - |
+| 104. Parity Verification, Windows Single-File Build & Milestone Audit | v13.0 | 0/1 | Pending | - |
+
 
