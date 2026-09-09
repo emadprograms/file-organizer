@@ -904,6 +904,11 @@
                 }
 
                 if (node.type === 'tenant') {
+                    btn.setAttribute('data-tenant-name', node.name);
+                    btn.ondragover = (e) => handleTenantTreeDragOver(e, btn, parentPath);
+                    btn.ondragleave = (e) => handleTenantTreeDragLeave(e, btn);
+                    btn.ondrop = (e) => handleTenantTreeDrop(e, node.name, btn, parentPath);
+
                     btn.onclick = (e) => {
                         e.stopPropagation();
                         window.location.hash = currentPath;
@@ -1112,14 +1117,27 @@
             
             displayTimeline.forEach(doc => {
                 const card = document.createElement('div');
-                card.className = 'p-3 bg-white rounded-xl border border-slate-200 shadow-2xs hover:shadow-sm hover:border-blue-400 cursor-pointer transition-all flex flex-col gap-2 group';
+                card.className = 'p-3 bg-white rounded-xl border border-slate-200 shadow-2xs hover:shadow-sm hover:border-blue-400 cursor-pointer transition-all flex flex-col gap-2 group relative';
+                card.draggable = true;
+                card.ondragstart = (e) => handleDocDragStart(e, doc, doc.category);
+                card.ondragend = (e) => handleDocDragEnd(e);
                 
                 const title = doc.brief_arabic_title || 'Untitled Document';
                 const date = (doc.dates && doc.dates.length > 0) ? doc.dates[0] : 'Unknown Date';
+                const isManual = Boolean(doc.is_manual);
+                const lockBadgeHtml = isManual 
+                    ? `<span title="Manually assigned - protected from auto-reallocation" class="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded flex items-center gap-1 font-semibold flex-shrink-0">🔒 Pinned</span>`
+                    : '';
                 
                 card.innerHTML = `
                     <div class="flex justify-between items-start gap-2">
                         <h4 class="text-xs font-semibold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">${title}</h4>
+                        <div class="flex items-center gap-1 flex-shrink-0">
+                            ${lockBadgeHtml}
+                            <button class="doc-menu-btn opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-opacity" title="Manage Document (Rename, Move, Copy)">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1.5 border-t border-slate-100">
                         <span class="flex items-center gap-1 font-mono text-[10px] text-slate-400">
@@ -1130,6 +1148,14 @@
                     </div>
                 `;
                 
+                const menuBtn = card.querySelector('.doc-menu-btn');
+                if (menuBtn) {
+                    menuBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        openDocModal(doc, doc.category);
+                    };
+                }
+
                 card.onclick = () => openDocument(doc.vault_id, title);
                 attachPreview(card, doc.vault_id, title);
                 docListEl.appendChild(card);
@@ -1166,7 +1192,9 @@
                                 end_page: g.end_page || 1,
                                 date: (g.dates && g.dates[0]) ? g.dates[0] : '',
                                 tenant: tenant,
-                                brief_arabic_title: g.brief_arabic_title || ''
+                                brief_arabic_title: g.brief_arabic_title || '',
+                                is_manual: g.is_manual || 0,
+                                category: catNumbered
                             });
                         }
                     });
@@ -1230,7 +1258,14 @@
             
             displayCategories.forEach(cat => {
                 const card = document.createElement('div');
-                card.className = 'p-3 bg-white rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 transition-all mb-2 cursor-pointer';
+                card.className = 'p-3 bg-white rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 transition-all mb-2 cursor-pointer category-folder-card';
+                card.setAttribute('data-category-name', cat.name);
+                
+                // Category card drag-and-drop target
+                card.ondragover = (e) => handleCategoryDragOver(e, card);
+                card.ondragleave = (e) => handleCategoryDragLeave(e, card);
+                card.ondrop = (e) => handleCategoryDrop(e, cat.name, card);
+
                 card.innerHTML = `
                     <div class="flex justify-between items-center">
                         <div class="flex items-center gap-2 min-w-0">
@@ -1249,12 +1284,34 @@
                     const docsContainer = card.querySelector('.category-docs');
                     cat.documents.forEach(doc => {
                         const docEl = document.createElement('div');
-                        docEl.className = 'text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors flex items-center gap-2 font-medium';
+                        docEl.className = 'text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors flex items-center justify-between gap-2 font-medium group/doc';
+                        docEl.draggable = true;
+                        docEl.ondragstart = (e) => handleDocDragStart(e, doc, cat.name);
+                        docEl.ondragend = (e) => handleDocDragEnd(e);
+
                         const title = doc.brief_arabic_title || doc.filename || 'Document';
+                        const isManual = Boolean(doc.is_manual);
+                        const lockIcon = isManual ? '<span title="Manually assigned - protected from auto-reallocation" class="text-[10px] text-amber-600 flex-shrink-0">🔒</span>' : '';
+
                         docEl.innerHTML = `
-                            <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                            <span class="truncate">${title}</span>
+                            <div class="flex items-center gap-2 min-w-0 flex-1">
+                                <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                <span class="truncate">${title}</span>
+                                ${lockIcon}
+                            </div>
+                            <button class="doc-menu-btn opacity-0 group-hover/doc:opacity-100 p-1 hover:bg-blue-100 rounded text-slate-400 hover:text-slate-700 transition-opacity flex-shrink-0" title="Manage Document (Rename, Move, Copy)">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
+                            </button>
                         `;
+
+                        const menuBtn = docEl.querySelector('.doc-menu-btn');
+                        if (menuBtn) {
+                            menuBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                openDocModal(doc, cat.name);
+                            };
+                        }
+
                         docEl.onclick = (e) => {
                             e.stopPropagation();
                             openDocument(doc.vault_id, title);
@@ -1546,6 +1603,89 @@
                 <button id="tenant-modal-cancel" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-2xs">Cancel</button>
                 <button id="tenant-modal-save" type="button" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2 shadow-sm shadow-blue-500/25">
                     <span id="tenant-save-btn-text">💾 Save Changes</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Management Modal (Rename, Move/Copy Folder, Move Tenant, Lock) -->
+    <div id="doc-action-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full flex flex-col max-h-[90vh] overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shadow-2xs">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 tracking-tight" id="doc-modal-title">Manage Document</h3>
+                        <p class="text-xs text-slate-500">Rename, reorganize folders, or assign to tenant.</p>
+                    </div>
+                </div>
+                <button id="doc-modal-close" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 overflow-y-auto flex-1 space-y-4">
+                <!-- Manual Lock Banner -->
+                <div id="doc-manual-banner" class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center justify-between hidden">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base">🔒</span>
+                        <div>
+                            <span class="font-bold">Manually Assigned:</span>
+                            <span class="text-amber-700">Protected from automatic reallocation.</span>
+                        </div>
+                    </div>
+                    <button id="btn-doc-reset-lock" type="button" class="text-xs font-semibold text-amber-900 hover:text-amber-700 underline px-2 py-1 hover:bg-amber-100 rounded-lg transition-colors">Reset to Auto</button>
+                </div>
+
+                <!-- Document Arabic Title -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Document Title (Arabic / Display)</label>
+                    <input id="doc-modal-arabic-title" type="text" dir="rtl" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white" placeholder="اسم المستند..." />
+                </div>
+
+                <!-- Target Folder (Category) -->
+                <div>
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="text-xs font-bold text-slate-700">Folder (Category)</label>
+                        <!-- Action Mode: Move vs Copy -->
+                        <div class="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 text-[11px]">
+                            <button id="btn-mode-move" type="button" class="px-2.5 py-0.5 rounded-md font-semibold bg-white text-blue-600 shadow-2xs">Move</button>
+                            <button id="btn-mode-copy" type="button" class="px-2.5 py-0.5 rounded-md font-semibold text-slate-600 hover:text-slate-900">Copy (Duplicate)</button>
+                        </div>
+                    </div>
+                    <select id="doc-modal-folder-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white">
+                        <!-- Populated dynamically with standard + custom folders + '+ Create New Folder...' -->
+                    </select>
+                    <!-- Custom folder input (shown when '+ Create New Folder...' is selected) -->
+                    <div id="doc-custom-folder-container" class="mt-2 hidden">
+                        <input id="doc-custom-folder-input" type="text" placeholder="Enter new folder name (e.g. مستندات بنكية)..." class="w-full px-3 py-1.5 text-xs border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-blue-50/40 text-slate-800" />
+                        <p class="text-[10px] text-slate-400 mt-1">Will be automatically assigned the next sequential number (e.g. 14 - ...).</p>
+                    </div>
+                </div>
+
+                <!-- Tenant Assignment (within house) -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Assigned Tenant (Within House)</label>
+                    <select id="doc-modal-tenant-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white">
+                        <!-- Populated dynamically with house tenants -->
+                    </select>
+                </div>
+            </div>
+
+            <!-- Status Message -->
+            <div id="doc-modal-status" class="px-6 py-1 text-xs font-medium hidden"></div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/70 flex justify-end gap-3">
+                <button id="doc-modal-cancel" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-2xs">Cancel</button>
+                <button id="doc-modal-submit" type="button" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2 shadow-sm shadow-blue-500/25">
+                    <span id="doc-modal-submit-text">💾 Apply Changes</span>
                 </button>
             </div>
         </div>
@@ -1876,6 +2016,374 @@
         if (tenantModalCancel) tenantModalCancel.addEventListener('click', closeTenantModal);
         if (tenantModalSave) tenantModalSave.addEventListener('click', saveTenantsAndReallocate);
         if (btnAddTenantRow) btnAddTenantRow.addEventListener('click', () => addTenantRow());
+
+        // ── Toast Notification Helper ─────────────────────────────────────────
+        function showToast(message, type = 'success') {
+            let container = document.getElementById('toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toast-container';
+                container.className = 'fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none';
+                document.body.appendChild(container);
+            }
+            const toast = document.createElement('div');
+            const bg = type === 'error' ? 'bg-rose-600 text-white' : 'bg-slate-900 text-white';
+            toast.className = `${bg} px-4 py-2.5 rounded-xl shadow-lg text-xs font-semibold flex items-center gap-2 transition-all transform translate-y-2 opacity-0 pointer-events-auto`;
+            toast.innerHTML = `<span>${message}</span>`;
+            container.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // ── Document Management & Drag-and-Drop Logic ────────────────────────
+        let draggedDoc = null;
+        let activeDocModalDoc = null;
+        let activeDocModalCategory = null;
+        let activeDocModalMode = 'move'; // 'move' or 'copy'
+
+        function handleDocDragStart(e, doc, fromCategory) {
+            draggedDoc = {
+                vault_id: doc.vault_id,
+                title: doc.brief_arabic_title || doc.filename || '',
+                category: fromCategory || doc.category || '',
+                tenant: doc.tenant || doc.primary_tenant || '',
+                tenant_id: doc.tenant_id,
+                house_id: currentHouse,
+                area_id: currentArea,
+            };
+            e.dataTransfer.setData('text/plain', doc.vault_id);
+            e.dataTransfer.effectAllowed = 'copyMove';
+            setTimeout(() => {
+                if (e.target && e.target.classList) e.target.classList.add('opacity-40');
+            }, 0);
+        }
+
+        function handleDocDragEnd(e) {
+            if (e.target && e.target.classList) e.target.classList.remove('opacity-40');
+            draggedDoc = null;
+            document.querySelectorAll('.drag-over-active').forEach(el => {
+                el.classList.remove('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400', 'bg-slate-700/80');
+            });
+        }
+
+        function handleCategoryDragOver(e, card) {
+            if (!draggedDoc || !draggedDoc.vault_id) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            card.classList.add('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400');
+        }
+
+        function handleCategoryDragLeave(e, card) {
+            card.classList.remove('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400');
+        }
+
+        async function handleCategoryDrop(e, targetCategory, card) {
+            e.preventDefault();
+            card.classList.remove('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400');
+            if (!draggedDoc || !draggedDoc.vault_id) return;
+            if (draggedDoc.category === targetCategory) return;
+
+            try {
+                const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/documents/${encodeURIComponent(draggedDoc.vault_id)}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category: targetCategory, is_manual: 1 })
+                });
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.detail || 'Failed to move document');
+                }
+                const data = await res.json();
+                showToast(`Moved to ${data.category || targetCategory}`);
+                await refreshCurrentTab(currentArea, currentHouse);
+            } catch (err) {
+                console.error(err);
+                showToast(err.message, 'error');
+            }
+        }
+
+        function handleTenantTreeDragOver(e, btn, parentPath) {
+            if (!draggedDoc || !draggedDoc.vault_id) return;
+            // Only allow if same house
+            if (parentPath && !parentPath.includes(encodeURIComponent(currentHouse)) && !parentPath.includes(currentHouse)) {
+                return;
+            }
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            btn.classList.add('drag-over-active', 'bg-slate-700/80', 'ring-2', 'ring-blue-400');
+        }
+
+        function handleTenantTreeDragLeave(e, btn) {
+            btn.classList.remove('drag-over-active', 'bg-slate-700/80', 'ring-2', 'ring-blue-400');
+        }
+
+        async function handleTenantTreeDrop(e, tenantName, btn, parentPath) {
+            e.preventDefault();
+            btn.classList.remove('drag-over-active', 'bg-slate-700/80', 'ring-2', 'ring-blue-400');
+            if (!draggedDoc || !draggedDoc.vault_id) return;
+            if (parentPath && !parentPath.includes(encodeURIComponent(currentHouse)) && !parentPath.includes(currentHouse)) {
+                showToast('Cannot move document to another house.', 'error');
+                return;
+            }
+
+            try {
+                const tRes = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/tenants`);
+                if (!tRes.ok) throw new Error('Failed to load tenants');
+                const tenants = await tRes.json();
+                const target = tenants.find(t => t.name.trim() === tenantName.trim());
+                if (!target) throw new Error('Tenant not found');
+
+                const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/documents/${encodeURIComponent(draggedDoc.vault_id)}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tenant_id: target.id, is_manual: 1 })
+                });
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.detail || 'Failed to assign tenant');
+                }
+                showToast(`Assigned to ${tenantName}`);
+                await refreshCurrentTab(currentArea, currentHouse);
+            } catch (err) {
+                console.error(err);
+                showToast(err.message, 'error');
+            }
+        }
+
+        // ── Document Modal Management ─────────────────────────────────────────
+        const docActionModal = document.getElementById('doc-action-modal');
+        const docModalTitle = document.getElementById('doc-modal-title');
+        const docModalArabicTitle = document.getElementById('doc-modal-arabic-title');
+        const docModalFolderSelect = document.getElementById('doc-modal-folder-select');
+        const docCustomFolderContainer = document.getElementById('doc-custom-folder-container');
+        const docCustomFolderInput = document.getElementById('doc-custom-folder-input');
+        const docModalTenantSelect = document.getElementById('doc-modal-tenant-select');
+        const docManualBanner = document.getElementById('doc-manual-banner');
+        const btnDocResetLock = document.getElementById('btn-doc-reset-lock');
+        const docModalStatus = document.getElementById('doc-modal-status');
+        const docModalCancel = document.getElementById('doc-modal-cancel');
+        const docModalClose = document.getElementById('doc-modal-close');
+        const docModalSubmit = document.getElementById('doc-modal-submit');
+        const docModalSubmitText = document.getElementById('doc-modal-submit-text');
+        const btnModeMove = document.getElementById('btn-mode-move');
+        const btnModeCopy = document.getElementById('btn-mode-copy');
+
+        const STANDARD_FOLDERS = [
+            "01 - بيانات أساسية",
+            "02 - بيانات شخصية",
+            "03 - أمر تخصيص",
+            "04 - محضر تسليم مفتاح",
+            "05 - عقود",
+            "06 - كهرباء وماء",
+            "07 - استقطاع إيجار",
+            "08 - وقف استقطاع بدل",
+            "09 - إشعارات",
+            "10 - صيانة",
+            "11 - صور ومعاينات",
+            "12 - تعديلات",
+            "13 - رسائل متنوعة",
+        ];
+
+        async function openDocModal(doc, currentCategory = null) {
+            activeDocModalDoc = doc;
+            activeDocModalCategory = currentCategory || doc.category || '';
+            setDocModalMode('move');
+
+            docModalTitle.textContent = doc.brief_arabic_title || doc.filename || 'Manage Document';
+            docModalArabicTitle.value = doc.brief_arabic_title || '';
+            docCustomFolderInput.value = '';
+            docCustomFolderContainer.classList.add('hidden');
+            docModalStatus.classList.add('hidden');
+
+            if (doc.is_manual) {
+                docManualBanner.classList.remove('hidden');
+            } else {
+                docManualBanner.classList.add('hidden');
+            }
+
+            populateFolderOptions(activeDocModalCategory);
+            await populateTenantOptions(doc.tenant_id, doc.tenant || doc.primary_tenant);
+
+            docActionModal.classList.remove('hidden');
+            docActionModal.classList.add('flex');
+        }
+
+        function closeDocModal() {
+            docActionModal.classList.add('hidden');
+            docActionModal.classList.remove('flex');
+            activeDocModalDoc = null;
+        }
+
+        function setDocModalMode(mode) {
+            activeDocModalMode = mode;
+            if (mode === 'move') {
+                btnModeMove.className = 'px-2.5 py-0.5 rounded-md font-semibold bg-white text-blue-600 shadow-2xs';
+                btnModeCopy.className = 'px-2.5 py-0.5 rounded-md font-semibold text-slate-600 hover:text-slate-900';
+                docModalSubmitText.textContent = '💾 Apply Changes';
+            } else {
+                btnModeCopy.className = 'px-2.5 py-0.5 rounded-md font-semibold bg-white text-blue-600 shadow-2xs';
+                btnModeMove.className = 'px-2.5 py-0.5 rounded-md font-semibold text-slate-600 hover:text-slate-900';
+                docModalSubmitText.textContent = '📄 Duplicate Document';
+            }
+        }
+
+        function populateFolderOptions(selectedCategory) {
+            docModalFolderSelect.innerHTML = '';
+            const existingFolderNames = new Set(STANDARD_FOLDERS);
+            if (currentCategories) {
+                currentCategories.forEach(c => {
+                    if (c.name) existingFolderNames.add(c.name);
+                });
+            }
+            if (selectedCategory) {
+                existingFolderNames.add(selectedCategory);
+            }
+
+            const sorted = Array.from(existingFolderNames).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
+            sorted.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f;
+                opt.textContent = f;
+                if (selectedCategory && (f === selectedCategory || f.includes(selectedCategory) || selectedCategory.includes(f))) {
+                    opt.selected = true;
+                }
+                docModalFolderSelect.appendChild(opt);
+            });
+
+            const newOpt = document.createElement('option');
+            newOpt.value = '__NEW_CUSTOM_FOLDER__';
+            newOpt.textContent = '➕ Create new folder...';
+            docModalFolderSelect.appendChild(newOpt);
+
+            docModalFolderSelect.onchange = () => {
+                if (docModalFolderSelect.value === '__NEW_CUSTOM_FOLDER__') {
+                    docCustomFolderContainer.classList.remove('hidden');
+                    docCustomFolderInput.focus();
+                } else {
+                    docCustomFolderContainer.classList.add('hidden');
+                }
+            };
+        }
+
+        async function populateTenantOptions(selectedTenantId, selectedTenantName) {
+            docModalTenantSelect.innerHTML = '';
+            try {
+                const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/tenants`);
+                if (!res.ok) return;
+                const tenants = await res.json();
+
+                tenants.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.textContent = t.name + (t.start_date ? ` (${t.start_date.substring(0, 4)})` : '');
+                    if (selectedTenantId && t.id === selectedTenantId) {
+                        opt.selected = true;
+                    } else if (!selectedTenantId && selectedTenantName && (t.name.trim() === selectedTenantName.trim() || selectedTenantName.includes(t.name.trim()))) {
+                        opt.selected = true;
+                    }
+                    docModalTenantSelect.appendChild(opt);
+                });
+            } catch (err) {
+                console.error('Failed to load tenants for modal:', err);
+            }
+        }
+
+        async function saveDocModal() {
+            if (!activeDocModalDoc || !activeDocModalDoc.vault_id) return;
+            docModalSubmit.disabled = true;
+            const origBtnText = docModalSubmitText.textContent;
+            docModalSubmitText.textContent = 'Saving...';
+
+            try {
+                let chosenCategory = docModalFolderSelect.value;
+                if (chosenCategory === '__NEW_CUSTOM_FOLDER__') {
+                    const customVal = docCustomFolderInput.value.trim();
+                    if (!customVal) {
+                        throw new Error('Please enter a folder name.');
+                    }
+                    chosenCategory = customVal;
+                }
+
+                const newTitle = docModalArabicTitle.value.trim();
+                const newTenantId = parseInt(docModalTenantSelect.value);
+
+                if (activeDocModalMode === 'copy') {
+                    const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/documents/${encodeURIComponent(activeDocModalDoc.vault_id)}/copy`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            target_title: newTitle || undefined,
+                            target_category: chosenCategory || undefined,
+                            target_tenant_id: newTenantId || undefined,
+                        })
+                    });
+                    if (!res.ok) {
+                        const errData = await res.json().catch(() => ({}));
+                        throw new Error(errData.detail || 'Failed to copy document');
+                    }
+                    showToast('Document duplicated successfully');
+                } else {
+                    const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/documents/${encodeURIComponent(activeDocModalDoc.vault_id)}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            arabic_title: newTitle,
+                            category: chosenCategory,
+                            tenant_id: newTenantId,
+                            is_manual: 1
+                        })
+                    });
+                    if (!res.ok) {
+                        const errData = await res.json().catch(() => ({}));
+                        throw new Error(errData.detail || 'Failed to update document');
+                    }
+                    showToast('Document updated successfully');
+                }
+
+                closeDocModal();
+                await refreshCurrentTab(currentArea, currentHouse);
+            } catch (err) {
+                docModalStatus.textContent = err.message;
+                docModalStatus.className = 'px-6 py-1 text-xs font-semibold text-rose-600 block';
+            } finally {
+                docModalSubmit.disabled = false;
+                docModalSubmitText.textContent = origBtnText;
+            }
+        }
+
+        async function resetDocLock() {
+            if (!activeDocModalDoc || !activeDocModalDoc.vault_id) return;
+            btnDocResetLock.disabled = true;
+            btnDocResetLock.textContent = 'Resetting...';
+            try {
+                const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/documents/${encodeURIComponent(activeDocModalDoc.vault_id)}/reset-lock`, {
+                    method: 'POST',
+                });
+                if (!res.ok) throw new Error('Failed to reset lock');
+                showToast('Reset to automatic successfully');
+                closeDocModal();
+                await refreshCurrentTab(currentArea, currentHouse);
+            } catch (err) {
+                docModalStatus.textContent = err.message;
+                docModalStatus.className = 'px-6 py-1 text-xs font-semibold text-rose-600 block';
+            } finally {
+                btnDocResetLock.disabled = false;
+                btnDocResetLock.textContent = 'Reset to Auto';
+            }
+        }
+
+        if (docModalClose) docModalClose.addEventListener('click', closeDocModal);
+        if (docModalCancel) docModalCancel.addEventListener('click', closeDocModal);
+        if (docModalSubmit) docModalSubmit.addEventListener('click', saveDocModal);
+        if (btnDocResetLock) btnDocResetLock.addEventListener('click', resetDocLock);
+        if (btnModeMove) btnModeMove.addEventListener('click', () => setDocModalMode('move'));
+        if (btnModeCopy) btnModeCopy.addEventListener('click', () => setDocModalMode('copy'));
     </script>
 </body>
 </html>

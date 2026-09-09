@@ -1,11 +1,13 @@
 """Repository providing type-safe CRUD operations for the SQLite database."""
 
+import re
 import sqlite3
 from contextlib import contextmanager
 from datetime import date, datetime
 from typing import Any, Dict, Generator, List, Optional, Sequence, Union
 
 from src.db.models import Area, House, Tenant, Batch, Page, Document
+from src.routing.config import FOLDER_PREFIXES
 
 
 # ==========================================
@@ -250,14 +252,17 @@ def reallocate_house_documents(
 
     tenant_map: Dict[str, Tenant] = {t.name.strip().lower(): t for t in tenants if t.id}
 
-    # Fetch all documents for this house
+    # Fetch all documents for this house that are not manually locked (is_manual = 1)
     doc_rows = conn.execute(
-        "SELECT vault_id, tenant_id, primary_date FROM documents WHERE house_id = ?",
+        "SELECT vault_id, tenant_id, primary_date FROM documents WHERE house_id = ? AND (is_manual IS NULL OR is_manual = 0)",
         (house_id,),
     ).fetchall()
 
+    total_cnt_row = conn.execute("SELECT COUNT(*) as cnt FROM documents WHERE house_id = ?", (house_id,)).fetchone()
+    total_docs = total_cnt_row["cnt"] if total_cnt_row else len(doc_rows)
+
     if not doc_rows:
-        return {"reallocated_count": 0, "total_documents": 0, "tenants_count": len(tenants)}
+        return {"reallocated_count": 0, "total_documents": total_docs, "tenants_count": len(tenants)}
 
     # Fetch page-level expected_tenant_names for each document
     page_rows = conn.execute(
@@ -327,7 +332,7 @@ def reallocate_house_documents(
 
     return {
         "reallocated_count": reallocated_count,
-        "total_documents": len(doc_rows),
+        "total_documents": total_docs,
         "tenants_count": len(tenants),
     }
 
@@ -561,6 +566,7 @@ def add_document(
     arabic_title: Optional[str] = None,
     category: Optional[str] = None,
     page_count: int = 1,
+    is_manual: int = 0,
     autocommit: bool = True,
 ) -> Document:
     """Insert a new document record into the vault."""
@@ -578,6 +584,7 @@ def add_document(
             arabic_title=arabic_title,
             category=category,
             page_count=page_count,
+            is_manual=is_manual,
         )
     elif vault_id is not None:
         d = Document(
@@ -589,17 +596,19 @@ def add_document(
             arabic_title=arabic_title,
             category=category,
             page_count=page_count,
+            is_manual=is_manual,
         )
     else:
         raise ValueError("Invalid document specification")
 
     p_date = str(d.primary_date) if d.primary_date else None
+    manual_val = int(getattr(d, "is_manual", 0) or 0)
 
     query = """
     INSERT INTO documents (
         vault_id, house_id, tenant_id, batch_id, primary_date,
-        arabic_title, category, page_count
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        arabic_title, category, page_count, is_manual
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     RETURNING *
     """
     cursor = conn.execute(
@@ -613,6 +622,7 @@ def add_document(
             d.arabic_title,
             d.category,
             d.page_count,
+            manual_val,
         ),
     )
     row = cursor.fetchone()
@@ -648,6 +658,149 @@ def list_documents_by_category(
     """
     cursor = conn.execute(query, (house_id, category))
     return [Document.model_validate(dict(row)) for row in cursor.fetchall()]
+
+
+def update_document(
+    conn: sqlite3.Connection,
+    vault_id: str,
+    *,
+    arabic_title: Optional[str] = None,
+    category: Optional[str] = None,
+    tenant_id: Optional[int] = None,
+    primary_date: Optional[Union[str, date]] = None,
+    is_manual: Optional[int] = 1,
+    autocommit: bool = True,
+) -> Optional[Document]:
+    """Update editable document metadata and mark as manually locked."""
+    existing = get_document(conn, vault_id)
+    if not existing:
+        return None
+
+    updates = []
+    params: List[Any] = []
+    if arabic_title is not None:
+        updates.append("arabic_title = ?")
+        params.append(arabic_title.strip() if arabic_title else None)
+    if category is not None:
+        updates.append("category = ?")
+        params.append(category.strip() if category else None)
+    if tenant_id is not None:
+        updates.append("tenant_id = ?")
+        params.append(tenant_id)
+    if primary_date is not None:
+        updates.append("primary_date = ?")
+        params.append(str(primary_date)[:10] if primary_date else None)
+    if is_manual is not None:
+        updates.append("is_manual = ?")
+        params.append(int(is_manual))
+
+    if not updates:
+        return existing
+
+    params.append(vault_id)
+    sql = f"UPDATE documents SET {', '.join(updates)} WHERE vault_id = ? RETURNING *"
+    cursor = conn.execute(sql, params)
+    row = cursor.fetchone()
+
+    # Also keep pages in sync for tenant_id and fine_category
+    if tenant_id is not None:
+        conn.execute("UPDATE pages SET tenant_id = ? WHERE vault_id = ?", (tenant_id, vault_id))
+    if category is not None:
+        conn.execute("UPDATE pages SET fine_category = ? WHERE vault_id = ?", (category, vault_id))
+
+    if autocommit:
+        conn.commit()
+    return Document.model_validate(dict(row)) if row else None
+
+
+def reset_document_manual_lock(
+    conn: sqlite3.Connection,
+    vault_id: str,
+    autocommit: bool = True,
+) -> bool:
+    """Reset manual lock on a document so it can participate in automatic reallocations."""
+    cursor = conn.execute("UPDATE documents SET is_manual = 0 WHERE vault_id = ?", (vault_id,))
+    updated = cursor.rowcount > 0
+    if autocommit:
+        conn.commit()
+    return updated
+
+
+def copy_document(
+    conn: sqlite3.Connection,
+    vault_id: str,
+    *,
+    new_vault_id: str,
+    target_category: Optional[str] = None,
+    target_tenant_id: Optional[int] = None,
+    target_title: Optional[str] = None,
+    autocommit: bool = True,
+) -> Optional[Document]:
+    """Duplicate a document record under a new vault_id with is_manual = 1."""
+    src = get_document(conn, vault_id)
+    if not src:
+        return None
+
+    cat = target_category if target_category is not None else src.category
+    t_id = target_tenant_id if target_tenant_id is not None else src.tenant_id
+    title = target_title if target_title is not None else src.arabic_title
+
+    new_doc = add_document(
+        conn,
+        vault_id=new_vault_id,
+        house_id=src.house_id,
+        tenant_id=t_id,
+        batch_id=src.batch_id,
+        primary_date=src.primary_date,
+        arabic_title=title,
+        category=cat,
+        page_count=src.page_count,
+        is_manual=1,
+        autocommit=autocommit,
+    )
+    return new_doc
+
+
+def get_or_create_numbered_folder(
+    conn: sqlite3.Connection,
+    house_id: str,
+    folder_name: str,
+) -> str:
+    """Return appropriately numbered folder string, sequentially numbering custom folders from 14+."""
+    name_clean = folder_name.strip()
+    if not name_clean:
+        return "13 - رسائل متنوعة"
+
+    # If it is a standard folder name from FOLDER_PREFIXES
+    if name_clean in FOLDER_PREFIXES:
+        return f"{FOLDER_PREFIXES[name_clean]} - {name_clean}"
+
+    # If it already starts with a number pattern e.g. "05 - عقود" or "14 - Custom"
+    m = re.match(r"^(\d+)\s*-\s*(.+)$", name_clean)
+    if m:
+        prefix_num = int(m.group(1))
+        suffix_name = m.group(2).strip()
+        if suffix_name in FOLDER_PREFIXES:
+            return f"{FOLDER_PREFIXES[suffix_name]} - {suffix_name}"
+        return f"{prefix_num:02d} - {suffix_name}"
+
+    # It's a custom un-numbered folder name.
+    # Check if this custom folder already exists for this house in documents:
+    cursor = conn.execute("SELECT DISTINCT category FROM documents WHERE house_id = ?", (house_id,))
+    existing_cats = [r[0] for r in cursor.fetchall() if r[0]]
+    max_num = 13
+    for cat in existing_cats:
+        m_cat = re.match(r"^(\d+)\s*-\s*(.+)$", cat.strip())
+        if m_cat:
+            num = int(m_cat.group(1))
+            if num > max_num:
+                max_num = num
+            if m_cat.group(2).strip().lower() == name_clean.lower():
+                # Already exists with a number! Reuse it
+                return cat.strip()
+
+    next_num = max_num + 1
+    return f"{next_num:02d} - {name_clean}"
 
 
 # ==========================================
@@ -815,6 +968,7 @@ class Repository:
         arabic_title: Optional[str] = None,
         category: Optional[str] = None,
         page_count: int = 1,
+        is_manual: int = 0,
     ) -> Document:
         return add_document(
             self.conn,
@@ -827,6 +981,7 @@ class Repository:
             arabic_title=arabic_title,
             category=category,
             page_count=page_count,
+            is_manual=is_manual,
             autocommit=self.autocommit,
         )
 
@@ -838,3 +993,50 @@ class Repository:
 
     def list_documents_by_category(self, house_id: str, category: str) -> List[Document]:
         return list_documents_by_category(self.conn, house_id, category)
+
+    def update_document(
+        self,
+        vault_id: str,
+        *,
+        arabic_title: Optional[str] = None,
+        category: Optional[str] = None,
+        tenant_id: Optional[int] = None,
+        primary_date: Optional[Union[str, date]] = None,
+        is_manual: Optional[int] = 1,
+    ) -> Optional[Document]:
+        return update_document(
+            self.conn,
+            vault_id,
+            arabic_title=arabic_title,
+            category=category,
+            tenant_id=tenant_id,
+            primary_date=primary_date,
+            is_manual=is_manual,
+            autocommit=self.autocommit,
+        )
+
+    def reset_document_manual_lock(self, vault_id: str) -> bool:
+        return reset_document_manual_lock(self.conn, vault_id, autocommit=self.autocommit)
+
+    def copy_document(
+        self,
+        vault_id: str,
+        *,
+        new_vault_id: str,
+        target_category: Optional[str] = None,
+        target_tenant_id: Optional[int] = None,
+        target_title: Optional[str] = None,
+    ) -> Optional[Document]:
+        return copy_document(
+            self.conn,
+            vault_id,
+            new_vault_id=new_vault_id,
+            target_category=target_category,
+            target_tenant_id=target_tenant_id,
+            target_title=target_title,
+            autocommit=self.autocommit,
+        )
+
+    def get_or_create_numbered_folder(self, house_id: str, folder_name: str) -> str:
+        return get_or_create_numbered_folder(self.conn, house_id, folder_name)
+

@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS documents (
     arabic_title TEXT,
     category TEXT,
     page_count INTEGER DEFAULT 1,
+    is_manual INTEGER DEFAULT 0,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -75,6 +76,7 @@ CREATE INDEX IF NOT EXISTS idx_pages_house ON pages(house_id);
 CREATE INDEX IF NOT EXISTS idx_documents_house ON documents(house_id);
 CREATE INDEX IF NOT EXISTS idx_documents_tenant ON documents(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_documents_date ON documents(primary_date);
+CREATE INDEX IF NOT EXISTS idx_documents_manual ON documents(is_manual);
 """
 
 
@@ -86,4 +88,12 @@ def init_db(conn: sqlite3.Connection) -> None:
     """
     conn.executescript(SCHEMA_SQL)
     conn.executescript(INDICES_SQL)
+
+    # Automatic migration for existing databases
+    cursor = conn.execute("PRAGMA table_info(documents)")
+    existing_cols = [row[1] for row in cursor.fetchall()]
+    if existing_cols and "is_manual" not in existing_cols:
+        conn.execute("ALTER TABLE documents ADD COLUMN is_manual INTEGER DEFAULT 0")
+
     conn.commit()
+

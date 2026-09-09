@@ -3,6 +3,8 @@ import base64
 import re
 import difflib
 import time
+import shutil
+import uuid
 from pathlib import Path
 from datetime import date, datetime
 from typing import Optional
@@ -21,8 +23,17 @@ from src.api.models import (
     TenantBulkUpdateRequest,
     TenantReallocationResponse,
     DocumentTenantUpdateRequest,
+    DocumentUpdateRequest,
+    DocumentCopyRequest,
+    DocumentActionResponse,
 )
-from src.db.repository import Repository
+from src.db.repository import (
+    Repository,
+    get_or_create_numbered_folder,
+    update_document,
+    copy_document,
+    reset_document_manual_lock,
+)
 
 router = APIRouter()
 
@@ -135,7 +146,7 @@ async def list_vault_files(request: Request, house_id: str):
     if repo:
         house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
         cursor = repo.conn.execute("""
-            SELECT d.vault_id, d.primary_date, d.arabic_title, d.page_count, t.name as tenant_name, b.filename
+            SELECT d.vault_id, d.primary_date, d.arabic_title, d.category, d.page_count, d.is_manual, d.tenant_id, t.name as tenant_name, b.filename
             FROM documents d
             LEFT JOIN tenants t ON d.tenant_id = t.id
             LEFT JOIN batches b ON d.batch_id = b.id
@@ -152,7 +163,10 @@ async def list_vault_files(request: Request, house_id: str):
                     end_page=r["page_count"] or 1,
                     date=str(r["primary_date"]) if r["primary_date"] else "",
                     tenant=r["tenant_name"] or "",
-                    brief_arabic_title=r["arabic_title"] or ""
+                    tenant_id=r["tenant_id"],
+                    category=r["category"] or "",
+                    brief_arabic_title=r["arabic_title"] or "",
+                    is_manual=int(r["is_manual"] or 0)
                 )
                 for r in rows
             ]
@@ -194,7 +208,7 @@ async def list_timeline(request: Request, area_id: str, house_id: str):
         conn = repo.conn
         house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
         cursor = conn.execute("""
-            SELECT d.vault_id, d.primary_date, d.arabic_title, d.category, t.name as tenant_name
+            SELECT d.vault_id, d.primary_date, d.arabic_title, d.category, d.is_manual, d.tenant_id, t.name as tenant_name
             FROM documents d
             LEFT JOIN tenants t ON d.tenant_id = t.id
             WHERE d.house_id = ? OR d.house_id = ?
@@ -206,8 +220,11 @@ async def list_timeline(request: Request, area_id: str, house_id: str):
                 TimelineGroupResponse(
                     vault_id=r["vault_id"],
                     primary_tenant=r["tenant_name"] or "",
+                    tenant_id=r["tenant_id"],
                     dates=[str(r["primary_date"])] if r["primary_date"] else [],
-                    brief_arabic_title=r["arabic_title"] or ""
+                    brief_arabic_title=r["arabic_title"] or "",
+                    category=r["category"] or "",
+                    is_manual=int(r["is_manual"] or 0)
                 )
                 for r in rows
             ]
@@ -377,11 +394,185 @@ async def reassign_single_document_tenant(request: Request, area_id: str, house_
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found.")
 
-    repo.conn.execute("UPDATE documents SET tenant_id = ? WHERE vault_id = ?", (payload.tenant_id, vault_id))
+    repo.conn.execute("UPDATE documents SET tenant_id = ?, is_manual = 1 WHERE vault_id = ?", (payload.tenant_id, vault_id))
     repo.conn.execute("UPDATE pages SET tenant_id = ? WHERE vault_id = ?", (payload.tenant_id, vault_id))
     repo.conn.commit()
     clear_tree_cache()
     return {"status": "success", "vault_id": vault_id, "tenant_id": payload.tenant_id, "tenant_name": tenant.name}
+
+@router.patch("/api/areas/{area_id}/houses/{house_id}/documents/{vault_id}", response_model=DocumentActionResponse)
+async def update_single_document(
+    request: Request,
+    area_id: str,
+    house_id: str,
+    vault_id: str,
+    payload: DocumentUpdateRequest,
+):
+    repo = get_db_repo(request)
+    if not repo:
+        raise HTTPException(status_code=500, detail="Database repository not available.")
+    doc = repo.get_document(vault_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+
+    house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
+    if doc.house_id != house_id and doc.house_id != house_num:
+        raise HTTPException(status_code=400, detail="Document does not belong to the specified house.")
+
+    target_tenant_name = None
+    if payload.tenant_id is not None:
+        tenant = repo.get_tenant(payload.tenant_id)
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Tenant not found.")
+        if tenant.house_id != house_id and tenant.house_id != house_num:
+            raise HTTPException(status_code=400, detail="Cannot assign document to a tenant belonging to a different house.")
+        target_tenant_name = tenant.name
+
+    category_val = None
+    if payload.category is not None:
+        category_val = get_or_create_numbered_folder(repo.conn, doc.house_id, payload.category)
+
+    updated = repo.update_document(
+        vault_id,
+        arabic_title=payload.arabic_title,
+        category=category_val,
+        tenant_id=payload.tenant_id,
+        primary_date=payload.primary_date,
+        is_manual=payload.is_manual if payload.is_manual is not None else 1,
+    )
+    if not updated:
+        raise HTTPException(status_code=500, detail="Failed to update document.")
+
+    if not target_tenant_name and updated.tenant_id:
+        t = repo.get_tenant(updated.tenant_id)
+        if t:
+            target_tenant_name = t.name
+
+    clear_tree_cache()
+    return DocumentActionResponse(
+        status="success",
+        vault_id=updated.vault_id,
+        arabic_title=updated.arabic_title,
+        category=updated.category,
+        tenant_id=updated.tenant_id,
+        tenant_name=target_tenant_name,
+        is_manual=getattr(updated, "is_manual", 1),
+    )
+
+@router.post("/api/areas/{area_id}/houses/{house_id}/documents/{vault_id}/copy", response_model=DocumentActionResponse)
+async def copy_single_document(
+    request: Request,
+    area_id: str,
+    house_id: str,
+    vault_id: str,
+    payload: DocumentCopyRequest,
+):
+    repo = get_db_repo(request)
+    if not repo:
+        raise HTTPException(status_code=500, detail="Database repository not available.")
+    src_doc = repo.get_document(vault_id)
+    if not src_doc:
+        raise HTTPException(status_code=404, detail="Source document not found.")
+
+    house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
+    if src_doc.house_id != house_id and src_doc.house_id != house_num:
+        raise HTTPException(status_code=400, detail="Source document does not belong to specified house.")
+
+    target_tenant_name = None
+    if payload.target_tenant_id is not None:
+        tenant = repo.get_tenant(payload.target_tenant_id)
+        if not tenant:
+            raise HTTPException(status_code=404, detail="Target tenant not found.")
+        if tenant.house_id != house_id and tenant.house_id != house_num:
+            raise HTTPException(status_code=400, detail="Cannot copy document to a tenant outside this house.")
+        target_tenant_name = tenant.name
+
+    target_cat = None
+    if payload.target_category is not None:
+        target_cat = get_or_create_numbered_folder(repo.conn, src_doc.house_id, payload.target_category)
+
+    new_vault_id = uuid.uuid4().hex
+
+    # Physical file duplicate on disk
+    config = getattr(request.app.state, "config", None)
+    areas_root = Path(config.areas_root_path) if (config and hasattr(config, "areas_root_path")) else Path(".")
+    house_dir = areas_root / area_id / house_id
+    vault_dir = house_dir / "vault"
+    try:
+        vault_dir.mkdir(parents=True, exist_ok=True)
+        src_candidates = [
+            vault_dir / f"doc_{vault_id}.pdf",
+            vault_dir / f"{vault_id}.pdf",
+            house_dir / ".source_files" / "vault" / f"doc_{vault_id}.pdf",
+            house_dir / ".source_files" / "vault" / f"{vault_id}.pdf",
+        ]
+        for cand in src_candidates:
+            if cand.exists() and cand.is_file():
+                shutil.copy2(str(cand), str(vault_dir / f"doc_{new_vault_id}.pdf"))
+                break
+    except Exception:
+        pass
+
+    new_doc = repo.copy_document(
+        vault_id,
+        new_vault_id=new_vault_id,
+        target_category=target_cat,
+        target_tenant_id=payload.target_tenant_id,
+        target_title=payload.target_title,
+    )
+    if not new_doc:
+        raise HTTPException(status_code=500, detail="Failed to copy document record.")
+
+    if not target_tenant_name and new_doc.tenant_id:
+        t = repo.get_tenant(new_doc.tenant_id)
+        if t:
+            target_tenant_name = t.name
+
+    clear_tree_cache()
+    return DocumentActionResponse(
+        status="success",
+        vault_id=new_doc.vault_id,
+        arabic_title=new_doc.arabic_title,
+        category=new_doc.category,
+        tenant_id=new_doc.tenant_id,
+        tenant_name=target_tenant_name,
+        is_manual=1,
+    )
+
+@router.post("/api/areas/{area_id}/houses/{house_id}/documents/{vault_id}/reset-lock", response_model=DocumentActionResponse)
+async def reset_document_lock(
+    request: Request,
+    area_id: str,
+    house_id: str,
+    vault_id: str,
+):
+    repo = get_db_repo(request)
+    if not repo:
+        raise HTTPException(status_code=500, detail="Database repository not available.")
+    doc = repo.get_document(vault_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+
+    repo.reset_document_manual_lock(vault_id)
+    repo.reallocate_house_documents(doc.house_id)
+    updated_doc = repo.get_document(vault_id) or doc
+
+    target_tenant_name = None
+    if updated_doc.tenant_id:
+        t = repo.get_tenant(updated_doc.tenant_id)
+        if t:
+            target_tenant_name = t.name
+
+    clear_tree_cache()
+    return DocumentActionResponse(
+        status="success",
+        vault_id=vault_id,
+        arabic_title=updated_doc.arabic_title,
+        category=updated_doc.category,
+        tenant_id=updated_doc.tenant_id,
+        tenant_name=target_tenant_name,
+        is_manual=0,
+    )
 
 @router.get("/api/areas/{area_id}/houses/{house_id}/categories", response_model=list[CategoryResponse])
 async def list_categories(request: Request, area_id: str, house_id: str):
@@ -391,7 +582,7 @@ async def list_categories(request: Request, area_id: str, house_id: str):
         conn = repo.conn
         house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
         cursor = conn.execute("""
-            SELECT d.vault_id, d.primary_date, d.arabic_title, d.category, d.page_count,
+            SELECT d.vault_id, d.primary_date, d.arabic_title, d.category, d.page_count, d.is_manual, d.tenant_id,
                    t.name as tenant_name, b.filename as batch_filename
             FROM documents d
             LEFT JOIN tenants t ON d.tenant_id = t.id
@@ -417,7 +608,10 @@ async def list_categories(request: Request, area_id: str, house_id: str):
                     end_page=r["page_count"] or 1,
                     date=str(r["primary_date"]) if r["primary_date"] else "",
                     tenant=tenant,
-                    brief_arabic_title=r["arabic_title"] or ""
+                    tenant_id=r["tenant_id"],
+                    category=cat_numbered,
+                    brief_arabic_title=r["arabic_title"] or "",
+                    is_manual=int(r["is_manual"] or 0)
                 ))
             return [
                 CategoryResponse(

@@ -25,6 +25,10 @@ from src.db.repository import (
     list_tenants_by_house,
     update_batch_status,
     update_page_cleaning,
+    update_document,
+    reset_document_manual_lock,
+    copy_document,
+    get_or_create_numbered_folder,
 )
 from src.db.schema import INDICES_SQL, SCHEMA_SQL, init_db
 
@@ -62,4 +66,8 @@ __all__ = [
     "get_document",
     "list_documents_by_house",
     "list_documents_by_category",
+    "update_document",
+    "reset_document_manual_lock",
+    "copy_document",
+    "get_or_create_numbered_folder",
 ]
