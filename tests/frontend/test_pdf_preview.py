@@ -75,10 +75,10 @@ def _setup_routes(page: Page, pdf_captured: list):
     page.route("http://localhost:9999/api/tree", lambda r: r.fulfill(
         status=200, content_type="application/json", body=TREE_RESPONSE))
 
-    page.route(re.compile(r".*/timeline"), lambda r: r.fulfill(
+    page.route(re.compile(r".*/api/.*/timeline$"), lambda r: r.fulfill(
         status=200, content_type="application/json", body=TIMELINE_RESPONSE))
 
-    page.route(re.compile(r".*/categories"), lambda r: r.fulfill(
+    page.route(re.compile(r".*/api/.*/categories$"), lambda r: r.fulfill(
         status=200, content_type="application/json", body=CATEGORIES_RESPONSE))
 
     def handle_pdf(route):

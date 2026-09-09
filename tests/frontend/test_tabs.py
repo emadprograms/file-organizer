@@ -102,12 +102,12 @@ def _setup_routes(page: Page, captured_urls: list):
     def handle_timeline(route):
         captured_urls.append(route.request.url)
         route.fulfill(status=200, content_type="application/json", body=TIMELINE_RESPONSE)
-    page.route(re.compile(r".*/timeline"), handle_timeline)
+    page.route(re.compile(r".*/api/.*/timeline$"), handle_timeline)
 
     def handle_categories(route):
         captured_urls.append(route.request.url)
         route.fulfill(status=200, content_type="application/json", body=CATEGORIES_RESPONSE)
-    page.route(re.compile(r".*/categories"), handle_categories)
+    page.route(re.compile(r".*/api/.*/categories$"), handle_categories)
 
     def handle_profile(route):
         captured_urls.append(route.request.url)

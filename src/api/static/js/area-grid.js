@@ -24,7 +24,7 @@
         const docViewerPanel = document.getElementById('document-viewer-panel');
         const resizer2 = document.getElementById('resizer-2');
         const backToGridBtn = document.getElementById('back-to-grid-btn');
-        const backToTenantsBtn = document.getElementById('back-to-tenants-btn');
+        const tabBackToTenants = document.getElementById('tab-back-to-tenants');
         const areaGridPanel = document.getElementById('area-grid-panel');
         const currentHouseTitle = document.getElementById('current-house-title');
         const statsBadge = document.getElementById('stats-badge');
@@ -40,9 +40,9 @@
         if (docViewerPanel) docViewerPanel.classList.add('hidden');
         if (resizer2) resizer2.classList.add('hidden');
         if (backToGridBtn) backToGridBtn.classList.add('hidden');
-        if (backToTenantsBtn) {
-            backToTenantsBtn.classList.add('hidden');
-            backToTenantsBtn.classList.remove('flex');
+        if (tabBackToTenants) {
+            tabBackToTenants.classList.add('hidden');
+            tabBackToTenants.classList.remove('flex');
         }
 
         if (areaGridPanel) {

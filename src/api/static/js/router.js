@@ -10,7 +10,7 @@
         const docViewerPanel = document.getElementById('document-viewer-panel');
         const resizer2 = document.getElementById('resizer-2');
         const backToGridBtn = document.getElementById('back-to-grid-btn');
-        const backToTenantsBtn = document.getElementById('back-to-tenants-btn');
+        const tabBackToTenants = document.getElementById('tab-back-to-tenants');
         const areaGridPanel = document.getElementById('area-grid-panel');
         const databaseInspectorPanel = document.getElementById('database-inspector-panel');
         const currentHouseTitle = document.getElementById('current-house-title');
@@ -27,9 +27,9 @@
             if (docViewerPanel) docViewerPanel.classList.add('hidden');
             if (resizer2) resizer2.classList.add('hidden');
             if (backToGridBtn) backToGridBtn.classList.add('hidden');
-            if (backToTenantsBtn) {
-                backToTenantsBtn.classList.add('hidden');
-                backToTenantsBtn.classList.remove('flex');
+            if (tabBackToTenants) {
+                tabBackToTenants.classList.add('hidden');
+                tabBackToTenants.classList.remove('flex');
             }
             if (areaGridPanel) {
                 areaGridPanel.classList.add('hidden');
@@ -155,7 +155,7 @@
         const tabCategoriesLabel = document.getElementById('tab-categories-label');
         const tabTimelineLabel = document.getElementById('tab-timeline-label');
         const areaGridPanel = document.getElementById('area-grid-panel');
-        const backToTenantsBtn = document.getElementById('back-to-tenants-btn');
+        const tabBackToTenants = document.getElementById('tab-back-to-tenants');
         const backToGridBtn = document.getElementById('back-to-grid-btn');
         const welcomePanel = document.getElementById('welcome-panel');
         const docListPanel = document.getElementById('document-list-panel');
@@ -188,20 +188,20 @@
             areaGridPanel.classList.remove('flex');
         }
 
-        if (backToTenantsBtn) {
+        if (tabBackToTenants) {
             if (tenantName) {
-                backToTenantsBtn.classList.remove('hidden');
-                backToTenantsBtn.classList.add('flex');
+                tabBackToTenants.classList.remove('hidden');
+                tabBackToTenants.classList.add('flex');
             } else {
-                backToTenantsBtn.classList.add('hidden');
-                backToTenantsBtn.classList.remove('flex');
+                tabBackToTenants.classList.add('hidden');
+                tabBackToTenants.classList.remove('flex');
             }
         }
 
         if (backToGridBtn) {
             backToGridBtn.classList.remove('hidden');
             backToGridBtn.classList.add('flex');
-            const gridLabel = tenantName ? `← ${areaId} Houses` : `← Back to ${areaId} Houses`;
+            const gridLabel = tenantName ? `${areaId} Houses` : `Back to ${areaId} Houses`;
             backToGridBtn.innerHTML = `
                 <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 <span>${gridLabel}</span>

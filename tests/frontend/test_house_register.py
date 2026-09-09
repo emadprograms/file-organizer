@@ -208,7 +208,7 @@ def test_click_tenant_card_drills_down_to_folders(page: Page, server_url: str):
     # Header updates with tenant name and back to tenants button
     expect(page.locator("#current-house-title")).to_contain_text("500")
     expect(page.locator("#current-house-title")).to_contain_text("فواز خليل الطارش")
-    back_btn = page.locator("#back-to-tenants-btn")
+    back_btn = page.locator("#tab-back-to-tenants")
     expect(back_btn).to_be_visible()
 
     # Tab 1 changes label to Folders

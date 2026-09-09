@@ -5,7 +5,7 @@
         const viewModeGridBtn = document.getElementById('view-mode-grid');
         const viewModeDbBtn = document.getElementById('view-mode-db');
         const backToGridBtn = document.getElementById('back-to-grid-btn');
-        const backToTenantsBtn = document.getElementById('back-to-tenants-btn');
+        const tabBackToTenants = document.getElementById('tab-back-to-tenants');
         const tabTimeline = document.getElementById('tab-timeline');
         const tabCategories = document.getElementById('tab-categories');
 
@@ -37,8 +37,8 @@
             });
         }
 
-        if (backToTenantsBtn) {
-            backToTenantsBtn.addEventListener('click', () => {
+        if (tabBackToTenants) {
+            tabBackToTenants.addEventListener('click', () => {
                 if (currentArea && currentHouse) {
                     window.location.hash = `#/area/${encodeURIComponent(currentArea)}/house/${encodeURIComponent(currentHouse)}`;
                 }

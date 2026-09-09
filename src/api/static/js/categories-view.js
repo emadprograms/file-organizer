@@ -84,33 +84,7 @@
         docListEl.innerHTML = '';
 
         if (currentTenant) {
-            const banner = document.createElement('div');
-            banner.className = 'tenant-breadcrumb-banner bg-blue-50/60 border border-blue-200/80 rounded-xl p-2.5 mb-3 flex items-center justify-between gap-2 shadow-2xs';
-            banner.innerHTML = `
-                <div class="flex items-center gap-2 min-w-0">
-                    <div class="w-7 h-7 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs flex-shrink-0">
-                        👤
-                    </div>
-                    <div class="min-w-0">
-                        <h3 class="text-xs font-bold text-slate-900 truncate">${currentTenant}</h3>
-                        <p class="text-[10px] text-blue-600 font-medium truncate">سجل مستندات المستأجر</p>
-                    </div>
-                </div>
-                <button id="btn-back-to-tenants-list" type="button" class="flex-shrink-0 text-xs font-semibold text-blue-700 hover:text-blue-900 bg-white hover:bg-blue-50 border border-blue-200 px-2.5 py-1 rounded-lg transition-all shadow-2xs flex items-center gap-1 cursor-pointer" title="العودة لسجل المستأجرين">
-                    <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                    <span>← Back to Tenants</span>
-                </button>
-            `;
-            const bannerBackBtn = banner.querySelector('#btn-back-to-tenants-list');
-            if (bannerBackBtn) {
-                bannerBackBtn.onclick = (e) => {
-                    e.preventDefault();
-                    if (currentArea && currentHouse) {
-                        window.location.hash = `#/area/${encodeURIComponent(currentArea)}/house/${encodeURIComponent(currentHouse)}`;
-                    }
-                };
-            }
-            docListEl.appendChild(banner);
+            // Tenant name is now shown in the header breadcrumb; back nav is in the tab bar
         }
         
         let displayCategories = [];

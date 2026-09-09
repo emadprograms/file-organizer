@@ -56,16 +56,10 @@
             <!-- Top Navbar: Breadcrumb Title, Search Trigger -->
             <header id="top-navbar" class="bg-white/90 backdrop-blur-md px-5 py-3 border-b border-slate-200 shadow-2xs flex items-center justify-between z-20 flex-shrink-0 gap-4">
                 <div class="flex items-center gap-2.5 min-w-0">
-                    <!-- Back to Tenants List Button (Visible when viewing a tenant's documents) -->
-                    <button id="back-to-tenants-btn" class="hidden items-center gap-1.5 text-xs font-semibold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-3 py-1.5 rounded-lg transition-all flex-shrink-0 shadow-2xs cursor-pointer" title="Back to Tenants">
-                        <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                        <span>← Back to Tenants</span>
-                    </button>
-
                     <!-- Back to Houses Button (Visible when viewing a house or tenant) -->
                     <button id="back-to-grid-btn" class="hidden items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 px-3 py-1.5 rounded-lg transition-all flex-shrink-0 cursor-pointer" title="Back to Houses">
                         <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                        <span>← Back to Houses</span>
+                        <span>Back to Houses</span>
                     </button>
                     
                     <div class="flex items-center gap-2 min-w-0">
@@ -172,6 +166,10 @@
                 <div id="document-list-panel" class="bg-white overflow-y-auto hidden flex-col flex-shrink-0 border-r border-slate-200" style="width: 33%; min-width: 260px; max-width: 60vw;">
                     <!-- Segmented Tabs -->
                     <div class="p-2 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between gap-2 flex-shrink-0">
+                        <!-- Back to Tenants (shown only when viewing a tenant's documents) -->
+                        <button id="tab-back-to-tenants" class="hidden items-center justify-center w-8 h-8 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 transition-all flex-shrink-0 cursor-pointer" title="Back to Tenant Register">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        </button>
                         <div class="flex flex-1 gap-1 p-0.5 bg-slate-200/60 rounded-lg border border-slate-200/80">
                             <button id="tab-categories" class="flex-1 py-1.5 px-3 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>

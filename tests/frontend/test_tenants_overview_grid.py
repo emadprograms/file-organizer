@@ -136,9 +136,9 @@ def _setup_tenants_overview_routes(page: Page):
         status=200, content_type="application/json", body=json.dumps(MOCK_TREE)))
     page.route(re.compile(r".*/profile"), lambda r: r.fulfill(
         status=200, content_type="application/json", body=json.dumps(MOCK_PROFILE)))
-    page.route(re.compile(r".*/categories"), lambda r: r.fulfill(
+    page.route(re.compile(r".*/api/.*/categories$"), lambda r: r.fulfill(
         status=200, content_type="application/json", body=json.dumps(MOCK_CATEGORIES)))
-    page.route(re.compile(r".*/timeline"), lambda r: r.fulfill(
+    page.route(re.compile(r".*/api/.*/timeline$"), lambda r: r.fulfill(
         status=200, content_type="application/json", body=json.dumps([
             {"vault_id": "v1", "primary_tenant": "Zaid Modern", "dates": ["2022-01-10"], "brief_arabic_title": "عقد إيجار زيد"}
         ])))
@@ -223,9 +223,11 @@ def test_intuitive_back_to_tenants_navigation(page: Page):
     # In house view (no tenant selected yet):
     # '#back-to-grid-btn' is visible
     expect(page.locator("#back-to-grid-btn")).to_be_visible()
-    expect(page.locator("#back-to-grid-btn")).to_contain_text("← Back to Safra D Houses")
-    # '#back-to-tenants-btn' MUST be hidden
-    expect(page.locator("#back-to-tenants-btn")).to_be_hidden()
+    expect(page.locator("#back-to-grid-btn")).to_contain_text("Back to Safra D Houses")
+    # '#tab-back-to-tenants' MUST be hidden
+    expect(page.locator("#tab-back-to-tenants")).to_be_hidden()
+    # Old buttons are completely removed
+    expect(page.locator("#back-to-tenants-btn")).to_have_count(0)
 
     # 2. Click Zaid Modern tenant card to drill into his folders
     page.click('.tenant-profile-card[data-tenant-name="Zaid Modern"]')
@@ -239,33 +241,32 @@ def test_intuitive_back_to_tenants_navigation(page: Page):
     expect(page.locator("#current-house-title")).to_contain_text("Zaid Modern")
     expect(page.locator("#btn-back-to-house-register")).to_have_count(0)
 
-    # Dedicated '#back-to-tenants-btn' is now VISIBLE in top navbar
-    back_tenants_nav = page.locator("#back-to-tenants-btn")
-    expect(back_tenants_nav).to_be_visible()
-    expect(back_tenants_nav).to_contain_text("← Back to Tenants")
+    # Sleek '#tab-back-to-tenants' is now VISIBLE next to Folders tab
+    tab_back_btn = page.locator("#tab-back-to-tenants")
+    expect(tab_back_btn).to_be_visible()
 
-    # Secondary area back button is also visible
+    # Redundant header and banner back buttons are NOT present
+    expect(page.locator("#back-to-tenants-btn")).to_have_count(0)
+    expect(page.locator("#btn-back-to-tenants-list")).to_have_count(0)
+
+    # Secondary area back button is also visible (with single arrow)
     expect(page.locator("#back-to-grid-btn")).to_be_visible()
-    expect(page.locator("#back-to-grid-btn")).to_contain_text("← Safra D Houses")
+    expect(page.locator("#back-to-grid-btn")).to_contain_text("Safra D Houses")
 
-    # Breadcrumb banner inside category list is also visible
-    banner_back_btn = page.locator("#btn-back-to-tenants-list")
-    expect(banner_back_btn).to_be_visible()
-    expect(banner_back_btn).to_contain_text("← Back to Tenants")
-
-    # 3. Click '#back-to-tenants-btn' in top navbar -> returns to Tenancy Register
-    back_tenants_nav.click()
+    # 3. Click '#tab-back-to-tenants' -> returns to Tenancy Register
+    tab_back_btn.click()
 
     expect(page.locator("#tab-categories-label")).to_contain_text("سجل المستأجرين")
     expect(page.locator(".tenant-profile-card")).to_have_count(2)
-    expect(page.locator("#back-to-tenants-btn")).to_be_hidden()
-    expect(page.locator("#back-to-grid-btn")).to_contain_text("← Back to Safra D Houses")
+    expect(page.locator("#tab-back-to-tenants")).to_be_hidden()
+    expect(page.locator("#back-to-grid-btn")).to_contain_text("Back to Safra D Houses")
 
-    # 4. Click tenant again, and this time use banner back button
+    # 4. Click tenant again, and test returning to Tenancy Register via sleek tab button
     page.click('.tenant-profile-card[data-tenant-name="Zaid Modern"]')
     expect(page.locator("#tab-categories-label")).to_contain_text("Folders")
+    expect(page.locator("#tab-back-to-tenants")).to_be_visible()
 
-    page.click("#btn-back-to-tenants-list")
+    page.click("#tab-back-to-tenants")
     expect(page.locator("#tab-categories-label")).to_contain_text("سجل المستأجرين")
     expect(page.locator(".tenant-profile-card")).to_have_count(2)
 

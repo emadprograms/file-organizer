@@ -7,17 +7,27 @@ STATIC_DIR = Path(__file__).parent.parent.parent / "src" / "api" / "static"
 
 @pytest.fixture(autouse=True)
 def auto_route_static_assets(context: BrowserContext):
-    def handle_static_js(route):
+    def handle_static_assets(route):
         url = route.request.url
-        filename = url.split("/js/")[-1].split("?")[0]
-        js_file = STATIC_DIR / "js" / filename
-        if js_file.exists():
+        if "/js/" in url:
+            filename = url.split("/js/")[-1].split("?")[0]
+            f = STATIC_DIR / "js" / filename
+            ct = "application/javascript"
+        elif "/css/" in url:
+            filename = url.split("/css/")[-1].split("?")[0]
+            f = STATIC_DIR / "css" / filename
+            ct = "text/css"
+        else:
+            route.continue_()
+            return
+
+        if f.exists():
             route.fulfill(
                 status=200,
-                content_type="application/javascript",
-                body=js_file.read_text(encoding="utf-8")
+                content_type=ct,
+                body=f.read_text(encoding="utf-8")
             )
         else:
             route.fulfill(status=404, body="Not Found")
 
-    context.route(re.compile(r".*/js/[^/]+\.js.*"), handle_static_js)
+    context.route(re.compile(r".*/(js|css)/[^/]+\.(js|css).*"), handle_static_assets)

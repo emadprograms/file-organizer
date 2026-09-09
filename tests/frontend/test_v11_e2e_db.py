@@ -330,7 +330,7 @@ def test_drill_down_navigation_to_categories_and_timeline(page: Page, server_url
     back_btn = page.locator("#back-to-grid-btn")
     expect(back_btn).to_be_visible()
     expect(back_btn).to_contain_text("Safra C Houses")
-    expect(page.locator("#back-to-tenants-btn")).to_be_visible()
+    expect(page.locator("#tab-back-to-tenants")).to_be_visible()
 
     # Click Back button
     back_btn.click()
