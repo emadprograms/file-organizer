@@ -335,16 +335,16 @@
         }
         if (previewContainer) previewContainer.classList.remove('hidden');
 
-        // Auto-populate Title if empty
-        if (titleInput && !titleInput.value.trim()) {
-            const baseName = file.name.replace(/\.pdf$/i, '').replace(/[-_]/g, ' ');
-            titleInput.value = baseName;
+        // Auto-populate Title unconditionally from imported PDF filename
+        if (titleInput) {
+            titleInput.value = file.name.replace(/\.pdf$/i, '').replace(/[-_]+/g, ' ').trim();
         }
     }
 
     function removeFile() {
         selectedFile = null;
         if (fileInput) fileInput.value = '';
+        if (titleInput) titleInput.value = '';
         if (objectUrl && typeof window !== 'undefined' && window.URL && typeof window.URL.revokeObjectURL === 'function') {
             window.URL.revokeObjectURL(objectUrl);
             objectUrl = null;

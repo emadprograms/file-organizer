@@ -267,22 +267,80 @@ describe('Ingest Station Component', () => {
         expect(pdfPreview.src).toContain('blob:mock-url');
     });
 
-    it('removes selected file when Change button is clicked', () => {
+    it('removes selected file when Change button is clicked and clears title input', () => {
         const mockFile = new File(['%PDF-1.4 content'], 'receipt.pdf', { type: 'application/pdf' });
         handleFileSelected(mockFile);
 
         const fileInfo = document.getElementById('ingest-file-info');
         const dropzone = document.getElementById('ingest-file-dropzone');
         const btnRemove = document.getElementById('btn-remove-file');
+        const titleInput = document.getElementById('ingest-title-input');
 
         expect(fileInfo.classList.contains('hidden')).toBe(false);
         expect(dropzone.classList.contains('hidden')).toBe(true);
+        expect(titleInput.value).toBe('receipt');
 
         btnRemove.click();
 
         expect(fileInfo.classList.contains('hidden')).toBe(true);
         expect(dropzone.classList.contains('hidden')).toBe(false);
+        expect(titleInput.value).toBe('');
         expect(window.URL.revokeObjectURL).toHaveBeenCalled();
+    });
+
+    it('auto-fills document title from imported PDF filename (cleaning extension and underscores/hyphens)', () => {
+        const titleInput = document.getElementById('ingest-title-input');
+
+        const mockFile = new File(['%PDF-1.4 content'], 'contract_2024.pdf', { type: 'application/pdf' });
+        handleFileSelected(mockFile);
+
+        expect(titleInput.value).toBe('contract 2024');
+
+        const complexFile = new File(['%PDF-1.4 content'], 'lease--agreement__v2-final.PDF', { type: 'application/pdf' });
+        handleFileSelected(complexFile);
+
+        expect(titleInput.value).toBe('lease agreement v2 final');
+    });
+
+    it('replaces the title input with the new file base name unconditionally when a new PDF is selected', () => {
+        const titleInput = document.getElementById('ingest-title-input');
+
+        const file1 = new File(['%PDF-1.4 content'], 'old_contract.pdf', { type: 'application/pdf' });
+        handleFileSelected(file1);
+        expect(titleInput.value).toBe('old contract');
+
+        // User edits the title
+        titleInput.value = 'User Edited Contract';
+
+        // Selecting a new file replaces the title unconditionally
+        const file2 = new File(['%PDF-1.4 content'], 'new_agreement_2025.pdf', { type: 'application/pdf' });
+        handleFileSelected(file2);
+        expect(titleInput.value).toBe('new agreement 2025');
+    });
+
+    it('allows the user to edit the auto-filled title freely', () => {
+        const titleInput = document.getElementById('ingest-title-input');
+
+        const mockFile = new File(['%PDF-1.4 content'], 'draft_memo.pdf', { type: 'application/pdf' });
+        handleFileSelected(mockFile);
+        expect(titleInput.value).toBe('draft memo');
+
+        // Simulate user typing a custom title
+        titleInput.value = 'Official Final Memorandum';
+        titleInput.dispatchEvent(new Event('input', { bubbles: true }));
+
+        expect(titleInput.value).toBe('Official Final Memorandum');
+    });
+
+    it('clears title input when removeFile is called directly', () => {
+        const titleInput = document.getElementById('ingest-title-input');
+        const mockFile = new File(['%PDF-1.4 content'], 'test_document.pdf', { type: 'application/pdf' });
+
+        handleFileSelected(mockFile);
+        expect(titleInput.value).toBe('test document');
+
+        removeFile();
+        expect(titleInput.value).toBe('');
     });
 
     it('auto-fills metadata when ✨ Auto-Fill with AI is triggered', async () => {
