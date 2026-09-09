@@ -262,3 +262,52 @@ def test_get_document_metadata(db_setup):
     assert data["notes"] == "اختبار الملاحظات"
     assert "pages" in data
 
+
+def test_delete_custom_category_reassigns_documents(db_setup):
+    repo = db_setup["repo"]
+    t1 = db_setup["t1"]
+    conn = db_setup["conn"]
+
+    # Add document in custom category '14 - test'
+    doc_custom = repo.add_document(
+        vault_id="v_custom_001",
+        house_id="514",
+        tenant_id=t1.id,
+        batch_id=1,
+        arabic_title="مستند تجريبي",
+        category="14 - test",
+        page_count=1,
+        is_manual=0
+    )
+    assert doc_custom.category == "14 - test"
+
+    # Delete the custom category
+    res = client.delete("/api/areas/Safra C/houses/514/categories/14 - test")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert data["deleted_category"] == "14 - test"
+    assert data["reassigned_docs"] == 1
+
+    # Verify document was reassigned to '13 - رسائل متنوعة'
+    updated = repo.get_document("v_custom_001")
+    assert updated.category == "13 - رسائل متنوعة"
+
+    # Verify categories endpoint no longer lists '14 - test'
+    cat_res = client.get("/api/areas/Safra C/houses/514/categories")
+    assert cat_res.status_code == 200
+    cat_names = [c["name"] for c in cat_res.json()]
+    assert "14 - test" not in cat_names
+
+
+def test_delete_standard_category_fails(db_setup):
+    # Attempt to delete standard category '05 - عقود'
+    res1 = client.delete("/api/areas/Safra C/houses/514/categories/05 - عقود")
+    assert res1.status_code == 400
+    assert "Cannot delete a standard category folder" in res1.json()["detail"]
+
+    # Attempt to delete standard category by base name 'عقود'
+    res2 = client.delete("/api/areas/Safra C/houses/514/categories/عقود")
+    assert res2.status_code == 400
+    assert "Cannot delete a standard category folder" in res2.json()["detail"]
+

@@ -447,7 +447,8 @@ describe('PDF Preview & macOS Quick Look — Live Component Tests', () => {
     expect(card.classList.contains('bg-amber-50/80')).toBe(true);
     const badge = card.querySelector('.doc-note-badge');
     expect(badge).not.toBe(null);
-    expect(badge.textContent).toContain('Note');
+    expect(badge.textContent).toContain('Important leas');
+    expect(badge.getAttribute('title')).toBe('Important lease agreement note');
 
     // Removing notes removes the highlight and badge
     window.updateDocRowInDOM('vault99', '');
@@ -518,5 +519,148 @@ describe('PDF Preview & macOS Quick Look — Live Component Tests', () => {
     const doc2El = folder2Docs.querySelector('[data-vault-id="doc2"]');
     expect(doc2El.classList.contains('border-l-amber-400')).toBe(true);
     expect(doc2El.querySelector('.doc-note-badge')).not.toBe(null);
+  });
+
+  it('renders single (i) icon on the left before document title, and none before 3-dots on right', async () => {
+    const fs = await import('fs');
+    const catCode = fs.readFileSync('src/api/static/js/categories-view.js', 'utf-8');
+    const timeCode = fs.readFileSync('src/api/static/js/timeline-view.js', 'utf-8');
+
+    // 1. Check Categories View
+    const catListEl = document.createElement('div');
+    catListEl.id = 'document-list';
+    document.body.innerHTML = '';
+    document.body.appendChild(catListEl);
+
+    window.currentCategories = [
+      {
+        tenant: 'Tenant 1',
+        name: '05 - عقود',
+        document_count: 1,
+        documents: [{ vault_id: 'doc_cat_1', brief_arabic_title: 'عقد إيجار شقة', notes: '' }]
+      }
+    ];
+    window.currentTenant = 'Tenant 1';
+    new Function(catCode)();
+    window.renderCategories();
+
+    const docRow = catListEl.querySelector('[data-vault-id="doc_cat_1"]');
+    expect(docRow).not.toBe(null);
+
+    // Verify left section has the (i) icon before the title
+    const leftContainer = docRow.querySelector('.flex.items-center.gap-2.min-w-0');
+    expect(leftContainer).not.toBe(null);
+    const leftInfoIcon = leftContainer.querySelector('.doc-icon-preview');
+    expect(leftInfoIcon).not.toBe(null);
+    expect(leftInfoIcon.title).toContain('Spacebar');
+
+    // Verify right section has ONLY the 3-dots button and NO info icon
+    const rightContainer = docRow.querySelector('.flex.items-center.gap-1.flex-shrink-0');
+    expect(rightContainer).not.toBe(null);
+    expect(rightContainer.querySelectorAll('.doc-icon-preview').length).toBe(0);
+    expect(rightContainer.querySelector('.doc-menu-btn')).not.toBe(null);
+    // Total info icons on this row must be EXACTLY 1 (on left)
+    expect(docRow.querySelectorAll('.doc-icon-preview').length).toBe(1);
+
+    // 2. Check Timeline View
+    const timeListEl = document.createElement('div');
+    timeListEl.id = 'document-list';
+    document.body.innerHTML = '';
+    document.body.appendChild(timeListEl);
+
+    window.currentTimeline = [
+      { vault_id: 'doc_time_1', primary_tenant: 'Tenant 1', dates: ['2026-01-01'], brief_arabic_title: 'خطاب صيانة', notes: '' }
+    ];
+    new Function(timeCode)();
+    window.renderTimeline();
+
+    const timeCard = timeListEl.querySelector('[data-vault-id="doc_time_1"]');
+    expect(timeCard).not.toBe(null);
+    // Left title group has (i) preview
+    const topLeftGroup = timeCard.querySelector('.flex.items-start.gap-1\\.5.min-w-0');
+    expect(topLeftGroup).not.toBe(null);
+    expect(topLeftGroup.querySelector('.doc-icon-preview')).not.toBe(null);
+
+    // Right group has ONLY menu btn (and badges) and NO info icon
+    const topRightGroup = timeCard.querySelector('.flex.items-center.gap-1.flex-shrink-0');
+    expect(topRightGroup).not.toBe(null);
+    expect(topRightGroup.querySelectorAll('.doc-icon-preview').length).toBe(0);
+    expect(topRightGroup.querySelector('.doc-menu-btn')).not.toBe(null);
+    // Exactly one info icon per card
+    expect(timeCard.querySelectorAll('.doc-icon-preview').length).toBe(1);
+  });
+
+  it('displays note snippet (first characters) in note badge with full note in title attribute', async () => {
+    const fs = await import('fs');
+    const apiCode = fs.readFileSync('src/api/static/js/api.js', 'utf-8');
+    const catCode = fs.readFileSync('src/api/static/js/categories-view.js', 'utf-8');
+    new Function(apiCode)();
+
+    const listEl = document.createElement('div');
+    listEl.id = 'document-list';
+    document.body.innerHTML = '';
+    document.body.appendChild(listEl);
+
+    window.currentCategories = [
+      {
+        tenant: 'Tenant 1',
+        name: '01 - Personal',
+        document_count: 2,
+        documents: [
+          { vault_id: 'doc_short', brief_arabic_title: 'Short Note Doc', notes: 'Paid in cash' },
+          { vault_id: 'doc_long', brief_arabic_title: 'Long Note Doc', notes: 'Urgent contract amendment required before end of month' }
+        ]
+      }
+    ];
+    window.currentTenant = 'Tenant 1';
+    new Function(catCode)();
+    window.renderCategories();
+
+    const shortBadge = listEl.querySelector('[data-vault-id="doc_short"] .doc-note-badge');
+    expect(shortBadge).not.toBe(null);
+    expect(shortBadge.textContent).toBe('📝 Paid in cash');
+    expect(shortBadge.getAttribute('title')).toBe('Paid in cash');
+
+    const longBadge = listEl.querySelector('[data-vault-id="doc_long"] .doc-note-badge');
+    expect(longBadge).not.toBe(null);
+    // Truncated snippet with ellipsis
+    expect(longBadge.textContent).toBe('📝 Urgent contrac…');
+    // Full note retained in title
+    expect(longBadge.getAttribute('title')).toBe('Urgent contract amendment required before end of month');
+  });
+
+  it('populateFolderOptions excludes deleted/empty custom folders (document_count === 0)', async () => {
+    const fs = await import('fs');
+    const docMgrCode = fs.readFileSync('src/api/static/js/doc-manager.js', 'utf-8');
+
+    document.body.innerHTML = `
+      <select id="doc-modal-folder-select"></select>
+      <div id="doc-custom-folder-container" class="hidden"></div>
+      <input id="doc-custom-folder-input" />
+    `;
+
+    new Function(docMgrCode)();
+
+    // currentCategories has standard folders, an active custom folder, and a deleted/empty custom folder '14-test'
+    window.currentCategories = [
+      { name: '05 - عقود', document_count: 3 },
+      { name: '14 - ActiveCustom', document_count: 2 },
+      { name: '14-test', document_count: 0 } // Deleted / empty custom folder!
+    ];
+
+    window.populateFolderOptions('05 - عقود');
+
+    const selectEl = document.getElementById('doc-modal-folder-select');
+    const optionValues = Array.from(selectEl.options).map(o => o.value);
+
+    // Standard folders must be present
+    expect(optionValues).toContain('01 - بيانات أساسية');
+    expect(optionValues).toContain('05 - عقود');
+
+    // Active custom folder must be present
+    expect(optionValues).toContain('14 - ActiveCustom');
+
+    // Deleted/empty custom folder '14-test' must NOT be present!
+    expect(optionValues).not.toContain('14-test');
   });
 });

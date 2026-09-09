@@ -347,6 +347,8 @@
 
     function updateDocRowInDOM(vaultId, notes) {
         const hasNotes = Boolean(notes && notes.trim());
+        const trimmedNotes = notes ? notes.trim() : '';
+        const snippet = hasNotes ? (typeof window.getNoteSnippet === 'function' ? window.getNoteSnippet(trimmedNotes) : trimmedNotes.slice(0, 14)) : '';
         const docEls = document.querySelectorAll(`[data-vault-id="${vaultId}"]`);
         docEls.forEach(docEl => {
             // Category doc row
@@ -355,11 +357,14 @@
                 if (hasNotes) {
                     docEl.classList.add('bg-amber-50/80', 'border-l-4', 'border-l-amber-400', 'border', 'border-amber-200/80', 'text-amber-900', 'shadow-2xs');
                     docEl.classList.remove('text-blue-600', 'hover:bg-blue-50');
-                    if (!noteBadge) {
+                    if (noteBadge) {
+                        noteBadge.textContent = `📝 ${snippet}`;
+                        noteBadge.title = trimmedNotes;
+                    } else {
                         noteBadge = document.createElement('span');
                         noteBadge.className = 'doc-note-badge inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-medium bg-amber-100 text-amber-800 border border-amber-300/60 flex-shrink-0';
-                        noteBadge.title = 'Contains custom notes';
-                        noteBadge.textContent = '📝 Note';
+                        noteBadge.title = trimmedNotes;
+                        noteBadge.textContent = `📝 ${snippet}`;
                         const titleContainer = docEl.querySelector('.flex.items-center.gap-2.min-w-0');
                         if (titleContainer) {
                             titleContainer.appendChild(noteBadge);
@@ -375,19 +380,22 @@
             if (docEl.classList.contains('group') && !docEl.classList.contains('group/doc')) {
                 let noteBadge = docEl.querySelector('.doc-note-badge');
                 if (hasNotes) {
-                    docEl.classList.add('border-l-4', 'border-l-amber-400', 'bg-amber-50/40');
-                    if (!noteBadge) {
+                    docEl.classList.add('border-l-4', 'border-l-amber-400', 'bg-amber-50/80');
+                    if (noteBadge) {
+                        noteBadge.textContent = `📝 ${snippet}`;
+                        noteBadge.title = trimmedNotes;
+                    } else {
                         noteBadge = document.createElement('span');
                         noteBadge.className = 'doc-note-badge text-[10px] bg-amber-100 text-amber-800 border border-amber-300/70 px-1.5 py-0.5 rounded flex items-center gap-1 font-semibold flex-shrink-0';
-                        noteBadge.title = 'Contains custom notes';
-                        noteBadge.textContent = '📝 Note';
+                        noteBadge.title = trimmedNotes;
+                        noteBadge.textContent = `📝 ${snippet}`;
                         const headerRight = docEl.querySelector('.flex.items-center.gap-1.flex-shrink-0');
                         if (headerRight) {
                             headerRight.insertBefore(noteBadge, headerRight.firstChild);
                         }
                     }
                 } else {
-                    docEl.classList.remove('border-l-4', 'border-l-amber-400', 'bg-amber-50/40');
+                    docEl.classList.remove('border-l-4', 'border-l-amber-400', 'bg-amber-50/80');
                     if (noteBadge) noteBadge.remove();
                 }
             }

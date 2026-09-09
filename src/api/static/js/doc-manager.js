@@ -228,7 +228,13 @@
         const existingFolderNames = new Set(STANDARD_FOLDERS);
         if (currentCategories) {
             currentCategories.forEach(c => {
-                if (c.name) existingFolderNames.add(c.name);
+                const count = typeof c.document_count === 'number'
+                    ? c.document_count
+                    : (Array.isArray(c.documents) ? c.documents.length : 0);
+                // Only include custom folders if they contain documents or are standard folders
+                if (c.name && (count > 0 || STANDARD_FOLDERS.includes(c.name))) {
+                    existingFolderNames.add(c.name);
+                }
             });
         }
         if (selectedCategory) {
@@ -377,6 +383,8 @@
     // Expose globals
     window.openDocModal = openDocModal;
     window.closeDocModal = closeDocModal;
+    window.populateFolderOptions = populateFolderOptions;
+    window.STANDARD_FOLDERS = STANDARD_FOLDERS;
     window.handleDocDragStart = handleDocDragStart;
     window.handleDocDragEnd = handleDocDragEnd;
     window.handleCategoryDragOver = handleCategoryDragOver;

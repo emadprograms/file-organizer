@@ -1022,6 +1022,37 @@ async def list_categories(request: Request, area_id: str, house_id: str):
         for (t, c), docs in categories.items()
     ]
 
+@router.delete("/api/areas/{area_id}/houses/{house_id}/categories/{category_name}")
+async def delete_custom_category(request: Request, area_id: str, house_id: str, category_name: str):
+    from src.routing.config import FOLDER_PREFIXES
+    clean_name = category_name.strip()
+    is_standard = (
+        clean_name in FOLDER_PREFIXES
+        or any(clean_name == f"{prefix} - {cat}" for cat, prefix in FOLDER_PREFIXES.items())
+        or any(clean_name.endswith(cat) for cat in FOLDER_PREFIXES)
+    )
+    if is_standard:
+        raise HTTPException(status_code=400, detail="Cannot delete a standard category folder.")
+
+    repo = get_db_repo(request)
+    if not repo:
+        raise HTTPException(status_code=500, detail="Database repository not available.")
+
+    conn = repo.conn
+    house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
+    default_target = "13 - رسائل متنوعة"
+
+    # Reassign any documents in this custom category for this house to '13 - رسائل متنوعة'
+    cursor = conn.execute("""
+        UPDATE documents
+        SET category = ?
+        WHERE (house_id = ? OR house_id = ?) AND (category = ? OR category LIKE ?)
+    """, (default_target, house_id, house_num, clean_name, f"%{clean_name}%"))
+    conn.commit()
+
+    clear_tree_cache()
+    return {"status": "success", "deleted_category": clean_name, "reassigned_docs": cursor.rowcount}
+
 @router.get("/api/areas/{area_id}/houses/{house_id}/pdf/{vault_id}")
 async def get_pdf(request: Request, area_id: str, house_id: str, vault_id: str):
     validate_id(vault_id, r"^[a-zA-Z0-9_-]+$")

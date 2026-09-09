@@ -70,3 +70,24 @@ function showToast(message, type = 'success') {
         setTimeout(() => toast.remove(), 250);
     }, 3200);
 }
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function getNoteSnippet(notes, maxLen = 14) {
+    if (!notes || typeof notes !== 'string') return '';
+    const clean = notes.trim().replace(/\s+/g, ' ');
+    if (!clean) return '';
+    if (clean.length <= maxLen) return clean;
+    return clean.substring(0, maxLen).trim() + '…';
+}
+
+window.escapeHtml = escapeHtml;
+window.getNoteSnippet = getNoteSnippet;
