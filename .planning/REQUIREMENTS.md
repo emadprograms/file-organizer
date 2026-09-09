@@ -8,8 +8,8 @@ Provide a unified document ingestion system enabling instant manual ingestion (z
 
 ### Ingestion Engine Core
 
-- [ ] **ING-03**: Manual ingest pipeline in Python (`src/ingest/manual_ingest.py`). Uses PyMuPDF for page count, performs local text extraction, requires zero LLM API calls, copies files into `{house}/batches/` and writes documents directly to `{house}/vault/` with `is_manual=1`.
-- [ ] **ING-04**: Relational page inheritance for manual documents in SQLite `pages` table, linking batch pages to the newly created document.
+- [x] **ING-03**: Manual ingest pipeline in Python (`src/ingest/manual_ingest.py`). Uses PyMuPDF for page count, performs local text extraction, requires zero LLM API calls, copies files into `{house}/batches/` and writes documents directly to `{house}/vault/` with `is_manual=1`.
+- [x] **ING-04**: Relational page inheritance for manual documents in SQLite `pages` table, linking batch pages to the newly created document.
 
 ### FastAPI Ingest Endpoints
 
@@ -38,8 +38,8 @@ Provide a unified document ingestion system enabling instant manual ingestion (z
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ING-03 | Phase 97 | Pending |
-| ING-04 | Phase 97 | Pending |
+| ING-03 | Phase 97 | Completed |
+| ING-04 | Phase 97 | Completed |
 | API-04 | Phase 98 | Pending |
 | API-05 | Phase 98 | Pending |
 | UI-01 | Phase 99 | Pending |

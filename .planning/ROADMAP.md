@@ -13,6 +13,7 @@
 ### 🚧 v12.0 Unified Document Ingestion System (Phases 97-100)
 
 #### Phase 97: Ingest Engine Core (Manual Ingest Pipeline & Page Inheritance)
+- [x] Plan 1/1: Zero-AI manual ingest pipeline & relational page inheritance — completed 2026-09-09
 **Requirements:** [ING-03, ING-04]
 **Description:** Implement zero-AI manual ingestion pipeline in Python (`src/ingest/manual_ingest.py`), integrating PyMuPDF for page counting and local text extraction, storing clean batch files, saving documents directly to `vault/` with `is_manual=1`, and recording relational page inheritance in the `pages` table.
 **Success Criteria:**

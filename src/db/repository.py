@@ -500,6 +500,15 @@ def get_pages_by_batch(conn: sqlite3.Connection, batch_id: int) -> list[Page]:
     return [Page.model_validate(dict(row)) for row in cursor.fetchall()]
 
 
+def get_pages_by_vault_id(conn: sqlite3.Connection, vault_id: str) -> list[Page]:
+    """Retrieve all pages belonging to a document ordered by page number."""
+    cursor = conn.execute(
+        "SELECT * FROM pages WHERE vault_id = ? ORDER BY page_number ASC",
+        (vault_id,),
+    )
+    return [Page.model_validate(dict(row)) for row in cursor.fetchall()]
+
+
 def update_page_cleaning(
     conn: sqlite3.Connection,
     page_id: int,
@@ -567,6 +576,7 @@ def add_document(
     category: Optional[str] = None,
     page_count: int = 1,
     is_manual: int = 0,
+    notes: Optional[str] = None,
     autocommit: bool = True,
 ) -> Document:
     """Insert a new document record into the vault."""
@@ -585,6 +595,7 @@ def add_document(
             category=category,
             page_count=page_count,
             is_manual=is_manual,
+            notes=notes,
         )
     elif vault_id is not None:
         d = Document(
@@ -597,6 +608,7 @@ def add_document(
             category=category,
             page_count=page_count,
             is_manual=is_manual,
+            notes=notes,
         )
     else:
         raise ValueError("Invalid document specification")
@@ -607,8 +619,8 @@ def add_document(
     query = """
     INSERT INTO documents (
         vault_id, house_id, tenant_id, batch_id, primary_date,
-        arabic_title, category, page_count, is_manual
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        arabic_title, category, page_count, is_manual, notes
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     RETURNING *
     """
     cursor = conn.execute(
@@ -623,6 +635,7 @@ def add_document(
             d.category,
             d.page_count,
             manual_val,
+            d.notes,
         ),
     )
     row = cursor.fetchone()
@@ -657,6 +670,32 @@ def list_documents_by_category(
     ORDER BY primary_date DESC, created_at DESC
     """
     cursor = conn.execute(query, (house_id, category))
+    return [Document.model_validate(dict(row)) for row in cursor.fetchall()]
+
+
+def search_documents(
+    conn: sqlite3.Connection,
+    query: str,
+    house_id: Optional[str] = None,
+) -> list[Document]:
+    """Search documents by title, category, notes, or vault ID."""
+    term = f"%{query.strip()}%"
+    if house_id:
+        sql = """
+        SELECT * FROM documents
+        WHERE house_id = ? AND (
+            arabic_title LIKE ? OR category LIKE ? OR notes LIKE ? OR vault_id LIKE ?
+        )
+        ORDER BY primary_date DESC, created_at DESC
+        """
+        cursor = conn.execute(sql, (house_id, term, term, term, term))
+    else:
+        sql = """
+        SELECT * FROM documents
+        WHERE arabic_title LIKE ? OR category LIKE ? OR notes LIKE ? OR vault_id LIKE ?
+        ORDER BY primary_date DESC, created_at DESC
+        """
+        cursor = conn.execute(sql, (term, term, term, term))
     return [Document.model_validate(dict(row)) for row in cursor.fetchall()]
 
 
@@ -1003,6 +1042,9 @@ class Repository:
     def get_pages_by_batch(self, batch_id: int) -> list[Page]:
         return get_pages_by_batch(self.conn, batch_id)
 
+    def get_pages_by_vault_id(self, vault_id: str) -> list[Page]:
+        return get_pages_by_vault_id(self.conn, vault_id)
+
     def update_page_cleaning(self, page_id: int, **fields: Any) -> Optional[Page]:
         return update_page_cleaning(self.conn, page_id, autocommit=self.autocommit, **fields)
 
@@ -1023,6 +1065,7 @@ class Repository:
         category: Optional[str] = None,
         page_count: int = 1,
         is_manual: int = 0,
+        notes: Optional[str] = None,
     ) -> Document:
         return add_document(
             self.conn,
@@ -1036,6 +1079,7 @@ class Repository:
             category=category,
             page_count=page_count,
             is_manual=is_manual,
+            notes=notes,
             autocommit=self.autocommit,
         )
 
@@ -1047,6 +1091,9 @@ class Repository:
 
     def list_documents_by_category(self, house_id: str, category: str) -> list[Document]:
         return list_documents_by_category(self.conn, house_id, category)
+
+    def search_documents(self, query: str, house_id: Optional[str] = None) -> list[Document]:
+        return search_documents(self.conn, query=query, house_id=house_id)
 
     def update_document(
         self,
