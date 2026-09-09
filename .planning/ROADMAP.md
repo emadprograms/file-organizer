@@ -31,6 +31,7 @@
 - Proper error handling and validation for file types and missing parameters.
 
 #### Phase 99: Ingest Station Web UI (Navbar Trigger, Dropzone & Ingest Drawer)
+- [x] Plan 1/1: Ingest Station Web UI (Navbar Trigger, Dropzone & Ingest Drawer) — completed 2026-09-09
 **Requirements:** [UI-01, UI-02]
 **Description:** Build the Ingest Station frontend experience, featuring a top navbar `+ Ingest` button with `⌘I` / `Ctrl+I` keyboard shortcut, global/contextual drag-and-drop dropzone, slide-over drawer with PDF preview, mode switcher (`Manual`, `AI-Assisted`, `Auto-Split`), metadata form, '✨ Auto-Fill with AI', and '⚡ Ingest Directly'.
 **Success Criteria:**
@@ -96,6 +97,6 @@ See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md) for full 
 | 96. E2E Verification & UI Parity | v11.0 | 1/1 | Complete | 2026-09-08 |
 | 97. Ingest Engine Core (Manual Ingest Pipeline & Page Inheritance) | v12.0 | 1/1 | Complete | 2026-09-09 |
 | 98. FastAPI Ingest API Endpoints (POST /api/ingest & POST /api/ingest/preview-ai) | v12.0 | 1/1 | Complete | 2026-09-09 |
-| 99. Ingest Station Web UI (Navbar Trigger, Dropzone & Ingest Drawer) | v12.0 | 0/1 | Pending | — |
+| 99. Ingest Station Web UI (Navbar Trigger, Dropzone & Ingest Drawer) | v12.0 | 1/1 | Complete | 2026-09-09 |
 | 100. Comprehensive Automated Testing & End-to-End Verification | v12.0 | 0/1 | Pending | — |
 

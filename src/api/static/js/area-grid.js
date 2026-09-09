@@ -4,6 +4,9 @@
         currentArea = areaNode.name;
         currentHouse = null;
         currentTenant = null;
+        window.currentArea = areaNode.name;
+        window.currentHouse = null;
+        window.currentTenant = null;
         window.location.hash = `#/area/${encodeURIComponent(areaNode.name)}`;
         renderAreaGrid(areaNode);
     }

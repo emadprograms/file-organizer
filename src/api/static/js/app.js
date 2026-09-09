@@ -81,6 +81,9 @@
             window.setupResizer('resizer-1', 'main-sidebar', false);
             window.setupResizer('resizer-2', 'document-list-panel', true);
         }
+        if (typeof window.initIngestStation === 'function') {
+            window.initIngestStation();
+        }
 
         // Load initial area hierarchy
         if (typeof window.loadTree === 'function') {

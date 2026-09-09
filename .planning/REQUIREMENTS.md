@@ -21,8 +21,8 @@ Provide a unified document ingestion system enabling instant manual ingestion (z
 
 ### Modern Web UI (Ingest Station)
 
-- [ ] **UI-01**: Top navbar `+ Ingest` button with keyboard shortcut (`⌘I` / `Ctrl+I`) and global contextual drag-and-drop dropzone with visual drag-over feedback.
-- [ ] **UI-02**: 'Ingest Station' slide-over drawer / modal featuring:
+- [x] **UI-01**: Top navbar `+ Ingest` button with keyboard shortcut (`⌘I` / `Ctrl+I`) and global contextual drag-and-drop dropzone with visual drag-over feedback.
+- [x] **UI-02**: 'Ingest Station' slide-over drawer / modal featuring:
   - Live PDF page preview.
   - Mode switcher (`Manual`, `AI-Assisted`, `Auto-Split`).
   - Target selection metadata form (Area, House, Tenant, Category/Folder, Year, Notes).
@@ -42,7 +42,7 @@ Provide a unified document ingestion system enabling instant manual ingestion (z
 | ING-04 | Phase 97 | Completed |
 | API-04 | Phase 98 | Completed |
 | API-05 | Phase 98 | Completed |
-| UI-01 | Phase 99 | Pending |
-| UI-02 | Phase 99 | Pending |
+| UI-01 | Phase 99 | Completed |
+| UI-02 | Phase 99 | Completed |
 | VER-03 | Phase 100 | Pending |
 | VER-04 | Phase 100 | Pending |

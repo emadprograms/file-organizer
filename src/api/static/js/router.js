@@ -150,6 +150,9 @@
         currentArea = areaId;
         currentHouse = houseId;
         currentTenant = tenantName;
+        window.currentArea = areaId;
+        window.currentHouse = houseId;
+        window.currentTenant = tenantName;
 
         const currentHouseTitle = document.getElementById('current-house-title');
         const tabCategoriesLabel = document.getElementById('tab-categories-label');
