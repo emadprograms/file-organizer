@@ -1,5 +1,5 @@
 """
-Playwright E2E tests for macOS Spotlight-style Command Palette (⌘K) Modal.
+Playwright E2E tests for Command Palette (⌘K) Modal.
 Verifies:
 - Trigger button (#btn-search-trigger) and shortcut (⌘K / Ctrl+K) toggle modal.
 - Grouped sections for Houses, Tenants, and Documents.
@@ -39,7 +39,7 @@ def _find_free_port() -> int:
 
 @pytest.fixture(scope="module")
 def server_url(tmp_path_factory):
-    tmp_path = tmp_path_factory.mktemp("spotlight_e2e")
+    tmp_path = tmp_path_factory.mktemp("command_palette_e2e")
     db_file = tmp_path / "organizer.db"
     areas_root = tmp_path / "areas"
     inbox_dir = tmp_path / "inbox"
@@ -163,29 +163,29 @@ def server_url(tmp_path_factory):
         process.wait()
 
 
-def test_spotlight_trigger_button_and_shortcut(page: Page, server_url: str):
-    """Clicking trigger button or pressing Cmd+K opens the Spotlight modal."""
+def test_command_palette_trigger_button_and_shortcut(page: Page, server_url: str):
+    """Clicking trigger button or pressing Cmd+K opens the Command Palette modal."""
     page.goto(server_url)
 
-    spotlight_modal = page.locator("#spotlight-modal")
-    expect(spotlight_modal).to_be_hidden()
+    palette_modal = page.locator("#command-palette-modal")
+    expect(palette_modal).to_be_hidden()
 
     # 1. Click trigger button
     page.click("#btn-search-trigger")
-    expect(spotlight_modal).to_be_visible()
+    expect(palette_modal).to_be_visible()
     expect(page.locator("#search-input")).to_be_focused()
 
     # 2. Press Escape to close
     page.keyboard.press("Escape")
-    expect(spotlight_modal).to_be_hidden()
+    expect(palette_modal).to_be_hidden()
 
     # 3. Press Cmd+K / Ctrl+K
     page.keyboard.press("ControlOrMeta+K")
-    expect(spotlight_modal).to_be_visible()
+    expect(palette_modal).to_be_visible()
     expect(page.locator("#search-input")).to_be_focused()
 
 
-def test_spotlight_grouped_sections_and_breadcrumbs(page: Page, server_url: str):
+def test_command_palette_grouped_sections_and_breadcrumbs(page: Page, server_url: str):
     """Searching 500 displays distinct Houses, Tenants, and Documents sections with breadcrumbs."""
     page.goto(server_url)
 
@@ -220,7 +220,7 @@ def test_spotlight_grouped_sections_and_breadcrumbs(page: Page, server_url: str)
     expect(results_container.locator("text=🔒").first).to_be_visible()
 
 
-def test_spotlight_keyboard_navigation_and_selection(page: Page, server_url: str):
+def test_command_palette_keyboard_navigation_and_selection(page: Page, server_url: str):
     """Arrow keys navigate results and Enter selects the active item."""
     page.goto(server_url)
 
@@ -229,18 +229,18 @@ def test_spotlight_keyboard_navigation_and_selection(page: Page, server_url: str
     search_input.fill("500")
 
     # Wait for search results
-    page.wait_for_selector(".spotlight-result-item")
+    page.wait_for_selector(".command-palette-result-item")
 
     # Press Enter to select the first highlighted result (House 500)
     page.keyboard.press("Enter")
 
-    # Spotlight should close and navigate to house 500
-    expect(page.locator("#spotlight-modal")).to_be_hidden()
+    # Command Palette should close and navigate to house 500
+    expect(page.locator("#command-palette-modal")).to_be_hidden()
     expect(page.locator("#document-list-panel")).to_be_visible()
     expect(page.locator("#current-house-title")).to_contain_text("500")
 
 
-def test_spotlight_document_direct_open(page: Page, server_url: str):
+def test_command_palette_document_direct_open(page: Page, server_url: str):
     """Clicking a document result opens the PDF viewer panel with that document."""
     page.goto(server_url)
 
@@ -253,8 +253,8 @@ def test_spotlight_document_direct_open(page: Page, server_url: str):
     expect(doc_link).to_be_visible()
     doc_link.click()
 
-    # Spotlight closes
-    expect(page.locator("#spotlight-modal")).to_be_hidden()
+    # Command Palette closes
+    expect(page.locator("#command-palette-modal")).to_be_hidden()
 
     # Document viewer panel opens with the PDF
     viewer_panel = page.locator("#document-viewer-panel")

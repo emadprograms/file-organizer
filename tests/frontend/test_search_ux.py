@@ -60,11 +60,11 @@ def test_zero_click_search_and_navigation(page: Page):
     search_results = page.locator("#search-results")
     
     # Ensure modal and results are hidden initially
-    expect(page.locator("#spotlight-modal")).to_be_hidden()
+    expect(page.locator("#command-palette-modal")).to_be_hidden()
     
-    # Open spotlight via trigger button
+    # Open command palette via trigger button
     page.click("#btn-search-trigger")
-    expect(page.locator("#spotlight-modal")).to_be_visible()
+    expect(page.locator("#command-palette-modal")).to_be_visible()
     
     # Type without pressing enter
     search_input.fill("test")

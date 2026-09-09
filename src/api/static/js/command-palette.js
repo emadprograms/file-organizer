@@ -1,48 +1,48 @@
-// ── Spotlight Command Palette Controller ──────────────────────────────────
+// ── Command Palette (Quick Search ⌘K) Controller ───────────────────────────
 (function() {
-    let spotlightModal = null;
-    let spotlightCard = null;
+    let commandPaletteModal = null;
+    let commandPaletteCard = null;
     let searchInput = null;
     let searchResults = null;
     let btnSearchTrigger = null;
-    let btnSpotlightClose = null;
-    let spotlightResultCount = null;
+    let btnPaletteClose = null;
+    let resultCountEl = null;
 
     let searchDebounceTimer = null;
     let activeResultIndex = -1;
     let currentResultItems = [];
 
-    function initSpotlight() {
-        spotlightModal = document.getElementById('spotlight-modal');
-        spotlightCard = document.getElementById('spotlight-card');
+    function initCommandPalette() {
+        commandPaletteModal = document.getElementById('command-palette-modal') || document.getElementById('spotlight-modal');
+        commandPaletteCard = document.getElementById('command-palette-card') || document.getElementById('spotlight-card');
         searchInput = document.getElementById('search-input');
         searchResults = document.getElementById('search-results');
         btnSearchTrigger = document.getElementById('btn-search-trigger');
-        btnSpotlightClose = document.getElementById('btn-spotlight-close');
-        spotlightResultCount = document.getElementById('spotlight-result-count');
+        btnPaletteClose = document.getElementById('btn-command-palette-close') || document.getElementById('btn-spotlight-close');
+        resultCountEl = document.getElementById('command-palette-result-count') || document.getElementById('spotlight-result-count');
 
-        if (!spotlightModal || !searchInput) return;
+        if (!commandPaletteModal || !searchInput) return;
 
         // Trigger button in top-bar
         if (btnSearchTrigger) {
             btnSearchTrigger.addEventListener('click', (e) => {
                 e.preventDefault();
-                openSpotlight();
+                openCommandPalette();
             });
         }
 
         // Close button inside modal
-        if (btnSpotlightClose) {
-            btnSpotlightClose.addEventListener('click', (e) => {
+        if (btnPaletteClose) {
+            btnPaletteClose.addEventListener('click', (e) => {
                 e.preventDefault();
-                closeSpotlight();
+                closeCommandPalette();
             });
         }
 
         // Close on backdrop click (outside card)
-        spotlightModal.addEventListener('click', (e) => {
-            if (e.target === spotlightModal) {
-                closeSpotlight();
+        commandPaletteModal.addEventListener('click', (e) => {
+            if (e.target === commandPaletteModal) {
+                closeCommandPalette();
             }
         });
 
@@ -64,21 +64,21 @@
         document.addEventListener('keydown', (e) => {
             if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
                 e.preventDefault();
-                if (spotlightModal.classList.contains('hidden')) {
-                    openSpotlight();
+                if (commandPaletteModal.classList.contains('hidden')) {
+                    openCommandPalette();
                 } else {
-                    closeSpotlight();
+                    closeCommandPalette();
                 }
-            } else if (e.key === 'Escape' && !spotlightModal.classList.contains('hidden')) {
+            } else if (e.key === 'Escape' && !commandPaletteModal.classList.contains('hidden')) {
                 e.preventDefault();
-                closeSpotlight();
+                closeCommandPalette();
             }
         });
     }
 
-    function openSpotlight() {
-        if (!spotlightModal) return;
-        spotlightModal.classList.remove('hidden');
+    function openCommandPalette() {
+        if (!commandPaletteModal) return;
+        commandPaletteModal.classList.remove('hidden');
         if (searchResults) searchResults.classList.remove('hidden');
         
         requestAnimationFrame(() => {
@@ -96,9 +96,9 @@
         }
     }
 
-    function closeSpotlight() {
-        if (!spotlightModal) return;
-        spotlightModal.classList.add('hidden');
+    function closeCommandPalette() {
+        if (!commandPaletteModal) return;
+        commandPaletteModal.classList.add('hidden');
         if (searchResults) searchResults.classList.add('hidden');
         if (searchInput) searchInput.blur();
         activeResultIndex = -1;
@@ -113,11 +113,11 @@
                 <div class="w-10 h-10 mx-auto mb-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-slate-400">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                 </div>
-                <p class="text-xs font-semibold text-slate-600">Spotlight Search</p>
+                <p class="text-xs font-semibold text-slate-600">Command Palette</p>
                 <p class="text-[11px] text-slate-400 mt-0.5">Search by house number (e.g. 500), tenant name, or document title.</p>
             </div>
         `;
-        if (spotlightResultCount) spotlightResultCount.textContent = '';
+        if (resultCountEl) resultCountEl.textContent = '';
     }
 
     async function executeSearch(q) {
@@ -191,7 +191,7 @@
                     <p class="text-[11px] text-rose-400 mt-1">${err.message}</p>
                 </div>
             `;
-            if (spotlightResultCount) spotlightResultCount.textContent = '';
+            if (resultCountEl) resultCountEl.textContent = '';
         }
     }
 
@@ -204,7 +204,7 @@
                     <p class="text-[11px] text-slate-400 mt-0.5">Try searching with a different house number, tenant, or keyword.</p>
                 </div>
             `;
-            if (spotlightResultCount) spotlightResultCount.textContent = '0 results';
+            if (resultCountEl) resultCountEl.textContent = '0 results';
             activeResultIndex = -1;
             currentResultItems = [];
             return;
@@ -217,8 +217,8 @@
         searchResults.innerHTML = '';
         currentResultItems = [];
 
-        if (spotlightResultCount) {
-            spotlightResultCount.textContent = `${results.length} results`;
+        if (resultCountEl) {
+            resultCountEl.textContent = `${results.length} results`;
         }
 
         // Helper to append a section
@@ -261,7 +261,7 @@
             (h) => {
                 const a = document.createElement('a');
                 a.href = h.url;
-                a.className = 'spotlight-result-item block p-2.5 rounded-xl hover:bg-blue-50/70 border border-transparent hover:border-blue-200 transition-all group cursor-pointer';
+                a.className = 'command-palette-result-item spotlight-result-item block p-2.5 rounded-xl hover:bg-blue-50/70 border border-transparent hover:border-blue-200 transition-all group cursor-pointer';
                 a.innerHTML = `
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2.5 min-w-0">
@@ -277,7 +277,7 @@
                     </div>
                 `;
                 a.onclick = (e) => {
-                    closeSpotlight();
+                    closeCommandPalette();
                 };
                 return a;
             }
@@ -292,7 +292,7 @@
             (t) => {
                 const a = document.createElement('a');
                 a.href = t.url;
-                a.className = 'spotlight-result-item block p-2.5 rounded-xl hover:bg-emerald-50/70 border border-transparent hover:border-emerald-200 transition-all group cursor-pointer';
+                a.className = 'command-palette-result-item spotlight-result-item block p-2.5 rounded-xl hover:bg-emerald-50/70 border border-transparent hover:border-emerald-200 transition-all group cursor-pointer';
                 a.innerHTML = `
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2.5 min-w-0">
@@ -308,7 +308,7 @@
                     </div>
                 `;
                 a.onclick = (e) => {
-                    closeSpotlight();
+                    closeCommandPalette();
                 };
                 return a;
             }
@@ -323,7 +323,7 @@
             (d) => {
                 const a = document.createElement('a');
                 a.href = d.url;
-                a.className = 'spotlight-result-item block p-2.5 rounded-xl hover:bg-indigo-50/70 border border-transparent hover:border-indigo-200 transition-all group cursor-pointer';
+                a.className = 'command-palette-result-item spotlight-result-item block p-2.5 rounded-xl hover:bg-indigo-50/70 border border-transparent hover:border-indigo-200 transition-all group cursor-pointer';
                 
                 const lockBadge = d.is_manual ? `<span title="Manually assigned" class="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.2 rounded font-semibold flex-shrink-0">🔒</span>` : '';
                 const dateBadge = d.date ? `<span class="text-[10px] font-mono text-slate-400 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded flex-shrink-0">${d.date}</span>` : '';
@@ -349,7 +349,7 @@
                 `;
 
                 a.onclick = (e) => {
-                    closeSpotlight();
+                    closeCommandPalette();
                     if (d.vault_id && typeof window.openDocument === 'function') {
                         // After hash route navigation, trigger document opening
                         setTimeout(() => {
@@ -403,17 +403,19 @@
             }
         } else if (e.key === 'Escape') {
             e.preventDefault();
-            closeSpotlight();
+            closeCommandPalette();
         }
     }
 
-    // Expose global functions
-    window.openSpotlight = openSpotlight;
-    window.closeSpotlight = closeSpotlight;
+    // Expose global functions (with backward compatibility aliases)
+    window.openCommandPalette = openCommandPalette;
+    window.closeCommandPalette = closeCommandPalette;
+    window.openSpotlight = openCommandPalette;
+    window.closeSpotlight = closeCommandPalette;
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initSpotlight);
+        document.addEventListener('DOMContentLoaded', initCommandPalette);
     } else {
-        initSpotlight();
+        initCommandPalette();
     }
 })();
