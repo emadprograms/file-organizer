@@ -401,3 +401,93 @@ def test_pdf_serving_and_modal(page: Page, server_url: str):
     assert response.status == 200
     assert response.headers.get("content-type") == "application/pdf"
     assert response.body().startswith(b"%PDF-")
+
+
+def test_tenant_management_modal_e2e(page: Page, server_url: str):
+    """Opens Manage Tenants modal, inspects existing tenant, adds a new tenant, saves, and verifies."""
+    page.goto(f"{server_url}/#/area/Safra%20C/house/101")
+
+    expect(page.locator("#document-list-panel")).to_be_visible()
+
+    # Manage Tenants button in doc list tabs
+    manage_btn = page.locator("#btn-manage-tenants")
+    expect(manage_btn).to_be_visible()
+    manage_btn.click()
+
+    # Modal appears
+    modal = page.locator("#tenant-modal")
+    expect(modal).to_be_visible()
+    expect(page.locator("#tenant-modal-title")).to_contain_text("Manage Tenants: 101 (Safra C)")
+
+    # Wait for rows to load
+    tenant_name_inputs = page.locator(".tenant-name-input")
+    expect(tenant_name_inputs.first).to_have_value("Ahmad Al-Short")
+
+    # Add a second tenant row
+    page.click("#btn-add-tenant-row")
+    expect(page.locator(".tenant-row")).to_have_count(2)
+
+    # Fill new tenant
+    page.locator(".tenant-name-input").nth(1).fill("New Tenant Test")
+    page.locator(".tenant-start-input").nth(1).fill("2024-01-01")
+
+    # Click Save & Reallocate
+    save_btn = page.locator("#tenant-modal-save")
+    save_btn.click()
+
+    # Modal should close after saving
+    expect(modal).to_be_hidden()
+
+
+def test_tenant_modal_present_checkbox_toggle(page: Page, server_url: str):
+    """Toggling Present checkbox disables/enables end date input and clears value."""
+    page.goto(f"{server_url}/#/area/Safra%20C/house/101")
+    expect(page.locator("#document-list-panel")).to_be_visible()
+
+    # Open modal
+    page.locator("#btn-manage-tenants").click()
+    modal = page.locator("#tenant-modal")
+    expect(modal).to_be_visible()
+
+    # Ahmad is currently Present (no end date)
+    present_chk = page.locator(".tenant-present-check").first
+    end_input = page.locator(".tenant-end-input").first
+    expect(present_chk).to_be_checked()
+    expect(end_input).to_be_disabled()
+
+    # Uncheck Present -> should enable end date
+    present_chk.uncheck()
+    expect(end_input).to_be_enabled()
+    end_input.fill("2023-12-31")
+    expect(end_input).to_have_value("2023-12-31")
+
+    # Re-check Present -> should clear and disable end date
+    present_chk.check()
+    expect(end_input).to_be_disabled()
+    expect(end_input).to_have_value("")
+
+    # Cancel modal
+    page.locator("#tenant-modal-cancel").click()
+    expect(modal).to_be_hidden()
+
+
+def test_viewer_manual_tenant_override_e2e(page: Page, server_url: str):
+    """Document viewer shows tenant dropdown allowing manual assignment."""
+    page.goto(f"{server_url}/#/area/Safra%20C/house/101")
+    expect(page.locator("#document-list-panel")).to_be_visible()
+
+    # Open category and document
+    page.locator("#document-list div:has-text('عقود')").first.click()
+    doc_link = page.locator("#document-list div:has-text('عقد إيجار 101')").last
+    expect(doc_link).to_be_visible()
+    doc_link.click()
+
+    # Viewer opens
+    expect(page.locator("#document-viewer-panel")).to_be_visible()
+
+    # Tenant selector is visible with options
+    tenant_select = page.locator("#viewer-tenant-select")
+    expect(tenant_select).to_be_visible()
+    expect(tenant_select.locator("option")).not_to_have_count(0)
+
+

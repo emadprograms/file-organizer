@@ -91,6 +91,10 @@
                     </button>
                     <h1 id="current-house-title" class="text-xl font-semibold truncate">Select an Area</h1>
                     <div id="stats-badge" class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded hidden flex-shrink-0"></div>
+                    <button id="header-manage-tenants-btn" class="hidden items-center gap-1 text-xs font-semibold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1.5 rounded transition-colors flex-shrink-0 shadow-xs">
+                        <span>👥</span>
+                        <span>Manage Tenants</span>
+                    </button>
                 </div>
                 <div class="relative flex-shrink-0 w-64">
                     <input id="search-input" type="search" placeholder="Search tenants or houses..." 
@@ -183,9 +187,15 @@
                 <!-- Left panel: Documents List -->
                 <div id="document-list-panel" class="bg-white overflow-y-auto hidden flex-col flex-shrink-0" style="width: 33%; min-width: 250px; max-width: 60vw;">
                     <!-- Tabs -->
-                    <div class="flex border-b bg-gray-50">
-                        <button id="tab-categories" class="flex-1 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600">📁 Folders</button>
-                        <button id="tab-timeline" class="flex-1 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Timeline</button>
+                    <div class="flex border-b bg-gray-50 items-center justify-between px-1">
+                        <div class="flex flex-1">
+                            <button id="tab-categories" class="flex-1 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600">📁 Folders</button>
+                            <button id="tab-timeline" class="flex-1 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Timeline</button>
+                        </div>
+                        <button id="btn-manage-tenants" title="Manage Tenants & Reallocate" class="px-2.5 py-1 text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded border border-indigo-200 mr-1 flex items-center gap-1 transition-colors flex-shrink-0">
+                            <span>👥</span>
+                            <span class="hidden sm:inline">Tenants</span>
+                        </button>
                     </div>
                     
                     <div id="document-list" class="p-2 space-y-2"></div>
@@ -197,9 +207,15 @@
                 <!-- Right panel: Document Viewer -->
                 <div id="document-viewer-panel" class="flex-1 p-6 bg-gray-100 flex-col items-center justify-center hidden overflow-hidden">
                     <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl overflow-hidden flex flex-col h-full">
-                        <div class="p-3 bg-gray-800 text-white flex justify-between items-center">
-                            <span id="viewer-title" class="font-medium truncate">Document</span>
-                            <a id="viewer-download" href="#" target="_blank" class="text-sm hover:text-blue-300">Open in New Tab</a>
+                        <div class="p-3 bg-gray-800 text-white flex justify-between items-center gap-3">
+                            <span id="viewer-title" class="font-medium truncate flex-1">Document</span>
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                <label for="viewer-tenant-select" id="viewer-tenant-label" class="text-xs text-gray-400 hidden">Tenant:</label>
+                                <select id="viewer-tenant-select" class="hidden text-xs bg-gray-700 text-gray-200 border border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer">
+                                    <!-- Populated dynamically -->
+                                </select>
+                                <a id="viewer-download" href="#" target="_blank" class="text-sm hover:text-blue-300 ml-1">Open in New Tab</a>
+                            </div>
                         </div>
                         <iframe id="pdf-frame" class="pdf-viewer"></iframe>
                     </div>
@@ -906,6 +922,12 @@
             docListPanel.classList.add('flex');
             docViewerPanel.classList.add('hidden'); // hide until a doc is selected
 
+            const headerManageBtn = document.getElementById('header-manage-tenants-btn');
+            if (headerManageBtn) {
+                headerManageBtn.classList.remove('hidden');
+                headerManageBtn.classList.add('flex');
+            }
+
             await refreshCurrentTab(areaId, houseId);
         }
         
@@ -1138,6 +1160,7 @@
             // Append #view=FitH to make the PDF fit the iframe width rather than zooming in
             pdfFrame.src = pdfUrl + '#view=FitH';
             viewerDownload.href = pdfUrl;
+            updateViewerTenantSelect(vaultId);
         }
 
         // Search functionality
@@ -1350,6 +1373,57 @@
         <iframe id="pdf-preview-iframe" src="about:blank"></iframe>
     </div>
 
+    <!-- Tenant Management Modal -->
+    <div id="tenant-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh] overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">👥</span>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900" id="tenant-modal-title">Manage Tenants</h3>
+                        <p class="text-xs text-gray-500">Configure tenant timelines and residency date ranges.</p>
+                    </div>
+                </div>
+                <button id="tenant-modal-close" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+            </div>
+
+            <!-- Priority rules banner -->
+            <div class="mx-6 mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-900 flex items-start gap-2">
+                <span class="text-base leading-none">ℹ️</span>
+                <div>
+                    <span class="font-semibold">Reallocation Priority Rules:</span> Letters explicitly addressed to a specific tenant remain assigned to them. Unnamed documents (such as utility bills or generic notices) will be automatically reallocated based on the tenant date ranges below.
+                </div>
+            </div>
+
+            <!-- Tenant Rows List -->
+            <div class="p-6 overflow-y-auto flex-1 space-y-3" id="tenant-modal-rows">
+                <!-- Dynamically injected rows -->
+            </div>
+
+            <!-- Add Row Button & Status Message -->
+            <div class="px-6 pb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                <button id="btn-add-tenant-row" type="button" class="px-3 py-1.5 text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md border border-gray-300 flex items-center gap-1 transition-colors">
+                    <span>➕</span> Add Tenant
+                </button>
+                <label class="flex items-center gap-1.5 text-xs text-gray-700 cursor-pointer select-none">
+                    <input type="checkbox" id="tenant-modal-reallocate-check" checked class="rounded border-gray-300 text-blue-600">
+                    <span>Auto-reallocate documents on save</span>
+                </label>
+            </div>
+
+            <div id="tenant-modal-status" class="px-6 py-1 text-xs font-medium hidden"></div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+                <button id="tenant-modal-cancel" type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
+                <button id="tenant-modal-save" type="button" class="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+                    <span id="tenant-save-btn-text">💾 Save & Reallocate</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ── PDF Hover Preview ─────────────────────────────────────────────────
         const previewTooltip   = document.getElementById('pdf-preview-tooltip');
@@ -1427,6 +1501,256 @@
             });
             el.addEventListener('mouseleave', hidePreview);
         }
+
+        // ==========================================
+        // Tenant Management Modal Logic
+        // ==========================================
+        const tenantModal = document.getElementById('tenant-modal');
+        const tenantModalTitle = document.getElementById('tenant-modal-title');
+        const tenantModalRows = document.getElementById('tenant-modal-rows');
+        const tenantModalClose = document.getElementById('tenant-modal-close');
+        const tenantModalCancel = document.getElementById('tenant-modal-cancel');
+        const tenantModalSave = document.getElementById('tenant-modal-save');
+        const btnAddTenantRow = document.getElementById('btn-add-tenant-row');
+        const tenantModalStatus = document.getElementById('tenant-modal-status');
+        const btnManageTenants = document.getElementById('btn-manage-tenants');
+        const headerManageTenantsBtn = document.getElementById('header-manage-tenants-btn');
+        const viewerTenantSelect = document.getElementById('viewer-tenant-select');
+        const viewerTenantLabel = document.getElementById('viewer-tenant-label');
+        let currentViewingVaultId = null;
+
+        function openTenantModal() {
+            if (!currentHouse || !currentArea) {
+                alert('Please select a house first.');
+                return;
+            }
+            tenantModalTitle.textContent = `Manage Tenants: ${currentHouse} (${currentArea})`;
+            tenantModalRows.innerHTML = '<p class="text-sm text-gray-500">Loading tenants...</p>';
+            tenantModalStatus.classList.add('hidden');
+            tenantModal.classList.remove('hidden');
+            loadTenantsForModal();
+        }
+
+        function closeTenantModal() {
+            tenantModal.classList.add('hidden');
+            tenantModalStatus.classList.add('hidden');
+        }
+
+        async function loadTenantsForModal() {
+            try {
+                const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/tenants`);
+                if (!res.ok) throw new Error('Failed to load tenants');
+                const tenants = await res.json();
+                tenantModalRows.innerHTML = '';
+                if (!tenants || tenants.length === 0) {
+                    addTenantRow();
+                } else {
+                    tenants.forEach(t => addTenantRow(t));
+                }
+            } catch (err) {
+                console.error(err);
+                tenantModalRows.innerHTML = '<p class="text-sm text-red-500">Error loading tenants.</p>';
+            }
+        }
+
+        function addTenantRow(t = null) {
+            const row = document.createElement('div');
+            row.className = 'tenant-row flex flex-col sm:flex-row items-start sm:items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 transition-all';
+            if (t && t.id) row.dataset.id = t.id;
+
+            const nameVal = t ? (t.name || '') : '';
+            const startVal = t ? (t.start_date || '') : '';
+            const endVal = t ? (t.end_date || '') : '';
+            const isPresent = !endVal || endVal === 'present' || String(endVal).toLowerCase() === 'none';
+
+            row.innerHTML = `
+                <div class="flex-1 w-full sm:w-auto">
+                    <label class="block text-[10px] text-gray-500 font-semibold mb-0.5">NAME / الاسم</label>
+                    <input type="text" value="${nameVal.replace(/"/g, '&quot;')}" placeholder="Tenant Name" 
+                           class="tenant-name-input w-full px-2.5 py-1.5 text-xs rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white" required />
+                </div>
+                <div class="w-full sm:w-36">
+                    <label class="block text-[10px] text-gray-500 font-semibold mb-0.5">START DATE</label>
+                    <input type="date" value="${startVal}" 
+                           class="tenant-start-input w-full px-2 py-1.5 text-xs rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white" required />
+                </div>
+                <div class="w-full sm:w-36">
+                    <label class="block text-[10px] text-gray-500 font-semibold mb-0.5">END DATE</label>
+                    <input type="date" value="${isPresent ? '' : endVal}" ${isPresent ? 'disabled' : ''}
+                           class="tenant-end-input w-full px-2 py-1.5 text-xs rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 ${isPresent ? 'bg-gray-100 text-gray-400' : 'bg-white'}" />
+                </div>
+                <div class="flex items-center gap-2 pt-3 sm:pt-4">
+                    <label class="flex items-center gap-1 text-xs text-gray-600 select-none cursor-pointer">
+                        <input type="checkbox" class="tenant-present-check rounded border-gray-300 text-blue-600" ${isPresent ? 'checked' : ''} />
+                        <span>Present</span>
+                    </label>
+                    <button type="button" class="btn-remove-row text-gray-400 hover:text-red-600 p-1 text-base transition-colors" title="Delete Tenant">
+                        🗑️
+                    </button>
+                </div>
+            `;
+
+            const presentCheck = row.querySelector('.tenant-present-check');
+            const endInput = row.querySelector('.tenant-end-input');
+            presentCheck.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    endInput.value = '';
+                    endInput.disabled = true;
+                    endInput.className = "tenant-end-input w-full px-2 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 text-gray-400";
+                } else {
+                    endInput.disabled = false;
+                    endInput.className = "tenant-end-input w-full px-2 py-1.5 text-xs rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white";
+                }
+            });
+
+            row.querySelector('.btn-remove-row').addEventListener('click', () => {
+                row.remove();
+                if (tenantModalRows.children.length === 0) {
+                    addTenantRow();
+                }
+            });
+
+            tenantModalRows.appendChild(row);
+        }
+
+        async function saveTenantsAndReallocate() {
+            const rows = Array.from(tenantModalRows.querySelectorAll('.tenant-row'));
+            const tenantsPayload = [];
+
+            for (const r of rows) {
+                const name = r.querySelector('.tenant-name-input').value.trim();
+                const start = r.querySelector('.tenant-start-input').value;
+                const isPresent = r.querySelector('.tenant-present-check').checked;
+                const end = isPresent ? null : (r.querySelector('.tenant-end-input').value || null);
+
+                if (!name) {
+                    showTenantStatus('All tenants must have a name.', true);
+                    return;
+                }
+                if (!start) {
+                    showTenantStatus(`Please provide a start date for ${name}.`, true);
+                    return;
+                }
+
+                tenantsPayload.push({
+                    id: r.dataset.id ? parseInt(r.dataset.id) : null,
+                    name: name,
+                    start_date: start,
+                    end_date: end,
+                    house_id: currentHouse
+                });
+            }
+
+            const shouldReallocate = document.getElementById('tenant-modal-reallocate-check').checked;
+            const saveBtnText = document.getElementById('tenant-save-btn-text');
+            saveBtnText.textContent = 'Saving & Reallocating...';
+            tenantModalSave.disabled = true;
+
+            try {
+                const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/tenants`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tenants: tenantsPayload,
+                        reallocate: shouldReallocate
+                    })
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.detail || 'Failed to save tenants.');
+                }
+
+                const data = await res.json();
+                showTenantStatus(`✓ Saved! ${data.reallocated_count} documents reallocated across ${data.tenants_count} tenants.`, false);
+
+                setTimeout(() => {
+                    closeTenantModal();
+                    refreshCurrentTab(currentArea, currentHouse);
+                    loadTree();
+                }, 1000);
+            } catch (err) {
+                showTenantStatus(`Error: ${err.message}`, true);
+            } finally {
+                saveBtnText.textContent = '💾 Save & Reallocate';
+                tenantModalSave.disabled = false;
+            }
+        }
+
+        function showTenantStatus(msg, isError = false) {
+            tenantModalStatus.textContent = msg;
+            tenantModalStatus.className = isError 
+                ? "px-6 py-1 text-xs font-semibold text-red-600 block" 
+                : "px-6 py-1 text-xs font-semibold text-emerald-600 block";
+        }
+
+        async function updateViewerTenantSelect(vaultId) {
+            currentViewingVaultId = vaultId;
+            if (!viewerTenantSelect || isStaticMode || !currentArea || !currentHouse) {
+                if (viewerTenantSelect) viewerTenantSelect.classList.add('hidden');
+                if (viewerTenantLabel) viewerTenantLabel.classList.add('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/tenants`);
+                if (!res.ok) return;
+                const tenants = await res.json();
+                if (!tenants || tenants.length === 0) {
+                    viewerTenantSelect.classList.add('hidden');
+                    viewerTenantLabel.classList.add('hidden');
+                    return;
+                }
+
+                let currentDocTenantName = null;
+                const timelineMatch = currentTimeline.find(d => d.vault_id === vaultId);
+                if (timelineMatch) currentDocTenantName = timelineMatch.primary_tenant;
+
+                viewerTenantSelect.innerHTML = '';
+                tenants.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.id;
+                    opt.textContent = t.name + (t.start_date ? ` (${t.start_date.substring(0,4)})` : '');
+                    if (currentDocTenantName && (t.name.trim() === currentDocTenantName.trim() || currentDocTenantName.includes(t.name.trim()))) {
+                        opt.selected = true;
+                    }
+                    viewerTenantSelect.appendChild(opt);
+                });
+
+                viewerTenantLabel.classList.remove('hidden');
+                viewerTenantSelect.classList.remove('hidden');
+            } catch (err) {
+                console.warn('Failed to load tenants for viewer dropdown:', err);
+            }
+        }
+
+        if (viewerTenantSelect) {
+            viewerTenantSelect.addEventListener('change', async (e) => {
+                const newTenantId = parseInt(e.target.value);
+                if (!currentViewingVaultId || !newTenantId) return;
+
+                try {
+                    const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/documents/${encodeURIComponent(currentViewingVaultId)}/tenant`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tenant_id: newTenantId })
+                    });
+                    if (res.ok) {
+                        refreshCurrentTab(currentArea, currentHouse);
+                    }
+                } catch (err) {
+                    console.error('Failed to update document tenant:', err);
+                }
+            });
+        }
+
+        if (btnManageTenants) btnManageTenants.addEventListener('click', openTenantModal);
+        if (headerManageTenantsBtn) headerManageTenantsBtn.addEventListener('click', openTenantModal);
+        if (tenantModalClose) tenantModalClose.addEventListener('click', closeTenantModal);
+        if (tenantModalCancel) tenantModalCancel.addEventListener('click', closeTenantModal);
+        if (tenantModalSave) tenantModalSave.addEventListener('click', saveTenantsAndReallocate);
+        if (btnAddTenantRow) btnAddTenantRow.addEventListener('click', () => addTenantRow());
     </script>
 </body>
 </html>
+

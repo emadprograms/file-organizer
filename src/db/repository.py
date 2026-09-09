@@ -3,7 +3,7 @@
 import sqlite3
 from contextlib import contextmanager
 from datetime import date, datetime
-from typing import Any, Generator, List, Optional, Sequence, Union
+from typing import Any, Dict, Generator, List, Optional, Sequence, Union
 
 from src.db.models import Area, House, Tenant, Batch, Page, Document
 
@@ -164,6 +164,172 @@ def list_tenants_by_house(conn: sqlite3.Connection, house_id: str) -> List[Tenan
         (house_id,),
     )
     return [Tenant.model_validate(dict(row)) for row in cursor.fetchall()]
+
+
+def get_tenant(conn: sqlite3.Connection, tenant_id: int) -> Optional[Tenant]:
+    """Retrieve tenant by ID."""
+    cursor = conn.execute("SELECT * FROM tenants WHERE id = ?", (tenant_id,))
+    row = cursor.fetchone()
+    return Tenant.model_validate(dict(row)) if row else None
+
+
+_UNSET = object()
+
+
+def update_tenant(
+    conn: sqlite3.Connection,
+    tenant_id: int,
+    name: Optional[str] = None,
+    start_date: Optional[Union[str, date]] = None,
+    end_date: Any = _UNSET,
+    autocommit: bool = True,
+) -> Optional[Tenant]:
+    """Update tenant information."""
+    current = get_tenant(conn, tenant_id)
+    if not current:
+        return None
+
+    new_name = name if name is not None else current.name
+    new_start = str(start_date) if start_date is not None else str(current.start_date)
+    if end_date is _UNSET:
+        new_end = str(current.end_date) if current.end_date else None
+    elif end_date is None:
+        new_end = None
+    else:
+        new_end = str(end_date)
+
+    cursor = conn.execute(
+        "UPDATE tenants SET name = ?, start_date = ?, end_date = ? WHERE id = ? RETURNING *",
+        (new_name, new_start, new_end, tenant_id),
+    )
+    row = cursor.fetchone()
+    if autocommit:
+        conn.commit()
+    return Tenant.model_validate(dict(row)) if row else None
+
+
+def delete_tenant(
+    conn: sqlite3.Connection,
+    tenant_id: int,
+    autocommit: bool = True,
+) -> bool:
+    """Delete a tenant. Reassigns orphaned documents/pages to another tenant if one exists."""
+    target = get_tenant(conn, tenant_id)
+    if not target:
+        return False
+
+    remaining = [t for t in list_tenants_by_house(conn, target.house_id) if t.id != tenant_id]
+    if remaining:
+        fallback_id = remaining[0].id
+        conn.execute("UPDATE documents SET tenant_id = ? WHERE tenant_id = ?", (fallback_id, tenant_id))
+        conn.execute("UPDATE pages SET tenant_id = ? WHERE tenant_id = ?", (fallback_id, tenant_id))
+
+    cursor = conn.execute("DELETE FROM tenants WHERE id = ?", (tenant_id,))
+    deleted = cursor.rowcount > 0
+    if autocommit:
+        conn.commit()
+    return deleted
+
+
+def reallocate_house_documents(
+    conn: sqlite3.Connection,
+    house_id: str,
+    autocommit: bool = True,
+) -> Dict[str, Any]:
+    """Reallocate documents and pages of a house based on the tenant priority hierarchy:
+    
+    1. Explicit Name Match: If any page of the document explicitly names a known tenant,
+       assign to that tenant (dates are ignored).
+    2. Date Window Fallback: If no explicit name match, match document.primary_date against
+       tenant [start_date, end_date]. If overlapping, pick the tenant with the latest start_date.
+    3. Fallback: If no match, assign to active/latest tenant for the house.
+    """
+    tenants = list_tenants_by_house(conn, house_id)
+    if not tenants:
+        return {"reallocated_count": 0, "total_documents": 0, "tenants_count": 0}
+
+    tenant_map: Dict[str, Tenant] = {t.name.strip().lower(): t for t in tenants if t.id}
+
+    # Fetch all documents for this house
+    doc_rows = conn.execute(
+        "SELECT vault_id, tenant_id, primary_date FROM documents WHERE house_id = ?",
+        (house_id,),
+    ).fetchall()
+
+    if not doc_rows:
+        return {"reallocated_count": 0, "total_documents": 0, "tenants_count": len(tenants)}
+
+    # Fetch page-level expected_tenant_names for each document
+    page_rows = conn.execute(
+        "SELECT vault_id, expected_tenant_name FROM pages WHERE house_id = ? AND vault_id IS NOT NULL",
+        (house_id,),
+    ).fetchall()
+
+    names_by_doc: Dict[str, List[str]] = {}
+    for r in page_rows:
+        v_id = r["vault_id"]
+        exp_name = r["expected_tenant_name"]
+        if exp_name and exp_name.strip():
+            names_by_doc.setdefault(v_id, []).append(exp_name.strip())
+
+    reallocated_count = 0
+
+    # Default fallback tenant: active tenant or latest tenant
+    active_tenant = get_active_tenant(conn, house_id) or tenants[-1]
+
+    for d in doc_rows:
+        v_id = d["vault_id"]
+        current_tid = d["tenant_id"]
+        target_t: Optional[Tenant] = None
+
+        # Priority 1: Explicit name match from pages
+        doc_names = names_by_doc.get(v_id, [])
+        for name in doc_names:
+            clean_name = name.lower()
+            if clean_name in tenant_map:
+                target_t = tenant_map[clean_name]
+                break
+            # Substring match if name is meaningful length
+            for t_k, t_obj in tenant_map.items():
+                if len(t_k) >= 3 and (t_k in clean_name or clean_name in t_k):
+                    target_t = t_obj
+                    break
+            if target_t:
+                break
+
+        # Priority 2: Date window fallback
+        if not target_t and d["primary_date"]:
+            d_date_str = str(d["primary_date"])[:10]
+            matching_tenants = []
+            for t in tenants:
+                s_d = str(t.start_date)[:10] if t.start_date else "1900-01-01"
+                e_d = str(t.end_date)[:10] if t.end_date else "9999-12-31"
+                if s_d <= d_date_str <= e_d:
+                    matching_tenants.append(t)
+
+            if matching_tenants:
+                # Pick latest start_date
+                matching_tenants.sort(key=lambda x: str(x.start_date) if x.start_date else "", reverse=True)
+                target_t = matching_tenants[0]
+
+        # Priority 3: Fallback
+        if not target_t:
+            target_t = active_tenant
+
+        # Apply update if changed
+        if target_t and target_t.id != current_tid:
+            conn.execute("UPDATE documents SET tenant_id = ? WHERE vault_id = ?", (target_t.id, v_id))
+            conn.execute("UPDATE pages SET tenant_id = ? WHERE vault_id = ?", (target_t.id, v_id))
+            reallocated_count += 1
+
+    if autocommit:
+        conn.commit()
+
+    return {
+        "reallocated_count": reallocated_count,
+        "total_documents": len(doc_rows),
+        "tenants_count": len(tenants),
+    }
 
 
 # ==========================================
@@ -567,6 +733,31 @@ class Repository:
 
     def list_tenants_by_house(self, house_id: str) -> List[Tenant]:
         return list_tenants_by_house(self.conn, house_id)
+
+    def get_tenant(self, tenant_id: int) -> Optional[Tenant]:
+        return get_tenant(self.conn, tenant_id)
+
+    def update_tenant(
+        self,
+        tenant_id: int,
+        name: Optional[str] = None,
+        start_date: Optional[Union[str, date]] = None,
+        end_date: Any = _UNSET,
+    ) -> Optional[Tenant]:
+        return update_tenant(
+            self.conn,
+            tenant_id=tenant_id,
+            name=name,
+            start_date=start_date,
+            end_date=end_date,
+            autocommit=self.autocommit,
+        )
+
+    def delete_tenant(self, tenant_id: int) -> bool:
+        return delete_tenant(self.conn, tenant_id=tenant_id, autocommit=self.autocommit)
+
+    def reallocate_house_documents(self, house_id: str) -> Dict[str, Any]:
+        return reallocate_house_documents(self.conn, house_id=house_id, autocommit=self.autocommit)
 
     # Batch operations
     def create_batch(

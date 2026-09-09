@@ -43,3 +43,24 @@ class SearchResultResponse(BaseModel):
     title: str
     subtitle: str | None = None
     url: str # path to navigate to
+
+class TenantItem(BaseModel):
+    id: int | None = None
+    name: str
+    start_date: str
+    end_date: str | None = None
+    house_id: str | None = None
+
+class TenantBulkUpdateRequest(BaseModel):
+    tenants: list[TenantItem]
+    reallocate: bool = True
+
+class TenantReallocationResponse(BaseModel):
+    status: str
+    reallocated_count: int
+    total_documents: int
+    tenants_count: int
+
+class DocumentTenantUpdateRequest(BaseModel):
+    tenant_id: int
+

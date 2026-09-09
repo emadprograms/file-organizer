@@ -10,7 +10,18 @@ from fastapi import APIRouter, Request, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import ValidationError
 
-from src.api.models import HouseResponse, VaultFileResponse, CategoryResponse, TimelineGroupResponse, TreeItemResponse, SearchResultResponse
+from src.api.models import (
+    HouseResponse,
+    VaultFileResponse,
+    CategoryResponse,
+    TimelineGroupResponse,
+    TreeItemResponse,
+    SearchResultResponse,
+    TenantItem,
+    TenantBulkUpdateRequest,
+    TenantReallocationResponse,
+    DocumentTenantUpdateRequest,
+)
 from src.db.repository import Repository
 
 router = APIRouter()
@@ -259,6 +270,118 @@ async def list_timeline(request: Request, area_id: str, house_id: str):
         
     responses.sort(key=get_sort_date, reverse=True)
     return responses
+
+@router.get("/api/areas/{area_id}/houses/{house_id}/tenants", response_model=list[TenantItem])
+async def list_house_tenants(request: Request, area_id: str, house_id: str):
+    repo = get_db_repo(request)
+    if not repo:
+        return []
+    house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
+    h_cur = repo.conn.execute("SELECT id FROM houses WHERE id = ? OR id = ?", (house_id, house_num))
+    h_row = h_cur.fetchone()
+    if not h_row:
+        raise HTTPException(status_code=404, detail="House not found.")
+    db_house_id = h_row["id"]
+
+    tenants = repo.list_tenants_by_house(db_house_id)
+    return [
+        TenantItem(
+            id=t.id,
+            name=t.name,
+            start_date=str(t.start_date),
+            end_date=str(t.end_date) if t.end_date else None,
+            house_id=t.house_id,
+        )
+        for t in tenants
+    ]
+
+@router.post("/api/areas/{area_id}/houses/{house_id}/tenants", response_model=TenantReallocationResponse)
+async def bulk_update_tenants(request: Request, area_id: str, house_id: str, payload: TenantBulkUpdateRequest):
+    repo = get_db_repo(request)
+    if not repo:
+        raise HTTPException(status_code=500, detail="Database repository not available.")
+    house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
+    h_cur = repo.conn.execute("SELECT id FROM houses WHERE id = ? OR id = ?", (house_id, house_num))
+    h_row = h_cur.fetchone()
+    if not h_row:
+        raise HTTPException(status_code=404, detail="House not found.")
+    db_house_id = h_row["id"]
+
+    current_tenants = repo.list_tenants_by_house(db_house_id)
+    current_by_id = {t.id: t for t in current_tenants if t.id is not None}
+    payload_ids = {t.id for t in payload.tenants if t.id is not None}
+
+    # 1. Delete tenants that were removed in payload
+    for cid in list(current_by_id.keys()):
+        if cid not in payload_ids:
+            repo.delete_tenant(cid)
+
+    # 2. Update existing or insert new tenants
+    for t in payload.tenants:
+        s_date = str(t.start_date)[:10] if t.start_date else "1970-01-01"
+        e_date = str(t.end_date)[:10] if t.end_date and str(t.end_date).strip().lower() not in ("none", "null", "present", "") else None
+        if t.id and t.id in current_by_id:
+            repo.update_tenant(tenant_id=t.id, name=t.name.strip(), start_date=s_date, end_date=e_date)
+        else:
+            repo.add_tenant(house_id=db_house_id, name=t.name.strip(), start_date=s_date, end_date=e_date)
+
+    # 3. Automatic reallocation if requested
+    reallocated_count = 0
+    if payload.reallocate:
+        res = repo.reallocate_house_documents(db_house_id)
+        reallocated_count = res.get("reallocated_count", 0)
+
+    clear_tree_cache()
+
+    all_tenants = repo.list_tenants_by_house(db_house_id)
+    doc_row = repo.conn.execute("SELECT COUNT(*) as cnt FROM documents WHERE house_id = ?", (db_house_id,)).fetchone()
+    doc_count = doc_row["cnt"] if doc_row else 0
+
+    return TenantReallocationResponse(
+        status="success",
+        reallocated_count=reallocated_count,
+        total_documents=doc_count,
+        tenants_count=len(all_tenants)
+    )
+
+@router.post("/api/areas/{area_id}/houses/{house_id}/reallocate", response_model=TenantReallocationResponse)
+async def trigger_reallocate(request: Request, area_id: str, house_id: str):
+    repo = get_db_repo(request)
+    if not repo:
+        raise HTTPException(status_code=500, detail="Database repository not available.")
+    house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
+    h_cur = repo.conn.execute("SELECT id FROM houses WHERE id = ? OR id = ?", (house_id, house_num))
+    h_row = h_cur.fetchone()
+    if not h_row:
+        raise HTTPException(status_code=404, detail="House not found.")
+    db_house_id = h_row["id"]
+
+    res = repo.reallocate_house_documents(db_house_id)
+    clear_tree_cache()
+    return TenantReallocationResponse(
+        status="success",
+        reallocated_count=res.get("reallocated_count", 0),
+        total_documents=res.get("total_documents", 0),
+        tenants_count=res.get("tenants_count", 0)
+    )
+
+@router.patch("/api/areas/{area_id}/houses/{house_id}/documents/{vault_id}/tenant")
+async def reassign_single_document_tenant(request: Request, area_id: str, house_id: str, vault_id: str, payload: DocumentTenantUpdateRequest):
+    repo = get_db_repo(request)
+    if not repo:
+        raise HTTPException(status_code=500, detail="Database repository not available.")
+    doc = repo.get_document(vault_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+    tenant = repo.get_tenant(payload.tenant_id)
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found.")
+
+    repo.conn.execute("UPDATE documents SET tenant_id = ? WHERE vault_id = ?", (payload.tenant_id, vault_id))
+    repo.conn.execute("UPDATE pages SET tenant_id = ? WHERE vault_id = ?", (payload.tenant_id, vault_id))
+    repo.conn.commit()
+    clear_tree_cache()
+    return {"status": "success", "vault_id": vault_id, "tenant_id": payload.tenant_id, "tenant_name": tenant.name}
 
 @router.get("/api/areas/{area_id}/houses/{house_id}/categories", response_model=list[CategoryResponse])
 async def list_categories(request: Request, area_id: str, house_id: str):
