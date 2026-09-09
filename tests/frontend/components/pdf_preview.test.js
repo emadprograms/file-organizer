@@ -246,3 +246,139 @@ describe('PDF Hover Preview — attachPreview wiring', () => {
     expect(tooltip.classList.contains('visible')).toBe(false);
   });
 });
+
+describe('PDF Preview & macOS Quick Look — Live Component Tests', () => {
+  let fs;
+  let pdfPreviewCode;
+
+  beforeEach(async () => {
+    fs = await import('fs');
+    pdfPreviewCode = fs.readFileSync('src/api/static/js/pdf-preview.js', 'utf-8');
+
+    document.body.innerHTML = `
+      <div id="pdf-preview-tooltip" style="width:380px;height:520px;opacity:0;">
+        <div class="preview-header" id="pdf-preview-title">Preview</div>
+        <iframe id="pdf-preview-iframe" src="about:blank"></iframe>
+      </div>
+      <div id="quick-look-modal" class="hidden">
+        <span id="quick-look-title"></span>
+        <span id="quick-look-badge" class="hidden"></span>
+        <button id="quick-look-close"></button>
+        <button id="quick-look-open-full"></button>
+        <iframe id="quick-look-iframe" src="about:blank"></iframe>
+      </div>
+      <div id="card-1" class="group/doc">
+        <span class="doc-icon-preview">Icon</span>
+        <button class="doc-quick-look-btn">Eye</button>
+        <button class="doc-menu-btn">Menu</button>
+      </div>
+    `;
+
+    // Stub offsetWidth/Height on tooltip
+    const tooltip = document.getElementById('pdf-preview-tooltip');
+    Object.defineProperty(tooltip, 'offsetWidth',  { configurable: true, get: () => 380 });
+    Object.defineProperty(tooltip, 'offsetHeight', { configurable: true, get: () => 520 });
+
+    vi.useFakeTimers();
+
+    // Execute live component in window context
+    const runFn = new Function(pdfPreviewCode);
+    runFn();
+    window.initPdfPreview();
+  });
+
+  afterEach(() => {
+    document.body.innerHTML = '';
+    vi.useRealTimers();
+  });
+
+  it('anchors preview tooltip to element bounding rect instead of mouse cursor', () => {
+    const icon = document.querySelector('.doc-icon-preview');
+    icon.getBoundingClientRect = () => ({
+      top: 150,
+      left: 100,
+      right: 120,
+      bottom: 170,
+      width: 20,
+      height: 20,
+    });
+
+    const coords = window.positionTooltip(0, 0, icon);
+    expect(coords.left).toBe(120 + 12); // right + gap (12)
+    expect(coords.top).toBe(150 - 20);  // top - 20
+  });
+
+  it('immediately hides tooltip when window scrolls', () => {
+    const tooltip = document.getElementById('pdf-preview-tooltip');
+    window.showPreview('vault123', 'Sample Doc', 100, 100);
+    vi.advanceTimersByTime(window.PREVIEW_DELAY_MS || 450);
+    expect(tooltip.classList.contains('visible')).toBe(true);
+
+    window.dispatchEvent(new Event('scroll'));
+    expect(tooltip.classList.contains('visible')).toBe(false);
+  });
+
+  it('immediately hides tooltip when Escape key is pressed', () => {
+    const tooltip = document.getElementById('pdf-preview-tooltip');
+    window.showPreview('vault123', 'Sample Doc', 100, 100);
+    vi.advanceTimersByTime(window.PREVIEW_DELAY_MS || 450);
+    expect(tooltip.classList.contains('visible')).toBe(true);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(tooltip.classList.contains('visible')).toBe(false);
+  });
+
+  it('opens and closes Quick Look modal via Spacebar', () => {
+    const modal = document.getElementById('quick-look-modal');
+    const qlTitle = document.getElementById('quick-look-title');
+    const qlIframe = document.getElementById('quick-look-iframe');
+
+    const card = document.getElementById('card-1');
+    window.setSelectedDoc({ vault_id: 'vault99', filename: 'Contract.pdf' }, 'Contract 2026', card);
+
+    expect(card.classList.contains('doc-row-selected')).toBe(true);
+    expect(modal.classList.contains('hidden')).toBe(true);
+
+    // Press Space to open Quick Look
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true }));
+    expect(modal.classList.contains('hidden')).toBe(false);
+    expect(qlTitle.textContent).toBe('Contract 2026');
+    expect(qlIframe.src).toContain('vault99');
+
+    // Press Space again to close Quick Look
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true }));
+    expect(modal.classList.contains('hidden')).toBe(true);
+    expect(qlIframe.src).toBe('about:blank');
+  });
+
+  it('closes Quick Look modal when Escape is pressed', () => {
+    const modal = document.getElementById('quick-look-modal');
+    window.openQuickLook('v77', 'Notice.pdf');
+    expect(modal.classList.contains('hidden')).toBe(false);
+
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(modal.classList.contains('hidden')).toBe(true);
+  });
+
+  it('does NOT trigger Spacebar Quick Look when user is typing in an input field', () => {
+    const modal = document.getElementById('quick-look-modal');
+    window.setSelectedDoc({ vault_id: 'v1' }, 'Test Doc');
+
+    const input = document.createElement('input');
+    document.body.appendChild(input);
+    input.focus();
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true }));
+    expect(modal.classList.contains('hidden')).toBe(true);
+  });
+
+  it('hides hover preview on menu button hover', () => {
+    const tooltip = document.getElementById('pdf-preview-tooltip');
+    window.showPreview('vault123', 'Sample Doc', 100, 100);
+    vi.advanceTimersByTime(window.PREVIEW_DELAY_MS || 450);
+    expect(tooltip.classList.contains('visible')).toBe(true);
+
+    window.hidePreview(true);
+    expect(tooltip.classList.contains('visible')).toBe(false);
+  });
+});

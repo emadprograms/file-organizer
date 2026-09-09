@@ -76,10 +76,18 @@
             
             card.innerHTML = `
                 <div class="flex justify-between items-start gap-2">
-                    <h4 class="text-xs font-semibold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">${title}</h4>
+                    <div class="flex items-start gap-1.5 min-w-0 flex-1">
+                        <span class="doc-icon-preview p-0.5 rounded text-blue-500 hover:text-blue-700 hover:bg-blue-100 cursor-pointer flex-shrink-0 mt-0.5 transition-colors" title="Quick Preview (or press Space)">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                        </span>
+                        <h4 class="text-xs font-semibold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">${title}</h4>
+                    </div>
                     <div class="flex items-center gap-1 flex-shrink-0">
                         ${lockBadgeHtml}
-                        <button class="doc-menu-btn opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-opacity" data-vault-id="${doc.vault_id}" title="Manage Document (Rename, Move, Copy)">
+                        <button type="button" class="doc-quick-look-btn opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-opacity" title="Quick Look (Spacebar)">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        </button>
+                        <button type="button" class="doc-menu-btn opacity-0 group-hover:opacity-100 p-1 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-700 transition-opacity" data-vault-id="${doc.vault_id}" title="Manage Document (Rename, Move, Copy)">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
                         </button>
                     </div>
@@ -93,18 +101,60 @@
                 </div>
             `;
             
+            const previewIcon = card.querySelector('.doc-icon-preview');
+            const quickLookBtn = card.querySelector('.doc-quick-look-btn');
             const menuBtn = card.querySelector('.doc-menu-btn');
+
+            // Polite hover preview: attached strictly to the icon
+            if (previewIcon && typeof window.attachPreview === 'function') {
+                window.attachPreview(previewIcon, doc.vault_id, title);
+                previewIcon.onclick = (e) => {
+                    e.stopPropagation();
+                    if (typeof window.setSelectedDoc === 'function') {
+                        window.setSelectedDoc(doc, title, card);
+                    }
+                    if (typeof window.openQuickLook === 'function') {
+                        window.openQuickLook(doc.vault_id, title, doc);
+                    }
+                };
+            }
+
+            if (quickLookBtn) {
+                quickLookBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    if (typeof window.setSelectedDoc === 'function') {
+                        window.setSelectedDoc(doc, title, card);
+                    }
+                    if (typeof window.openQuickLook === 'function') {
+                        window.openQuickLook(doc.vault_id, title, doc);
+                    }
+                };
+            }
+
+            // 3-dot Menu: immediately hide preview on hover so menu is never blocked
             if (menuBtn) {
+                menuBtn.onmouseenter = () => {
+                    if (typeof window.hidePreview === 'function') {
+                        window.hidePreview(true);
+                    }
+                };
                 menuBtn.onclick = (e) => {
                     e.stopPropagation();
+                    if (typeof window.hidePreview === 'function') {
+                        window.hidePreview(true);
+                    }
                     if (typeof window.openDocModal === 'function') {
                         window.openDocModal(doc, doc.category);
                     }
                 };
             }
 
-            card.onclick = () => openDocument(doc.vault_id, title);
-            attachPreview(card, doc.vault_id, title);
+            card.onclick = () => {
+                if (typeof window.setSelectedDoc === 'function') {
+                    window.setSelectedDoc(doc, title, card);
+                }
+                openDocument(doc.vault_id, title);
+            };
             docListEl.appendChild(card);
         });
     }
