@@ -355,14 +355,22 @@ def export_static_web(config: AppConfig, output_dir: Path | None = None) -> int:
         f.write(WEB_CONFIG_TEMPLATE)
     logger.info(f"Wrote IIS web.config to {web_config_path}")
 
-    # 4. Copy index.html from static dir
-    src_index = Path(__file__).resolve().parent.parent / "api" / "static" / "index.html"
-    if src_index.exists():
-        dst_index = target_dir / "index.html"
-        shutil.copy2(src_index, dst_index)
-        logger.info(f"Copied index.html to {dst_index}")
+    # 4. Copy static assets (index.html, js, css) from static dir
+    static_src = Path(__file__).resolve().parent.parent / "api" / "static"
+    if static_src.exists():
+        for item in ["index.html", "js", "css"]:
+            s = static_src / item
+            d = target_dir / item
+            if s.is_file():
+                shutil.copy2(s, d)
+                logger.info(f"Copied {item} to {d}")
+            elif s.is_dir():
+                if d.exists():
+                    shutil.rmtree(d)
+                shutil.copytree(s, d)
+                logger.info(f"Copied directory {item} to {d}")
     else:
-        logger.warning(f"Could not find source index.html at {src_index}")
+        logger.warning(f"Could not find static directory at {static_src}")
 
     logger.info(f"Static web bundle successfully exported to: {target_dir}")
     logger.info("Files created:")
@@ -370,4 +378,6 @@ def export_static_web(config: AppConfig, output_dir: Path | None = None) -> int:
     logger.info(f"  - {search_path.name}")
     logger.info(f"  - {web_config_path.name}")
     logger.info("  - index.html")
+    logger.info("  - js/")
+    logger.info("  - css/")
     return 0
