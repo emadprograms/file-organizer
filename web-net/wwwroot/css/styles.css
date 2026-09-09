@@ -1,0 +1,47 @@
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.font-arabic { font-family: 'Noto Sans Arabic', 'Inter', sans-serif; }
+.pdf-viewer { width: 100%; height: 80vh; border: none; }
+
+/* Modern scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.4); border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.7); }
+
+/* Floating preview tooltip retired in favor of zero-click Right Panel Live Peek */
+#pdf-preview-tooltip {
+    display: none !important;
+}
+
+/* Selected document card / row highlight */
+.doc-row-selected {
+    background-color: #f0f7ff !important;
+    border-color: #93c5fd !important;
+    box-shadow: inset 0 0 0 1.5px #3b82f6 !important;
+}
+
+/* Quick Look modal backdrop */
+#quick-look-modal {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* Modern Tree View Styling */
+.tree-item {
+    user-select: none;
+    cursor: pointer;
+}
+.tree-item:hover .tree-type-icon {
+    color: #cbd5e1;
+}
+.tree-item-active {
+    background-color: #2563eb !important;
+    color: #ffffff !important;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.2);
+}
+.tree-item-active .tree-type-icon {
+    color: #ffffff !important;
+}
+.tree-item-active .tree-chevron {
+    color: #ffffff !important;
+}

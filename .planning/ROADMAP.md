@@ -23,7 +23,7 @@
 - Project scaffold for ASP.NET Core 8.0 Minimal API in `web-net/` created with modern C# project configuration.
 
 #### Phase 102: ASP.NET Core Data Layer & Repository (Dapper + SQLite WAL)
-- [ ] Plan 1/1: Data access layer, SQLite connection manager & Dapper repository
+- [x] Plan 1/1: Data access layer, SQLite connection manager & Dapper repository
 **Requirements:** [NET-01]
 **Description:** Implement high-performance data access layer in C# using Dapper and `Microsoft.Data.Sqlite` in WAL mode. Map models for `areas`, `houses`, `tenants`, `batches`, `pages`, and `documents`. Implement efficient read-optimized queries with connection management and transactional safety.
 **Success Criteria:**
@@ -115,7 +115,7 @@ See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md) for full 
 | 99. Ingest Station Web UI (Navbar Trigger, Dropzone & Ingest Drawer) | v12.0 | 1/1 | Complete | 2026-09-09 |
 | 100. Comprehensive Automated Testing & End-to-End Verification | v12.0 | 1/1 | Complete | 2026-09-09 |
 | 101. Architecture & Monorepo Restructuring Research | v13.0 | 1/1 | Complete | 2026-09-09 |
-| 102. ASP.NET Core Data Layer & Repository (Dapper + SQLite WAL) | v13.0 | 0/1 | Pending | - |
+| 102. ASP.NET Core Data Layer & Repository (Dapper + SQLite WAL) | v13.0 | 1/1 | Complete | 2026-09-09 |
 | 103. ASP.NET Core Minimal API Endpoints & Static Serving | v13.0 | 0/1 | Pending | - |
 | 104. Parity Verification, Windows Single-File Build & Milestone Audit | v13.0 | 0/1 | Pending | - |
 

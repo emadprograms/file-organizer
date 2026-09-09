@@ -12,7 +12,7 @@ Decouple the lightweight web dashboard/UI completely from the Python AI batch in
 
 ### ASP.NET Core Data Layer
 
-- [ ] **NET-01**: ASP.NET Core 8.0 project with Dapper and `Microsoft.Data.Sqlite` in WAL mode. Database connection pooling, read-optimized parameterized queries, model mapping matching existing SQLite schema (`areas`, `houses`, `tenants`, `batches`, `pages`, `documents`), and robust transaction handling.
+- [x] **NET-01**: ASP.NET Core 8.0 project with Dapper and `Microsoft.Data.Sqlite` in WAL mode. Database connection pooling, read-optimized parameterized queries, model mapping matching existing SQLite schema (`areas`, `houses`, `tenants`, `batches`, `pages`, `documents`), and robust transaction handling.
 
 ### API Endpoints & Frontend Serving
 
@@ -38,7 +38,7 @@ Decouple the lightweight web dashboard/UI completely from the Python AI batch in
 | Requirement | Description | Phase | Status |
 |-------------|-------------|-------|--------|
 | ARCH-01 | Decoupled monorepo structure (`web-net/`, `src/`, shared `organizer.db`) | Phase 101 | Complete |
-| NET-01 | ASP.NET Core 8.0 with Dapper & `Microsoft.Data.Sqlite` in WAL mode | Phase 102 | Pending |
+| NET-01 | ASP.NET Core 8.0 with Dapper & `Microsoft.Data.Sqlite` in WAL mode | Phase 102 | Complete |
 | NET-02 | Port all read API endpoints with 100% JSON parity | Phase 103 | Pending |
 | NET-03 | Zero-Python manual ingestion endpoint (`POST /api/ingest`) in .NET | Phase 103 | Pending |
 | NET-04 | Static file serving from `wwwroot/` with existing frontend assets | Phase 103 | Pending |

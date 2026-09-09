@@ -57,3 +57,7 @@ planner_skills.txt
 tests/golden_data/
 tests/temp_*/
 tests/reconciliation_sandbox/
+
+# .NET Build Outputs
+**/bin/
+**/obj/
