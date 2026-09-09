@@ -275,7 +275,6 @@ describe('PDF Preview & macOS Quick Look — Live Component Tests', () => {
         <span id="doc-inspector-tenant-text"></span>
         <textarea id="doc-inspector-notes-input"></textarea>
         <span id="doc-inspector-notes-status"></span>
-        <button id="doc-inspector-save-notes-btn"></button>
         <div id="doc-inspector-pages-section" class="hidden">
           <div id="doc-inspector-pages-list"></div>
         </div>
@@ -470,6 +469,45 @@ describe('PDF Preview & macOS Quick Look — Live Component Tests', () => {
 
     // Modal should remain open for typing!
     expect(modal.classList.contains('hidden')).toBe(false);
+  });
+
+  it('autosaves notes on input debounce and immediately flushes on blur without any save button', async () => {
+    const fs = await import('fs');
+    const apiCode = fs.readFileSync('src/api/static/js/api.js', 'utf-8');
+    new Function(apiCode)();
+
+    const modal = document.getElementById('quick-look-modal');
+    window.isStaticMode = true; // allow instant mock update without fetch
+    window.openQuickLook('vault99', 'Contract 2026', { vault_id: 'vault99', notes: '' });
+
+    const textarea = document.getElementById('doc-inspector-notes-input');
+    const status = document.getElementById('doc-inspector-notes-status');
+    const card = document.getElementById('card-1');
+
+    // Type into textarea
+    textarea.value = 'Review quarterly terms';
+    textarea.dispatchEvent(new Event('input'));
+
+    expect(status.textContent).toBe('Unsaved changes...');
+
+    // Advance 1000ms debounce timer
+    vi.advanceTimersByTime(1000);
+
+    expect(status.textContent).toBe('✓ Saved');
+    expect(card.classList.contains('border-l-amber-400')).toBe(true);
+    const badge = card.querySelector('.doc-note-badge');
+    expect(badge).not.toBe(null);
+    expect(badge.textContent).toBe('📝 Review quarter…');
+
+    // Type more changes
+    textarea.value = 'Updated note';
+    textarea.dispatchEvent(new Event('input'));
+    expect(status.textContent).toBe('Unsaved changes...');
+
+    // Blur immediately flushes and saves without waiting for timer!
+    textarea.dispatchEvent(new Event('blur'));
+    expect(status.textContent).toBe('✓ Saved');
+    expect(badge.textContent).toBe('📝 Updated note');
   });
 
   it('auto-expands category folder when category contains a noted document', async () => {

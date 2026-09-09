@@ -29,7 +29,6 @@
     // Notes elements
     let notesInput = null;
     let notesStatus = null;
-    let saveNotesBtn = null;
     let notesAutosaveTimer = null;
 
     const PEEK_DELAY_MS = 250;
@@ -57,7 +56,6 @@
 
         notesInput = document.getElementById('doc-inspector-notes-input');
         notesStatus = document.getElementById('doc-inspector-notes-status');
-        saveNotesBtn = document.getElementById('doc-inspector-save-notes-btn');
 
         if (quickLookClose) {
             quickLookClose.onclick = () => closeQuickLook();
@@ -81,9 +79,6 @@
             };
         }
 
-        if (saveNotesBtn) {
-            saveNotesBtn.onclick = () => saveCurrentNotes();
-        }
         if (notesInput) {
             notesInput.oninput = () => {
                 clearTimeout(notesAutosaveTimer);
@@ -94,6 +89,13 @@
                 notesAutosaveTimer = setTimeout(() => {
                     saveCurrentNotes(true);
                 }, 1000);
+            };
+            notesInput.onblur = () => {
+                if (notesAutosaveTimer) {
+                    clearTimeout(notesAutosaveTimer);
+                    notesAutosaveTimer = null;
+                    saveCurrentNotes(true);
+                }
             };
         }
 
@@ -421,6 +423,11 @@
 
     function closeQuickLook() {
         if (!quickLookModal) return;
+        if (notesAutosaveTimer) {
+            clearTimeout(notesAutosaveTimer);
+            notesAutosaveTimer = null;
+            saveCurrentNotes(true);
+        }
         quickLookModal.classList.add('hidden');
         quickLookCurrentDoc = null;
     }
