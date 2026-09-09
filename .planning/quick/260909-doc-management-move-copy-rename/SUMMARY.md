@@ -86,4 +86,10 @@ Empowered users to safely manage documents directly from the web interface witho
   - `test_reallocation_ignores_manual_locked_documents`: Verified algorithmic reallocation skips locked docs.
   - `test_reset_manual_lock`: Verified unlock and subsequent reallocation.
   - `test_copy_document_creates_duplicate_and_file`: Verified DB duplication and physical PDF file creation on disk.
-- **Regression Testing**: All existing API and repository tests passed (24/24 passing in under 1s).
+- **Playwright Browser E2E Suite**: `tests/frontend/test_v11_e2e_db.py` (5 new UI tests, 13 total passing in 11.3s):
+  - `test_document_action_modal_rename_and_lock_badge_e2e`: Verified opening action modal, editing title, auto-closing modal, DOM title update, and 🔒 pinned badge rendering.
+  - `test_document_action_modal_custom_folder_e2e`: Verified selecting "+ Create New Folder...", creating folder, and dynamic sequential prefix assignment (`14 - ...`).
+  - `test_document_action_modal_copy_e2e`: Verified Copy mode toggle, copying to another category folder, and verifying existence in both folders.
+  - `test_document_action_modal_reset_lock_e2e`: Verified manual lock banner display and reset to auto functionality.
+  - `test_timeline_view_doc_action_menu_e2e`: Verified action menu button availability and modal launch in timeline view.
+- **Regression Testing**: All existing API and repository tests passed (43/43 total passing).

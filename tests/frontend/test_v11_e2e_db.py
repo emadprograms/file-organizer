@@ -491,3 +491,161 @@ def test_viewer_manual_tenant_override_e2e(page: Page, server_url: str):
     expect(tenant_select.locator("option")).not_to_have_count(0)
 
 
+def test_document_action_modal_rename_and_lock_badge_e2e(page: Page, server_url: str):
+    """Renaming document via action modal updates title and shows manual lock indicator."""
+    page.goto(f"{server_url}/#/area/Safra%20C/house/101")
+    expect(page.locator("#document-list-panel")).to_be_visible()
+
+    # Expand category '05 - عقود'
+    page.locator("#document-list div:has-text('عقود')").first.click()
+
+    # Click document action button (...) using data-vault-id
+    menu_btn = page.locator(".doc-menu-btn[data-vault-id='v101_1']")
+    expect(menu_btn).to_be_attached()
+    menu_btn.click(force=True)
+
+    # Modal appears
+    modal = page.locator("#doc-action-modal")
+    expect(modal).to_be_visible()
+    expect(page.locator("#doc-modal-arabic-title")).to_have_value("عقد إيجار 101")
+
+    # Rename title
+    page.locator("#doc-modal-arabic-title").fill("عقد إيجار محدث 101")
+    page.locator("#doc-modal-submit").click()
+
+    # Modal closes after save
+    expect(modal).to_be_hidden()
+
+    # Verify updated title in category list
+    page.locator("#document-list div:has-text('عقود')").first.click()
+    expect(page.locator("#document-list")).to_contain_text("عقد إيجار محدث 101")
+    expect(page.locator("#document-list")).to_contain_text("🔒")
+
+
+def test_document_action_modal_custom_folder_e2e(page: Page, server_url: str):
+    """Creating a custom folder in the modal assigns next sequential folder number (14)."""
+    page.goto(f"{server_url}/#/area/Safra%20C/house/101")
+    expect(page.locator("#document-list-panel")).to_be_visible()
+
+    # Open 'كهرباء وماء'
+    page.locator("#document-list div:has-text('كهرباء وماء')").first.click()
+
+    # Open menu
+    menu_btn = page.locator(".doc-menu-btn[data-vault-id='v101_2']")
+    expect(menu_btn).to_be_attached()
+    menu_btn.click(force=True)
+
+    modal = page.locator("#doc-action-modal")
+    expect(modal).to_be_visible()
+
+    # Select '+ Create New Folder...'
+    page.locator("#doc-modal-folder-select").select_option("__NEW_CUSTOM_FOLDER__")
+    custom_container = page.locator("#doc-custom-folder-container")
+    expect(custom_container).to_be_visible()
+
+    # Enter custom folder name
+    page.locator("#doc-custom-folder-input").fill("مستندات بنكية جديدة")
+    page.locator("#doc-modal-submit").click()
+
+    expect(modal).to_be_hidden()
+
+    # Verify new category card exists with prefix 14
+    new_cat = page.locator("#document-list div:has-text('14 - مستندات بنكية جديدة')").first
+    expect(new_cat).to_be_visible()
+
+
+def test_document_action_modal_copy_e2e(page: Page, server_url: str):
+    """Copying a document duplicates it into target folder while preserving original."""
+    page.goto(f"{server_url}/#/area/Safra%20C/house/101")
+    expect(page.locator("#document-list-panel")).to_be_visible()
+
+    # Open '05 - عقود'
+    page.locator("#document-list div:has-text('عقود')").first.click()
+
+    # Open modal on v101_3
+    menu_btn = page.locator(".doc-menu-btn[data-vault-id='v101_3']")
+    expect(menu_btn).to_be_attached()
+    menu_btn.click(force=True)
+
+    modal = page.locator("#doc-action-modal")
+    expect(modal).to_be_visible()
+
+    # Switch to Copy mode
+    copy_mode_btn = page.locator("#btn-mode-copy")
+    copy_mode_btn.click()
+    expect(copy_mode_btn).to_have_class(re.compile(r".*bg-white.*text-blue-600.*"))
+
+    # Select '06 - كهرباء وماء'
+    page.locator("#doc-modal-folder-select").select_option("06 - كهرباء وماء")
+    page.locator("#doc-modal-submit").click()
+
+    expect(modal).to_be_hidden()
+
+    # Check that original document still exists in '05 - عقود'
+    page.locator("#document-list div:has-text('عقود')").first.click()
+    expect(page.locator("#document-list")).to_contain_text("ملحق عقد 101")
+
+    # Check that copy exists in '06 - كهرباء وماء'
+    page.locator("#document-list div:has-text('كهرباء وماء')").first.click()
+    expect(page.locator("#document-list")).to_contain_text("ملحق عقد 101")
+
+
+def test_document_action_modal_reset_lock_e2e(page: Page, server_url: str):
+    """Manual lock banner is displayed for locked docs and can be reset."""
+    # Ensure v101_1 is locked so test is self-contained
+    resp = page.request.patch(
+        f"{server_url}/api/areas/Safra%20C/houses/101/documents/v101_1",
+        data={"is_manual": 1, "category": "05 - عقود", "arabic_title": "عقد إيجار 101"}
+    )
+    assert resp.status == 200
+
+    page.goto(f"{server_url}/#/area/Safra%20C/house/101")
+    expect(page.locator("#document-list-panel")).to_be_visible()
+
+    # Open 'عقود'
+    page.locator("#document-list div:has-text('عقود')").first.click()
+
+    # Open menu for v101_1
+    menu_btn = page.locator(".doc-menu-btn[data-vault-id='v101_1']")
+    expect(menu_btn).to_be_attached()
+    menu_btn.click(force=True)
+
+    modal = page.locator("#doc-action-modal")
+    expect(modal).to_be_visible()
+
+    # Verify manual lock banner is shown
+    banner = page.locator("#doc-manual-banner")
+    expect(banner).to_be_visible()
+    expect(banner).to_contain_text("Manually Assigned")
+
+    # Click Reset to Auto
+    reset_btn = page.locator("#btn-doc-reset-lock")
+    reset_btn.click()
+
+    # Modal closes after reset
+    expect(modal).to_be_hidden()
+
+
+def test_timeline_view_doc_action_menu_e2e(page: Page, server_url: str):
+    """Timeline view documents show action menu button that opens the modal."""
+    page.goto(f"{server_url}/#/area/Safra%20C/house/101")
+    expect(page.locator("#document-list-panel")).to_be_visible()
+
+    # Switch to Timeline tab
+    page.locator("#tab-timeline").click()
+
+    # Find timeline doc menu button
+    timeline_menu_btn = page.locator(".doc-menu-btn[data-vault-id='v101_1']")
+    expect(timeline_menu_btn).to_be_attached()
+    timeline_menu_btn.click(force=True)
+
+    # Modal opens
+    modal = page.locator("#doc-action-modal")
+    expect(modal).to_be_visible()
+
+    # Cancel closes modal
+    page.locator("#doc-modal-cancel").click()
+    expect(modal).to_be_hidden()
+
+
+
