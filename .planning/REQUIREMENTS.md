@@ -30,8 +30,8 @@ Decouple the lightweight web dashboard/UI completely from the Python AI batch in
 
 ### Verification & Deployment
 
-- [ ] **VER-05**: API parity test suite verifying response parity between Python and .NET backends, ensuring identical JSON keys, data types, and status codes across all read and ingest endpoints.
-- [ ] **VER-06**: Windows self-contained single-file publish verification (`win-x64`), generating a standalone executable (`FileOrganizer.exe`) requiring zero pre-installed .NET runtimes or Python environments.
+- [x] **VER-05**: API parity test suite verifying response parity between Python and .NET backends, ensuring identical JSON keys, data types, and status codes across all read and ingest endpoints.
+- [x] **VER-06**: Windows self-contained single-file publish verification (`win-x64`), generating a standalone executable (`FileOrganizer.exe`) requiring zero pre-installed .NET runtimes or Python environments.
 
 ## Traceability
 
@@ -42,6 +42,5 @@ Decouple the lightweight web dashboard/UI completely from the Python AI batch in
 | NET-02 | Port all read API endpoints with 100% JSON parity | Phase 103 | Complete |
 | NET-03 | Zero-Python manual ingestion endpoint (`POST /api/ingest`) in .NET | Phase 103 | Complete |
 | NET-04 | Static file serving from `wwwroot/` with existing frontend assets | Phase 103 | Complete |
-
-| VER-05 | API parity test suite verifying Python vs .NET response parity | Phase 104 | Pending |
-| VER-06 | Windows self-contained single-file publish verification (`win-x64`) | Phase 104 | Pending |
+| VER-05 | API parity test suite verifying Python vs .NET response parity | Phase 104 | Complete |
+| VER-06 | Windows self-contained single-file publish verification (`win-x64`) | Phase 104 | Complete |

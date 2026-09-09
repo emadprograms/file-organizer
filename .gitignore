@@ -25,7 +25,7 @@ logs/
 
 # Build and distributions
 build/
-dist/
+# dist/ (tracked for self-contained distribution binaries)
 *.egg-info/
 
 # Node

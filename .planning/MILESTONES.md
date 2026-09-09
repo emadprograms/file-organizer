@@ -1,5 +1,21 @@
 # Milestones History
 
+## v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server (Shipped: 2026-09-09)
+
+**Phases completed:** 4 phases (101-104), 4 plans, 163 tests passing (40 .NET, 62 pytest, 61 Vitest)
+
+**Key accomplishments:**
+
+- Decoupled monorepo architecture establishing `web-net/` (ASP.NET Core 8.0 Minimal API) and `src/` (Python AI pipeline), with zero Python runtime dependency for web serving or manual ingestion.
+- High-performance C# data layer using Dapper and `Microsoft.Data.Sqlite` in WAL mode with connection pooling, transactional integrity, and sub-10ms queries.
+- Complete Minimal API endpoint suite matching Python FastAPI routes with 100% JSON parity (`/api/tree`, `/api/houses`, `/api/timeline`, `/api/categories`, `/api/tenants`, `/api/search`, `/api/pdf/{vault_id}`).
+- Zero-Python manual ingestion endpoint (`POST /api/ingest`) directly writing vault PDFs and SQLite records in .NET.
+- Zero-frontend rewrite serving vanilla JS/HTML assets from `wwwroot/` with correct MIME types.
+- Comprehensive API parity test suite (`ParityVerificationTests.cs`) verifying response schemas, model mapping, and static assets.
+- Self-contained Windows single-file publish (`dist/win-x64/FileOrganizer.Web.exe`) with IIS In-Process `web.config` and production deployment guide (`DEPLOYMENT-WINDOWS.md`).
+
+---
+
 ## v12.0 Unified Document Ingestion System (Shipped: 2026-09-09)
 
 **Phases completed:** 4 phases (97-100), 4 plans, 105 tests passing (62 backend, 43 frontend)

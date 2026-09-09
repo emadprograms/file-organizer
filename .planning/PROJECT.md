@@ -4,17 +4,24 @@
 
 A document management system that processes scanned Arabic PDFs, categorizes them using LLM vision, groups related pages, and stores them in a high-performance relational SQLite database with a clean two-folder disk structure (`batches/` and `vault/`). The system features a responsive web dashboard with dual Tree/Grid views, tenure color-coding, multi-tenant chronological timelines, category drill-downs, phonetic/fuzzy global search, and in-browser PDF viewing.
 
-## Current Milestone: v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server
+## Current Milestone
 
-Decoupling the lightweight web dashboard/UI completely from the Python AI batch ingestion pipeline into a native ASP.NET Core 8.0 Minimal API backend:
-- **Complete decoupling of user-facing web dashboard from Python runtime:** Web serving and document queries run independently of Python dependencies or virtual environments.
-- **Standalone ASP.NET Core 8.0 Minimal API (`web-net/`):** High-throughput, lightweight C# web application utilizing Dapper and `Microsoft.Data.Sqlite`.
-- **Zero-frontend rewrite:** Existing vanilla JS/HTML (`index.html`, `js/`, `css/`) served directly without modification from `wwwroot/`.
-- **Shared SQLite contract:** Concurrency handled natively via SQLite WAL mode (`organizer.db`) shared between the .NET web server and the Python ingestion pipeline.
-- **Instant zero-Python manual file uploads in .NET:** Direct file upload and vault storage pipeline written in .NET for instant manual document ingestion without invoking Python.
-- **Self-contained Windows single-file executable (`FileOrganizer.exe`):** Single portable binary publish target (`win-x64`) for seamless zero-dependency deployment in restricted Windows server environments.
+None currently active. (v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server shipped on 2026-09-09).
 
 ## Past Milestones
+
+<details>
+<summary>v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server (Shipped: 2026-09-09)</summary>
+
+- Decoupled user-facing web dashboard completely from Python runtime into ASP.NET Core 8.0 Minimal API backend (`web-net/`).
+- Implemented high-performance data access layer with Dapper and `Microsoft.Data.Sqlite` in WAL mode (`organizer.db`).
+- Achieved 100% JSON API parity across `/api/tree`, `/api/houses`, `/api/timeline`, `/api/categories`, `/api/tenants`, `/api/search`, and `/api/pdf/{vault_id}`.
+- Zero-Python manual ingestion endpoint (`POST /api/ingest`) directly writing vault PDFs and SQLite records in .NET.
+- Zero frontend rewrite: existing vanilla JS/HTML dashboard served directly from `wwwroot/` with correct MIME types.
+- Generated and verified standalone self-contained Windows single-file executable (`dist/win-x64/FileOrganizer.Web.exe`) requiring zero runtime dependencies.
+- Verified by 40 .NET tests, 62 pytest tests, and 61 Vitest tests (163 total passing tests).
+
+</details>
 
 <details>
 <summary>v12.0 Unified Document Ingestion System (Shipped: 2026-09-09)</summary>
@@ -75,18 +82,15 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 
 ## Requirements
 
-### In Progress (v13.0)
-
-- [ ] Decoupled monorepo structure (`web-net/` for ASP.NET Core, `src/` for Python AI pipeline, shared `organizer.db`) (ARCH-01) — Phase 101
-- [ ] ASP.NET Core 8.0 project with Dapper and `Microsoft.Data.Sqlite` in WAL mode (NET-01) — Phase 102
-- [ ] Port all read API endpoints with 100% JSON parity (NET-02) — Phase 103
-- [ ] Implement zero-Python manual ingestion endpoint (`POST /api/ingest`) in .NET (NET-03) — Phase 103
-- [ ] Static file serving from `wwwroot/` with existing frontend assets (NET-04) — Phase 103
-- [ ] API parity test suite verifying response parity between Python and .NET backends (VER-05) — Phase 104
-- [ ] Windows self-contained single-file publish verification (`win-x64`) (VER-06) — Phase 104
-
 ### Validated
 
+- ✓ Decoupled monorepo structure (`web-net/` for ASP.NET Core, `src/` for Python AI pipeline, shared `organizer.db`) (ARCH-01) — v13.0
+- ✓ ASP.NET Core 8.0 project with Dapper and `Microsoft.Data.Sqlite` in WAL mode (NET-01) — v13.0
+- ✓ Port all read API endpoints with 100% JSON parity (NET-02) — v13.0
+- ✓ Implement zero-Python manual ingestion endpoint (`POST /api/ingest`) in .NET (NET-03) — v13.0
+- ✓ Static file serving from `wwwroot/` with existing frontend assets (NET-04) — v13.0
+- ✓ API parity test suite verifying response parity between Python and .NET backends (VER-05) — v13.0
+- ✓ Windows self-contained single-file publish verification (`win-x64`) (VER-06) — v13.0
 - ✓ Zero-AI manual ingest pipeline in Python with PyMuPDF page counting (ING-03) — v12.0
 - ✓ Relational page inheritance for manual documents in SQLite pages table (ING-04) — v12.0
 - ✓ FastAPI POST /api/ingest supporting manual, assisted, auto_split modes (API-04) — v12.0
@@ -125,11 +129,11 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 
 ## Current State
 
-- 🚧 In progress: Milestone v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server.
+- ✅ Shipped v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server on 2026-09-09.
 - ✅ Shipped v12.0 Unified Document Ingestion System on 2026-09-09.
 - ✅ Shipped v11.0 Database Backend & Clean Storage Architecture on 2026-09-09.
-- 105 tests passing across backend pytest (62) and frontend Vitest (43) test suites.
-- Unified manual, assisted, and batch auto-split ingestion available directly from the web dashboard with sub-second response times.
+- 163 tests passing across .NET xUnit (40), backend pytest (62), and frontend Vitest (61) test suites.
+- Decoupled ASP.NET Core 8.0 web server running with 100% API parity, zero Python runtime web dependency, and self-contained Windows single-file executable (`dist/win-x64/FileOrganizer.Web.exe`).
 
 ## Context
 
