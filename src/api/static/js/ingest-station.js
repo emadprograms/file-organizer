@@ -40,6 +40,7 @@
     let isSubmitting = false;
     let isAutofilling = false;
     let dragCounter = 0;
+    let tenantFetchSeq = 0;
 
     const STANDARD_CATEGORIES = [
         "01 - بيانات أساسية",
@@ -115,6 +116,7 @@
         isSubmitting = false;
         isAutofilling = false;
         dragCounter = 0;
+        tenantFetchSeq = 0;
         btnIngestTrigger = document.getElementById('btn-ingest-trigger');
         dropzoneOverlay = document.getElementById('ingest-dropzone-overlay');
         dropzonePrompt = document.getElementById('ingest-dropzone-prompt');
@@ -369,7 +371,7 @@
         }
     }
 
-    function populateAreas(targetArea = null) {
+    function populateAreas(targetArea = null, targetHouse = null) {
         if (!areaSelect) return;
         const tree = (typeof globalTreeData !== 'undefined' ? globalTreeData : window.globalTreeData) || [];
         
@@ -385,7 +387,7 @@
         if (activeArea) {
             areaSelect.value = activeArea;
         }
-        populateHouses(areaSelect.value);
+        populateHouses(areaSelect.value, targetHouse);
     }
 
     function populateHouses(areaName, targetHouse = null) {
@@ -421,12 +423,24 @@
 
         if (!areaName || !houseName) return;
 
+        const currentSeq = ++tenantFetchSeq;
+
         try {
             const res = await fetch(`/api/areas/${encodeURIComponent(areaName)}/houses/${encodeURIComponent(houseName)}/tenants`);
+            if (currentSeq !== tenantFetchSeq) return;
             if (res.ok) {
                 const tenants = await res.json();
+                if (currentSeq !== tenantFetchSeq) return;
+                tenantSelect.innerHTML = '<option value="">(Auto-detect or Select Tenant)</option>';
+                const seen = new Set();
                 if (Array.isArray(tenants)) {
                     tenants.forEach(t => {
+                        const normName = (t.name || '').trim().toLowerCase();
+                        if (t.id != null && seen.has(`id:${t.id}`)) return;
+                        if (normName && seen.has(`name:${normName}`)) return;
+                        if (t.id != null) seen.add(`id:${t.id}`);
+                        if (normName) seen.add(`name:${normName}`);
+
                         const opt = document.createElement('option');
                         opt.value = t.id;
                         const yearHint = t.start_date ? ` (${t.start_date.substring(0, 4)})` : '';
@@ -436,12 +450,19 @@
                 }
             }
         } catch (err) {
+            if (currentSeq !== tenantFetchSeq) return;
             // Fallback: check tree node children
             const tree = (typeof globalTreeData !== 'undefined' ? globalTreeData : window.globalTreeData) || [];
             const areaNode = tree.find(a => a.name === areaName);
             const houseNode = areaNode?.children?.find(h => h.name === houseName);
+            tenantSelect.innerHTML = '<option value="">(Auto-detect or Select Tenant)</option>';
+            const seen = new Set();
             if (houseNode && Array.isArray(houseNode.children)) {
                 houseNode.children.forEach(tNode => {
+                    const normName = (tNode.name || '').trim().toLowerCase();
+                    if (normName && seen.has(`name:${normName}`)) return;
+                    if (normName) seen.add(`name:${normName}`);
+
                     const opt = document.createElement('option');
                     opt.value = tNode.name;
                     opt.textContent = tNode.name;
@@ -449,6 +470,8 @@
                 });
             }
         }
+
+        if (currentSeq !== tenantFetchSeq) return;
 
         if (targetTenantId) {
             tenantSelect.value = targetTenantId;
@@ -488,10 +511,7 @@
 
         const activeArea = getCurrentArea();
         const activeHouse = getCurrentHouse();
-        populateAreas(activeArea);
-        if (activeHouse) {
-            populateHouses(activeArea, activeHouse);
-        }
+        populateAreas(activeArea, activeHouse);
 
         if (initialFile) {
             handleFileSelected(initialFile);

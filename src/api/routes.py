@@ -574,16 +574,29 @@ async def list_house_tenants(request: Request, area_id: str, house_id: str):
     db_house_id = h_row["id"]
 
     tenants = repo.list_tenants_by_house(db_house_id)
-    return [
-        TenantItem(
-            id=t.id,
-            name=t.name,
-            start_date=str(t.start_date),
-            end_date=str(t.end_date) if t.end_date else None,
-            house_id=t.house_id,
+    seen_ids = set()
+    seen_names = set()
+    unique_tenants = []
+    for t in tenants:
+        norm_name = " ".join((t.name or "").strip().split()).lower()
+        if t.id is not None and t.id in seen_ids:
+            continue
+        if norm_name and norm_name in seen_names:
+            continue
+        if t.id is not None:
+            seen_ids.add(t.id)
+        if norm_name:
+            seen_names.add(norm_name)
+        unique_tenants.append(
+            TenantItem(
+                id=t.id,
+                name=t.name,
+                start_date=str(t.start_date),
+                end_date=str(t.end_date) if t.end_date else None,
+                house_id=t.house_id,
+            )
         )
-        for t in tenants
-    ]
+    return unique_tenants
 
 @router.post("/api/areas/{area_id}/houses/{house_id}/tenants", response_model=TenantReallocationResponse)
 async def bulk_update_tenants(request: Request, area_id: str, house_id: str, payload: TenantBulkUpdateRequest):

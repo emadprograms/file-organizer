@@ -105,6 +105,15 @@ def test_tenant_crud(repo):
     active_2020 = repo.get_active_tenant("H01", target_date="2020-01-01")
     assert active_2020 is None
 
+    # Adding duplicate normalized name returns existing tenant
+    t1_dup = repo.add_tenant(
+        house_id="H01",
+        name="  john doe  ",
+        start_date="2023-01-01",
+    )
+    assert t1_dup.id == t1.id
+    assert len(repo.list_tenants_by_house("H01")) == 2
+
 
 def test_batch_crud(repo):
     repo.add_area("AREA_A")

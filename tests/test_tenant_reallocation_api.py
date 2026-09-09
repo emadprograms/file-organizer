@@ -188,3 +188,24 @@ def test_manual_override_invalid_tenant_404(db_setup):
     assert res.status_code == 404
     assert res.json()["detail"] == "Tenant not found."
 
+
+def test_list_house_tenants_deduplication(db_setup):
+    repo, tA, _, _, _ = db_setup
+    # Directly insert raw duplicate rows into SQLite to test route deduplication
+    repo.conn.execute(
+        "INSERT INTO tenants (house_id, name, start_date, end_date) VALUES (?, ?, ?, ?)",
+        ("514", "محمد مبارك الشمري", "2020-01-01", "2022-12-31"),
+    )
+    repo.conn.execute(
+        "INSERT INTO tenants (house_id, name, start_date, end_date) VALUES (?, ?, ?, ?)",
+        ("514", "  محمد مبارك الشمري  ", "2020-01-01", "2022-12-31"),
+    )
+    repo.conn.commit()
+
+    res = client.get("/api/areas/Safra C/houses/514/tenants")
+    assert res.status_code == 200
+    data = res.json()
+    # Ensure Muhammad Mubarak Al-Shammari is only returned once
+    shammari_entries = [t for t in data if "محمد مبارك الشمري" in t["name"]]
+    assert len(shammari_entries) == 1
+

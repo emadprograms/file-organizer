@@ -123,6 +123,18 @@ def add_tenant(
     s_date = str(target_tenant.start_date)
     e_date = str(target_tenant.end_date) if target_tenant.end_date else None
 
+    target_norm = " ".join((target_tenant.name or "").strip().split()).lower()
+    if target_tenant.house_id and target_norm:
+        cursor = conn.execute(
+            "SELECT * FROM tenants WHERE house_id = ? ORDER BY id ASC",
+            (str(target_tenant.house_id),),
+        )
+        for row in cursor.fetchall():
+            row_dict = dict(row)
+            row_norm = " ".join((row_dict.get("name") or "").strip().split()).lower()
+            if row_norm == target_norm:
+                return Tenant.model_validate(row_dict)
+
     cursor = conn.execute(
         "INSERT INTO tenants (house_id, name, start_date, end_date) VALUES (?, ?, ?, ?) RETURNING *",
         (target_tenant.house_id, target_tenant.name, s_date, e_date),

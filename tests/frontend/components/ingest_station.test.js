@@ -421,4 +421,119 @@ describe('Ingest Station Component', () => {
         expect(window.refreshCurrentTab).toHaveBeenCalledWith('Area 1', '501');
         expect(window.loadTree).toHaveBeenCalled();
     });
+
+    it('does not duplicate tenants in ingest-tenant-select when openIngestStation is called', async () => {
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (url.includes('/api/areas/Area%201/houses/501/tenants')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => [
+                        { id: 101, name: 'Tenant Alpha', start_date: '2021-01-01' },
+                        { id: 102, name: 'Tenant Beta', start_date: '2023-01-01' },
+                    ],
+                });
+            }
+            return Promise.reject(new Error('not found'));
+        });
+
+        window.currentArea = 'Area 1';
+        window.currentHouse = '501';
+
+        openIngestStation();
+        await new Promise((r) => setTimeout(r, 10));
+
+        const tenantSelect = document.getElementById('ingest-tenant-select');
+        const options = Array.from(tenantSelect.options);
+        const alphaOptions = options.filter((opt) => opt.textContent.includes('Tenant Alpha'));
+        const betaOptions = options.filter((opt) => opt.textContent.includes('Tenant Beta'));
+
+        expect(alphaOptions.length).toBe(1);
+        expect(betaOptions.length).toBe(1);
+    });
+
+    it('deduplicates duplicate tenant IDs and normalized names in populateTenants', async () => {
+        global.fetch = vi.fn().mockResolvedValueOnce({
+            ok: true,
+            json: async () => [
+                { id: 101, name: 'Tenant Alpha', start_date: '2021-01-01' },
+                { id: 101, name: 'Tenant Alpha Dup', start_date: '2021-01-01' },
+                { id: 103, name: 'tenant alpha', start_date: '2022-01-01' },
+                { id: 104, name: 'Tenant Gamma', start_date: '2023-01-01' },
+            ],
+        });
+
+        await populateTenants('Area 1', '501');
+
+        const tenantSelect = document.getElementById('ingest-tenant-select');
+        const options = Array.from(tenantSelect.options).filter((opt) => opt.value !== '');
+        expect(options.length).toBe(2);
+        expect(options[0].value).toBe('101');
+        expect(options[1].value).toBe('104');
+    });
+
+    it('ignores stale out-of-order responses in populateTenants', async () => {
+        let resolveFirst;
+        let resolveSecond;
+
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (url.includes('house_fast')) {
+                return new Promise((res) => {
+                    resolveSecond = () => res({
+                        ok: true,
+                        json: async () => [{ id: 201, name: 'Fast House Tenant' }],
+                    });
+                });
+            } else {
+                return new Promise((res) => {
+                    resolveFirst = () => res({
+                        ok: true,
+                        json: async () => [{ id: 101, name: 'Slow House Tenant' }],
+                    });
+                });
+            }
+        });
+
+        const p1 = populateTenants('Area 1', 'house_slow');
+        const p2 = populateTenants('Area 1', 'house_fast');
+
+        // Resolve second (faster) request first
+        resolveSecond();
+        await p2;
+
+        const tenantSelect = document.getElementById('ingest-tenant-select');
+        expect(tenantSelect.options.length).toBe(2);
+        expect(tenantSelect.options[1].textContent).toContain('Fast House Tenant');
+
+        // Resolve first (slow) request later
+        resolveFirst();
+        await p1;
+
+        // Slow response should have been ignored
+        expect(tenantSelect.options.length).toBe(2);
+        expect(tenantSelect.options[1].textContent).toContain('Fast House Tenant');
+    });
+
+    it('handles concurrent populateTenants calls without duplicating tenant options', async () => {
+        global.fetch = vi.fn().mockImplementation(() => Promise.resolve({
+            ok: true,
+            json: async () => [
+                { id: 101, name: 'Tenant Alpha', start_date: '2021-01-01' },
+                { id: 102, name: 'Tenant Beta', start_date: '2023-01-01' },
+            ],
+        }));
+
+        await Promise.all([
+            populateTenants('Area 1', '501'),
+            populateTenants('Area 1', '501'),
+        ]);
+
+        const tenantSelect = document.getElementById('ingest-tenant-select');
+        const options = Array.from(tenantSelect.options);
+        const alphaOptions = options.filter((opt) => opt.textContent.includes('Tenant Alpha'));
+        const betaOptions = options.filter((opt) => opt.textContent.includes('Tenant Beta'));
+
+        expect(alphaOptions.length).toBe(1);
+        expect(betaOptions.length).toBe(1);
+    });
 });
+

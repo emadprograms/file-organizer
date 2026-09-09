@@ -275,8 +275,15 @@
             const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/tenants`);
             if (!res.ok) return;
             const tenants = await res.json();
+            const seen = new Set();
 
             tenants.forEach(t => {
+                const normName = (t.name || '').trim().toLowerCase();
+                if (t.id != null && seen.has(`id:${t.id}`)) return;
+                if (normName && seen.has(`name:${normName}`)) return;
+                if (t.id != null) seen.add(`id:${t.id}`);
+                if (normName) seen.add(`name:${normName}`);
+
                 const opt = document.createElement('option');
                 opt.value = t.id;
                 opt.textContent = t.name + (t.start_date ? ` (${t.start_date.substring(0, 4)})` : '');
