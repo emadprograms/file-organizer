@@ -859,7 +859,7 @@
                 backToGridBtn.classList.add('flex');
                 backToGridBtn.innerHTML = `
                     <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
-                    <span>Back to ${areaId} Grid</span>
+                    <span>← Back to ${areaId} Grid</span>
                 `;
             } else {
                 backToGridBtn.classList.add('hidden');
@@ -942,7 +942,7 @@
         
         displayTimeline.forEach(doc => {
             const card = document.createElement('div');
-            card.className = 'p-3 bg-white rounded-xl border border-slate-200 shadow-2xs hover:shadow-sm hover:border-blue-400 cursor-pointer transition-all flex flex-col gap-2 group relative';
+            card.className = 'p-3 bg-white rounded-xl rounded-md border border-slate-200 shadow-2xs hover:shadow-sm hover:border-blue-400 cursor-pointer transition-all flex flex-col gap-2 group relative';
             card.draggable = true;
             card.setAttribute('data-vault-id', doc.vault_id);
             if (typeof window.handleDocDragStart === 'function') {

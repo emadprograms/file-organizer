@@ -4,7 +4,8 @@ from playwright.sync_api import Page, expect
 import pytest
 
 def setup_mock_routes(page: Page):
-    html_path = Path(__file__).parent.parent.parent / "src" / "api" / "static" / "index.html"
+    static_dir = Path(__file__).parent.parent.parent / "src" / "api" / "static"
+    html_path = static_dir / "index.html"
     
     def handle_index(route):
         route.fulfill(
@@ -13,6 +14,15 @@ def setup_mock_routes(page: Page):
             body=html_path.read_text()
         )
     page.route("http://localhost:9999/", handle_index)
+
+    def handle_js(route):
+        filename = route.request.url.split("/js/")[-1].split("?")[0]
+        js_file = static_dir / "js" / filename
+        if js_file.exists():
+            route.fulfill(status=200, content_type="application/javascript", body=js_file.read_text())
+        else:
+            route.fulfill(status=404, body="Not found")
+    page.route(re.compile(r".*/js/.*"), handle_js)
     
     def handle_tree(route):
         route.fulfill(status=200, content_type="application/json", body="[]")
@@ -49,8 +59,12 @@ def test_zero_click_search_and_navigation(page: Page):
     search_input = page.locator("#search-input")
     search_results = page.locator("#search-results")
     
-    # Ensure results are hidden initially
-    expect(search_results).to_be_hidden()
+    # Ensure modal and results are hidden initially
+    expect(page.locator("#spotlight-modal")).to_be_hidden()
+    
+    # Open spotlight via trigger button
+    page.click("#btn-search-trigger")
+    expect(page.locator("#spotlight-modal")).to_be_visible()
     
     # Type without pressing enter
     search_input.fill("test")

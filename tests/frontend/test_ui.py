@@ -27,7 +27,8 @@ def test_dashboard_loads_static_file(page: Page):
     expect(page.locator("#welcome-panel")).to_be_visible()
     expect(page.locator("text=No area selected")).to_be_visible()
 
-    # Verify search UI is now co-located in the combined header bar
-    expect(page.locator("#top-navbar #search-input")).to_be_visible()
-    expect(page.locator("#search-input")).to_have_attribute("placeholder", "Search tenants or houses...")
+    # Verify search trigger is in the top navbar and spotlight modal exists
+    expect(page.locator("#top-navbar #btn-search-trigger")).to_be_visible()
+    expect(page.locator("#spotlight-modal")).to_be_attached()
+    expect(page.locator("#search-input")).to_have_attribute("placeholder", "Search houses (e.g. 500), tenants, or documents...")
     expect(page.locator("#search-results")).to_be_attached()
