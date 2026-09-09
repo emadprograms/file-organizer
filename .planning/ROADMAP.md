@@ -14,7 +14,7 @@
 ### 🚧 v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server (Phases 101-104)
 
 #### Phase 101: Architecture & Monorepo Restructuring Research
-- [ ] Plan 1/1: Architecture analysis, contract specification & project scaffolding
+- [x] Plan 1/1: Architecture analysis, contract specification & project scaffolding
 **Requirements:** [ARCH-01]
 **Description:** Establish the decoupled monorepo boundary separating `web-net/` (ASP.NET Core 8.0 web dashboard) from `src/` (Python AI ingestion pipeline). Document the shared SQLite WAL database contract and clean storage paths (`{area}/{house}/vault/`), ensuring zero Python runtime dependency for web operations.
 **Success Criteria:**
@@ -114,7 +114,7 @@ See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md) for full 
 | 98. FastAPI Ingest API Endpoints (POST /api/ingest & POST /api/ingest/preview-ai) | v12.0 | 1/1 | Complete | 2026-09-09 |
 | 99. Ingest Station Web UI (Navbar Trigger, Dropzone & Ingest Drawer) | v12.0 | 1/1 | Complete | 2026-09-09 |
 | 100. Comprehensive Automated Testing & End-to-End Verification | v12.0 | 1/1 | Complete | 2026-09-09 |
-| 101. Architecture & Monorepo Restructuring Research | v13.0 | 0/1 | Pending | - |
+| 101. Architecture & Monorepo Restructuring Research | v13.0 | 1/1 | Complete | 2026-09-09 |
 | 102. ASP.NET Core Data Layer & Repository (Dapper + SQLite WAL) | v13.0 | 0/1 | Pending | - |
 | 103. ASP.NET Core Minimal API Endpoints & Static Serving | v13.0 | 0/1 | Pending | - |
 | 104. Parity Verification, Windows Single-File Build & Milestone Audit | v13.0 | 0/1 | Pending | - |
