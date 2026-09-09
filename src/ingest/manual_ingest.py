@@ -212,7 +212,7 @@ def ingest_document_manual(
 
             # Determine fine_category
             fine_cat, _ = _resolve_fine_category({"category": category})
-            if category and ("-" in category and category.split("-", 1)[0].isdigit()):
+            if category and ("-" in category and category.split("-", 1)[0].strip().isdigit()):
                 fine_category = category
             else:
                 fine_category = fine_cat

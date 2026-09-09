@@ -7,6 +7,17 @@ A document management system that processes scanned Arabic PDFs, categorizes the
 ## Past Milestones
 
 <details>
+<summary>v12.0 Unified Document Ingestion System (Shipped: 2026-09-09)</summary>
+
+- Built zero-AI manual ingest engine with PyMuPDF page counting and instant execution (`src/ingest/manual_ingest.py`).
+- Implemented relational page inheritance in SQLite `pages` table, linking batch pages with parent document metadata and `is_continuation` flag.
+- Created FastAPI endpoints `POST /api/ingest` (modes: `manual`, `assisted`, `auto_split`) and `POST /api/ingest/preview-ai` with zero database or disk mutations on preview.
+- Developed modern Ingest Station slide-over drawer with `⌘I` / `Ctrl+I` keyboard shortcut, fullscreen drag-and-drop dropzone, live PDF preview, mode switcher, and real-time UI refresh.
+- Verified 100% test coverage across backend pytest (62 tests) and frontend Vitest (43 tests).
+
+</details>
+
+<details>
 <summary>v11.0 Database Backend & Clean Storage Architecture (Shipped: 2026-09-09)</summary>
 
 - Designed and implemented relational SQLite schema (`areas`, `houses`, `tenants`, `batches`, `pages`, `documents`) with WAL mode, foreign keys, cascading deletes, unique constraints, and performance indices (`src/db/`).
@@ -56,6 +67,14 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 
 ### Validated
 
+- ✓ Zero-AI manual ingest pipeline in Python with PyMuPDF page counting (ING-03) — v12.0
+- ✓ Relational page inheritance for manual documents in SQLite pages table (ING-04) — v12.0
+- ✓ FastAPI POST /api/ingest supporting manual, assisted, auto_split modes (API-04) — v12.0
+- ✓ FastAPI POST /api/ingest/preview-ai with zero mutations on preview (API-05) — v12.0
+- ✓ Top navbar + Ingest button with ⌘I / Ctrl+I and drag-and-drop dropzone (UI-01) — v12.0
+- ✓ Ingest Station slide-over drawer with preview, mode switcher, live refresh (UI-02) — v12.0
+- ✓ Backend pytest test suite for ingest pipeline, preview, and page inheritance (VER-03) — v12.0
+- ✓ Frontend Vitest test suite for Ingest Station drawer, dropzone, mode switching, form submission (VER-04) — v12.0
 - ✓ SQLite schema with FKs, cascading deletes, unique constraints, and indices (DB-01) — v11.0
 - ✓ Data Access Layer / Repository with connection management and transactions (DB-02) — v11.0
 - ✓ Idempotent migration pipeline ingesting state.json/report.json into SQLite (MIG-01) — v11.0
@@ -84,19 +103,12 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 - Client-side document mutation / editing (vault PDFs are immutable).
 - Complex multi-master database replication (single SQLite file with WAL mode satisfies all performance requirements).
 
-## Current Milestone: v12.0 Unified Document Ingestion System
-
-- Zero-AI manual ingest pipeline storing clean batches, documents with `is_manual=1`, and page inheritance.
-- FastAPI endpoints: `POST /api/ingest` and `POST /api/ingest/preview-ai`.
-- Modern UI Ingest Station (navbar button, contextual drag-and-drop, slide-over drawer, single doc vs multi-doc split, real-time UI refresh).
-- Full test coverage (backend pytest & frontend vitest).
-
 ## Current State
 
+- ✅ Shipped v12.0 Unified Document Ingestion System on 2026-09-09.
 - ✅ Shipped v11.0 Database Backend & Clean Storage Architecture on 2026-09-09.
-- 67 tests passing across the complete pytest backend and Playwright frontend test suite.
-- House 500 cleanly migrated and verified against real disk storage with 100% data integrity.
-- Web dashboard running on FastAPI with sub-10ms response times.
+- 105 tests passing across backend pytest (62) and frontend Vitest (43) test suites.
+- Unified manual, assisted, and batch auto-split ingestion available directly from the web dashboard with sub-second response times.
 
 ## Context
 
@@ -115,4 +127,4 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 | Playwright E2E Verification | Verifies real browser behavior against actual database records, guaranteeing zero regressions across Tree, Grid, Search, and PDF viewing. | ✓ Completed (Phase 96). |
 
 ---
-*Last updated: 2026-09-09 for v12.0 milestone initialization*
+*Last updated: 2026-09-09 after shipping Milestone v12.0*

@@ -1,5 +1,19 @@
 # Milestones History
 
+## v12.0 Unified Document Ingestion System (Shipped: 2026-09-09)
+
+**Phases completed:** 4 phases (97-100), 4 plans, 105 tests passing (62 backend, 43 frontend)
+
+**Key accomplishments:**
+
+- Zero-AI manual ingest engine with PyMuPDF page counting and instant execution (`src/ingest/manual_ingest.py`).
+- Relational page inheritance pattern in SQLite `pages` table, linking batch pages to newly created documents with `is_continuation` properly set.
+- FastAPI `POST /api/ingest` (multi-mode: manual, assisted, auto_split) and `POST /api/ingest/preview-ai` with zero database or filesystem mutations on preview.
+- Modern Ingest Station slide-over drawer with `⌘I` shortcut, fullscreen drag-and-drop dropzone, PDF preview, mode switcher, and live refresh.
+- 100% passing test suite across backend (pytest) and frontend (Vitest).
+
+---
+
 ## v11.0 Database Backend & Clean Storage Architecture (Shipped: 2026-09-09)
 
 **Phases completed:** 5 phases (92-96), 5 plans, 67 tests passing
