@@ -9,7 +9,6 @@
     let btnAddTenantRow = null;
     let tenantModalStatus = null;
     let btnManageTenants = null;
-    let headerManageTenantsBtn = null;
     let viewerTenantSelect = null;
     let viewerTenantLabel = null;
     let currentViewingVaultId = null;
@@ -24,12 +23,10 @@
         btnAddTenantRow = document.getElementById('btn-add-tenant-row');
         tenantModalStatus = document.getElementById('tenant-modal-status');
         btnManageTenants = document.getElementById('btn-manage-tenants');
-        headerManageTenantsBtn = document.getElementById('header-manage-tenants-btn');
         viewerTenantSelect = document.getElementById('viewer-tenant-select');
         viewerTenantLabel = document.getElementById('viewer-tenant-label');
 
         if (btnManageTenants) btnManageTenants.addEventListener('click', openTenantModal);
-        if (headerManageTenantsBtn) headerManageTenantsBtn.addEventListener('click', openTenantModal);
         if (tenantModalClose) tenantModalClose.addEventListener('click', closeTenantModal);
         if (tenantModalCancel) tenantModalCancel.addEventListener('click', closeTenantModal);
         if (tenantModalSave) tenantModalSave.addEventListener('click', saveTenantsAndReallocate);

@@ -875,12 +875,6 @@
         if (resizer2) resizer2.classList.remove('hidden');
         if (docViewerPanel) docViewerPanel.classList.add('hidden');
 
-        const headerManageBtn = document.getElementById('header-manage-tenants-btn');
-        if (headerManageBtn) {
-            headerManageBtn.classList.remove('hidden');
-            headerManageBtn.classList.add('flex');
-        }
-
         await refreshCurrentTab(areaId, houseId);
     }
 
