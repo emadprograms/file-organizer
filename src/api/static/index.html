@@ -4,9 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Organizer - Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .font-arabic { font-family: 'Noto Sans Arabic', 'Inter', sans-serif; }
         .pdf-viewer { width: 100%; height: 80vh; border: none; }
+
+        /* Modern scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.4); border-radius: 9999px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.7); }
 
         /* Hover PDF preview tooltip */
         #pdf-preview-tooltip {
@@ -15,13 +26,13 @@
             width: 380px;
             height: 520px;
             background: white;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.25);
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
             overflow: hidden;
             pointer-events: none;
             opacity: 0;
-            transition: opacity 0.15s ease;
+            transition: opacity 0.15s ease, transform 0.15s ease;
             display: flex;
             flex-direction: column;
         }
@@ -30,15 +41,16 @@
             pointer-events: auto;
         }
         #pdf-preview-tooltip .preview-header {
-            padding: 6px 10px;
-            background: #1f2937;
-            color: white;
+            padding: 8px 12px;
+            background: #0f172a;
+            color: #f8fafc;
             font-size: 11px;
-            font-weight: 500;
+            font-weight: 600;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             flex-shrink: 0;
+            border-bottom: 1px solid #1e293b;
         }
         #pdf-preview-iframe {
             width: 100%;
@@ -47,84 +59,119 @@
         }
     </style>
 </head>
-<body class="bg-gray-100 font-sans text-gray-800">
+<body class="bg-slate-100 font-sans text-slate-800 antialiased">
     <div class="flex h-screen w-full overflow-hidden">
         
-        <!-- Sidebar (Resizable) -->
-        <div id="main-sidebar" class="bg-gray-50 overflow-y-auto flex-shrink-0 flex flex-col relative group border-r border-gray-200" style="width: 288px; min-width: 200px; max-width: 50vw;">
-            <div class="p-4 bg-blue-600 text-white font-bold text-lg flex items-center justify-between shadow-xs">
-                <span>File Organizer</span>
+        <!-- Sidebar (Resizable, Sleek Dark Theme) -->
+        <aside id="main-sidebar" class="bg-slate-900 text-slate-300 overflow-y-auto flex-shrink-0 flex flex-col relative group border-r border-slate-800" style="width: 288px; min-width: 200px; max-width: 50vw;">
+            <!-- Brand Header -->
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between flex-shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-blue-500/25">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                    </div>
+                    <div>
+                        <span class="font-bold text-sm text-white tracking-tight block">File Organizer</span>
+                        <span class="text-[10px] text-slate-400 font-mono tracking-wider uppercase block">Database Core</span>
+                    </div>
+                </div>
+                <span class="text-[10px] font-semibold bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">v11.0</span>
             </div>
             
-            <!-- View Mode Switcher -->
-            <div class="p-2 bg-gray-100 border-b border-gray-200 flex gap-1 flex-shrink-0">
-                <button id="view-mode-tree" class="flex-1 py-1.5 px-1 text-xs font-semibold rounded bg-white text-blue-700 shadow-xs border border-gray-300 flex items-center justify-center gap-1 transition-all">
-                    <span>🌳</span> Tree
+            <!-- View Mode Segmented Control -->
+            <div class="p-2.5 bg-slate-950/40 border-b border-slate-800/80 flex gap-1 flex-shrink-0">
+                <button id="view-mode-tree" class="flex-1 py-1.5 px-1.5 text-xs font-semibold rounded-lg bg-slate-800 text-white shadow-xs border border-slate-700 flex items-center justify-center gap-1.5 transition-all">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h14"/></svg>
+                    <span>Tree</span>
                 </button>
-                <button id="view-mode-grid" class="flex-1 py-1.5 px-1 text-xs font-semibold rounded text-gray-600 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center gap-1 transition-all">
-                    <span>🔲</span> Grid
+                <button id="view-mode-grid" class="flex-1 py-1.5 px-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center justify-center gap-1.5 transition-all">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
+                    <span>Grid</span>
                 </button>
-                <button id="view-mode-db" class="flex-1 py-1.5 px-1 text-xs font-semibold rounded text-gray-600 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center gap-1 transition-all">
-                    <span>🗄️</span> DB
+                <button id="view-mode-db" class="flex-1 py-1.5 px-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center justify-center gap-1.5 transition-all">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 3 3 8 3s8-1 8-3V7M4 7c0 2 3 3 8 3s8-1 8-3M4 7c0-2 3-3 8-3s8 1 8 3m0 5c0 2-3 3-8 3s-8-1-8-3"/></svg>
+                    <span>DB</span>
                 </button>
             </div>
 
-            <div class="p-4 border-b flex-1 overflow-y-auto">
-                <h2 id="sidebar-section-title" class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">Areas & Houses</h2>
+            <!-- Sidebar Navigation Content -->
+            <div class="p-3.5 flex-1 overflow-y-auto">
+                <h2 id="sidebar-section-title" class="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2.5 px-1.5">Areas & Houses</h2>
                 <div id="house-list" class="space-y-1 overflow-y-auto">
-                    <p class="text-gray-400 text-sm">Loading...</p>
+                    <p class="text-slate-500 text-xs px-2 py-1">Loading...</p>
                 </div>
             </div>
-        </div>
+        </aside>
         
         <!-- Resizer 1 -->
-        <div id="resizer-1" class="w-1.5 cursor-col-resize hover:bg-blue-400 bg-gray-200 z-10 transition-colors flex-shrink-0"></div>
+        <div id="resizer-1" class="w-1 cursor-col-resize hover:bg-blue-500 bg-slate-800/50 hover:w-1.5 z-10 transition-all flex-shrink-0"></div>
 
-        <!-- Main Content -->
-        <div class="flex-1 flex flex-col bg-gray-50 h-screen overflow-hidden">
+        <!-- Main Workspace -->
+        <div class="flex-1 flex flex-col bg-slate-50 h-screen overflow-hidden">
             
-            <!-- Combined Header Bar: title left, search right -->
-            <header id="top-navbar" class="bg-white p-3 border-b shadow-sm flex items-center justify-between z-20 flex-shrink-0 gap-4">
+            <!-- Top Navbar: Breadcrumb Title, House Settings Button, Search Input -->
+            <header id="top-navbar" class="bg-white/90 backdrop-blur-md px-5 py-3 border-b border-slate-200 shadow-2xs flex items-center justify-between z-20 flex-shrink-0 gap-4">
                 <div class="flex items-center gap-3 min-w-0">
-                    <button id="back-to-grid-btn" class="hidden items-center gap-1 text-xs font-semibold text-blue-700 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2.5 py-1.5 rounded transition-colors flex-shrink-0">
-                        ← Back to Grid
+                    <button id="back-to-grid-btn" class="hidden items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 px-3 py-1.5 rounded-lg transition-all flex-shrink-0">
+                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
+                        <span>Back to Grid</span>
                     </button>
-                    <h1 id="current-house-title" class="text-xl font-semibold truncate">Select an Area</h1>
-                    <div id="stats-badge" class="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded hidden flex-shrink-0"></div>
-                    <button id="header-manage-tenants-btn" class="hidden items-center gap-1 text-xs font-semibold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1.5 rounded transition-colors flex-shrink-0 shadow-xs">
-                        <span>👥</span>
-                        <span>Manage Tenants</span>
+                    
+                    <div class="flex items-center gap-2 min-w-0">
+                        <h1 id="current-house-title" class="text-lg font-bold text-slate-900 truncate tracking-tight">Select an Area</h1>
+                    </div>
+                    
+                    <div id="stats-badge" class="bg-blue-50 text-blue-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-200/60 hidden flex-shrink-0"></div>
+                    
+                    <!-- House Settings Button -->
+                    <button id="header-manage-tenants-btn" title="House Settings & Tenants" class="hidden items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-blue-600 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 px-3 py-1.5 rounded-lg transition-all flex-shrink-0 shadow-2xs">
+                        <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <span>House Settings</span>
                     </button>
                 </div>
-                <div class="relative flex-shrink-0 w-64">
+
+                <!-- Global Fast Search -->
+                <div class="relative flex-shrink-0 w-72">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </div>
                     <input id="search-input" type="search" placeholder="Search tenants or houses..." 
-                           class="w-full px-3 py-1.5 rounded-md border border-gray-300 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none bg-gray-50 text-gray-900 placeholder-gray-400 transition-colors" autocomplete="off" />
-                    
-                    <div id="search-results" class="hidden absolute top-full right-0 mt-2 bg-white border rounded-md shadow-xl overflow-hidden max-h-96 overflow-y-auto" style="width: 360px;">
+                           class="w-full pl-9 pr-12 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:outline-none bg-slate-50/70 hover:bg-slate-50 text-slate-900 placeholder-slate-400 transition-all" autocomplete="off" />
+                    <div class="absolute inset-y-0 right-0 pr-2.5 flex items-center pointer-events-none">
+                        <kbd class="text-[10px] font-mono text-slate-400 bg-white border border-slate-200 rounded px-1.5 py-0.5 shadow-2xs">⌘K</kbd>
+                    </div>
+                    <div id="search-results" class="hidden absolute top-full right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden max-h-96 overflow-y-auto z-50 w-80" style="width: 360px;">
                         <!-- Results will be injected here -->
                     </div>
                 </div>
             </header>
 
-            <!-- Dashboard / Viewer Area -->
+            <!-- Main Content Area -->
             <main class="flex-1 overflow-hidden flex relative">
                 <!-- Area Grid Panel (for Grid Overview Mode) -->
-                <div id="area-grid-panel" class="flex-1 p-6 bg-gray-50 overflow-y-auto hidden flex-col">
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 pb-4 border-b border-gray-200 gap-2 flex-shrink-0">
+                <div id="area-grid-panel" class="flex-1 p-6 bg-slate-50 overflow-y-auto hidden flex-col">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 pb-4 border-b border-slate-200 gap-3 flex-shrink-0">
                         <div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-2xl">🏘️</span>
-                                <h2 id="grid-area-title" class="text-2xl font-bold text-gray-900">Select an Area</h2>
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                                </div>
+                                <h2 id="grid-area-title" class="text-xl font-bold text-slate-900 tracking-tight">Select an Area</h2>
                             </div>
-                            <p id="grid-area-subtitle" class="text-xs text-gray-500 mt-1">Overview of houses, current residents, residency tenure, and documents.</p>
+                            <p id="grid-area-subtitle" class="text-xs text-slate-500 mt-1">Overview of houses, current residents, residency tenure, and documents.</p>
                         </div>
                         <div class="flex items-center gap-3">
-                            <div class="flex items-center gap-1.5 text-xs font-medium text-gray-600 bg-white px-2.5 py-1.5 rounded-md border border-gray-200 shadow-xs">
-                                <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span> &lt; 5y (Green)
-                                <span class="inline-block w-2.5 h-2.5 rounded-full bg-amber-500 ml-1.5"></span> 5–10y (Yellow)
-                                <span class="inline-block w-2.5 h-2.5 rounded-full bg-rose-500 ml-1.5"></span> &gt; 10y (Red)
+                            <div class="flex items-center gap-2 text-xs font-medium text-slate-600 bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-2xs">
+                                <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> &lt; 5y</span>
+                                <span class="text-slate-300">|</span>
+                                <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> 5–10y</span>
+                                <span class="text-slate-300">|</span>
+                                <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-500"></span> &gt; 10y</span>
                             </div>
-                            <div id="grid-area-stats" class="bg-blue-50 text-blue-800 border border-blue-200 px-3 py-1.5 rounded-md text-xs font-bold">0 Houses</div>
+                            <div id="grid-area-stats" class="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-2xs">0 Houses</div>
                         </div>
                     </div>
                     
@@ -135,105 +182,121 @@
                 </div>
 
                 <!-- Database Inspector Panel -->
-                <div id="database-inspector-panel" class="flex-1 p-6 bg-gray-50 overflow-y-auto hidden flex-col">
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 pb-4 border-b border-gray-200 gap-2 flex-shrink-0">
+                <div id="database-inspector-panel" class="flex-1 p-6 bg-slate-50 overflow-y-auto hidden flex-col">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 pb-4 border-b border-slate-200 gap-3 flex-shrink-0">
                         <div>
-                            <div class="flex items-center gap-2">
-                                <span class="text-2xl">🗄️</span>
-                                <h2 class="text-2xl font-bold text-gray-900">Database Inspector</h2>
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 flex items-center justify-center">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 3 3 8 3s8-1 8-3V7M4 7c0 2 3 3 8 3s8-1 8-3M4 7c0-2 3-3 8-3s8 1 8 3m0 5c0 2-3 3-8 3s-8-1-8-3"/></svg>
+                                </div>
+                                <h2 class="text-xl font-bold text-slate-900 tracking-tight">Database Inspector</h2>
                             </div>
-                            <p id="db-inspector-subtitle" class="text-xs text-gray-500 mt-1">Direct view of SQLite database records and tables.</p>
+                            <p id="db-inspector-subtitle" class="text-xs text-slate-500 mt-1">Direct view of SQLite database records and relational tables.</p>
                         </div>
                         <div class="flex items-center gap-2">
-                            <span id="db-status-badge" class="bg-emerald-100 text-emerald-800 text-xs font-semibold px-2.5 py-1 rounded-full border border-emerald-300">Connected</span>
-                            <span id="db-path-badge" class="bg-gray-100 text-gray-600 text-xs font-mono px-2.5 py-1 rounded border border-gray-300 truncate max-w-xs">organizer.db</span>
+                            <span id="db-status-badge" class="bg-emerald-50 text-emerald-700 text-xs font-semibold px-3 py-1 rounded-full border border-emerald-200">Connected</span>
+                            <span id="db-path-badge" class="bg-white text-slate-600 text-xs font-mono px-3 py-1 rounded-lg border border-slate-200 truncate max-w-xs shadow-2xs">organizer.db</span>
                         </div>
                     </div>
 
                     <!-- Table Navigation Tabs & Search -->
                     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 flex-shrink-0">
-                        <!-- Table Tabs -->
                         <div id="db-table-tabs" class="flex flex-wrap gap-1.5">
-                            <!-- Injected dynamically: buttons for areas, houses, tenants, batches, pages, documents with badges -->
+                            <!-- Injected dynamically -->
                         </div>
-                        <!-- Search & Refresh -->
                         <div class="flex items-center gap-2">
-                            <input id="db-table-search" type="search" placeholder="Filter rows..." class="px-3 py-1.5 rounded-md border border-gray-300 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-gray-900 w-48" />
-                            <button id="db-refresh-btn" class="px-3 py-1.5 bg-blue-600 text-white rounded-md text-xs font-semibold hover:bg-blue-700 transition-colors flex items-center gap-1">
-                                🔄 Refresh
+                            <input id="db-table-search" type="search" placeholder="Filter rows..." class="px-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white text-slate-900 w-48 shadow-2xs" />
+                            <button id="db-refresh-btn" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 shadow-2xs">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                <span>Refresh</span>
                             </button>
                         </div>
                     </div>
 
                     <!-- Table Container -->
-                    <div class="flex-1 bg-white rounded-lg border border-gray-200 shadow-xs flex flex-col min-h-0 overflow-hidden">
+                    <div class="flex-1 bg-white rounded-xl border border-slate-200 shadow-2xs flex flex-col min-h-0 overflow-hidden">
                         <div class="flex-1 overflow-auto">
-                            <table id="db-data-table" class="min-w-full divide-y divide-gray-200 text-left text-xs">
-                                <thead id="db-table-head" class="bg-gray-100 text-gray-700 font-semibold sticky top-0 z-10"></thead>
-                                <tbody id="db-table-body" class="divide-y divide-gray-100 bg-white"></tbody>
+                            <table id="db-data-table" class="min-w-full divide-y divide-slate-200 text-left text-xs">
+                                <thead id="db-table-head" class="bg-slate-50 text-slate-700 font-semibold sticky top-0 z-10 border-b border-slate-200"></thead>
+                                <tbody id="db-table-body" class="divide-y divide-slate-100 bg-white"></tbody>
                             </table>
                         </div>
                         <!-- Pagination Bar -->
-                        <div class="p-3 bg-gray-50 border-t border-gray-200 flex items-center justify-between text-xs text-gray-600 flex-shrink-0">
+                        <div class="p-3 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600 flex-shrink-0">
                             <span id="db-pagination-info">Showing 0 of 0</span>
                             <div class="flex items-center gap-2">
-                                <button id="db-prev-page" class="px-2.5 py-1 border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-50" disabled>Previous</button>
-                                <button id="db-next-page" class="px-2.5 py-1 border border-gray-300 rounded bg-white hover:bg-gray-100 disabled:opacity-50" disabled>Next</button>
+                                <button id="db-prev-page" class="px-3 py-1 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors shadow-2xs" disabled>Previous</button>
+                                <button id="db-next-page" class="px-3 py-1 border border-slate-200 rounded-lg bg-white hover:bg-slate-50 disabled:opacity-50 transition-colors shadow-2xs" disabled>Next</button>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Left panel: Documents List -->
-                <div id="document-list-panel" class="bg-white overflow-y-auto hidden flex-col flex-shrink-0" style="width: 33%; min-width: 250px; max-width: 60vw;">
-                    <!-- Tabs -->
-                    <div class="flex border-b bg-gray-50 items-center justify-between px-1">
-                        <div class="flex flex-1">
-                            <button id="tab-categories" class="flex-1 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600">📁 Folders</button>
-                            <button id="tab-timeline" class="flex-1 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700">Timeline</button>
+                <div id="document-list-panel" class="bg-white overflow-y-auto hidden flex-col flex-shrink-0 border-r border-slate-200" style="width: 33%; min-width: 260px; max-width: 60vw;">
+                    <!-- Segmented Tabs -->
+                    <div class="p-2 border-b border-slate-200 bg-slate-50/70 flex items-center justify-between gap-2 flex-shrink-0">
+                        <div class="flex flex-1 gap-1 p-0.5 bg-slate-200/60 rounded-lg border border-slate-200/80">
+                            <button id="tab-categories" class="flex-1 py-1.5 px-3 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                                <span>📁 Folders</span>
+                            </button>
+                            <button id="tab-timeline" class="flex-1 py-1.5 px-3 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                <span>Timeline</span>
+                            </button>
                         </div>
-                        <button id="btn-manage-tenants" title="Manage Tenants & Reallocate" class="px-2.5 py-1 text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded border border-indigo-200 mr-1 flex items-center gap-1 transition-colors flex-shrink-0">
-                            <span>👥</span>
-                            <span class="hidden sm:inline">Tenants</span>
+                        <button id="btn-manage-tenants" title="House Settings & Tenants" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 rounded-lg transition-colors flex items-center justify-center flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
                         </button>
                     </div>
                     
-                    <div id="document-list" class="p-2 space-y-2"></div>
+                    <div id="document-list" class="p-3 space-y-2 overflow-y-auto"></div>
                 </div>
                 
                 <!-- Resizer 2 -->
-                <div id="resizer-2" class="w-1.5 cursor-col-resize hover:bg-blue-400 bg-gray-200 z-10 transition-colors hidden flex-shrink-0"></div>
+                <div id="resizer-2" class="w-1 cursor-col-resize hover:bg-blue-500 bg-slate-200 hover:w-1.5 z-10 transition-all hidden flex-shrink-0"></div>
 
                 <!-- Right panel: Document Viewer -->
-                <div id="document-viewer-panel" class="flex-1 p-6 bg-gray-100 flex-col items-center justify-center hidden overflow-hidden">
-                    <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl overflow-hidden flex flex-col h-full">
-                        <div class="p-3 bg-gray-800 text-white flex justify-between items-center gap-3">
-                            <span id="viewer-title" class="font-medium truncate flex-1">Document</span>
+                <div id="document-viewer-panel" class="flex-1 p-5 bg-slate-100 flex-col items-center justify-center hidden overflow-hidden">
+                    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-5xl overflow-hidden flex flex-col h-full">
+                        <div class="px-4 py-3 bg-slate-900 text-white flex justify-between items-center gap-3 border-b border-slate-800 flex-shrink-0">
+                            <div class="flex items-center gap-2 min-w-0 flex-1">
+                                <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                                <span id="viewer-title" class="font-medium text-sm truncate">Document</span>
+                            </div>
                             <div class="flex items-center gap-2 flex-shrink-0">
-                                <label for="viewer-tenant-select" id="viewer-tenant-label" class="text-xs text-gray-400 hidden">Tenant:</label>
-                                <select id="viewer-tenant-select" class="hidden text-xs bg-gray-700 text-gray-200 border border-gray-600 rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer">
+                                <label for="viewer-tenant-select" id="viewer-tenant-label" class="text-xs text-slate-400 hidden">Tenant:</label>
+                                <select id="viewer-tenant-select" class="hidden text-xs bg-slate-800 text-slate-200 border border-slate-700 rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-blue-400 cursor-pointer transition-all">
                                     <!-- Populated dynamically -->
                                 </select>
-                                <a id="viewer-download" href="#" target="_blank" class="text-sm hover:text-blue-300 ml-1">Open in New Tab</a>
+                                <a id="viewer-download" href="#" target="_blank" class="text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors ml-1">
+                                    <span>Open</span>
+                                    <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                </a>
                             </div>
                         </div>
-                        <iframe id="pdf-frame" class="pdf-viewer"></iframe>
+                        <iframe id="pdf-frame" class="pdf-viewer flex-1"></iframe>
                     </div>
                 </div>
                 
-                <!-- Placeholder when no house is selected -->
+                <!-- Welcome Placeholder -->
                 <div id="welcome-panel" class="flex-1 flex items-center justify-center">
-                    <div class="text-center">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                        </svg>
-                        <h3 class="mt-2 text-sm font-medium text-gray-900">No area selected</h3>
-                        <p class="mt-1 text-sm text-gray-500">Select an area or house from the sidebar to view details.</p>
+                    <div class="text-center max-w-sm p-6">
+                        <div class="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center mx-auto mb-4 shadow-sm">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-900 tracking-tight">No area selected</h3>
+                        <p class="mt-1.5 text-xs text-slate-500 leading-relaxed">Choose an area from the sidebar to view house records, timeline history, and categorized documents.</p>
                     </div>
                 </div>
             </main>
         </div>
     </div>
+
 
     <script>
         // API Base URL
@@ -348,7 +411,7 @@
 
             if (currentViewMode === 'tree') {
                 const ul = document.createElement('ul');
-                ul.className = 'pl-2 space-y-1';
+                ul.className = 'space-y-0.5';
                 createTreeNodes(globalTreeData, ul, '', '');
                 houseListEl.appendChild(ul);
             } else {
@@ -358,18 +421,21 @@
                 globalTreeData.forEach(areaNode => {
                     const li = document.createElement('li');
                     const btn = document.createElement('button');
-                    btn.className = 'area-grid-btn w-full text-left px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-700 focus:outline-none flex items-center justify-between transition-colors border border-transparent';
+                    btn.className = 'area-grid-btn w-full text-left px-3 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800 hover:text-white focus:outline-none flex items-center justify-between transition-colors border border-transparent';
                     btn.dataset.areaName = areaNode.name;
                     if (currentArea === areaNode.name && areaGridPanel && !areaGridPanel.classList.contains('hidden')) {
-                        btn.classList.add('bg-blue-100', 'text-blue-800', 'font-semibold', 'border-blue-200');
+                        btn.classList.add('bg-slate-800', 'text-white', 'border-slate-700');
+                        btn.classList.remove('text-slate-300');
                     }
                     const houseCount = (areaNode.children || []).length;
                     btn.innerHTML = `
                         <div class="flex items-center gap-2 truncate">
-                            <span class="text-base">📁</span>
+                            <span class="text-slate-400 flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                            </span>
                             <span class="truncate">${areaNode.name}</span>
                         </div>
-                        <span class="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full font-normal">${houseCount} Houses</span>
+                        <span class="text-[10px] font-mono text-slate-400 bg-slate-800/80 border border-slate-700/60 px-2 py-0.5 rounded-full">${houseCount} Houses</span>
                     `;
                     btn.onclick = (e) => {
                         e.stopPropagation();
@@ -394,9 +460,11 @@
             // Update sidebar selection
             document.querySelectorAll('.area-grid-btn').forEach(b => {
                 if (b.dataset.areaName === areaNode.name) {
-                    b.classList.add('bg-blue-100', 'text-blue-800', 'font-semibold', 'border-blue-200');
+                    b.classList.add('bg-slate-800', 'text-white', 'border-slate-700');
+                    b.classList.remove('text-slate-300');
                 } else {
-                    b.classList.remove('bg-blue-100', 'text-blue-800', 'font-semibold', 'border-blue-200');
+                    b.classList.remove('bg-slate-800', 'text-white', 'border-slate-700');
+                    b.classList.add('text-slate-300');
                 }
             });
 
@@ -518,8 +586,8 @@
             if (currentViewMode === mode) return;
             currentViewMode = mode;
 
-            const activeBtnClass = "flex-1 py-1.5 px-1 text-xs font-semibold rounded bg-white text-blue-700 shadow-xs border border-gray-300 flex items-center justify-center gap-1 transition-all";
-            const inactiveBtnClass = "flex-1 py-1.5 px-1 text-xs font-semibold rounded text-gray-600 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center gap-1 transition-all";
+            const activeBtnClass = "flex-1 py-1.5 px-1.5 text-xs font-semibold rounded-lg bg-slate-800 text-white shadow-xs border border-slate-700 flex items-center justify-center gap-1.5 transition-all";
+            const inactiveBtnClass = "flex-1 py-1.5 px-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center justify-center gap-1.5 transition-all";
 
             viewModeTreeBtn.className = mode === 'tree' ? activeBtnClass : inactiveBtnClass;
             viewModeGridBtn.className = mode === 'grid' ? activeBtnClass : inactiveBtnClass;
@@ -734,10 +802,10 @@
                 li.className = 'tree-node';
 
                 const btn = document.createElement('button');
-                btn.className = 'w-full text-left px-2 py-1 rounded text-sm text-gray-700 hover:bg-blue-50 focus:outline-none flex items-center tree-item';
+                btn.className = 'w-full text-left px-2 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-800 hover:text-white focus:outline-none flex items-center tree-item transition-colors';
                 
                 const icon = document.createElement('span');
-                icon.className = 'mr-2 text-gray-400 inline-block w-4 text-center flex-shrink-0';
+                icon.className = 'mr-1.5 text-slate-400 inline-block w-4 text-center flex-shrink-0';
                 icon.innerHTML = (node.children && node.children.length > 0) ? '▶' : '•';
                 
                 const contentDiv = document.createElement('div');
@@ -755,13 +823,13 @@
                     const subSpan = document.createElement('span');
                     subSpan.textContent = node.subtitle;
                     if (node.duration_category === 'short') {
-                        subSpan.className = 'text-[9px] leading-none text-green-700 bg-green-50 border-[1.5px] border-green-400 px-1 py-[2px] rounded-sm font-medium';
+                        subSpan.className = 'text-[9px] leading-none text-green-700 bg-emerald-50 border border-emerald-300 px-1.5 py-0.5 rounded font-bold';
                     } else if (node.duration_category === 'medium') {
-                        subSpan.className = 'text-[9px] leading-none text-yellow-700 bg-yellow-50 border-[1.5px] border-yellow-400 px-1 py-[2px] rounded-sm font-medium';
+                        subSpan.className = 'text-[9px] leading-none text-yellow-700 bg-amber-50 border border-amber-300 px-1.5 py-0.5 rounded font-bold';
                     } else if (node.duration_category === 'long') {
-                        subSpan.className = 'text-[9px] leading-none text-red-700 bg-red-50 border-[1.5px] border-red-400 px-1 py-[2px] rounded-sm font-medium';
+                        subSpan.className = 'text-[9px] leading-none text-red-700 bg-rose-50 border border-rose-300 px-1.5 py-0.5 rounded font-bold';
                     } else {
-                        subSpan.className = 'text-[9px] leading-none text-gray-500 bg-white border border-gray-200 px-1 py-[2px] rounded-sm';
+                        subSpan.className = 'text-[9px] leading-none text-slate-400 bg-slate-800 border border-slate-700 px-1.5 py-0.5 rounded';
                     }
                     metaDiv.appendChild(subSpan);
                 }
@@ -775,7 +843,7 @@
                 let childrenContainer = null;
                 if (node.children && node.children.length > 0) {
                     childrenContainer = document.createElement('ul');
-                    childrenContainer.className = 'pl-4 hidden space-y-1 mt-1';
+                    childrenContainer.className = 'pl-3.5 hidden space-y-0.5 mt-0.5 border-l border-slate-800 ml-2';
                     createTreeNodes(node.children, childrenContainer, currentPath, node.type === 'area' ? node.name : parentArea);
                     li.appendChild(childrenContainer);
 
@@ -829,8 +897,11 @@
                 const areaName = decodeURIComponent(hash.replace('/grid/area/', ''));
                 if (currentViewMode !== 'grid') {
                     currentViewMode = 'grid';
-                    viewModeGridBtn.className = "flex-1 py-1.5 px-2 text-xs font-semibold rounded bg-white text-blue-700 shadow-xs border border-gray-300 flex items-center justify-center gap-1 transition-all";
-                    viewModeTreeBtn.className = "flex-1 py-1.5 px-2 text-xs font-semibold rounded text-gray-600 hover:text-gray-900 hover:bg-gray-200 flex items-center justify-center gap-1 transition-all";
+                    const activeBtnClass = "flex-1 py-1.5 px-1.5 text-xs font-semibold rounded-lg bg-slate-800 text-white shadow-xs border border-slate-700 flex items-center justify-center gap-1.5 transition-all";
+                    const inactiveBtnClass = "flex-1 py-1.5 px-1.5 text-xs font-semibold rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 flex items-center justify-center gap-1.5 transition-all";
+                    viewModeGridBtn.className = activeBtnClass;
+                    viewModeTreeBtn.className = inactiveBtnClass;
+                    viewModeDbBtn.className = inactiveBtnClass;
                     sidebarSectionTitle.textContent = "Areas";
                     renderSidebar();
                 }
@@ -859,8 +930,8 @@
             // Auto-switch to categories when a specific person/tenant is clicked
             if (tenantName && currentTab !== 'categories') {
                 currentTab = 'categories';
-                tabCategories.className = "flex-1 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600";
-                tabTimeline.className = "flex-1 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700";
+                tabCategories.className = "flex-1 py-1.5 px-3 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all";
+                tabTimeline.className = "flex-1 py-1.5 px-3 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all";
             }
 
             // Load data whenever we have area + house
@@ -870,14 +941,18 @@
 
             // Clear previous selections
             document.querySelectorAll('.tree-item').forEach(el => {
-                el.classList.remove('bg-blue-100', 'text-blue-800', 'font-medium');
+                el.classList.remove('bg-blue-600', 'text-white', 'font-semibold', 'bg-blue-100', 'text-blue-800');
+                el.classList.add('text-slate-300');
             });
 
             // Highlight matching node and expand its parents if found in tree
             const targetLi = document.querySelector(`li[data-path="${hash}"]`);
             if (targetLi) {
                 const btn = targetLi.querySelector('.tree-item');
-                if (btn) btn.classList.add('bg-blue-100', 'text-blue-800', 'font-medium');
+                if (btn) {
+                    btn.classList.add('bg-blue-600', 'text-white', 'font-semibold');
+                    btn.classList.remove('text-slate-300');
+                }
 
                 // Expand parents
                 let current = targetLi.parentElement;
@@ -992,24 +1067,27 @@
             let displayTimeline = currentTimeline;
             
             if (displayTimeline.length === 0) {
-                docListEl.innerHTML = '<p class="text-sm text-gray-500 p-2">No documents found for this selection.</p>';
+                docListEl.innerHTML = '<p class="text-xs text-slate-400 p-3 text-center">No documents found for this selection.</p>';
                 return;
             }
             
             displayTimeline.forEach(doc => {
                 const card = document.createElement('div');
-                card.className = 'p-3 border rounded-md cursor-pointer hover:border-blue-400 hover:shadow-sm bg-white transition-all';
+                card.className = 'p-3 bg-white rounded-xl border border-slate-200 shadow-2xs hover:shadow-sm hover:border-blue-400 cursor-pointer transition-all flex flex-col gap-2 group';
                 
                 const title = doc.brief_arabic_title || 'Untitled Document';
                 const date = (doc.dates && doc.dates.length > 0) ? doc.dates[0] : 'Unknown Date';
                 
                 card.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <h4 class="text-sm font-semibold text-gray-800 line-clamp-2">${title}</h4>
+                    <div class="flex justify-between items-start gap-2">
+                        <h4 class="text-xs font-semibold text-slate-800 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug">${title}</h4>
                     </div>
-                    <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
-                        <span>${date}</span>
-                        <span class="bg-gray-100 px-2 py-0.5 rounded">${doc.primary_tenant || 'No Tenant'}</span>
+                    <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1.5 border-t border-slate-100">
+                        <span class="flex items-center gap-1 font-mono text-[10px] text-slate-400">
+                            <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            <span>${date}</span>
+                        </span>
+                        <span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-medium text-[10px] border border-slate-200 truncate max-w-[140px]">${doc.primary_tenant || 'No Tenant'}</span>
                     </div>
                 `;
                 
@@ -1107,21 +1185,24 @@
             displayCategories.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
             
             if (displayCategories.length === 0) {
-                docListEl.innerHTML = '<p class="text-sm text-gray-500 p-2">No folders found for this selection.</p>';
+                docListEl.innerHTML = '<p class="text-xs text-slate-400 p-3 text-center">No folders found for this selection.</p>';
                 return;
             }
             
             displayCategories.forEach(cat => {
                 const card = document.createElement('div');
-                card.className = 'p-3 border rounded-md bg-white mb-2 cursor-pointer hover:bg-gray-50';
+                card.className = 'p-3 bg-white rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 transition-all mb-2 cursor-pointer';
                 card.innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <h4 class="text-sm font-semibold text-gray-800">${cat.name}</h4>
+                    <div class="flex justify-between items-center">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <div class="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                            </div>
+                            <h4 class="text-xs font-semibold text-slate-800 truncate">${cat.name}</h4>
+                        </div>
+                        <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-bold border border-slate-200 flex-shrink-0">${cat.document_count} Documents</span>
                     </div>
-                    <div class="mt-2 flex items-center justify-between text-xs text-gray-500">
-                        <span class="bg-gray-100 px-2 py-0.5 rounded">${cat.document_count} Documents</span>
-                    </div>
-                    <div class="category-docs hidden mt-3 pt-3 border-t">
+                    <div class="category-docs hidden mt-2.5 pt-2.5 border-t border-slate-100 space-y-1">
                     </div>
                 `;
                 
@@ -1129,9 +1210,12 @@
                     const docsContainer = card.querySelector('.category-docs');
                     cat.documents.forEach(doc => {
                         const docEl = document.createElement('div');
-                        docEl.className = 'text-sm text-blue-600 hover:underline cursor-pointer py-1 ml-2';
+                        docEl.className = 'text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors flex items-center gap-2 font-medium';
                         const title = doc.brief_arabic_title || doc.filename || 'Document';
-                        docEl.textContent = title;
+                        docEl.innerHTML = `
+                            <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            <span class="truncate">${title}</span>
+                        `;
                         docEl.onclick = (e) => {
                             e.stopPropagation();
                             openDocument(doc.vault_id, title);
@@ -1295,8 +1379,8 @@
             if (currentTab === 'timeline') return;
             currentTab = 'timeline';
             
-            tabTimeline.className = "flex-1 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600";
-            tabCategories.className = "flex-1 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700";
+            tabTimeline.className = "flex-1 py-1.5 px-3 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all";
+            tabCategories.className = "flex-1 py-1.5 px-3 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all";
             
             if (currentArea && currentHouse) {
                 refreshCurrentTab(currentArea, currentHouse);
@@ -1308,8 +1392,8 @@
             if (currentTab === 'categories') return;
             currentTab = 'categories';
             
-            tabCategories.className = "flex-1 py-2 text-sm font-medium border-b-2 border-blue-600 text-blue-600";
-            tabTimeline.className = "flex-1 py-2 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700";
+            tabCategories.className = "flex-1 py-1.5 px-3 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all";
+            tabTimeline.className = "flex-1 py-1.5 px-3 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all";
             
             if (currentArea && currentHouse) {
                 refreshCurrentTab(currentArea, currentHouse);
@@ -1373,26 +1457,33 @@
         <iframe id="pdf-preview-iframe" src="about:blank"></iframe>
     </div>
 
-    <!-- Tenant Management Modal -->
-    <div id="tenant-modal" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center hidden p-4">
-        <div class="bg-white rounded-xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh] overflow-hidden">
+    <!-- Tenant Management / House Settings Modal -->
+    <div id="tenant-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-2xl w-full flex flex-col max-h-[90vh] overflow-hidden">
             <!-- Modal Header -->
-            <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
-                <div class="flex items-center gap-2">
-                    <span class="text-xl">👥</span>
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shadow-2xs">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                    </div>
                     <div>
-                        <h3 class="text-lg font-bold text-gray-900" id="tenant-modal-title">Manage Tenants</h3>
-                        <p class="text-xs text-gray-500">Configure tenant timelines and residency date ranges.</p>
+                        <h3 class="text-base font-bold text-slate-900 tracking-tight" id="tenant-modal-title">House Settings & Tenants</h3>
+                        <p class="text-xs text-slate-500">Configure residency timelines and automatic document reconciliation.</p>
                     </div>
                 </div>
-                <button id="tenant-modal-close" class="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+                <button id="tenant-modal-close" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
             </div>
 
             <!-- Priority rules banner -->
-            <div class="mx-6 mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-900 flex items-start gap-2">
-                <span class="text-base leading-none">ℹ️</span>
-                <div>
-                    <span class="font-semibold">Reallocation Priority Rules:</span> Letters explicitly addressed to a specific tenant remain assigned to them. Unnamed documents (such as utility bills or generic notices) will be automatically reallocated based on the tenant date ranges below.
+            <div class="mx-6 mt-4 p-3.5 bg-blue-50/60 border border-blue-100 rounded-xl text-xs text-slate-700 flex items-start gap-2.5">
+                <div class="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0 mt-0.5 font-bold text-[11px]">i</div>
+                <div class="leading-relaxed">
+                    <span class="font-bold text-slate-900">Reallocation Priority Rules:</span> Letters explicitly addressed to a specific tenant remain assigned to them. Unnamed documents (such as utility bills or generic notices) will automatically reconcile based on the residency date ranges below.
                 </div>
             </div>
 
@@ -1403,17 +1494,18 @@
 
             <!-- Add Row Button & Status Message -->
             <div class="px-6 pb-2 flex justify-start items-center">
-                <button id="btn-add-tenant-row" type="button" class="px-3 py-1.5 text-xs font-semibold bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md border border-gray-300 flex items-center gap-1 transition-colors">
-                    <span>➕</span> Add Tenant
+                <button id="btn-add-tenant-row" type="button" class="px-3 py-1.5 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-200 flex items-center gap-1.5 transition-colors shadow-2xs">
+                    <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span>Add Tenant</span>
                 </button>
             </div>
 
             <div id="tenant-modal-status" class="px-6 py-1 text-xs font-medium hidden"></div>
 
             <!-- Modal Footer -->
-            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
-                <button id="tenant-modal-cancel" type="button" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Cancel</button>
-                <button id="tenant-modal-save" type="button" class="px-4 py-2 text-sm font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2">
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/70 flex justify-end gap-3">
+                <button id="tenant-modal-cancel" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-2xs">Cancel</button>
+                <button id="tenant-modal-save" type="button" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2 shadow-sm shadow-blue-500/25">
                     <span id="tenant-save-btn-text">💾 Save Changes</span>
                 </button>
             </div>
@@ -1551,7 +1643,7 @@
 
         function addTenantRow(t = null) {
             const row = document.createElement('div');
-            row.className = 'tenant-row flex flex-col sm:flex-row items-start sm:items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200 transition-all';
+            row.className = 'tenant-row flex flex-col sm:flex-row items-start sm:items-center gap-2.5 p-3.5 bg-slate-50/80 rounded-xl border border-slate-200 transition-all shadow-2xs';
             if (t && t.id) row.dataset.id = t.id;
 
             const nameVal = t ? (t.name || '') : '';
@@ -1561,27 +1653,27 @@
 
             row.innerHTML = `
                 <div class="flex-1 w-full sm:w-auto">
-                    <label class="block text-[10px] text-gray-500 font-semibold mb-0.5">NAME / الاسم</label>
+                    <label class="block text-[10px] text-slate-500 font-bold tracking-wider uppercase mb-1">NAME / الاسم</label>
                     <input type="text" value="${nameVal.replace(/"/g, '&quot;')}" placeholder="Tenant Name" 
-                           class="tenant-name-input w-full px-2.5 py-1.5 text-xs rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white" required />
+                           class="tenant-name-input w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium shadow-2xs" required />
                 </div>
                 <div class="w-full sm:w-36">
-                    <label class="block text-[10px] text-gray-500 font-semibold mb-0.5">START DATE</label>
+                    <label class="block text-[10px] text-slate-500 font-bold tracking-wider uppercase mb-1">START DATE</label>
                     <input type="date" value="${startVal}" 
-                           class="tenant-start-input w-full px-2 py-1.5 text-xs rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white" required />
+                           class="tenant-start-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium shadow-2xs" required />
                 </div>
                 <div class="w-full sm:w-36">
-                    <label class="block text-[10px] text-gray-500 font-semibold mb-0.5">END DATE</label>
+                    <label class="block text-[10px] text-slate-500 font-bold tracking-wider uppercase mb-1">END DATE</label>
                     <input type="date" value="${isPresent ? '' : endVal}" ${isPresent ? 'disabled' : ''}
-                           class="tenant-end-input w-full px-2 py-1.5 text-xs rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 ${isPresent ? 'bg-gray-100 text-gray-400' : 'bg-white'}" />
+                           class="tenant-end-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium shadow-2xs ${isPresent ? 'bg-slate-100 text-slate-400' : 'bg-white'}" />
                 </div>
-                <div class="flex items-center gap-2 pt-3 sm:pt-4">
-                    <label class="flex items-center gap-1 text-xs text-gray-600 select-none cursor-pointer">
-                        <input type="checkbox" class="tenant-present-check rounded border-gray-300 text-blue-600" ${isPresent ? 'checked' : ''} />
+                <div class="flex items-center gap-2 pt-2 sm:pt-5">
+                    <label class="flex items-center gap-1.5 text-xs text-slate-600 select-none cursor-pointer font-medium">
+                        <input type="checkbox" class="tenant-present-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" ${isPresent ? 'checked' : ''} />
                         <span>Present</span>
                     </label>
-                    <button type="button" class="btn-remove-row text-gray-400 hover:text-red-600 p-1 text-base transition-colors" title="Delete Tenant">
-                        🗑️
+                    <button type="button" class="btn-remove-row text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-slate-200/60 transition-colors" title="Delete Tenant">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                     </button>
                 </div>
             `;
@@ -1592,10 +1684,10 @@
                 if (e.target.checked) {
                     endInput.value = '';
                     endInput.disabled = true;
-                    endInput.className = "tenant-end-input w-full px-2 py-1.5 text-xs rounded border border-gray-300 bg-gray-100 text-gray-400";
+                    endInput.className = "tenant-end-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-100 text-slate-400 font-medium shadow-2xs";
                 } else {
                     endInput.disabled = false;
-                    endInput.className = "tenant-end-input w-full px-2 py-1.5 text-xs rounded border border-gray-300 focus:outline-none focus:ring-1 focus:ring-blue-500 bg-white";
+                    endInput.className = "tenant-end-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium shadow-2xs";
                 }
             });
 
