@@ -1,11 +1,8 @@
-// ── PDF Preview & macOS-Style Quick Look Component ──────────────────────────
+// ── PDF Live Peek & macOS-Style Quick Look Component ──────────────────────────
 (function() {
-    let previewTooltip = null;
-    let previewIframe = null;
-    let previewTitleEl = null;
-    let previewShowTimer = null;
-    let previewHideTimer = null;
-    let previewCurrentUrl = null;
+    let peekTimer = null;
+    let currentHoverDoc = null;
+    let selectedDoc = null;
 
     // Quick Look Modal elements
     let quickLookModal = null;
@@ -16,11 +13,7 @@
     let quickLookOpenFull = null;
     let quickLookCurrentDoc = null;
 
-    // Currently selected / focused document
-    let selectedDoc = null;
-
-    const PREVIEW_GAP = 12;
-    const PREVIEW_DELAY_MS = 450;
+    const PEEK_DELAY_MS = 250;
 
     function resolvePdfUrl(vaultId, forQuickLook = false) {
         let baseUrl = '';
@@ -33,10 +26,6 @@
     }
 
     function initPdfPreview() {
-        previewTooltip = document.getElementById('pdf-preview-tooltip');
-        previewIframe = document.getElementById('pdf-preview-iframe');
-        previewTitleEl = document.getElementById('pdf-preview-title');
-
         quickLookModal = document.getElementById('quick-look-modal');
         quickLookIframe = document.getElementById('quick-look-iframe');
         quickLookTitle = document.getElementById('quick-look-title');
@@ -66,11 +55,11 @@
             };
         }
 
-        // Global dismiss listeners for hover preview
-        window.addEventListener('scroll', () => hidePreview(true), { passive: true, capture: true });
+        // Global dismiss / cancel listeners for live peek
+        window.addEventListener('scroll', () => cancelPeek(), { passive: true, capture: true });
         document.addEventListener('mousedown', (e) => {
             if (e.target && e.target.closest && e.target.closest('.doc-menu-btn')) {
-                hidePreview(true);
+                cancelPeek();
             }
         });
 
@@ -85,7 +74,7 @@
                     e.preventDefault();
                     closeQuickLook();
                 }
-                hidePreview(true);
+                cancelPeek();
                 return;
             }
 
@@ -103,90 +92,43 @@
                 if (isQuickLookOpen()) {
                     e.preventDefault();
                     closeQuickLook();
-                } else if (selectedDoc) {
-                    e.preventDefault();
-                    hidePreview(true);
-                    openQuickLook(selectedDoc.vaultId, selectedDoc.title, selectedDoc.doc);
+                } else {
+                    const targetDoc = currentHoverDoc || selectedDoc;
+                    if (targetDoc) {
+                        e.preventDefault();
+                        cancelPeek();
+                        openQuickLook(targetDoc.vaultId, targetDoc.title, targetDoc.doc);
+                    }
                 }
             }
         });
     }
 
-    function positionTooltip(mouseX, mouseY, anchorEl) {
-        if (!previewTooltip) return;
-        const tw = previewTooltip.offsetWidth || 380;
-        const th = previewTooltip.offsetHeight || 520;
-        const vw = window.innerWidth;
-        const vh = window.innerHeight;
-
-        let left, top;
-
-        if (anchorEl && typeof anchorEl.getBoundingClientRect === 'function') {
-            const rect = anchorEl.getBoundingClientRect();
-            left = rect.right + PREVIEW_GAP;
-            top = rect.top - 20;
-
-            // Flip left if overflowing viewport
-            if (left + tw > vw - 12) {
-                left = rect.left - tw - PREVIEW_GAP;
-            }
-            // Clamp horizontal
-            if (left < 12) left = 12;
-            if (left + tw > vw - 12) left = vw - tw - 12;
-
-            // Clamp vertical
-            if (top + th > vh - 12) top = vh - th - 12;
-            if (top < 12) top = 12;
-        } else {
-            left = mouseX + PREVIEW_GAP;
-            top = mouseY - 60;
-
-            if (left + tw > vw - 8) left = mouseX - tw - PREVIEW_GAP;
-            if (top + th > vh - 8) top = vh - th - 8;
-            if (top < 8) top = 8;
-        }
-
-        previewTooltip.style.left = `${left}px`;
-        previewTooltip.style.top = `${top}px`;
-        return { left, top };
+    function cancelPeek() {
+        clearTimeout(peekTimer);
+        peekTimer = null;
     }
 
-    function showPreview(vaultId, title, mouseX, mouseY, anchorEl) {
-        if (!previewTooltip || !previewIframe) return;
-        const pdfUrl = resolvePdfUrl(vaultId, false);
-
-        clearTimeout(previewHideTimer);
-        clearTimeout(previewShowTimer);
-
-        previewShowTimer = setTimeout(() => {
-            if (previewCurrentUrl !== pdfUrl) {
-                previewCurrentUrl = pdfUrl;
-                previewIframe.src = pdfUrl;
-                if (previewTitleEl) previewTitleEl.textContent = title;
-            }
-            positionTooltip(mouseX, mouseY, anchorEl);
-            previewTooltip.classList.add('visible');
-        }, PREVIEW_DELAY_MS);
-        return previewShowTimer;
-    }
-
-    function hidePreview(immediate = false) {
-        clearTimeout(previewShowTimer);
-        if (immediate) {
-            clearTimeout(previewHideTimer);
-            if (previewTooltip) previewTooltip.classList.remove('visible');
-            return null;
-        }
-        previewHideTimer = setTimeout(() => {
-            if (previewTooltip) previewTooltip.classList.remove('visible');
-        }, 100);
-        return previewHideTimer;
-    }
-
-    function attachPreview(el, vaultId, title) {
+    function attachPreview(el, vaultId, title, doc = null) {
         if (!el) return;
-        el.addEventListener('mouseenter', (e) => showPreview(vaultId, title, e.clientX, e.clientY, el));
-        el.addEventListener('mouseleave', () => hidePreview(false));
+        const displayTitle = title || (doc && (doc.brief_arabic_title || doc.filename)) || 'Document';
+
+        el.addEventListener('mouseenter', () => {
+            currentHoverDoc = { vaultId, title: displayTitle, doc, el };
+            clearTimeout(peekTimer);
+            peekTimer = setTimeout(() => {
+                if (typeof window.peekDocument === 'function') {
+                    window.peekDocument(vaultId, displayTitle);
+                }
+            }, PEEK_DELAY_MS);
+        });
+
+        el.addEventListener('mouseleave', () => {
+            clearTimeout(peekTimer);
+            if (currentHoverDoc && currentHoverDoc.vaultId === vaultId) {
+                currentHoverDoc = null;
+            }
+        });
     }
 
     // ── Quick Look & Selection ───────────────────────────────────────────────
@@ -211,7 +153,7 @@
     }
 
     function openQuickLook(vaultId, title, doc = null) {
-        hidePreview(true);
+        cancelPeek();
         if (!quickLookModal || !quickLookIframe) return;
 
         const effectiveTitle = title || (doc && (doc.brief_arabic_title || doc.filename)) || 'Document Preview';
@@ -251,16 +193,29 @@
     function toggleQuickLook() {
         if (isQuickLookOpen()) {
             closeQuickLook();
-        } else if (selectedDoc) {
-            openQuickLook(selectedDoc.vaultId, selectedDoc.title, selectedDoc.doc);
+        } else {
+            const targetDoc = currentHoverDoc || selectedDoc;
+            if (targetDoc) {
+                openQuickLook(targetDoc.vaultId, targetDoc.title, targetDoc.doc);
+            }
         }
     }
+
+    // Compatibility stubs
+    function positionTooltip() { return { left: 0, top: 0 }; }
+    function showPreview(vaultId, title) {
+        if (typeof window.peekDocument === 'function') {
+            window.peekDocument(vaultId, title);
+        }
+    }
+    function hidePreview() { cancelPeek(); }
 
     // Expose on window
     window.initPdfPreview = initPdfPreview;
     window.positionTooltip = positionTooltip;
     window.showPreview = showPreview;
     window.hidePreview = hidePreview;
+    window.cancelPeek = cancelPeek;
     window.attachPreview = attachPreview;
     window.setSelectedDoc = setSelectedDoc;
     window.getSelectedDoc = getSelectedDoc;
@@ -268,5 +223,6 @@
     window.closeQuickLook = closeQuickLook;
     window.toggleQuickLook = toggleQuickLook;
     window.isQuickLookOpen = isQuickLookOpen;
-    window.PREVIEW_DELAY_MS = PREVIEW_DELAY_MS;
+    window.PEEK_DELAY_MS = PEEK_DELAY_MS;
+    window.PREVIEW_DELAY_MS = PEEK_DELAY_MS;
 })();

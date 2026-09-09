@@ -8,44 +8,9 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
 ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.4); border-radius: 9999px; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.7); }
 
-/* Hover PDF preview tooltip (strictly non-blocking ghost overlay) */
+/* Floating preview tooltip retired in favor of zero-click Right Panel Live Peek */
 #pdf-preview-tooltip {
-    position: fixed;
-    z-index: 9999;
-    width: 380px;
-    height: 520px;
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
-    overflow: hidden;
-    pointer-events: none !important;
-    opacity: 0;
-    transition: opacity 0.15s ease, transform 0.15s ease;
-    display: flex;
-    flex-direction: column;
-}
-#pdf-preview-tooltip.visible {
-    opacity: 1;
-    pointer-events: none !important;
-}
-#pdf-preview-tooltip .preview-header {
-    padding: 8px 12px;
-    background: #0f172a;
-    color: #f8fafc;
-    font-size: 11px;
-    font-weight: 600;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex-shrink: 0;
-    border-bottom: 1px solid #1e293b;
-}
-#pdf-preview-iframe {
-    width: 100%;
-    flex: 1;
-    border: none;
-    pointer-events: none !important;
+    display: none !important;
 }
 
 /* Selected document card / row highlight */

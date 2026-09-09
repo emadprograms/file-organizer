@@ -292,40 +292,43 @@ describe('PDF Preview & macOS Quick Look — Live Component Tests', () => {
     vi.useRealTimers();
   });
 
-  it('anchors preview tooltip to element bounding rect instead of mouse cursor', () => {
-    const icon = document.querySelector('.doc-icon-preview');
-    icon.getBoundingClientRect = () => ({
-      top: 150,
-      left: 100,
-      right: 120,
-      bottom: 170,
-      width: 20,
-      height: 20,
-    });
+  it('triggers right-panel live peek on element mouseenter after delay', () => {
+    let peeked = null;
+    window.peekDocument = (vaultId, title) => { peeked = { vaultId, title }; };
 
-    const coords = window.positionTooltip(0, 0, icon);
-    expect(coords.left).toBe(120 + 12); // right + gap (12)
-    expect(coords.top).toBe(150 - 20);  // top - 20
+    const card = document.getElementById('card-1');
+    window.attachPreview(card, 'vault123', 'Sample Doc');
+    card.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(peeked).toBe(null);
+
+    vi.advanceTimersByTime(window.PEEK_DELAY_MS || 250);
+    expect(peeked).toEqual({ vaultId: 'vault123', title: 'Sample Doc' });
   });
 
-  it('immediately hides tooltip when window scrolls', () => {
-    const tooltip = document.getElementById('pdf-preview-tooltip');
-    window.showPreview('vault123', 'Sample Doc', 100, 100);
-    vi.advanceTimersByTime(window.PREVIEW_DELAY_MS || 450);
-    expect(tooltip.classList.contains('visible')).toBe(true);
+  it('cancels pending live peek when window scrolls', () => {
+    let peeked = null;
+    window.peekDocument = (vaultId, title) => { peeked = { vaultId, title }; };
+
+    const card = document.getElementById('card-1');
+    window.attachPreview(card, 'vault123', 'Sample Doc');
+    card.dispatchEvent(new MouseEvent('mouseenter'));
 
     window.dispatchEvent(new Event('scroll'));
-    expect(tooltip.classList.contains('visible')).toBe(false);
+    vi.advanceTimersByTime(window.PEEK_DELAY_MS || 250);
+    expect(peeked).toBe(null);
   });
 
-  it('immediately hides tooltip when Escape key is pressed', () => {
-    const tooltip = document.getElementById('pdf-preview-tooltip');
-    window.showPreview('vault123', 'Sample Doc', 100, 100);
-    vi.advanceTimersByTime(window.PREVIEW_DELAY_MS || 450);
-    expect(tooltip.classList.contains('visible')).toBe(true);
+  it('cancels pending live peek when Escape key is pressed', () => {
+    let peeked = null;
+    window.peekDocument = (vaultId, title) => { peeked = { vaultId, title }; };
+
+    const card = document.getElementById('card-1');
+    window.attachPreview(card, 'vault123', 'Sample Doc');
+    card.dispatchEvent(new MouseEvent('mouseenter'));
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    expect(tooltip.classList.contains('visible')).toBe(false);
+    vi.advanceTimersByTime(window.PEEK_DELAY_MS || 250);
+    expect(peeked).toBe(null);
   });
 
   it('opens and closes Quick Look modal via Spacebar', () => {
@@ -373,12 +376,43 @@ describe('PDF Preview & macOS Quick Look — Live Component Tests', () => {
   });
 
   it('hides hover preview on menu button hover', () => {
-    const tooltip = document.getElementById('pdf-preview-tooltip');
-    window.showPreview('vault123', 'Sample Doc', 100, 100);
-    vi.advanceTimersByTime(window.PREVIEW_DELAY_MS || 450);
-    expect(tooltip.classList.contains('visible')).toBe(true);
+    let peeked = null;
+    window.peekDocument = (vaultId, title) => { peeked = { vaultId, title }; };
 
-    window.hidePreview(true);
-    expect(tooltip.classList.contains('visible')).toBe(false);
+    const card = document.getElementById('card-1');
+    window.attachPreview(card, 'vault123', 'Sample Doc');
+    card.dispatchEvent(new MouseEvent('mouseenter'));
+    window.cancelPeek();
+    vi.advanceTimersByTime(300);
+    expect(peeked).toBe(null);
+  });
+
+  it('calls peekDocument in the right panel after hover delay elapses', () => {
+    let peeked = null;
+    window.peekDocument = (vaultId, title) => { peeked = { vaultId, title }; };
+
+    const card = document.getElementById('card-1');
+    window.attachPreview(card, 'vault999', 'Title Deed 2026');
+
+    card.dispatchEvent(new MouseEvent('mouseenter'));
+    expect(peeked).toBe(null);
+
+    vi.advanceTimersByTime(window.PEEK_DELAY_MS || 250);
+    expect(peeked).toEqual({ vaultId: 'vault999', title: 'Title Deed 2026' });
+  });
+
+  it('cancels live peek when mouse leaves before delay', () => {
+    let peeked = null;
+    window.peekDocument = (vaultId, title) => { peeked = { vaultId, title }; };
+
+    const card = document.getElementById('card-1');
+    window.attachPreview(card, 'vault999', 'Title Deed 2026');
+
+    card.dispatchEvent(new MouseEvent('mouseenter'));
+    vi.advanceTimersByTime(100);
+    card.dispatchEvent(new MouseEvent('mouseleave'));
+    vi.advanceTimersByTime(250);
+
+    expect(peeked).toBe(null);
   });
 });

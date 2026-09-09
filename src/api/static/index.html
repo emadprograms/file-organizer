@@ -201,6 +201,7 @@
                             <div class="flex items-center gap-2 min-w-0 flex-1">
                                 <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                                 <span id="viewer-title" class="font-medium text-sm truncate">Document</span>
+                                <span id="viewer-peek-badge" class="hidden text-[10px] bg-blue-500/20 text-blue-300 border border-blue-400/30 px-2 py-0.5 rounded font-medium flex-shrink-0">Live Peek</span>
                             </div>
                             <div class="flex items-center gap-2 flex-shrink-0">
                                 <label for="viewer-tenant-select" id="viewer-tenant-label" class="text-xs text-slate-400 hidden">Tenant:</label>
@@ -229,15 +230,6 @@
                 </div>
             </main>
         </div>
-    </div>
-
-    <!-- PDF hover preview tooltip (singleton) -->
-    <div id="pdf-preview-tooltip">
-        <div class="preview-header flex items-center justify-between">
-            <span id="pdf-preview-title" class="truncate">Preview</span>
-            <span class="text-[10px] text-slate-400 font-normal ml-2 flex-shrink-0">Hover Preview</span>
-        </div>
-        <iframe id="pdf-preview-iframe" src="about:blank"></iframe>
     </div>
 
     <!-- Quick Look Modal (macOS Style Spacebar Preview) -->

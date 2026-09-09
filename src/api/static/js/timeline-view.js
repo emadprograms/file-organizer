@@ -105,9 +105,12 @@
             const quickLookBtn = card.querySelector('.doc-quick-look-btn');
             const menuBtn = card.querySelector('.doc-menu-btn');
 
-            // Polite hover preview: attached strictly to the icon
-            if (previewIcon && typeof window.attachPreview === 'function') {
-                window.attachPreview(previewIcon, doc.vault_id, title);
+            // Zero-click Live Peek in the right panel on hover (250ms debounce)
+            if (typeof window.attachPreview === 'function') {
+                window.attachPreview(card, doc.vault_id, title, doc);
+            }
+
+            if (previewIcon) {
                 previewIcon.onclick = (e) => {
                     e.stopPropagation();
                     if (typeof window.setSelectedDoc === 'function') {
@@ -119,6 +122,7 @@
                 };
             }
 
+            // Eye button: opens the centered macOS-style Quick Look modal
             if (quickLookBtn) {
                 quickLookBtn.onclick = (e) => {
                     e.stopPropagation();
@@ -131,17 +135,17 @@
                 };
             }
 
-            // 3-dot Menu: immediately hide preview on hover so menu is never blocked
+            // 3-dot Menu: hover immediately cancels any pending peek so action menu is 100% free
             if (menuBtn) {
                 menuBtn.onmouseenter = () => {
-                    if (typeof window.hidePreview === 'function') {
-                        window.hidePreview(true);
+                    if (typeof window.cancelPeek === 'function') {
+                        window.cancelPeek();
                     }
                 };
                 menuBtn.onclick = (e) => {
                     e.stopPropagation();
-                    if (typeof window.hidePreview === 'function') {
-                        window.hidePreview(true);
+                    if (typeof window.cancelPeek === 'function') {
+                        window.cancelPeek();
                     }
                     if (typeof window.openDocModal === 'function') {
                         window.openDocModal(doc, doc.category);
