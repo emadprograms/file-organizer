@@ -23,6 +23,8 @@ from src.api.models import (
     TenantBulkUpdateRequest,
     TenantReallocationResponse,
     DocumentTenantUpdateRequest,
+    DocumentNotesRequest,
+    DocumentNotesResponse,
     DocumentUpdateRequest,
     DocumentCopyRequest,
     DocumentActionResponse,
@@ -214,7 +216,7 @@ async def list_timeline(request: Request, area_id: str, house_id: str):
         conn = repo.conn
         house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
         cursor = conn.execute("""
-            SELECT d.vault_id, d.primary_date, d.arabic_title, d.category, d.is_manual, d.tenant_id, t.name as tenant_name
+            SELECT d.vault_id, d.primary_date, d.arabic_title, d.category, d.is_manual, d.tenant_id, d.notes, t.name as tenant_name
             FROM documents d
             LEFT JOIN tenants t ON d.tenant_id = t.id
             WHERE d.house_id = ? OR d.house_id = ?
@@ -230,7 +232,8 @@ async def list_timeline(request: Request, area_id: str, house_id: str):
                     dates=[str(r["primary_date"])] if r["primary_date"] else [],
                     brief_arabic_title=r["arabic_title"] or "",
                     category=r["category"] or "",
-                    is_manual=int(r["is_manual"] or 0)
+                    is_manual=int(r["is_manual"] or 0),
+                    notes=r["notes"]
                 )
                 for r in rows
             ]
@@ -701,6 +704,7 @@ async def update_single_document(
         tenant_id=payload.tenant_id,
         primary_date=payload.primary_date,
         is_manual=payload.is_manual if payload.is_manual is not None else 1,
+        notes=payload.notes,
     )
     if not updated:
         raise HTTPException(status_code=500, detail="Failed to update document.")
@@ -720,6 +724,56 @@ async def update_single_document(
         tenant_name=target_tenant_name,
         is_manual=getattr(updated, "is_manual", 1),
     )
+
+@router.patch("/api/areas/{area_id}/houses/{house_id}/documents/{vault_id}/notes", response_model=DocumentNotesResponse)
+async def update_single_document_notes(
+    request: Request,
+    area_id: str,
+    house_id: str,
+    vault_id: str,
+    payload: DocumentNotesRequest,
+):
+    repo = get_db_repo(request)
+    if not repo:
+        raise HTTPException(status_code=500, detail="Database repository not available.")
+    doc = repo.get_document(vault_id)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found.")
+
+    house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
+    if doc.house_id != house_id and doc.house_id != house_num:
+        raise HTTPException(status_code=400, detail="Document does not belong to the specified house.")
+
+    updated = repo.update_document_notes(vault_id, payload.notes)
+    if not updated:
+        raise HTTPException(status_code=500, detail="Failed to update document notes.")
+
+    clear_tree_cache()
+    return DocumentNotesResponse(
+        status="success",
+        vault_id=vault_id,
+        notes=updated.notes,
+    )
+
+@router.get("/api/areas/{area_id}/houses/{house_id}/documents/{vault_id}/metadata")
+async def get_single_document_metadata(
+    request: Request,
+    area_id: str,
+    house_id: str,
+    vault_id: str,
+):
+    repo = get_db_repo(request)
+    if not repo:
+        raise HTTPException(status_code=500, detail="Database repository not available.")
+    meta = repo.get_document_metadata(vault_id)
+    if not meta:
+        raise HTTPException(status_code=404, detail="Document not found.")
+
+    house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
+    if meta.get("house_id") != house_id and meta.get("house_id") != house_num:
+        raise HTTPException(status_code=400, detail="Document does not belong to the specified house.")
+
+    return meta
 
 @router.post("/api/areas/{area_id}/houses/{house_id}/documents/{vault_id}/copy", response_model=DocumentActionResponse)
 async def copy_single_document(
@@ -844,7 +898,7 @@ async def list_categories(request: Request, area_id: str, house_id: str):
         conn = repo.conn
         house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
         cursor = conn.execute("""
-            SELECT d.vault_id, d.primary_date, d.arabic_title, d.category, d.page_count, d.is_manual, d.tenant_id,
+            SELECT d.vault_id, d.primary_date, d.arabic_title, d.category, d.page_count, d.is_manual, d.tenant_id, d.notes,
                    t.name as tenant_name, b.filename as batch_filename
             FROM documents d
             LEFT JOIN tenants t ON d.tenant_id = t.id
@@ -873,7 +927,8 @@ async def list_categories(request: Request, area_id: str, house_id: str):
                     tenant_id=r["tenant_id"],
                     category=cat_numbered,
                     brief_arabic_title=r["arabic_title"] or "",
-                    is_manual=int(r["is_manual"] or 0)
+                    is_manual=int(r["is_manual"] or 0),
+                    notes=r["notes"]
                 ))
             return [
                 CategoryResponse(

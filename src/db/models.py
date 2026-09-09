@@ -58,6 +58,7 @@ class Document(BaseModel):
     category: Optional[str] = None
     page_count: int = 1
     is_manual: int = 0
+    notes: Optional[str] = None
     created_at: Optional[Union[str, datetime]] = None
 
 

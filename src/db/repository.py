@@ -4,7 +4,7 @@ import re
 import sqlite3
 from contextlib import contextmanager
 from datetime import date, datetime
-from typing import Any, Dict, Generator, List, Optional, Sequence, Union
+from typing import Any, Generator, Optional, Sequence, Union
 
 from src.db.models import Area, House, Tenant, Batch, Page, Document
 from src.routing.config import FOLDER_PREFIXES
@@ -46,7 +46,7 @@ def get_area(conn: sqlite3.Connection, area_id: str) -> Optional[Area]:
     return Area.model_validate(dict(row)) if row else None
 
 
-def list_areas(conn: sqlite3.Connection) -> List[Area]:
+def list_areas(conn: sqlite3.Connection) -> list[Area]:
     """List all areas ordered by id."""
     cursor = conn.execute("SELECT * FROM areas ORDER BY id")
     return [Area.model_validate(dict(row)) for row in cursor.fetchall()]
@@ -88,7 +88,7 @@ def get_house(conn: sqlite3.Connection, house_id: str) -> Optional[House]:
     return House.model_validate(dict(row)) if row else None
 
 
-def list_houses_by_area(conn: sqlite3.Connection, area_id: str) -> List[House]:
+def list_houses_by_area(conn: sqlite3.Connection, area_id: str) -> list[House]:
     """List all houses within an area."""
     cursor = conn.execute("SELECT * FROM houses WHERE area_id = ? ORDER BY id", (area_id,))
     return [House.model_validate(dict(row)) for row in cursor.fetchall()]
@@ -159,7 +159,7 @@ def get_active_tenant(
     return Tenant.model_validate(dict(row)) if row else None
 
 
-def list_tenants_by_house(conn: sqlite3.Connection, house_id: str) -> List[Tenant]:
+def list_tenants_by_house(conn: sqlite3.Connection, house_id: str) -> list[Tenant]:
     """List all tenants for a house ordered chronologically."""
     cursor = conn.execute(
         "SELECT * FROM tenants WHERE house_id = ? ORDER BY start_date ASC, id ASC",
@@ -237,7 +237,7 @@ def reallocate_house_documents(
     conn: sqlite3.Connection,
     house_id: str,
     autocommit: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Reallocate documents and pages of a house based on the tenant priority hierarchy:
     
     1. Explicit Name Match: If any page of the document explicitly names a known tenant,
@@ -250,7 +250,7 @@ def reallocate_house_documents(
     if not tenants:
         return {"reallocated_count": 0, "total_documents": 0, "tenants_count": 0}
 
-    tenant_map: Dict[str, Tenant] = {t.name.strip().lower(): t for t in tenants if t.id}
+    tenant_map: dict[str, Tenant] = {t.name.strip().lower(): t for t in tenants if t.id}
 
     # Fetch all documents for this house that are not manually locked (is_manual = 1)
     doc_rows = conn.execute(
@@ -270,7 +270,7 @@ def reallocate_house_documents(
         (house_id,),
     ).fetchall()
 
-    names_by_doc: Dict[str, List[str]] = {}
+    names_by_doc: dict[str, list[str]] = {}
     for r in page_rows:
         v_id = r["vault_id"]
         exp_name = r["expected_tenant_name"]
@@ -409,7 +409,7 @@ def update_batch_status(
     return Batch.model_validate(dict(row)) if row else None
 
 
-def list_batches_by_house(conn: sqlite3.Connection, house_id: str) -> List[Batch]:
+def list_batches_by_house(conn: sqlite3.Connection, house_id: str) -> list[Batch]:
     """List all batches for a house."""
     cursor = conn.execute(
         "SELECT * FROM batches WHERE house_id = ? ORDER BY created_at ASC, id ASC",
@@ -444,9 +444,9 @@ def add_pages_bulk(
     conn: sqlite3.Connection,
     pages: Sequence[Union[Page, dict]],
     autocommit: bool = True,
-) -> List[Page]:
+) -> list[Page]:
     """Bulk insert pages into the database."""
-    created_pages: List[Page] = []
+    created_pages: list[Page] = []
     insert_sql = """
     INSERT INTO pages (
         batch_id, page_number, house_id, category, content_explanation,
@@ -491,7 +491,7 @@ def add_pages_bulk(
     return created_pages
 
 
-def get_pages_by_batch(conn: sqlite3.Connection, batch_id: int) -> List[Page]:
+def get_pages_by_batch(conn: sqlite3.Connection, batch_id: int) -> list[Page]:
     """Retrieve all pages belonging to a batch ordered by page number."""
     cursor = conn.execute(
         "SELECT * FROM pages WHERE batch_id = ? ORDER BY page_number ASC",
@@ -638,7 +638,7 @@ def get_document(conn: sqlite3.Connection, vault_id: str) -> Optional[Document]:
     return Document.model_validate(dict(row)) if row else None
 
 
-def list_documents_by_house(conn: sqlite3.Connection, house_id: str) -> List[Document]:
+def list_documents_by_house(conn: sqlite3.Connection, house_id: str) -> list[Document]:
     """List all documents for a house."""
     query = "SELECT * FROM documents WHERE house_id = ? ORDER BY primary_date DESC, created_at DESC"
     cursor = conn.execute(query, (house_id,))
@@ -649,7 +649,7 @@ def list_documents_by_category(
     conn: sqlite3.Connection,
     house_id: str,
     category: str,
-) -> List[Document]:
+) -> list[Document]:
     """List documents for a house filtered by category."""
     query = """
     SELECT * FROM documents
@@ -669,6 +669,7 @@ def update_document(
     tenant_id: Optional[int] = None,
     primary_date: Optional[Union[str, date]] = None,
     is_manual: Optional[int] = 1,
+    notes: Optional[str] = None,
     autocommit: bool = True,
 ) -> Optional[Document]:
     """Update editable document metadata and mark as manually locked."""
@@ -677,7 +678,7 @@ def update_document(
         return None
 
     updates = []
-    params: List[Any] = []
+    params: list[Any] = []
     if arabic_title is not None:
         updates.append("arabic_title = ?")
         params.append(arabic_title.strip() if arabic_title else None)
@@ -693,6 +694,9 @@ def update_document(
     if is_manual is not None:
         updates.append("is_manual = ?")
         params.append(int(is_manual))
+    if notes is not None:
+        updates.append("notes = ?")
+        params.append(notes.strip() if notes else None)
 
     if not updates:
         return existing
@@ -711,6 +715,56 @@ def update_document(
     if autocommit:
         conn.commit()
     return Document.model_validate(dict(row)) if row else None
+
+
+def update_document_notes(
+    conn: sqlite3.Connection,
+    vault_id: str,
+    notes: str,
+    autocommit: bool = True,
+) -> Optional[Document]:
+    """Update custom notes on a document."""
+    existing = get_document(conn, vault_id)
+    if not existing:
+        return None
+    cleaned_notes = notes.strip() if notes else None
+    cursor = conn.execute(
+        "UPDATE documents SET notes = ? WHERE vault_id = ? RETURNING *",
+        (cleaned_notes, vault_id)
+    )
+    row = cursor.fetchone()
+    if autocommit:
+        conn.commit()
+    return Document.model_validate(dict(row)) if row else None
+
+
+def get_document_metadata(
+    conn: sqlite3.Connection,
+    vault_id: str,
+) -> Optional[dict]:
+    """Retrieve complete metadata for a document including tenant, batch, and page-level details."""
+    query = """
+    SELECT 
+        d.vault_id, d.house_id, d.category, d.primary_date, d.arabic_title,
+        d.page_count, d.is_manual, d.notes, d.created_at,
+        t.id as tenant_id, t.name as tenant_name, t.start_date as tenant_start_date, t.end_date as tenant_end_date,
+        b.filename as batch_filename
+    FROM documents d
+    LEFT JOIN tenants t ON d.tenant_id = t.id
+    LEFT JOIN batches b ON d.batch_id = b.id
+    WHERE d.vault_id = ?
+    """
+    row = conn.execute(query, (vault_id,)).fetchone()
+    if not row:
+        return None
+    
+    doc_dict = dict(row)
+    pages_cursor = conn.execute(
+        "SELECT page_number, subject, sender, receiver, content_explanation, raw_date, fine_category FROM pages WHERE vault_id = ? ORDER BY page_number ASC",
+        (vault_id,)
+    )
+    doc_dict["pages"] = [dict(p) for p in pages_cursor.fetchall()]
+    return doc_dict
 
 
 def reset_document_manual_lock(
@@ -840,7 +894,7 @@ class Repository:
     def get_area(self, area_id: str) -> Optional[Area]:
         return get_area(self.conn, area_id)
 
-    def list_areas(self) -> List[Area]:
+    def list_areas(self) -> list[Area]:
         return list_areas(self.conn)
 
     # House operations
@@ -855,7 +909,7 @@ class Repository:
     def get_house(self, house_id: str) -> Optional[House]:
         return get_house(self.conn, house_id)
 
-    def list_houses_by_area(self, area_id: str) -> List[House]:
+    def list_houses_by_area(self, area_id: str) -> list[House]:
         return list_houses_by_area(self.conn, area_id)
 
     # Tenant operations
@@ -884,7 +938,7 @@ class Repository:
     ) -> Optional[Tenant]:
         return get_active_tenant(self.conn, house_id, target_date=target_date)
 
-    def list_tenants_by_house(self, house_id: str) -> List[Tenant]:
+    def list_tenants_by_house(self, house_id: str) -> list[Tenant]:
         return list_tenants_by_house(self.conn, house_id)
 
     def get_tenant(self, tenant_id: int) -> Optional[Tenant]:
@@ -909,7 +963,7 @@ class Repository:
     def delete_tenant(self, tenant_id: int) -> bool:
         return delete_tenant(self.conn, tenant_id=tenant_id, autocommit=self.autocommit)
 
-    def reallocate_house_documents(self, house_id: str) -> Dict[str, Any]:
+    def reallocate_house_documents(self, house_id: str) -> dict[str, Any]:
         return reallocate_house_documents(self.conn, house_id=house_id, autocommit=self.autocommit)
 
     # Batch operations
@@ -939,14 +993,14 @@ class Repository:
     def update_batch_status(self, batch_id: int, status: str) -> Optional[Batch]:
         return update_batch_status(self.conn, batch_id, status, autocommit=self.autocommit)
 
-    def list_batches_by_house(self, house_id: str) -> List[Batch]:
+    def list_batches_by_house(self, house_id: str) -> list[Batch]:
         return list_batches_by_house(self.conn, house_id)
 
     # Page operations
-    def add_pages_bulk(self, pages: Sequence[Union[Page, dict]]) -> List[Page]:
+    def add_pages_bulk(self, pages: Sequence[Union[Page, dict]]) -> list[Page]:
         return add_pages_bulk(self.conn, pages, autocommit=self.autocommit)
 
-    def get_pages_by_batch(self, batch_id: int) -> List[Page]:
+    def get_pages_by_batch(self, batch_id: int) -> list[Page]:
         return get_pages_by_batch(self.conn, batch_id)
 
     def update_page_cleaning(self, page_id: int, **fields: Any) -> Optional[Page]:
@@ -988,10 +1042,10 @@ class Repository:
     def get_document(self, vault_id: str) -> Optional[Document]:
         return get_document(self.conn, vault_id)
 
-    def list_documents_by_house(self, house_id: str) -> List[Document]:
+    def list_documents_by_house(self, house_id: str) -> list[Document]:
         return list_documents_by_house(self.conn, house_id)
 
-    def list_documents_by_category(self, house_id: str, category: str) -> List[Document]:
+    def list_documents_by_category(self, house_id: str, category: str) -> list[Document]:
         return list_documents_by_category(self.conn, house_id, category)
 
     def update_document(
@@ -1003,6 +1057,7 @@ class Repository:
         tenant_id: Optional[int] = None,
         primary_date: Optional[Union[str, date]] = None,
         is_manual: Optional[int] = 1,
+        notes: Optional[str] = None,
     ) -> Optional[Document]:
         return update_document(
             self.conn,
@@ -1012,8 +1067,22 @@ class Repository:
             tenant_id=tenant_id,
             primary_date=primary_date,
             is_manual=is_manual,
+            notes=notes,
             autocommit=self.autocommit,
         )
+
+    def update_document_notes(
+        self,
+        vault_id: str,
+        notes: str,
+    ) -> Optional[Document]:
+        return update_document_notes(self.conn, vault_id, notes, autocommit=self.autocommit)
+
+    def get_document_metadata(
+        self,
+        vault_id: str,
+    ) -> Optional[dict]:
+        return get_document_metadata(self.conn, vault_id)
 
     def reset_document_manual_lock(self, vault_id: str) -> bool:
         return reset_document_manual_lock(self.conn, vault_id, autocommit=self.autocommit)

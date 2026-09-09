@@ -10,7 +10,7 @@ def make_valid_pdf(path):
 from pathlib import Path
 import shutil
 import logging
-from src.main import run_generation_pass
+from src.pipeline.runner import run_generation_pass
 from unittest.mock import patch, MagicMock
 
 def test_file_placement_logic(tmp_path) -> None:

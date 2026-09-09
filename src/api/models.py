@@ -16,6 +16,7 @@ class VaultFileResponse(BaseModel):
     category: str | None = None
     brief_arabic_title: str | None = None
     is_manual: int = 0
+    notes: str | None = None
 
 class CategoryResponse(BaseModel):
     tenant: str
@@ -31,6 +32,7 @@ class TimelineGroupResponse(BaseModel):
     brief_arabic_title: str
     category: str | None = None
     is_manual: int = 0
+    notes: str | None = None
 
 class TreeItemResponse(BaseModel):
     id: str
@@ -78,12 +80,21 @@ class TenantReallocationResponse(BaseModel):
 class DocumentTenantUpdateRequest(BaseModel):
     tenant_id: int
 
+class DocumentNotesRequest(BaseModel):
+    notes: str = ""
+
+class DocumentNotesResponse(BaseModel):
+    status: str
+    vault_id: str
+    notes: str | None = None
+
 class DocumentUpdateRequest(BaseModel):
     arabic_title: str | None = None
     category: str | None = None
     tenant_id: int | None = None
     primary_date: str | None = None
     is_manual: int | None = 1
+    notes: str | None = None
 
 class DocumentCopyRequest(BaseModel):
     target_category: str | None = None

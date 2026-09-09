@@ -48,6 +48,7 @@
                             tenant: tenant,
                             brief_arabic_title: g.brief_arabic_title || '',
                             is_manual: g.is_manual || 0,
+                            notes: g.notes || '',
                             category: catNumbered
                         });
                     }
@@ -128,6 +129,14 @@
                 card.ondrop = (e) => window.handleCategoryDrop(e, cat.name, card);
             }
 
+            const hasNotedDoc = Boolean(cat.documents && cat.documents.some(d => d.notes && d.notes.trim()));
+            const noteFolderBadge = hasNotedDoc 
+                ? '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-300/80 flex-shrink-0" title="Contains documents with notes">📝 Notes</span>'
+                : '';
+            const docsContainerClasses = hasNotedDoc 
+                ? 'category-docs mt-2.5 pt-2.5 border-t border-slate-100 space-y-1'
+                : 'category-docs hidden mt-2.5 pt-2.5 border-t border-slate-100 space-y-1';
+
             card.innerHTML = `
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-2 min-w-0">
@@ -136,9 +145,12 @@
                         </div>
                         <h4 class="text-xs font-semibold text-slate-800 truncate">${cat.name}</h4>
                     </div>
-                    <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-bold border border-slate-200 flex-shrink-0">${cat.document_count} Documents</span>
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        ${noteFolderBadge}
+                        <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-bold border border-slate-200 flex-shrink-0">${cat.document_count} Documents</span>
+                    </div>
                 </div>
-                <div class="category-docs hidden mt-2.5 pt-2.5 border-t border-slate-100 space-y-1">
+                <div class="${docsContainerClasses}">
                 </div>
             `;
             
@@ -146,7 +158,16 @@
                 const docsContainer = card.querySelector('.category-docs');
                 cat.documents.forEach(doc => {
                     const docEl = document.createElement('div');
-                    docEl.className = 'text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors flex items-center justify-between gap-2 font-medium group/doc';
+                    const hasNotes = Boolean(doc.notes && doc.notes.trim());
+                    const noteBadge = hasNotes 
+                        ? '<span class="doc-note-badge inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-medium bg-amber-100 text-amber-800 border border-amber-300/60 flex-shrink-0" title="Contains custom notes">📝 Note</span>' 
+                        : '';
+
+                    const highlightClasses = hasNotes
+                        ? 'bg-amber-50/80 border-l-4 border-l-amber-400 border border-amber-200/80 text-amber-900 hover:bg-amber-100/70 hover:border-amber-300 shadow-2xs'
+                        : 'text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50';
+
+                    docEl.className = `${highlightClasses} px-2.5 py-1.5 rounded-lg cursor-pointer transition-all flex items-center justify-between gap-2 font-medium group/doc`;
                     docEl.draggable = true;
                     docEl.setAttribute('data-vault-id', doc.vault_id);
                     if (typeof window.handleDocDragStart === 'function') {
@@ -160,15 +181,16 @@
 
                     docEl.innerHTML = `
                         <div class="flex items-center gap-2 min-w-0 flex-1">
-                            <span class="doc-icon-preview p-0.5 rounded text-blue-500 hover:text-blue-700 hover:bg-blue-100 cursor-pointer flex-shrink-0 transition-colors" title="Quick Preview (or press Space)">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                            <span class="doc-icon-preview p-0.5 rounded text-blue-500 hover:text-blue-700 hover:bg-blue-100 cursor-pointer flex-shrink-0 transition-colors" title="Document Details & Notes (Spacebar)">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             </span>
-                            <span class="truncate text-slate-800">${title}</span>
+                            <span class="truncate ${hasNotes ? 'text-amber-950 font-semibold' : 'text-slate-800'}">${title}</span>
                             ${lockIcon}
+                            ${noteBadge}
                         </div>
                         <div class="flex items-center gap-1 flex-shrink-0">
-                            <button type="button" class="doc-quick-look-btn opacity-0 group-hover/doc:opacity-100 p-1 hover:bg-blue-100 rounded text-slate-400 hover:text-blue-600 transition-opacity" title="Quick Look (Spacebar)">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            <button type="button" class="doc-info-btn doc-quick-look-btn opacity-0 group-hover/doc:opacity-100 p-1 hover:bg-blue-100 rounded text-slate-400 hover:text-blue-600 transition-opacity" title="Document Details & Notes (Spacebar)">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             </button>
                             <button type="button" class="doc-menu-btn opacity-0 group-hover/doc:opacity-100 p-1 hover:bg-blue-100 rounded text-slate-400 hover:text-slate-700 transition-opacity" data-vault-id="${doc.vault_id}" title="Manage Document (Rename, Move, Copy)">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
@@ -177,7 +199,7 @@
                     `;
 
                     const previewIcon = docEl.querySelector('.doc-icon-preview');
-                    const quickLookBtn = docEl.querySelector('.doc-quick-look-btn');
+                    const infoBtn = docEl.querySelector('.doc-info-btn') || docEl.querySelector('.doc-quick-look-btn');
                     const menuBtn = docEl.querySelector('.doc-menu-btn');
 
                     // Zero-click Live Peek in the right panel on hover (250ms debounce)
@@ -191,20 +213,24 @@
                             if (typeof window.setSelectedDoc === 'function') {
                                 window.setSelectedDoc(doc, title, docEl);
                             }
-                            if (typeof window.openQuickLook === 'function') {
+                            if (typeof window.openDocInspector === 'function') {
+                                window.openDocInspector(doc.vault_id, title, doc);
+                            } else if (typeof window.openQuickLook === 'function') {
                                 window.openQuickLook(doc.vault_id, title, doc);
                             }
                         };
                     }
 
-                    // Eye button: opens the centered macOS-style Quick Look modal
-                    if (quickLookBtn) {
-                        quickLookBtn.onclick = (e) => {
+                    // Info button: opens the centered macOS-style Document Inspector & Notes modal
+                    if (infoBtn) {
+                        infoBtn.onclick = (e) => {
                             e.stopPropagation();
                             if (typeof window.setSelectedDoc === 'function') {
                                 window.setSelectedDoc(doc, title, docEl);
                             }
-                            if (typeof window.openQuickLook === 'function') {
+                            if (typeof window.openDocInspector === 'function') {
+                                window.openDocInspector(doc.vault_id, title, doc);
+                            } else if (typeof window.openQuickLook === 'function') {
                                 window.openQuickLook(doc.vault_id, title, doc);
                             }
                         };

@@ -208,3 +208,57 @@ def test_copy_document_creates_duplicate_and_preserves_original(db_setup):
     copy_pdf = tmp_path / "Safra C" / "514" / "vault" / f"doc_{new_vault_id}.pdf"
     assert copy_pdf.exists()
     assert copy_pdf.read_bytes() == b"%PDF-1.4 mock pdf content"
+
+
+def test_update_document_notes_and_reflection_in_categories_and_timeline(db_setup):
+    res = client.patch(
+        "/api/areas/Safra C/houses/514/documents/v_doc_001/notes",
+        json={"notes": "ملاحظة هامة: يجب مراجعة الفاتورة مع المستأجر"}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert data["vault_id"] == "v_doc_001"
+    assert data["notes"] == "ملاحظة هامة: يجب مراجعة الفاتورة مع المستأجر"
+
+    # Verify directly in repo
+    repo = db_setup["repo"]
+    doc = repo.get_document("v_doc_001")
+    assert doc.notes == "ملاحظة هامة: يجب مراجعة الفاتورة مع المستأجر"
+
+    # Verify categories endpoint returns the note
+    cat_res = client.get("/api/areas/Safra C/houses/514/categories")
+    assert cat_res.status_code == 200
+    categories = cat_res.json()
+    doc_in_cat = None
+    for cat in categories:
+        for d in cat["documents"]:
+            if d["vault_id"] == "v_doc_001":
+                doc_in_cat = d
+                break
+    assert doc_in_cat is not None
+    assert doc_in_cat["notes"] == "ملاحظة هامة: يجب مراجعة الفاتورة مع المستأجر"
+
+    # Verify timeline endpoint returns the note
+    time_res = client.get("/api/areas/Safra C/houses/514/timeline")
+    assert time_res.status_code == 200
+    timeline = time_res.json()
+    doc_in_timeline = next(t for t in timeline if t["vault_id"] == "v_doc_001")
+    assert doc_in_timeline["notes"] == "ملاحظة هامة: يجب مراجعة الفاتورة مع المستأجر"
+
+
+def test_get_document_metadata(db_setup):
+    # Set a note first
+    client.patch(
+        "/api/areas/Safra C/houses/514/documents/v_doc_001/notes",
+        json={"notes": "اختبار الملاحظات"}
+    )
+    res = client.get("/api/areas/Safra C/houses/514/documents/v_doc_001/metadata")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["vault_id"] == "v_doc_001"
+    assert data["arabic_title"] == "فاتورة قديمة"
+    assert data["tenant_name"] == "محمد مبارك"
+    assert data["notes"] == "اختبار الملاحظات"
+    assert "pages" in data
+

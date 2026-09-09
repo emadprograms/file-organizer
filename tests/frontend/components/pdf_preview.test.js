@@ -262,15 +262,35 @@ describe('PDF Preview & macOS Quick Look — Live Component Tests', () => {
       </div>
       <div id="quick-look-modal" class="hidden">
         <span id="quick-look-title"></span>
+        <span id="doc-inspector-subtitle"></span>
         <span id="quick-look-badge" class="hidden"></span>
+        <span id="doc-inspector-tenant-val"></span>
+        <span id="doc-inspector-category-val"></span>
+        <span id="doc-inspector-date-val"></span>
+        <span id="doc-inspector-pages-val"></span>
+        <span id="doc-inspector-manual-badge" class="hidden"></span>
+        <span id="doc-inspector-vault-id"></span>
+        <span id="doc-inspector-batch"></span>
+        <span id="doc-inspector-cat-text"></span>
+        <span id="doc-inspector-tenant-text"></span>
+        <textarea id="doc-inspector-notes-input"></textarea>
+        <span id="doc-inspector-notes-status"></span>
+        <button id="doc-inspector-save-notes-btn"></button>
+        <div id="doc-inspector-pages-section" class="hidden">
+          <div id="doc-inspector-pages-list"></div>
+        </div>
         <button id="quick-look-close"></button>
         <button id="quick-look-open-full"></button>
-        <iframe id="quick-look-iframe" src="about:blank"></iframe>
       </div>
-      <div id="card-1" class="group/doc">
-        <span class="doc-icon-preview">Icon</span>
-        <button class="doc-quick-look-btn">Eye</button>
-        <button class="doc-menu-btn">Menu</button>
+      <div id="card-1" class="group/doc" data-vault-id="vault99">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="doc-icon-preview">Icon</span>
+          <span class="truncate">Contract 2026</span>
+        </div>
+        <div class="flex items-center gap-1 flex-shrink-0">
+          <button class="doc-info-btn doc-quick-look-btn">Info</button>
+          <button class="doc-menu-btn">Menu</button>
+        </div>
       </div>
     `;
 
@@ -331,27 +351,27 @@ describe('PDF Preview & macOS Quick Look — Live Component Tests', () => {
     expect(peeked).toBe(null);
   });
 
-  it('opens and closes Quick Look modal via Spacebar', () => {
+  it('opens and closes Document Inspector modal via Spacebar', () => {
     const modal = document.getElementById('quick-look-modal');
     const qlTitle = document.getElementById('quick-look-title');
-    const qlIframe = document.getElementById('quick-look-iframe');
+    const vaultIdEl = document.getElementById('doc-inspector-vault-id');
 
     const card = document.getElementById('card-1');
-    window.setSelectedDoc({ vault_id: 'vault99', filename: 'Contract.pdf' }, 'Contract 2026', card);
+    window.setSelectedDoc({ vault_id: 'vault99', filename: 'Contract.pdf', notes: 'Initial note' }, 'Contract 2026', card);
 
     expect(card.classList.contains('doc-row-selected')).toBe(true);
     expect(modal.classList.contains('hidden')).toBe(true);
 
-    // Press Space to open Quick Look
+    // Press Space to open Inspector
     document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true }));
     expect(modal.classList.contains('hidden')).toBe(false);
     expect(qlTitle.textContent).toBe('Contract 2026');
-    expect(qlIframe.src).toContain('vault99');
+    expect(vaultIdEl.textContent).toBe('vault99');
+    expect(document.getElementById('doc-inspector-notes-input').value).toBe('Initial note');
 
-    // Press Space again to close Quick Look
+    // Press Space again to close Inspector
     document.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true }));
     expect(modal.classList.contains('hidden')).toBe(true);
-    expect(qlIframe.src).toBe('about:blank');
   });
 
   it('closes Quick Look modal when Escape is pressed', () => {
@@ -414,5 +434,90 @@ describe('PDF Preview & macOS Quick Look — Live Component Tests', () => {
     vi.advanceTimersByTime(250);
 
     expect(peeked).toBe(null);
+  });
+
+  it('updates document card in DOM with yellow highlight and Note badge when notes are saved', () => {
+    const card = document.getElementById('card-1');
+    expect(card.classList.contains('border-l-amber-400')).toBe(false);
+    expect(card.querySelector('.doc-note-badge')).toBe(null);
+
+    // Call updateDocRowInDOM directly with notes
+    window.updateDocRowInDOM('vault99', 'Important lease agreement note');
+
+    expect(card.classList.contains('border-l-amber-400')).toBe(true);
+    expect(card.classList.contains('bg-amber-50/80')).toBe(true);
+    const badge = card.querySelector('.doc-note-badge');
+    expect(badge).not.toBe(null);
+    expect(badge.textContent).toContain('Note');
+
+    // Removing notes removes the highlight and badge
+    window.updateDocRowInDOM('vault99', '');
+    expect(card.classList.contains('border-l-amber-400')).toBe(false);
+    expect(card.querySelector('.doc-note-badge')).toBe(null);
+  });
+
+  it('does NOT close inspector modal when Spacebar is typed inside notes textarea', () => {
+    const modal = document.getElementById('quick-look-modal');
+    window.openQuickLook('vault99', 'Contract 2026');
+    expect(modal.classList.contains('hidden')).toBe(false);
+
+    const textarea = document.getElementById('doc-inspector-notes-input');
+    textarea.focus();
+
+    // Fire Spacebar event inside the focused textarea
+    const spaceEvt = new KeyboardEvent('keydown', { key: ' ', code: 'Space', bubbles: true });
+    textarea.dispatchEvent(spaceEvt);
+
+    // Modal should remain open for typing!
+    expect(modal.classList.contains('hidden')).toBe(false);
+  });
+
+  it('auto-expands category folder when category contains a noted document', async () => {
+    const fs = await import('fs');
+    const catCode = fs.readFileSync('src/api/static/js/categories-view.js', 'utf-8');
+
+    // Scaffold list container
+    const listEl = document.createElement('div');
+    listEl.id = 'document-list';
+    document.body.appendChild(listEl);
+
+    // Define currentCategories with 2 categories: one without notes, one with notes
+    window.currentCategories = [
+      {
+        tenant: 'Tenant A',
+        name: '01 - Personal',
+        document_count: 1,
+        documents: [{ vault_id: 'doc1', brief_arabic_title: 'Doc 1', notes: '' }]
+      },
+      {
+        tenant: 'Tenant A',
+        name: '02 - Contracts',
+        document_count: 1,
+        documents: [{ vault_id: 'doc2', brief_arabic_title: 'Doc 2', notes: 'Urgent renewal needed' }]
+      }
+    ];
+    window.currentTenant = 'Tenant A';
+    window.isStaticMode = false;
+
+    // Run categories-view component
+    const runCat = new Function(catCode);
+    runCat();
+    window.renderCategories();
+
+    const folderCards = listEl.querySelectorAll('.category-folder-card');
+    expect(folderCards.length).toBe(2);
+
+    // Folder 1 (no notes) should be hidden/minimized
+    const folder1Docs = folderCards[0].querySelector('.category-docs');
+    expect(folder1Docs.classList.contains('hidden')).toBe(true);
+
+    // Folder 2 (has noted doc) should be AUTO-EXPANDED (not hidden!)
+    const folder2Docs = folderCards[1].querySelector('.category-docs');
+    expect(folder2Docs.classList.contains('hidden')).toBe(false);
+
+    // Inside folder 2, doc2 must have yellow highlight and Note badge
+    const doc2El = folder2Docs.querySelector('[data-vault-id="doc2"]');
+    expect(doc2El.classList.contains('border-l-amber-400')).toBe(true);
+    expect(doc2El.querySelector('.doc-note-badge')).not.toBe(null);
   });
 });

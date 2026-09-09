@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS documents (
     category TEXT,
     page_count INTEGER DEFAULT 1,
     is_manual INTEGER DEFAULT 0,
+    notes TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -93,6 +94,8 @@ def init_db(conn: sqlite3.Connection) -> None:
     existing_cols = [row[1] for row in cursor.fetchall()]
     if existing_cols and "is_manual" not in existing_cols:
         conn.execute("ALTER TABLE documents ADD COLUMN is_manual INTEGER DEFAULT 0")
+    if existing_cols and "notes" not in existing_cols:
+        conn.execute("ALTER TABLE documents ADD COLUMN notes TEXT")
 
     conn.executescript(INDICES_SQL)
     conn.commit()
