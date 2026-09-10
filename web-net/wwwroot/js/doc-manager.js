@@ -67,6 +67,38 @@
         if (btnModeCopy) btnModeCopy.addEventListener('click', () => setDocModalMode('copy'));
     }
 
+    function getAreaFromHash() {
+        if (typeof window !== 'undefined' && window.location && window.location.hash) {
+            const match = window.location.hash.match(/#\/area\/([^/]+)/);
+            if (match) return decodeURIComponent(match[1]).replace(/^area_/, '');
+        }
+        return '';
+    }
+
+    function getHouseFromHash() {
+        if (typeof window !== 'undefined' && window.location && window.location.hash) {
+            const match = window.location.hash.match(/house\/([^/]+)/);
+            if (match) return decodeURIComponent(match[1]);
+        }
+        return '';
+    }
+
+    function getResolvedArea(explicitDoc = null) {
+        if (explicitDoc && explicitDoc.area_id) return explicitDoc.area_id;
+        if (activeDocModalDoc && activeDocModalDoc.area_id) return activeDocModalDoc.area_id;
+        if (typeof currentArea !== 'undefined' && currentArea) return currentArea;
+        if (typeof window !== 'undefined' && window.currentArea) return window.currentArea;
+        return getAreaFromHash();
+    }
+
+    function getResolvedHouse(explicitDoc = null) {
+        if (explicitDoc && explicitDoc.house_id) return explicitDoc.house_id;
+        if (activeDocModalDoc && activeDocModalDoc.house_id) return activeDocModalDoc.house_id;
+        if (typeof currentHouse !== 'undefined' && currentHouse) return currentHouse;
+        if (typeof window !== 'undefined' && window.currentHouse) return window.currentHouse;
+        return getHouseFromHash();
+    }
+
     function handleDocDragStart(e, doc, fromCategory) {
         draggedDoc = {
             vault_id: doc.vault_id,
@@ -74,8 +106,8 @@
             category: fromCategory || doc.category || '',
             tenant: doc.tenant || doc.primary_tenant || '',
             tenant_id: doc.tenant_id,
-            house_id: currentHouse,
-            area_id: currentArea,
+            house_id: getResolvedHouse(doc),
+            area_id: getResolvedArea(doc),
         };
         e.dataTransfer.setData('text/plain', doc.vault_id);
         e.dataTransfer.effectAllowed = 'copyMove';
@@ -109,8 +141,11 @@
         if (!draggedDoc || !draggedDoc.vault_id) return;
         if (draggedDoc.category === targetCategory) return;
 
+        const area = getResolvedArea(draggedDoc);
+        const house = getResolvedHouse(draggedDoc);
+
         try {
-            const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/documents/${encodeURIComponent(draggedDoc.vault_id)}`, {
+            const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(draggedDoc.vault_id)}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ category: targetCategory, is_manual: 1 })
@@ -122,7 +157,7 @@
             const data = await res.json();
             showToast(`Moved to ${data.category || targetCategory}`);
             if (typeof window.refreshCurrentTab === 'function') {
-                await window.refreshCurrentTab(currentArea, currentHouse);
+                await window.refreshCurrentTab(area, house);
             }
         } catch (err) {
             console.error(err);
@@ -132,7 +167,8 @@
 
     function handleTenantTreeDragOver(e, btn, parentPath) {
         if (!draggedDoc || !draggedDoc.vault_id) return;
-        if (parentPath && !parentPath.includes(encodeURIComponent(currentHouse)) && !parentPath.includes(currentHouse)) {
+        const house = getResolvedHouse(draggedDoc);
+        if (parentPath && house && !parentPath.includes(encodeURIComponent(house)) && !parentPath.includes(house)) {
             return;
         }
         e.preventDefault();
@@ -148,19 +184,21 @@
         e.preventDefault();
         btn.classList.remove('drag-over-active', 'bg-slate-700/80', 'ring-2', 'ring-blue-400');
         if (!draggedDoc || !draggedDoc.vault_id) return;
-        if (parentPath && !parentPath.includes(encodeURIComponent(currentHouse)) && !parentPath.includes(currentHouse)) {
+        const area = getResolvedArea(draggedDoc);
+        const house = getResolvedHouse(draggedDoc);
+        if (parentPath && house && !parentPath.includes(encodeURIComponent(house)) && !parentPath.includes(house)) {
             showToast('Cannot move document to another house.', 'error');
             return;
         }
 
         try {
-            const tRes = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/tenants`);
+            const tRes = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/tenants`);
             if (!tRes.ok) throw new Error('Failed to load tenants');
             const tenants = await tRes.json();
             const target = tenants.find(t => t.name.trim() === tenantName.trim());
             if (!target) throw new Error('Tenant not found');
 
-            const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/documents/${encodeURIComponent(draggedDoc.vault_id)}`, {
+            const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(draggedDoc.vault_id)}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tenant_id: target.id, is_manual: 1 })
@@ -171,7 +209,7 @@
             }
             showToast(`Assigned to ${tenantName}`);
             if (typeof window.refreshCurrentTab === 'function') {
-                await window.refreshCurrentTab(currentArea, currentHouse);
+                await window.refreshCurrentTab(area, house);
             }
         } catch (err) {
             console.error(err);
@@ -180,7 +218,17 @@
     }
 
     async function openDocModal(doc, currentCategory = null) {
-        activeDocModalDoc = doc;
+        if (!doc) return;
+        activeDocModalDoc = {
+            ...doc,
+            area_id: getResolvedArea(doc),
+            house_id: getResolvedHouse(doc),
+        };
+        try {
+            doc.area_id = activeDocModalDoc.area_id;
+            doc.house_id = activeDocModalDoc.house_id;
+        } catch (_) {}
+
         activeDocModalCategory = currentCategory || doc.category || '';
         setDocModalMode('move');
 
@@ -200,6 +248,7 @@
         populateFolderOptions(activeDocModalCategory);
         await populateTenantOptions(doc.tenant_id, doc.tenant || doc.primary_tenant);
 
+        docActionModal.style.display = 'flex';
         docActionModal.classList.remove('hidden');
         docActionModal.classList.add('flex');
     }
@@ -208,6 +257,7 @@
         if (!docActionModal) return;
         docActionModal.classList.add('hidden');
         docActionModal.classList.remove('flex');
+        docActionModal.style.display = 'none';
         activeDocModalDoc = null;
     }
 
@@ -275,7 +325,10 @@
         if (!docModalTenantSelect) return;
         docModalTenantSelect.innerHTML = '';
         try {
-            const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/tenants`);
+            const area = getResolvedArea(activeDocModalDoc);
+            const house = getResolvedHouse(activeDocModalDoc);
+            if (!area || !house) return;
+            const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/tenants`);
             if (!res.ok) return;
             const tenants = await res.json();
             const seen = new Set();
@@ -304,6 +357,9 @@
 
     async function saveDocModal() {
         if (!activeDocModalDoc || !activeDocModalDoc.vault_id) return;
+        const area = getResolvedArea(activeDocModalDoc);
+        const house = getResolvedHouse(activeDocModalDoc);
+
         docModalSubmit.disabled = true;
         const origBtnText = docModalSubmitText.textContent;
         docModalSubmitText.textContent = 'Saving...';
@@ -322,7 +378,7 @@
             const newTenantId = parseInt(docModalTenantSelect.value);
 
             if (activeDocModalMode === 'copy') {
-                const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/documents/${encodeURIComponent(activeDocModalDoc.vault_id)}/copy`, {
+                const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(activeDocModalDoc.vault_id)}/copy`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -337,7 +393,7 @@
                 }
                 showToast('Document duplicated successfully');
             } else {
-                const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/documents/${encodeURIComponent(activeDocModalDoc.vault_id)}`, {
+                const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(activeDocModalDoc.vault_id)}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -355,12 +411,15 @@
             }
 
             closeDocModal();
-            if (typeof window.refreshCurrentTab === 'function') {
-                await window.refreshCurrentTab(currentArea, currentHouse);
+            if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                await window.refreshCurrentTab(area, house);
+            } else if (typeof refreshCurrentTab === 'function') {
+                await refreshCurrentTab(area, house);
             }
         } catch (err) {
             docModalStatus.textContent = err.message;
             docModalStatus.className = 'px-6 py-1 text-xs font-semibold text-rose-600 block';
+            docModalStatus.classList.remove('hidden');
         } finally {
             docModalSubmit.disabled = false;
             docModalSubmitText.textContent = origBtnText;
@@ -369,29 +428,42 @@
 
     async function resetDocLock() {
         if (!activeDocModalDoc || !activeDocModalDoc.vault_id) return;
+        const area = getResolvedArea(activeDocModalDoc);
+        const house = getResolvedHouse(activeDocModalDoc);
         btnDocResetLock.disabled = true;
         btnDocResetLock.textContent = 'Resetting...';
         try {
-            const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/documents/${encodeURIComponent(activeDocModalDoc.vault_id)}/reset-lock`, {
+            const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(activeDocModalDoc.vault_id)}/reset-lock`, {
                 method: 'POST',
             });
             if (!res.ok) throw new Error('Failed to reset lock');
             showToast('Reset to automatic successfully');
             closeDocModal();
-            if (typeof window.refreshCurrentTab === 'function') {
-                await window.refreshCurrentTab(currentArea, currentHouse);
+            if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                await window.refreshCurrentTab(area, house);
+            } else if (typeof refreshCurrentTab === 'function') {
+                await refreshCurrentTab(area, house);
             }
         } catch (err) {
             docModalStatus.textContent = err.message;
             docModalStatus.className = 'px-6 py-1 text-xs font-semibold text-rose-600 block';
+            docModalStatus.classList.remove('hidden');
         } finally {
             btnDocResetLock.disabled = false;
             btnDocResetLock.textContent = 'Reset to Auto';
         }
     }
 
-    async function handleDeleteDoc() {
-        if (!activeDocModalDoc || !activeDocModalDoc.vault_id) return;
+    async function handleDeleteDoc(e) {
+        if (e) {
+            if (typeof e.preventDefault === 'function') e.preventDefault();
+            if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        }
+
+        if (!activeDocModalDoc || !activeDocModalDoc.vault_id) {
+            closeDocModal();
+            return;
+        }
 
         const confirmed = confirm('Are you sure you want to permanently delete this document? This will remove the file and all its records.');
         if (!confirmed) return;
@@ -401,11 +473,12 @@
             btnDocDelete.innerHTML = '<span>Deleting...</span>';
         }
 
-        const area = (typeof currentArea !== 'undefined' && currentArea) ? currentArea : (activeDocModalDoc.area_id || '');
-        const house = (typeof currentHouse !== 'undefined' && currentHouse) ? currentHouse : (activeDocModalDoc.house_id || '');
+        const area = getResolvedArea(activeDocModalDoc);
+        const house = getResolvedHouse(activeDocModalDoc);
+        const vaultId = activeDocModalDoc.vault_id;
 
         try {
-            const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(activeDocModalDoc.vault_id)}`, {
+            const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(vaultId)}`, {
                 method: 'DELETE'
             });
             if (!res.ok) {
@@ -413,22 +486,38 @@
                 throw new Error(errData.detail || errData.message || 'Failed to delete document');
             }
 
-            if (typeof showToast === 'function') {
-                showToast('Document deleted successfully.');
-            }
             closeDocModal();
-            if (typeof window.refreshCurrentTab === 'function') {
-                await window.refreshCurrentTab(area, house);
-            }
-            if (typeof window.loadTree === 'function') {
-                await window.loadTree();
+
+            try {
+                if (typeof showToast === 'function') {
+                    showToast('Document deleted successfully.');
+                } else if (typeof window !== 'undefined' && typeof window.showToast === 'function') {
+                    window.showToast('Document deleted successfully.');
+                }
+                if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                    await window.refreshCurrentTab(area, house);
+                } else if (typeof refreshCurrentTab === 'function') {
+                    await refreshCurrentTab(area, house);
+                }
+                if (typeof window !== 'undefined' && typeof window.loadTree === 'function') {
+                    await window.loadTree();
+                } else if (typeof loadTree === 'function') {
+                    await loadTree();
+                }
+            } catch (refreshErr) {
+                console.error('Error refreshing UI after document deletion:', refreshErr);
             }
         } catch (err) {
+            console.error('Failed to delete document:', err);
             if (docModalStatus) {
                 docModalStatus.textContent = err.message;
                 docModalStatus.className = 'px-6 py-1 text-xs font-semibold text-rose-600 block';
-            } else if (typeof showToast === 'function') {
+                docModalStatus.classList.remove('hidden');
+            }
+            if (typeof showToast === 'function') {
                 showToast(err.message, 'error');
+            } else if (typeof window !== 'undefined' && typeof window.showToast === 'function') {
+                window.showToast(err.message, 'error');
             }
         } finally {
             if (btnDocDelete) {
@@ -455,6 +544,10 @@
     window.handleTenantTreeDragOver = handleTenantTreeDragOver;
     window.handleTenantTreeDragLeave = handleTenantTreeDragLeave;
     window.handleTenantTreeDrop = handleTenantTreeDrop;
+    window.getAreaFromHash = getAreaFromHash;
+    window.getHouseFromHash = getHouseFromHash;
+    window.getResolvedArea = getResolvedArea;
+    window.getResolvedHouse = getResolvedHouse;
 
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = {
@@ -466,6 +559,10 @@
             saveDocModal,
             resetDocLock,
             STANDARD_FOLDERS,
+            getAreaFromHash,
+            getHouseFromHash,
+            getResolvedArea,
+            getResolvedHouse,
         };
     }
 
