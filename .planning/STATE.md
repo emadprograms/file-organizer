@@ -2,24 +2,24 @@
 gsd_state_version: 1.0
 milestone: v14.0
 milestone_name: Power-User Operations & Portfolio Expansion
-current_phase: 105
+current_phase: 106
 status: in_progress
-last_updated: "2026-09-10T21:29:00.000Z"
+last_updated: "2026-09-10T21:38:00.000Z"
 last_activity: 2026-09-10
-last_activity_desc: "Initialized Milestone v14.0: Power-User Operations & Portfolio Expansion."
+last_activity_desc: "Completed Phase 105: House Archive ZIP Export Pipeline across FastAPI, ASP.NET Core, and UI."
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 0
-  percent: 0
-stopped_at: Initialized Milestone v14.0
+  completed_plans: 1
+  percent: 25
+stopped_at: Completed Phase 105
 ---
 
 # Milestone State
 
 **Current Milestone:** v14.0: Power-User Operations & Portfolio Expansion
-**Current Phase:** 105: House Archive ZIP Export Pipeline (In Progress)
+**Current Phase:** 106: Multi-Select Batch Document Operations (In Progress)
 **Status:** in_progress
 
 

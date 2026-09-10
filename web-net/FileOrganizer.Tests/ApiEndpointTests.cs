@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
@@ -429,6 +430,20 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
 
         var verifyNotFound = await _client.DeleteAsync($"/api/areas/Safra%20C/houses/500/documents/{ingest.VaultId}");
         Assert.Equal(HttpStatusCode.NotFound, verifyNotFound.StatusCode);
+    }
+
+    [Fact]
+    public async Task ExportZip_ReturnsZipArchive()
+    {
+        var response = await _client.GetAsync("/api/areas/Safra%20C/houses/500/export-zip");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/zip", response.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("archive_Safra_C_500.zip", response.Content.Headers.ContentDisposition?.FileName);
+
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        using var memoryStream = new MemoryStream(bytes);
+        using var zip = new ZipArchive(memoryStream, ZipArchiveMode.Read);
+        Assert.NotEmpty(zip.Entries);
     }
 }
 

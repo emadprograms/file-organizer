@@ -14,7 +14,7 @@
 
 ### 🔄 v14.0 Power-User Operations & Portfolio Expansion (Phases 105-108)
 
-- [ ] Phase 105: House Archive ZIP Export Pipeline (FastAPI, ASP.NET Core & UI Button) (0/1 plans)
+- [x] Phase 105: House Archive ZIP Export Pipeline (FastAPI, ASP.NET Core & UI Button) (1/1 plans) — completed 2026-09-10
 - [ ] Phase 106: Multi-Select Batch Document Operations (Batch Move, Batch Delete & Selection Bar) (0/1 plans)
 - [ ] Phase 107: Portfolio Expansion ("+ Add House" Modal & Backend House Registration) (0/1 plans)
 - [ ] Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (0/1 plans)
@@ -98,7 +98,7 @@ See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md) for full 
 | 102. ASP.NET Core Data Layer & Repository (Dapper + SQLite WAL) | v13.0 | 1/1 | Complete | 2026-09-09 |
 | 103. ASP.NET Core Minimal API Endpoints & Static Serving | v13.0 | 1/1 | Complete | 2026-09-09 |
 | 104. Parity Verification, Windows Single-File Build & Milestone Audit | v13.0 | 1/1 | Complete | 2026-09-09 |
-| 105. House Archive ZIP Export Pipeline | v14.0 | 0/1 | Pending | - |
+| 105. House Archive ZIP Export Pipeline | v14.0 | 1/1 | Complete | 2026-09-10 |
 | 106. Multi-Select Batch Document Operations | v14.0 | 0/1 | Pending | - |
 | 107. Portfolio Expansion (+ Add House) | v14.0 | 0/1 | Pending | - |
 | 108. Keyboard Shortcuts & Milestone Verification | v14.0 | 0/1 | Pending | - |

@@ -7,8 +7,8 @@ Equip the digital archive management system with power-user operational tools: o
 ## Requirements
 
 ### Archive Export
-- [ ] **EXP-01**: Backend ZIP export stream endpoint `GET /api/areas/{area}/houses/{house}/export-zip` in both FastAPI and ASP.NET Core. Packages all vault documents for the requested house into an in-memory or streamed ZIP archive with clean, collision-free Arabic filenames (`{folder_index}_{title}.pdf`), setting proper `Content-Disposition` attachment headers.
-- [ ] **EXP-02**: Modern UI Export Button on the House Profile header (`[ 📦 Export Archive ZIP ]`). Displays an active download spinner during generation, handles browser file download, and provides user feedback via toast notifications.
+- [x] **EXP-01**: Backend ZIP export stream endpoint `GET /api/areas/{area}/houses/{house}/export-zip` in both FastAPI and ASP.NET Core. Packages all vault documents for the requested house into an in-memory or streamed ZIP archive with clean, collision-free Arabic filenames (`{folder_index}_{title}.pdf`), setting proper `Content-Disposition` attachment headers.
+- [x] **EXP-02**: Modern UI Export Button on the House Profile header (`[ 📦 Export Archive ZIP ]`). Displays an active download spinner during generation, handles browser file download, and provides user feedback via toast notifications.
 
 ### Multi-Select Batch Document Operations
 - [ ] **BAT-01**: Multi-select checkbox UI in category folder document lists. Features per-card selection checkboxes, a "Select All / Deselect All" toggle, and a sleek floating bottom action bar displaying the count of selected documents and action buttons (`[ Move Selected ]`, `[ Delete Selected ]`, `[ Deselect ]`).
@@ -31,8 +31,8 @@ Equip the digital archive management system with power-user operational tools: o
 
 | Requirement | Description | Phase | Status |
 |---|---|---|---|
-| EXP-01 | Backend ZIP export endpoint in FastAPI & ASP.NET Core | Phase 105 | Pending |
-| EXP-02 | UI Export Archive ZIP button on House Profile | Phase 105 | Pending |
+| EXP-01 | Backend ZIP export endpoint in FastAPI & ASP.NET Core | Phase 105 | Complete |
+| EXP-02 | UI Export Archive ZIP button on House Profile | Phase 105 | Complete |
 | BAT-01 | Multi-select checkboxes & floating action bar in Category View | Phase 106 | Pending |
 | BAT-02 | Batch Move and Batch Delete backend endpoints | Phase 106 | Pending |
 | HSE-01 | House creation backend endpoint and directory scaffold | Phase 107 | Pending |

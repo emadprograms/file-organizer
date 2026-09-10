@@ -1,6 +1,8 @@
+using System.IO.Compression;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using FileOrganizer.Web.Common;
 using FileOrganizer.Web.Data;
 using FileOrganizer.Web.Models;
@@ -117,6 +119,90 @@ app.MapGet("/api/houses/{houseId}/vault", async (string houseId, IFileOrganizerR
     var categories = await repo.GetCategoriesAsync("", houseId);
     var allDocs = categories.SelectMany(c => c.Documents).ToList();
     return Results.Ok(allDocs);
+});
+
+// ---------------------------------------------------------------------------
+// Export ZIP API
+// ---------------------------------------------------------------------------
+app.MapGet("/api/areas/{areaId}/houses/{houseId}/export-zip", async (
+    string areaId,
+    string houseId,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    var profile = await repo.GetHouseProfileAsync(areaId, houseId);
+    if (profile == null)
+        return Results.NotFound(new { error = "House not found." });
+
+    var categories = await repo.GetCategoriesAsync(areaId, houseId);
+    var allDocs = categories.SelectMany(c => c.Documents).ToList();
+
+    var areasRoot = config["AreasRoot"] ?? Path.Combine(Directory.GetCurrentDirectory(), "data");
+    if (!Directory.Exists(areasRoot))
+    {
+        var envRoot = Environment.GetEnvironmentVariable("AREAS_ROOT");
+        if (!string.IsNullOrEmpty(envRoot) && Directory.Exists(envRoot))
+            areasRoot = envRoot;
+        else
+            areasRoot = Directory.GetCurrentDirectory();
+    }
+
+    var houseDir = Path.Combine(areasRoot, areaId, houseId);
+    var vaultDir = Path.Combine(houseDir, "vault");
+    var sourceVaultDir = Path.Combine(houseDir, ".source_files", "vault");
+
+    var memoryStream = new MemoryStream();
+    using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+    {
+        var seenNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var doc in allDocs)
+        {
+            var candidates = new[]
+            {
+                Path.Combine(vaultDir, $"doc_{doc.VaultId}.pdf"),
+                Path.Combine(vaultDir, $"{doc.VaultId}.pdf"),
+                Path.Combine(sourceVaultDir, $"doc_{doc.VaultId}.pdf"),
+                Path.Combine(sourceVaultDir, $"{doc.VaultId}.pdf")
+            };
+
+            var filePath = candidates.FirstOrDefault(File.Exists);
+            if (filePath == null) continue;
+
+            var safeCat = Regex.Replace(doc.Category ?? "uncategorized", @"[\\/*?:""<>|]", "_").Trim();
+            var safeTitle = Regex.Replace(doc.BriefArabicTitle ?? doc.Filename ?? doc.VaultId, @"[\\/*?:""<>|]", "_").Trim();
+            var datePrefix = !string.IsNullOrEmpty(doc.Date) ? $"{doc.Date}_" : "";
+            var baseName = $"{datePrefix}{safeTitle}.pdf";
+
+            var archivePath = $"{safeCat}/{baseName}";
+            int counter = 1;
+            while (seenNames.Contains(archivePath))
+            {
+                archivePath = $"{safeCat}/{datePrefix}{safeTitle}_{counter}.pdf";
+                counter++;
+            }
+            seenNames.Add(archivePath);
+
+            var entry = archive.CreateEntry(archivePath, CompressionLevel.Optimal);
+            using var entryStream = entry.Open();
+            using var fileStream = File.OpenRead(filePath);
+            await fileStream.CopyToAsync(entryStream);
+        }
+
+        if (seenNames.Count == 0)
+        {
+            var readme = archive.CreateEntry("README.txt");
+            using var writer = new StreamWriter(readme.Open());
+            await writer.WriteLineAsync($"No documents found in vault for Area {areaId}, House {houseId}.");
+        }
+    }
+
+    memoryStream.Seek(0, SeekOrigin.Begin);
+    var safeArea = Regex.Replace(areaId, @"[^\w\-]", "_");
+    var safeHouse = Regex.Replace(houseId, @"[^\w\-]", "_");
+    var filename = $"archive_{safeArea}_{safeHouse}.zip";
+
+    return Results.File(memoryStream.ToArray(), "application/zip", filename);
 });
 
 // ---------------------------------------------------------------------------

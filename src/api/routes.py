@@ -7,12 +7,15 @@ import shutil
 import uuid
 import tempfile
 import unicodedata
+import io
+import zipfile
+import urllib.parse
 import fitz
 from pathlib import Path
 from datetime import date, datetime
 from typing import Optional, Union, Any
 from fastapi import APIRouter, Request, HTTPException, UploadFile, File, Form
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import ValidationError
 
 from src.api.models import (
@@ -560,6 +563,71 @@ async def get_house_profile(request: Request, area_id: str, house_id: str):
         tenants=tenant_profiles,
         archive=archive,
     )
+
+
+@router.get("/api/areas/{area_id}/houses/{house_id}/export-zip")
+async def export_house_archive_zip(request: Request, area_id: str, house_id: str):
+    repo = get_db_repo(request)
+    house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
+    if not repo:
+        raise HTTPException(status_code=500, detail="Database repository not initialized.")
+
+    conn = repo.conn
+    h_cur = conn.execute("SELECT id FROM houses WHERE id = ? OR id = ?", (house_id, house_num))
+    h_row = h_cur.fetchone()
+    if not h_row:
+        raise HTTPException(status_code=404, detail="House not found.")
+    db_house_id = h_row["id"]
+
+    docs = repo.list_documents_by_house(db_house_id)
+
+    config = getattr(request.app.state, "config", None)
+    areas_root = Path(config.areas_root_path) if (config and hasattr(config, "areas_root_path")) else Path(".")
+    house_dir = areas_root / area_id / db_house_id
+    vault_dir = house_dir / "vault"
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        seen_names = set()
+        for doc in docs:
+            src_candidates = [
+                vault_dir / f"doc_{doc.vault_id}.pdf",
+                vault_dir / f"{doc.vault_id}.pdf",
+                house_dir / ".source_files" / "vault" / f"doc_{doc.vault_id}.pdf",
+                house_dir / ".source_files" / "vault" / f"{doc.vault_id}.pdf",
+            ]
+            pdf_path = next((p for p in src_candidates if p.exists() and p.is_file()), None)
+            if not pdf_path:
+                continue
+
+            category_clean = re.sub(r'[\\/*?:"<>|]', '_', doc.category or "uncategorized").strip()
+            title_clean = re.sub(r'[\\/*?:"<>|]', '_', doc.arabic_title or doc.vault_id).strip()
+            date_prefix = f"{doc.primary_date}_" if doc.primary_date else ""
+            base_filename = f"{date_prefix}{title_clean}.pdf"
+
+            archive_path = f"{category_clean}/{base_filename}"
+            counter = 1
+            while archive_path in seen_names:
+                archive_path = f"{category_clean}/{date_prefix}{title_clean}_{counter}.pdf"
+                counter += 1
+            seen_names.add(archive_path)
+
+            zip_file.write(str(pdf_path), arcname=archive_path)
+
+        if not seen_names:
+            zip_file.writestr("README.txt", f"No documents found in vault for Area {area_id}, House {house_id}.\n")
+
+    zip_buffer.seek(0)
+    safe_area = re.sub(r'[^\w\-]', '_', area_id)
+    safe_house = re.sub(r'[^\w\-]', '_', house_id)
+    filename = f"archive_{safe_area}_{safe_house}.zip"
+    quoted_filename = urllib.parse.quote(filename)
+
+    headers = {
+        "Content-Disposition": f"attachment; filename=\"{filename}\"; filename*=UTF-8''{quoted_filename}",
+        "Content-Type": "application/zip",
+    }
+    return StreamingResponse(zip_buffer, media_type="application/zip", headers=headers)
 
 
 @router.get("/api/areas/{area_id}/houses/{house_id}/tenants", response_model=list[TenantItem])
