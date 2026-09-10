@@ -12,6 +12,8 @@ import io
 import zipfile
 import urllib.parse
 import fitz
+import arabic_reshaper
+from bidi.algorithm import get_display
 from pathlib import Path
 from datetime import date, datetime
 from typing import Optional, Union, Any
@@ -760,6 +762,11 @@ def _find_system_font() -> Optional[str]:
 def _get_text_width(text: str, fontsize: float = 7.5, fontfile: Optional[str] = None) -> float:
     if not text:
         return 0.0
+    try:
+        if any('\u0600' <= ch <= '\u06ff' for ch in text):
+            text = get_display(arabic_reshaper.reshape(text))
+    except Exception:
+        pass
     if fontfile and os.path.isfile(fontfile):
         try:
             return fitz.Font(fontfile=fontfile).text_length(text, fontsize=fontsize)
@@ -823,7 +830,7 @@ async def export_house_archive_pdf(request: Request, area_id: str, house_id: str
         try:
             with fitz.open(str(pdf_path)) as src:
                 doc_page_count = len(src)
-                clean_cat = re.sub(r'^\d+\s*-\s*', '', doc.category or '').strip()
+                cat_name = (doc.category or '').strip()
                 date_str = str(doc.primary_date) if doc.primary_date else ""
                 start_page_idx = len(merged)
                 merged.insert_pdf(src)
@@ -838,22 +845,29 @@ async def export_house_archive_pdf(request: Request, area_id: str, house_id: str
                         left_pt = fitz.Point(36, page.rect.height - 16)
                         page.insert_text(left_pt, date_str, fontsize=7.5, color=(0.4, 0.4, 0.45), fontname="helv")
 
-                    # Bottom Center: clean category name WITHOUT number prefix
-                    if clean_cat:
-                        approx_width = _get_text_width(clean_cat, fontsize=7.5, fontfile=system_font)
+                    # Bottom Center: category name (preserves number prefix e.g. 05 - عقود)
+                    if cat_name:
+                        # Contextually shape Arabic characters into connected cursive forms and apply BiDi visual reordering
+                        try:
+                            reshaped = arabic_reshaper.reshape(cat_name)
+                            shaped_cat = get_display(reshaped)
+                        except Exception:
+                            shaped_cat = cat_name
+
+                        approx_width = _get_text_width(shaped_cat, fontsize=7.5, fontfile=system_font)
                         center_pt = fitz.Point(page.rect.width / 2.0 - approx_width / 2.0, page.rect.height - 16)
                         inserted = False
                         if system_font:
                             try:
-                                page.insert_text(center_pt, clean_cat, fontsize=7.5, color=(0.4, 0.4, 0.45), fontname="f0", fontfile=system_font)
+                                page.insert_text(center_pt, shaped_cat, fontsize=7.5, color=(0.4, 0.4, 0.45), fontname="f0", fontfile=system_font)
                                 inserted = True
                             except Exception:
                                 pass
                         if not inserted:
                             try:
-                                page.insert_text(center_pt, clean_cat, fontsize=7.5, color=(0.4, 0.4, 0.45), fontname="helv")
+                                page.insert_text(center_pt, shaped_cat, fontsize=7.5, color=(0.4, 0.4, 0.45), fontname="helv")
                             except Exception:
-                                page.insert_text(center_pt, clean_cat, fontsize=7.5, color=(0.4, 0.4, 0.45))
+                                page.insert_text(center_pt, shaped_cat, fontsize=7.5, color=(0.4, 0.4, 0.45))
 
                     # Bottom Right: X/Y  (Z)
                     pagination_str = f"{page_num}/{doc_page_count}  ({overall_page_idx})"

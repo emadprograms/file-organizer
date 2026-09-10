@@ -420,14 +420,14 @@ def test_export_house_archive_pdf_running_footer(test_setup):
     # Total pages = 2 (from doc1) + 1 (from doc2) + 1 (from doc3) = 4 pages
     assert len(merged) == 4
 
-    # Document 1 (2024-05-15, "05 - عقود" -> "عقود", 2 pages)
+    # Document 1 (2024-05-15, "05 - عقود" -> kept as "05 - عقود", 2 pages)
     # Page 1 of merged dossier: Doc 1 Page 1 -> pagination: "1/2  (1)"
     text_p0 = merged[0].get_text()
     assert "2024-05-15" in text_p0
     assert "1/2  (1)" in text_p0
-    norm_p0 = unicodedata.normalize("NFKD", text_p0)
-    assert "عقود" in text_p0 or "عقود" in norm_p0[::-1]
-    assert "05 -" not in text_p0
+    assert "05" in text_p0  # Category number prefix preserved
+    assert "ﻋﻘﻮﺩ" in text_p0 or "ﺩﻮﻘﻋ" in text_p0 or any(c in text_p0 for c in ["\ufecb", "\ufed8", "\ufeee", "\ufea9"])
+    assert "عقود" not in text_p0
     assert "Date:" not in text_p0
     assert "Category:" not in text_p0
     assert "Page:" not in text_p0
@@ -436,25 +436,25 @@ def test_export_house_archive_pdf_running_footer(test_setup):
     text_p1 = merged[1].get_text()
     assert "2024-05-15" in text_p1
     assert "2/2  (2)" in text_p1
-    norm_p1 = unicodedata.normalize("NFKD", text_p1)
-    assert "عقود" in text_p1 or "عقود" in norm_p1[::-1]
-    assert "05 -" not in text_p1
+    assert "05" in text_p1  # Category number prefix preserved
+    assert "ﻋﻘﻮﺩ" in text_p1 or "ﺩﻮﻘﻋ" in text_p1 or any(c in text_p1 for c in ["\ufecb", "\ufed8", "\ufeee", "\ufea9"])
+    assert "عقود" not in text_p1
 
-    # Document 2 (2024-02-10, "06 - كهرباء وماء" -> "كهرباء وماء", 1 page)
+    # Document 2 (2024-02-10, "06 - كهرباء وماء" -> kept as "06 - كهرباء وماء", 1 page)
     # Page 3 of merged dossier: Doc 2 Page 1 -> pagination: "1/1  (3)"
     text_p2 = merged[2].get_text()
     assert "2024-02-10" in text_p2
     assert "1/1  (3)" in text_p2
-    norm_p2 = unicodedata.normalize("NFKD", text_p2)
-    assert "كهرباء وماء" in text_p2 or "كهرباء وماء" in norm_p2[::-1]
-    assert "06 -" not in text_p2
+    assert "06" in text_p2  # Category number prefix preserved
+    assert "ﻛﻬﺮﺑﺎﺀ ﻭﻣﺎﺀ" in text_p2 or "ﺀﺎﻣﻭ ﺀﺎﺑﺮﻬﻛ" in text_p2 or any(c in text_p2 for c in ["\ufedb", "\xfeec", "\ufeae", "\xfe91", "\xfe8e"])
+    assert "كهرباء وماء" not in text_p2
 
     # Document 3 (Undated, "صيانة" -> "صيانة", 1 page)
     # Page 4 of merged dossier: Doc 3 Page 1 -> pagination: "1/1  (4)"
     text_p3 = merged[3].get_text()
     assert "1/1  (4)" in text_p3
-    norm_p3 = unicodedata.normalize("NFKD", text_p3)
-    assert "صيانة" in text_p3 or "صيانة" in norm_p3[::-1]
+    assert "ﺻﻴﺎﻧﺔ" in text_p3 or "ﺔﻧﺎﻴﺻ" in text_p3 or any(c in text_p3 for c in ["\ufebb", "\xfef4", "\xfe8e", "\xfee7", "\xfe94"])
+    assert "صيانة" not in text_p3
     # Undated: bottom left date must be left blank
     assert "2024" not in text_p3
     assert "None" not in text_p3

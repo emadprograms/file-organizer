@@ -340,7 +340,7 @@ app.MapGet("/api/areas/{areaId}/houses/{houseId}/export-pdf", async (
             {
                 using var inputDoc = PdfSharpCore.Pdf.IO.PdfReader.Open(filePath, PdfSharpCore.Pdf.IO.PdfDocumentOpenMode.Import);
                 var docPageCount = inputDoc.PageCount;
-                var cleanCat = Regex.Replace(doc.Category ?? "", @"^\d+\s*-\s*", "").Trim();
+                var catName = (doc.Category ?? "").Trim();
                 var dateStr = doc.Date ?? "";
 
                 for (int i = 0; i < docPageCount; i++)
@@ -356,9 +356,10 @@ app.MapGet("/api/areas/{areaId}/houses/{houseId}/export-pdf", async (
                         gfx.DrawString(dateStr, footerFont, footerBrush, new XPoint(36, newPage.Height - 16));
                     }
 
-                    if (!string.IsNullOrWhiteSpace(cleanCat))
+                    if (!string.IsNullOrWhiteSpace(catName))
                     {
-                        gfx.DrawString(cleanCat, footerFont, footerBrush, new XPoint(newPage.Width / 2, newPage.Height - 16), XStringFormats.Center);
+                        var shapedCat = ArabicReshaper.ReshapeAndReorder(catName);
+                        gfx.DrawString(shapedCat, footerFont, footerBrush, new XPoint(newPage.Width / 2, newPage.Height - 16), XStringFormats.Center);
                     }
 
                     var paginationStr = $"{pageNum}/{docPageCount}  ({overallPageIdx})";
