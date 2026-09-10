@@ -209,35 +209,17 @@
             ` : ''}
         `;
 
-        // 4. One-Click Archive ZIP Export Button
+        // 4. One-Click Archive Export Button (Opens Modal)
         const exportBtn = document.createElement('button');
         exportBtn.id = 'btn-export-house-zip';
         exportBtn.type = 'button';
         exportBtn.className = 'w-full mt-3 flex items-center justify-center gap-2 py-2 px-3 bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-300 rounded-xl text-xs font-semibold text-slate-700 hover:text-blue-600 transition-all shadow-2xs cursor-pointer group';
         exportBtn.innerHTML = `
             <svg class="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            <span id="export-zip-btn-text">📦 تحميل أرشيف المنزل كاملاً (ZIP)</span>
+            <span id="export-zip-btn-text">📦 تحميل أرشيف المنزل (Export House Archive)</span>
         `;
         exportBtn.onclick = () => {
-            const originalHtml = exportBtn.innerHTML;
-            exportBtn.disabled = true;
-            exportBtn.innerHTML = `<span class="inline-block animate-spin w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full"></span> <span>جاري تجميع الملفات وتنزيل الأرشيف...</span>`;
-
-            const downloadUrl = `/api/areas/${encodeURIComponent(profile.area_id)}/houses/${encodeURIComponent(profile.house_id)}/export-zip`;
-            const a = document.createElement('a');
-            a.href = downloadUrl;
-            a.download = `archive_${profile.area_id}_${profile.house_id}.zip`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-
-            const toastFn = (typeof showToast === 'function') ? showToast : ((typeof window !== 'undefined' && typeof window.showToast === 'function') ? window.showToast : null);
-            if (toastFn) toastFn('تم بدء تحميل الأرشيف المضغوط للمنزل', 'success');
-
-            setTimeout(() => {
-                exportBtn.disabled = false;
-                exportBtn.innerHTML = originalHtml;
-            }, 2000);
+            openExportArchiveModal(profile);
         };
         archiveBox.appendChild(exportBtn);
 
@@ -246,6 +228,178 @@
         docListEl.appendChild(container);
     }
 
+    // ── Export Archive Modal Controller ──────────────────────────────────────────
+    let currentExportProfile = null;
+    let selectedExportFormat = 'zip';
+
+    function setExportFormat(format) {
+        selectedExportFormat = format;
+        const optZip = document.getElementById('export-opt-zip');
+        const optPdf = document.getElementById('export-opt-pdf');
+        const radioZip = document.getElementById('export-radio-zip');
+        const radioPdf = document.getElementById('export-radio-pdf');
+
+        if (format === 'pdf') {
+            if (optPdf) {
+                optPdf.classList.add('border-rose-500', 'bg-rose-50/50');
+                optPdf.classList.remove('border-slate-200', 'bg-white');
+            }
+            if (optZip) {
+                optZip.classList.remove('border-blue-500', 'bg-blue-50/50');
+                optZip.classList.add('border-slate-200', 'bg-white');
+            }
+            if (radioPdf) radioPdf.classList.remove('hidden');
+            if (radioZip) radioZip.classList.add('hidden');
+        } else {
+            selectedExportFormat = 'zip';
+            if (optZip) {
+                optZip.classList.add('border-blue-500', 'bg-blue-50/50');
+                optZip.classList.remove('border-slate-200', 'bg-white');
+            }
+            if (optPdf) {
+                optPdf.classList.remove('border-rose-500', 'bg-rose-50/50');
+                optPdf.classList.add('border-slate-200', 'bg-white');
+            }
+            if (radioZip) radioZip.classList.remove('hidden');
+            if (radioPdf) radioPdf.classList.add('hidden');
+        }
+    }
+
+    function closeExportArchiveModal() {
+        const modal = document.getElementById('export-archive-modal');
+        if (modal) modal.classList.add('hidden');
+        const spinner = document.getElementById('export-archive-spinner');
+        if (spinner) spinner.classList.add('hidden');
+        const confirmBtn = document.getElementById('btn-confirm-export-archive');
+        if (confirmBtn) confirmBtn.disabled = false;
+    }
+
+    function triggerDirectExport(profile, format, tenantId) {
+        if (!profile) return;
+        const areaParam = encodeURIComponent(profile.area_id);
+        const houseParam = encodeURIComponent(profile.house_id);
+        const endpoint = format === 'pdf' ? 'export-pdf' : 'export-zip';
+        let downloadUrl = `/api/areas/${areaParam}/houses/${houseParam}/${endpoint}`;
+        if (tenantId) {
+            downloadUrl += `?tenant_id=${encodeURIComponent(tenantId)}`;
+        }
+
+        const safeArea = (profile.area_id || '').replace(/[^\w\-]/g, '_');
+        const safeHouse = (profile.house_id || '').replace(/[^\w\-]/g, '_');
+        const ext = format === 'pdf' ? 'pdf' : 'zip';
+        const filename = `archive_${safeArea}_${safeHouse}${tenantId ? `_tenant_${tenantId}` : ''}.${ext}`;
+
+        const a = document.createElement('a');
+        a.href = downloadUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        const toastFn = (typeof showToast === 'function') ? showToast : ((typeof window !== 'undefined' && typeof window.showToast === 'function') ? window.showToast : null);
+        if (toastFn) {
+            const formatMsg = format === 'pdf' ? 'ملف PDF المدمج' : 'الأرشيف المضغوط (ZIP)';
+            toastFn(`تم بدء تحميل ${formatMsg} للمنزل`, 'success');
+        }
+    }
+
+    function initExportArchiveModal() {
+        const modal = document.getElementById('export-archive-modal');
+        if (!modal || modal.dataset.initialized === 'true') return;
+        modal.dataset.initialized = 'true';
+
+        const optZip = document.getElementById('export-opt-zip');
+        const optPdf = document.getElementById('export-opt-pdf');
+        const closeBtn = document.getElementById('export-archive-modal-close');
+        const cancelBtn = document.getElementById('btn-cancel-export-archive');
+        const confirmBtn = document.getElementById('btn-confirm-export-archive');
+
+        if (optZip) optZip.onclick = () => setExportFormat('zip');
+        if (optPdf) optPdf.onclick = () => setExportFormat('pdf');
+        if (closeBtn) closeBtn.onclick = () => closeExportArchiveModal();
+        if (cancelBtn) cancelBtn.onclick = () => closeExportArchiveModal();
+
+        if (confirmBtn) {
+            confirmBtn.onclick = () => {
+                if (!currentExportProfile) return;
+                const tenantSelect = document.getElementById('export-archive-tenant-select');
+                const tenantId = tenantSelect ? tenantSelect.value : '';
+
+                const spinner = document.getElementById('export-archive-spinner');
+                if (spinner) spinner.classList.remove('hidden');
+                confirmBtn.disabled = true;
+
+                triggerDirectExport(currentExportProfile, selectedExportFormat, tenantId || null);
+
+                setTimeout(() => {
+                    closeExportArchiveModal();
+                }, 600);
+            };
+        }
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeExportArchiveModal();
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const curModal = document.getElementById('export-archive-modal');
+                if (curModal && !curModal.classList.contains('hidden')) {
+                    closeExportArchiveModal();
+                }
+            }
+        });
+    }
+
+    function openExportArchiveModal(profile) {
+        currentExportProfile = profile;
+        const modal = document.getElementById('export-archive-modal');
+        if (!modal) {
+            // Fallback for headless environments without modal DOM
+            triggerDirectExport(profile, 'zip', null);
+            return;
+        }
+
+        initExportArchiveModal();
+        setExportFormat('zip');
+
+        const tenantSelect = document.getElementById('export-archive-tenant-select');
+        if (tenantSelect) {
+            tenantSelect.innerHTML = '<option value="">🏛️ جميع المستأجرين / كامل سجل المنزل (All Tenants / Full Record)</option>';
+            if (profile && Array.isArray(profile.tenants)) {
+                profile.tenants.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = (t.id !== undefined && t.id !== null) ? String(t.id) : (t.name || '');
+                    if (t.is_active) {
+                        const dur = t.duration_str_ar ? ` (${t.duration_str_ar})` : ' (المستأجر الحالي)';
+                        opt.textContent = `🟢 ${t.name}${dur}`;
+                    } else {
+                        const dur = t.duration_str_ar ? ` (${t.duration_str_ar})` : '';
+                        opt.textContent = `👤 ${t.name}${dur}`;
+                    }
+                    tenantSelect.appendChild(opt);
+                });
+            }
+        }
+
+        modal.classList.remove('hidden');
+        modal.focus();
+    }
+
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initExportArchiveModal);
+        } else {
+            initExportArchiveModal();
+        }
+    }
+
     window.loadHouseProfile = loadHouseProfile;
     window.renderHouseProfile = renderHouseProfile;
+    window.openExportArchiveModal = openExportArchiveModal;
+    window.closeExportArchiveModal = closeExportArchiveModal;
+    window.setExportFormat = setExportFormat;
+    window.initExportArchiveModal = initExportArchiveModal;
 })();

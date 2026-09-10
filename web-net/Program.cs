@@ -166,6 +166,7 @@ app.MapGet("/api/houses/{houseId}/vault", async (string houseId, IFileOrganizerR
 app.MapGet("/api/areas/{areaId}/houses/{houseId}/export-zip", async (
     string areaId,
     string houseId,
+    int? tenantId,
     IFileOrganizerRepository repo,
     IConfiguration config) =>
 {
@@ -176,10 +177,18 @@ app.MapGet("/api/areas/{areaId}/houses/{houseId}/export-zip", async (
     var categories = await repo.GetCategoriesAsync(areaId, houseId);
     var allDocs = categories.SelectMany(c => c.Documents).ToList();
 
-    var areasRoot = config["AreasRoot"] ?? Path.Combine(Directory.GetCurrentDirectory(), "data");
+    string? tenantName = null;
+    if (tenantId.HasValue)
+    {
+        allDocs = allDocs.Where(d => d.TenantId == tenantId.Value).ToList();
+        var tenants = await repo.GetTenantsAsync(houseId);
+        tenantName = tenants.FirstOrDefault(t => t.Id == tenantId.Value)?.Name;
+    }
+
+    var areasRoot = config["AREAS_ROOT_PATH"] ?? config["AreasRoot"] ?? Path.Combine(Directory.GetCurrentDirectory(), "data");
     if (!Directory.Exists(areasRoot))
     {
-        var envRoot = Environment.GetEnvironmentVariable("AREAS_ROOT");
+        var envRoot = Environment.GetEnvironmentVariable("AREAS_ROOT_PATH") ?? Environment.GetEnvironmentVariable("AREAS_ROOT");
         if (!string.IsNullOrEmpty(envRoot) && Directory.Exists(envRoot))
             areasRoot = envRoot;
         else
@@ -208,7 +217,8 @@ app.MapGet("/api/areas/{areaId}/houses/{houseId}/export-zip", async (
             var filePath = candidates.FirstOrDefault(File.Exists);
             if (filePath == null) continue;
 
-            var safeCat = Regex.Replace(doc.Category ?? "uncategorized", @"[\\/*?:""<>|]", "_").Trim();
+            var formattedCat = Constants.FormatCategoryWithPrefix(doc.Category);
+            var safeCat = Regex.Replace(formattedCat, @"[\\/*?:""<>|]", "_").Trim();
             var safeTitle = Regex.Replace(doc.BriefArabicTitle ?? doc.Filename ?? doc.VaultId, @"[\\/*?:""<>|]", "_").Trim();
             var datePrefix = !string.IsNullOrEmpty(doc.Date) ? $"{doc.Date}_" : "";
             var baseName = $"{datePrefix}{safeTitle}.pdf";
@@ -239,9 +249,131 @@ app.MapGet("/api/areas/{areaId}/houses/{houseId}/export-zip", async (
     memoryStream.Seek(0, SeekOrigin.Begin);
     var safeArea = Regex.Replace(areaId, @"[^\w\-]", "_");
     var safeHouse = Regex.Replace(houseId, @"[^\w\-]", "_");
-    var filename = $"archive_{safeArea}_{safeHouse}.zip";
+    string filename;
+    if (tenantId.HasValue)
+    {
+        if (!string.IsNullOrWhiteSpace(tenantName))
+        {
+            var safeTenant = Regex.Replace(tenantName, @"[^\w\-]", "_");
+            filename = $"archive_{safeArea}_{safeHouse}_{safeTenant}.zip";
+        }
+        else
+        {
+            filename = $"archive_{safeArea}_{safeHouse}_tenant_{tenantId.Value}.zip";
+        }
+    }
+    else
+    {
+        filename = $"archive_{safeArea}_{safeHouse}.zip";
+    }
 
     return Results.File(memoryStream.ToArray(), "application/zip", filename);
+});
+
+// ---------------------------------------------------------------------------
+// Export Combined Chronological PDF Dossier API
+// ---------------------------------------------------------------------------
+app.MapGet("/api/areas/{areaId}/houses/{houseId}/export-pdf", async (
+    string areaId,
+    string houseId,
+    int? tenantId,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    var profile = await repo.GetHouseProfileAsync(areaId, houseId);
+    if (profile == null)
+        return Results.NotFound(new { error = "House not found." });
+
+    var categories = await repo.GetCategoriesAsync(areaId, houseId);
+    var allDocs = categories.SelectMany(c => c.Documents).ToList();
+
+    string? tenantName = null;
+    if (tenantId.HasValue)
+    {
+        allDocs = allDocs.Where(d => d.TenantId == tenantId.Value).ToList();
+        var tenants = await repo.GetTenantsAsync(houseId);
+        tenantName = tenants.FirstOrDefault(t => t.Id == tenantId.Value)?.Name;
+    }
+
+    // Chronological order: non-empty dates ASC, empty/null dates last, break ties by VaultId
+    var sortedDocs = allDocs
+        .OrderBy(d => string.IsNullOrWhiteSpace(d.Date) ? "9999-99-99" : d.Date)
+        .ThenBy(d => d.VaultId)
+        .ToList();
+
+    var areasRoot = config["AREAS_ROOT_PATH"] ?? config["AreasRoot"] ?? Path.Combine(Directory.GetCurrentDirectory(), "data");
+    if (!Directory.Exists(areasRoot))
+    {
+        var envRoot = Environment.GetEnvironmentVariable("AREAS_ROOT_PATH") ?? Environment.GetEnvironmentVariable("AREAS_ROOT");
+        if (!string.IsNullOrEmpty(envRoot) && Directory.Exists(envRoot))
+            areasRoot = envRoot;
+        else
+            areasRoot = Directory.GetCurrentDirectory();
+    }
+
+    var houseDir = Path.Combine(areasRoot, areaId, houseId);
+    var vaultDir = Path.Combine(houseDir, "vault");
+    var sourceVaultDir = Path.Combine(houseDir, ".source_files", "vault");
+
+    using var outputDoc = new PdfSharpCore.Pdf.PdfDocument();
+
+    foreach (var doc in sortedDocs)
+    {
+        var candidates = new[]
+        {
+            Path.Combine(vaultDir, $"doc_{doc.VaultId}.pdf"),
+            Path.Combine(vaultDir, $"{doc.VaultId}.pdf"),
+            Path.Combine(sourceVaultDir, $"doc_{doc.VaultId}.pdf"),
+            Path.Combine(sourceVaultDir, $"{doc.VaultId}.pdf")
+        };
+
+        var filePath = candidates.FirstOrDefault(File.Exists);
+        if (filePath != null)
+        {
+            try
+            {
+                using var inputDoc = PdfSharpCore.Pdf.IO.PdfReader.Open(filePath, PdfSharpCore.Pdf.IO.PdfDocumentOpenMode.Import);
+                for (int i = 0; i < inputDoc.PageCount; i++)
+                {
+                    outputDoc.AddPage(inputDoc.Pages[i]);
+                }
+            }
+            catch
+            {
+                // Ignore unreadable or corrupted PDF
+            }
+        }
+    }
+
+    if (outputDoc.PageCount == 0)
+    {
+        outputDoc.AddPage();
+    }
+
+    using var ms = new MemoryStream();
+    outputDoc.Save(ms, false);
+
+    var safeArea = Regex.Replace(areaId, @"[^\w\-]", "_");
+    var safeHouse = Regex.Replace(houseId, @"[^\w\-]", "_");
+    string filename;
+    if (tenantId.HasValue)
+    {
+        if (!string.IsNullOrWhiteSpace(tenantName))
+        {
+            var safeTenant = Regex.Replace(tenantName, @"[^\w\-]", "_");
+            filename = $"archive_{safeArea}_{safeHouse}_{safeTenant}.pdf";
+        }
+        else
+        {
+            filename = $"archive_{safeArea}_{safeHouse}_tenant_{tenantId.Value}.pdf";
+        }
+    }
+    else
+    {
+        filename = $"archive_{safeArea}_{safeHouse}.pdf";
+    }
+
+    return Results.File(ms.ToArray(), "application/pdf", filename);
 });
 
 // ---------------------------------------------------------------------------

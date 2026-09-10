@@ -48,6 +48,7 @@ Equip the digital archive management system with power-user operational tools: o
 - `260910-separate-intuitive-ingest-sections`: Separate Ingest Station into Three Intuitive Sections (1-to-1 Single Document, 1-to-Many Broadcast Notice, Many-to-1 House Batch) with Direct Drag-and-Drop Ingestion onto House Cards and Category Folder Cards. 59 Vitest unit tests, 6 Playwright E2E tests, 12 Python backend tests, and 40 ASP.NET Core tests passing.
 - `260910-delete-document-feature`: Add Document Deletion Feature across Frontend 3-Dots Modal, Python FastAPI Backend, and ASP.NET Core Minimal API. Physical vault file and cascade database records removal. 63 Vitest tests, 43 .NET tests, 13 Python pytest tests, and 7 Playwright E2E tests passing.
 - `260910-navbar-search-upload-divider`: Added subtle vertical divider (`<div class="h-5 w-px bg-slate-200/90 mx-0.5">`) and balanced spacing (`gap-3.5`) between the search trigger and the circular upload action button. 68 Vitest tests, 8 Playwright E2E tests, and 43 .NET tests passing.
+- `260910-export-archive-modal-format-tenant`: House Archive Export Options Modal with Format selection (Categorized ZIP Archive vs Combined Chronological PDF Dossier), Tenancy Scope dropdown (`profile.tenants`), standard 2-digit folder numbering normalization (`FOLDER_PREFIXES`), and dual-backend parity (PyMuPDF & PdfSharpCore). 98 Vitest frontend tests, 11 Python pytest tests, and 50 ASP.NET Core tests passing.
 
 ## Current Position
 

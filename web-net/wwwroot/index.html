@@ -1116,6 +1116,87 @@
         </div>
     </div>
 
+    <!-- House Archive Export Modal -->
+    <div id="export-archive-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4" tabindex="-1" role="dialog" aria-labelledby="export-archive-modal-title" aria-modal="true">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shadow-2xs">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 tracking-tight" id="export-archive-modal-title">تصدير أرشيف المنزل • Export House Archive</h3>
+                        <p class="text-xs text-slate-500">اختر صيغة الملف ونطاق المستأجر للتصدير / Select format and tenant scope</p>
+                    </div>
+                </div>
+                <button id="export-archive-modal-close" type="button" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer" aria-label="Close">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-5">
+                <!-- Question 1: Export Format -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-800 mb-2">
+                        <span>صيغة التصدير / Export Format</span>
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="export-format-options">
+                        <!-- Option A: ZIP (Selected by default) -->
+                        <div id="export-opt-zip" class="export-format-card border-2 border-blue-500 bg-blue-50/50 rounded-xl p-3.5 cursor-pointer transition-all flex flex-col justify-between hover:border-blue-500 relative" data-format="zip">
+                            <div class="flex items-start justify-between">
+                                <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-base mb-2">📦</div>
+                                <div class="w-4 h-4 rounded-full border-2 border-blue-600 flex items-center justify-center">
+                                    <div class="w-2 h-2 rounded-full bg-blue-600" id="export-radio-zip"></div>
+                                </div>
+                            </div>
+                            <div class="font-bold text-xs text-slate-900 leading-snug">أرشيف ZIP مصنف في مجلدات<br><span class="text-[11px] font-medium text-slate-600">Categorized ZIP Archive</span></div>
+                            <p class="text-[11px] text-slate-500 mt-1.5 leading-relaxed">تنزيل جميع الوثائق مفروزة داخل مجلدات حسب التصنيف (عقود، فواتير، صيانة...).</p>
+                        </div>
+
+                        <!-- Option B: PDF -->
+                        <div id="export-opt-pdf" class="export-format-card border-2 border-slate-200 bg-white rounded-xl p-3.5 cursor-pointer transition-all flex flex-col justify-between hover:border-slate-300 relative" data-format="pdf">
+                            <div class="flex items-start justify-between">
+                                <div class="w-8 h-8 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-base mb-2">📄</div>
+                                <div class="w-4 h-4 rounded-full border-2 border-slate-300 flex items-center justify-center">
+                                    <div class="w-2 h-2 rounded-full bg-rose-600 hidden" id="export-radio-pdf"></div>
+                                </div>
+                            </div>
+                            <div class="font-bold text-xs text-slate-900 leading-snug">ملف PDF مدمج مرتب زمنياً<br><span class="text-[11px] font-medium text-slate-600">Combined Chronological PDF</span></div>
+                            <p class="text-[11px] text-slate-500 mt-1.5 leading-relaxed">دمج جميع الوثائق في ملف PDF واحد متسلسل زمنياً من الأقدم للأحدث (Timeline Dossier).</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Question 2: Tenant Scope -->
+                <div>
+                    <label for="export-archive-tenant-select" class="block text-xs font-bold text-slate-800 mb-2">
+                        <span>نطاق المستأجر / Tenancy Scope</span>
+                    </label>
+                    <div class="relative">
+                        <select id="export-archive-tenant-select" class="w-full px-3.5 py-2.5 text-xs font-medium border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white transition-all appearance-none cursor-pointer">
+                            <option value="">🏛️ جميع المستأجرين / كامل سجل المنزل (All Tenants / Full Record)</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center px-3 text-slate-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-400 mt-1.5">يمكنك حصر التصدير في وثائق مستأجر معين أو تنزيل الأرشيف الشامل للمنزل.</p>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex justify-end items-center gap-2">
+                <button id="btn-cancel-export-archive" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer">إلغاء / Cancel</button>
+                <button id="btn-confirm-export-archive" type="button" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2 shadow-sm shadow-blue-500/25 cursor-pointer">
+                    <span id="export-archive-spinner" class="hidden animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
+                    <span id="export-archive-btn-text">⬇️ بدء التحميل / Download Archive</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modular Application Scripts -->
     <script src="js/api.js?v=260910-10"></script>
     <script src="js/resizer.js?v=260910-10"></script>

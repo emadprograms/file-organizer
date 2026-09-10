@@ -444,6 +444,128 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
         using var memoryStream = new MemoryStream(bytes);
         using var zip = new ZipArchive(memoryStream, ZipArchiveMode.Read);
         Assert.NotEmpty(zip.Entries);
+        // Verify folder numbering normalization from urgent user requirement
+        Assert.Contains(zip.Entries, e => e.FullName.StartsWith("05 - عقود/"));
+    }
+
+    [Fact]
+    public async Task ExportZip_WithTenantFilter_ReturnsFilteredZip()
+    {
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+
+        var tenant2 = await repo.AddTenantAsync("500", "عبدالله السعيد", "2023-01-01", null);
+
+        var samplePdf = Path.Combine(_fixture.AreasRoot, "tenant2_test.pdf");
+        using (var pdf = new PdfSharpCore.Pdf.PdfDocument())
+        {
+            pdf.AddPage();
+            pdf.Save(samplePdf);
+        }
+
+        // Add document with raw unnumbered category to test folder numbering normalization
+        var doc = await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Safra C",
+            HouseId = "500",
+            TenantId = tenant2.Id,
+            Category = "أمر تخصيص",
+            ArabicTitle = "تخصيص عبدالله",
+            PrimaryDate = "2023-05-01",
+            PageCount = 1,
+            SourcePdfFilename = "tenant2_doc.pdf",
+            SourcePdfPath = samplePdf,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        var response = await _client.GetAsync($"/api/areas/Safra%20C/houses/500/export-zip?tenantId={tenant2.Id}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/zip", response.Content.Headers.ContentType?.MediaType);
+
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        using var memoryStream = new MemoryStream(bytes);
+        using var zip = new ZipArchive(memoryStream, ZipArchiveMode.Read);
+        
+        Assert.NotEmpty(zip.Entries);
+        // Verify only tenant2 doc is present and numbered folder prefix is applied
+        Assert.All(zip.Entries, e => Assert.StartsWith("03 - أمر تخصيص/", e.FullName));
+    }
+
+    [Fact]
+    public async Task ExportPdf_ReturnsChronologicalMergedPdf()
+    {
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+
+        var validPdfPath = Path.Combine(_fixture.AreasRoot, "chronological_pdf_test.pdf");
+        using (var pdf = new PdfSharpCore.Pdf.PdfDocument())
+        {
+            pdf.AddPage();
+            pdf.Save(validPdfPath);
+        }
+
+        await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Safra C",
+            HouseId = "500",
+            TenantId = 1,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد زمني",
+            PrimaryDate = "2021-01-15",
+            PageCount = 1,
+            SourcePdfFilename = "chrono.pdf",
+            SourcePdfPath = validPdfPath,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        var response = await _client.GetAsync("/api/areas/Safra%20C/houses/500/export-pdf");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/pdf", response.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("archive_Safra_C_500.pdf", response.Content.Headers.ContentDisposition?.FileName);
+
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        using var ms = new MemoryStream(bytes);
+        using var parsed = PdfSharpCore.Pdf.IO.PdfReader.Open(ms, PdfSharpCore.Pdf.IO.PdfDocumentOpenMode.Import);
+        Assert.True(parsed.PageCount >= 1);
+    }
+
+    [Fact]
+    public async Task ExportPdf_WithTenantFilter_ReturnsFilteredPdf()
+    {
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+
+        var tenant = await repo.AddTenantAsync("500", "سعد الدوسري", "2024-01-01", null);
+
+        var validPdfPath = Path.Combine(_fixture.AreasRoot, "saad_pdf_test.pdf");
+        using (var pdf = new PdfSharpCore.Pdf.PdfDocument())
+        {
+            pdf.AddPage();
+            pdf.Save(validPdfPath);
+        }
+
+        await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Safra C",
+            HouseId = "500",
+            TenantId = tenant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد سعد",
+            PrimaryDate = "2024-02-01",
+            PageCount = 1,
+            SourcePdfFilename = "saad.pdf",
+            SourcePdfPath = validPdfPath,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        var response = await _client.GetAsync($"/api/areas/Safra%20C/houses/500/export-pdf?tenantId={tenant.Id}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/pdf", response.Content.Headers.ContentType?.MediaType);
+
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        using var ms = new MemoryStream(bytes);
+        using var parsed = PdfSharpCore.Pdf.IO.PdfReader.Open(ms, PdfSharpCore.Pdf.IO.PdfDocumentOpenMode.Import);
+        Assert.Equal(1, parsed.PageCount);
     }
 
     [Fact]

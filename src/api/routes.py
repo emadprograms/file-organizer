@@ -640,8 +640,25 @@ async def get_house_profile(request: Request, area_id: str, house_id: str):
     )
 
 
+def _format_category_with_prefix(raw_category: Optional[str]) -> str:
+    from src.routing.config import FOLDER_PREFIXES
+    if not raw_category or not raw_category.strip():
+        return "13 - رسائل متنوعة"
+    trimmed = raw_category.strip()
+    m = re.match(r'^(\d+)\s*-\s*(.+)$', trimmed)
+    if m:
+        num = int(m.group(1))
+        name = m.group(2).strip()
+        if name in FOLDER_PREFIXES:
+            return f"{FOLDER_PREFIXES[name]} - {name}"
+        return f"{num:02d} - {name}"
+    if trimmed in FOLDER_PREFIXES:
+        return f"{FOLDER_PREFIXES[trimmed]} - {trimmed}"
+    return trimmed
+
+
 @router.get("/api/areas/{area_id}/houses/{house_id}/export-zip")
-async def export_house_archive_zip(request: Request, area_id: str, house_id: str):
+async def export_house_archive_zip(request: Request, area_id: str, house_id: str, tenant_id: Optional[int] = None):
     repo = get_db_repo(request)
     house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
     if not repo:
@@ -655,6 +672,10 @@ async def export_house_archive_zip(request: Request, area_id: str, house_id: str
     db_house_id = h_row["id"]
 
     docs = repo.list_documents_by_house(db_house_id)
+    tenant_obj = None
+    if tenant_id is not None:
+        docs = [d for d in docs if d.tenant_id == tenant_id]
+        tenant_obj = repo.get_tenant(tenant_id)
 
     config = getattr(request.app.state, "config", None)
     areas_root = Path(config.areas_root_path) if (config and hasattr(config, "areas_root_path")) else Path(".")
@@ -675,7 +696,8 @@ async def export_house_archive_zip(request: Request, area_id: str, house_id: str
             if not pdf_path:
                 continue
 
-            category_clean = re.sub(r'[\\/*?:"<>|]', '_', doc.category or "uncategorized").strip()
+            cat_numbered = _format_category_with_prefix(doc.category)
+            category_clean = re.sub(r'[\\/*?:"<>|]', '_', cat_numbered).strip()
             title_clean = re.sub(r'[\\/*?:"<>|]', '_', doc.arabic_title or doc.vault_id).strip()
             date_prefix = f"{doc.primary_date}_" if doc.primary_date else ""
             base_filename = f"{date_prefix}{title_clean}.pdf"
@@ -695,14 +717,108 @@ async def export_house_archive_zip(request: Request, area_id: str, house_id: str
     zip_buffer.seek(0)
     safe_area = re.sub(r'[^\w\-]', '_', area_id)
     safe_house = re.sub(r'[^\w\-]', '_', house_id)
-    filename = f"archive_{safe_area}_{safe_house}.zip"
+    safe_ascii_area = safe_area.encode("ascii", "ignore").decode("ascii") or "area"
+    safe_ascii_house = safe_house.encode("ascii", "ignore").decode("ascii") or "house"
+    if tenant_id is not None:
+        if tenant_obj and tenant_obj.name:
+            safe_tenant = re.sub(r'[^\w\-]', '_', tenant_obj.name)
+            filename = f"archive_{safe_area}_{safe_house}_{safe_tenant}.zip"
+        else:
+            filename = f"archive_{safe_area}_{safe_house}_tenant_{tenant_id}.zip"
+        ascii_filename = f"archive_{safe_ascii_area}_{safe_ascii_house}_tenant_{tenant_id}.zip"
+    else:
+        filename = f"archive_{safe_area}_{safe_house}.zip"
+        ascii_filename = f"archive_{safe_ascii_area}_{safe_ascii_house}.zip"
     quoted_filename = urllib.parse.quote(filename)
 
     headers = {
-        "Content-Disposition": f"attachment; filename=\"{filename}\"; filename*=UTF-8''{quoted_filename}",
+        "Content-Disposition": f"attachment; filename=\"{ascii_filename}\"; filename*=UTF-8''{quoted_filename}",
         "Content-Type": "application/zip",
     }
     return StreamingResponse(zip_buffer, media_type="application/zip", headers=headers)
+
+
+@router.get("/api/areas/{area_id}/houses/{house_id}/export-pdf")
+async def export_house_archive_pdf(request: Request, area_id: str, house_id: str, tenant_id: Optional[int] = None):
+    repo = get_db_repo(request)
+    house_num = house_id.split(" - ")[0] if " - " in house_id else house_id
+    if not repo:
+        raise HTTPException(status_code=500, detail="Database repository not initialized.")
+
+    conn = repo.conn
+    h_cur = conn.execute("SELECT id FROM houses WHERE id = ? OR id = ?", (house_id, house_num))
+    h_row = h_cur.fetchone()
+    if not h_row:
+        raise HTTPException(status_code=404, detail="House not found.")
+    db_house_id = h_row["id"]
+
+    docs = repo.list_documents_by_house(db_house_id)
+    tenant_obj = None
+    if tenant_id is not None:
+        docs = [d for d in docs if d.tenant_id == tenant_id]
+        tenant_obj = repo.get_tenant(tenant_id)
+
+    # Chronological sort: documents with primary_date ASC, empty/null dates last, tie-break by vault_id
+    docs_sorted = sorted(
+        docs,
+        key=lambda d: (
+            (1, "") if not d.primary_date else (0, str(d.primary_date)),
+            d.vault_id
+        )
+    )
+
+    config = getattr(request.app.state, "config", None)
+    areas_root = Path(config.areas_root_path) if (config and hasattr(config, "areas_root_path")) else Path(".")
+    house_dir = areas_root / area_id / db_house_id
+    vault_dir = house_dir / "vault"
+
+    merged = fitz.open()
+    for doc in docs_sorted:
+        src_candidates = [
+            vault_dir / f"doc_{doc.vault_id}.pdf",
+            vault_dir / f"{doc.vault_id}.pdf",
+            house_dir / ".source_files" / "vault" / f"doc_{doc.vault_id}.pdf",
+            house_dir / ".source_files" / "vault" / f"{doc.vault_id}.pdf",
+        ]
+        pdf_path = next((p for p in src_candidates if p.exists() and p.is_file()), None)
+        if not pdf_path:
+            continue
+        try:
+            with fitz.open(str(pdf_path)) as src:
+                merged.insert_pdf(src)
+        except Exception:
+            pass
+
+    if len(merged) == 0:
+        page = merged.new_page()
+        text = f"No documents found in archive for Area {area_id}, House {house_id}."
+        page.insert_text((50, 100), text, fontsize=14)
+
+    pdf_bytes = merged.tobytes()
+    merged.close()
+    pdf_buffer = io.BytesIO(pdf_bytes)
+
+    safe_area = re.sub(r'[^\w\-]', '_', area_id)
+    safe_house = re.sub(r'[^\w\-]', '_', house_id)
+    safe_ascii_area = safe_area.encode("ascii", "ignore").decode("ascii") or "area"
+    safe_ascii_house = safe_house.encode("ascii", "ignore").decode("ascii") or "house"
+    if tenant_id is not None:
+        if tenant_obj and tenant_obj.name:
+            safe_tenant = re.sub(r'[^\w\-]', '_', tenant_obj.name)
+            filename = f"archive_{safe_area}_{safe_house}_{safe_tenant}.pdf"
+        else:
+            filename = f"archive_{safe_area}_{safe_house}_tenant_{tenant_id}.pdf"
+        ascii_filename = f"archive_{safe_ascii_area}_{safe_ascii_house}_tenant_{tenant_id}.pdf"
+    else:
+        filename = f"archive_{safe_area}_{safe_house}.pdf"
+        ascii_filename = f"archive_{safe_ascii_area}_{safe_ascii_house}.pdf"
+    quoted_filename = urllib.parse.quote(filename)
+
+    headers = {
+        "Content-Disposition": f"attachment; filename=\"{ascii_filename}\"; filename*=UTF-8''{quoted_filename}",
+        "Content-Type": "application/pdf",
+    }
+    return StreamingResponse(pdf_buffer, media_type="application/pdf", headers=headers)
 
 
 @router.get("/api/areas/{area_id}/houses/{house_id}/tenants", response_model=list[TenantItem])
