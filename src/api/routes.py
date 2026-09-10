@@ -44,6 +44,8 @@ from src.api.models import (
     BatchDeleteResponse,
     BatchMoveRequest,
     BatchMoveResponse,
+    BatchCopyRequest,
+    BatchCopyResponse,
     CreateHouseRequest,
     CreateHouseResponse,
 )
@@ -52,6 +54,7 @@ from src.db.repository import (
     get_or_create_numbered_folder,
     update_document,
     copy_document,
+    batch_copy_documents,
     reset_document_manual_lock,
     delete_document,
 )
@@ -306,7 +309,7 @@ async def list_timeline(request: Request, area_id: str, house_id: str):
             SELECT d.vault_id, d.primary_date, d.arabic_title, d.category, d.is_manual, d.tenant_id, d.notes, t.name as tenant_name
             FROM documents d
             LEFT JOIN tenants t ON d.tenant_id = t.id
-            WHERE d.house_id = ? OR d.house_id = ?
+            WHERE (d.house_id = ? OR d.house_id = ?) AND (d.is_timeline_visible IS NULL OR d.is_timeline_visible = 1)
             ORDER BY d.primary_date DESC
         """, (house_id, house_num))
         rows = cursor.fetchall()
@@ -1259,6 +1262,45 @@ async def batch_move_documents(
         moved_count=len(moved_ids),
         target_category=target_folder,
         vault_ids=moved_ids,
+    )
+
+
+@router.post("/api/areas/{area_id}/houses/{house_id}/documents/batch-copy", response_model=BatchCopyResponse)
+async def batch_copy_documents_route(
+    request: Request,
+    area_id: str,
+    house_id: str,
+    payload: BatchCopyRequest,
+):
+    if not payload.vault_ids:
+        raise HTTPException(status_code=400, detail="vault_ids must not be empty.")
+    if not payload.target_category or not payload.target_category.strip():
+        raise HTTPException(status_code=400, detail="target_category must not be empty.")
+
+    repo = get_db_repo(request)
+    if not repo:
+        raise HTTPException(status_code=500, detail="Database repository not available.")
+
+    config = getattr(request.app.state, "config", None)
+    areas_root = Path(config.areas_root_path) if (config and hasattr(config, "areas_root_path")) else Path(".")
+
+    copied_docs = repo.batch_copy_documents(
+        area_id=area_id,
+        house_id=house_id,
+        vault_ids=payload.vault_ids,
+        target_category=payload.target_category,
+        areas_root=areas_root,
+    )
+
+    clear_tree_cache()
+
+    target_category_formatted = copied_docs[0].category if copied_docs else get_or_create_numbered_folder(repo.conn, house_id, payload.target_category)
+
+    return BatchCopyResponse(
+        status="success",
+        copied_count=len(copied_docs),
+        target_category=target_category_formatted,
+        new_vault_ids=[d.vault_id for d in copied_docs],
     )
 
 

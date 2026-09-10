@@ -42,6 +42,7 @@ CREATE TABLE IF NOT EXISTS documents (
     page_count INTEGER DEFAULT 1,
     is_manual INTEGER DEFAULT 0,
     notes TEXT,
+    is_timeline_visible INTEGER DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -78,6 +79,7 @@ CREATE INDEX IF NOT EXISTS idx_documents_house ON documents(house_id);
 CREATE INDEX IF NOT EXISTS idx_documents_tenant ON documents(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_documents_date ON documents(primary_date);
 CREATE INDEX IF NOT EXISTS idx_documents_manual ON documents(is_manual);
+CREATE INDEX IF NOT EXISTS idx_documents_timeline ON documents(is_timeline_visible);
 """
 
 
@@ -96,6 +98,8 @@ def init_db(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE documents ADD COLUMN is_manual INTEGER DEFAULT 0")
     if existing_cols and "notes" not in existing_cols:
         conn.execute("ALTER TABLE documents ADD COLUMN notes TEXT")
+    if existing_cols and "is_timeline_visible" not in existing_cols:
+        conn.execute("ALTER TABLE documents ADD COLUMN is_timeline_visible INTEGER DEFAULT 1")
 
     conn.executescript(INDICES_SQL)
     conn.commit()

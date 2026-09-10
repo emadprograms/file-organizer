@@ -911,6 +911,10 @@
             <span>📁</span>
             <span>Move Selected</span>
         </button>
+        <button id="btn-batch-copy" type="button" class="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold transition-colors cursor-pointer shadow-xs">
+            <span>📋</span>
+            <span>Copy Selected</span>
+        </button>
         <button id="btn-batch-delete" type="button" class="flex items-center gap-1.5 px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-semibold transition-colors cursor-pointer shadow-xs">
             <span>🗑️</span>
             <span>Delete Selected</span>
@@ -955,6 +959,49 @@
                 <button id="btn-batch-move-confirm" type="button" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-sm shadow-blue-500/25 flex items-center gap-2 cursor-pointer">
                     <span id="batch-move-spinner" class="hidden animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
                     <span id="batch-move-btn-text">📁 Move Documents</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Copy Modal -->
+    <div id="batch-copy-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shadow-2xs">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 tracking-tight">Copy Selected Documents</h3>
+                        <p id="batch-copy-subtitle" class="text-xs text-slate-500">Add documents to another category folder.</p>
+                    </div>
+                </div>
+                <button id="batch-copy-close" type="button" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="p-3 bg-amber-50/80 border border-amber-200/80 rounded-xl text-amber-900 text-xs flex items-start gap-2">
+                    <span class="text-base leading-none">💡</span>
+                    <span class="font-medium">ملاحظة: النسخ يتيح ظهور الوثائق في مجلد إضافي للرجوع السريع دون تكرارها في الخط الزمني</span>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Target Category Folder</label>
+                    <select id="batch-copy-folder-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
+                        <!-- Standard 13 folders + custom folders + '+ Create New Folder...' -->
+                    </select>
+                    <div id="batch-copy-custom-folder-container" class="mt-2 hidden">
+                        <input id="batch-copy-custom-folder-input" type="text" placeholder="Enter new folder name (e.g. مستندات بنكية)..." class="w-full px-3 py-2 text-xs border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-indigo-50/40 text-slate-800" />
+                        <p class="text-[10px] text-slate-400 mt-1">Will be automatically assigned the next sequential number (e.g. 14 - ...).</p>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex justify-end gap-3">
+                <button id="btn-batch-copy-cancel" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer">Cancel</button>
+                <button id="btn-batch-copy-confirm" type="button" class="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-sm shadow-indigo-500/25 flex items-center gap-2 cursor-pointer">
+                    <span id="batch-copy-spinner" class="hidden animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
+                    <span id="batch-copy-btn-text">📋 Copy Documents</span>
                 </button>
             </div>
         </div>

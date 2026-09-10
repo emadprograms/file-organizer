@@ -217,6 +217,9 @@ public record TimelineItemDto
     [JsonPropertyName("is_manual")]
     public int IsManual { get; init; }
 
+    [JsonPropertyName("is_timeline_visible")]
+    public int IsTimelineVisible { get; init; } = 1;
+
     [JsonPropertyName("notes")]
     public string? Notes { get; init; }
 }
@@ -267,6 +270,9 @@ public record VaultFileDto
 
     [JsonPropertyName("is_manual")]
     public int IsManual { get; init; }
+
+    [JsonPropertyName("is_timeline_visible")]
+    public int IsTimelineVisible { get; init; } = 1;
 
     [JsonPropertyName("notes")]
     public string? Notes { get; init; }
@@ -378,6 +384,9 @@ public record DocumentDetailsDto
 
     [JsonPropertyName("is_manual")]
     public int IsManual { get; init; } = 0;
+
+    [JsonPropertyName("is_timeline_visible")]
+    public int IsTimelineVisible { get; init; } = 1;
 
     [JsonPropertyName("notes")]
     public string? Notes { get; init; }
@@ -663,6 +672,30 @@ public record BatchMoveResponseDto
 
     [JsonPropertyName("vault_ids")]
     public List<string> VaultIds { get; init; } = new();
+}
+
+public record BatchCopyRequestDto
+{
+    [JsonPropertyName("vault_ids")]
+    public List<string> VaultIds { get; init; } = new();
+
+    [JsonPropertyName("target_category")]
+    public string TargetCategory { get; init; } = string.Empty;
+}
+
+public record BatchCopyResponseDto
+{
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = "success";
+
+    [JsonPropertyName("copied_count")]
+    public int CopiedCount { get; init; }
+
+    [JsonPropertyName("target_category")]
+    public string TargetCategory { get; init; } = string.Empty;
+
+    [JsonPropertyName("new_vault_ids")]
+    public List<string> NewVaultIds { get; init; } = new();
 }
 
 public record CreateHouseRequestDto

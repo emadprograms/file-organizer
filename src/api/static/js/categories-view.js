@@ -282,6 +282,140 @@
         }
     }
 
+    function openBatchCopyModal() {
+        if (selectedDocIds.size === 0) return;
+        const modal = document.getElementById('batch-copy-modal');
+        const select = document.getElementById('batch-copy-folder-select');
+        const subtitle = document.getElementById('batch-copy-subtitle');
+        const customContainer = document.getElementById('batch-copy-custom-folder-container');
+        const customInput = document.getElementById('batch-copy-custom-folder-input');
+
+        if (!modal || !select) return;
+
+        if (subtitle) {
+            subtitle.textContent = `Copy ${selectedDocIds.size} ${selectedDocIds.size === 1 ? 'document' : 'documents'} to a target category folder.`;
+        }
+
+        if (customContainer) customContainer.classList.add('hidden');
+        if (customInput) customInput.value = '';
+
+        select.innerHTML = '';
+        const stdOptGroup = document.createElement('optgroup');
+        stdOptGroup.label = 'Standard Folders';
+        for (const [folderName, prefix] of Object.entries(FOLDER_PREFIXES)) {
+            const opt = document.createElement('option');
+            const formatted = `${prefix} - ${folderName}`;
+            opt.value = formatted;
+            opt.textContent = formatted;
+            stdOptGroup.appendChild(opt);
+        }
+        select.appendChild(stdOptGroup);
+
+        const customFolders = new Set();
+        const activeCats = (typeof currentCategories !== 'undefined' ? currentCategories : (typeof window !== 'undefined' ? window.currentCategories : [])) || [];
+        if (Array.isArray(activeCats)) {
+            activeCats.forEach(c => {
+                if (c && c.name && !isStandardCategoryName(c.name)) {
+                    customFolders.add(c.name);
+                }
+            });
+        }
+        if (customFolders.size > 0) {
+            const custGroup = document.createElement('optgroup');
+            custGroup.label = 'Custom Folders';
+            Array.from(customFolders).sort().forEach(cf => {
+                const opt = document.createElement('option');
+                opt.value = cf;
+                opt.textContent = cf;
+                custGroup.appendChild(opt);
+            });
+            select.appendChild(custGroup);
+        }
+
+        const newOpt = document.createElement('option');
+        newOpt.value = '__custom__';
+        newOpt.textContent = '+ Create New Folder...';
+        select.appendChild(newOpt);
+
+        select.onchange = () => {
+            if (select.value === '__custom__') {
+                if (customContainer) customContainer.classList.remove('hidden');
+                if (customInput) customInput.focus();
+            } else {
+                if (customContainer) customContainer.classList.add('hidden');
+            }
+        };
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeBatchCopyModal() {
+        const modal = document.getElementById('batch-copy-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
+    async function handleBatchCopySubmit() {
+        if (selectedDocIds.size === 0) return;
+        const select = document.getElementById('batch-copy-folder-select');
+        const customInput = document.getElementById('batch-copy-custom-folder-input');
+        const confirmBtn = document.getElementById('btn-batch-copy-confirm');
+        const spinner = document.getElementById('batch-copy-spinner');
+
+        let targetCat = select ? select.value : '';
+        if (targetCat === '__custom__') {
+            targetCat = customInput ? customInput.value.trim() : '';
+        }
+        if (!targetCat) {
+            const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+            if (toast) toast('Please select or specify a target category folder.', 'error');
+            return;
+        }
+
+        const activeArea = (typeof currentArea !== 'undefined' ? currentArea : (typeof window !== 'undefined' ? window.currentArea : '')) || '';
+        const activeHouse = (typeof currentHouse !== 'undefined' ? currentHouse : (typeof window !== 'undefined' ? window.currentHouse : '')) || '';
+
+        if (confirmBtn) confirmBtn.disabled = true;
+        if (spinner) spinner.classList.remove('hidden');
+
+        try {
+            const res = await fetch(`/api/areas/${encodeURIComponent(activeArea)}/houses/${encodeURIComponent(activeHouse)}/documents/batch-copy`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    vault_ids: Array.from(selectedDocIds),
+                    target_category: targetCat
+                })
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                throw new Error(err.detail || err.error || 'Failed to copy documents');
+            }
+
+            const data = await res.json();
+            closeBatchCopyModal();
+            deselectAllDocs();
+
+            const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+            if (toast) toast('تم نسخ الوثائق المحددة بنجاح', 'success');
+
+            if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                await window.refreshCurrentTab(activeArea, activeHouse);
+            }
+        } catch (err) {
+            console.error(err);
+            const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+            if (toast) toast(err.message || 'Error copying documents', 'error');
+        } finally {
+            if (confirmBtn) confirmBtn.disabled = false;
+            if (spinner) spinner.classList.add('hidden');
+        }
+    }
+
     function openBatchDeleteModal() {
         if (selectedDocIds.size === 0) return;
         const modal = document.getElementById('batch-delete-modal');
@@ -359,6 +493,9 @@
         const btnMove = document.getElementById('btn-batch-move');
         if (btnMove) btnMove.onclick = openBatchMoveModal;
 
+        const btnCopy = document.getElementById('btn-batch-copy');
+        if (btnCopy) btnCopy.onclick = openBatchCopyModal;
+
         const btnDelete = document.getElementById('btn-batch-delete');
         if (btnDelete) btnDelete.onclick = openBatchDeleteModal;
 
@@ -373,6 +510,15 @@
 
         const btnMoveConfirm = document.getElementById('btn-batch-move-confirm');
         if (btnMoveConfirm) btnMoveConfirm.onclick = handleBatchMoveSubmit;
+
+        const btnCopyCancel = document.getElementById('btn-batch-copy-cancel');
+        if (btnCopyCancel) btnCopyCancel.onclick = closeBatchCopyModal;
+
+        const btnCopyClose = document.getElementById('batch-copy-close');
+        if (btnCopyClose) btnCopyClose.onclick = closeBatchCopyModal;
+
+        const btnCopyConfirm = document.getElementById('btn-batch-copy-confirm');
+        if (btnCopyConfirm) btnCopyConfirm.onclick = handleBatchCopySubmit;
 
         const btnDeleteCancel = document.getElementById('btn-batch-delete-cancel');
         if (btnDeleteCancel) btnDeleteCancel.onclick = closeBatchDeleteModal;
@@ -783,6 +929,9 @@
         window.openBatchMoveModal = openBatchMoveModal;
         window.closeBatchMoveModal = closeBatchMoveModal;
         window.handleBatchMoveSubmit = handleBatchMoveSubmit;
+        window.openBatchCopyModal = openBatchCopyModal;
+        window.closeBatchCopyModal = closeBatchCopyModal;
+        window.handleBatchCopySubmit = handleBatchCopySubmit;
         window.openBatchDeleteModal = openBatchDeleteModal;
         window.closeBatchDeleteModal = closeBatchDeleteModal;
         window.handleBatchDeleteSubmit = handleBatchDeleteSubmit;
@@ -804,6 +953,9 @@
             openBatchMoveModal,
             closeBatchMoveModal,
             handleBatchMoveSubmit,
+            openBatchCopyModal,
+            closeBatchCopyModal,
+            handleBatchCopySubmit,
             openBatchDeleteModal,
             closeBatchDeleteModal,
             handleBatchDeleteSubmit,

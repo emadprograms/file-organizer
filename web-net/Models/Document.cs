@@ -12,5 +12,6 @@ public class Document
     public int PageCount { get; set; } = 1;
     public int IsManual { get; set; } = 0;
     public string? Notes { get; set; }
+    public int IsTimelineVisible { get; set; } = 1;
     public string? CreatedAt { get; set; }
 }

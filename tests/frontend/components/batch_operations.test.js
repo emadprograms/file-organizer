@@ -14,6 +14,9 @@ const {
     openBatchMoveModal,
     closeBatchMoveModal,
     handleBatchMoveSubmit,
+    openBatchCopyModal,
+    closeBatchCopyModal,
+    handleBatchCopySubmit,
     openBatchDeleteModal,
     closeBatchDeleteModal,
     handleBatchDeleteSubmit,
@@ -28,6 +31,7 @@ function setupDOM() {
         <div id="batch-action-bar" class="hidden">
             <span id="batch-selected-count">0 selected</span>
             <button id="btn-batch-move" type="button">Move Selected</button>
+            <button id="btn-batch-copy" type="button">Copy Selected</button>
             <button id="btn-batch-delete" type="button">Delete Selected</button>
             <button id="btn-batch-deselect" type="button">Deselect</button>
         </div>
@@ -43,6 +47,20 @@ function setupDOM() {
             <button id="btn-batch-move-confirm" type="button">
                 <span id="batch-move-spinner" class="hidden"></span>
                 <span id="batch-move-btn-text">Move</span>
+            </button>
+        </div>
+
+        <div id="batch-copy-modal" class="hidden">
+            <p id="batch-copy-subtitle"></p>
+            <select id="batch-copy-folder-select"></select>
+            <div id="batch-copy-custom-folder-container" class="hidden">
+                <input id="batch-copy-custom-folder-input" type="text" />
+            </div>
+            <button id="batch-copy-close" type="button"></button>
+            <button id="btn-batch-copy-cancel" type="button"></button>
+            <button id="btn-batch-copy-confirm" type="button">
+                <span id="batch-copy-spinner" class="hidden"></span>
+                <span id="batch-copy-btn-text">Copy</span>
             </button>
         </div>
 
@@ -262,6 +280,108 @@ describe('Multi-Select Batch Document Operations (Phase 106)', () => {
         expect(getSelectedDocIds().size).toBe(0);
         expect(global.showToast).toHaveBeenCalledWith(expect.stringContaining('deleted 2 documents'), 'success');
         expect(global.refreshCurrentTab).toHaveBeenCalledWith('Safra C', '500');
+    });
+
+    it('opens batch copy modal with standard folders and executes POST batch-copy', async () => {
+        toggleDocSelection('doc001', true);
+        toggleDocSelection('doc002', true);
+
+        openBatchCopyModal();
+        const modal = document.getElementById('batch-copy-modal');
+        expect(modal.classList.contains('hidden')).toBe(false);
+
+        const subtitle = document.getElementById('batch-copy-subtitle');
+        expect(subtitle.textContent).toContain('2 documents');
+
+        const select = document.getElementById('batch-copy-folder-select');
+        expect(select.options.length).toBeGreaterThan(13);
+        select.value = '10 - صيانة';
+
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                status: 'success',
+                copied_count: 2,
+                target_category: '10 - صيانة',
+                copied_vault_ids: ['doc001_copy_1', 'doc002_copy_1']
+            })
+        });
+
+        await handleBatchCopySubmit();
+
+        expect(global.fetch).toHaveBeenCalledWith(
+            '/api/areas/Safra%20C/houses/500/documents/batch-copy',
+            expect.objectContaining({
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    vault_ids: ['doc001', 'doc002'],
+                    target_category: '10 - صيانة'
+                })
+            })
+        );
+
+        expect(modal.classList.contains('hidden')).toBe(true);
+        expect(getSelectedDocIds().size).toBe(0);
+        expect(global.showToast).toHaveBeenCalledWith('تم نسخ الوثائق المحددة بنجاح', 'success');
+        expect(global.refreshCurrentTab).toHaveBeenCalledWith('Safra C', '500');
+    });
+
+    it('validates target category selection on batch copy', async () => {
+        toggleDocSelection('doc001', true);
+        openBatchCopyModal();
+
+        const select = document.getElementById('batch-copy-folder-select');
+        select.value = '';
+
+        global.fetch = vi.fn();
+        await handleBatchCopySubmit();
+
+        expect(global.showToast).toHaveBeenCalledWith(
+            'Please select or specify a target category folder.',
+            'error'
+        );
+        expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    it('handles custom folder creation in batch copy modal', async () => {
+        toggleDocSelection('doc001', true);
+        openBatchCopyModal();
+
+        const select = document.getElementById('batch-copy-folder-select');
+        const customContainer = document.getElementById('batch-copy-custom-folder-container');
+        const customInput = document.getElementById('batch-copy-custom-folder-input');
+
+        select.value = '__custom__';
+        select.dispatchEvent(new Event('change'));
+
+        expect(customContainer.classList.contains('hidden')).toBe(false);
+        customInput.value = '99 - وثائق إضافية';
+
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                status: 'success',
+                copied_count: 1,
+                target_category: '99 - وثائق إضافية',
+                copied_vault_ids: ['doc001_copy_1']
+            })
+        });
+
+        await handleBatchCopySubmit();
+
+        expect(global.fetch).toHaveBeenCalledWith(
+            '/api/areas/Safra%20C/houses/500/documents/batch-copy',
+            expect.objectContaining({
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    vault_ids: ['doc001'],
+                    target_category: '99 - وثائق إضافية'
+                })
+            })
+        );
+        expect(global.showToast).toHaveBeenCalledWith('تم نسخ الوثائق المحددة بنجاح', 'success');
     });
 
     it('clicking deselect button clears selection and hides floating bar', () => {

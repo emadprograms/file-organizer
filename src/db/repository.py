@@ -1,7 +1,9 @@
 """Repository providing type-safe CRUD operations for the SQLite database."""
 
 import re
+import shutil
 import sqlite3
+import uuid
 from contextlib import contextmanager
 from datetime import date, datetime
 from pathlib import Path
@@ -590,6 +592,7 @@ def add_document(
     page_count: int = 1,
     is_manual: int = 0,
     notes: Optional[str] = None,
+    is_timeline_visible: int = 1,
     autocommit: bool = True,
 ) -> Document:
     """Insert a new document record into the vault."""
@@ -609,6 +612,7 @@ def add_document(
             page_count=page_count,
             is_manual=is_manual,
             notes=notes,
+            is_timeline_visible=is_timeline_visible,
         )
     elif vault_id is not None:
         d = Document(
@@ -622,18 +626,20 @@ def add_document(
             page_count=page_count,
             is_manual=is_manual,
             notes=notes,
+            is_timeline_visible=is_timeline_visible,
         )
     else:
         raise ValueError("Invalid document specification")
 
     p_date = str(d.primary_date) if d.primary_date else None
     manual_val = int(getattr(d, "is_manual", 0) or 0)
+    timeline_vis = int(getattr(d, "is_timeline_visible", 1) if getattr(d, "is_timeline_visible", None) is not None else 1)
 
     query = """
     INSERT INTO documents (
         vault_id, house_id, tenant_id, batch_id, primary_date,
-        arabic_title, category, page_count, is_manual, notes
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        arabic_title, category, page_count, is_manual, notes, is_timeline_visible
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     RETURNING *
     """
     cursor = conn.execute(
@@ -649,6 +655,7 @@ def add_document(
             d.page_count,
             manual_val,
             d.notes,
+            timeline_vis,
         ),
     )
     row = cursor.fetchone()
@@ -798,7 +805,7 @@ def get_document_metadata(
     query = """
     SELECT 
         d.vault_id, d.house_id, d.category, d.primary_date, d.arabic_title,
-        d.page_count, d.is_manual, d.notes, d.created_at,
+        d.page_count, d.is_manual, d.notes, d.is_timeline_visible, d.created_at,
         t.id as tenant_id, t.name as tenant_name, t.start_date as tenant_start_date, t.end_date as tenant_end_date,
         b.filename as batch_filename
     FROM documents d
@@ -840,9 +847,10 @@ def copy_document(
     target_category: Optional[str] = None,
     target_tenant_id: Optional[int] = None,
     target_title: Optional[str] = None,
+    is_timeline_visible: int = 0,
     autocommit: bool = True,
 ) -> Optional[Document]:
-    """Duplicate a document record under a new vault_id with is_manual = 1."""
+    """Duplicate a document record under a new vault_id with is_manual = 1 and is_timeline_visible = 0 by default."""
     src = get_document(conn, vault_id)
     if not src:
         return None
@@ -862,9 +870,86 @@ def copy_document(
         category=cat,
         page_count=src.page_count,
         is_manual=1,
+        notes=src.notes,
+        is_timeline_visible=is_timeline_visible,
         autocommit=autocommit,
     )
     return new_doc
+
+
+def batch_copy_documents(
+    conn: sqlite3.Connection,
+    *,
+    area_id: str,
+    house_id: str,
+    vault_ids: Sequence[str],
+    target_category: str,
+    areas_root: Union[str, Path] = ".",
+    autocommit: bool = True,
+) -> list[Document]:
+    """Copy multiple documents to a target category with is_timeline_visible = 0 and is_manual = 1."""
+    pdf_root = Path(areas_root)
+    clean_house = house_id.split(" - ")[0].strip() if " - " in house_id else house_id
+    copied_docs: list[Document] = []
+
+    for vid in vault_ids:
+        src = get_document(conn, vid)
+        if not src:
+            continue
+
+        new_vid = uuid.uuid4().hex
+
+        # Physical file duplicate on disk
+        target_vault_dir = pdf_root / area_id / src.house_id / "vault"
+        if not target_vault_dir.exists():
+            alt_dir = pdf_root / area_id / clean_house / "vault"
+            if alt_dir.exists():
+                target_vault_dir = alt_dir
+            else:
+                target_vault_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            target_vault_dir.mkdir(parents=True, exist_ok=True)
+
+        src_candidates = [
+            pdf_root / area_id / house_id / "vault" / f"doc_{vid}.pdf",
+            pdf_root / area_id / house_id / "vault" / f"{vid}.pdf",
+            pdf_root / area_id / clean_house / "vault" / f"doc_{vid}.pdf",
+            pdf_root / area_id / clean_house / "vault" / f"{vid}.pdf",
+            pdf_root / area_id / src.house_id / "vault" / f"doc_{vid}.pdf",
+            pdf_root / area_id / src.house_id / "vault" / f"{vid}.pdf",
+        ]
+        dest_file = target_vault_dir / f"doc_{new_vid}.pdf"
+        for cand in src_candidates:
+            if cand.exists() and cand.is_file():
+                try:
+                    shutil.copy2(str(cand), str(dest_file))
+                except Exception:
+                    pass
+                break
+
+        target_folder = get_or_create_numbered_folder(conn, src.house_id, target_category)
+
+        new_doc = add_document(
+            conn,
+            vault_id=new_vid,
+            house_id=src.house_id,
+            tenant_id=src.tenant_id,
+            batch_id=src.batch_id,
+            primary_date=src.primary_date,
+            arabic_title=src.arabic_title,
+            category=target_folder,
+            page_count=src.page_count,
+            is_manual=1,
+            notes=src.notes,
+            is_timeline_visible=0,
+            autocommit=False,
+        )
+        copied_docs.append(new_doc)
+
+    if autocommit:
+        conn.commit()
+
+    return copied_docs
 
 
 def delete_document(
@@ -1117,6 +1202,7 @@ class Repository:
         page_count: int = 1,
         is_manual: int = 0,
         notes: Optional[str] = None,
+        is_timeline_visible: int = 1,
     ) -> Document:
         return add_document(
             self.conn,
@@ -1131,6 +1217,7 @@ class Repository:
             page_count=page_count,
             is_manual=is_manual,
             notes=notes,
+            is_timeline_visible=is_timeline_visible,
             autocommit=self.autocommit,
         )
 
@@ -1193,6 +1280,7 @@ class Repository:
         target_category: Optional[str] = None,
         target_tenant_id: Optional[int] = None,
         target_title: Optional[str] = None,
+        is_timeline_visible: int = 0,
     ) -> Optional[Document]:
         return copy_document(
             self.conn,
@@ -1201,6 +1289,26 @@ class Repository:
             target_category=target_category,
             target_tenant_id=target_tenant_id,
             target_title=target_title,
+            is_timeline_visible=is_timeline_visible,
+            autocommit=self.autocommit,
+        )
+
+    def batch_copy_documents(
+        self,
+        *,
+        area_id: str,
+        house_id: str,
+        vault_ids: Sequence[str],
+        target_category: str,
+        areas_root: Union[str, Path] = ".",
+    ) -> list[Document]:
+        return batch_copy_documents(
+            self.conn,
+            area_id=area_id,
+            house_id=house_id,
+            vault_ids=vault_ids,
+            target_category=target_category,
+            areas_root=areas_root,
             autocommit=self.autocommit,
         )
 

@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS documents (
     page_count INTEGER DEFAULT 1,
     is_manual INTEGER DEFAULT 0,
     notes TEXT,
+    is_timeline_visible INTEGER DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -79,6 +80,7 @@ CREATE INDEX IF NOT EXISTS idx_documents_house ON documents(house_id);
 CREATE INDEX IF NOT EXISTS idx_documents_tenant ON documents(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_documents_date ON documents(primary_date);
 CREATE INDEX IF NOT EXISTS idx_documents_manual ON documents(is_manual);
+CREATE INDEX IF NOT EXISTS idx_documents_timeline ON documents(is_timeline_visible);
 ";
 
     public static void InitializeSchema(SqliteConnection connection)
@@ -86,6 +88,14 @@ CREATE INDEX IF NOT EXISTS idx_documents_manual ON documents(is_manual);
         using var cmd = connection.CreateCommand();
         cmd.CommandText = SchemaSql;
         cmd.ExecuteNonQuery();
+
+        try
+        {
+            using var alterCmd = connection.CreateCommand();
+            alterCmd.CommandText = "ALTER TABLE documents ADD COLUMN is_timeline_visible INTEGER DEFAULT 1;";
+            alterCmd.ExecuteNonQuery();
+        }
+        catch (SqliteException) { }
     }
 
     public static async Task InitializeSchemaAsync(SqliteConnection connection)
@@ -93,5 +103,13 @@ CREATE INDEX IF NOT EXISTS idx_documents_manual ON documents(is_manual);
         using var cmd = connection.CreateCommand();
         cmd.CommandText = SchemaSql;
         await cmd.ExecuteNonQueryAsync();
+
+        try
+        {
+            using var alterCmd = connection.CreateCommand();
+            alterCmd.CommandText = "ALTER TABLE documents ADD COLUMN is_timeline_visible INTEGER DEFAULT 1;";
+            await alterCmd.ExecuteNonQueryAsync();
+        }
+        catch (SqliteException) { }
     }
 }

@@ -700,6 +700,24 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/batch-move", async (
     return Results.Ok(result);
 });
 
+app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/batch-copy", async (
+    string areaId,
+    string houseId,
+    BatchCopyRequestDto dto,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    if (dto.VaultIds == null || dto.VaultIds.Count == 0)
+        return Results.BadRequest(new { error = "vault_ids must not be empty." });
+
+    if (string.IsNullOrWhiteSpace(dto.TargetCategory))
+        return Results.BadRequest(new { error = "target_category must not be empty." });
+
+    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var result = await repo.BatchCopyDocumentsAsync(areaId, houseId, dto.VaultIds, dto.TargetCategory, areasRoot);
+    return Results.Ok(result);
+});
+
 // ---------------------------------------------------------------------------
 // Ingest API
 // ---------------------------------------------------------------------------

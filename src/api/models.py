@@ -188,6 +188,18 @@ class BatchMoveResponse(BaseModel):
     vault_ids: list[str]
 
 
+class BatchCopyRequest(BaseModel):
+    vault_ids: list[str]
+    target_category: str
+
+
+class BatchCopyResponse(BaseModel):
+    status: str = "success"
+    copied_count: int
+    target_category: str
+    new_vault_ids: list[str]
+
+
 class CreateHouseRequest(BaseModel):
     house_id: str
     area_id: Optional[str] = None

@@ -59,6 +59,7 @@ class Document(BaseModel):
     page_count: int = 1
     is_manual: int = 0
     notes: Optional[str] = None
+    is_timeline_visible: int = 1
     created_at: Optional[Union[str, datetime]] = None
 
 

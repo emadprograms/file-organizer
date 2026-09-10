@@ -24,6 +24,12 @@ public class FileOrganizerRepository : IFileOrganizerRepository
     {
         await using var conn = await _connectionFactory.CreateConnectionAsync();
         await DatabaseInitializer.InitializeSchemaAsync(conn);
+
+        try
+        {
+            await conn.ExecuteAsync("ALTER TABLE documents ADD COLUMN is_timeline_visible INTEGER DEFAULT 1;");
+        }
+        catch (SqliteException) { }
     }
 
     public async Task<IReadOnlyList<TreeAreaDto>> GetTreeAsync(bool includeCategories = false, bool includeTimeline = false)
@@ -502,10 +508,12 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                    COALESCE(d.arabic_title, '') AS BriefArabicTitle,
                    COALESCE(d.category, '') AS Category,
                    COALESCE(d.is_manual, 0) AS IsManual,
+                   COALESCE(d.is_timeline_visible, 1) AS IsTimelineVisible,
                    d.notes AS Notes
             FROM documents d
             LEFT JOIN tenants t ON d.tenant_id = t.id
             WHERE (d.house_id = @HouseId OR d.house_id = @CleanHouseId)
+              AND (d.is_timeline_visible IS NULL OR d.is_timeline_visible = 1)
               AND (@TenantName IS NULL OR t.name = @TenantName)
             ORDER BY d.primary_date DESC, d.created_at DESC;";
 
@@ -517,6 +525,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             string BriefArabicTitle,
             string? Category,
             int IsManual,
+            int IsTimelineVisible,
             string? Notes
         )>(sql, new { HouseId = houseId, CleanHouseId = cleanHouseId, TenantName = tenantName });
 
@@ -529,6 +538,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             BriefArabicTitle = r.BriefArabicTitle,
             Category = r.Category,
             IsManual = r.IsManual,
+            IsTimelineVisible = r.IsTimelineVisible,
             Notes = r.Notes
         }).ToList();
     }
@@ -858,6 +868,18 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                 }
             }
 
+            if (physicalPath == null && !string.IsNullOrEmpty(doc.BatchFilePath))
+            {
+                var batchCand = Path.Combine(areasRoot, doc.AreaId, doc.HouseId, doc.BatchFilePath);
+                if (File.Exists(batchCand)) physicalPath = batchCand;
+                else
+                {
+                    var cleanH = TextUtils.ExtractHouseNumber(doc.HouseId);
+                    var cleanBatchCand = Path.Combine(areasRoot, doc.AreaId, cleanH, doc.BatchFilePath);
+                    if (File.Exists(cleanBatchCand)) physicalPath = cleanBatchCand;
+                }
+            }
+
             physicalPath ??= candidates[0];
         }
 
@@ -1168,14 +1190,14 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             }
         }
 
-        // Insert new document record with is_manual = 1
+        // Insert new document record with is_manual = 1 and is_timeline_visible = 0
         const string copySql = @"
             INSERT INTO documents (
                 vault_id, house_id, tenant_id, batch_id, primary_date,
-                arabic_title, category, page_count, is_manual, notes
+                arabic_title, category, page_count, is_manual, notes, is_timeline_visible
             ) VALUES (
                 @VaultId, @HouseId, @TenantId, @BatchId, @PrimaryDate,
-                @ArabicTitle, @Category, @PageCount, 1, @Notes
+                @ArabicTitle, @Category, @PageCount, 1, @Notes, 0
             );";
 
         await conn.ExecuteAsync(copySql, new
@@ -1326,7 +1348,8 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         return await conn.QueryFirstOrDefaultAsync<Document>(@"
             SELECT vault_id AS VaultId, house_id AS HouseId, tenant_id AS TenantId, batch_id AS BatchId,
                    primary_date AS PrimaryDate, arabic_title AS ArabicTitle, category AS Category,
-                   page_count AS PageCount, is_manual AS IsManual, notes AS Notes, created_at AS CreatedAt
+                   page_count AS PageCount, is_manual AS IsManual, notes AS Notes,
+                   is_timeline_visible AS IsTimelineVisible, created_at AS CreatedAt
             FROM documents 
             WHERE vault_id = @VaultId;",
             new { VaultId = vaultId });
@@ -1563,6 +1586,122 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             MovedCount = movedIds.Count,
             TargetCategory = formattedCategory,
             VaultIds = movedIds
+        };
+    }
+
+    public async Task<BatchCopyResponseDto> BatchCopyDocumentsAsync(
+        string areaId,
+        string houseId,
+        IEnumerable<string> vaultIds,
+        string targetCategory,
+        string? areasRoot = null)
+    {
+        var resolvedAreasRoot = !string.IsNullOrEmpty(areasRoot)
+            ? areasRoot
+            : (_configuration?["AREAS_ROOT_PATH"] ?? Environment.GetEnvironmentVariable("AREAS_ROOT_PATH") ?? "../areas");
+
+        var cleanHouseId = houseId.Contains(" - ") ? houseId.Split(" - ")[0].Trim() : houseId.Trim();
+        var formattedCategory = Constants.FormatCategoryWithPrefix(targetCategory);
+
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+        await using var tx = await conn.BeginTransactionAsync();
+
+        var newVaultIds = new List<string>();
+
+        foreach (var vaultId in vaultIds)
+        {
+            var src = await conn.QueryFirstOrDefaultAsync<Document>(@"
+                SELECT vault_id AS VaultId, house_id AS HouseId, tenant_id AS TenantId, batch_id AS BatchId,
+                       primary_date AS PrimaryDate, arabic_title AS ArabicTitle, category AS Category,
+                       page_count AS PageCount, is_manual AS IsManual, notes AS Notes
+                FROM documents 
+                WHERE vault_id = @VaultId;",
+                new { VaultId = vaultId }, tx);
+
+            if (src == null)
+                continue;
+
+            var newVaultId = Guid.NewGuid().ToString("N");
+
+            // Copy physical file if present
+            var batchFilePath = await conn.QueryFirstOrDefaultAsync<string>(
+                "SELECT file_path FROM batches WHERE id = @BatchId;",
+                new { BatchId = src.BatchId }, tx);
+
+            var possiblePaths = new List<string>
+            {
+                Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"doc_{vaultId}.pdf"),
+                Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"doc_{vaultId}.pdf"),
+                Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"{vaultId}.pdf"),
+                Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"{vaultId}.pdf"),
+            };
+            if (!string.IsNullOrEmpty(batchFilePath))
+            {
+                possiblePaths.Add(Path.Combine(resolvedAreasRoot, areaId, src.HouseId, batchFilePath));
+                possiblePaths.Add(Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, batchFilePath));
+            }
+
+            var targetVaultDir = Path.Combine(resolvedAreasRoot, areaId, src.HouseId, "vault");
+            if (!Directory.Exists(targetVaultDir))
+            {
+                var altDir = Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault");
+                if (Directory.Exists(altDir)) targetVaultDir = altDir;
+            }
+
+            try
+            {
+                Directory.CreateDirectory(targetVaultDir);
+                var destPath = Path.Combine(targetVaultDir, $"doc_{newVaultId}.pdf");
+                foreach (var p in possiblePaths)
+                {
+                    if (File.Exists(p))
+                    {
+                        File.Copy(p, destPath, overwrite: true);
+                        break;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Ignore physical file copy error
+            }
+
+            const string insertSql = @"
+                INSERT INTO documents (
+                    vault_id, house_id, tenant_id, batch_id, primary_date,
+                    arabic_title, category, page_count, is_manual, notes, is_timeline_visible
+                ) VALUES (
+                    @VaultId, @HouseId, @TenantId, @BatchId, @PrimaryDate,
+                    @ArabicTitle, @Category, @PageCount, 1, @Notes, 0
+                );";
+
+            var rows = await conn.ExecuteAsync(insertSql, new
+            {
+                VaultId = newVaultId,
+                HouseId = src.HouseId,
+                TenantId = src.TenantId,
+                BatchId = src.BatchId,
+                PrimaryDate = src.PrimaryDate,
+                ArabicTitle = src.ArabicTitle,
+                Category = formattedCategory,
+                PageCount = src.PageCount,
+                Notes = src.Notes
+            }, tx);
+
+            if (rows > 0)
+            {
+                newVaultIds.Add(newVaultId);
+            }
+        }
+
+        await tx.CommitAsync();
+
+        return new BatchCopyResponseDto
+        {
+            Status = "success",
+            CopiedCount = newVaultIds.Count,
+            TargetCategory = formattedCategory,
+            NewVaultIds = newVaultIds
         };
     }
 

@@ -732,6 +732,115 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
         var emptyResponse = await _client.PostAsJsonAsync("/api/areas/Safra%20C/houses", new CreateHouseRequestDto { HouseId = "" });
         Assert.Equal(HttpStatusCode.BadRequest, emptyResponse.StatusCode);
     }
+
+    [Fact]
+    public async Task BatchCopy_CreatesDocumentCopies_ExcludedFromTimeline()
+    {
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+
+        var samplePdf = Path.Combine(_fixture.AreasRoot, "seed.pdf");
+        var doc1 = await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Safra C",
+            HouseId = "500",
+            TenantId = 1,
+            Category = "05 - عقود",
+            ArabicTitle = "مستند لنسخ 1",
+            PrimaryDate = "2022-05-01",
+            PageCount = 1,
+            SourcePdfPath = samplePdf,
+            SourcePdfFilename = "seed.pdf",
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        var doc2 = await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Safra C",
+            HouseId = "500",
+            TenantId = 1,
+            Category = "05 - عقود",
+            ArabicTitle = "مستند لنسخ 2",
+            PrimaryDate = "2022-05-02",
+            PageCount = 1,
+            SourcePdfPath = samplePdf,
+            SourcePdfFilename = "seed.pdf",
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        // Validation for empty vault_ids
+        var emptyIdsResponse = await _client.PostAsJsonAsync(
+            "/api/areas/Safra%20C/houses/500/documents/batch-copy",
+            new BatchCopyRequestDto { VaultIds = new List<string>(), TargetCategory = "08 - فواتير" });
+        Assert.Equal(HttpStatusCode.BadRequest, emptyIdsResponse.StatusCode);
+
+        // Validation for empty target_category
+        var emptyCatResponse = await _client.PostAsJsonAsync(
+            "/api/areas/Safra%20C/houses/500/documents/batch-copy",
+            new BatchCopyRequestDto { VaultIds = new List<string> { doc1.VaultId! }, TargetCategory = "" });
+        Assert.Equal(HttpStatusCode.BadRequest, emptyCatResponse.StatusCode);
+
+        // Batch copy execution
+        var response = await _client.PostAsJsonAsync(
+            "/api/areas/Safra%20C/houses/500/documents/batch-copy",
+            new BatchCopyRequestDto
+            {
+                VaultIds = new List<string> { doc1.VaultId!, doc2.VaultId! },
+                TargetCategory = "08 - فواتير"
+            });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<BatchCopyResponseDto>();
+        Assert.NotNull(result);
+        Assert.Equal("success", result.Status);
+        Assert.Equal(2, result.CopiedCount);
+        Assert.Equal("08 - فواتير", result.TargetCategory);
+        Assert.Equal(2, result.NewVaultIds.Count);
+
+        var copy1Id = result.NewVaultIds[0];
+        var copy2Id = result.NewVaultIds[1];
+
+        // Verify DB records
+        var copyDoc1 = await repo.GetDocumentRawAsync(copy1Id);
+        var copyDoc2 = await repo.GetDocumentRawAsync(copy2Id);
+        Assert.NotNull(copyDoc1);
+        Assert.NotNull(copyDoc2);
+        Assert.Equal(0, copyDoc1.IsTimelineVisible);
+        Assert.Equal(1, copyDoc1.IsManual);
+        Assert.Equal("08 - فواتير", copyDoc1.Category);
+        Assert.Equal(0, copyDoc2.IsTimelineVisible);
+        Assert.Equal(1, copyDoc2.IsManual);
+        Assert.Equal("08 - فواتير", copyDoc2.Category);
+
+        // Verify copied docs appear in /categories
+        var catsResponse = await _client.GetAsync("/api/areas/Safra%20C/houses/500/categories");
+        Assert.Equal(HttpStatusCode.OK, catsResponse.StatusCode);
+        var categories = await catsResponse.Content.ReadFromJsonAsync<List<CategoryFolderDto>>();
+        Assert.NotNull(categories);
+        var allCatDocIds = categories.SelectMany(c => c.Documents).Select(d => d.VaultId).ToList();
+        Assert.Contains(copy1Id, allCatDocIds);
+        Assert.Contains(copy2Id, allCatDocIds);
+        Assert.Contains(doc1.VaultId!, allCatDocIds);
+        Assert.Contains(doc2.VaultId!, allCatDocIds);
+
+        // Verify copied docs DO NOT appear in /timeline (no duplicates)
+        var tlResponse = await _client.GetAsync("/api/areas/Safra%20C/houses/500/timeline");
+        Assert.Equal(HttpStatusCode.OK, tlResponse.StatusCode);
+        var timeline = await tlResponse.Content.ReadFromJsonAsync<List<TimelineItemDto>>();
+        Assert.NotNull(timeline);
+        var tlDocIds = timeline.Select(t => t.VaultId).ToList();
+        Assert.Contains(doc1.VaultId!, tlDocIds);
+        Assert.Contains(doc2.VaultId!, tlDocIds);
+        Assert.DoesNotContain(copy1Id, tlDocIds);
+        Assert.DoesNotContain(copy2Id, tlDocIds);
+
+        // Verify PDF can be fetched via /api/pdf/{vaultId}
+        var pdf1Response = await _client.GetAsync($"/api/pdf/{copy1Id}");
+        Assert.Equal(HttpStatusCode.OK, pdf1Response.StatusCode);
+        var pdf1Bytes = await pdf1Response.Content.ReadAsByteArrayAsync();
+        Assert.NotEmpty(pdf1Bytes);
+        Assert.StartsWith("%PDF", System.Text.Encoding.ASCII.GetString(pdf1Bytes[..4]));
+    }
 }
 
 

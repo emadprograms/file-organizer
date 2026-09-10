@@ -28,6 +28,7 @@ from src.db.repository import (
     update_document,
     reset_document_manual_lock,
     copy_document,
+    batch_copy_documents,
     get_or_create_numbered_folder,
 )
 from src.db.schema import INDICES_SQL, SCHEMA_SQL, init_db
@@ -69,5 +70,6 @@ __all__ = [
     "update_document",
     "reset_document_manual_lock",
     "copy_document",
+    "batch_copy_documents",
     "get_or_create_numbered_folder",
 ]

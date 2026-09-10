@@ -410,3 +410,125 @@ def test_create_house_duplicate_or_invalid(test_setup):
     assert "already exists" in err_msg
 
 
+def test_single_document_copy_excluded_from_timeline(test_setup):
+    repo = test_setup["repo"]
+
+    # 1. Single copy via POST .../copy
+    res = client.post(
+        "/api/areas/Area A/houses/House 100/documents/v14test01/copy",
+        json={"target_category": "10 - صيانة"}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    new_vid = data["vault_id"]
+
+    # Verify is_timeline_visible = 0
+    copied_doc = repo.get_document(new_vid)
+    assert copied_doc is not None
+    assert copied_doc.is_timeline_visible == 0
+    assert copied_doc.category == "10 - صيانة"
+
+    # Verify it appears in categories
+    res_cats = client.get("/api/areas/Area A/houses/House 100/categories")
+    assert res_cats.status_code == 200
+    all_cat_doc_ids = [d["vault_id"] for f in res_cats.json() for d in f.get("documents", [])]
+    assert new_vid in all_cat_doc_ids
+    assert "v14test01" in all_cat_doc_ids
+
+    # Verify it does NOT appear in timeline (no duplicate)
+    res_tl = client.get("/api/areas/Area A/houses/House 100/timeline")
+    assert res_tl.status_code == 200
+    tl_vids = [item["vault_id"] for item in res_tl.json()]
+    assert "v14test01" in tl_vids
+    assert new_vid not in tl_vids
+
+    # Verify PDF is viewable seamlessly via /api/areas/{area}/houses/{house}/pdf/{vault_id}
+    res_pdf = client.get(f"/api/areas/Area A/houses/House 100/pdf/{new_vid}")
+    assert res_pdf.status_code == 200
+    assert res_pdf.content.startswith(b"%PDF")
+
+
+def test_batch_copy_documents_excluded_from_timeline(test_setup):
+    repo = test_setup["repo"]
+    vault_dir = test_setup["vault_dir"]
+    t = test_setup["tenant"]
+
+    # Add second document
+    p2 = vault_dir / "doc_v14test02.pdf"
+    doc_new = fitz.open()
+    doc_new.new_page()
+    p2.write_bytes(doc_new.tobytes().replace(b"%PDF-1.7", b"%PDF-1.4"))
+    doc_new.close()
+    b2 = repo.create_batch(filename="test2.pdf", file_path=str(p2), house_id="House 100", page_count=1)
+    repo.add_document(
+        vault_id="v14test02",
+        house_id="House 100",
+        tenant_id=t.id,
+        batch_id=b2.id,
+        primary_date="2024-05-16",
+        arabic_title="فاتورة كهرباء",
+        category="05 - عقود",
+        page_count=1,
+    )
+
+    # 1. Validation: empty vault_ids and empty target_category
+    res_err1 = client.post("/api/areas/Area A/houses/House 100/documents/batch-copy", json={"vault_ids": [], "target_category": "صيانة"})
+    assert res_err1.status_code == 400
+
+    res_err2 = client.post("/api/areas/Area A/houses/House 100/documents/batch-copy", json={"vault_ids": ["v14test01"], "target_category": ""})
+    assert res_err2.status_code == 400
+
+    # 2. Batch copy execution
+    res = client.post(
+        "/api/areas/Area A/houses/House 100/documents/batch-copy",
+        json={"vault_ids": ["v14test01", "v14test02"], "target_category": "08 - فواتير"}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert data["copied_count"] == 2
+    assert data["target_category"] == "08 - فواتير"
+    assert len(data["new_vault_ids"]) == 2
+
+    copy1_id, copy2_id = data["new_vault_ids"]
+
+    # Verify DB records
+    doc1_copy = repo.get_document(copy1_id)
+    doc2_copy = repo.get_document(copy2_id)
+    assert doc1_copy.is_timeline_visible == 0
+    assert doc1_copy.is_manual == 1
+    assert doc1_copy.category == "08 - فواتير"
+    assert doc2_copy.is_timeline_visible == 0
+    assert doc2_copy.is_manual == 1
+    assert doc2_copy.category == "08 - فواتير"
+
+    # Verify copied documents appear in /categories
+    res_cats = client.get("/api/areas/Area A/houses/House 100/categories")
+    assert res_cats.status_code == 200
+    all_cat_doc_ids = [d["vault_id"] for f in res_cats.json() for d in f.get("documents", [])]
+    assert copy1_id in all_cat_doc_ids
+    assert copy2_id in all_cat_doc_ids
+    assert "v14test01" in all_cat_doc_ids
+    assert "v14test02" in all_cat_doc_ids
+
+    # Verify copied documents DO NOT appear in /timeline (no duplicates)
+    res_tl = client.get("/api/areas/Area A/houses/House 100/timeline")
+    assert res_tl.status_code == 200
+    tl_vids = [item["vault_id"] for item in res_tl.json()]
+    assert "v14test01" in tl_vids
+    assert "v14test02" in tl_vids
+    assert copy1_id not in tl_vids
+    assert copy2_id not in tl_vids
+
+    # Verify PDF viewable via PDF endpoint
+    res_pdf1 = client.get(f"/api/areas/Area A/houses/House 100/pdf/{copy1_id}")
+    assert res_pdf1.status_code == 200
+    assert res_pdf1.content.startswith(b"%PDF")
+
+    res_pdf2 = client.get(f"/api/areas/Area A/houses/House 100/pdf/{copy2_id}")
+    assert res_pdf2.status_code == 200
+    assert res_pdf2.content.startswith(b"%PDF")
+
+
+
