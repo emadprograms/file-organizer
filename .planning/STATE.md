@@ -6,7 +6,7 @@ current_phase: 108 (All Complete)
 status: completed
 last_updated: "2026-09-10T23:30:00.000Z"
 last_activity: 2026-09-10
-last_activity_desc: "Completed Milestone v14.0: One-Click House Archive Export & Dossier Generation (with Arabic cursive reshaping, BiDi visual reordering, and preserved category numbering in running footer), Multi-Select Batch Operations (Move, Delete, Copy) with Timeline De-duplication, Portfolio Expansion (+ Add House), Global Shortcuts Helper Modal, and Comprehensive Multi-Stack Verification (84 xUnit, 15 v14 pytest, 13 doc management, 101 Vitest, 49 Playwright E2E)."
+last_activity_desc: "Completed Milestone v14.0: One-Click House Archive Export & Dossier Generation (with Arabic cursive reshaping, BiDi visual reordering, and preserved category numbering in running footer), Multi-Select Batch Operations (Move, Delete, Copy) with Timeline De-duplication, Double-Click Inline Document Renaming (QCK-05), Portfolio Expansion (+ Add House), Global Shortcuts Helper Modal, and Comprehensive Multi-Stack Verification (84 xUnit, 15 v14 pytest, 13 doc management, 108 Vitest, 49 Playwright E2E)."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -25,7 +25,7 @@ stopped_at: Completed Milestone v14.0
 
 ## Context
 
-Equip the digital archive management system with power-user operational tools: one-click house archive ZIP export, interactive export options modal with combined chronological PDF dossier generation (descending sort, running footer with preserved category numbers, Arabic cursive reshaping and BiDi visual reordering), multi-document batch operations (bulk move, bulk delete, and bulk copy with timeline de-duplication architecture), portfolio expansion with UI-based house creation, an interactive keyboard shortcuts modal (`?`), and complete parity across both FastAPI and ASP.NET Core 8.0 backends with comprehensive multi-stack test coverage (84 xUnit, 15 v14 pytest, 13 doc management, 101 Vitest across 9 files, and 49 Playwright E2E).
+Equip the digital archive management system with power-user operational tools: one-click house archive ZIP export, interactive export options modal with combined chronological PDF dossier generation (descending sort, running footer with preserved category numbers, Arabic cursive reshaping and BiDi visual reordering), multi-document batch operations (bulk move, bulk delete, and bulk copy with timeline de-duplication architecture), portfolio expansion with UI-based house creation, double-click inline document renaming in Categories and Timeline views, an interactive keyboard shortcuts modal (`?`), and complete parity across both FastAPI and ASP.NET Core 8.0 backends with comprehensive multi-stack test coverage (84 xUnit, 15 v14 pytest, 13 doc management, 108 Vitest across 10 files, and 49 Playwright E2E).
 
 ## Target Phases
 
@@ -52,13 +52,14 @@ Equip the digital archive management system with power-user operational tools: o
 - `260910-batch-copy-timeline-hidden`: Multi-Select Batch Copy Documents with Timeline De-duplication (`POST .../batch-copy`). Added `is_timeline_visible INTEGER DEFAULT 1` to `documents` table across Python and ASP.NET Core with automatic migrations, single and batch copy setting `is_timeline_visible = 0`, timeline queries filtering copies while category views retain full visibility, and batch action bar button with modal. 101 Vitest tests, 51 .NET xUnit tests, and 26 Python pytest tests passing.
 - `260910-export-pdf-descending-sort-running-footer`: Descending Chronological Sort (most recent document on Page 1, older documents towards back, undated at end) and Minimalist 3-Column Running Footer specification (Bottom-Left: Document date; Bottom-Center: Clean category name; Bottom-Right: Page within document group and overall dossier page, e.g. `1/3  (14)`). 14 Python pytest tests in `test_v14_features.py`, 51 .NET xUnit tests in `ApiEndpointTests.cs`, 101 Vitest tests across 9 test files, and Playwright E2E suite passing.
 - `260910-arabic-footer-shaping-fix`: Fix Arabic Cursive Text Shaping & BiDi Visual Reordering in Exported PDF Running Footer. Integrated `arabic-reshaper` and `python-bidi` in FastAPI backend and built zero-dependency `ArabicReshaper` in ASP.NET Core 8.0 with Unicode Presentation Forms-B mapping (`\uFE80`–`\uFEFC`), dual-joining/right-joining contextual selection, Lam-Alef ligatures, and category number preservation (`05 - عقود`). 15/15 Python pytest tests passing, 13/13 doc management tests passing, 84/84 .NET xUnit tests passing (including 32 new unit tests in `ArabicReshaperTests.cs`), and 101/101 frontend Vitest tests passing.
+- `260910-double-click-inline-rename`: Double-Click Inline Document Renaming in Categories and Timeline Views (QCK-05). Allows double-clicking document title text to rename inline with keyboard shortcuts (Enter to save, Escape to cancel, blur to commit/restore), event propagation isolation (preventing card click/drag conflicts), PATCH backend API integration, toast feedback, and dual-backend static synchronization. 108 Vitest tests across 10 files (including 7 new in `inline_rename.test.js`), 84 .NET xUnit tests, and 28 Python pytest tests passing.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-10 — Completed Phase 108 & Quick Refinements QCK-01 through QCK-04 (Arabic Cursive Reshaping, BiDi Reordering, Preserved Category Numbering in PDF Footer, Batch Copy Timeline De-duplication, Export Modal). Verified by 84 xUnit, 15 v14 pytest, 13 doc management, 101 Vitest, and 49 Playwright E2E tests.
+Last activity: 2026-09-10 — Completed Phase 108 & Quick Refinements QCK-01 through QCK-05 (Double-Click Inline Document Renaming, Arabic Cursive Reshaping, BiDi Reordering, Preserved Category Numbering in PDF Footer, Batch Copy Timeline De-duplication, Export Modal). Verified by 84 xUnit, 15 v14 pytest, 13 doc management, 108 Vitest, and 49 Playwright E2E tests.
 
 ## Operator Next Steps
 

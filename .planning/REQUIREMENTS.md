@@ -44,11 +44,17 @@ Equip the digital archive management system with power-user operational tools: o
 
 ### Keyboard Shortcuts & Verification
 - [x] **KBD-01**: Global Keyboard Shortcuts Helper Modal (`?`). Pressing `?` (Shift+/) opens a clean modal listing all available keyboard shortcuts (`⌘K` Search, `⌘I` Ingest, `Space` Quick Look, `Esc` Close, `?` Shortcuts). Includes a subtle navbar trigger button (`#btn-shortcuts-trigger`), backdrop dismissal, and input/textarea typing suppression guards.
+- [x] **QCK-05**: Double-Click Inline Document Renaming in Categories and Timeline views:
+  - Double-clicking document title text in either Categories folder list (`span.doc-title-text`) or Timeline view (`h4.doc-title-text`) transforms title into an inline text input pre-filled with the original title.
+  - Event isolation on input (`click`, `dblclick`, `mousedown`, `dragstart`, `keydown`) prevents accidental card selection, card-click open trigger, or dragging while editing.
+  - Keyboard shortcuts & blur: `Enter` to commit, `Escape` to cancel and revert without network request, and `blur` to commit or revert.
+  - Submits `PATCH /api/areas/{area}/houses/{house}/documents/{vault_id}` with `{ "arabic_title": newTitle }`, updates in-memory document state, updates DOM, and provides success/error toast notifications.
+  - Empty or unchanged input reverts without sending network requests.
 - [x] **VER-07**: Comprehensive multi-stack test suite covering all capabilities across Python and .NET:
   - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
   - 15 Python v14 pytest tests (`tests/test_v14_features.py`).
   - 13 Python document management tests (`tests/test_document_management_api.py`).
-  - 101 Frontend Vitest tests across 9 files (`npm run test:frontend`).
+  - 108 Frontend Vitest tests across 10 files (`npm run test:frontend`, including 7 in `inline_rename.test.js`).
   - 49 Playwright E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 
@@ -67,4 +73,5 @@ Equip the digital archive management system with power-user operational tools: o
 | **HSE-01** | House creation backend endpoint and directory scaffold | Phase 107 | Complete | `tests/test_v14_features.py` (`test_create_house_*`), `ApiEndpointTests.cs` (`PostCreateHouse_*`) |
 | **HSE-02** | "+ Add House" UI modal and live grid refresh in Area Grid | Phase 107 | Complete | `src/api/static/js/area-grid.js`, `tests/frontend/components/add_house.test.js` (5 tests) |
 | **KBD-01** | Global Keyboard Shortcuts Helper modal (`?`) & navbar button | Phase 108 | Complete | `src/api/static/js/keyboard-shortcuts.js`, `tests/frontend/components/keyboard_shortcuts.test.js` (12 tests) |
-| **VER-07** | Comprehensive multi-stack automated testing suite (Pytest, Vitest, Playwright, xUnit) | Phase 108 | Complete | 262+ automated tests passing across 4 test runners (84 xUnit, 15 v14 pytest, 13 doc management, 101 Vitest, 49 Playwright); zero static asset diff. |
+| **QCK-05** | Double-Click Inline Document Renaming in Categories & Timeline views | Phase 108 / QCK-05 | Complete | `tests/frontend/components/inline_rename.test.js` (7 tests), `src/api/static/js/categories-view.js`, `src/api/static/js/timeline-view.js` |
+| **VER-07** | Comprehensive multi-stack automated testing suite (Pytest, Vitest, Playwright, xUnit) | Phase 108 | Complete | 269+ automated tests passing across 4 test runners (84 xUnit, 15 v14 pytest, 13 doc management, 108 Vitest, 49 Playwright); zero static asset diff. |

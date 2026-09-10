@@ -6,7 +6,7 @@ A document management system that processes scanned Arabic PDFs, categorizes the
 
 ## Current Milestone: None (v14.0 Completed & Shipped)
 
-Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive multi-stack test coverage (84 xUnit including 32 in `ArabicReshaperTests.cs`, 15 v14 pytest, 13 doc management pytest, 101 Vitest across 9 files, and 49 Playwright E2E), and power-user operational tooling. Ready for next milestone initialization.
+Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive multi-stack test coverage (84 xUnit including 32 in `ArabicReshaperTests.cs`, 15 v14 pytest, 13 doc management pytest, 108 Vitest across 10 files, and 49 Playwright E2E), and power-user operational tooling. Ready for next milestone initialization.
 
 ## Past Milestones
 
@@ -41,11 +41,16 @@ Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shi
   - Pressing `?` or Shift+/ opens `#keyboard-shortcuts-modal` displaying `⌘K` Search, `⌘I` Ingest, `Space` Quick Look, `Esc` Close, `?` Shortcuts.
   - Subtle navbar trigger button (`#btn-shortcuts-trigger`).
   - Strict input/textarea typing suppression guards and backdrop/Escape dismissal.
+- **Double-Click Inline Document Renaming (Quick Refinement QCK-05):**
+  - Instant inline document title renaming triggered by double-clicking the title text in both Categories view folder lists and the chronological Timeline view.
+  - Keyboard shortcuts and accessibility: `Enter` to commit changes, `Escape` to cancel and revert without network traffic, and `blur` to save or restore.
+  - Event isolation: stops event propagation on `click`, `dblclick`, `mousedown`, `dragstart`, and keyboard events to prevent accidental parent card selection, card click opening, or drag-and-drop triggering while typing.
+  - Dual-backend integration: calls `PATCH /api/areas/{area}/houses/{house}/documents/{vault_id}` with `{ "arabic_title": newTitle }`, updating in-memory document state (`brief_arabic_title`, `filename`), DOM text, and providing toast notifications on success/error.
 - **Comprehensive Multi-Stack Test Coverage & Verification:**
   - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
   - 15 Python v14 pytest tests (`tests/test_v14_features.py`).
   - 13 Python document management tests (`tests/test_document_management_api.py`).
-  - 101 Frontend Vitest tests across 9 files (`npm run test:frontend`).
+  - 108 Frontend Vitest tests across 10 files (`npm run test:frontend`, including 7 in `inline_rename.test.js`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 
@@ -137,6 +142,7 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 - ✓ Multi-Select Batch Copy & Timeline De-duplication Architecture with `is_timeline_visible = 0` (QCK-02) — v14.0
 - ✓ Descending Chronological Dossier Sort & Minimalist 3-Column Running Footer with Preserved Category Numbers (QCK-03) — v14.0
 - ✓ Arabic Cursive Text Shaping & BiDi Visual Reordering in PDF Export Running Footer (QCK-04) — v14.0
+- ✓ Double-click inline document renaming in Categories and Timeline views with Enter/Esc/blur shortcuts and toast feedback (QCK-05) — v14.0
 - ✓ Decoupled monorepo structure (`web-net/` for ASP.NET Core, `src/` for Python AI pipeline, shared `organizer.db`) (ARCH-01) — v13.0
 - ✓ ASP.NET Core 8.0 project with Dapper and `Microsoft.Data.Sqlite` in WAL mode (NET-01) — v13.0
 - ✓ Port all read API endpoints with 100% JSON parity (NET-02) — v13.0
@@ -186,7 +192,7 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 - ✅ Shipped v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server on 2026-09-09.
 - ✅ Shipped v12.0 Unified Document Ingestion System on 2026-09-09.
 - ✅ Shipped v11.0 Database Backend & Clean Storage Architecture on 2026-09-09.
-- Robust multi-stack test coverage: 84 ASP.NET Core xUnit tests (including 32 in `ArabicReshaperTests.cs`), 15 Python pytest tests in `test_v14_features.py`, 13 in `test_document_management_api.py`, 101 frontend Vitest tests across 9 test files, and 49 Playwright Browser E2E suite.
+- Robust multi-stack test coverage: 84 ASP.NET Core xUnit tests (including 32 in `ArabicReshaperTests.cs`), 15 Python pytest tests in `test_v14_features.py`, 13 in `test_document_management_api.py`, 108 frontend Vitest tests across 10 test files (including 7 in `inline_rename.test.js`), and 49 Playwright Browser E2E suite.
 - Dual-backend runtime parity: FastAPI and ASP.NET Core 8.0 Minimal APIs running with 100% JSON contract and functional parity, matching schema migrations, and zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 
 ## Context
@@ -204,6 +210,7 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 | Timeline De-duplication Architecture | Copying documents to multiple category folders for cross-referencing sets `is_timeline_visible = 0`. Timeline queries filter copies so each physical event appears exactly once, avoiding timeline clutter while keeping category views complete. | ✓ Completed (QCK-02). |
 | Minimalist 3-Column Running Footer & Descending Sort | Dossier PDF sorted newest-to-oldest with a 3-column running footer on every page (Date, Category with preserved 2-digit number prefix, Page X/Y) for seamless legal/administrative review and category cross-referencing. | ✓ Completed (QCK-03). |
 | Arabic Cursive Shaping & BiDi Visual Reordering | PDF rendering engines lack complex script shaping and render raw Arabic characters as disconnected, isolated glyphs in LTR order. Mapped standard Arabic to Unicode Presentation Forms-B (`\uFE80`–`\uFEFC`) contextually with dual-joining, right-joining, and Lam-Alef ligatures, reversing Arabic runs while preserving LTR numeric tokens (`05 - `) via `arabic-reshaper` + `python-bidi` in Python and zero-dependency `ArabicReshaper` in C#. | ✓ Completed (QCK-04). |
+| Double-Click Inline Document Renaming | Enable property managers to quickly correct or refine document titles directly within folder and timeline lists without opening the full 3-dots action modal, isolated from card click and drag events. | ✓ Completed (QCK-05). |
 | Decoupled Monorepo & ASP.NET Core Web Server | Decouple read-heavy web dashboard into a high-efficiency native .NET 8 binary (`web-net/`) using Dapper and SQLite in WAL mode. Preserves Python strictly for offline/batch AI ingestion while giving Windows servers a zero-Python runtime footprint. | ✓ Completed (Milestone v13.0). |
 | SQLite Relational Schema | Single file with WAL mode provides ACID transactions, sub-10ms query execution, and eliminates SMB directory traversal overhead. | ✓ Completed (Phase 92). |
 | Two-Folder Disk Structure (`batches/` and `vault/`) | Clear separation between raw scanned inputs and sliced standalone documents. Eliminates deep Arabic directory nesting. | ✓ Completed (Phase 93). |

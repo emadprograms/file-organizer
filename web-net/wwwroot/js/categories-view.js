@@ -597,6 +597,113 @@
         }
     }
 
+    function handleInlineRename(e, doc, titleEl, currentArea, currentHouse) {
+        if (e) {
+            if (typeof e.stopPropagation === 'function') e.stopPropagation();
+            if (typeof e.preventDefault === 'function') e.preventDefault();
+        }
+
+        if (!titleEl || titleEl.querySelector('.inline-rename-input')) {
+            return;
+        }
+
+        const originalTitle = doc.brief_arabic_title || doc.filename || titleEl.textContent.trim() || 'Document';
+        titleEl.innerHTML = `<input type="text" class="inline-rename-input px-1.5 py-0.5 text-xs font-normal border border-blue-400 rounded bg-white text-slate-800 focus:outline-hidden focus:ring-1 focus:ring-blue-500 w-full" value="${escapeHtml(originalTitle)}" />`;
+
+        const input = titleEl.querySelector('.inline-rename-input');
+        if (!input) return;
+
+        input.onclick = (ev) => {
+            if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+        };
+        input.ondblclick = (ev) => {
+            if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+        };
+        input.onmousedown = (ev) => {
+            if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+        };
+        input.ondragstart = (ev) => {
+            if (ev) {
+                if (typeof ev.stopPropagation === 'function') ev.stopPropagation();
+                if (typeof ev.preventDefault === 'function') ev.preventDefault();
+            }
+        };
+
+        input.focus();
+        input.select();
+
+        let committed = false;
+
+        const restoreOriginal = () => {
+            titleEl.textContent = originalTitle;
+            titleEl.title = 'Double-click to rename';
+        };
+
+        const commitRename = async () => {
+            if (committed) return;
+            committed = true;
+
+            const newTitle = input.value.trim();
+            if (!newTitle || newTitle === originalTitle) {
+                restoreOriginal();
+                return;
+            }
+
+            const area = (doc && doc.area_id)
+                || (typeof currentArea !== 'undefined' && currentArea)
+                || (typeof window !== 'undefined' && window.currentArea)
+                || (typeof window !== 'undefined' && typeof window.getResolvedArea === 'function' ? window.getResolvedArea(doc) : '')
+                || (typeof window !== 'undefined' && window.location && window.location.hash ? (window.location.hash.match(/#\/area\/([^/]+)/) ? decodeURIComponent(window.location.hash.match(/#\/area\/([^/]+)/)[1]).replace(/^area_/, '') : '') : '');
+
+            const house = (doc && doc.house_id)
+                || (typeof currentHouse !== 'undefined' && currentHouse)
+                || (typeof window !== 'undefined' && window.currentHouse)
+                || (typeof window !== 'undefined' && typeof window.getResolvedHouse === 'function' ? window.getResolvedHouse(doc) : '')
+                || (typeof window !== 'undefined' && window.location && window.location.hash ? (window.location.hash.match(/house\/([^/]+)/) ? decodeURIComponent(window.location.hash.match(/house\/([^/]+)/)[1]) : '') : '');
+
+            try {
+                const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(doc.vault_id)}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ arabic_title: newTitle })
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.detail || 'Failed to rename document');
+                }
+
+                doc.brief_arabic_title = newTitle;
+                doc.filename = newTitle;
+                titleEl.textContent = newTitle;
+                titleEl.title = 'Double-click to rename';
+
+                const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' && window.showToast ? window.showToast : null);
+                if (toast) toast('Document renamed successfully.');
+            } catch (err) {
+                const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' && window.showToast ? window.showToast : null);
+                if (toast) toast('Failed to rename document: ' + err.message, 'error');
+                restoreOriginal();
+            }
+        };
+
+        input.onkeydown = (ev) => {
+            if (ev && typeof ev.stopPropagation === 'function') ev.stopPropagation();
+            if (ev.key === 'Enter') {
+                if (typeof ev.preventDefault === 'function') ev.preventDefault();
+                commitRename();
+            } else if (ev.key === 'Escape') {
+                if (typeof ev.preventDefault === 'function') ev.preventDefault();
+                committed = true;
+                restoreOriginal();
+            }
+        };
+
+        input.onblur = () => {
+            commitRename();
+        };
+    }
+
     function renderCategories() {
         const docListEl = document.getElementById('document-list');
         if (!docListEl) return;
@@ -781,7 +888,7 @@
                             <span class="doc-icon-preview p-0.5 rounded text-blue-500 hover:text-blue-700 hover:bg-blue-100 cursor-pointer flex-shrink-0 transition-colors" title="Document Details & Notes (Spacebar)">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             </span>
-                            <span class="truncate ${hasNotes ? 'text-amber-950 font-semibold' : 'text-slate-800'}">${escapeHtml(title)}</span>
+                            <span class="truncate ${hasNotes ? 'text-amber-950 font-semibold' : 'text-slate-800'} doc-title-text cursor-text" title="Double-click to rename">${escapeHtml(title)}</span>
                             ${lockIcon}
                             ${noteBadge}
                         </div>
@@ -805,6 +912,13 @@
 
                     const previewIcon = docEl.querySelector('.doc-icon-preview');
                     const menuBtn = docEl.querySelector('.doc-menu-btn');
+                    const titleSpan = docEl.querySelector('.doc-title-text');
+
+                    if (titleSpan) {
+                        titleSpan.ondblclick = (e) => {
+                            handleInlineRename(e, doc, titleSpan, (typeof currentArea !== 'undefined' ? currentArea : (typeof window !== 'undefined' ? window.currentArea : '')), (typeof currentHouse !== 'undefined' ? currentHouse : (typeof window !== 'undefined' ? window.currentHouse : '')));
+                        };
+                    }
 
                     // Zero-click Live Peek in the right panel on hover (250ms debounce)
                     if (typeof window !== 'undefined' && typeof window.attachPreview === 'function') {
@@ -846,13 +960,14 @@
 
                     docEl.onclick = (e) => {
                         e.stopPropagation();
+                        const currentTitle = doc.brief_arabic_title || doc.filename || title;
                         if (typeof window !== 'undefined' && typeof window.setSelectedDoc === 'function') {
-                            window.setSelectedDoc(doc, title, docEl);
+                            window.setSelectedDoc(doc, currentTitle, docEl);
                         }
                         if (typeof openDocument === 'function') {
-                            openDocument(doc.vault_id, title);
+                            openDocument(doc.vault_id, currentTitle);
                         } else if (typeof window !== 'undefined' && typeof window.openDocument === 'function') {
-                            window.openDocument(doc.vault_id, title);
+                            window.openDocument(doc.vault_id, currentTitle);
                         }
                     };
                     docsContainer.appendChild(docEl);
@@ -936,12 +1051,14 @@
         window.closeBatchDeleteModal = closeBatchDeleteModal;
         window.handleBatchDeleteSubmit = handleBatchDeleteSubmit;
         window.initBatchOperations = initBatchOperations;
+        window.handleInlineRename = handleInlineRename;
     }
 
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = {
             loadCategories,
             renderCategories,
+            handleInlineRename,
             FOLDER_PREFIXES,
             selectedDocIds,
             getSelectedDocIds,

@@ -2,10 +2,15 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 4 quick refinements (QCK-01, QCK-02, QCK-03, QCK-04), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 15 v14 pytest, 13 doc management, 101 Vitest across 9 files, 49 Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 5 quick refinements (QCK-01, QCK-02, QCK-03, QCK-04, QCK-05), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 15 v14 pytest, 13 doc management, 108 Vitest across 10 files, 49 Playwright E2E)
 
 **Key accomplishments:**
 
+- **Double-Click Inline Document Renaming (Quick Refinement QCK-05):**
+  - Instant inline document title renaming triggered by double-clicking the title text in both Categories view folder lists (`span.doc-title-text`) and Timeline view (`h4.doc-title-text`).
+  - Full keyboard shortcuts (`Enter` to commit, `Escape` to cancel and revert without network traffic, `blur` to commit or revert).
+  - Event propagation isolation preventing card click opening or card drag conflicts.
+  - Direct integration with `PATCH /api/areas/{area}/houses/{house}/documents/{vault_id}` with in-memory document state update, DOM refresh, and toast notifications.
 - **One-Click House Archive Export & Chronological Dossier (Phase 105 + Quick Refinements QCK-01, QCK-03, QCK-04):**
   - Full House Archive ZIP Export pipeline (`GET /api/areas/{area}/houses/{house}/export-zip`) across both FastAPI and ASP.NET Core Minimal APIs, packaging vault documents into collision-free structured ZIPs with clean Arabic filenames.
   - Standard 2-digit folder numbering fix (`FOLDER_PREFIXES` normalization so every folder in the ZIP has its proper `01 - `, `05 - `, `06 - `, etc. prefix).
@@ -48,7 +53,7 @@
   - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
   - 15 Python v14 pytest tests (`tests/test_v14_features.py`).
   - 13 Python document management tests (`tests/test_document_management_api.py`).
-  - 101 Frontend Vitest tests across 9 test files (`npm run test:frontend`).
+  - 108 Frontend Vitest tests across 10 test files (`npm run test:frontend`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 
