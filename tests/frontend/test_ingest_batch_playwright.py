@@ -80,12 +80,19 @@ def _setup_ingest_routes(page: Page, ingest_calls: list = None):
         if route.request.method == "POST":
             post_data = route.request.post_data_buffer
             headers = route.request.headers
+            post_data_text = ""
+            if post_data:
+                try:
+                    post_data_text = post_data.decode("utf-8")
+                except Exception:
+                    post_data_text = post_data.decode("latin1", errors="ignore")
             if ingest_calls is not None:
                 ingest_calls.append({
                     "url": route.request.url,
                     "method": route.request.method,
                     "post_data_len": len(post_data) if post_data else 0,
                     "content_type": headers.get("content-type", ""),
+                    "post_data_text": post_data_text,
                 })
             route.fulfill(
                 status=200,
@@ -154,7 +161,7 @@ def test_ingest_station_mode_switch(page: Page):
 
 
 def test_house_batch_queue_population_and_submit(page: Page, tmp_path):
-    """Verify uploading multiple files in House Batch mode renders queue and submits sequentially."""
+    """Verify uploading multiple files in House Batch mode renders queue with individual category selects and dates."""
     ingest_calls = []
     _setup_ingest_routes(page, ingest_calls=ingest_calls)
 
@@ -172,6 +179,10 @@ def test_house_batch_queue_population_and_submit(page: Page, tmp_path):
     page.click("#tab-mode-housebatch")
     expect(page.locator("#section-mode-housebatch")).to_be_visible()
 
+    # Verify top-level shared category and primary date are completely removed
+    expect(page.locator("#housebatch-category-select")).to_have_count(0)
+    expect(page.locator("#housebatch-date-select")).to_have_count(0)
+
     # Select House
     page.select_option("#housebatch-house-select", "514")
 
@@ -186,8 +197,19 @@ def test_house_batch_queue_population_and_submit(page: Page, tmp_path):
     file_items = page.locator(".housebatch-file-row")
     expect(file_items).to_have_count(2)
 
-    # Select shared category
-    page.select_option("#housebatch-category-select", "06 - كهرباء وماء")
+    # Check individual category dropdowns and smart defaults
+    cat_selects = page.locator(".housebatch-category-select")
+    expect(cat_selects).to_have_count(2)
+    expect(cat_selects.nth(0)).to_have_value("06 - كهرباء وماء")  # bill -> 06
+    expect(cat_selects.nth(1)).to_have_value("05 - عقود")        # contract -> 05
+
+    # Check individual date inputs
+    date_inputs = page.locator(".housebatch-date-input")
+    expect(date_inputs).to_have_count(2)
+
+    # User modifies category for the first file
+    cat_selects.nth(0).select_option("10 - صيانة")
+    expect(cat_selects.nth(0)).to_have_value("10 - صيانة")
 
     # Click Submit
     page.click("#btn-ingest-submit")
@@ -195,8 +217,52 @@ def test_house_batch_queue_population_and_submit(page: Page, tmp_path):
     # Modal should close on completion
     expect(page.locator("#ingest-station-modal")).to_be_hidden()
 
-    # Verify both requests were posted
+    # Verify both requests were posted with their distinct categories
     assert len(ingest_calls) == 2
+    assert "10 - صيانة" in ingest_calls[0]["post_data_text"]
+    assert "05 - عقود" in ingest_calls[1]["post_data_text"]
+
+
+def test_house_batch_multiple_files_distinct_categories_and_dates(page: Page, tmp_path):
+    """Verify House Batch submitting diverse files (ID, Maintenance, Notice) to 1 house."""
+    ingest_calls = []
+    _setup_ingest_routes(page, ingest_calls=ingest_calls)
+
+    f1 = tmp_path / "tenant_id_514.pdf"
+    f1.write_bytes(b"%PDF-1.4 ID card")
+    f2 = tmp_path / "repair_plumbing.pdf"
+    f2.write_bytes(b"%PDF-1.4 repair invoice")
+    f3 = tmp_path / "general_letter.pdf"
+    f3.write_bytes(b"%PDF-1.4 miscellaneous")
+
+    page.goto("http://localhost:9999/")
+    page.click("#btn-ingest-trigger")
+    page.click("#tab-mode-housebatch")
+
+    page.select_option("#housebatch-house-select", "514")
+    page.set_input_files("#housebatch-file-input", [str(f1), str(f2), str(f3)])
+
+    cat_selects = page.locator(".housebatch-category-select")
+    expect(cat_selects).to_have_count(3)
+    expect(cat_selects.nth(0)).to_have_value("02 - بيانات شخصية")
+    expect(cat_selects.nth(1)).to_have_value("10 - صيانة")
+    expect(cat_selects.nth(2)).to_have_value("13 - رسائل متنوعة")
+
+    # Change 3rd document's category to 09 - إشعارات
+    cat_selects.nth(2).select_option("09 - إشعارات")
+
+    # Change 2nd document's date
+    date_inputs = page.locator(".housebatch-date-input")
+    date_inputs.nth(1).fill("2025-04-10")
+
+    page.click("#btn-ingest-submit")
+    expect(page.locator("#ingest-station-modal")).to_be_hidden()
+
+    assert len(ingest_calls) == 3
+    assert "02 - بيانات شخصية" in ingest_calls[0]["post_data_text"]
+    assert "10 - صيانة" in ingest_calls[1]["post_data_text"]
+    assert "2025-04-10" in ingest_calls[1]["post_data_text"]
+    assert "09 - إشعارات" in ingest_calls[2]["post_data_text"]
 
 
 def test_broadcast_document_to_multiple_houses(page: Page, tmp_path):

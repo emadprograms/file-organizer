@@ -18,6 +18,7 @@ const {
     formatFileSize,
     getTodayIsoDate,
     resetIngestForm,
+    detectCategoryFromFilename,
     detectHouseFromFilename,
     getTenantsForHouse,
     resolveLatestTenant,
@@ -156,11 +157,6 @@ function setupDOM() {
                     <select id="housebatch-tenant-select">
                         <option value="">(Auto-detect or Select Tenant)</option>
                     </select>
-                    <select id="housebatch-category-select">
-                        <option value="06 - كهرباء وماء" selected>06 - كهرباء وماء</option>
-                        <option value="13 - رسائل متنوعة">13 - رسائل متنوعة</option>
-                    </select>
-                    <input id="housebatch-date-select" type="date" />
                     <span id="housebatch-count-badge">0 files</span>
                     <button id="btn-housebatch-add-more">+ Add More Files</button>
                     <input id="housebatch-file-input" type="file" accept=".pdf" multiple class="hidden" />
@@ -473,7 +469,7 @@ describe('Ingest Station Component', () => {
         expect(submitText.textContent).toBe('⚡ Ingest 2 Documents');
     });
 
-    it('auto-fills editable titles and renders file list in house batch queue', () => {
+    it('auto-fills editable titles and renders file list in house batch queue with individual category and date controls', () => {
         window.currentArea = 'Area 1';
         openIngestStation();
         switchTab('housebatch');
@@ -485,7 +481,12 @@ describe('Ingest Station Component', () => {
 
         const queue = getHouseBatchQueue();
         expect(queue[0].title).toBe('electricity bill 501');
+        expect(queue[0].category).toBe('06 - كهرباء وماء');
+        expect(queue[0].date).toBe(getTodayIsoDate());
+
         expect(queue[1].title).toBe('maintenance 502 final');
+        expect(queue[1].category).toBe('10 - صيانة');
+        expect(queue[1].date).toBe(getTodayIsoDate());
 
         // User edits title
         const titleInputs = document.querySelectorAll('.housebatch-title-input');
@@ -493,6 +494,92 @@ describe('Ingest Station Component', () => {
         titleInputs[0].value = 'Custom Electricity Title';
         titleInputs[0].dispatchEvent(new Event('input'));
         expect(queue[0].title).toBe('Custom Electricity Title');
+
+        // User changes category dropdown on row
+        const categorySelects = document.querySelectorAll('.housebatch-category-select');
+        expect(categorySelects.length).toBe(2);
+        expect(categorySelects[0].value).toBe('06 - كهرباء وماء');
+        expect(categorySelects[1].value).toBe('10 - صيانة');
+
+        categorySelects[0].value = '05 - عقود';
+        categorySelects[0].dispatchEvent(new Event('change'));
+        expect(queue[0].category).toBe('05 - عقود');
+
+        // User changes date on row
+        const dateInputs = document.querySelectorAll('.housebatch-date-input');
+        expect(dateInputs.length).toBe(2);
+        expect(dateInputs[0].value).toBe(getTodayIsoDate());
+
+        dateInputs[0].value = '2025-01-15';
+        dateInputs[0].dispatchEvent(new Event('change'));
+        expect(queue[0].date).toBe('2025-01-15');
+    });
+
+    it('correctly detects categories from filename keywords via detectCategoryFromFilename', () => {
+        // 05 - عقود
+        expect(detectCategoryFromFilename('عقد_إيجار.pdf')).toBe('05 - عقود');
+        expect(detectCategoryFromFilename('عقود_2024.pdf')).toBe('05 - عقود');
+        expect(detectCategoryFromFilename('contract_lease.pdf')).toBe('05 - عقود');
+        expect(detectCategoryFromFilename('house_lease_agreement.pdf')).toBe('05 - عقود');
+
+        // 06 - كهرباء وماء
+        expect(detectCategoryFromFilename('فاتورة_كهرباء.pdf')).toBe('06 - كهرباء وماء');
+        expect(detectCategoryFromFilename('فاتوره_ماء.pdf')).toBe('06 - كهرباء وماء');
+        expect(detectCategoryFromFilename('water_bill.pdf')).toBe('06 - كهرباء وماء');
+        expect(detectCategoryFromFilename('electricity_statement.pdf')).toBe('06 - كهرباء وماء');
+
+        // 10 - صيانة
+        expect(detectCategoryFromFilename('صيانة_المكيف.pdf')).toBe('10 - صيانة');
+        expect(detectCategoryFromFilename('صيانه_عامة.pdf')).toBe('10 - صيانة');
+        expect(detectCategoryFromFilename('تصليح_سباكة.pdf')).toBe('10 - صيانة');
+        expect(detectCategoryFromFilename('repair_invoice.pdf')).toBe('10 - صيانة');
+        expect(detectCategoryFromFilename('annual_maintenance.pdf')).toBe('10 - صيانة');
+
+        // 02 - بيانات شخصية
+        expect(detectCategoryFromFilename('هوية_الوطنية.pdf')).toBe('02 - بيانات شخصية');
+        expect(detectCategoryFromFilename('هويه_المستأجر.pdf')).toBe('02 - بيانات شخصية');
+        expect(detectCategoryFromFilename('بطاقة_مدنية.pdf')).toBe('02 - بيانات شخصية');
+        expect(detectCategoryFromFilename('بطاقه_عمل.pdf')).toBe('02 - بيانات شخصية');
+        expect(detectCategoryFromFilename('جواز_سفر.pdf')).toBe('02 - بيانات شخصية');
+        expect(detectCategoryFromFilename('passport_copy.pdf')).toBe('02 - بيانات شخصية');
+        expect(detectCategoryFromFilename('tenant_id.pdf')).toBe('02 - بيانات شخصية');
+
+        // 04 - محضر تسليم مفتاح
+        expect(detectCategoryFromFilename('محضر_تسليم_مفتاح.pdf')).toBe('04 - محضر تسليم مفتاح');
+        expect(detectCategoryFromFilename('استلام_فيلا.pdf')).toBe('04 - محضر تسليم مفتاح');
+        expect(detectCategoryFromFilename('handover_doc.pdf')).toBe('04 - محضر تسليم مفتاح');
+
+        // 03 - أمر تخصيص
+        expect(detectCategoryFromFilename('أمر_تخصيص.pdf')).toBe('03 - أمر تخصيص');
+        expect(detectCategoryFromFilename('house_allocation.pdf')).toBe('03 - أمر تخصيص');
+
+        // 09 - إشعارات
+        expect(detectCategoryFromFilename('إشعار_إخلاء.pdf')).toBe('09 - إشعارات');
+        expect(detectCategoryFromFilename('اشعار_تنبيه.pdf')).toBe('09 - إشعارات');
+        expect(detectCategoryFromFilename('انذار_أول.pdf')).toBe('09 - إشعارات');
+        expect(detectCategoryFromFilename('warning_letter.pdf')).toBe('09 - إشعارات');
+        expect(detectCategoryFromFilename('legal_notice.pdf')).toBe('09 - إشعارات');
+
+        // 07 - استقطاع إيجار
+        expect(detectCategoryFromFilename('استقطاع_راتب.pdf')).toBe('07 - استقطاع إيجار');
+        expect(detectCategoryFromFilename('salary_deduction.pdf')).toBe('07 - استقطاع إيجار');
+
+        // 12 - تعديلات
+        expect(detectCategoryFromFilename('تعديل_مخطط.pdf')).toBe('12 - تعديلات');
+        expect(detectCategoryFromFilename('villa_modification.pdf')).toBe('12 - تعديلات');
+
+        // 11 - صور ومعاينات
+        expect(detectCategoryFromFilename('صور_المبنى.pdf')).toBe('11 - صور ومعاينات');
+        expect(detectCategoryFromFilename('صورة_المدخل.pdf')).toBe('11 - صور ومعاينات');
+        expect(detectCategoryFromFilename('معاينة_الموقع.pdf')).toBe('11 - صور ومعاينات');
+        expect(detectCategoryFromFilename('site_inspection.pdf')).toBe('11 - صور ومعاينات');
+        expect(detectCategoryFromFilename('damage_photo.pdf')).toBe('11 - صور ومعاينات');
+
+        // 13 - رسائل متنوعة (fallback)
+        expect(detectCategoryFromFilename('general_letter.pdf')).toBe('13 - رسائل متنوعة');
+        expect(detectCategoryFromFilename('')).toBe('13 - رسائل متنوعة');
+        expect(detectCategoryFromFilename(null)).toBe('13 - رسائل متنوعة');
+        expect(detectCategoryFromFilename(undefined)).toBe('13 - رسائل متنوعة');
     });
 
     it('removes individual files from the house batch queue', () => {
@@ -515,7 +602,7 @@ describe('Ingest Station Component', () => {
         expect(getHouseBatchQueue()[0].name).toBe('notice_502.pdf');
     });
 
-    it('submits house batch ingestion of multiple documents to 1 house via POST /api/ingest', async () => {
+    it('submits house batch ingestion of multiple documents to 1 house with distinct categories and dates', async () => {
         window.currentArea = 'Area 1';
         window.currentHouse = '501';
         openIngestStation();
@@ -527,6 +614,19 @@ describe('Ingest Station Component', () => {
         const file1 = new File(['%PDF-1.4 content'], 'bill_501.pdf', { type: 'application/pdf' });
         const file2 = new File(['%PDF-1.4 content'], 'contract_501.pdf', { type: 'application/pdf' });
         addFilesToHouseBatch([file1, file2]);
+
+        // Verify initial smart category detection
+        const catSelects = document.querySelectorAll('.housebatch-category-select');
+        expect(catSelects[0].value).toBe('06 - كهرباء وماء');
+        expect(catSelects[1].value).toBe('05 - عقود');
+
+        // User customizes file 2's category and date in the UI
+        catSelects[1].value = '10 - صيانة';
+        catSelects[1].dispatchEvent(new Event('change'));
+
+        const dateInputs = document.querySelectorAll('.housebatch-date-input');
+        dateInputs[1].value = '2025-06-01';
+        dateInputs[1].dispatchEvent(new Event('change'));
 
         const modal = document.getElementById('ingest-station-modal');
         window.refreshCurrentTab = vi.fn();
@@ -549,11 +649,18 @@ describe('Ingest Station Component', () => {
         await submitHouseBatchIngest();
 
         expect(calls.length).toBe(2);
+        // File 1 retains detected 06 - كهرباء وماء and today's date
         expect(calls[0].body.get('house_id')).toBe('501');
         expect(calls[0].body.get('arabic_title')).toBe('bill 501');
+        expect(calls[0].body.get('category')).toBe('06 - كهرباء وماء');
+        expect(calls[0].body.get('primary_date')).toBe(getTodayIsoDate());
         expect(calls[0].body.get('mode')).toBe('manual');
+
+        // File 2 sends user-edited 10 - صيانة and 2025-06-01 date
         expect(calls[1].body.get('house_id')).toBe('501');
         expect(calls[1].body.get('arabic_title')).toBe('contract 501');
+        expect(calls[1].body.get('category')).toBe('10 - صيانة');
+        expect(calls[1].body.get('primary_date')).toBe('2025-06-01');
         expect(calls[1].body.get('mode')).toBe('manual');
 
         expect(modal.classList.contains('hidden')).toBe(true);

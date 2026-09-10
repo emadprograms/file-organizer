@@ -73,8 +73,6 @@
     let housebatchAreaSelect = null;
     let housebatchHouseSelect = null;
     let housebatchTenantSelect = null;
-    let housebatchCategorySelect = null;
-    let housebatchDateSelect = null;
     let housebatchCountBadge = null;
     let btnHousebatchAddMore = null;
     let housebatchDropzone = null;
@@ -113,6 +111,54 @@
         "12 - تعديلات",
         "13 - رسائل متنوعة",
     ];
+
+    function detectCategoryFromFilename(filename) {
+        if (!filename || typeof filename !== 'string') return '13 - رسائل متنوعة';
+        const lower = filename.toLowerCase();
+
+        // 1. Contracts (عقد, عقود, contract, lease)
+        if (/عقد|عقود|contract|lease/.test(lower)) {
+            return '05 - عقود';
+        }
+        // 2. Electricity / Water / Utility (كهرباء, ماء, فاتورة, electricity, water, bill)
+        if (/كهرباء|ماء|مياه|فاتور[ةه]|electricity|water|bill/.test(lower)) {
+            return '06 - كهرباء وماء';
+        }
+        // 3. Maintenance (صيانة, تصليح, repair, maintenance)
+        if (/صيان[ةه]|تصليح|repair|maintenance/.test(lower)) {
+            return '10 - صيانة';
+        }
+        // 4. Personal ID / Passport (هوية, شخصية, بطاقة, جواز, id, passport)
+        if (/هوي[ةه]|شخصي[ةه]|بطاق[ةه]|جواز|passport|(?:^|[^a-z0-9])id(?:[^a-z0-9]|$)/.test(lower)) {
+            return '02 - بيانات شخصية';
+        }
+        // 5. Handover (تسليم, استلام, مفتاح, handover)
+        if (/تسليم|استلام|مفتاح|handover/.test(lower)) {
+            return '04 - محضر تسليم مفتاح';
+        }
+        // 6. Allocation (تخصيص, allocation)
+        if (/تخصيص|allocation/.test(lower)) {
+            return '03 - أمر تخصيص';
+        }
+        // 7. Notices & Warnings (إشعار, انذار, notice, warning)
+        if (/[إا]شعار|[إا]نذار|notice|warning/.test(lower)) {
+            return '09 - إشعارات';
+        }
+        // 8. Rent Deduction (استقطاع, deduction)
+        if (/استقطاع|deduction/.test(lower)) {
+            return '07 - استقطاع إيجار';
+        }
+        // 9. Modifications (تعديل, modification)
+        if (/تعديل|modification/.test(lower)) {
+            return '12 - تعديلات';
+        }
+        // 10. Photos & Inspections (صور, معاينة, inspection, photo)
+        if (/صور[ةه]?|معاين[ةه]|inspection|photo/.test(lower)) {
+            return '11 - صور ومعاينات';
+        }
+
+        return '13 - رسائل متنوعة';
+    }
 
     function formatFileSize(bytes) {
         if (!bytes || bytes <= 0) return '0 B';
@@ -259,8 +305,6 @@
         housebatchAreaSelect = document.getElementById('housebatch-area-select');
         housebatchHouseSelect = document.getElementById('housebatch-house-select');
         housebatchTenantSelect = document.getElementById('housebatch-tenant-select');
-        housebatchCategorySelect = document.getElementById('housebatch-category-select');
-        housebatchDateSelect = document.getElementById('housebatch-date-select');
         housebatchCountBadge = document.getElementById('housebatch-count-badge');
         btnHousebatchAddMore = document.getElementById('btn-housebatch-add-more');
         housebatchDropzone = document.getElementById('housebatch-dropzone');
@@ -528,9 +572,6 @@
             populateBroadcastHouses(broadcastAreaSelect ? broadcastAreaSelect.value : '');
         } else if (tabName === 'housebatch') {
             populateHousebatchAreas(getCurrentArea(), getCurrentHouse());
-            if (housebatchDateSelect && !housebatchDateSelect.value) {
-                housebatchDateSelect.value = getTodayIsoDate();
-            }
             renderHouseBatchQueue();
         }
 
@@ -965,14 +1006,13 @@
                 name: f.name,
                 size: f.size,
                 title: autoTitle,
+                category: detectCategoryFromFilename(f.name),
+                date: getTodayIsoDate(),
             });
         }
 
         if (housebatchAreaSelect && !housebatchAreaSelect.value) {
             populateHousebatchAreas(getCurrentArea(), getCurrentHouse());
-        }
-        if (housebatchDateSelect && !housebatchDateSelect.value) {
-            housebatchDateSelect.value = getTodayIsoDate();
         }
 
         renderHouseBatchQueue();
@@ -1000,11 +1040,15 @@
         housebatchFilesList.innerHTML = '';
         houseBatchQueue.forEach((item, fileIdx) => {
             const row = document.createElement('div');
-            row.className = 'bg-white border border-slate-200 rounded-xl p-3 shadow-2xs flex flex-col sm:flex-row sm:items-center gap-3 housebatch-file-row';
+            row.className = 'bg-white border border-slate-200 rounded-xl p-3 shadow-2xs flex flex-col md:flex-row md:items-center gap-3 housebatch-file-row';
             row.dataset.fileIdx = String(fileIdx);
 
+            const categoryOptions = STANDARD_CATEGORIES.map(cat => 
+                `<option value="${cat}" ${cat === item.category ? 'selected' : ''}>${cat}</option>`
+            ).join('');
+
             row.innerHTML = `
-                <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                <div class="flex items-center gap-2.5 min-w-0 flex-1 md:w-1/4">
                     <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
                     </div>
@@ -1013,10 +1057,21 @@
                         <p class="text-[10px] text-slate-400 font-mono housebatch-file-size">${formatFileSize(item.size)}</p>
                     </div>
                 </div>
-                <div class="flex-1 min-w-[200px]">
+                <div class="flex-1 min-w-[160px]">
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5 md:hidden">Document Title</label>
                     <input type="text" class="housebatch-title-input w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium" value="${item.title || ''}" placeholder="Document title..." />
                 </div>
-                <button type="button" class="btn-remove-housebatch-file text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer self-end sm:self-center" title="Remove file">
+                <div class="w-full md:w-48 flex-shrink-0">
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5 md:hidden">Category</label>
+                    <select class="housebatch-category-select w-full px-2 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
+                        ${categoryOptions}
+                    </select>
+                </div>
+                <div class="w-full md:w-36 flex-shrink-0">
+                    <label class="block text-[10px] font-semibold text-slate-500 mb-0.5 md:hidden">Date</label>
+                    <input type="date" class="housebatch-date-input w-full px-2 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium" value="${item.date || ''}" />
+                </div>
+                <button type="button" class="btn-remove-housebatch-file text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer self-end md:self-center" title="Remove file">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             `;
@@ -1024,6 +1079,16 @@
             const titleInp = row.querySelector('.housebatch-title-input');
             titleInp.addEventListener('input', (e) => {
                 item.title = e.target.value;
+            });
+
+            const catSelect = row.querySelector('.housebatch-category-select');
+            catSelect.addEventListener('change', (e) => {
+                item.category = e.target.value;
+            });
+
+            const dateInp = row.querySelector('.housebatch-date-input');
+            dateInp.addEventListener('change', (e) => {
+                item.date = e.target.value;
             });
 
             const btnRemove = row.querySelector('.btn-remove-housebatch-file');
@@ -1409,14 +1474,12 @@
         if (titleInput) titleInput.value = '';
         if (dateInput) dateInput.value = getTodayIsoDate();
         if (broadcastDateInput) broadcastDateInput.value = getTodayIsoDate();
-        if (housebatchDateSelect) housebatchDateSelect.value = getTodayIsoDate();
         if (notesInput) notesInput.value = '';
         if (newTenantInput) newTenantInput.value = '';
         if (newTenantContainer) newTenantContainer.classList.add('hidden');
         if (btnToggleNewTenant) btnToggleNewTenant.textContent = '+ Add New Tenant';
         if (categorySelect) categorySelect.value = '13 - رسائل متنوعة';
         if (broadcastCategorySelect) broadcastCategorySelect.value = '09 - إشعارات';
-        if (housebatchCategorySelect) housebatchCategorySelect.value = '06 - كهرباء وماء';
         if (batchProgress) batchProgress.classList.add('hidden');
         resetStatusMsg();
         switchTab('single');
@@ -1668,10 +1731,6 @@
         }
 
         const tenantId = housebatchTenantSelect ? housebatchTenantSelect.value.trim() : '';
-        const category = housebatchCategorySelect ? housebatchCategorySelect.value.trim() : '06 - كهرباء وماء';
-        const primaryDate = (housebatchDateSelect && housebatchDateSelect.value.trim()) 
-            ? housebatchDateSelect.value.trim() 
-            : getTodayIsoDate();
 
         isSubmitting = true;
         if (btnSubmit) btnSubmit.disabled = true;
@@ -1706,9 +1765,9 @@
             if (tenantId) {
                 formData.append('tenant_id', tenantId);
             }
-            formData.append('category', category);
+            formData.append('category', item.category || '13 - رسائل متنوعة');
             formData.append('arabic_title', item.title || item.name.replace(/\.pdf$/i, '').replace(/[-_]+/g, ' ').trim());
-            formData.append('primary_date', primaryDate);
+            formData.append('primary_date', item.date || getTodayIsoDate());
 
             try {
                 const res = await fetch('/api/ingest', {
@@ -1877,6 +1936,7 @@
     window.formatFileSize = formatFileSize;
     window.getTodayIsoDate = getTodayIsoDate;
     window.resetIngestForm = resetIngestForm;
+    window.detectCategoryFromFilename = detectCategoryFromFilename;
     window.detectHouseFromFilename = detectHouseFromFilename;
     window.getTenantsForHouse = getTenantsForHouse;
     window.resolveLatestTenant = resolveLatestTenant;
@@ -1940,6 +2000,7 @@
             getHouseBatchQueue: () => houseBatchQueue,
             getTodayIsoDate,
             resetIngestForm,
+            detectCategoryFromFilename,
             detectHouseFromFilename,
             getTenantsForHouse,
             resolveLatestTenant,
