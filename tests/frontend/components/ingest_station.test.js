@@ -51,7 +51,7 @@ const {
 function setupDOM() {
     document.body.innerHTML = `
         <header id="top-navbar">
-            <button id="btn-ingest-trigger">Upload <kbd>⌘I</kbd></button>
+            <button id="btn-ingest-trigger" title="Upload Document (⌘I)"><svg></svg></button>
             <button id="btn-search-trigger">Search</button>
         </header>
 

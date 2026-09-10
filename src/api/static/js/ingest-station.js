@@ -319,14 +319,6 @@
             });
         }
 
-        const btnDragHint = document.getElementById('btn-drag-hint');
-        if (btnDragHint) {
-            btnDragHint.addEventListener('click', (e) => {
-                e.preventDefault();
-                openIngestStation();
-            });
-        }
-
         // Close & Cancel buttons
         if (btnIngestClose) btnIngestClose.addEventListener('click', closeIngestStation);
         if (btnIngestCancel) btnIngestCancel.addEventListener('click', closeIngestStation);
