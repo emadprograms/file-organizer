@@ -58,13 +58,13 @@
         btnModeMove = document.getElementById('btn-mode-move');
         btnModeCopy = document.getElementById('btn-mode-copy');
 
-        if (docModalClose) docModalClose.addEventListener('click', closeDocModal);
-        if (docModalCancel) docModalCancel.addEventListener('click', closeDocModal);
-        if (docModalSubmit) docModalSubmit.addEventListener('click', saveDocModal);
-        if (btnDocResetLock) btnDocResetLock.addEventListener('click', resetDocLock);
-        if (btnDocDelete) btnDocDelete.addEventListener('click', handleDeleteDoc);
-        if (btnModeMove) btnModeMove.addEventListener('click', () => setDocModalMode('move'));
-        if (btnModeCopy) btnModeCopy.addEventListener('click', () => setDocModalMode('copy'));
+        if (docModalClose) docModalClose.onclick = closeDocModal;
+        if (docModalCancel) docModalCancel.onclick = closeDocModal;
+        if (docModalSubmit) docModalSubmit.onclick = saveDocModal;
+        if (btnDocResetLock) btnDocResetLock.onclick = resetDocLock;
+        if (btnDocDelete) btnDocDelete.onclick = (e) => handleDeleteDoc(e);
+        if (btnModeMove) btnModeMove.onclick = () => setDocModalMode('move');
+        if (btnModeCopy) btnModeCopy.onclick = () => setDocModalMode('copy');
     }
 
     function getAreaFromHash() {
@@ -454,19 +454,27 @@
         }
     }
 
+    let isDeletingDoc = false;
+
     async function handleDeleteDoc(e) {
         if (e) {
             if (typeof e.preventDefault === 'function') e.preventDefault();
             if (typeof e.stopPropagation === 'function') e.stopPropagation();
         }
 
+        if (isDeletingDoc) return;
+
         if (!activeDocModalDoc || !activeDocModalDoc.vault_id) {
+            console.warn('[DocManager] handleDeleteDoc: activeDocModalDoc or vault_id missing', activeDocModalDoc);
             closeDocModal();
             return;
         }
 
-        const confirmed = confirm('Are you sure you want to permanently delete this document? This will remove the file and all its records.');
+        const confirmFn = (typeof window !== 'undefined' && typeof window.confirm === 'function') ? window.confirm : confirm;
+        const confirmed = confirmFn('Are you sure you want to permanently delete this document? This will remove the file and all its records.');
         if (!confirmed) return;
+
+        isDeletingDoc = true;
 
         if (btnDocDelete) {
             btnDocDelete.disabled = true;
@@ -520,6 +528,7 @@
                 window.showToast(err.message, 'error');
             }
         } finally {
+            isDeletingDoc = false;
             if (btnDocDelete) {
                 btnDocDelete.disabled = false;
                 btnDocDelete.innerHTML = `
