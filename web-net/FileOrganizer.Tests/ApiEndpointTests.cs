@@ -575,6 +575,41 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
         Assert.Null(raw1);
         Assert.Null(raw2);
     }
+
+    [Fact]
+    public async Task CreateHouse_ReturnsCreatedHouseAndDirectories()
+    {
+        var request = new CreateHouseRequestDto
+        {
+            HouseId = "516",
+            InitialTenantName = "سارة عبد الله",
+            StartDate = "2024-07-01"
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/areas/Safra%20C/houses", request);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<CreateHouseResponseDto>();
+        Assert.NotNull(result);
+        Assert.Equal("success", result.Status);
+        Assert.Equal("Safra C", result.AreaId);
+        Assert.Equal("516", result.HouseId);
+        Assert.NotNull(result.TenantId);
+
+        // Verify physical directories scaffolded
+        var batchesDir = Path.Combine(_fixture.AreasRoot, "Safra C", "516", "batches");
+        var vaultDir = Path.Combine(_fixture.AreasRoot, "Safra C", "516", "vault");
+        Assert.True(Directory.Exists(batchesDir));
+        Assert.True(Directory.Exists(vaultDir));
+
+        // Verify duplicate returns 409 Conflict
+        var dupResponse = await _client.PostAsJsonAsync("/api/areas/Safra%20C/houses", request);
+        Assert.Equal(HttpStatusCode.Conflict, dupResponse.StatusCode);
+
+        // Verify empty houseId returns 400 BadRequest
+        var emptyResponse = await _client.PostAsJsonAsync("/api/areas/Safra%20C/houses", new CreateHouseRequestDto { HouseId = "" });
+        Assert.Equal(HttpStatusCode.BadRequest, emptyResponse.StatusCode);
+    }
 }
 
 

@@ -1,4 +1,5 @@
 """Pydantic models for the API endpoints."""
+from typing import Optional
 from pydantic import BaseModel
 
 class HouseResponse(BaseModel):
@@ -185,3 +186,18 @@ class BatchMoveResponse(BaseModel):
     moved_count: int
     target_category: str
     vault_ids: list[str]
+
+
+class CreateHouseRequest(BaseModel):
+    house_id: str
+    area_id: Optional[str] = None
+    initial_tenant_name: Optional[str] = None
+    start_date: Optional[str] = None
+
+
+class CreateHouseResponse(BaseModel):
+    status: str = "success"
+    area_id: str
+    house_id: str
+    tenant_id: Optional[int] = None
+    message: str

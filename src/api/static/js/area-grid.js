@@ -218,7 +218,235 @@
         window.location.hash = `#/area/${encodeURIComponent(areaName)}/house/${encodeURIComponent(houseId)}`;
     }
 
+    function openAddHouseModal(preselectedArea) {
+        const modal = document.getElementById('add-house-modal');
+        if (!modal) return;
+
+        const areaSelect = document.getElementById('add-house-area-select');
+        const idInput = document.getElementById('add-house-id-input');
+        const tenantInput = document.getElementById('add-house-tenant-name-input');
+        const dateInput = document.getElementById('add-house-tenant-date-input');
+        const statusEl = document.getElementById('add-house-status');
+        const spinner = document.getElementById('add-house-spinner');
+        const submitBtn = document.getElementById('btn-add-house-submit');
+
+        if (statusEl) {
+            statusEl.classList.add('hidden');
+            statusEl.textContent = '';
+            statusEl.className = 'p-2.5 rounded-lg text-xs font-medium hidden';
+        }
+        if (spinner) spinner.classList.add('hidden');
+        if (submitBtn) submitBtn.disabled = false;
+
+        if (idInput) idInput.value = '';
+        if (tenantInput) tenantInput.value = '';
+        if (dateInput) {
+            try {
+                dateInput.value = new Date().toISOString().split('T')[0];
+            } catch (e) {
+                dateInput.value = '';
+            }
+        }
+
+        // Populate area options
+        if (areaSelect) {
+            areaSelect.innerHTML = '';
+            const tree = (typeof globalTreeData !== 'undefined' ? globalTreeData : window.globalTreeData) || [];
+            const targetArea = preselectedArea || (typeof currentArea !== 'undefined' ? currentArea : window.currentArea);
+
+            if (tree.length > 0) {
+                tree.forEach(a => {
+                    const opt = document.createElement('option');
+                    opt.value = a.name || a.id;
+                    opt.textContent = a.name || a.id;
+                    if (targetArea && (a.name === targetArea || a.id === targetArea)) {
+                        opt.selected = true;
+                    }
+                    areaSelect.appendChild(opt);
+                });
+            } else if (targetArea) {
+                const opt = document.createElement('option');
+                opt.value = targetArea;
+                opt.textContent = targetArea;
+                opt.selected = true;
+                areaSelect.appendChild(opt);
+            }
+        }
+
+        modal.classList.remove('hidden');
+        if (idInput) {
+            setTimeout(() => idInput.focus(), 50);
+        }
+    }
+
+    function closeAddHouseModal() {
+        const modal = document.getElementById('add-house-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    async function handleAddHouseSubmit(e) {
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+
+        const areaSelect = document.getElementById('add-house-area-select');
+        const idInput = document.getElementById('add-house-id-input');
+        const tenantInput = document.getElementById('add-house-tenant-name-input');
+        const dateInput = document.getElementById('add-house-tenant-date-input');
+        const statusEl = document.getElementById('add-house-status');
+        const spinner = document.getElementById('add-house-spinner');
+        const submitBtn = document.getElementById('btn-add-house-submit');
+
+        const areaId = areaSelect ? areaSelect.value.trim() : '';
+        const houseId = idInput ? idInput.value.trim() : '';
+        const tenantName = tenantInput ? tenantInput.value.trim() : '';
+        const startDate = dateInput ? dateInput.value.trim() : '';
+
+        if (!areaId) {
+            showModalError('يرجى تحديد المنطقة / Please select an area.');
+            return;
+        }
+
+        if (!houseId) {
+            showModalError('يرجى إدخال رقم أو اسم المنزل / House number or name is required.');
+            if (idInput) idInput.focus();
+            return;
+        }
+
+        if (statusEl) {
+            statusEl.classList.add('hidden');
+            statusEl.textContent = '';
+        }
+        if (spinner) spinner.classList.remove('hidden');
+        if (submitBtn) submitBtn.disabled = true;
+
+        try {
+            const payload = {
+                house_id: houseId,
+                area_id: areaId,
+                initial_tenant_name: tenantName || null,
+                start_date: startDate || null,
+            };
+
+            const res = await fetch(`/api/areas/${encodeURIComponent(areaId)}/houses`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+                let errText = `Error ${res.status}`;
+                try {
+                    const errData = await res.json();
+                    errText = errData.detail || errData.error || errData.message || errText;
+                } catch (_) {}
+                throw new Error(errText);
+            }
+
+            const data = await res.json();
+            closeAddHouseModal();
+            if (typeof showToast === 'function') {
+                showToast('تمت إضافة المنزل بنجاح', 'success');
+            } else if (typeof window.showToast === 'function') {
+                window.showToast('تمت إضافة المنزل بنجاح', 'success');
+            }
+
+            await loadAreaGrid(areaId);
+            return data;
+        } catch (err) {
+            showModalError(err.message || 'فشل إضافة المنزل / Failed to create house');
+        } finally {
+            if (spinner) spinner.classList.add('hidden');
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    }
+
+    function showModalError(msg) {
+        const statusEl = document.getElementById('add-house-status');
+        if (statusEl) {
+            statusEl.className = 'p-2.5 rounded-lg text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200';
+            statusEl.textContent = msg;
+            statusEl.classList.remove('hidden');
+        }
+    }
+
+    async function loadAreaGrid(areaId) {
+        if (typeof window.loadTree === 'function') {
+            await window.loadTree();
+        }
+        const tree = (typeof globalTreeData !== 'undefined' ? globalTreeData : window.globalTreeData) || [];
+        const target = areaId || (typeof currentArea !== 'undefined' ? currentArea : window.currentArea);
+        if (target && tree.length > 0) {
+            const areaNode = tree.find(a => a.name === target || a.id === target);
+            if (areaNode) {
+                renderAreaGrid(areaNode);
+            }
+        }
+    }
+
+    function initAddHouseModal() {
+        const openBtn = document.getElementById('open-add-house-modal-btn');
+        if (openBtn) {
+            openBtn.onclick = () => {
+                const targetArea = (typeof currentArea !== 'undefined' ? currentArea : window.currentArea);
+                openAddHouseModal(targetArea);
+            };
+        }
+
+        const closeBtn = document.getElementById('add-house-close');
+        if (closeBtn) closeBtn.onclick = closeAddHouseModal;
+
+        const cancelBtn = document.getElementById('btn-add-house-cancel');
+        if (cancelBtn) cancelBtn.onclick = closeAddHouseModal;
+
+        const submitBtn = document.getElementById('btn-add-house-submit');
+        if (submitBtn) submitBtn.onclick = handleAddHouseSubmit;
+
+        const form = document.getElementById('add-house-form');
+        if (form) form.onsubmit = handleAddHouseSubmit;
+
+        const modal = document.getElementById('add-house-modal');
+        if (modal) {
+            modal.onclick = (e) => {
+                if (e.target === modal) closeAddHouseModal();
+            };
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const m = document.getElementById('add-house-modal');
+                if (m && !m.classList.contains('hidden')) {
+                    closeAddHouseModal();
+                }
+            }
+        });
+    }
+
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initAddHouseModal);
+        } else {
+            initAddHouseModal();
+        }
+    }
+
     window.selectAreaGrid = selectAreaGrid;
     window.renderAreaGrid = renderAreaGrid;
     window.openHouseFromGrid = openHouseFromGrid;
+    window.openAddHouseModal = openAddHouseModal;
+    window.closeAddHouseModal = closeAddHouseModal;
+    window.handleAddHouseSubmit = handleAddHouseSubmit;
+    window.initAddHouseModal = initAddHouseModal;
+    window.loadAreaGrid = loadAreaGrid;
+
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = {
+            selectAreaGrid,
+            renderAreaGrid,
+            openHouseFromGrid,
+            openAddHouseModal,
+            closeAddHouseModal,
+            handleAddHouseSubmit,
+            initAddHouseModal,
+            loadAreaGrid,
+        };
+    }
 })();

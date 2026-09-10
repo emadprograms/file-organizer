@@ -85,6 +85,45 @@ app.MapGet("/api/houses", async (string? area_id, string? areaId, IFileOrganizer
     return Results.Ok(houses);
 });
 
+app.MapPost("/api/areas/{areaId}/houses", async (
+    string areaId,
+    CreateHouseRequestDto request,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    if (string.IsNullOrWhiteSpace(request.HouseId))
+    {
+        return Results.BadRequest(new { error = "House ID is required and cannot be empty." });
+    }
+
+    var cleanAreaId = !string.IsNullOrWhiteSpace(areaId) ? areaId.Trim() : (request.AreaId?.Trim() ?? "");
+    if (string.IsNullOrWhiteSpace(cleanAreaId))
+    {
+        return Results.BadRequest(new { error = "Area ID is required and cannot be empty." });
+    }
+
+    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    try
+    {
+        var result = await repo.CreateHouseAsync(
+            cleanAreaId,
+            request.HouseId,
+            request.InitialTenantName,
+            request.StartDate,
+            areasRoot
+        );
+        return Results.Ok(result);
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.Conflict(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+});
+
 // House profile / card
 app.MapGet("/api/areas/{areaId}/houses/{houseId}", async (string areaId, string houseId, IFileOrganizerRepository repo) =>
 {

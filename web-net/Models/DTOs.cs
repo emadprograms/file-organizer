@@ -665,3 +665,36 @@ public record BatchMoveResponseDto
     public List<string> VaultIds { get; init; } = new();
 }
 
+public record CreateHouseRequestDto
+{
+    [JsonPropertyName("house_id")]
+    public string HouseId { get; init; } = string.Empty;
+
+    [JsonPropertyName("area_id")]
+    public string? AreaId { get; init; }
+
+    [JsonPropertyName("initial_tenant_name")]
+    public string? InitialTenantName { get; init; }
+
+    [JsonPropertyName("start_date")]
+    public string? StartDate { get; init; }
+}
+
+public record CreateHouseResponseDto
+{
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = "success";
+
+    [JsonPropertyName("area_id")]
+    public string AreaId { get; init; } = string.Empty;
+
+    [JsonPropertyName("house_id")]
+    public string HouseId { get; init; } = string.Empty;
+
+    [JsonPropertyName("tenant_id")]
+    public int? TenantId { get; init; }
+
+    [JsonPropertyName("message")]
+    public string Message { get; init; } = string.Empty;
+}
+

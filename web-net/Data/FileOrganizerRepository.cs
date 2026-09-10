@@ -1209,6 +1209,83 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         };
     }
 
+    public async Task<CreateHouseResponseDto> CreateHouseAsync(
+        string areaId,
+        string houseId,
+        string? initialTenantName = null,
+        string? startDate = null,
+        string? areasRoot = null)
+    {
+        var cleanHouseId = houseId?.Trim() ?? string.Empty;
+        var cleanAreaId = areaId?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(cleanHouseId))
+        {
+            throw new ArgumentException("House ID is required and cannot be empty.");
+        }
+        if (string.IsNullOrWhiteSpace(cleanAreaId))
+        {
+            throw new ArgumentException("Area ID is required and cannot be empty.");
+        }
+
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+
+        // Check if house already exists
+        var existingHouse = await conn.QueryFirstOrDefaultAsync<House>(
+            "SELECT id AS Id, area_id AS AreaId FROM houses WHERE id = @Id;",
+            new { Id = cleanHouseId });
+
+        if (existingHouse != null)
+        {
+            throw new InvalidOperationException($"House '{cleanHouseId}' already exists in area '{existingHouse.AreaId}'.");
+        }
+
+        // Ensure area exists (or add if not exists)
+        var existingArea = await conn.QueryFirstOrDefaultAsync<Area>(
+            "SELECT id AS Id, code AS Code FROM areas WHERE id = @Id;",
+            new { Id = cleanAreaId });
+
+        if (existingArea == null)
+        {
+            await conn.ExecuteAsync("INSERT OR IGNORE INTO areas (id, code) VALUES (@Id, @Code);", new { Id = cleanAreaId, Code = (string?)null });
+        }
+
+        // Register house
+        await conn.ExecuteAsync("INSERT INTO houses (id, area_id) VALUES (@Id, @AreaId);", new { Id = cleanHouseId, AreaId = cleanAreaId });
+
+        // Optional initial tenant
+        int? tenantId = null;
+        if (!string.IsNullOrWhiteSpace(initialTenantName))
+        {
+            var cleanTenantName = initialTenantName.Trim();
+            var sDate = !string.IsNullOrWhiteSpace(startDate) ? startDate.Trim() : DateTime.Today.ToString("yyyy-MM-dd");
+
+            tenantId = await conn.ExecuteScalarAsync<int>(@"
+                INSERT INTO tenants (house_id, name, start_date)
+                VALUES (@HouseId, @Name, @StartDate);
+                SELECT last_insert_rowid();",
+                new { HouseId = cleanHouseId, Name = cleanTenantName, StartDate = sDate });
+        }
+
+        // Directory scaffolding
+        if (!string.IsNullOrWhiteSpace(areasRoot))
+        {
+            var batchesDir = Path.Combine(areasRoot, cleanAreaId, cleanHouseId, "batches");
+            var vaultDir = Path.Combine(areasRoot, cleanAreaId, cleanHouseId, "vault");
+            Directory.CreateDirectory(batchesDir);
+            Directory.CreateDirectory(vaultDir);
+        }
+
+        return new CreateHouseResponseDto
+        {
+            Status = "success",
+            AreaId = cleanAreaId,
+            HouseId = cleanHouseId,
+            TenantId = tenantId,
+            Message = $"House '{cleanHouseId}' registered successfully in area '{cleanAreaId}'."
+        };
+    }
+
     // Seeding & testing helpers
     public async Task<Area> AddAreaAsync(string areaId, string? code = null)
     {

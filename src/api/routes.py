@@ -44,6 +44,8 @@ from src.api.models import (
     BatchDeleteResponse,
     BatchMoveRequest,
     BatchMoveResponse,
+    CreateHouseRequest,
+    CreateHouseResponse,
 )
 from src.db.repository import (
     Repository,
@@ -224,6 +226,75 @@ async def list_vault_files(request: Request, house_id: str):
         except ValidationError:
             pass
     return responses
+
+
+def _get_areas_root_path(request: Request) -> Path:
+    config = getattr(request.app.state, "config", None)
+    if config and getattr(config, "areas_root_path", None):
+        return Path(config.areas_root_path)
+    if hasattr(request.app.state, "areas_root_path") and request.app.state.areas_root_path:
+        return Path(request.app.state.areas_root_path)
+    if hasattr(request.app.state, "areas_root") and request.app.state.areas_root:
+        return Path(request.app.state.areas_root)
+    return Path("areas")
+
+
+@router.post("/api/areas/{area_id}/houses", response_model=CreateHouseResponse)
+async def create_house(request: Request, area_id: str, payload: CreateHouseRequest):
+    if not payload.house_id or not payload.house_id.strip():
+        raise HTTPException(status_code=400, detail="House ID is required and cannot be empty.")
+
+    clean_house_id = payload.house_id.strip()
+    clean_area_id = (payload.area_id.strip() if (payload.area_id and payload.area_id.strip()) else area_id.strip())
+
+    if not clean_area_id or clean_area_id == "{area_id}":
+        raise HTTPException(status_code=400, detail="Area ID is required and cannot be empty.")
+
+    repo = get_db_repo(request)
+    if not repo:
+        raise HTTPException(status_code=503, detail="Database not connected.")
+
+    existing = repo.get_house(clean_house_id)
+    if existing:
+        raise HTTPException(
+            status_code=409,
+            detail=f"House '{clean_house_id}' already exists in area '{existing.area_id}'."
+        )
+
+    if not repo.get_area(clean_area_id):
+        repo.add_area(area_id=clean_area_id)
+
+    repo.add_house(house_id=clean_house_id, area_id=clean_area_id)
+
+    tenant_id = None
+    if payload.initial_tenant_name and payload.initial_tenant_name.strip():
+        s_date = payload.start_date.strip() if (payload.start_date and payload.start_date.strip()) else date.today().isoformat()
+        tenant = repo.add_tenant(
+            house_id=clean_house_id,
+            name=payload.initial_tenant_name.strip(),
+            start_date=s_date,
+        )
+        tenant_id = tenant.id
+
+    if not repo.autocommit:
+        repo.conn.commit()
+
+    areas_root = _get_areas_root_path(request)
+    batches_dir = areas_root / clean_area_id / clean_house_id / "batches"
+    vault_dir = areas_root / clean_area_id / clean_house_id / "vault"
+    batches_dir.mkdir(parents=True, exist_ok=True)
+    vault_dir.mkdir(parents=True, exist_ok=True)
+
+    clear_tree_cache()
+
+    return CreateHouseResponse(
+        status="success",
+        area_id=clean_area_id,
+        house_id=clean_house_id,
+        tenant_id=tenant_id,
+        message=f"House '{clean_house_id}' registered successfully in area '{clean_area_id}'."
+    )
+
 
 @router.get("/api/areas/{area_id}/houses/{house_id}/timeline", response_model=list[TimelineGroupResponse])
 async def list_timeline(request: Request, area_id: str, house_id: str):

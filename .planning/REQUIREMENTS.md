@@ -17,8 +17,8 @@ Equip the digital archive management system with power-user operational tools: o
   - `POST /api/areas/{area}/houses/{house}/documents/batch-move`: Move selected documents to a target category folder in a single atomic transaction.
 
 ### Portfolio Expansion
-- [ ] **HSE-01**: House creation backend endpoint `POST /api/areas/{area}/houses` in both FastAPI and ASP.NET Core. Registers the house in SQLite, optionally creates the initial active tenant, and initializes the physical filesystem directory scaffold (`{area}/{house}/batches/` and `{area}/{house}/vault/`).
-- [ ] **HSE-02**: "+ Add House" UI trigger and modal in the Area Grid. Allows property managers to select an Area, input House Number/Name, and optionally add an initial tenant. Dynamically refreshes the house grid upon creation without page reload.
+- [x] **HSE-01**: House creation backend endpoint `POST /api/areas/{area}/houses` in both FastAPI and ASP.NET Core. Registers the house in SQLite, optionally creates the initial active tenant, and initializes the physical filesystem directory scaffold (`{area}/{house}/batches/` and `{area}/{house}/vault/`).
+- [x] **HSE-02**: "+ Add House" UI trigger and modal in the Area Grid. Allows property managers to select an Area, input House Number/Name, and optionally add an initial tenant. Dynamically refreshes the house grid upon creation without page reload.
 
 ### Keyboard Shortcuts & Verification
 - [ ] **KBD-01**: Global Keyboard Shortcuts Helper Modal (`?`). Pressing `?` (Shift+/) opens a clean modal listing all available keyboard shortcuts (`⌘K` Search, `⌘I` Upload, `Space` Quick Look, `Esc` Close, `?` Shortcuts). Can be dismissed via `Esc`, close button, or backdrop click.
@@ -35,7 +35,7 @@ Equip the digital archive management system with power-user operational tools: o
 | EXP-02 | UI Export Archive ZIP button on House Profile | Phase 105 | Complete |
 | BAT-01 | Multi-select checkboxes & floating action bar in Category View | Phase 106 | Complete |
 | BAT-02 | Batch Move and Batch Delete backend endpoints | Phase 106 | Complete |
-| HSE-01 | House creation backend endpoint and directory scaffold | Phase 107 | Pending |
-| HSE-02 | "+ Add House" UI modal and live grid refresh | Phase 107 | Pending |
+| HSE-01 | House creation backend endpoint and directory scaffold | Phase 107 | Complete |
+| HSE-02 | "+ Add House" UI modal and live grid refresh | Phase 107 | Complete |
 | KBD-01 | Global Keyboard Shortcuts Helper modal (`?`) | Phase 108 | Pending |
 | VER-07 | Comprehensive automated testing suite (Pytest, Vitest, Playwright, xUnit) | Phase 108 | Pending |

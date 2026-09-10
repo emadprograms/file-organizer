@@ -181,3 +181,84 @@ def test_batch_delete_documents(test_setup):
     assert not pdf1.exists()
     assert not p2.exists()
 
+
+def test_create_house_with_initial_tenant_and_directories(test_setup):
+    repo = test_setup["repo"]
+    areas_root = test_setup["areas_root"]
+
+    # 1. Create house with initial tenant in existing area
+    res = client.post(
+        "/api/areas/Area A/houses",
+        json={
+            "house_id": "House 102",
+            "initial_tenant_name": "خالد العتيبي",
+            "start_date": "2024-06-01",
+        }
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert data["area_id"] == "Area A"
+    assert data["house_id"] == "House 102"
+    assert data["tenant_id"] is not None
+    assert "House 'House 102' registered successfully" in data["message"]
+
+    # Verify house in DB
+    house = repo.get_house("House 102")
+    assert house is not None
+    assert house.area_id == "Area A"
+
+    # Verify tenant in DB
+    tenant = repo.get_tenant(data["tenant_id"])
+    assert tenant is not None
+    assert tenant.name == "خالد العتيبي"
+    assert str(tenant.start_date) == "2024-06-01"
+    assert tenant.house_id == "House 102"
+
+    # Verify physical filesystem directories scaffolded
+    batches_dir = areas_root / "Area A" / "House 102" / "batches"
+    vault_dir = areas_root / "Area A" / "House 102" / "vault"
+    assert batches_dir.exists() and batches_dir.is_dir()
+    assert vault_dir.exists() and vault_dir.is_dir()
+
+    # 2. Create house in a brand-new area without initial tenant
+    res2 = client.post(
+        "/api/areas/Area B/houses",
+        json={
+            "house_id": "House 201",
+        }
+    )
+    assert res2.status_code == 200
+    data2 = res2.json()
+    assert data2["status"] == "success"
+    assert data2["area_id"] == "Area B"
+    assert data2["house_id"] == "House 201"
+    assert data2["tenant_id"] is None
+
+    # Verify Area B created
+    area_b = repo.get_area("Area B")
+    assert area_b is not None
+
+    # Verify directories scaffolded for Area B
+    assert (areas_root / "Area B" / "House 201" / "batches").exists()
+    assert (areas_root / "Area B" / "House 201" / "vault").exists()
+
+
+def test_create_house_duplicate_or_invalid(test_setup):
+    # 1. Validation failure on empty house_id
+    res_empty = client.post(
+        "/api/areas/Area A/houses",
+        json={"house_id": "  "}
+    )
+    assert res_empty.status_code == 400
+
+    # 2. Duplicate house error (House 100 already seeded in test_setup)
+    res_dup = client.post(
+        "/api/areas/Area A/houses",
+        json={"house_id": "House 100"}
+    )
+    assert res_dup.status_code in (400, 409)
+    err_msg = res_dup.json()["detail"]
+    assert "already exists" in err_msg
+
+
