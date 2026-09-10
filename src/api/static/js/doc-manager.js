@@ -248,6 +248,8 @@
         populateFolderOptions(activeDocModalCategory);
         await populateTenantOptions(doc.tenant_id, doc.tenant || doc.primary_tenant);
 
+        resetDeleteButton();
+
         docActionModal.style.display = 'flex';
         docActionModal.classList.remove('hidden');
         docActionModal.classList.add('flex');
@@ -255,6 +257,7 @@
 
     function closeDocModal() {
         if (!docActionModal) return;
+        resetDeleteButton();
         docActionModal.classList.add('hidden');
         docActionModal.classList.remove('flex');
         docActionModal.style.display = 'none';
@@ -455,6 +458,28 @@
     }
 
     let isDeletingDoc = false;
+    let isDeleteArmed = false;
+    let deleteConfirmTimeout = null;
+
+    function resetDeleteButton() {
+        if (deleteConfirmTimeout) {
+            clearTimeout(deleteConfirmTimeout);
+            deleteConfirmTimeout = null;
+        }
+        isDeleteArmed = false;
+        if (btnDocDelete) {
+            btnDocDelete.disabled = false;
+            btnDocDelete.className = 'px-3.5 py-2 text-xs font-bold text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 rounded-xl transition-all mr-auto flex items-center gap-1.5 cursor-pointer shadow-2xs';
+            btnDocDelete.innerHTML = `
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                <span>Delete Document</span>
+            `;
+        }
+    }
+
+    function getIsDeleteArmed() {
+        return isDeleteArmed;
+    }
 
     async function handleDeleteDoc(e) {
         if (e) {
@@ -470,15 +495,38 @@
             return;
         }
 
-        const confirmFn = (typeof window !== 'undefined' && typeof window.confirm === 'function') ? window.confirm : confirm;
-        const confirmed = confirmFn('Are you sure you want to permanently delete this document? This will remove the file and all its records.');
-        if (!confirmed) return;
+        // Step 1: Arm confirmation state on first click
+        if (!isDeleteArmed) {
+            isDeleteArmed = true;
+            if (btnDocDelete) {
+                btnDocDelete.className = 'px-3.5 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 border border-rose-700 rounded-xl transition-all mr-auto flex items-center gap-1.5 cursor-pointer shadow-sm animate-pulse';
+                btnDocDelete.innerHTML = `
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <span>⚠️ Confirm Delete?</span>
+                `;
+            }
+            if (deleteConfirmTimeout) clearTimeout(deleteConfirmTimeout);
+            deleteConfirmTimeout = setTimeout(() => {
+                resetDeleteButton();
+            }, 4000);
+            return;
+        }
 
+        // Step 2: Second click within 4s executes permanent deletion
+        if (deleteConfirmTimeout) {
+            clearTimeout(deleteConfirmTimeout);
+            deleteConfirmTimeout = null;
+        }
+        isDeleteArmed = false;
         isDeletingDoc = true;
 
         if (btnDocDelete) {
             btnDocDelete.disabled = true;
-            btnDocDelete.innerHTML = '<span>Deleting...</span>';
+            btnDocDelete.className = 'px-3.5 py-2 text-xs font-bold text-white bg-rose-500 border border-rose-600 rounded-xl transition-all mr-auto flex items-center gap-1.5 cursor-not-allowed opacity-80';
+            btnDocDelete.innerHTML = `
+                <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+                <span>Deleting...</span>
+            `;
         }
 
         const area = getResolvedArea(activeDocModalDoc);
@@ -498,9 +546,9 @@
 
             try {
                 if (typeof showToast === 'function') {
-                    showToast('Document deleted successfully.');
+                    showToast('Document permanently deleted.');
                 } else if (typeof window !== 'undefined' && typeof window.showToast === 'function') {
-                    window.showToast('Document deleted successfully.');
+                    window.showToast('Document permanently deleted.');
                 }
                 if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
                     await window.refreshCurrentTab(area, house);
@@ -529,13 +577,7 @@
             }
         } finally {
             isDeletingDoc = false;
-            if (btnDocDelete) {
-                btnDocDelete.disabled = false;
-                btnDocDelete.innerHTML = `
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    <span>Delete Document</span>
-                `;
-            }
+            resetDeleteButton();
         }
     }
 
@@ -543,6 +585,8 @@
     window.openDocModal = openDocModal;
     window.closeDocModal = closeDocModal;
     window.handleDeleteDoc = handleDeleteDoc;
+    window.resetDeleteButton = resetDeleteButton;
+    window.getIsDeleteArmed = getIsDeleteArmed;
     window.populateFolderOptions = populateFolderOptions;
     window.STANDARD_FOLDERS = STANDARD_FOLDERS;
     window.handleDocDragStart = handleDocDragStart;
@@ -564,6 +608,8 @@
             openDocModal,
             closeDocModal,
             handleDeleteDoc,
+            resetDeleteButton,
+            getIsDeleteArmed,
             setDocModalMode,
             saveDocModal,
             resetDocLock,

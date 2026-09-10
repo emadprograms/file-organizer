@@ -136,8 +136,16 @@ def test_delete_doc_dialog_closes(page: Page):
     modal = page.locator("#doc-action-modal")
     expect(modal).to_be_visible()
 
-    # Click Delete Document button
+    # Click Delete Document button (Step 1: arms the button)
     delete_btn = page.locator("#btn-doc-delete")
+    delete_btn.click()
+    page.wait_for_timeout(200)
+
+    # Verify button changed to "Confirm Delete?" and modal remains open
+    expect(delete_btn).to_contain_text("Confirm Delete?")
+    expect(modal).to_be_visible()
+
+    # Step 2: Second click confirms permanent deletion
     delete_btn.click()
     page.wait_for_timeout(1000)
 

@@ -5,6 +5,8 @@ const {
     openDocModal,
     closeDocModal,
     handleDeleteDoc,
+    resetDeleteButton,
+    getIsDeleteArmed,
     getResolvedArea,
     getResolvedHouse,
     getAreaFromHash,
@@ -47,7 +49,6 @@ describe('Document Manager - Deletion Feature', () => {
         global.showToast = vi.fn();
         global.refreshCurrentTab = vi.fn();
         global.loadTree = vi.fn();
-        window.confirm = vi.fn();
         window.location.hash = '';
         global.fetch = vi.fn().mockImplementation(async (url, options) => {
             if (typeof url === 'string' && url.includes('/tenants')) {
@@ -78,9 +79,7 @@ describe('Document Manager - Deletion Feature', () => {
         delete global.loadTree;
     });
 
-    it('cancels deletion when user declines confirmation prompt', async () => {
-        window.confirm.mockReturnValue(false);
-
+    it('arms confirmation state on first click and does not delete immediately', async () => {
         await openDocModal({
             vault_id: 'doc_123',
             brief_arabic_title: 'فاتورة تجريبية',
@@ -88,17 +87,22 @@ describe('Document Manager - Deletion Feature', () => {
         });
 
         const deleteBtn = document.getElementById('btn-doc-delete');
+        expect(getIsDeleteArmed()).toBe(false);
+        expect(deleteBtn.textContent).toContain('Delete Document');
+
+        // First click: arms the confirmation button
         deleteBtn.click();
 
-        expect(window.confirm).toHaveBeenCalledTimes(1);
+        expect(getIsDeleteArmed()).toBe(true);
+        expect(deleteBtn.textContent).toContain('Confirm Delete?');
+
         // fetch should only have been called for tenants during openDocModal, never with DELETE method
         const deleteCalls = global.fetch.mock.calls.filter(call => call[1]?.method === 'DELETE');
         expect(deleteCalls.length).toBe(0);
         expect(document.getElementById('doc-action-modal').classList.contains('hidden')).toBe(false);
     });
 
-    it('successfully deletes document on confirmation and refreshes UI', async () => {
-        window.confirm.mockReturnValue(true);
+    it('successfully deletes document on second click confirmation and refreshes UI', async () => {
         global.fetch.mockImplementation(async (url, options) => {
             if (typeof url === 'string' && url.includes('/tenants')) {
                 return {
@@ -122,13 +126,17 @@ describe('Document Manager - Deletion Feature', () => {
         });
 
         const deleteBtn = document.getElementById('btn-doc-delete');
+        // Click 1: Arm confirmation
+        deleteBtn.click();
+        expect(getIsDeleteArmed()).toBe(true);
+
+        // Click 2: Execute deletion
         deleteBtn.click();
 
         await vi.waitFor(() => {
-            expect(global.showToast).toHaveBeenCalledWith('Document deleted successfully.');
+            expect(global.showToast).toHaveBeenCalledWith('Document permanently deleted.');
         });
 
-        expect(window.confirm).toHaveBeenCalledTimes(1);
         expect(global.fetch).toHaveBeenCalledWith(
             '/api/areas/Safra%20C/houses/514/documents/doc_123',
             { method: 'DELETE' }
@@ -142,7 +150,6 @@ describe('Document Manager - Deletion Feature', () => {
     });
 
     it('displays error in status element when deletion fails', async () => {
-        window.confirm.mockReturnValue(true);
         global.fetch.mockImplementation(async (url, options) => {
             if (typeof url === 'string' && url.includes('/tenants')) {
                 return {
@@ -166,6 +173,9 @@ describe('Document Manager - Deletion Feature', () => {
         });
 
         const deleteBtn = document.getElementById('btn-doc-delete');
+        // Click 1: arm
+        deleteBtn.click();
+        // Click 2: execute
         deleteBtn.click();
 
         await vi.waitFor(() => {
@@ -201,7 +211,6 @@ describe('Document Manager - Deletion Feature', () => {
         window.currentArea = 'Safra C';
         window.currentHouse = '514';
 
-        window.confirm.mockReturnValue(true);
         global.fetch.mockImplementation(async (url, options) => {
             if (typeof url === 'string' && url.includes('/tenants')) {
                 return {
@@ -228,7 +237,8 @@ describe('Document Manager - Deletion Feature', () => {
         expect(modal.classList.contains('hidden')).toBe(false);
 
         const deleteBtn = document.getElementById('btn-doc-delete');
-        deleteBtn.click();
+        deleteBtn.click(); // arm
+        deleteBtn.click(); // execute
 
         await vi.waitFor(() => {
             expect(global.fetch).toHaveBeenCalledWith(
@@ -252,7 +262,6 @@ describe('Document Manager - Deletion Feature', () => {
         expect(getResolvedArea()).toBe('Safra C');
         expect(getResolvedHouse()).toBe('514');
 
-        window.confirm.mockReturnValue(true);
         global.fetch.mockImplementation(async (url, options) => {
             if (typeof url === 'string' && url.includes('/tenants')) {
                 return {
@@ -277,7 +286,8 @@ describe('Document Manager - Deletion Feature', () => {
 
         const modal = document.getElementById('doc-action-modal');
         const deleteBtn = document.getElementById('btn-doc-delete');
-        deleteBtn.click();
+        deleteBtn.click(); // arm
+        deleteBtn.click(); // execute
 
         await vi.waitFor(() => {
             expect(global.fetch).toHaveBeenCalledWith(
@@ -291,7 +301,6 @@ describe('Document Manager - Deletion Feature', () => {
     });
 
     it('ensures modal remains closed even if refreshCurrentTab rejects with an error', async () => {
-        window.confirm.mockReturnValue(true);
         global.refreshCurrentTab = vi.fn().mockRejectedValue(new Error('Network failure during tab refresh'));
         window.refreshCurrentTab = global.refreshCurrentTab;
 
@@ -319,7 +328,8 @@ describe('Document Manager - Deletion Feature', () => {
 
         const modal = document.getElementById('doc-action-modal');
         const deleteBtn = document.getElementById('btn-doc-delete');
-        deleteBtn.click();
+        deleteBtn.click(); // arm
+        deleteBtn.click(); // execute
 
         await vi.waitFor(() => {
             expect(global.fetch).toHaveBeenCalledWith(
@@ -332,5 +342,21 @@ describe('Document Manager - Deletion Feature', () => {
         expect(modal.classList.contains('hidden')).toBe(true);
         expect(modal.style.display).toBe('none');
         expect(global.refreshCurrentTab).toHaveBeenCalled();
+    });
+
+    it('resets armed confirmation state when closeDocModal is invoked', async () => {
+        await openDocModal({
+            vault_id: 'doc_reset_test',
+            brief_arabic_title: 'مستند إعادة التعيين',
+            category: '06 - كهرباء وماء',
+        });
+
+        const deleteBtn = document.getElementById('btn-doc-delete');
+        deleteBtn.click(); // arm
+        expect(getIsDeleteArmed()).toBe(true);
+
+        closeDocModal();
+        expect(getIsDeleteArmed()).toBe(false);
+        expect(deleteBtn.textContent).toContain('Delete Document');
     });
 });
