@@ -497,36 +497,111 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
         using var scope = _fixture.Services.CreateScope();
         var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
 
-        var validPdfPath = Path.Combine(_fixture.AreasRoot, "chronological_pdf_test.pdf");
-        using (var pdf = new PdfSharpCore.Pdf.PdfDocument())
-        {
-            pdf.AddPage();
-            pdf.Save(validPdfPath);
-        }
+        await repo.AddHouseAsync("600", "Safra C");
+        var tenant = await repo.AddTenantAsync("600", "علي الزهراني", "2020-01-01", null);
 
+        // Document 1: 2021-01-01 (middle date) -> Page width 200
+        var pMidPath = Path.Combine(_fixture.AreasRoot, "chrono_mid.pdf");
+        using (var pdfMid = new PdfSharpCore.Pdf.PdfDocument())
+        {
+            var p = pdfMid.AddPage();
+            p.Width = 200;
+            pdfMid.Save(pMidPath);
+        }
         await repo.AddManualDocumentAsync(new IngestRequestDto
         {
             AreaId = "Safra C",
-            HouseId = "500",
-            TenantId = 1,
+            HouseId = "600",
+            TenantId = tenant.Id,
             Category = "05 - عقود",
-            ArabicTitle = "عقد زمني",
-            PrimaryDate = "2021-01-15",
+            ArabicTitle = "عقد 2021",
+            PrimaryDate = "2021-01-01",
             PageCount = 1,
-            SourcePdfFilename = "chrono.pdf",
-            SourcePdfPath = validPdfPath,
+            SourcePdfFilename = "chrono_mid.pdf",
+            SourcePdfPath = pMidPath,
             AreasRoot = _fixture.AreasRoot
         });
 
-        var response = await _client.GetAsync("/api/areas/Safra%20C/houses/500/export-pdf");
+        // Document 2: 2024-05-15 (newest / most recent date) -> Page width 300
+        var pNewPath = Path.Combine(_fixture.AreasRoot, "chrono_new.pdf");
+        using (var pdfNew = new PdfSharpCore.Pdf.PdfDocument())
+        {
+            var p = pdfNew.AddPage();
+            p.Width = 300;
+            pdfNew.Save(pNewPath);
+        }
+        await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Safra C",
+            HouseId = "600",
+            TenantId = tenant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد 2024",
+            PrimaryDate = "2024-05-15",
+            PageCount = 1,
+            SourcePdfFilename = "chrono_new.pdf",
+            SourcePdfPath = pNewPath,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        // Document 3: 2020-03-01 (oldest date) -> Page width 100
+        var pOldPath = Path.Combine(_fixture.AreasRoot, "chrono_old.pdf");
+        using (var pdfOld = new PdfSharpCore.Pdf.PdfDocument())
+        {
+            var p = pdfOld.AddPage();
+            p.Width = 100;
+            pdfOld.Save(pOldPath);
+        }
+        await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Safra C",
+            HouseId = "600",
+            TenantId = tenant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد 2020",
+            PrimaryDate = "2020-03-01",
+            PageCount = 1,
+            SourcePdfFilename = "chrono_old.pdf",
+            SourcePdfPath = pOldPath,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        // Document 4: Undated document -> Page width 50 (should come last!)
+        var pUndatedPath = Path.Combine(_fixture.AreasRoot, "chrono_undated.pdf");
+        using (var pdfUndated = new PdfSharpCore.Pdf.PdfDocument())
+        {
+            var p = pdfUndated.AddPage();
+            p.Width = 50;
+            pdfUndated.Save(pUndatedPath);
+        }
+        await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Safra C",
+            HouseId = "600",
+            TenantId = tenant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد بدون تاريخ",
+            PrimaryDate = null,
+            PageCount = 1,
+            SourcePdfFilename = "chrono_undated.pdf",
+            SourcePdfPath = pUndatedPath,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        var response = await _client.GetAsync("/api/areas/Safra%20C/houses/600/export-pdf");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("application/pdf", response.Content.Headers.ContentType?.MediaType);
-        Assert.Contains("archive_Safra_C_500.pdf", response.Content.Headers.ContentDisposition?.FileName);
+        Assert.Contains("archive_Safra_C_600.pdf", response.Content.Headers.ContentDisposition?.FileName);
 
         var bytes = await response.Content.ReadAsByteArrayAsync();
         using var ms = new MemoryStream(bytes);
         using var parsed = PdfSharpCore.Pdf.IO.PdfReader.Open(ms, PdfSharpCore.Pdf.IO.PdfDocumentOpenMode.Import);
-        Assert.True(parsed.PageCount >= 1);
+        Assert.Equal(4, parsed.PageCount);
+        // Descending chronological order: Page 1 is 2024-05-15 (Width 300), Page 2 is 2021-01-01 (Width 200), Page 3 is 2020-03-01 (Width 100), Page 4 is undated (Width 50)
+        Assert.Equal(300, (int)parsed.Pages[0].Width.Point);
+        Assert.Equal(200, (int)parsed.Pages[1].Width.Point);
+        Assert.Equal(100, (int)parsed.Pages[2].Width.Point);
+        Assert.Equal(50, (int)parsed.Pages[3].Width.Point);
     }
 
     [Fact]

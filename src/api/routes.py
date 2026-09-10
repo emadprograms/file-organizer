@@ -761,13 +761,14 @@ async def export_house_archive_pdf(request: Request, area_id: str, house_id: str
         docs = [d for d in docs if d.tenant_id == tenant_id]
         tenant_obj = repo.get_tenant(tenant_id)
 
-    # Chronological sort: documents with primary_date ASC, empty/null dates last, tie-break by vault_id
+    # Descending chronological sort: newest/most recent dates first, empty/null dates last, tie-break by vault_id
     docs_sorted = sorted(
         docs,
         key=lambda d: (
-            (1, "") if not d.primary_date else (0, str(d.primary_date)),
+            (1, str(d.primary_date)) if d.primary_date else (0, ""),
             d.vault_id
-        )
+        ),
+        reverse=True
     )
 
     config = getattr(request.app.state, "config", None)

@@ -31,7 +31,8 @@ def test_setup(tmp_path):
     # Write sample pdf (valid PDF starting with %PDF-1.4)
     sample_pdf = vault_dir / "doc_v14test01.pdf"
     doc_new = fitz.open()
-    doc_new.new_page()
+    p_setup = doc_new.new_page()
+    p_setup.insert_text((50, 50), "DOC_2024_05_15")
     pdf_bytes = doc_new.tobytes().replace(b"%PDF-1.7", b"%PDF-1.4")
     doc_new.close()
     sample_pdf.write_bytes(pdf_bytes)
@@ -158,10 +159,11 @@ def test_export_house_archive_pdf(test_setup):
     vault_dir = test_setup["vault_dir"]
     t = test_setup["tenant"]
 
-    # Add second document with valid PDF
+    # Add second document with valid PDF (date 2024-06-01 is newer than 2024-05-15)
     p2 = vault_dir / "doc_v14test_pdf2.pdf"
     doc2 = fitz.open()
-    doc2.new_page()
+    p2_page = doc2.new_page()
+    p2_page.insert_text((50, 50), "DOC_2024_06_01")
     p2.write_bytes(doc2.tobytes())
     doc2.close()
 
@@ -185,6 +187,111 @@ def test_export_house_archive_pdf(test_setup):
 
     merged_doc = fitz.open(stream=res.content, filetype="pdf")
     assert len(merged_doc) >= 2
+    # Verify descending chronological order: 2024-06-01 before 2024-05-15
+    assert "DOC_2024_06_01" in merged_doc[0].get_text()
+    assert "DOC_2024_05_15" in merged_doc[1].get_text()
+    merged_doc.close()
+
+
+def test_export_house_archive_pdf_descending_chronological_order(test_setup):
+    """Verify combined PDF export is sorted in descending chronological order:
+    Recent document first (e.g. 2024-05-15), oldest document last (e.g. 2020-03-01),
+    and undated documents at the very end.
+    """
+    repo = test_setup["repo"]
+    areas_root = Path(client.app.state.config.areas_root_path)
+    vault_200 = areas_root / "Area A" / "House 200" / "vault"
+    vault_200.mkdir(parents=True, exist_ok=True)
+    repo.add_house(house_id="House 200", area_id="Area A")
+    t = repo.add_tenant(house_id="House 200", name="مستأجر تجريبي", start_date="2020-01-01")
+
+    # Document 1: 2021-01-01 (middle date)
+    p_mid = vault_200 / "doc_pdf_mid.pdf"
+    d_mid = fitz.open()
+    d_mid.new_page().insert_text((50, 50), "DOC_2021_01_01")
+    p_mid.write_bytes(d_mid.tobytes())
+    d_mid.close()
+    b_mid = repo.create_batch(filename="mid.pdf", file_path=str(p_mid), house_id="House 200", page_count=1)
+    repo.add_document(
+        vault_id="pdf_mid",
+        house_id="House 200",
+        tenant_id=t.id,
+        batch_id=b_mid.id,
+        primary_date="2021-01-01",
+        arabic_title="وثيقة 2021",
+        category="05 - عقود",
+        page_count=1,
+    )
+
+    # Document 2: 2024-05-15 (newest / most recent date)
+    p_new = vault_200 / "doc_pdf_new.pdf"
+    d_new = fitz.open()
+    d_new.new_page().insert_text((50, 50), "DOC_2024_05_15")
+    p_new.write_bytes(d_new.tobytes())
+    d_new.close()
+    b_new = repo.create_batch(filename="new.pdf", file_path=str(p_new), house_id="House 200", page_count=1)
+    repo.add_document(
+        vault_id="pdf_new",
+        house_id="House 200",
+        tenant_id=t.id,
+        batch_id=b_new.id,
+        primary_date="2024-05-15",
+        arabic_title="وثيقة 2024",
+        category="05 - عقود",
+        page_count=1,
+    )
+
+    # Document 3: 2020-03-01 (oldest date)
+    p_old = vault_200 / "doc_pdf_old.pdf"
+    d_old = fitz.open()
+    d_old.new_page().insert_text((50, 50), "DOC_2020_03_01")
+    p_old.write_bytes(d_old.tobytes())
+    d_old.close()
+    b_old = repo.create_batch(filename="old.pdf", file_path=str(p_old), house_id="House 200", page_count=1)
+    repo.add_document(
+        vault_id="pdf_old",
+        house_id="House 200",
+        tenant_id=t.id,
+        batch_id=b_old.id,
+        primary_date="2020-03-01",
+        arabic_title="وثيقة 2020",
+        category="05 - عقود",
+        page_count=1,
+    )
+
+    # Document 4: Undated document (primary_date=None) -> should be placed after all dated documents
+    p_undated = vault_200 / "doc_pdf_undated.pdf"
+    d_undated = fitz.open()
+    d_undated.new_page().insert_text((50, 50), "DOC_UNDATED")
+    p_undated.write_bytes(d_undated.tobytes())
+    d_undated.close()
+    b_undated = repo.create_batch(filename="undated.pdf", file_path=str(p_undated), house_id="House 200", page_count=1)
+    repo.add_document(
+        vault_id="pdf_undated",
+        house_id="House 200",
+        tenant_id=t.id,
+        batch_id=b_undated.id,
+        primary_date=None,
+        arabic_title="وثيقة بدون تاريخ",
+        category="05 - عقود",
+        page_count=1,
+    )
+
+    res = client.get("/api/areas/Area A/houses/House 200/export-pdf")
+    assert res.status_code == 200
+    assert res.headers["content-type"] == "application/pdf"
+    assert "archive_Area_A_House_200.pdf" in res.headers["content-disposition"]
+
+    merged_doc = fitz.open(stream=res.content, filetype="pdf")
+    assert len(merged_doc) == 4
+    # Verify Page 1 (index 0) is from 2024-05-15 (newest date)
+    assert "DOC_2024_05_15" in merged_doc[0].get_text()
+    # Verify Page 2 (index 1) is from 2021-01-01 (middle date)
+    assert "DOC_2021_01_01" in merged_doc[1].get_text()
+    # Verify Page 3 (index 2) is from 2020-03-01 (oldest dated document)
+    assert "DOC_2020_03_01" in merged_doc[2].get_text()
+    # Verify Page 4 (index 3 / last page) is the undated document
+    assert "DOC_UNDATED" in merged_doc[3].get_text()
     merged_doc.close()
 
 

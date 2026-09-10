@@ -295,9 +295,10 @@ app.MapGet("/api/areas/{areaId}/houses/{houseId}/export-pdf", async (
         tenantName = tenants.FirstOrDefault(t => t.Id == tenantId.Value)?.Name;
     }
 
-    // Chronological order: non-empty dates ASC, empty/null dates last, break ties by VaultId
+    // Descending chronological sort: newest/most recent dates first, empty/null dates last, tie-break by VaultId
     var sortedDocs = allDocs
-        .OrderBy(d => string.IsNullOrWhiteSpace(d.Date) ? "9999-99-99" : d.Date)
+        .OrderByDescending(d => !string.IsNullOrWhiteSpace(d.Date))
+        .ThenByDescending(d => d.Date)
         .ThenBy(d => d.VaultId)
         .ToList();
 
