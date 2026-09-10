@@ -371,3 +371,65 @@ def test_post_ingest_auto_split_mode(api_env):
     assert "vault_ids" in res_json
     assert isinstance(res_json["vault_ids"], list)
     assert res_json["documents_created"] >= 1
+
+
+def test_post_ingest_multi_house_broadcast(api_env):
+    """Verify single document can be broadcast to multiple distinct houses in manual batch mode."""
+    client = api_env["client"]
+    repo = api_env["repo"]
+
+    pdf_bytes = _make_pdf_bytes(["General Municipality Notice for all properties"])
+    shared_title = "إشعار البلدية المشترك"
+    shared_cat = "01-فواتير"
+    shared_date = "2024-09-10"
+
+    # Ingest target 1: House 514
+    resp1 = client.post(
+        "/api/ingest",
+        data={
+            "mode": "manual",
+            "area_id": "Safra C",
+            "house_id": "514",
+            "tenant_id": api_env["tenant_id"],
+            "category": shared_cat,
+            "arabic_title": shared_title,
+            "primary_date": shared_date,
+        },
+        files={"file": ("municipality_notice.pdf", pdf_bytes, "application/pdf")},
+    )
+    assert resp1.status_code == 200, resp1.text
+    res1 = resp1.json()
+    assert res1["status"] == "success"
+    vault1 = res1["vault_id"]
+
+    # Ingest target 2: House 515
+    resp2 = client.post(
+        "/api/ingest",
+        data={
+            "mode": "manual",
+            "area_id": "Safra C",
+            "house_id": "515",
+            "tenant_id": api_env["other_tenant_id"],
+            "category": shared_cat,
+            "arabic_title": shared_title,
+            "primary_date": shared_date,
+        },
+        files={"file": ("municipality_notice.pdf", pdf_bytes, "application/pdf")},
+    )
+    assert resp2.status_code == 200, resp2.text
+    res2 = resp2.json()
+    assert res2["status"] == "success"
+    vault2 = res2["vault_id"]
+
+    assert vault1 != vault2
+
+    doc1 = repo.get_document(vault1)
+    doc2 = repo.get_document(vault2)
+    assert doc1 is not None and doc2 is not None
+    assert doc1.house_id == "514"
+    assert doc1.tenant_id == api_env["tenant_id"]
+    assert doc1.arabic_title == shared_title
+    assert doc2.house_id == "515"
+    assert doc2.tenant_id == api_env["other_tenant_id"]
+    assert doc2.arabic_title == shared_title
+

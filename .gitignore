@@ -45,6 +45,8 @@ sample-config.yaml
 config.yaml
 Screenshot 2026-06-23 113046.png
 *.db
+*.db-shm
+*.db-wal
 
 # GSD planning tmp
 .planning/tmp/

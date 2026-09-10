@@ -4,16 +4,23 @@ const {
     openIngestStation,
     closeIngestStation,
     handleFileSelected,
+    handleFilesSelected,
     removeFile,
-    autofillWithAi,
     submitIngestForm,
+    submitBatchIngest,
     formatFileSize,
     populateAreas,
+    populateBatchAreas,
     populateHouses,
     populateTenants,
     updateModeUI,
     getTodayIsoDate,
     resetIngestForm,
+    detectHouseFromFilename,
+    getTenantsForHouse,
+    addFilesToBatch,
+    renderBatchQueue,
+    getBatchQueue,
 } = require('../../../src/api/static/js/ingest-station.js');
 
 function setupDOM() {
@@ -31,52 +38,72 @@ function setupDOM() {
             <div id="ingest-station-card">
                 <button id="btn-ingest-close">Close</button>
                 
-                <!-- Left Column -->
-                <div id="ingest-file-dropzone">
-                    <input id="ingest-file-input" type="file" accept=".pdf" />
-                </div>
-                <div id="ingest-file-info" class="hidden">
-                    <p id="ingest-file-name"></p>
-                    <p id="ingest-file-size"></p>
-                    <button id="btn-remove-file">Change</button>
-                </div>
-                <div id="ingest-preview-container" class="hidden">
-                    <iframe id="ingest-pdf-preview" src="about:blank"></iframe>
-                </div>
+                <!-- Mode Switcher -->
                 <input type="radio" name="ingest_mode" id="ingest-mode-single" value="manual" checked />
-                <input type="radio" name="ingest_mode" id="ingest-mode-batch" value="auto_split" />
-                <div id="ingest-batch-notice" class="hidden"></div>
+                <input type="radio" name="ingest_mode" id="ingest-mode-batch" value="batch" />
 
-                <!-- Right Column -->
-                <select id="ingest-area-select">
-                    <option value="">Select Area...</option>
-                </select>
-                <select id="ingest-house-select">
-                    <option value="">Select House...</option>
-                </select>
-                <select id="ingest-tenant-select">
-                    <option value="">(Auto-detect or Select Tenant)</option>
-                </select>
-                <button id="btn-toggle-new-tenant">+ Add New Tenant</button>
-                <div id="ingest-new-tenant-container" class="hidden">
-                    <input id="ingest-new-tenant-input" type="text" />
+                <!-- Single Container -->
+                <div id="ingest-single-container">
+                    <div id="ingest-file-dropzone">
+                        <input id="ingest-file-input" type="file" accept=".pdf" />
+                    </div>
+                    <div id="ingest-file-info" class="hidden">
+                        <p id="ingest-file-name"></p>
+                        <p id="ingest-file-size"></p>
+                        <button id="btn-remove-file">Change</button>
+                    </div>
+                    <div id="ingest-preview-container" class="hidden">
+                        <iframe id="ingest-pdf-preview" src="about:blank"></iframe>
+                    </div>
+
+                    <select id="ingest-area-select">
+                        <option value="">Select Area...</option>
+                    </select>
+                    <select id="ingest-house-select">
+                        <option value="">Select House...</option>
+                    </select>
+                    <select id="ingest-tenant-select">
+                        <option value="">(Auto-detect or Select Tenant)</option>
+                    </select>
+                    <button id="btn-toggle-new-tenant">+ Add New Tenant</button>
+                    <div id="ingest-new-tenant-container" class="hidden">
+                        <input id="ingest-new-tenant-input" type="text" />
+                    </div>
+                    <select id="ingest-category-select">
+                        <option value="01 - بيانات أساسية">01 - بيانات أساسية</option>
+                        <option value="05 - عقود">05 - عقود</option>
+                        <option value="06 - كهرباء وماء">06 - كهرباء وماء</option>
+                        <option value="13 - رسائل متنوعة" selected>13 - رسائل متنوعة</option>
+                    </select>
+                    <input id="ingest-title-input" type="text" />
+                    <input id="ingest-date-input" type="date" />
+                    <textarea id="ingest-notes-input"></textarea>
+                    <div id="ingest-status-msg" class="hidden"></div>
                 </div>
-                <select id="ingest-category-select">
-                    <option value="01 - بيانات أساسية">01 - بيانات أساسية</option>
-                    <option value="05 - عقود">05 - عقود</option>
-                    <option value="06 - كهرباء وماء">06 - كهرباء وماء</option>
-                    <option value="13 - رسائل متنوعة" selected>13 - رسائل متنوعة</option>
-                </select>
-                <input id="ingest-title-input" type="text" />
-                <input id="ingest-date-input" type="date" />
-                <textarea id="ingest-notes-input"></textarea>
-                <div id="ingest-status-msg" class="hidden"></div>
 
-                <!-- Footer -->
-                <button id="btn-ingest-autofill">
-                    <span id="ingest-autofill-spinner" class="hidden"></span>
-                    <span id="ingest-autofill-text">✨ Auto-Fill with AI</span>
-                </button>
+                <!-- Batch Queue Container -->
+                <div id="ingest-batch-queue-container" class="hidden">
+                    <select id="ingest-batch-area-select">
+                        <option value="">Select Area...</option>
+                    </select>
+                    <select id="ingest-batch-category-select">
+                        <option value="06 - كهرباء وماء" selected>06 - كهرباء وماء</option>
+                        <option value="13 - رسائل متنوعة">13 - رسائل متنوعة</option>
+                    </select>
+                    <input id="ingest-batch-date-select" type="date" />
+                    <span id="ingest-batch-count-badge">0 files</span>
+                    <button id="btn-batch-add-more">+ Add More Files</button>
+                    <div id="ingest-batch-empty-dropzone"></div>
+                    <div id="ingest-batch-files-list"></div>
+                    <div id="ingest-batch-progress" class="hidden">
+                        <span id="ingest-batch-progress-text"></span>
+                        <span id="ingest-batch-progress-pct"></span>
+                        <div id="ingest-batch-progress-bar"></div>
+                    </div>
+                    <div id="ingest-batch-notice" class="hidden"></div>
+                </div>
+
+                <!-- Footer (No AI button) -->
                 <button id="btn-ingest-cancel">Cancel</button>
                 <button id="btn-ingest-submit">
                     <span id="ingest-submit-spinner" class="hidden"></span>
@@ -174,23 +201,34 @@ describe('Ingest Station Component', () => {
         expect(modal.classList.contains('hidden')).toBe(true);
     });
 
-    it('toggles mode switcher between Single Document and Multi-Document Batch', () => {
+    it('toggles mode switcher between Single File and Batch Filing modes', () => {
         const modeSingle = document.getElementById('ingest-mode-single');
         const modeBatch = document.getElementById('ingest-mode-batch');
-        const batchNotice = document.getElementById('ingest-batch-notice');
+        const singleContainer = document.getElementById('ingest-single-container');
+        const batchContainer = document.getElementById('ingest-batch-queue-container');
         const submitText = document.getElementById('ingest-submit-text');
+        const fileInput = document.getElementById('ingest-file-input');
+
+        expect(singleContainer.classList.contains('hidden')).toBe(false);
+        expect(batchContainer.classList.contains('hidden')).toBe(true);
+        expect(submitText.textContent).toBe('⚡ Ingest Document');
+        expect(fileInput.multiple).toBe(false);
 
         modeBatch.checked = true;
         modeBatch.dispatchEvent(new Event('change'));
 
-        expect(batchNotice.classList.contains('hidden')).toBe(false);
-        expect(submitText.textContent).toBe('⚡ Ingest Batch');
+        expect(singleContainer.classList.contains('hidden')).toBe(true);
+        expect(batchContainer.classList.contains('hidden')).toBe(false);
+        expect(submitText.textContent).toBe('⚡ Ingest All (0 Files)');
+        expect(fileInput.multiple).toBe(true);
 
         modeSingle.checked = true;
         modeSingle.dispatchEvent(new Event('change'));
 
-        expect(batchNotice.classList.contains('hidden')).toBe(true);
+        expect(singleContainer.classList.contains('hidden')).toBe(false);
+        expect(batchContainer.classList.contains('hidden')).toBe(true);
         expect(submitText.textContent).toBe('⚡ Ingest Document');
+        expect(fileInput.multiple).toBe(false);
     });
 
     it('populates Area and House selects based on active context and handles dropdown changes', () => {
@@ -345,36 +383,268 @@ describe('Ingest Station Component', () => {
         expect(titleInput.value).toBe('');
     });
 
-    it('auto-fills metadata when ✨ Auto-Fill with AI is triggered', async () => {
-        const mockFile = new File(['%PDF-1.4 content'], 'doc.pdf', { type: 'application/pdf' });
-        handleFileSelected(mockFile);
+    it('verifies that AI autofill button #btn-ingest-autofill does NOT exist in the DOM', () => {
+        const btnAutofill = document.getElementById('btn-ingest-autofill');
+        expect(btnAutofill).toBeNull();
+    });
 
-        // Mock fetch for /api/ingest/preview-ai
-        global.fetch = vi.fn().mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-                status: 'success',
-                page_count: 2,
-                suggested_title: 'عقد إيجار سنوي',
-                suggested_category: '05 - عقود',
-                suggested_date: '2024-03-15',
-                suggested_tenant_name: 'سالم الكعبي',
-            }),
+    it('handles multi-file selection and automatically switches to Batch Filing mode', () => {
+        const modeBatch = document.getElementById('ingest-mode-batch');
+        const file1 = new File(['%PDF-1.4 content'], 'bill_501.pdf', { type: 'application/pdf' });
+        const file2 = new File(['%PDF-1.4 content'], 'contract_502.pdf', { type: 'application/pdf' });
+
+        handleFilesSelected([file1, file2]);
+
+        expect(modeBatch.checked).toBe(true);
+        expect(getBatchQueue().length).toBe(2);
+        const countBadge = document.getElementById('ingest-batch-count-badge');
+        expect(countBadge.textContent).toBe('2 files');
+    });
+
+    it('auto-fills editable titles and auto-detects house numbers from filenames in batch queue', () => {
+        window.currentArea = 'Area 1';
+        openIngestStation();
+
+        const file1 = new File(['%PDF-1.4 content'], 'electricity-bill_501.pdf', { type: 'application/pdf' });
+        const file2 = new File(['%PDF-1.4 content'], 'maintenance__502_final.pdf', { type: 'application/pdf' });
+
+        handleFilesSelected([file1, file2]);
+
+        const queue = getBatchQueue();
+        expect(queue[0].title).toBe('electricity bill 501');
+        expect(queue[0].targets[0].house).toBe('501');
+        expect(queue[1].title).toBe('maintenance 502 final');
+        expect(queue[1].targets[0].house).toBe('502');
+
+        // User edits title
+        const titleInputs = document.querySelectorAll('.batch-title-input');
+        expect(titleInputs.length).toBe(2);
+        titleInputs[0].value = 'Custom Electricity Title';
+        titleInputs[0].dispatchEvent(new Event('input'));
+        expect(queue[0].title).toBe('Custom Electricity Title');
+    });
+
+    it('auto-selects latest tenant for each detected house in batch queue', async () => {
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (url.includes('501')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => [
+                        { id: 101, name: 'Tenant Past', start_date: '2020-01-01', end_date: '2021-01-01' },
+                        { id: 102, name: 'Tenant Active 501', start_date: '2022-01-01', end_date: null },
+                    ],
+                });
+            }
+            if (url.includes('502')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => [
+                        { id: 201, name: 'Tenant Past 502', start_date: '2019-01-01', end_date: '2020-01-01' },
+                        { id: 202, name: 'Tenant Active 502', start_date: '2023-01-01', end_date: null },
+                    ],
+                });
+            }
+            return Promise.resolve({ ok: true, json: async () => [] });
         });
 
-        await autofillWithAi();
+        window.currentArea = 'Area 1';
+        openIngestStation();
 
-        const titleInput = document.getElementById('ingest-title-input');
-        const categorySelect = document.getElementById('ingest-category-select');
-        const dateInput = document.getElementById('ingest-date-input');
-        const newTenantInput = document.getElementById('ingest-new-tenant-input');
-        const statusMsg = document.getElementById('ingest-status-msg');
+        const file1 = new File(['%PDF-1.4 content'], 'doc_501.pdf', { type: 'application/pdf' });
+        const file2 = new File(['%PDF-1.4 content'], 'doc_502.pdf', { type: 'application/pdf' });
 
-        expect(titleInput.value).toBe('عقد إيجار سنوي');
-        expect(categorySelect.value).toBe('05 - عقود');
-        expect(dateInput.value).toBe('2024-03-15');
-        expect(newTenantInput.value).toBe('سالم الكعبي');
-        expect(statusMsg.textContent).toContain('AI metadata suggestions applied');
+        await addFilesToBatch([file1, file2]);
+
+        const queue = getBatchQueue();
+        expect(queue[0].targets[0].tenantId).toBe('102');
+        expect(queue[1].targets[0].tenantId).toBe('202');
+    });
+
+    it('supports broadcasting a single document to multiple houses simultaneously', async () => {
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (url.includes('501')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => [{ id: 101, name: 'Tenant 501', start_date: '2023-01-01', end_date: null }],
+                });
+            }
+            if (url.includes('502')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => [{ id: 201, name: 'Tenant 502', start_date: '2023-01-01', end_date: null }],
+                });
+            }
+            return Promise.resolve({ ok: true, json: async () => [] });
+        });
+
+        window.currentArea = 'Area 1';
+        const modeBatch = document.getElementById('ingest-mode-batch');
+        modeBatch.checked = true;
+        modeBatch.dispatchEvent(new Event('change'));
+
+        const file = new File(['%PDF-1.4 content'], 'general_notice_circular.pdf', { type: 'application/pdf' });
+        await addFilesToBatch([file]);
+
+        const queue = getBatchQueue();
+        expect(queue.length).toBe(1);
+        expect(queue[0].targets.length).toBe(1);
+
+        // Click + Add House on this document
+        const btnAddHouse = document.querySelector('.btn-batch-add-house');
+        expect(btnAddHouse).not.toBeNull();
+        await btnAddHouse.click();
+
+        expect(queue[0].targets.length).toBe(2);
+        expect(queue[0].targets[0].house).toBe('501');
+        expect(queue[0].targets[1].house).toBe('502');
+
+        const submitText = document.getElementById('ingest-submit-text');
+        expect(submitText.textContent).toBe('⚡ Ingest All (2 Files)');
+    });
+
+    it('removes individual files from the batch queue', async () => {
+        window.currentArea = 'Area 1';
+        openIngestStation();
+        const modeBatch = document.getElementById('ingest-mode-batch');
+        modeBatch.checked = true;
+        modeBatch.dispatchEvent(new Event('change'));
+
+        const file1 = new File(['%PDF-1.4 content'], 'notice_501.pdf', { type: 'application/pdf' });
+        const file2 = new File(['%PDF-1.4 content'], 'notice_502.pdf', { type: 'application/pdf' });
+        await addFilesToBatch([file1, file2]);
+
+        expect(getBatchQueue().length).toBe(2);
+
+        // Remove first file
+        const removeFileBtns = document.querySelectorAll('.btn-remove-batch-file');
+        expect(removeFileBtns.length).toBe(2);
+        removeFileBtns[0].click();
+
+        expect(getBatchQueue().length).toBe(1);
+        expect(getBatchQueue()[0].name).toBe('notice_502.pdf');
+    });
+
+    it('submits batch ingestion of multiple documents across houses via POST /api/ingest', async () => {
+        window.currentArea = 'Area 1';
+        openIngestStation();
+        const modeBatch = document.getElementById('ingest-mode-batch');
+        modeBatch.checked = true;
+        modeBatch.dispatchEvent(new Event('change'));
+
+        const file1 = new File(['%PDF-1.4 content'], 'bill_501.pdf', { type: 'application/pdf' });
+        const file2 = new File(['%PDF-1.4 content'], 'contract_502.pdf', { type: 'application/pdf' });
+        await addFilesToBatch([file1, file2]);
+
+        const modal = document.getElementById('ingest-station-modal');
+        window.refreshCurrentTab = vi.fn();
+        window.loadTree = vi.fn();
+        window.showToast = vi.fn();
+        global.showToast = window.showToast;
+
+        const calls = [];
+        global.fetch = vi.fn().mockImplementation((url, opts) => {
+            if (url === '/api/ingest') {
+                calls.push(opts);
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ status: 'success', vault_id: 'v_batch_123' }),
+                });
+            }
+            return Promise.resolve({ ok: true, json: async () => [] });
+        });
+
+        await submitBatchIngest();
+
+        expect(calls.length).toBe(2);
+        expect(calls[0].body.get('house_id')).toBe('501');
+        expect(calls[0].body.get('arabic_title')).toBe('bill 501');
+        expect(calls[0].body.get('mode')).toBe('manual');
+        expect(calls[1].body.get('house_id')).toBe('502');
+        expect(calls[1].body.get('arabic_title')).toBe('contract 502');
+        expect(calls[1].body.get('mode')).toBe('manual');
+
+        expect(modal.classList.contains('hidden')).toBe(true);
+        expect(global.showToast).toHaveBeenCalledWith(
+            'Successfully ingested 2 documents',
+            'success'
+        );
+        expect(window.loadTree).toHaveBeenCalled();
+    });
+
+    it('propagates shared category and shared primary date across all batch ingest tasks', async () => {
+        window.currentArea = 'Area 1';
+        openIngestStation();
+        const modeBatch = document.getElementById('ingest-mode-batch');
+        modeBatch.checked = true;
+        modeBatch.dispatchEvent(new Event('change'));
+
+        const categorySelect = document.getElementById('ingest-batch-category-select');
+        categorySelect.value = '06 - كهرباء وماء';
+        const dateInput = document.getElementById('ingest-batch-date-select');
+        dateInput.value = '2026-05-20';
+
+        const file1 = new File(['%PDF-1.4 content'], 'bill_a.pdf', { type: 'application/pdf' });
+        await addFilesToBatch([file1]);
+
+        let sentCategory = null;
+        let sentDate = null;
+        global.fetch = vi.fn().mockImplementation((url, opts) => {
+            if (url === '/api/ingest') {
+                sentCategory = opts.body.get('category');
+                sentDate = opts.body.get('primary_date');
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ status: 'success', vault_id: 'v_batch_456' }),
+                });
+            }
+            return Promise.resolve({ ok: true, json: async () => [] });
+        });
+
+        await submitBatchIngest();
+
+        expect(sentCategory).toBe('06 - كهرباء وماء');
+        expect(sentDate).toBe('2026-05-20');
+    });
+
+    it('displays live progress during batch ingestion and handles errors gracefully', async () => {
+        window.currentArea = 'Area 1';
+        openIngestStation();
+        const modeBatch = document.getElementById('ingest-mode-batch');
+        modeBatch.checked = true;
+        modeBatch.dispatchEvent(new Event('change'));
+
+        const file1 = new File(['%PDF-1.4 content'], 'file1.pdf', { type: 'application/pdf' });
+        const file2 = new File(['%PDF-1.4 content'], 'file2.pdf', { type: 'application/pdf' });
+        await addFilesToBatch([file1, file2]);
+
+        const progressEl = document.getElementById('ingest-batch-progress');
+        const progressText = document.getElementById('ingest-batch-progress-text');
+
+        let callCount = 0;
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (url === '/api/ingest') {
+                callCount++;
+                expect(progressEl.classList.contains('hidden')).toBe(false);
+                if (callCount === 1) {
+                    expect(progressText.textContent).toContain('Ingesting 1 of 2');
+                    return Promise.resolve({ ok: true, json: async () => ({ status: 'success' }) });
+                } else {
+                    expect(progressText.textContent).toContain('Ingesting 2 of 2');
+                    return Promise.resolve({ ok: false, json: async () => ({ detail: 'Disk full' }) });
+                }
+            }
+            return Promise.resolve({ ok: true, json: async () => [] });
+        });
+
+        window.showToast = vi.fn();
+        global.showToast = window.showToast;
+
+        await submitBatchIngest();
+
+        expect(global.showToast).toHaveBeenCalledWith(
+            expect.stringContaining('1 failed'),
+            'error'
+        );
     });
 
     it('validates required fields and submits ingest form successfully', async () => {
@@ -743,25 +1013,6 @@ describe('Ingest Station Component', () => {
         expect(dateInput.value).toBe('');
     });
 
-    it("allows AI auto-fill to overwrite default date with detected document date", async () => {
-        openIngestStation();
-        const dateInput = document.getElementById('ingest-date-input');
-        expect(dateInput.value).toBe(getTodayIsoDate());
-
-        const mockFile = new File(['%PDF-1.4 content'], 'doc.pdf', { type: 'application/pdf' });
-        handleFileSelected(mockFile);
-
-        global.fetch = vi.fn().mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({
-                status: 'success',
-                suggested_date: '2022-01-15',
-            }),
-        });
-
-        await autofillWithAi();
-        expect(dateInput.value).toBe('2022-01-15');
-    });
 });
 
 
