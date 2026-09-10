@@ -2,40 +2,63 @@
 
 ## Milestone v14.0 Goals
 
-Equip the digital archive management system with power-user operational tools: one-click house archive ZIP export, multi-document batch operations (bulk move & bulk delete), portfolio expansion with UI-based house creation, an interactive keyboard shortcuts modal (`?`), and complete parity across both FastAPI and ASP.NET Core 8.0 backends with comprehensive test coverage.
+Equip the digital archive management system with power-user operational tools: one-click house archive ZIP export, interactive export options modal with combined chronological PDF dossier generation, multi-document batch operations (bulk move, bulk delete, and bulk copy with timeline de-duplication), portfolio expansion with UI-based house creation, an interactive keyboard shortcuts modal (`?`), and complete parity across both FastAPI and ASP.NET Core 8.0 backends with comprehensive test coverage.
 
 ## Requirements
 
-### Archive Export
-- [x] **EXP-01**: Backend ZIP export stream endpoint `GET /api/areas/{area}/houses/{house}/export-zip` in both FastAPI and ASP.NET Core. Packages all vault documents for the requested house into an in-memory or streamed ZIP archive with clean, collision-free Arabic filenames (`{folder_index}_{title}.pdf`), setting proper `Content-Disposition` attachment headers.
+### Archive Export & Dossier Generation
+- [x] **EXP-01**: Backend ZIP export stream endpoint `GET /api/areas/{area}/houses/{house}/export-zip` in both FastAPI and ASP.NET Core. Packages all vault documents for the requested house into an in-memory or streamed ZIP archive with clean, collision-free Arabic filenames (`{folder_index}_{title}.pdf`), setting proper `Content-Disposition` attachment headers and normalizing folder prefixes via `FOLDER_PREFIXES`.
 - [x] **EXP-02**: Modern UI Export Button on the House Profile header (`[ 📦 Export Archive ZIP ]`). Displays an active download spinner during generation, handles browser file download, and provides user feedback via toast notifications.
+- [x] **QCK-01**: Interactive Export Options Modal (`#export-archive-modal`) & Combined Chronological PDF Dossier (`GET /api/areas/{area}/houses/{house}/export-pdf`):
+  - **Export Format Selection**: Format Card A (Categorized ZIP Archive) vs Format Card B (Combined Chronological PDF Dossier).
+  - **Tenancy Scope Filter**: Full House Record (`All Tenants`) vs Individual active/past tenant from `profile.tenants`.
+  - **Standard 2-Digit Folder Numbering**: Normalizes folder names with `FOLDER_PREFIXES` so every folder in the ZIP has its canonical prefix (`01 - `, `05 - `, `06 - `, etc.).
+  - **PDF Dossier Generation**: Merges physical vault PDFs into a single continuous PDF document across Python (PyMuPDF `fitz`) and .NET (`PdfSharpCore`).
+- [x] **QCK-03**: Minimalist 3-Column Running Footer & Descending Chronological Sort for PDF Dossier:
+  - **Descending Chronological Sort**: Orders documents newest-first (Page 1 contains the most recent document, followed by older documents, with undated documents placed at the end).
+  - **Minimalist 3-Column Running Footer**: Rendered on every page of the generated PDF dossier:
+    - Bottom-Left: Document date (e.g. `2024-05-15` or undated placeholder).
+    - Bottom-Center: Clean Arabic category name without numbers (e.g. `عقود`, `صيانة`).
+    - Bottom-Right: Page within document group and overall dossier page number (e.g. `1/3  (14)`).
 
 ### Multi-Select Batch Document Operations
-- [x] **BAT-01**: Multi-select checkbox UI in category folder document lists. Features per-card selection checkboxes, a "Select All / Deselect All" toggle, and a sleek floating bottom action bar displaying the count of selected documents and action buttons (`[ Move Selected ]`, `[ Delete Selected ]`, `[ Deselect ]`).
+- [x] **BAT-01**: Multi-select checkbox UI in category folder document lists. Features per-card selection checkboxes, a folder-level toggle, and a global "Select All / Deselect All" toggle. Displays a glassmorphism dark floating action dock (`#batch-action-bar`) with dynamic selection counter and action buttons (`[ Move Selected ]`, `[ Copy Selected ]`, `[ Delete Selected ]`, `[ Deselect ]`).
 - [x] **BAT-02**: Batch Move and Batch Delete backend endpoints in both FastAPI and ASP.NET Core:
-  - `POST /api/areas/{area}/houses/{house}/documents/batch-delete`: Cascade deletion of selected vault documents from SQLite database and filesystem storage.
+  - `POST /api/areas/{area}/houses/{house}/documents/batch-delete`: Cascade deletion of selected vault documents from SQLite database and filesystem storage with confirmation modal.
   - `POST /api/areas/{area}/houses/{house}/documents/batch-move`: Move selected documents to a target category folder in a single atomic transaction.
+- [x] **QCK-02**: Multi-Select Batch Copy & Timeline De-duplication Architecture:
+  - `POST /api/areas/{area}/houses/{house}/documents/batch-copy`: Duplicates document references into an additional category folder for fast reference.
+  - **Database Schema Migration**: Added `is_timeline_visible INTEGER DEFAULT 1` to `documents` table with automatic column migrations in SQLite and Dapper.
+  - **Timeline De-duplication**: Copied documents are stored with `is_timeline_visible = 0`. Timeline queries in FastAPI and ASP.NET Core filter `(d.is_timeline_visible IS NULL OR d.is_timeline_visible = 1)` so each physical real-world event is represented exactly once without clutter.
+  - **Category View Transparency**: Copied documents appear normally in target category folders.
+  - **Unified Single Copy**: Single document 3-dot Copy (`POST .../documents/{vault_id}/copy`) also unified with `is_timeline_visible = 0`.
+  - **Storage Efficiency**: Physical vault stores 1 physical file without wasteful duplicate storage.
 
 ### Portfolio Expansion
-- [x] **HSE-01**: House creation backend endpoint `POST /api/areas/{area}/houses` in both FastAPI and ASP.NET Core. Registers the house in SQLite, optionally creates the initial active tenant, and initializes the physical filesystem directory scaffold (`{area}/{house}/batches/` and `{area}/{house}/vault/`).
-- [x] **HSE-02**: "+ Add House" UI trigger and modal in the Area Grid. Allows property managers to select an Area, input House Number/Name, and optionally add an initial tenant. Dynamically refreshes the house grid upon creation without page reload.
+- [x] **HSE-01**: House creation backend endpoint `POST /api/areas/{area}/houses` in both FastAPI and ASP.NET Core. Registers the house in SQLite, optionally creates the initial active tenant, validates conflicts (409 on duplicates), and initializes the physical filesystem directory scaffold (`{area}/{house}/batches/` and `{area}/{house}/vault/`).
+- [x] **HSE-02**: "+ Add House" UI trigger and modal (`#add-house-modal`) in the Area Grid. Allows property managers to select an Area, input House Number/Name, and optionally add an initial tenant. Dynamically refreshes the house grid upon creation without page reload.
 
 ### Keyboard Shortcuts & Verification
-- [x] **KBD-01**: Global Keyboard Shortcuts Helper Modal (`?`). Pressing `?` (Shift+/) opens a clean modal listing all available keyboard shortcuts (`⌘K` Search, `⌘I` Upload, `Space` Quick Look, `Esc` Close, `?` Shortcuts). Can be dismissed via `Esc`, close button, or backdrop click.
-- [x] **VER-07**: Comprehensive test suite covering all 4 new capabilities:
-  - Backend tests in Pytest (`tests/test_v14_features.py`) and xUnit (`web-net/FileOrganizer.Tests/`).
-  - Frontend Vitest component tests (`tests/frontend/components/`).
-  - Playwright browser E2E tests (`tests/frontend/`).
+- [x] **KBD-01**: Global Keyboard Shortcuts Helper Modal (`?`). Pressing `?` (Shift+/) opens a clean modal listing all available keyboard shortcuts (`⌘K` Search, `⌘I` Ingest, `Space` Quick Look, `Esc` Close, `?` Shortcuts). Includes a subtle navbar trigger button (`#btn-shortcuts-trigger`), backdrop dismissal, and input/textarea typing suppression guards.
+- [x] **VER-07**: Comprehensive multi-stack test suite covering all capabilities across Python and .NET:
+  - Backend tests in Pytest: 14+ tests in `tests/test_v14_features.py`, 26+ in document management.
+  - ASP.NET Core xUnit: 51+ tests in `web-net/FileOrganizer.Tests/ApiEndpointTests.cs`, `RepositoryTests.cs`, and `ParityVerificationTests.cs`.
+  - Frontend Vitest component tests: 101+ tests across 9 test files in `tests/frontend/components/`.
+  - Playwright browser E2E test suite (49 passing tests).
+  - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 
 ## Traceability
 
-| Requirement | Description | Phase | Status |
-|---|---|---|---|
-| EXP-01 | Backend ZIP export endpoint in FastAPI & ASP.NET Core | Phase 105 | Complete |
-| EXP-02 | UI Export Archive ZIP button on House Profile | Phase 105 | Complete |
-| BAT-01 | Multi-select checkboxes & floating action bar in Category View | Phase 106 | Complete |
-| BAT-02 | Batch Move and Batch Delete backend endpoints | Phase 106 | Complete |
-| HSE-01 | House creation backend endpoint and directory scaffold | Phase 107 | Complete |
-| HSE-02 | "+ Add House" UI modal and live grid refresh | Phase 107 | Complete |
-| KBD-01 | Global Keyboard Shortcuts Helper modal (`?`) | Phase 108 | Complete |
-| VER-07 | Comprehensive automated testing suite (Pytest, Vitest, Playwright, xUnit) | Phase 108 | Complete |
+| Requirement | Description | Phase / Refinement | Status | Verification Evidence |
+|---|---|---|---|---|
+| **EXP-01** | Backend ZIP export stream endpoint in FastAPI & ASP.NET Core | Phase 105 | Complete | `tests/test_v14_features.py` (`test_export_house_archive_zip`), `ApiEndpointTests.cs` (`ExportZip_ReturnsZipArchive`) |
+| **EXP-02** | UI Export Archive ZIP button on House Profile header | Phase 105 | Complete | `src/api/static/js/house-profile.js`, `tests/frontend/components/house_profile.test.js` |
+| **QCK-01** | Interactive Export Options Modal & Chronological PDF Dossier Pipeline | Phase 105 / QCK-01 | Complete | `tests/frontend/components/export_archive_modal.test.js` (5 tests), `tests/test_v14_features.py`, `ApiEndpointTests.cs` |
+| **QCK-03** | Descending Chronological Dossier Sort & Minimalist 3-Column Running Footer | Phase 105 / QCK-03 | Complete | `tests/test_v14_features.py` (`test_export_house_archive_pdf_descending_chronological_order`), `ApiEndpointTests.cs` (`ExportPdf_ReturnsChronologicalMergedPdf`) |
+| **BAT-01** | Multi-select checkboxes & floating action bar in Category View | Phase 106 | Complete | `src/api/static/js/categories-view.js`, `tests/frontend/components/batch_operations.test.js` (10 tests) |
+| **BAT-02** | Batch Move and Batch Delete backend endpoints | Phase 106 | Complete | `tests/test_v14_features.py` (`test_batch_move_documents`, `test_batch_delete_documents`), `ApiEndpointTests.cs` |
+| **QCK-02** | Batch Copy & Timeline De-duplication Architecture (`is_timeline_visible`) | Phase 106 / QCK-02 | Complete | `tests/test_v14_features.py` (2 tests), `tests/frontend/components/batch_operations.test.js` (3 copy tests), `ApiEndpointTests.cs` (`BatchCopy_*`) |
+| **HSE-01** | House creation backend endpoint and directory scaffold | Phase 107 | Complete | `tests/test_v14_features.py` (`test_create_house_*`), `ApiEndpointTests.cs` (`PostCreateHouse_*`) |
+| **HSE-02** | "+ Add House" UI modal and live grid refresh in Area Grid | Phase 107 | Complete | `src/api/static/js/area-grid.js`, `tests/frontend/components/add_house.test.js` (5 tests) |
+| **KBD-01** | Global Keyboard Shortcuts Helper modal (`?`) & navbar button | Phase 108 | Complete | `src/api/static/js/keyboard-shortcuts.js`, `tests/frontend/components/keyboard_shortcuts.test.js` (12 tests) |
+| **VER-07** | Comprehensive multi-stack automated testing suite (Pytest, Vitest, Playwright, xUnit) | Phase 108 | Complete | 222+ automated tests passing across all 4 suites; zero static asset diff. |

@@ -6,18 +6,40 @@ A document management system that processes scanned Arabic PDFs, categorizes the
 
 ## Current Milestone: None (v14.0 Completed & Shipped)
 
-Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive test coverage (222 tests passing), and power-user tooling. Ready for next milestone initialization.
+Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive multi-stack test coverage (51 xUnit, 14+ v14 pytest, 26+ doc management, 101 Vitest across 9 files, and Playwright E2E), and power-user operational tooling. Ready for next milestone initialization.
 
 ## Past Milestones
 
 <details>
 <summary>v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)</summary>
 
-- Delivered one-click house archive ZIP export endpoint (`GET /api/areas/{area}/houses/{house}/export-zip`) across both FastAPI and ASP.NET Core, with UI download trigger on House Profile header.
-- Implemented multi-document batch operations: per-card checkboxes, folder and global Select All toggles, floating bottom action bar (`#batch-action-bar`), atomic Batch Move, and cascade permanent Batch Delete.
-- Added portfolio expansion: "+ Add House" UI modal in Area Grid overview, automatic physical directory scaffolding (`batches/`, `vault/`), SQLite registration, optional initial tenant, and live DOM grid refresh.
-- Built global Keyboard Shortcuts Helper Modal (`?` / Shift+/) and navbar trigger button (`#btn-shortcuts-trigger`) with `Esc`/backdrop dismissal and text input typing isolation.
-- Verified 100% test pass rate across 222 automated tests: .NET xUnit (47), Python Pytest (33), Vitest frontend (93), Playwright browser E2E (49), and zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
+- **One-Click House Archive Export & Dossier Generation (Phase 105 + Quick Refinements):**
+  - Categorized ZIP Archive Export (`GET /api/areas/{area}/houses/{house}/export-zip` across FastAPI & ASP.NET Core) streaming collision-free ZIP archives with standard 2-digit folder numbering normalization (`FOLDER_PREFIXES` ensuring proper `01 - `, `05 - `, `06 - ` prefixes).
+  - Interactive Export Options Modal (`#export-archive-modal`): Selectable Format Cards (Format Card A: Categorized ZIP Archive; Format Card B: Combined Chronological PDF Dossier with recent documents first) and Tenancy Scope Filter (All Tenants / Full House Record vs Individual active/past tenant).
+  - Combined Chronological PDF Dossier (`GET /api/areas/{area}/houses/{house}/export-pdf` via PyMuPDF in Python and PdfSharpCore in .NET) with descending chronological sort (most recent document on Page 1, older documents towards the back, undated at the end).
+  - Minimalist 3-Column Running Footer on every page of the PDF dossier: Bottom-Left displays document date (e.g. `2024-05-15`), Bottom-Center displays clean Arabic category name without numbers (e.g. `عقود`, `صيانة`), and Bottom-Right displays page within document group and overall dossier page (e.g. `1/3  (14)`).
+- **Multi-Select Batch Document Operations (Phase 106 + Quick Refinements):**
+  - Multi-select checkbox UI on document cards, folder-level toggle, and global Select All / Deselect All.
+  - Glassmorphism dark floating action dock (`#batch-action-bar`) with dynamic selection counter and quick action buttons (`[ Move Selected ]`, `[ Copy Selected ]`, `[ Delete Selected ]`, `[ Deselect ]`).
+  - Batch Move (`POST .../batch-move`): Atomic relocation to target standard or custom folder.
+  - Batch Delete (`POST .../batch-delete`): Cascade deletion with confirmation modal and vault file unlinking.
+  - Batch Copy (`POST .../batch-copy`): Copies documents to an additional category folder for instant reference.
+  - Timeline De-duplication Architecture: Added `is_timeline_visible INTEGER DEFAULT 1` to `documents` table with automatic column migrations across Python and C#; secondary copies are automatically stored with `is_timeline_visible = 0`; timeline queries filter out copies so the timeline strictly reflects 1 real-world event per row (zero duplicate clutter); single 3-dot Copy (`POST .../documents/{vault_id}/copy`) also unified with `is_timeline_visible = 0`; physical vault storage stores 1 physical file without wasteful disk duplication.
+- **Portfolio Expansion (Phase 107):**
+  - "+ Add House" UI trigger and modal (`#add-house-modal`) in the Area Grid overview.
+  - Backend endpoint `POST /api/areas/{area}/houses` across FastAPI & ASP.NET Core with conflict detection (409 on duplicates).
+  - Automatic physical directory scaffolding (`{area}/{house}/batches/` and `{area}/{house}/vault/`).
+  - Dynamic grid refresh without full page reload.
+- **Global Keyboard Shortcuts Helper Modal (Phase 108):**
+  - Pressing `?` or Shift+/ opens `#keyboard-shortcuts-modal` displaying `⌘K` Search, `⌘I` Ingest, `Space` Quick Look, `Esc` Close, `?` Shortcuts.
+  - Subtle navbar trigger button (`#btn-shortcuts-trigger`).
+  - Strict input/textarea typing suppression guards and backdrop/Escape dismissal.
+- **Multi-Stack Test Coverage & Verification:**
+  - Python Pytest (14+ tests in `tests/test_v14_features.py`, 26+ in document management).
+  - ASP.NET Core xUnit (51+ tests in `FileOrganizer.Tests/ApiEndpointTests.cs`, `RepositoryTests.cs`, `ParityVerificationTests.cs`).
+  - Frontend Vitest (101+ tests across 9 test files).
+  - Playwright Browser E2E suite (49 passed).
+  - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 
 </details>
 
@@ -103,6 +125,9 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 - ✓ "+ Add House" UI modal and dynamic live grid refresh in Area Grid (HSE-02) — v14.0
 - ✓ Global Keyboard Shortcuts Helper Modal (`?`) and navbar trigger button (KBD-01) — v14.0
 - ✓ Comprehensive multi-stack test suite across Pytest, xUnit, Vitest, Playwright (VER-07) — v14.0
+- ✓ Interactive Export Options Modal & Chronological PDF Dossier with Tenancy Filter and 2-digit folder prefixes (QCK-01) — v14.0
+- ✓ Multi-Select Batch Copy & Timeline De-duplication Architecture with `is_timeline_visible = 0` (QCK-02) — v14.0
+- ✓ Descending Chronological Dossier Sort & Minimalist 3-Column Running Footer Specification (QCK-03) — v14.0
 - ✓ Decoupled monorepo structure (`web-net/` for ASP.NET Core, `src/` for Python AI pipeline, shared `organizer.db`) (ARCH-01) — v13.0
 - ✓ ASP.NET Core 8.0 project with Dapper and `Microsoft.Data.Sqlite` in WAL mode (NET-01) — v13.0
 - ✓ Port all read API endpoints with 100% JSON parity (NET-02) — v13.0
@@ -152,8 +177,8 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 - ✅ Shipped v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server on 2026-09-09.
 - ✅ Shipped v12.0 Unified Document Ingestion System on 2026-09-09.
 - ✅ Shipped v11.0 Database Backend & Clean Storage Architecture on 2026-09-09.
-- 222 tests passing across .NET xUnit (47), backend pytest (33), frontend Vitest (93), and Playwright E2E (49) test suites.
-- Dual-backend runtime parity: FastAPI and ASP.NET Core 8.0 Minimal APIs running in parallel with 100% contract parity and zero static asset diff.
+- Robust multi-stack test coverage: 51 ASP.NET Core xUnit tests, 14+ Python pytest tests in `test_v14_features.py`, 26+ in document management, 101 frontend Vitest tests across 9 test files, and Playwright Browser E2E suite.
+- Dual-backend runtime parity: FastAPI and ASP.NET Core 8.0 Minimal APIs running with 100% JSON contract and functional parity, matching schema migrations, and zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 
 ## Context
 
@@ -166,6 +191,9 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 | Decision | Rationale | Outcome |
 |---|---|---|
 | Power-User Operations & Portfolio Expansion | Equip property managers with high-utility operations: one-click ZIP export, multi-select bulk operations, UI-based house creation, and global keyboard shortcuts. | ✓ Completed (Milestone v14.0). |
+| Export Options Modal & Chronological PDF Dossier | Single entry point modal (`#export-archive-modal`) offering choice between categorized ZIP archive and merged chronological PDF dossier, with tenancy scope filtering and normalized 2-digit folder prefixes. | ✓ Completed (Phase 105 & QCK-01). |
+| Timeline De-duplication Architecture | Copying documents to multiple category folders for cross-referencing sets `is_timeline_visible = 0`. Timeline queries filter copies so each physical event appears exactly once, avoiding timeline clutter while keeping category views complete. | ✓ Completed (QCK-02). |
+| Minimalist 3-Column Running Footer & Descending Sort | Dossier PDF sorted newest-to-oldest with a 3-column running footer on every page (Date, Category, Page X/Y) for seamless legal/administrative review. | ✓ Completed (QCK-03). |
 | Decoupled Monorepo & ASP.NET Core Web Server | Decouple read-heavy web dashboard into a high-efficiency native .NET 8 binary (`web-net/`) using Dapper and SQLite in WAL mode. Preserves Python strictly for offline/batch AI ingestion while giving Windows servers a zero-Python runtime footprint. | ✓ Completed (Milestone v13.0). |
 | SQLite Relational Schema | Single file with WAL mode provides ACID transactions, sub-10ms query execution, and eliminates SMB directory traversal overhead. | ✓ Completed (Phase 92). |
 | Two-Folder Disk Structure (`batches/` and `vault/`) | Clear separation between raw scanned inputs and sliced standalone documents. Eliminates deep Arabic directory nesting. | ✓ Completed (Phase 93). |
@@ -174,4 +202,4 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 | Playwright E2E Verification | Verifies real browser behavior against actual database records, guaranteeing zero regressions across Tree, Grid, Search, and PDF viewing. | ✓ Completed (Phase 96). |
 
 ---
-*Last updated: 2026-09-09 for Milestone v13.0 initialization*
+*Last updated: 2026-09-10 for Milestone v14.0 completion and quick refinements*

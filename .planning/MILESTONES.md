@@ -2,17 +2,50 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108), 4 plans, 222 tests passing (47 .NET, 33 pytest, 93 Vitest, 49 Playwright)
+**Phases completed:** 4 phases (105-108) + 3 quick refinements (QCK-01, QCK-02, QCK-03), 4 plans, comprehensive multi-stack test verification (51 .NET xUnit, 14+ v14 pytest, 26+ doc management, 101 Vitest across 9 files, 49 Playwright E2E)
 
 **Key accomplishments:**
 
-- Full House Archive ZIP Export pipeline (`GET /api/areas/{area}/houses/{house}/export-zip`) in both FastAPI and ASP.NET Core Minimal APIs, packaging vault documents into collision-free structured ZIPs with clean Arabic filenames.
-- Modern UI Export Archive ZIP button on the House Profile header with active loading spinner, client-side download initiation, and user toast notifications.
-- Multi-document batch operations with selection checkboxes, folder-level & global Select All toggles, and floating bottom action bar (`#batch-action-bar`).
-- Atomic Batch Move (`POST .../documents/batch-move`) and cascade permanent Batch Delete (`POST .../documents/batch-delete`) endpoints in both Python and C#.
-- Portfolio expansion via "+ Add House" UI modal in the Area Grid overview with automatic physical directory scaffolding (`batches/`, `vault/`), SQLite registration, optional initial tenant, and live DOM grid refresh without page reload.
-- Global Keyboard Shortcuts Helper Modal (`?` / Shift+/) and navbar trigger button (`#btn-shortcuts-trigger`) with full `Esc`/backdrop dismissal and strict exclusion of input fields.
-- 100% test pass rate across all 4 suites: Pytest (33), .NET xUnit (47), Vitest (93), and Playwright browser E2E (49) with zero static asset diff.
+- **One-Click House Archive Export & Dossier Generation (Phase 105 + Quick Refinements):**
+  - Full House Archive ZIP Export pipeline (`GET /api/areas/{area}/houses/{house}/export-zip`) across both FastAPI and ASP.NET Core Minimal APIs, packaging vault documents into collision-free structured ZIPs with clean Arabic filenames.
+  - Standard 2-digit folder numbering fix (`FOLDER_PREFIXES` normalization so every folder in the ZIP has its proper `01 - `, `05 - `, `06 - `, etc. prefix).
+  - Interactive Export Options Modal (`#export-archive-modal`):
+    - Format Card A: Categorized ZIP Archive.
+    - Format Card B: Combined Chronological PDF Dossier (recent documents first).
+    - Tenancy Scope Filter: All Tenants (Full House) vs Individual active/past tenant.
+  - Combined Chronological PDF Dossier (`GET /api/areas/{area}/houses/{house}/export-pdf` via PyMuPDF and PdfSharpCore).
+  - Descending Chronological Sort (most recent document on Page 1, older documents towards the back, undated at the end).
+  - Minimalist 3-Column Running Footer on every page of the PDF dossier:
+    - Bottom-Left: Document date (e.g. `2024-05-15`).
+    - Bottom-Center: Clean category name without numbers (e.g. `عقود`, `صيانة`).
+    - Bottom-Right: Page within document group and overall dossier page, e.g. `1/3  (14)`.
+- **Multi-Select Batch Document Operations (Phase 106 + Quick Refinements):**
+  - Multi-select checkbox UI on document cards, folder-level toggle, and global Select All / Deselect All.
+  - Glassmorphism dark floating action dock (`#batch-action-bar`) with dynamic selection counter and action buttons (`[ Move Selected ]`, `[ Copy Selected ]`, `[ Delete Selected ]`, `[ Deselect ]`).
+  - Batch Move (`POST .../batch-move`): Atomic relocation to target standard or custom folder.
+  - Batch Delete (`POST .../batch-delete`): Cascade deletion with confirmation modal and vault file unlinking.
+  - Batch Copy (`POST .../batch-copy`): Copies documents to an additional category folder for instant reference.
+  - Timeline De-duplication Architecture:
+    - `is_timeline_visible INTEGER DEFAULT 1` added to `documents` table with auto-migration across Python and C#.
+    - Secondary copies are automatically stored with `is_timeline_visible = 0`.
+    - Timeline queries filter out copies so the timeline strictly reflects 1 real-world event per row (0 duplicate clutter).
+    - Single 3-dot Copy (`POST .../documents/{vault_id}/copy`) also unified with `is_timeline_visible = 0`.
+    - Physical vault storage: Vault stores 1 physical file without wasteful disk file duplication.
+- **Portfolio Expansion (Phase 107):**
+  - "+ Add House" UI trigger and modal (`#add-house-modal`) in the Area Grid overview.
+  - Backend endpoint `POST /api/areas/{area}/houses` across FastAPI & ASP.NET Core with conflict detection (409 on duplicates).
+  - Automatic physical directory scaffolding (`batches/` and `vault/`).
+  - Dynamic grid refresh without page reload.
+- **Global Keyboard Shortcuts Helper Modal (Phase 108):**
+  - Pressing `?` or Shift+/ opens `#keyboard-shortcuts-modal` displaying `⌘K`, `⌘I`, `Space`, `Esc`, `?`.
+  - Subtle navbar trigger button (`#btn-shortcuts-trigger`).
+  - Input/textarea suppression guards and backdrop/Esc dismissal.
+- **Multi-Stack Test Coverage & Verification:**
+  - Python Pytest (14+ tests in `test_v14_features.py`, 26+ in document management).
+  - ASP.NET Core xUnit (51+ tests in `FileOrganizer.Tests/ApiEndpointTests.cs`).
+  - Frontend Vitest (101+ tests across 9 test files).
+  - Playwright Browser E2E suite (49 passed).
+  - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 
 ---
 

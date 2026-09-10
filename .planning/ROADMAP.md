@@ -18,6 +18,9 @@
 - [x] Phase 106: Multi-Select Batch Document Operations (Batch Move, Batch Delete & Selection Bar) (1/1 plans) — completed 2026-09-10
 - [x] Phase 107: Portfolio Expansion ("+ Add House" Modal & Backend House Registration) (1/1 plans) — completed 2026-09-10
 - [x] Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (1/1 plans) — completed 2026-09-10
+- [x] Quick Refinement QCK-01: Interactive Export Options Modal (`#export-archive-modal`) & Chronological PDF Dossier Pipeline (`GET .../export-pdf`) with Tenancy Filter & 2-Digit Folder Prefix Normalization — completed 2026-09-10
+- [x] Quick Refinement QCK-02: Multi-Select Batch Copy (`POST .../batch-copy`) & Timeline De-duplication Architecture (`is_timeline_visible = 0`) — completed 2026-09-10
+- [x] Quick Refinement QCK-03: Descending Chronological Sort (Newest First) & Minimalist 3-Column Running Footer (Date, Category, Page X/Y) — completed 2026-09-10
 
 <details>
 <summary>✅ v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server (Phases 101-104) — SHIPPED 2026-09-09</summary>
@@ -102,3 +105,6 @@ See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md) for full 
 | 106. Multi-Select Batch Document Operations | v14.0 | 1/1 | Complete | 2026-09-10 |
 | 107. Portfolio Expansion (+ Add House) | v14.0 | 1/1 | Complete | 2026-09-10 |
 | 108. Keyboard Shortcuts & Milestone Verification | v14.0 | 1/1 | Complete | 2026-09-10 |
+| QCK-01. Export Options Modal & Chronological PDF Dossier | v14.0 | 1/1 | Complete | 2026-09-10 |
+| QCK-02. Multi-Select Batch Copy & Timeline De-duplication | v14.0 | 1/1 | Complete | 2026-09-10 |
+| QCK-03. Descending Sort & Minimalist Running Footer Specs | v14.0 | 1/1 | Complete | 2026-09-10 |
