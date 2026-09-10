@@ -1,38 +1,38 @@
 ---
 gsd_state_version: 1.0
-milestone: v13.0
-milestone_name: Decoupled Monorepo Architecture & Native ASP.NET Core Web Server
-current_phase: 104
-status: completed
-last_updated: "2026-09-10T20:15:00.000Z"
+milestone: v14.0
+milestone_name: Power-User Operations & Portfolio Expansion
+current_phase: 105
+status: in_progress
+last_updated: "2026-09-10T21:29:00.000Z"
 last_activity: 2026-09-10
-last_activity_desc: "Completed Quick Task 260910-navbar-search-upload-divider: Added subtle vertical divider and balanced spacing between search bar and circular upload button."
+last_activity_desc: "Initialized Milestone v14.0: Power-User Operations & Portfolio Expansion."
 progress:
   total_phases: 4
-  completed_phases: 4
+  completed_phases: 0
   total_plans: 4
-  completed_plans: 4
-  percent: 100
-stopped_at: Completed Phase 104 & Shipped Milestone v13.0
+  completed_plans: 0
+  percent: 0
+stopped_at: Initialized Milestone v14.0
 ---
 
 # Milestone State
 
-**Current Milestone:** v13.0: Decoupled Monorepo Architecture & Native ASP.NET Core Web Server (Shipped: 2026-09-09)
-**Current Phase:** 104: Parity Verification, Windows Single-File Build & Milestone Audit (Completed)
-**Status:** completed
+**Current Milestone:** v14.0: Power-User Operations & Portfolio Expansion
+**Current Phase:** 105: House Archive ZIP Export Pipeline (In Progress)
+**Status:** in_progress
 
 
 ## Context
 
-Decoupling the lightweight web dashboard/UI completely from the Python AI batch ingestion pipeline. The web server will be an ASP.NET Core 8.0 Minimal API application in `web-net/`, sharing only `organizer.db` (SQLite in WAL mode) and the clean disk vault (`{area}/{house}/vault/`). The existing vanilla JS/HTML frontend remains 100% identical and is served from `wwwroot/`. The Python pipeline remains in `src/` for offline/batch AI processing.
+Equip the digital archive management system with power-user operational tools: one-click house archive ZIP export, multi-document batch operations (bulk move & bulk delete), portfolio expansion with UI-based house creation, an interactive keyboard shortcuts modal (`?`), and complete parity across both FastAPI and ASP.NET Core 8.0 backends with comprehensive test coverage.
 
 ## Target Phases
 
-- Phase 101: Architecture & Monorepo Restructuring Research (Completed)
-- Phase 102: ASP.NET Core Data Layer & Repository (Dapper + SQLite WAL)
-- Phase 103: ASP.NET Core Minimal API Endpoints & Static Serving
-- Phase 104: Parity Verification, Windows Single-File Build & Milestone Audit
+- Phase 105: House Archive ZIP Export Pipeline (FastAPI, ASP.NET Core & UI Button)
+- Phase 106: Multi-Select Batch Document Operations (Batch Move, Batch Delete & Selection Bar)
+- Phase 107: Portfolio Expansion ("+ Add House" Modal & Backend House Registration)
+- Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit
 
 ## Quick Tasks Completed
 

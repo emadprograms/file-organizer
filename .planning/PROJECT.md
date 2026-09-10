@@ -4,9 +4,14 @@
 
 A document management system that processes scanned Arabic PDFs, categorizes them using LLM vision, groups related pages, and stores them in a high-performance relational SQLite database with a clean two-folder disk structure (`batches/` and `vault/`). The system features a responsive web dashboard with dual Tree/Grid views, tenure color-coding, multi-tenant chronological timelines, category drill-downs, phonetic/fuzzy global search, and in-browser PDF viewing.
 
-## Current Milestone
+## Current Milestone: v14.0 Power-User Operations & Portfolio Expansion
 
-None currently active. (v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server shipped on 2026-09-09).
+Expand the application with high-utility power-user and operational capabilities:
+1. **One-Click House Archive ZIP Export**: Download all documents of a house packaged as a structured ZIP file across both FastAPI and ASP.NET Core backends.
+2. **Multi-Select Batch Document Operations**: Multi-document selection in category folder views with floating action bar for bulk move and safe cascade bulk deletion.
+3. **Portfolio Expansion ("+ Add House")**: UI creation modal in the Area Grid to register new houses and initialize directory scaffolds dynamically.
+4. **Keyboard Shortcuts Helper Modal (`?`)**: Native interactive cheat sheet for fast keyboard-driven navigation (`⌘K`, `⌘I`, `Space`, `Esc`, `?`).
+5. **Full Parity & Test Coverage**: Maintain 100% test pass rate across Pytest, Vitest, Playwright, and ASP.NET Core xUnit suites.
 
 ## Past Milestones
 
