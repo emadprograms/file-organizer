@@ -5,15 +5,19 @@ using FileOrganizer.Web.Common;
 using FileOrganizer.Web.Models;
 using Microsoft.Data.Sqlite;
 
+using Microsoft.Extensions.Configuration;
+
 namespace FileOrganizer.Web.Data;
 
 public class FileOrganizerRepository : IFileOrganizerRepository
 {
     private readonly ISqliteDbConnectionFactory _connectionFactory;
+    private readonly IConfiguration? _configuration;
 
-    public FileOrganizerRepository(ISqliteDbConnectionFactory connectionFactory)
+    public FileOrganizerRepository(ISqliteDbConnectionFactory connectionFactory, IConfiguration? configuration = null)
     {
         _connectionFactory = connectionFactory;
+        _configuration = configuration;
     }
 
     public async Task EnsureSchemaAsync()
@@ -1338,6 +1342,51 @@ public class FileOrganizerRepository : IFileOrganizerRepository
     public async Task<DocumentActionResponseDto?> UpdateDocumentTenantAsync(string vaultId, int tenantId)
     {
         return await UpdateDocumentAsync(vaultId, tenantId: tenantId, isManual: 1);
+    }
+
+    public async Task<bool> DeleteDocumentAsync(string areaId, string houseId, string vaultId, string? areasRoot = null)
+    {
+        var resolvedAreasRoot = !string.IsNullOrEmpty(areasRoot)
+            ? areasRoot
+            : (_configuration?["AREAS_ROOT_PATH"] ?? Environment.GetEnvironmentVariable("AREAS_ROOT_PATH") ?? "../areas");
+
+        var cleanHouseId = houseId.Contains(" - ") ? houseId.Split(" - ")[0].Trim() : houseId.Trim();
+
+        var possiblePaths = new[]
+        {
+            Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"{vaultId}.pdf"),
+        };
+
+        foreach (var p in possiblePaths)
+        {
+            if (File.Exists(p))
+            {
+                try
+                {
+                    File.Delete(p);
+                }
+                catch (Exception)
+                {
+                    // Ignore physical file deletion error
+                }
+            }
+        }
+
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+        await using var tx = await conn.BeginTransactionAsync();
+
+        const string deletePagesSql = "DELETE FROM pages WHERE vault_id = @VaultId;";
+        await conn.ExecuteAsync(deletePagesSql, new { VaultId = vaultId }, tx);
+
+        const string deleteDocSql = "DELETE FROM documents WHERE vault_id = @VaultId;";
+        var rows = await conn.ExecuteAsync(deleteDocSql, new { VaultId = vaultId }, tx);
+
+        await tx.CommitAsync();
+
+        return rows > 0;
     }
 
     public async Task<TenantReallocationResponseDto> BulkUpdateTenantsAsync(string houseId, IReadOnlyList<TenantDto> tenants, bool reallocate)

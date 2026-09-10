@@ -4,6 +4,7 @@ import re
 import sqlite3
 from contextlib import contextmanager
 from datetime import date, datetime
+from pathlib import Path
 from typing import Any, Generator, Optional, Sequence, Union
 
 from src.db.models import Area, House, Tenant, Batch, Page, Document
@@ -866,6 +867,44 @@ def copy_document(
     return new_doc
 
 
+def delete_document(
+    conn: sqlite3.Connection,
+    vault_id: str,
+    house_id: str,
+    area_id: str,
+    areas_root: Union[str, Path],
+    *,
+    autocommit: bool = True,
+) -> bool:
+    """Delete physical file and database records for a document."""
+    doc = get_document(conn, vault_id)
+    if not doc:
+        return False
+
+    pdf_root = Path(areas_root)
+    pdf_candidates = [
+        pdf_root / area_id / house_id / "vault" / f"doc_{vault_id}.pdf",
+        pdf_root / area_id / house_id / "vault" / f"{vault_id}.pdf",
+    ]
+    if " - " in house_id:
+        clean_house = house_id.split(" - ")[0].strip()
+        pdf_candidates.append(pdf_root / area_id / clean_house / "vault" / f"doc_{vault_id}.pdf")
+        pdf_candidates.append(pdf_root / area_id / clean_house / "vault" / f"{vault_id}.pdf")
+
+    for cand in pdf_candidates:
+        if cand.exists() and cand.is_file():
+            try:
+                cand.unlink()
+            except OSError:
+                pass
+
+    conn.execute("DELETE FROM pages WHERE vault_id = ?", (vault_id,))
+    conn.execute("DELETE FROM documents WHERE vault_id = ?", (vault_id,))
+    if autocommit:
+        conn.commit()
+    return True
+
+
 def get_or_create_numbered_folder(
     conn: sqlite3.Connection,
     house_id: str,
@@ -1167,4 +1206,20 @@ class Repository:
 
     def get_or_create_numbered_folder(self, house_id: str, folder_name: str) -> str:
         return get_or_create_numbered_folder(self.conn, house_id, folder_name)
+
+    def delete_document(
+        self,
+        vault_id: str,
+        house_id: str,
+        area_id: str,
+        areas_root: Union[str, Path],
+    ) -> bool:
+        return delete_document(
+            self.conn,
+            vault_id,
+            house_id,
+            area_id,
+            areas_root,
+            autocommit=self.autocommit,
+        )
 

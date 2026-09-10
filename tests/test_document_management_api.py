@@ -311,3 +311,30 @@ def test_delete_standard_category_fails(db_setup):
     assert res2.status_code == 400
     assert "Cannot delete a standard category folder" in res2.json()["detail"]
 
+
+def test_delete_document_success(db_setup):
+    repo = db_setup["repo"]
+    tmp_path = db_setup["tmp_path"]
+
+    # Verify document and PDF file exist initially
+    pdf_path = tmp_path / "Safra C" / "514" / "vault" / "doc_v_doc_001.pdf"
+    assert pdf_path.exists()
+    assert repo.get_document("v_doc_001") is not None
+
+    res = client.delete("/api/areas/Safra C/houses/514/documents/v_doc_001")
+    assert res.status_code == 200, res.text
+    data = res.json()
+    assert data["status"] == "success"
+    assert "v_doc_001" in data["message"]
+
+    # Verify physical file and DB record are deleted
+    assert not pdf_path.exists()
+    assert repo.get_document("v_doc_001") is None
+    assert len(repo.get_pages_by_vault_id("v_doc_001")) == 0
+
+
+def test_delete_document_not_found(db_setup):
+    res = client.delete("/api/areas/Safra C/houses/514/documents/non_existent_vault_id")
+    assert res.status_code == 404
+    assert "Document not found" in res.json()["detail"]
+

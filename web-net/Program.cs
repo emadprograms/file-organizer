@@ -397,6 +397,21 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/reset-lock
     return Results.Ok(result);
 });
 
+app.MapDelete("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}", async (
+    string areaId,
+    string houseId,
+    string vaultId,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var success = await repo.DeleteDocumentAsync(areaId, houseId, vaultId, areasRoot);
+    if (!success)
+        return Results.NotFound(new { status = "error", message = "Document not found" });
+
+    return Results.Ok(new { status = "success", message = $"Document {vaultId} deleted" });
+});
+
 // ---------------------------------------------------------------------------
 // Ingest API
 // ---------------------------------------------------------------------------

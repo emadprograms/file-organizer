@@ -32,6 +32,7 @@ public interface IFileOrganizerRepository
     Task<DocumentActionResponseDto?> ResetDocumentLockAsync(string vaultId);
     Task<DocumentActionResponseDto?> UpdateDocumentNotesAsync(string vaultId, string notes);
     Task<DocumentActionResponseDto?> UpdateDocumentTenantAsync(string vaultId, int tenantId);
+    Task<bool> DeleteDocumentAsync(string areaId, string houseId, string vaultId, string? areasRoot = null);
     Task<TenantReallocationResponseDto> BulkUpdateTenantsAsync(string houseId, IReadOnlyList<TenantDto> tenants, bool reallocate);
     Task<int> DeleteCategoryAsync(string houseId, string categoryName);
     Task<DbInfoResponseDto> GetDbStatsAsync();

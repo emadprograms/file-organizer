@@ -555,4 +555,62 @@ public class RepositoryTests : IDisposable
         var house = tree.First(a => a.Name == "Safra C").Children!.First(h => h.Id == "514");
         Assert.Equal(10, house.TotalDocuments);
     }
+
+    [Fact]
+    public async Task DeleteDocumentAsync_DeletesFileAndDatabaseRecords()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("Safra C");
+        await _repo.AddHouseAsync("514", "Safra C");
+        var t = await _repo.AddTenantAsync("514", "عمر الفاروق", "2021-01-01", null);
+
+        var tempAreasRoot = Path.Combine(Path.GetTempPath(), $"areas_{Guid.NewGuid():N}");
+        var ingest = await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Safra C",
+            HouseId = "514",
+            TenantId = t.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "وثيقة للحذف",
+            PrimaryDate = "2021-06-15",
+            PageCount = 1,
+            AreasRoot = tempAreasRoot
+        });
+
+        var vaultDir = Path.Combine(tempAreasRoot, "Safra C", "514", "vault");
+        Directory.CreateDirectory(vaultDir);
+        var expectedFilePath = Path.Combine(vaultDir, $"doc_{ingest.VaultId}.pdf");
+        await File.WriteAllBytesAsync(expectedFilePath, new byte[] { 0x25, 0x50, 0x44, 0x46 });
+
+        Assert.True(File.Exists(expectedFilePath));
+        var rawDocBefore = await _repo.GetDocumentRawAsync(ingest.VaultId!);
+        Assert.NotNull(rawDocBefore);
+
+        // Act
+        var deleted = await _repo.DeleteDocumentAsync("Safra C", "514", ingest.VaultId!, tempAreasRoot);
+
+        // Assert
+        Assert.True(deleted);
+        Assert.False(File.Exists(expectedFilePath));
+
+        var rawDocAfter = await _repo.GetDocumentRawAsync(ingest.VaultId!);
+        Assert.Null(rawDocAfter);
+
+        var pagesAfter = await _repo.GetPagesByVaultIdAsync(ingest.VaultId!);
+        Assert.Empty(pagesAfter);
+
+        // Deleting already deleted or non-existent document returns false
+        var notFound = await _repo.DeleteDocumentAsync("Safra C", "514", ingest.VaultId!, tempAreasRoot);
+        Assert.False(notFound);
+
+        try
+        {
+            if (Directory.Exists(tempAreasRoot))
+                Directory.Delete(tempAreasRoot, true);
+        }
+        catch
+        {
+            // Ignore cleanup errors
+        }
+    }
 }

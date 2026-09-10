@@ -44,6 +44,7 @@ from src.db.repository import (
     update_document,
     copy_document,
     reset_document_manual_lock,
+    delete_document,
 )
 from src.migration.v11_migration import extract_house_id, normalize_date
 from src.ingest.manual_ingest import ingest_document_manual
@@ -910,6 +911,27 @@ async def reset_document_lock(
         tenant_name=target_tenant_name,
         is_manual=0,
     )
+
+@router.delete("/api/areas/{area_id}/houses/{house_id}/documents/{vault_id}")
+async def delete_single_document(
+    request: Request,
+    area_id: str,
+    house_id: str,
+    vault_id: str,
+):
+    repo = get_db_repo(request)
+    if not repo:
+        raise HTTPException(status_code=500, detail="Database repository not available.")
+
+    config = getattr(request.app.state, "config", None)
+    areas_root = Path(config.areas_root_path) if (config and hasattr(config, "areas_root_path")) else Path(".")
+
+    deleted = repo.delete_document(vault_id, house_id, area_id, areas_root)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    clear_tree_cache()
+    return {"status": "success", "message": f"Document {vault_id} deleted"}
 
 @router.get("/api/areas/{area_id}/houses/{house_id}/categories", response_model=list[CategoryResponse])
 async def list_categories(request: Request, area_id: str, house_id: str):

@@ -4,9 +4,9 @@ milestone: v13.0
 milestone_name: Decoupled Monorepo Architecture & Native ASP.NET Core Web Server
 current_phase: 104
 status: completed
-last_updated: "2026-09-09T18:40:00.000Z"
-last_activity: 2026-09-09
-last_activity_desc: "Completed Phase 104: Parity Verification, Windows Single-File Build & Milestone Audit. Milestone v13.0 Shipped."
+last_updated: "2026-09-10T20:15:00.000Z"
+last_activity: 2026-09-10
+last_activity_desc: "Completed Quick Task 260910-delete-document-feature: Added document deletion feature across Python FastAPI, .NET ASP.NET Core, and Frontend UI with tests."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -46,6 +46,7 @@ Decoupling the lightweight web dashboard/UI completely from the Python AI batch 
 - `260909-h90`: Right Panel Live Peek on Hover & macOS Spacebar Quick Look. Zero-click ambient live peek directly in the right panel on hover (250ms debounce), removed all floating tooltips from over the list, preserved centered macOS Spacebar Quick Look modal and Eye button, and ensured 3-dot menus are 100% unobstructed. All 24 Vitest frontend and 19 pytest backend tests passing.
 - `260910-user-batch-filing-and-remove-ai-frontend`: Multi-File Batch Filing & Complete AI Removal from Frontend. Removed all AI autofill buttons, labels, and `/api/ingest/preview-ai` calls from frontend for 100% deterministic operation. Implemented multi-file batch queue with editable titles, auto-detected house numbers, auto-selected latest tenants, single document broadcasting across multiple houses (`+ Add House`), and sequential `POST /api/ingest` execution with live progress tracking. 68 Vitest tests, 4 Playwright E2E tests, 12 backend API tests, and 40 .NET tests passing.
 - `260910-separate-intuitive-ingest-sections`: Separate Ingest Station into Three Intuitive Sections (1-to-1 Single Document, 1-to-Many Broadcast Notice, Many-to-1 House Batch) with Direct Drag-and-Drop Ingestion onto House Cards and Category Folder Cards. 59 Vitest unit tests, 6 Playwright E2E tests, 12 Python backend tests, and 40 ASP.NET Core tests passing.
+- `260910-delete-document-feature`: Add Document Deletion Feature across Frontend 3-Dots Modal, Python FastAPI Backend, and ASP.NET Core Minimal API. Physical vault file and cascade database records removal. 63 Vitest tests, 43 .NET tests, 13 Python pytest tests, and 7 Playwright E2E tests passing.
 
 ## Current Position
 

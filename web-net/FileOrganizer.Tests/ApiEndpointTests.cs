@@ -399,5 +399,36 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
         Assert.NotNull(result);
         Assert.Equal("success", result.Status);
     }
+
+    [Fact]
+    public async Task DeleteDocument_NonExistent_Returns404NotFound()
+    {
+        var response = await _client.DeleteAsync("/api/areas/Safra%20C/houses/500/documents/non_existent_vault_id");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeleteDocument_Existing_Returns200Ok()
+    {
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+        var ingest = await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Safra C",
+            HouseId = "500",
+            TenantId = 1,
+            Category = "05 - عقود",
+            ArabicTitle = "مستند للحذف عبر API",
+            PrimaryDate = "2022-04-01",
+            PageCount = 1,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        var response = await _client.DeleteAsync($"/api/areas/Safra%20C/houses/500/documents/{ingest.VaultId}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var verifyNotFound = await _client.DeleteAsync($"/api/areas/Safra%20C/houses/500/documents/{ingest.VaultId}");
+        Assert.Equal(HttpStatusCode.NotFound, verifyNotFound.StatusCode);
+    }
 }
 
