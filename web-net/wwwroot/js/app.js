@@ -84,6 +84,9 @@
         if (typeof window.initIngestStation === 'function') {
             window.initIngestStation();
         }
+        if (typeof window.initKeyboardShortcuts === 'function') {
+            window.initKeyboardShortcuts();
+        }
 
         // Load initial area hierarchy
         if (typeof window.loadTree === 'function') {

@@ -10,6 +10,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:frontend": "vitest run",
+    "test:e2e": ".venv/bin/pytest tests/frontend/test_command_palette.py tests/frontend/test_delete_doc_dialog_playwright.py tests/frontend/test_house_register.py tests/frontend/test_ingest_batch_playwright.py tests/frontend/test_grid_view.py tests/frontend/test_tenants_overview_grid.py tests/frontend/test_tabs.py tests/frontend/test_navigation.py tests/frontend/test_v11_e2e_db.py tests/frontend/test_keyboard_shortcuts_playwright.py -q",
     "start:net": "./run-mac.sh"
   },
   "repository": {

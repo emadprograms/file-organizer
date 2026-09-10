@@ -1,5 +1,21 @@
 # Milestones History
 
+## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
+
+**Phases completed:** 4 phases (105-108), 4 plans, 222 tests passing (47 .NET, 33 pytest, 93 Vitest, 49 Playwright)
+
+**Key accomplishments:**
+
+- Full House Archive ZIP Export pipeline (`GET /api/areas/{area}/houses/{house}/export-zip`) in both FastAPI and ASP.NET Core Minimal APIs, packaging vault documents into collision-free structured ZIPs with clean Arabic filenames.
+- Modern UI Export Archive ZIP button on the House Profile header with active loading spinner, client-side download initiation, and user toast notifications.
+- Multi-document batch operations with selection checkboxes, folder-level & global Select All toggles, and floating bottom action bar (`#batch-action-bar`).
+- Atomic Batch Move (`POST .../documents/batch-move`) and cascade permanent Batch Delete (`POST .../documents/batch-delete`) endpoints in both Python and C#.
+- Portfolio expansion via "+ Add House" UI modal in the Area Grid overview with automatic physical directory scaffolding (`batches/`, `vault/`), SQLite registration, optional initial tenant, and live DOM grid refresh without page reload.
+- Global Keyboard Shortcuts Helper Modal (`?` / Shift+/) and navbar trigger button (`#btn-shortcuts-trigger`) with full `Esc`/backdrop dismissal and strict exclusion of input fields.
+- 100% test pass rate across all 4 suites: Pytest (33), .NET xUnit (47), Vitest (93), and Playwright browser E2E (49) with zero static asset diff.
+
+---
+
 ## v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server (Shipped: 2026-09-09)
 
 **Phases completed:** 4 phases (101-104), 4 plans, 163 tests passing (40 .NET, 62 pytest, 61 Vitest)

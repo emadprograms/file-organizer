@@ -4,16 +4,22 @@
 
 A document management system that processes scanned Arabic PDFs, categorizes them using LLM vision, groups related pages, and stores them in a high-performance relational SQLite database with a clean two-folder disk structure (`batches/` and `vault/`). The system features a responsive web dashboard with dual Tree/Grid views, tenure color-coding, multi-tenant chronological timelines, category drill-downs, phonetic/fuzzy global search, and in-browser PDF viewing.
 
-## Current Milestone: v14.0 Power-User Operations & Portfolio Expansion
+## Current Milestone: None (v14.0 Completed & Shipped)
 
-Expand the application with high-utility power-user and operational capabilities:
-1. **One-Click House Archive ZIP Export**: Download all documents of a house packaged as a structured ZIP file across both FastAPI and ASP.NET Core backends.
-2. **Multi-Select Batch Document Operations**: Multi-document selection in category folder views with floating action bar for bulk move and safe cascade bulk deletion.
-3. **Portfolio Expansion ("+ Add House")**: UI creation modal in the Area Grid to register new houses and initialize directory scaffolds dynamically.
-4. **Keyboard Shortcuts Helper Modal (`?`)**: Native interactive cheat sheet for fast keyboard-driven navigation (`⌘K`, `⌘I`, `Space`, `Esc`, `?`).
-5. **Full Parity & Test Coverage**: Maintain 100% test pass rate across Pytest, Vitest, Playwright, and ASP.NET Core xUnit suites.
+Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive test coverage (222 tests passing), and power-user tooling. Ready for next milestone initialization.
 
 ## Past Milestones
+
+<details>
+<summary>v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)</summary>
+
+- Delivered one-click house archive ZIP export endpoint (`GET /api/areas/{area}/houses/{house}/export-zip`) across both FastAPI and ASP.NET Core, with UI download trigger on House Profile header.
+- Implemented multi-document batch operations: per-card checkboxes, folder and global Select All toggles, floating bottom action bar (`#batch-action-bar`), atomic Batch Move, and cascade permanent Batch Delete.
+- Added portfolio expansion: "+ Add House" UI modal in Area Grid overview, automatic physical directory scaffolding (`batches/`, `vault/`), SQLite registration, optional initial tenant, and live DOM grid refresh.
+- Built global Keyboard Shortcuts Helper Modal (`?` / Shift+/) and navbar trigger button (`#btn-shortcuts-trigger`) with `Esc`/backdrop dismissal and text input typing isolation.
+- Verified 100% test pass rate across 222 automated tests: .NET xUnit (47), Python Pytest (33), Vitest frontend (93), Playwright browser E2E (49), and zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
+
+</details>
 
 <details>
 <summary>v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server (Shipped: 2026-09-09)</summary>
@@ -89,6 +95,14 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 
 ### Validated
 
+- ✓ Full house archive ZIP export endpoint in FastAPI and ASP.NET Core (EXP-01) — v14.0
+- ✓ UI Export Archive ZIP button on House Profile header with toast feedback (EXP-02) — v14.0
+- ✓ Multi-select checkboxes and floating bottom action bar in category folders (BAT-01) — v14.0
+- ✓ Batch Move and cascade Batch Delete endpoints in FastAPI and ASP.NET Core (BAT-02) — v14.0
+- ✓ House creation backend endpoint with physical directory scaffolding (HSE-01) — v14.0
+- ✓ "+ Add House" UI modal and dynamic live grid refresh in Area Grid (HSE-02) — v14.0
+- ✓ Global Keyboard Shortcuts Helper Modal (`?`) and navbar trigger button (KBD-01) — v14.0
+- ✓ Comprehensive multi-stack test suite across Pytest, xUnit, Vitest, Playwright (VER-07) — v14.0
 - ✓ Decoupled monorepo structure (`web-net/` for ASP.NET Core, `src/` for Python AI pipeline, shared `organizer.db`) (ARCH-01) — v13.0
 - ✓ ASP.NET Core 8.0 project with Dapper and `Microsoft.Data.Sqlite` in WAL mode (NET-01) — v13.0
 - ✓ Port all read API endpoints with 100% JSON parity (NET-02) — v13.0
@@ -134,11 +148,12 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 
 ## Current State
 
+- ✅ Shipped v14.0 Power-User Operations & Portfolio Expansion on 2026-09-10.
 - ✅ Shipped v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server on 2026-09-09.
 - ✅ Shipped v12.0 Unified Document Ingestion System on 2026-09-09.
 - ✅ Shipped v11.0 Database Backend & Clean Storage Architecture on 2026-09-09.
-- 163 tests passing across .NET xUnit (40), backend pytest (62), and frontend Vitest (61) test suites.
-- Decoupled ASP.NET Core 8.0 web server running with 100% API parity, zero Python runtime web dependency, and self-contained Windows single-file executable (`dist/win-x64/FileOrganizer.Web.exe`).
+- 222 tests passing across .NET xUnit (47), backend pytest (33), frontend Vitest (93), and Playwright E2E (49) test suites.
+- Dual-backend runtime parity: FastAPI and ASP.NET Core 8.0 Minimal APIs running in parallel with 100% contract parity and zero static asset diff.
 
 ## Context
 
@@ -150,7 +165,8 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 
 | Decision | Rationale | Outcome |
 |---|---|---|
-| Decoupled Monorepo & ASP.NET Core Web Server | Decouple read-heavy web dashboard into a high-efficiency native .NET 8 binary (`web-net/`) using Dapper and SQLite in WAL mode. Preserves Python strictly for offline/batch AI ingestion while giving Windows servers a zero-Python runtime footprint. | In Progress (Milestone v13.0). |
+| Power-User Operations & Portfolio Expansion | Equip property managers with high-utility operations: one-click ZIP export, multi-select bulk operations, UI-based house creation, and global keyboard shortcuts. | ✓ Completed (Milestone v14.0). |
+| Decoupled Monorepo & ASP.NET Core Web Server | Decouple read-heavy web dashboard into a high-efficiency native .NET 8 binary (`web-net/`) using Dapper and SQLite in WAL mode. Preserves Python strictly for offline/batch AI ingestion while giving Windows servers a zero-Python runtime footprint. | ✓ Completed (Milestone v13.0). |
 | SQLite Relational Schema | Single file with WAL mode provides ACID transactions, sub-10ms query execution, and eliminates SMB directory traversal overhead. | ✓ Completed (Phase 92). |
 | Two-Folder Disk Structure (`batches/` and `vault/`) | Clear separation between raw scanned inputs and sliced standalone documents. Eliminates deep Arabic directory nesting. | ✓ Completed (Phase 93). |
 | Ingestion Without Reconciler | Slicing directly into `vault/` and recording in `documents` avoids index-shifting math and brittle two-way file moves. | ✓ Completed (Phase 94). |
