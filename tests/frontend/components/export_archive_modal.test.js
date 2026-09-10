@@ -37,6 +37,12 @@ describe('Export Archive Options Modal Component', () => {
 
   beforeEach(() => {
     document.body.innerHTML = `
+      <div id="document-list-panel">
+        <div class="header">
+          <button id="btn-export-house-archive" type="button" title="Export House Archive"></button>
+          <button id="btn-manage-tenants" title="House Settings & Tenants"></button>
+        </div>
+      </div>
       <div id="document-list"></div>
       <div id="stats-badge"></div>
 
@@ -84,6 +90,8 @@ describe('Export Archive Options Modal Component', () => {
 
     window.isStaticMode = false;
     window.showToast = vi.fn();
+    window.currentArea = 'Safra C';
+    window.currentHouse = '500';
 
     const scriptCode = fs.readFileSync(
       path.resolve(__dirname, '../../../src/api/static/js/house-profile.js'),
@@ -97,10 +105,15 @@ describe('Export Archive Options Modal Component', () => {
     vi.restoreAllMocks();
   });
 
-  it('renders house profile and opens modal on clicking export button', () => {
+  it('renders house profile without archive summary and opens modal on clicking header export button', () => {
     window.renderHouseProfile(mockProfile);
 
-    const exportBtn = document.getElementById('btn-export-house-zip');
+    // Verify digital archive summary is no longer in document-list
+    const docList = document.getElementById('document-list');
+    expect(docList.textContent).not.toContain('بيانات الأرشيف الرقمي للمنزل');
+
+    // Verify header export button exists
+    const exportBtn = document.getElementById('btn-export-house-archive');
     expect(exportBtn).not.toBeNull();
 
     const modal = document.getElementById('export-archive-modal');

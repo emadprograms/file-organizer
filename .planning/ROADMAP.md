@@ -23,6 +23,7 @@
 - [x] Quick Refinement QCK-03: Descending Chronological Sort (Newest First) & Minimalist 3-Column Running Footer (Date, Category with Preserved Number, Page X/Y) — completed 2026-09-10
 - [x] Quick Refinement QCK-04: Arabic Cursive Text Shaping & BiDi Visual Reordering in Exported PDF Running Footer (`arabic-reshaper` + `python-bidi` in Python, pure C# `ArabicReshaper` in .NET) — completed 2026-09-10
 - [x] Quick Refinement QCK-05: Double-Click Inline Document Renaming in Categories and Timeline Views (Keyboard shortcuts Enter/Esc/Blur, Error Handling, Toast Feedback, and Backend Parity) — completed 2026-09-10
+- [x] Quick Refinement QCK-06: Relocate Export Archive Button to Document Panel Header & Remove Bottom Archive Summary Box (0-scroll permanent visibility across Profile, Folders, and Timeline views) — completed 2026-09-11
 
 <details>
 <summary>✅ v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server (Phases 101-104) — SHIPPED 2026-09-09</summary>
@@ -112,3 +113,4 @@ See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md) for full 
 | QCK-03. Descending Sort & Minimalist Running Footer Specs | v14.0 | 1/1 | Complete | 2026-09-10 |
 | QCK-04. Arabic Cursive Shaping & BiDi Visual Reordering | v14.0 | 1/1 | Complete | 2026-09-10 |
 | QCK-05. Double-Click Inline Document Renaming (Categories & Timeline) | v14.0 | 1/1 | Complete | 2026-09-10 |
+| QCK-06. Relocate Export Archive Button to Header & Remove Archive Summary | v14.0 | 1/1 | Complete | 2026-09-11 |

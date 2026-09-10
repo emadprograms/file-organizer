@@ -94,6 +94,7 @@
     }
 
     function renderHouseProfile(profile) {
+        currentHouseProfile = profile;
         const docListEl = document.getElementById('document-list');
         if (!docListEl) return;
         docListEl.innerHTML = '';
@@ -173,59 +174,8 @@
             });
         }
         container.appendChild(tenantsList);
-
-        // 3. Digital Archive Profile
-        const archive = profile.archive;
-        const archiveBox = document.createElement('div');
-        archiveBox.className = 'p-3.5 bg-slate-50/80 rounded-xl border border-slate-200 space-y-3 mt-4';
-        archiveBox.innerHTML = `
-            <div class="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-                <svg class="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-                <span>بيانات الأرشيف الرقمي للمنزل</span>
-            </div>
-
-            <div class="grid grid-cols-2 gap-2 text-xs">
-                <div class="bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
-                    <span class="text-[10px] text-slate-400 block font-medium">النطاق الزمني للوثائق</span>
-                    <span class="font-bold text-slate-800 mt-1 block text-[11px]">${archive.timespan_str_ar}</span>
-                </div>
-                <div class="bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
-                    <span class="text-[10px] text-slate-400 block font-medium">حجم الأرشيف الممسوح</span>
-                    <span class="font-bold text-slate-800 mt-1 block text-[11px]">${archive.total_documents} وثيقة (${archive.total_pages} صفحة)</span>
-                </div>
-            </div>
-
-            ${archive.categories && archive.categories.length > 0 ? `
-                <div class="pt-1">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">التصنيفات الرئيسية المتوفرة:</span>
-                    <div class="flex flex-wrap gap-1.5">
-                        ${archive.categories.map(c => `
-                            <span class="text-[10px] bg-white border border-slate-200 text-slate-700 px-2 py-0.5 rounded-md font-medium">
-                                ${c.category} <b class="text-blue-600 font-bold">(${c.document_count})</b>
-                            </span>
-                        `).join('')}
-                    </div>
-                </div>
-            ` : ''}
-        `;
-
-        // 4. One-Click Archive Export Button (Opens Modal)
-        const exportBtn = document.createElement('button');
-        exportBtn.id = 'btn-export-house-zip';
-        exportBtn.type = 'button';
-        exportBtn.className = 'w-full mt-3 flex items-center justify-center gap-2 py-2 px-3 bg-white hover:bg-slate-50 border border-slate-200 hover:border-blue-300 rounded-xl text-xs font-semibold text-slate-700 hover:text-blue-600 transition-all shadow-2xs cursor-pointer group';
-        exportBtn.innerHTML = `
-            <svg class="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-            <span id="export-zip-btn-text">📦 تحميل أرشيف المنزل (Export House Archive)</span>
-        `;
-        exportBtn.onclick = () => {
-            openExportArchiveModal(profile);
-        };
-        archiveBox.appendChild(exportBtn);
-
-        container.appendChild(archiveBox);
-
         docListEl.appendChild(container);
+        initExportArchiveHeaderButton();
     }
 
     // ── Export Archive Modal Controller ──────────────────────────────────────────
@@ -303,7 +253,45 @@
         }
     }
 
+    function initExportArchiveHeaderButton() {
+        const exportHeaderBtn = document.getElementById('btn-export-house-archive');
+        const legacyZipBtn = document.getElementById('btn-export-house-zip');
+
+        const handleExportClick = async () => {
+            const area = (typeof currentArea !== 'undefined' && currentArea) ? currentArea : (window.currentArea || '');
+            const house = (typeof currentHouse !== 'undefined' && currentHouse) ? currentHouse : (window.currentHouse || '');
+            if (!house) {
+                const toastFn = (typeof showToast === 'function') ? showToast : ((typeof window !== 'undefined' && typeof window.showToast === 'function') ? window.showToast : null);
+                if (toastFn) toastFn('Please select a house first', 'warning');
+                return;
+            }
+            if (currentHouseProfile && currentHouseProfile.house_id === house) {
+                openExportArchiveModal(currentHouseProfile);
+            } else {
+                try {
+                    const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/profile`);
+                    if (res.ok) {
+                        currentHouseProfile = await res.json();
+                        openExportArchiveModal(currentHouseProfile);
+                    } else {
+                        openExportArchiveModal({ area_id: area, house_id: house, tenants: [] });
+                    }
+                } catch (e) {
+                    openExportArchiveModal({ area_id: area, house_id: house, tenants: [] });
+                }
+            }
+        };
+
+        if (exportHeaderBtn) {
+            exportHeaderBtn.onclick = handleExportClick;
+        }
+        if (legacyZipBtn && legacyZipBtn !== exportHeaderBtn) {
+            legacyZipBtn.onclick = handleExportClick;
+        }
+    }
+
     function initExportArchiveModal() {
+        initExportArchiveHeaderButton();
         const modal = document.getElementById('export-archive-modal');
         if (!modal || modal.dataset.initialized === 'true') return;
         modal.dataset.initialized = 'true';
@@ -390,9 +378,13 @@
 
     if (typeof document !== 'undefined') {
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initExportArchiveModal);
+            document.addEventListener('DOMContentLoaded', () => {
+                initExportArchiveModal();
+                initExportArchiveHeaderButton();
+            });
         } else {
             initExportArchiveModal();
+            initExportArchiveHeaderButton();
         }
     }
 
@@ -402,4 +394,5 @@
     window.closeExportArchiveModal = closeExportArchiveModal;
     window.setExportFormat = setExportFormat;
     window.initExportArchiveModal = initExportArchiveModal;
+    window.initExportArchiveHeaderButton = initExportArchiveHeaderButton;
 })();

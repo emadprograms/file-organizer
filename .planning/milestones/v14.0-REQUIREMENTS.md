@@ -50,11 +50,15 @@ Equip the digital archive management system with power-user operational tools: o
   - Keyboard shortcuts & blur: `Enter` to commit, `Escape` to cancel and revert without network request, and `blur` to commit or revert.
   - Submits `PATCH /api/areas/{area}/houses/{house}/documents/{vault_id}` with `{ "arabic_title": newTitle }`, updates in-memory document state, updates DOM, and provides success/error toast notifications.
   - Empty or unchanged input reverts without sending network requests.
+- [x] **QCK-06**: Relocation of Export House Archive Button to Document Panel Header & Removal of Bottom Archive Summary Box:
+  - **Archive Box Removal**: Removed redundant and confusing `archiveBox` (`بيانات الأرشيف الرقمي للمنزل`) from the bottom of House Profile, eliminating bottom clutter and focusing exclusively on the Tenancy Register and tenant cards.
+  - **Header Export Button**: Pinned `#btn-export-house-archive` to the top Document Panel header adjacent to `#btn-manage-tenants` for 0-scroll permanent visibility across Profile, Folders, and Timeline views.
+  - **Backward Compatibility**: Full compatibility fallback for legacy `#btn-export-house-zip`.
 - [x] **VER-07**: Comprehensive multi-stack test suite covering all capabilities across Python and .NET:
   - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
   - 15 Python v14 pytest tests (`tests/test_v14_features.py`).
   - 13 Python document management tests (`tests/test_document_management_api.py`).
-  - 108 Frontend Vitest tests across 10 files (`npm run test:frontend`, including 7 in `inline_rename.test.js`).
+  - 109 Frontend Vitest tests across 10 files (`npm run test:frontend`).
   - 49 Playwright E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 
@@ -74,4 +78,5 @@ Equip the digital archive management system with power-user operational tools: o
 | **HSE-02** | "+ Add House" UI modal and live grid refresh in Area Grid | Phase 107 | Complete | `src/api/static/js/area-grid.js`, `tests/frontend/components/add_house.test.js` (5 tests) |
 | **KBD-01** | Global Keyboard Shortcuts Helper modal (`?`) & navbar button | Phase 108 | Complete | `src/api/static/js/keyboard-shortcuts.js`, `tests/frontend/components/keyboard_shortcuts.test.js` (12 tests) |
 | **QCK-05** | Double-Click Inline Document Renaming in Categories & Timeline views | Phase 108 / QCK-05 | Complete | `tests/frontend/components/inline_rename.test.js` (7 tests), `src/api/static/js/categories-view.js`, `src/api/static/js/timeline-view.js` |
-| **VER-07** | Comprehensive multi-stack automated testing suite (Pytest, Vitest, Playwright, xUnit) | Phase 108 | Complete | 269+ automated tests passing across 4 test runners (84 xUnit, 15 v14 pytest, 13 doc management, 108 Vitest, 49 Playwright); zero static asset diff. |
+| **QCK-06** | Relocation of Export Archive button to Document Panel header & removal of bottom archive summary | Phase 105 / QCK-06 | Complete | `tests/frontend/components/house_profile.test.js`, `tests/frontend/components/export_archive_modal.test.js`, `tests/frontend/test_house_register.py` |
+| **VER-07** | Comprehensive multi-stack automated testing suite (Pytest, Vitest, Playwright, xUnit) | Phase 108 | Complete | 270+ automated tests passing across 4 test runners (84 xUnit, 15 v14 pytest, 13 doc management, 109 Vitest, 49 Playwright); zero static asset diff. |

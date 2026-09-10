@@ -2,10 +2,14 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 5 quick refinements (QCK-01, QCK-02, QCK-03, QCK-04, QCK-05), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 15 v14 pytest, 13 doc management, 108 Vitest across 10 files, 49 Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 6 quick refinements (QCK-01, QCK-02, QCK-03, QCK-04, QCK-05, QCK-06), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 15 v14 pytest, 13 doc management, 109 Vitest across 10 files, 49 Playwright E2E)
 
 **Key accomplishments:**
 
+- **Export Button Relocation & Archive Summary Box Removal (Quick Refinement QCK-06):**
+  - Removed confusing and redundant digital archive summary box (`بيانات الأرشيف الرقمي للمنزل`) from the bottom of the House Profile, eliminating bottom visual clutter and keeping focus squarely on the Tenancy Register.
+  - Relocated the Export House Archive button (`#btn-export-house-archive`) to the Document Panel header right beside `#btn-manage-tenants` for 0-scroll permanent visibility across all views (Profile, Folders, and Timeline).
+  - Maintained full backward compatibility for `#btn-export-house-zip` and synchronized static assets across Python and ASP.NET Core with 0 diff.
 - **Double-Click Inline Document Renaming (Quick Refinement QCK-05):**
   - Instant inline document title renaming triggered by double-clicking the title text in both Categories view folder lists (`span.doc-title-text`) and Timeline view (`h4.doc-title-text`).
   - Full keyboard shortcuts (`Enter` to commit, `Escape` to cancel and revert without network traffic, `blur` to commit or revert).
@@ -53,7 +57,7 @@
   - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
   - 15 Python v14 pytest tests (`tests/test_v14_features.py`).
   - 13 Python document management tests (`tests/test_document_management_api.py`).
-  - 108 Frontend Vitest tests across 10 test files (`npm run test:frontend`).
+  - 109 Frontend Vitest tests across 10 test files (`npm run test:frontend`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 

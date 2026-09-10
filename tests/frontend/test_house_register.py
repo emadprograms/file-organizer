@@ -184,10 +184,9 @@ def test_house_tenancy_register_display(page: Page, server_url: str):
     expect(page.locator("#document-list")).to_contain_text("مستأجر سابق")
     expect(page.locator("#document-list")).to_contain_text("2017 – 2019")
 
-    # Archive profile section
-    expect(page.locator("#document-list")).to_contain_text("بيانات الأرشيف الرقمي للمنزل")
-    expect(page.locator("#document-list")).to_contain_text("3 وثيقة")
-    expect(page.locator("#document-list")).to_contain_text("من 2017 إلى 2023")
+    # Archive profile section removed from document-list, header export button exists
+    expect(page.locator("#document-list")).not_to_contain_text("بيانات الأرشيف الرقمي للمنزل")
+    expect(page.locator("#btn-export-house-archive")).to_be_visible()
 
 
 def test_click_tenant_card_drills_down_to_folders(page: Page, server_url: str):
