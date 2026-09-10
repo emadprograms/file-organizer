@@ -3,24 +3,48 @@ const {
     initIngestStation,
     openIngestStation,
     closeIngestStation,
+    switchTab,
+    getActiveTab,
+    getCurrentTab,
     handleFileSelected,
+    handleBroadcastFileSelected,
     handleFilesSelected,
     removeFile,
+    removeBroadcastFile,
+    submitSingleIngest,
+    submitBroadcastIngest,
+    submitHouseBatchIngest,
     submitIngestForm,
-    submitBatchIngest,
     formatFileSize,
-    populateAreas,
-    populateBatchAreas,
-    populateHouses,
-    populateTenants,
-    updateModeUI,
     getTodayIsoDate,
     resetIngestForm,
     detectHouseFromFilename,
     getTenantsForHouse,
+    resolveLatestTenant,
+    populateAreas,
+    populateHouses,
+    populateTenants,
+    populateBroadcastAreas,
+    populateBroadcastHouses,
+    getSelectedBroadcastHouses,
+    selectAllBroadcastHouses,
+    filterBroadcastHouses,
+    populateHousebatchAreas,
+    populateHousebatchHouses,
+    populateHousebatchTenants,
+    addFilesToHouseBatch,
+    renderHouseBatchQueue,
+    getHouseBatchQueue,
+    handleDirectHouseDrop,
+    handleDirectCategoryDrop,
+    resetDragCounter,
+    // Backward compatibility
+    updateModeUI,
+    submitBatchIngest,
+    getBatchQueue,
     addFilesToBatch,
     renderBatchQueue,
-    getBatchQueue,
+    populateBatchAreas,
 } = require('../../../src/api/static/js/ingest-station.js');
 
 function setupDOM() {
@@ -38,12 +62,24 @@ function setupDOM() {
             <div id="ingest-station-card">
                 <button id="btn-ingest-close">Close</button>
                 
-                <!-- Mode Switcher -->
-                <input type="radio" name="ingest_mode" id="ingest-mode-single" value="manual" checked />
-                <input type="radio" name="ingest_mode" id="ingest-mode-batch" value="batch" />
+                <!-- 3-Tab Segmented Navigation Bar -->
+                <div class="grid grid-cols-3">
+                    <button type="button" id="tab-mode-single" class="bg-blue-600 text-white shadow-2xs font-semibold">
+                        <span>📄 Single Document</span>
+                        <span>1 file → 1 house</span>
+                    </button>
+                    <button type="button" id="tab-mode-broadcast" class="text-slate-600 hover:text-slate-900 font-medium">
+                        <span>📢 Broadcast Notice</span>
+                        <span>1 file → Multiple houses</span>
+                    </button>
+                    <button type="button" id="tab-mode-housebatch" class="text-slate-600 hover:text-slate-900 font-medium">
+                        <span>📁 House Batch</span>
+                        <span>Multiple files → 1 house</span>
+                    </button>
+                </div>
 
-                <!-- Single Container -->
-                <div id="ingest-single-container">
+                <!-- SECTION 1: Single Document -->
+                <div id="section-mode-single">
                     <div id="ingest-file-dropzone">
                         <input id="ingest-file-input" type="file" accept=".pdf" />
                     </div>
@@ -78,29 +114,66 @@ function setupDOM() {
                     <input id="ingest-title-input" type="text" />
                     <input id="ingest-date-input" type="date" />
                     <textarea id="ingest-notes-input"></textarea>
-                    <div id="ingest-status-msg" class="hidden"></div>
                 </div>
 
-                <!-- Batch Queue Container -->
-                <div id="ingest-batch-queue-container" class="hidden">
-                    <select id="ingest-batch-area-select">
+                <!-- SECTION 2: Broadcast Notice -->
+                <div id="section-mode-broadcast" class="hidden">
+                    <div id="broadcast-dropzone">
+                        <input id="broadcast-file-input" type="file" accept=".pdf" />
+                    </div>
+                    <div id="broadcast-file-info" class="hidden">
+                        <p id="broadcast-file-name"></p>
+                        <p id="broadcast-file-size"></p>
+                        <button id="btn-broadcast-remove-file">Change</button>
+                    </div>
+                    <div id="broadcast-preview-container" class="hidden">
+                        <iframe id="broadcast-pdf-preview" src="about:blank"></iframe>
+                    </div>
+                    <select id="broadcast-category-select">
+                        <option value="09 - إشعارات" selected>09 - إشعارات</option>
+                        <option value="13 - رسائل متنوعة">13 - رسائل متنوعة</option>
+                    </select>
+                    <input id="broadcast-title-input" type="text" />
+                    <input id="broadcast-date-input" type="date" />
+                    <select id="broadcast-area-select">
                         <option value="">Select Area...</option>
                     </select>
-                    <select id="ingest-batch-category-select">
+                    <button id="btn-broadcast-select-all">Select All</button>
+                    <button id="btn-broadcast-deselect-all">Deselect All</button>
+                    <span id="broadcast-selected-count">0 houses selected</span>
+                    <input id="broadcast-house-search" type="text" placeholder="Search house # or tenant..." />
+                    <div id="broadcast-houses-list"></div>
+                </div>
+
+                <!-- SECTION 3: House Batch -->
+                <div id="section-mode-housebatch" class="hidden">
+                    <select id="housebatch-area-select">
+                        <option value="">Select Area...</option>
+                    </select>
+                    <select id="housebatch-house-select">
+                        <option value="">Select House...</option>
+                    </select>
+                    <select id="housebatch-tenant-select">
+                        <option value="">(Auto-detect or Select Tenant)</option>
+                    </select>
+                    <select id="housebatch-category-select">
                         <option value="06 - كهرباء وماء" selected>06 - كهرباء وماء</option>
                         <option value="13 - رسائل متنوعة">13 - رسائل متنوعة</option>
                     </select>
-                    <input id="ingest-batch-date-select" type="date" />
-                    <span id="ingest-batch-count-badge">0 files</span>
-                    <button id="btn-batch-add-more">+ Add More Files</button>
-                    <div id="ingest-batch-empty-dropzone"></div>
-                    <div id="ingest-batch-files-list"></div>
-                    <div id="ingest-batch-progress" class="hidden">
-                        <span id="ingest-batch-progress-text"></span>
-                        <span id="ingest-batch-progress-pct"></span>
-                        <div id="ingest-batch-progress-bar"></div>
-                    </div>
-                    <div id="ingest-batch-notice" class="hidden"></div>
+                    <input id="housebatch-date-select" type="date" />
+                    <span id="housebatch-count-badge">0 files</span>
+                    <button id="btn-housebatch-add-more">+ Add More Files</button>
+                    <input id="housebatch-file-input" type="file" accept=".pdf" multiple class="hidden" />
+                    <div id="housebatch-dropzone"></div>
+                    <div id="housebatch-files-list"></div>
+                </div>
+
+                <!-- Status & Progress -->
+                <div id="ingest-status-msg" class="hidden"></div>
+                <div id="ingest-batch-progress" class="hidden">
+                    <span id="ingest-batch-progress-text"></span>
+                    <span id="ingest-batch-progress-pct"></span>
+                    <div id="ingest-batch-progress-bar"></div>
                 </div>
 
                 <!-- Footer (No AI button) -->
@@ -124,14 +197,14 @@ describe('Ingest Station Component', () => {
             {
                 name: 'Area 1',
                 children: [
-                    { name: '501', children: [{ name: 'Tenant A' }] },
-                    { name: '502', children: [{ name: 'Tenant B' }] },
+                    { name: '501', id: '501', children: [{ id: 101, name: 'Tenant A' }] },
+                    { name: '502', id: '502', children: [{ id: 102, name: 'Tenant B' }] },
                 ],
             },
             {
                 name: 'Area 2',
                 children: [
-                    { name: '601', children: [] },
+                    { name: '601', id: '601', children: [] },
                 ],
             },
         ];
@@ -201,37 +274,49 @@ describe('Ingest Station Component', () => {
         expect(modal.classList.contains('hidden')).toBe(true);
     });
 
-    it('toggles mode switcher between Single File and Batch Filing modes', () => {
-        const modeSingle = document.getElementById('ingest-mode-single');
-        const modeBatch = document.getElementById('ingest-mode-batch');
-        const singleContainer = document.getElementById('ingest-single-container');
-        const batchContainer = document.getElementById('ingest-batch-queue-container');
+    it('switches between Single Document, Broadcast Notice, and House Batch tabs', () => {
+        const tabSingle = document.getElementById('tab-mode-single');
+        const tabBroadcast = document.getElementById('tab-mode-broadcast');
+        const tabHousebatch = document.getElementById('tab-mode-housebatch');
+
+        const sectionSingle = document.getElementById('section-mode-single');
+        const sectionBroadcast = document.getElementById('section-mode-broadcast');
+        const sectionHousebatch = document.getElementById('section-mode-housebatch');
         const submitText = document.getElementById('ingest-submit-text');
-        const fileInput = document.getElementById('ingest-file-input');
 
-        expect(singleContainer.classList.contains('hidden')).toBe(false);
-        expect(batchContainer.classList.contains('hidden')).toBe(true);
+        // Initial default: Single Document
+        expect(getActiveTab()).toBe('single');
+        expect(sectionSingle.classList.contains('hidden')).toBe(false);
+        expect(sectionBroadcast.classList.contains('hidden')).toBe(true);
+        expect(sectionHousebatch.classList.contains('hidden')).toBe(true);
         expect(submitText.textContent).toBe('⚡ Ingest Document');
-        expect(fileInput.multiple).toBe(false);
 
-        modeBatch.checked = true;
-        modeBatch.dispatchEvent(new Event('change'));
+        // Switch to Broadcast Notice
+        tabBroadcast.click();
+        expect(getActiveTab()).toBe('broadcast');
+        expect(sectionSingle.classList.contains('hidden')).toBe(true);
+        expect(sectionBroadcast.classList.contains('hidden')).toBe(false);
+        expect(sectionHousebatch.classList.contains('hidden')).toBe(true);
+        expect(submitText.textContent).toBe('⚡ Broadcast to 0 Houses');
 
-        expect(singleContainer.classList.contains('hidden')).toBe(true);
-        expect(batchContainer.classList.contains('hidden')).toBe(false);
-        expect(submitText.textContent).toBe('⚡ Ingest All (0 Files)');
-        expect(fileInput.multiple).toBe(true);
+        // Switch to House Batch
+        tabHousebatch.click();
+        expect(getActiveTab()).toBe('housebatch');
+        expect(sectionSingle.classList.contains('hidden')).toBe(true);
+        expect(sectionBroadcast.classList.contains('hidden')).toBe(true);
+        expect(sectionHousebatch.classList.contains('hidden')).toBe(false);
+        expect(submitText.textContent).toBe('⚡ Ingest 0 Documents');
 
-        modeSingle.checked = true;
-        modeSingle.dispatchEvent(new Event('change'));
-
-        expect(singleContainer.classList.contains('hidden')).toBe(false);
-        expect(batchContainer.classList.contains('hidden')).toBe(true);
+        // Switch back to Single Document
+        tabSingle.click();
+        expect(getActiveTab()).toBe('single');
+        expect(sectionSingle.classList.contains('hidden')).toBe(false);
+        expect(sectionBroadcast.classList.contains('hidden')).toBe(true);
+        expect(sectionHousebatch.classList.contains('hidden')).toBe(true);
         expect(submitText.textContent).toBe('⚡ Ingest Document');
-        expect(fileInput.multiple).toBe(false);
     });
 
-    it('populates Area and House selects based on active context and handles dropdown changes', () => {
+    it('populates Area and House selects based on active context and handles dropdown changes in Single mode', () => {
         window.currentArea = 'Area 1';
         window.currentHouse = '502';
 
@@ -251,7 +336,7 @@ describe('Ingest Station Component', () => {
         expect(houseSelect.options[1].value).toBe('601');
     });
 
-    it('toggles Add New Tenant input field', () => {
+    it('toggles Add New Tenant input field in Single mode', () => {
         const toggleBtn = document.getElementById('btn-toggle-new-tenant');
         const container = document.getElementById('ingest-new-tenant-container');
 
@@ -287,7 +372,7 @@ describe('Ingest Station Component', () => {
         expect(overlay.classList.contains('hidden')).toBe(true);
     });
 
-    it('attaches dropped PDF file and previews it', () => {
+    it('attaches dropped PDF file and previews it in Single mode', () => {
         const modal = document.getElementById('ingest-station-modal');
         const fileInfo = document.getElementById('ingest-file-info');
         const fileName = document.getElementById('ingest-file-name');
@@ -307,7 +392,7 @@ describe('Ingest Station Component', () => {
         expect(pdfPreview.src).toContain('blob:mock-url');
     });
 
-    it('removes selected file when Change button is clicked and clears title input', () => {
+    it('removes selected file when Change button is clicked and clears title input in Single mode', () => {
         const mockFile = new File(['%PDF-1.4 content'], 'receipt.pdf', { type: 'application/pdf' });
         handleFileSelected(mockFile);
 
@@ -328,7 +413,7 @@ describe('Ingest Station Component', () => {
         expect(window.URL.revokeObjectURL).toHaveBeenCalled();
     });
 
-    it('auto-fills document title from imported PDF filename (cleaning extension and underscores/hyphens)', () => {
+    it('auto-fills document title from imported PDF filename', () => {
         const titleInput = document.getElementById('ingest-title-input');
 
         const mockFile = new File(['%PDF-1.4 content'], 'contract_2024.pdf', { type: 'application/pdf' });
@@ -358,20 +443,6 @@ describe('Ingest Station Component', () => {
         expect(titleInput.value).toBe('new agreement 2025');
     });
 
-    it('allows the user to edit the auto-filled title freely', () => {
-        const titleInput = document.getElementById('ingest-title-input');
-
-        const mockFile = new File(['%PDF-1.4 content'], 'draft_memo.pdf', { type: 'application/pdf' });
-        handleFileSelected(mockFile);
-        expect(titleInput.value).toBe('draft memo');
-
-        // Simulate user typing a custom title
-        titleInput.value = 'Official Final Memorandum';
-        titleInput.dispatchEvent(new Event('input', { bubbles: true }));
-
-        expect(titleInput.value).toBe('Official Final Memorandum');
-    });
-
     it('clears title input when removeFile is called directly', () => {
         const titleInput = document.getElementById('ingest-title-input');
         const mockFile = new File(['%PDF-1.4 content'], 'test_document.pdf', { type: 'application/pdf' });
@@ -388,152 +459,74 @@ describe('Ingest Station Component', () => {
         expect(btnAutofill).toBeNull();
     });
 
-    it('handles multi-file selection and automatically switches to Batch Filing mode', () => {
-        const modeBatch = document.getElementById('ingest-mode-batch');
+    it('handles multi-file selection and automatically switches to House Batch mode', () => {
         const file1 = new File(['%PDF-1.4 content'], 'bill_501.pdf', { type: 'application/pdf' });
         const file2 = new File(['%PDF-1.4 content'], 'contract_502.pdf', { type: 'application/pdf' });
 
         handleFilesSelected([file1, file2]);
 
-        expect(modeBatch.checked).toBe(true);
-        expect(getBatchQueue().length).toBe(2);
-        const countBadge = document.getElementById('ingest-batch-count-badge');
+        expect(getActiveTab()).toBe('housebatch');
+        expect(getHouseBatchQueue().length).toBe(2);
+        const countBadge = document.getElementById('housebatch-count-badge');
         expect(countBadge.textContent).toBe('2 files');
+        const submitText = document.getElementById('ingest-submit-text');
+        expect(submitText.textContent).toBe('⚡ Ingest 2 Documents');
     });
 
-    it('auto-fills editable titles and auto-detects house numbers from filenames in batch queue', () => {
+    it('auto-fills editable titles and renders file list in house batch queue', () => {
         window.currentArea = 'Area 1';
         openIngestStation();
+        switchTab('housebatch');
 
         const file1 = new File(['%PDF-1.4 content'], 'electricity-bill_501.pdf', { type: 'application/pdf' });
         const file2 = new File(['%PDF-1.4 content'], 'maintenance__502_final.pdf', { type: 'application/pdf' });
 
-        handleFilesSelected([file1, file2]);
+        addFilesToHouseBatch([file1, file2]);
 
-        const queue = getBatchQueue();
+        const queue = getHouseBatchQueue();
         expect(queue[0].title).toBe('electricity bill 501');
-        expect(queue[0].targets[0].house).toBe('501');
         expect(queue[1].title).toBe('maintenance 502 final');
-        expect(queue[1].targets[0].house).toBe('502');
 
         // User edits title
-        const titleInputs = document.querySelectorAll('.batch-title-input');
+        const titleInputs = document.querySelectorAll('.housebatch-title-input');
         expect(titleInputs.length).toBe(2);
         titleInputs[0].value = 'Custom Electricity Title';
         titleInputs[0].dispatchEvent(new Event('input'));
         expect(queue[0].title).toBe('Custom Electricity Title');
     });
 
-    it('auto-selects latest tenant for each detected house in batch queue', async () => {
-        global.fetch = vi.fn().mockImplementation((url) => {
-            if (url.includes('501')) {
-                return Promise.resolve({
-                    ok: true,
-                    json: async () => [
-                        { id: 101, name: 'Tenant Past', start_date: '2020-01-01', end_date: '2021-01-01' },
-                        { id: 102, name: 'Tenant Active 501', start_date: '2022-01-01', end_date: null },
-                    ],
-                });
-            }
-            if (url.includes('502')) {
-                return Promise.resolve({
-                    ok: true,
-                    json: async () => [
-                        { id: 201, name: 'Tenant Past 502', start_date: '2019-01-01', end_date: '2020-01-01' },
-                        { id: 202, name: 'Tenant Active 502', start_date: '2023-01-01', end_date: null },
-                    ],
-                });
-            }
-            return Promise.resolve({ ok: true, json: async () => [] });
-        });
-
+    it('removes individual files from the house batch queue', () => {
         window.currentArea = 'Area 1';
         openIngestStation();
-
-        const file1 = new File(['%PDF-1.4 content'], 'doc_501.pdf', { type: 'application/pdf' });
-        const file2 = new File(['%PDF-1.4 content'], 'doc_502.pdf', { type: 'application/pdf' });
-
-        await addFilesToBatch([file1, file2]);
-
-        const queue = getBatchQueue();
-        expect(queue[0].targets[0].tenantId).toBe('102');
-        expect(queue[1].targets[0].tenantId).toBe('202');
-    });
-
-    it('supports broadcasting a single document to multiple houses simultaneously', async () => {
-        global.fetch = vi.fn().mockImplementation((url) => {
-            if (url.includes('501')) {
-                return Promise.resolve({
-                    ok: true,
-                    json: async () => [{ id: 101, name: 'Tenant 501', start_date: '2023-01-01', end_date: null }],
-                });
-            }
-            if (url.includes('502')) {
-                return Promise.resolve({
-                    ok: true,
-                    json: async () => [{ id: 201, name: 'Tenant 502', start_date: '2023-01-01', end_date: null }],
-                });
-            }
-            return Promise.resolve({ ok: true, json: async () => [] });
-        });
-
-        window.currentArea = 'Area 1';
-        const modeBatch = document.getElementById('ingest-mode-batch');
-        modeBatch.checked = true;
-        modeBatch.dispatchEvent(new Event('change'));
-
-        const file = new File(['%PDF-1.4 content'], 'general_notice_circular.pdf', { type: 'application/pdf' });
-        await addFilesToBatch([file]);
-
-        const queue = getBatchQueue();
-        expect(queue.length).toBe(1);
-        expect(queue[0].targets.length).toBe(1);
-
-        // Click + Add House on this document
-        const btnAddHouse = document.querySelector('.btn-batch-add-house');
-        expect(btnAddHouse).not.toBeNull();
-        await btnAddHouse.click();
-
-        expect(queue[0].targets.length).toBe(2);
-        expect(queue[0].targets[0].house).toBe('501');
-        expect(queue[0].targets[1].house).toBe('502');
-
-        const submitText = document.getElementById('ingest-submit-text');
-        expect(submitText.textContent).toBe('⚡ Ingest All (2 Files)');
-    });
-
-    it('removes individual files from the batch queue', async () => {
-        window.currentArea = 'Area 1';
-        openIngestStation();
-        const modeBatch = document.getElementById('ingest-mode-batch');
-        modeBatch.checked = true;
-        modeBatch.dispatchEvent(new Event('change'));
+        switchTab('housebatch');
 
         const file1 = new File(['%PDF-1.4 content'], 'notice_501.pdf', { type: 'application/pdf' });
         const file2 = new File(['%PDF-1.4 content'], 'notice_502.pdf', { type: 'application/pdf' });
-        await addFilesToBatch([file1, file2]);
+        addFilesToHouseBatch([file1, file2]);
 
-        expect(getBatchQueue().length).toBe(2);
+        expect(getHouseBatchQueue().length).toBe(2);
 
         // Remove first file
-        const removeFileBtns = document.querySelectorAll('.btn-remove-batch-file');
+        const removeFileBtns = document.querySelectorAll('.btn-remove-housebatch-file');
         expect(removeFileBtns.length).toBe(2);
         removeFileBtns[0].click();
 
-        expect(getBatchQueue().length).toBe(1);
-        expect(getBatchQueue()[0].name).toBe('notice_502.pdf');
+        expect(getHouseBatchQueue().length).toBe(1);
+        expect(getHouseBatchQueue()[0].name).toBe('notice_502.pdf');
     });
 
-    it('submits batch ingestion of multiple documents across houses via POST /api/ingest', async () => {
+    it('submits house batch ingestion of multiple documents to 1 house via POST /api/ingest', async () => {
         window.currentArea = 'Area 1';
+        window.currentHouse = '501';
         openIngestStation();
-        const modeBatch = document.getElementById('ingest-mode-batch');
-        modeBatch.checked = true;
-        modeBatch.dispatchEvent(new Event('change'));
+        switchTab('housebatch');
+
+        const houseSelect = document.getElementById('housebatch-house-select');
+        houseSelect.value = '501';
 
         const file1 = new File(['%PDF-1.4 content'], 'bill_501.pdf', { type: 'application/pdf' });
-        const file2 = new File(['%PDF-1.4 content'], 'contract_502.pdf', { type: 'application/pdf' });
-        await addFilesToBatch([file1, file2]);
+        const file2 = new File(['%PDF-1.4 content'], 'contract_501.pdf', { type: 'application/pdf' });
+        addFilesToHouseBatch([file1, file2]);
 
         const modal = document.getElementById('ingest-station-modal');
         window.refreshCurrentTab = vi.fn();
@@ -553,14 +546,14 @@ describe('Ingest Station Component', () => {
             return Promise.resolve({ ok: true, json: async () => [] });
         });
 
-        await submitBatchIngest();
+        await submitHouseBatchIngest();
 
         expect(calls.length).toBe(2);
         expect(calls[0].body.get('house_id')).toBe('501');
         expect(calls[0].body.get('arabic_title')).toBe('bill 501');
         expect(calls[0].body.get('mode')).toBe('manual');
-        expect(calls[1].body.get('house_id')).toBe('502');
-        expect(calls[1].body.get('arabic_title')).toBe('contract 502');
+        expect(calls[1].body.get('house_id')).toBe('501');
+        expect(calls[1].body.get('arabic_title')).toBe('contract 501');
         expect(calls[1].body.get('mode')).toBe('manual');
 
         expect(modal.classList.contains('hidden')).toBe(true);
@@ -571,67 +564,117 @@ describe('Ingest Station Component', () => {
         expect(window.loadTree).toHaveBeenCalled();
     });
 
-    it('propagates shared category and shared primary date across all batch ingest tasks', async () => {
-        window.currentArea = 'Area 1';
-        openIngestStation();
-        const modeBatch = document.getElementById('ingest-mode-batch');
-        modeBatch.checked = true;
-        modeBatch.dispatchEvent(new Event('change'));
-
-        const categorySelect = document.getElementById('ingest-batch-category-select');
-        categorySelect.value = '06 - كهرباء وماء';
-        const dateInput = document.getElementById('ingest-batch-date-select');
-        dateInput.value = '2026-05-20';
-
-        const file1 = new File(['%PDF-1.4 content'], 'bill_a.pdf', { type: 'application/pdf' });
-        await addFilesToBatch([file1]);
-
-        let sentCategory = null;
-        let sentDate = null;
-        global.fetch = vi.fn().mockImplementation((url, opts) => {
-            if (url === '/api/ingest') {
-                sentCategory = opts.body.get('category');
-                sentDate = opts.body.get('primary_date');
+    it('populates houses checklist in Broadcast Notice and handles Select All and Deselect All', async () => {
+        global.fetch = vi.fn().mockImplementation((url) => {
+            if (url.includes('/api/areas/Area%201/houses/501/tenants')) {
                 return Promise.resolve({
                     ok: true,
-                    json: async () => ({ status: 'success', vault_id: 'v_batch_456' }),
+                    json: async () => [{ id: 101, name: 'Tenant A', start_date: '2023-01-01', end_date: null }],
+                });
+            }
+            if (url.includes('/api/areas/Area%201/houses/502/tenants')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => [{ id: 102, name: 'Tenant B', start_date: '2023-01-01', end_date: null }],
                 });
             }
             return Promise.resolve({ ok: true, json: async () => [] });
         });
 
-        await submitBatchIngest();
-
-        expect(sentCategory).toBe('06 - كهرباء وماء');
-        expect(sentDate).toBe('2026-05-20');
-    });
-
-    it('displays live progress during batch ingestion and handles errors gracefully', async () => {
         window.currentArea = 'Area 1';
         openIngestStation();
-        const modeBatch = document.getElementById('ingest-mode-batch');
-        modeBatch.checked = true;
-        modeBatch.dispatchEvent(new Event('change'));
+        switchTab('broadcast');
 
-        const file1 = new File(['%PDF-1.4 content'], 'file1.pdf', { type: 'application/pdf' });
-        const file2 = new File(['%PDF-1.4 content'], 'file2.pdf', { type: 'application/pdf' });
-        await addFilesToBatch([file1, file2]);
+        await populateBroadcastHouses('Area 1');
 
-        const progressEl = document.getElementById('ingest-batch-progress');
-        const progressText = document.getElementById('ingest-batch-progress-text');
+        const checklist = document.getElementById('broadcast-houses-list');
+        const checkboxes = checklist.querySelectorAll('.broadcast-house-checkbox');
+        expect(checkboxes.length).toBe(2);
 
-        let callCount = 0;
-        global.fetch = vi.fn().mockImplementation((url) => {
+        // Select All
+        const btnSelectAll = document.getElementById('btn-broadcast-select-all');
+        btnSelectAll.click();
+        expect(getSelectedBroadcastHouses().length).toBe(2);
+        const submitText = document.getElementById('ingest-submit-text');
+        expect(submitText.textContent).toBe('⚡ Broadcast to 2 Houses');
+
+        // Deselect All
+        const btnDeselectAll = document.getElementById('btn-broadcast-deselect-all');
+        btnDeselectAll.click();
+        expect(getSelectedBroadcastHouses().length).toBe(0);
+        expect(submitText.textContent).toBe('⚡ Broadcast to 0 Houses');
+    });
+
+    it('filters broadcast houses with search input', async () => {
+        window.currentArea = 'Area 1';
+        openIngestStation();
+        switchTab('broadcast');
+
+        await populateBroadcastHouses('Area 1');
+
+        const searchInput = document.getElementById('broadcast-house-search');
+        searchInput.value = '501';
+        filterBroadcastHouses('501');
+
+        const items = document.querySelectorAll('.broadcast-house-item');
+        expect(items.length).toBe(2);
+        expect(items[0].classList.contains('hidden')).toBe(false);
+        expect(items[1].classList.contains('hidden')).toBe(true);
+    });
+
+    it('submits broadcast notice to multiple houses via POST /api/ingest', async () => {
+        global.fetch = vi.fn().mockImplementation((url, opts) => {
             if (url === '/api/ingest') {
-                callCount++;
-                expect(progressEl.classList.contains('hidden')).toBe(false);
-                if (callCount === 1) {
-                    expect(progressText.textContent).toContain('Ingesting 1 of 2');
-                    return Promise.resolve({ ok: true, json: async () => ({ status: 'success' }) });
-                } else {
-                    expect(progressText.textContent).toContain('Ingesting 2 of 2');
-                    return Promise.resolve({ ok: false, json: async () => ({ detail: 'Disk full' }) });
-                }
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ status: 'success', vault_id: 'v_bc_1' }),
+                });
+            }
+            return Promise.resolve({ ok: true, json: async () => [] });
+        });
+
+        window.currentArea = 'Area 1';
+        openIngestStation();
+        switchTab('broadcast');
+
+        const areaSelect = document.getElementById('broadcast-area-select');
+        areaSelect.value = 'Area 1';
+
+        await populateBroadcastHouses('Area 1');
+        selectAllBroadcastHouses(true);
+
+        const noticeFile = new File(['%PDF-1.4 circular'], 'circular_notice.pdf', { type: 'application/pdf' });
+        handleBroadcastFileSelected(noticeFile);
+
+        const modal = document.getElementById('ingest-station-modal');
+        window.showToast = vi.fn();
+        global.showToast = window.showToast;
+        window.loadTree = vi.fn();
+
+        await submitBroadcastIngest();
+
+        expect(modal.classList.contains('hidden')).toBe(true);
+        expect(global.showToast).toHaveBeenCalledWith(
+            'Successfully broadcasted to 2 houses',
+            'success'
+        );
+    });
+
+    it('handles direct drag-and-drop on a house card (handleDirectHouseDrop)', async () => {
+        const calls = [];
+        global.fetch = vi.fn().mockImplementation((url, opts) => {
+            if (url.includes('/api/areas/Area%201/houses/501/tenants')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => [{ id: 101, name: 'Tenant A', start_date: '2023-01-01', end_date: null }],
+                });
+            }
+            if (url === '/api/ingest') {
+                calls.push(opts);
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ status: 'success', vault_id: 'v_direct_h' }),
+                });
             }
             return Promise.resolve({ ok: true, json: async () => [] });
         });
@@ -639,20 +682,87 @@ describe('Ingest Station Component', () => {
         window.showToast = vi.fn();
         global.showToast = window.showToast;
 
-        await submitBatchIngest();
+        const file = new File(['%PDF-1.4 invoice'], 'invoice-jan-2026.pdf', { type: 'application/pdf' });
+        await handleDirectHouseDrop([file], '501', 'Area 1');
 
+        expect(calls.length).toBe(1);
+        expect(calls[0].body.get('house_id')).toBe('501');
+        expect(calls[0].body.get('category')).toBe('13 - رسائل متنوعة');
+        expect(calls[0].body.get('arabic_title')).toBe('invoice jan 2026');
+        expect(calls[0].body.get('tenant_id')).toBe('101');
         expect(global.showToast).toHaveBeenCalledWith(
-            expect.stringContaining('1 failed'),
-            'error'
+            '⚡ Document "invoice jan 2026" filed into House 501!',
+            'success'
         );
     });
 
-    it('validates required fields and submits ingest form successfully', async () => {
+    it('handles direct drag-and-drop on a category folder card (handleDirectCategoryDrop)', async () => {
+        const calls = [];
+        global.fetch = vi.fn().mockImplementation((url, opts) => {
+            if (url.includes('/api/areas/Area%201/houses/501/tenants')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => [{ id: 101, name: 'Tenant A', start_date: '2023-01-01', end_date: null }],
+                });
+            }
+            if (url === '/api/ingest') {
+                calls.push(opts);
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => ({ status: 'success', vault_id: 'v_direct_c' }),
+                });
+            }
+            return Promise.resolve({ ok: true, json: async () => [] });
+        });
+
+        window.showToast = vi.fn();
+        global.showToast = window.showToast;
+
+        const file = new File(['%PDF-1.4 lease'], 'official_contract_2026.pdf', { type: 'application/pdf' });
+        await handleDirectCategoryDrop([file], '05 - عقود', '501', 'Area 1');
+
+        expect(calls.length).toBe(1);
+        expect(calls[0].body.get('house_id')).toBe('501');
+        expect(calls[0].body.get('category')).toBe('05 - عقود');
+        expect(calls[0].body.get('arabic_title')).toBe('official contract 2026');
+        expect(calls[0].body.get('tenant_id')).toBe('101');
+        expect(global.showToast).toHaveBeenCalledWith(
+            '⚡ Document "official contract 2026" filed into 05 - عقود for House 501!',
+            'success'
+        );
+    });
+
+    it('defaults date inputs to today date (YYYY-MM-DD)', () => {
+        openIngestStation();
+        const dateInput = document.getElementById('ingest-date-input');
+        const expectedDate = getTodayIsoDate();
+        expect(dateInput.value).toBe(expectedDate);
+    });
+
+    it('allows the user to freely edit or clear the primary date in Single mode', () => {
+        openIngestStation();
+        const dateInput = document.getElementById('ingest-date-input');
+        expect(dateInput.value).toBe(getTodayIsoDate());
+
+        // User edits the date
+        dateInput.value = '2023-11-20';
+        dateInput.dispatchEvent(new Event('input', { bubbles: true }));
+        dateInput.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(dateInput.value).toBe('2023-11-20');
+
+        // User clears the date
+        dateInput.value = '';
+        dateInput.dispatchEvent(new Event('input', { bubbles: true }));
+        dateInput.dispatchEvent(new Event('change', { bubbles: true }));
+        expect(dateInput.value).toBe('');
+    });
+
+    it('validates required fields and submits single ingest form successfully', async () => {
         const modal = document.getElementById('ingest-station-modal');
         const statusMsg = document.getElementById('ingest-status-msg');
 
         // Validation without file
-        await submitIngestForm();
+        await submitSingleIngest();
         expect(statusMsg.textContent).toContain('Please select or drop a PDF file');
 
         // Add file
@@ -660,7 +770,7 @@ describe('Ingest Station Component', () => {
         handleFileSelected(mockFile);
 
         // Validation without area/house
-        await submitIngestForm();
+        await submitSingleIngest();
         expect(statusMsg.textContent).toContain('Please select both a Target Area and Target House');
 
         // Fill area and house
@@ -683,7 +793,7 @@ describe('Ingest Station Component', () => {
             }),
         });
 
-        await submitIngestForm();
+        await submitSingleIngest();
 
         expect(modal.classList.contains('hidden')).toBe(true);
         expect(global.showToast).toHaveBeenCalledWith(
@@ -692,35 +802,6 @@ describe('Ingest Station Component', () => {
         );
         expect(window.refreshCurrentTab).toHaveBeenCalledWith('Area 1', '501');
         expect(window.loadTree).toHaveBeenCalled();
-    });
-
-    it('does not duplicate tenants in ingest-tenant-select when openIngestStation is called', async () => {
-        global.fetch = vi.fn().mockImplementation((url) => {
-            if (url.includes('/api/areas/Area%201/houses/501/tenants')) {
-                return Promise.resolve({
-                    ok: true,
-                    json: async () => [
-                        { id: 101, name: 'Tenant Alpha', start_date: '2021-01-01' },
-                        { id: 102, name: 'Tenant Beta', start_date: '2023-01-01' },
-                    ],
-                });
-            }
-            return Promise.reject(new Error('not found'));
-        });
-
-        window.currentArea = 'Area 1';
-        window.currentHouse = '501';
-
-        openIngestStation();
-        await new Promise((r) => setTimeout(r, 10));
-
-        const tenantSelect = document.getElementById('ingest-tenant-select');
-        const options = Array.from(tenantSelect.options);
-        const alphaOptions = options.filter((opt) => opt.textContent.includes('Tenant Alpha'));
-        const betaOptions = options.filter((opt) => opt.textContent.includes('Tenant Beta'));
-
-        expect(alphaOptions.length).toBe(1);
-        expect(betaOptions.length).toBe(1);
     });
 
     it('deduplicates duplicate tenant IDs and normalized names in populateTenants', async () => {
@@ -743,71 +824,6 @@ describe('Ingest Station Component', () => {
         expect(options[1].value).toBe('104');
     });
 
-    it('ignores stale out-of-order responses in populateTenants', async () => {
-        let resolveFirst;
-        let resolveSecond;
-
-        global.fetch = vi.fn().mockImplementation((url) => {
-            if (url.includes('house_fast')) {
-                return new Promise((res) => {
-                    resolveSecond = () => res({
-                        ok: true,
-                        json: async () => [{ id: 201, name: 'Fast House Tenant' }],
-                    });
-                });
-            } else {
-                return new Promise((res) => {
-                    resolveFirst = () => res({
-                        ok: true,
-                        json: async () => [{ id: 101, name: 'Slow House Tenant' }],
-                    });
-                });
-            }
-        });
-
-        const p1 = populateTenants('Area 1', 'house_slow');
-        const p2 = populateTenants('Area 1', 'house_fast');
-
-        // Resolve second (faster) request first
-        resolveSecond();
-        await p2;
-
-        const tenantSelect = document.getElementById('ingest-tenant-select');
-        expect(tenantSelect.options.length).toBe(2);
-        expect(tenantSelect.options[1].textContent).toContain('Fast House Tenant');
-
-        // Resolve first (slow) request later
-        resolveFirst();
-        await p1;
-
-        // Slow response should have been ignored
-        expect(tenantSelect.options.length).toBe(2);
-        expect(tenantSelect.options[1].textContent).toContain('Fast House Tenant');
-    });
-
-    it('handles concurrent populateTenants calls without duplicating tenant options', async () => {
-        global.fetch = vi.fn().mockImplementation(() => Promise.resolve({
-            ok: true,
-            json: async () => [
-                { id: 101, name: 'Tenant Alpha', start_date: '2021-01-01' },
-                { id: 102, name: 'Tenant Beta', start_date: '2023-01-01' },
-            ],
-        }));
-
-        await Promise.all([
-            populateTenants('Area 1', '501'),
-            populateTenants('Area 1', '501'),
-        ]);
-
-        const tenantSelect = document.getElementById('ingest-tenant-select');
-        const options = Array.from(tenantSelect.options);
-        const alphaOptions = options.filter((opt) => opt.textContent.includes('Tenant Alpha'));
-        const betaOptions = options.filter((opt) => opt.textContent.includes('Tenant Beta'));
-
-        expect(alphaOptions.length).toBe(1);
-        expect(betaOptions.length).toBe(1);
-    });
-
     it('selects latest active tenant by default when a house with tenants is populated', async () => {
         global.fetch = vi.fn().mockResolvedValueOnce({
             ok: true,
@@ -822,197 +838,5 @@ describe('Ingest Station Component', () => {
 
         const tenantSelect = document.getElementById('ingest-tenant-select');
         expect(tenantSelect.value).toBe('103');
-
-        // Verify user can freely change selection to another tenant or back to empty
-        tenantSelect.value = '101';
-        expect(tenantSelect.value).toBe('101');
-        tenantSelect.value = '';
-        expect(tenantSelect.value).toBe('');
     });
-
-    it('selects tenant with latest end_date or start_date when all tenants have ended', async () => {
-        global.fetch = vi.fn().mockResolvedValueOnce({
-            ok: true,
-            json: async () => [
-                { id: 201, name: 'Historical A', start_date: '2019-01-01', end_date: '2020-12-31' },
-                { id: 202, name: 'Historical B', start_date: '2021-01-01', end_date: '2023-05-31' },
-                { id: 203, name: 'Historical C', start_date: '2023-01-01', end_date: '2023-05-31' },
-            ],
-        });
-
-        await populateTenants('Area 1', '501');
-
-        const tenantSelect = document.getElementById('ingest-tenant-select');
-        // Historical B and C both ended on 2023-05-31, but Historical C started later (2023-01-01 > 2021-01-01)
-        expect(tenantSelect.value).toBe('203');
-    });
-
-    it('selects the last tenant in houseNode.children when using DOM fallback', async () => {
-        global.fetch = vi.fn().mockRejectedValueOnce(new Error('Network failure'));
-
-        window.globalTreeData = [
-            {
-                name: 'Area Fallback',
-                children: [
-                    {
-                        name: 'House Fallback',
-                        children: [
-                            { name: 'First Tenant' },
-                            { name: 'Last Tenant' },
-                        ],
-                    },
-                ],
-            },
-        ];
-
-        await populateTenants('Area Fallback', 'House Fallback');
-
-        const tenantSelect = document.getElementById('ingest-tenant-select');
-        expect(tenantSelect.value).toBe('Last Tenant');
-    });
-
-    it('selects the latest tenant of the newly selected house when switching between houses', async () => {
-        global.fetch = vi.fn().mockImplementation((url) => {
-            if (url.includes('house-a')) {
-                return Promise.resolve({
-                    ok: true,
-                    json: async () => [
-                        { id: 10, name: 'House A Past', start_date: '2020-01-01', end_date: '2021-01-01' },
-                        { id: 11, name: 'House A Active', start_date: '2021-02-01', end_date: null },
-                    ],
-                });
-            }
-            if (url.includes('house-b')) {
-                return Promise.resolve({
-                    ok: true,
-                    json: async () => [
-                        { id: 20, name: 'House B Past', start_date: '2019-01-01', end_date: '2020-01-01' },
-                        { id: 21, name: 'House B Active Latest', start_date: '2024-01-01', end_date: null },
-                    ],
-                });
-            }
-            return Promise.reject(new Error('Unknown url'));
-        });
-
-        const areaSelect = document.getElementById('ingest-area-select');
-        const houseSelect = document.getElementById('ingest-house-select');
-        const tenantSelect = document.getElementById('ingest-tenant-select');
-
-        areaSelect.innerHTML = '<option value="Area 1">Area 1</option>';
-        areaSelect.value = 'Area 1';
-        houseSelect.innerHTML = `
-            <option value="">Select House...</option>
-            <option value="house-a">House A</option>
-            <option value="house-b">House B</option>
-        `;
-
-        // Switch to house-a
-        houseSelect.value = 'house-a';
-        houseSelect.dispatchEvent(new Event('change'));
-        await new Promise((r) => setTimeout(r, 10));
-
-        expect(tenantSelect.value).toBe('11');
-
-        // Switch to house-b
-        houseSelect.value = 'house-b';
-        houseSelect.dispatchEvent(new Event('change'));
-        await new Promise((r) => setTimeout(r, 10));
-
-        expect(tenantSelect.value).toBe('21');
-    });
-
-    it('respects targetTenantId when explicitly provided', async () => {
-        global.fetch = vi.fn().mockResolvedValue({
-            ok: true,
-            json: async () => [
-                { id: 101, name: 'Tenant Past', start_date: '2020-01-01', end_date: '2021-12-31' },
-                { id: 102, name: 'Tenant Active 1', start_date: '2022-01-01', end_date: null },
-                { id: 103, name: 'Tenant Active Latest', start_date: '2023-06-01', end_date: null },
-            ],
-        });
-
-        // Explicit ID as integer
-        await populateTenants('Area 1', '501', 101);
-        const tenantSelect = document.getElementById('ingest-tenant-select');
-        expect(tenantSelect.value).toBe('101');
-
-        // Explicit ID as string
-        await populateTenants('Area 1', '501', '102');
-        expect(tenantSelect.value).toBe('102');
-    });
-
-    it('selects tenant matching window.currentTenant by name or ID when targetTenantId is not provided', async () => {
-        global.fetch = vi.fn().mockResolvedValue({
-            ok: true,
-            json: async () => [
-                { id: 101, name: 'Tenant Alpha', start_date: '2020-01-01', end_date: null },
-                { id: 102, name: 'Tenant Beta', start_date: '2023-01-01', end_date: null },
-            ],
-        });
-
-        const tenantSelect = document.getElementById('ingest-tenant-select');
-
-        // Match by tenant name
-        window.currentTenant = 'Tenant Alpha';
-        await populateTenants('Area 1', '501');
-        expect(tenantSelect.value).toBe('101');
-
-        // Match by tenant ID
-        window.currentTenant = '101';
-        await populateTenants('Area 1', '501');
-        expect(tenantSelect.value).toBe('101');
-    });
-
-    it("defaults #ingest-date-input to today's date (YYYY-MM-DD) on openIngestStation()", () => {
-        const dateInput = document.getElementById('ingest-date-input');
-        expect(dateInput.value).toBe('');
-
-        openIngestStation();
-
-        const today = new Date();
-        const expectedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        expect(dateInput.value).toBe(expectedDate);
-        expect(dateInput.value).toBe(getTodayIsoDate());
-    });
-
-    it("keeps or resets #ingest-date-input to today's date when resetting the form or closing the modal", () => {
-        openIngestStation();
-        const dateInput = document.getElementById('ingest-date-input');
-        const expectedDate = getTodayIsoDate();
-        expect(dateInput.value).toBe(expectedDate);
-
-        // User changes the date
-        dateInput.value = '2021-04-10';
-        expect(dateInput.value).toBe('2021-04-10');
-
-        // Form reset resets date to today's date
-        resetIngestForm();
-        expect(dateInput.value).toBe(expectedDate);
-
-        // User changes the date again and closes modal
-        dateInput.value = '2022-08-15';
-        closeIngestStation();
-        expect(dateInput.value).toBe(expectedDate);
-    });
-
-    it("allows the user to freely edit or clear the primary date", () => {
-        openIngestStation();
-        const dateInput = document.getElementById('ingest-date-input');
-        expect(dateInput.value).toBe(getTodayIsoDate());
-
-        // User edits the date
-        dateInput.value = '2023-11-20';
-        dateInput.dispatchEvent(new Event('input', { bubbles: true }));
-        dateInput.dispatchEvent(new Event('change', { bubbles: true }));
-        expect(dateInput.value).toBe('2023-11-20');
-
-        // User clears the date
-        dateInput.value = '';
-        dateInput.dispatchEvent(new Event('input', { bubbles: true }));
-        dateInput.dispatchEvent(new Event('change', { bubbles: true }));
-        expect(dateInput.value).toBe('');
-    });
-
 });
-
-

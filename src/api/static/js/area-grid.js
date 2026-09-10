@@ -165,6 +165,37 @@
                 </div>
             `;
 
+            // Direct drag & drop ingestion onto house card
+            card.addEventListener('dragover', (e) => {
+                if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.dataTransfer.dropEffect = 'copy';
+                    card.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50/40');
+                }
+            });
+
+            card.addEventListener('dragleave', (e) => {
+                card.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50/40');
+            });
+
+            card.addEventListener('drop', (e) => {
+                if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    card.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50/40');
+                    if (typeof window.resetDragCounter === 'function') {
+                        window.resetDragCounter();
+                    } else {
+                        const overlay = document.getElementById('ingest-dropzone-overlay');
+                        if (overlay) overlay.classList.add('hidden');
+                    }
+                    if (typeof window.handleDirectHouseDrop === 'function') {
+                        window.handleDirectHouseDrop(e.dataTransfer.files, house.id, areaNode.name);
+                    }
+                }
+            });
+
             card.onclick = () => {
                 openHouseFromGrid(areaNode.name, house.id);
             };

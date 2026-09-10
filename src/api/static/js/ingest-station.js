@@ -1,11 +1,36 @@
-// ── Ingest Station Controller (Multi-File User Batch Filing & Single Mode) ──
+// ── Ingest Station Controller (Single Document, Broadcast Notice, House Batch) ──
 (function() {
+    let activeTab = 'single'; // 'single' | 'broadcast' | 'housebatch'
+
+    // Common / Modal Elements
     let btnIngestTrigger = null;
     let dropzoneOverlay = null;
     let dropzonePrompt = null;
     let ingestModal = null;
     let btnIngestClose = null;
     let btnIngestCancel = null;
+    let btnSubmit = null;
+    let submitSpinner = null;
+    let submitText = null;
+    let statusMsg = null;
+
+    // Shared Batch & Broadcast Progress Bar
+    let batchProgress = null;
+    let batchProgressText = null;
+    let batchProgressPct = null;
+    let batchProgressBar = null;
+
+    // Tab Navigation Buttons
+    let tabModeSingle = null;
+    let tabModeBroadcast = null;
+    let tabModeHousebatch = null;
+
+    // Section Containers
+    let sectionModeSingle = null;
+    let sectionModeBroadcast = null;
+    let sectionModeHousebatch = null;
+
+    // Section 1: Single Document Elements
     let fileDropzone = null;
     let fileInput = null;
     let fileInfo = null;
@@ -14,9 +39,6 @@
     let btnRemoveFile = null;
     let previewContainer = null;
     let pdfPreview = null;
-    let modeSingle = null;
-    let modeBatch = null;
-    let batchNotice = null;
     let areaSelect = null;
     let houseSelect = null;
     let tenantSelect = null;
@@ -27,33 +49,54 @@
     let titleInput = null;
     let dateInput = null;
     let notesInput = null;
-    let statusMsg = null;
-    let btnSubmit = null;
-    let submitSpinner = null;
-    let submitText = null;
 
-    // Batch UI Elements
-    let ingestSingleContainer = null;
-    let ingestBatchQueueContainer = null;
-    let batchAreaSelect = null;
-    let batchCategorySelect = null;
-    let batchDateSelect = null;
-    let batchFilesList = null;
-    let batchCountBadge = null;
-    let batchEmptyDropzone = null;
-    let btnBatchAddMore = null;
-    let batchProgress = null;
-    let batchProgressText = null;
-    let batchProgressPct = null;
-    let batchProgressBar = null;
+    // Section 2: Broadcast Notice Elements
+    let broadcastDropzone = null;
+    let broadcastFileInput = null;
+    let broadcastFileInfo = null;
+    let broadcastFileNameEl = null;
+    let broadcastFileSizeEl = null;
+    let btnBroadcastRemoveFile = null;
+    let broadcastPreviewContainer = null;
+    let broadcastPdfPreview = null;
+    let broadcastCategorySelect = null;
+    let broadcastTitleInput = null;
+    let broadcastDateInput = null;
+    let broadcastAreaSelect = null;
+    let broadcastSelectedCount = null;
+    let btnBroadcastSelectAll = null;
+    let btnBroadcastDeselectAll = null;
+    let broadcastHouseSearch = null;
+    let broadcastHousesList = null;
 
+    // Section 3: House Batch Elements
+    let housebatchAreaSelect = null;
+    let housebatchHouseSelect = null;
+    let housebatchTenantSelect = null;
+    let housebatchCategorySelect = null;
+    let housebatchDateSelect = null;
+    let housebatchCountBadge = null;
+    let btnHousebatchAddMore = null;
+    let housebatchDropzone = null;
+    let housebatchFileInput = null;
+    let housebatchFilesList = null;
+
+    // State
     let selectedFile = null;
     let objectUrl = null;
+
+    let broadcastFile = null;
+    let broadcastObjectUrl = null;
+    let broadcastHousesData = [];
+
+    let houseBatchQueue = [];
+
     let isSubmitting = false;
     let dragCounter = 0;
     let tenantFetchSeq = 0;
-    let batchQueue = [];
+    let housebatchTenantFetchSeq = 0;
     const tenantCache = new Map();
+    let isGlobalListenersAttached = false;
 
     const STANDARD_CATEGORIES = [
         "01 - بيانات أساسية",
@@ -107,8 +150,6 @@
         }
     }
 
-    let isGlobalListenersAttached = false;
-
     function handleKeyDown(e) {
         if ((e.metaKey || e.ctrlKey) && e.key && e.key.toLowerCase() === 'i') {
             e.preventDefault();
@@ -134,18 +175,48 @@
             window.URL.revokeObjectURL(objectUrl);
             objectUrl = null;
         }
+        broadcastFile = null;
+        if (broadcastObjectUrl && typeof window !== 'undefined' && window.URL && typeof window.URL.revokeObjectURL === 'function') {
+            window.URL.revokeObjectURL(broadcastObjectUrl);
+            broadcastObjectUrl = null;
+        }
         isSubmitting = false;
         dragCounter = 0;
         tenantFetchSeq = 0;
-        batchQueue = [];
+        housebatchTenantFetchSeq = 0;
+        houseBatchQueue = [];
+        broadcastHousesData = [];
         tenantCache.clear();
 
+        // Common
         btnIngestTrigger = document.getElementById('btn-ingest-trigger');
         dropzoneOverlay = document.getElementById('ingest-dropzone-overlay');
         dropzonePrompt = document.getElementById('ingest-dropzone-prompt');
         ingestModal = document.getElementById('ingest-station-modal');
         btnIngestClose = document.getElementById('btn-ingest-close');
         btnIngestCancel = document.getElementById('btn-ingest-cancel');
+        btnSubmit = document.getElementById('btn-ingest-submit');
+        submitSpinner = document.getElementById('ingest-submit-spinner');
+        submitText = document.getElementById('ingest-submit-text');
+        statusMsg = document.getElementById('ingest-status-msg');
+
+        // Progress
+        batchProgress = document.getElementById('ingest-batch-progress');
+        batchProgressText = document.getElementById('ingest-batch-progress-text');
+        batchProgressPct = document.getElementById('ingest-batch-progress-pct');
+        batchProgressBar = document.getElementById('ingest-batch-progress-bar');
+
+        // Tabs
+        tabModeSingle = document.getElementById('tab-mode-single');
+        tabModeBroadcast = document.getElementById('tab-mode-broadcast');
+        tabModeHousebatch = document.getElementById('tab-mode-housebatch');
+
+        // Sections
+        sectionModeSingle = document.getElementById('section-mode-single');
+        sectionModeBroadcast = document.getElementById('section-mode-broadcast');
+        sectionModeHousebatch = document.getElementById('section-mode-housebatch');
+
+        // Single mode elements
         fileDropzone = document.getElementById('ingest-file-dropzone');
         fileInput = document.getElementById('ingest-file-input');
         fileInfo = document.getElementById('ingest-file-info');
@@ -154,9 +225,6 @@
         btnRemoveFile = document.getElementById('btn-remove-file');
         previewContainer = document.getElementById('ingest-preview-container');
         pdfPreview = document.getElementById('ingest-pdf-preview');
-        modeSingle = document.getElementById('ingest-mode-single');
-        modeBatch = document.getElementById('ingest-mode-batch');
-        batchNotice = document.getElementById('ingest-batch-notice');
         areaSelect = document.getElementById('ingest-area-select');
         houseSelect = document.getElementById('ingest-house-select');
         tenantSelect = document.getElementById('ingest-tenant-select');
@@ -167,27 +235,39 @@
         titleInput = document.getElementById('ingest-title-input');
         dateInput = document.getElementById('ingest-date-input');
         notesInput = document.getElementById('ingest-notes-input');
-        statusMsg = document.getElementById('ingest-status-msg');
-        btnSubmit = document.getElementById('btn-ingest-submit');
-        submitSpinner = document.getElementById('ingest-submit-spinner');
-        submitText = document.getElementById('ingest-submit-text');
 
-        // Batch elements
-        ingestSingleContainer = document.getElementById('ingest-single-container');
-        ingestBatchQueueContainer = document.getElementById('ingest-batch-queue-container');
-        batchAreaSelect = document.getElementById('ingest-batch-area-select');
-        batchCategorySelect = document.getElementById('ingest-batch-category-select');
-        batchDateSelect = document.getElementById('ingest-batch-date-select');
-        batchFilesList = document.getElementById('ingest-batch-files-list');
-        batchCountBadge = document.getElementById('ingest-batch-count-badge');
-        batchEmptyDropzone = document.getElementById('ingest-batch-empty-dropzone');
-        btnBatchAddMore = document.getElementById('btn-batch-add-more');
-        batchProgress = document.getElementById('ingest-batch-progress');
-        batchProgressText = document.getElementById('ingest-batch-progress-text');
-        batchProgressPct = document.getElementById('ingest-batch-progress-pct');
-        batchProgressBar = document.getElementById('ingest-batch-progress-bar');
+        // Broadcast mode elements
+        broadcastDropzone = document.getElementById('broadcast-dropzone');
+        broadcastFileInput = document.getElementById('broadcast-file-input');
+        broadcastFileInfo = document.getElementById('broadcast-file-info');
+        broadcastFileNameEl = document.getElementById('broadcast-file-name');
+        broadcastFileSizeEl = document.getElementById('broadcast-file-size');
+        btnBroadcastRemoveFile = document.getElementById('btn-broadcast-remove-file');
+        broadcastPreviewContainer = document.getElementById('broadcast-preview-container');
+        broadcastPdfPreview = document.getElementById('broadcast-pdf-preview');
+        broadcastCategorySelect = document.getElementById('broadcast-category-select');
+        broadcastTitleInput = document.getElementById('broadcast-title-input');
+        broadcastDateInput = document.getElementById('broadcast-date-input');
+        broadcastAreaSelect = document.getElementById('broadcast-area-select');
+        broadcastSelectedCount = document.getElementById('broadcast-selected-count');
+        btnBroadcastSelectAll = document.getElementById('btn-broadcast-select-all');
+        btnBroadcastDeselectAll = document.getElementById('btn-broadcast-deselect-all');
+        broadcastHouseSearch = document.getElementById('broadcast-house-search');
+        broadcastHousesList = document.getElementById('broadcast-houses-list');
 
-        // Trigger button click
+        // House Batch mode elements
+        housebatchAreaSelect = document.getElementById('housebatch-area-select');
+        housebatchHouseSelect = document.getElementById('housebatch-house-select');
+        housebatchTenantSelect = document.getElementById('housebatch-tenant-select');
+        housebatchCategorySelect = document.getElementById('housebatch-category-select');
+        housebatchDateSelect = document.getElementById('housebatch-date-select');
+        housebatchCountBadge = document.getElementById('housebatch-count-badge');
+        btnHousebatchAddMore = document.getElementById('btn-housebatch-add-more');
+        housebatchDropzone = document.getElementById('housebatch-dropzone');
+        housebatchFileInput = document.getElementById('housebatch-file-input');
+        housebatchFilesList = document.getElementById('housebatch-files-list');
+
+        // Trigger button
         if (btnIngestTrigger) {
             btnIngestTrigger.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -208,7 +288,27 @@
             });
         }
 
-        // File input change
+        // Tab switcher buttons
+        if (tabModeSingle) {
+            tabModeSingle.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchTab('single');
+            });
+        }
+        if (tabModeBroadcast) {
+            tabModeBroadcast.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchTab('broadcast');
+            });
+        }
+        if (tabModeHousebatch) {
+            tabModeHousebatch.addEventListener('click', (e) => {
+                e.preventDefault();
+                switchTab('housebatch');
+            });
+        }
+
+        // Single mode event listeners
         if (fileInput) {
             fileInput.addEventListener('change', (e) => {
                 if (e.target.files && e.target.files.length > 0) {
@@ -216,8 +316,6 @@
                 }
             });
         }
-
-        // Local Single Dropzone inside modal
         if (fileDropzone && fileInput) {
             fileDropzone.addEventListener('click', () => fileInput.click());
             fileDropzone.addEventListener('dragover', (e) => {
@@ -236,52 +334,12 @@
                 }
             });
         }
-
-        // Batch empty dropzone
-        if (batchEmptyDropzone && fileInput) {
-            batchEmptyDropzone.addEventListener('click', () => fileInput.click());
-            batchEmptyDropzone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                batchEmptyDropzone.classList.add('border-blue-500', 'bg-blue-50/60');
-            });
-            batchEmptyDropzone.addEventListener('dragleave', (e) => {
-                e.preventDefault();
-                batchEmptyDropzone.classList.remove('border-blue-500', 'bg-blue-50/60');
-            });
-            batchEmptyDropzone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                batchEmptyDropzone.classList.remove('border-blue-500', 'bg-blue-50/60');
-                if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-                    handleFilesSelected(e.dataTransfer.files);
-                }
-            });
-        }
-
-        // Batch add more button
-        if (btnBatchAddMore && fileInput) {
-            btnBatchAddMore.addEventListener('click', (e) => {
-                e.preventDefault();
-                fileInput.click();
-            });
-        }
-
-        // Remove file button (Single mode)
         if (btnRemoveFile) {
             btnRemoveFile.addEventListener('click', (e) => {
                 e.preventDefault();
                 removeFile();
             });
         }
-
-        // Mode radio switches
-        if (modeSingle) {
-            modeSingle.addEventListener('change', updateModeUI);
-        }
-        if (modeBatch) {
-            modeBatch.addEventListener('change', updateModeUI);
-        }
-
-        // Area & House selects (Single mode)
         if (areaSelect) {
             areaSelect.addEventListener('change', () => {
                 populateHouses(areaSelect.value);
@@ -292,37 +350,120 @@
                 populateTenants(areaSelect ? areaSelect.value : '', houseSelect.value);
             });
         }
-
-        // Shared Area select (Batch mode)
-        if (batchAreaSelect) {
-            batchAreaSelect.addEventListener('change', async () => {
-                const newArea = batchAreaSelect.value;
-                const availableHouses = getHousesForArea(newArea);
-                for (const item of batchQueue) {
-                    for (const target of item.targets) {
-                        target.house = detectHouseFromFilename(item.name, availableHouses) || availableHouses[0] || '';
-                        await updateTargetTenants(item, target);
-                    }
-                }
-                renderBatchQueue();
-            });
-        }
-
-        // Tenant toggle button
         if (btnToggleNewTenant) {
             btnToggleNewTenant.addEventListener('click', () => {
                 toggleNewTenantInput();
             });
         }
 
-        // Submit button
+        // Broadcast mode event listeners
+        if (broadcastFileInput) {
+            broadcastFileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                    handleBroadcastFileSelected(e.target.files[0]);
+                }
+            });
+        }
+        if (broadcastDropzone && broadcastFileInput) {
+            broadcastDropzone.addEventListener('click', () => broadcastFileInput.click());
+            broadcastDropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                broadcastDropzone.classList.add('border-blue-500', 'bg-blue-50/60');
+            });
+            broadcastDropzone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                broadcastDropzone.classList.remove('border-blue-500', 'bg-blue-50/60');
+            });
+            broadcastDropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                broadcastDropzone.classList.remove('border-blue-500', 'bg-blue-50/60');
+                if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    handleBroadcastFileSelected(e.dataTransfer.files[0]);
+                }
+            });
+        }
+        if (btnBroadcastRemoveFile) {
+            btnBroadcastRemoveFile.addEventListener('click', (e) => {
+                e.preventDefault();
+                removeBroadcastFile();
+            });
+        }
+        if (broadcastAreaSelect) {
+            broadcastAreaSelect.addEventListener('change', () => {
+                populateBroadcastHouses(broadcastAreaSelect.value);
+            });
+        }
+        if (btnBroadcastSelectAll) {
+            btnBroadcastSelectAll.addEventListener('click', (e) => {
+                e.preventDefault();
+                selectAllBroadcastHouses(true);
+            });
+        }
+        if (btnBroadcastDeselectAll) {
+            btnBroadcastDeselectAll.addEventListener('click', (e) => {
+                e.preventDefault();
+                selectAllBroadcastHouses(false);
+            });
+        }
+        if (broadcastHouseSearch) {
+            broadcastHouseSearch.addEventListener('input', (e) => {
+                filterBroadcastHouses(e.target.value);
+            });
+        }
+
+        // House Batch mode event listeners
+        if (housebatchFileInput) {
+            housebatchFileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                    addFilesToHouseBatch(e.target.files);
+                }
+            });
+        }
+        if (housebatchDropzone && housebatchFileInput) {
+            housebatchDropzone.addEventListener('click', () => housebatchFileInput.click());
+            housebatchDropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                housebatchDropzone.classList.add('border-blue-500', 'bg-blue-50/60');
+            });
+            housebatchDropzone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                housebatchDropzone.classList.remove('border-blue-500', 'bg-blue-50/60');
+            });
+            housebatchDropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                housebatchDropzone.classList.remove('border-blue-500', 'bg-blue-50/60');
+                if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    addFilesToHouseBatch(e.dataTransfer.files);
+                }
+            });
+        }
+        if (btnHousebatchAddMore && housebatchFileInput) {
+            btnHousebatchAddMore.addEventListener('click', (e) => {
+                e.preventDefault();
+                housebatchFileInput.click();
+            });
+        }
+        if (housebatchAreaSelect) {
+            housebatchAreaSelect.addEventListener('change', () => {
+                populateHousebatchHouses(housebatchAreaSelect.value);
+            });
+        }
+        if (housebatchHouseSelect) {
+            housebatchHouseSelect.addEventListener('change', () => {
+                populateHousebatchTenants(housebatchAreaSelect ? housebatchAreaSelect.value : '', housebatchHouseSelect.value);
+            });
+        }
+
+        // Submit button click
         if (btnSubmit) {
             btnSubmit.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (modeBatch && modeBatch.checked) {
-                    submitBatchIngest();
+                if (activeTab === 'broadcast') {
+                    submitBroadcastIngest();
+                } else if (activeTab === 'housebatch') {
+                    submitHouseBatchIngest();
                 } else {
-                    submitIngestForm();
+                    submitSingleIngest();
                 }
             });
         }
@@ -337,7 +478,77 @@
             isGlobalListenersAttached = true;
         }
 
-        updateModeUI();
+        switchTab('single');
+    }
+
+    function switchTab(tabName) {
+        if (!['single', 'broadcast', 'housebatch'].includes(tabName)) return;
+        activeTab = tabName;
+
+        const tabs = [
+            { id: 'tab-mode-single', name: 'single', sectionId: 'section-mode-single' },
+            { id: 'tab-mode-broadcast', name: 'broadcast', sectionId: 'section-mode-broadcast' },
+            { id: 'tab-mode-housebatch', name: 'housebatch', sectionId: 'section-mode-housebatch' },
+        ];
+
+        tabs.forEach(t => {
+            const tabEl = document.getElementById(t.id);
+            const secEl = document.getElementById(t.sectionId);
+            const isActive = t.name === tabName;
+
+            if (secEl) {
+                if (isActive) secEl.classList.remove('hidden');
+                else secEl.classList.add('hidden');
+            }
+
+            if (tabEl) {
+                if (isActive) {
+                    tabEl.classList.add('bg-white', 'border-blue-600', 'text-blue-700', 'shadow-xs', 'ring-1', 'ring-blue-500/20');
+                    tabEl.classList.remove('bg-slate-100/80', 'border-slate-200', 'text-slate-700');
+                    tabEl.setAttribute('aria-selected', 'true');
+                } else {
+                    tabEl.classList.remove('bg-white', 'border-blue-600', 'text-blue-700', 'shadow-xs', 'ring-1', 'ring-blue-500/20');
+                    tabEl.classList.add('bg-slate-100/80', 'border-slate-200', 'text-slate-700');
+                    tabEl.setAttribute('aria-selected', 'false');
+                }
+            }
+        });
+
+        // Tab-specific context synchronization
+        if (tabName === 'single') {
+            populateAreas(getCurrentArea(), getCurrentHouse());
+            if (dateInput && !dateInput.value) {
+                dateInput.value = getTodayIsoDate();
+            }
+        } else if (tabName === 'broadcast') {
+            populateBroadcastAreas(getCurrentArea());
+            if (broadcastDateInput && !broadcastDateInput.value) {
+                broadcastDateInput.value = getTodayIsoDate();
+            }
+            populateBroadcastHouses(broadcastAreaSelect ? broadcastAreaSelect.value : '');
+        } else if (tabName === 'housebatch') {
+            populateHousebatchAreas(getCurrentArea(), getCurrentHouse());
+            if (housebatchDateSelect && !housebatchDateSelect.value) {
+                housebatchDateSelect.value = getTodayIsoDate();
+            }
+            renderHouseBatchQueue();
+        }
+
+        updateSubmitButtonText();
+        resetStatusMsg();
+    }
+
+    function updateSubmitButtonText() {
+        if (!submitText) return;
+        if (activeTab === 'single') {
+            submitText.textContent = '⚡ Ingest Document';
+        } else if (activeTab === 'broadcast') {
+            const count = getSelectedBroadcastHouses().length;
+            submitText.textContent = `⚡ Broadcast to ${count} Houses`;
+        } else if (activeTab === 'housebatch') {
+            const count = houseBatchQueue.length;
+            submitText.textContent = `⚡ Ingest ${count} Documents`;
+        }
     }
 
     function handleGlobalDragEnter(e) {
@@ -365,10 +576,14 @@
         }
     }
 
-    function handleGlobalDrop(e) {
-        e.preventDefault();
+    function resetDragCounter() {
         dragCounter = 0;
         if (dropzoneOverlay) dropzoneOverlay.classList.add('hidden');
+    }
+
+    function handleGlobalDrop(e) {
+        e.preventDefault();
+        resetDragCounter();
 
         if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             const files = Array.from(e.dataTransfer.files);
@@ -381,7 +596,19 @@
                 }
                 return;
             }
-            openIngestStation(pdfFiles);
+
+            openIngestStation();
+            if (pdfFiles.length > 1) {
+                switchTab('housebatch');
+                addFilesToHouseBatch(pdfFiles);
+            } else {
+                if (activeTab === 'broadcast') {
+                    handleBroadcastFileSelected(pdfFiles[0]);
+                } else {
+                    switchTab('single');
+                    handleFileSelected(pdfFiles[0]);
+                }
+            }
         }
     }
 
@@ -393,28 +620,21 @@
             return;
         }
 
-        const isBatch = modeBatch && modeBatch.checked;
-        if (fileList.length > 1 || isBatch) {
-            if (modeBatch && !modeBatch.checked) {
-                modeBatch.checked = true;
-                if (modeSingle) modeSingle.checked = false;
-                updateModeUI();
-            }
-            addFilesToBatch(fileList);
+        if (fileList.length > 1 || activeTab === 'housebatch') {
+            switchTab('housebatch');
+            addFilesToHouseBatch(fileList);
+        } else if (activeTab === 'broadcast') {
+            handleBroadcastFileSelected(fileList[0]);
         } else {
             handleFileSelected(fileList[0]);
         }
     }
 
+    // ── Single Mode Logic ──
     function handleFileSelected(file) {
         if (!file) return;
         if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
             showStatusMsg('Invalid file format. Please select a PDF document (.pdf).', true);
-            return;
-        }
-
-        if (modeBatch && modeBatch.checked) {
-            addFilesToBatch([file]);
             return;
         }
 
@@ -462,47 +682,361 @@
         if (fileDropzone) fileDropzone.classList.remove('hidden');
     }
 
-    function updateModeUI() {
-        const isBatch = modeBatch && modeBatch.checked;
-
-        if (fileInput) {
-            fileInput.multiple = isBatch;
+    // ── Broadcast Mode Logic ──
+    function handleBroadcastFileSelected(file) {
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
+            showStatusMsg('Invalid file format. Please select a PDF document (.pdf).', true);
+            return;
         }
 
-        if (ingestSingleContainer && ingestBatchQueueContainer) {
-            if (isBatch) {
-                ingestSingleContainer.classList.add('hidden');
-                ingestBatchQueueContainer.classList.remove('hidden');
-                populateBatchAreas();
+        broadcastFile = file;
+        resetStatusMsg();
 
-                if (batchDateSelect && !batchDateSelect.value) {
-                    batchDateSelect.value = getTodayIsoDate();
-                }
+        if (broadcastFileNameEl) broadcastFileNameEl.textContent = file.name;
+        if (broadcastFileSizeEl) broadcastFileSizeEl.textContent = formatFileSize(file.size);
+        if (broadcastFileInfo) broadcastFileInfo.classList.remove('hidden');
+        if (broadcastDropzone) broadcastDropzone.classList.add('hidden');
 
-                if (selectedFile && batchQueue.length === 0) {
-                    addFilesToBatch([selectedFile]);
-                } else {
-                    renderBatchQueue();
+        if (typeof window !== 'undefined' && window.URL && typeof window.URL.createObjectURL === 'function') {
+            if (broadcastObjectUrl && typeof window.URL.revokeObjectURL === 'function') {
+                window.URL.revokeObjectURL(broadcastObjectUrl);
+            }
+            try {
+                broadcastObjectUrl = window.URL.createObjectURL(file);
+                if (broadcastPdfPreview) {
+                    broadcastPdfPreview.src = `${broadcastObjectUrl}#toolbar=0&view=FitH`;
                 }
-            } else {
-                ingestSingleContainer.classList.remove('hidden');
-                ingestBatchQueueContainer.classList.add('hidden');
-
-                if (submitText) {
-                    submitText.textContent = '⚡ Ingest Document';
-                }
+            } catch (err) {
+                console.warn('Could not create ObjectURL for broadcast PDF preview:', err);
             }
         }
+        if (broadcastPreviewContainer) broadcastPreviewContainer.classList.remove('hidden');
 
-        if (batchNotice) {
-            if (isBatch) {
-                batchNotice.classList.remove('hidden');
-            } else {
-                batchNotice.classList.add('hidden');
-            }
+        if (broadcastTitleInput) {
+            broadcastTitleInput.value = file.name.replace(/\.pdf$/i, '').replace(/[-_]+/g, ' ').trim();
         }
     }
 
+    function removeBroadcastFile() {
+        broadcastFile = null;
+        if (broadcastFileInput) broadcastFileInput.value = '';
+        if (broadcastTitleInput) broadcastTitleInput.value = '';
+        if (broadcastObjectUrl && typeof window !== 'undefined' && window.URL && typeof window.URL.revokeObjectURL === 'function') {
+            window.URL.revokeObjectURL(broadcastObjectUrl);
+            broadcastObjectUrl = null;
+        }
+        if (broadcastPdfPreview) broadcastPdfPreview.src = 'about:blank';
+        if (broadcastPreviewContainer) broadcastPreviewContainer.classList.add('hidden');
+        if (broadcastFileInfo) broadcastFileInfo.classList.add('hidden');
+        if (broadcastDropzone) broadcastDropzone.classList.remove('hidden');
+    }
+
+    function populateBroadcastAreas(targetArea = null) {
+        if (!broadcastAreaSelect) return;
+        const tree = (typeof globalTreeData !== 'undefined' ? globalTreeData : window.globalTreeData) || [];
+        const curVal = broadcastAreaSelect.value;
+        broadcastAreaSelect.innerHTML = '<option value="">Select Area...</option>';
+        tree.forEach(area => {
+            const opt = document.createElement('option');
+            opt.value = area.name;
+            opt.textContent = area.name;
+            broadcastAreaSelect.appendChild(opt);
+        });
+
+        const activeArea = targetArea || curVal || getCurrentArea();
+        if (activeArea) {
+            broadcastAreaSelect.value = activeArea;
+        }
+    }
+
+    async function populateBroadcastHouses(areaName) {
+        if (!broadcastHousesList) return;
+        broadcastHousesList.innerHTML = '';
+
+        if (!areaName) {
+            broadcastHousesList.innerHTML = '<p class="text-xs text-slate-400 p-3 text-center">Please select a Target Area above.</p>';
+            updateBroadcastSelectedCount();
+            return;
+        }
+
+        const houses = getHousesForArea(areaName);
+        if (houses.length === 0) {
+            broadcastHousesList.innerHTML = '<p class="text-xs text-slate-400 p-3 text-center">No houses found in this area.</p>';
+            updateBroadcastSelectedCount();
+            return;
+        }
+
+        broadcastHousesData = [];
+
+        // 1. Initial render with placeholders
+        for (const house of houses) {
+            const itemEl = document.createElement('label');
+            itemEl.className = 'broadcast-house-item flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 cursor-pointer transition-colors shadow-2xs';
+            itemEl.dataset.house = house;
+
+            itemEl.innerHTML = `
+                <div class="flex items-center gap-2.5 min-w-0">
+                    <input type="checkbox" class="broadcast-house-checkbox rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer" value="${house}" data-house="${house}" data-tenant-id="" />
+                    <span class="text-xs font-bold text-slate-800">House ${house}</span>
+                </div>
+                <span class="broadcast-tenant-badge text-[11px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-500 flex-shrink-0">
+                    Loading tenant...
+                </span>
+            `;
+
+            const checkbox = itemEl.querySelector('.broadcast-house-checkbox');
+            checkbox.addEventListener('change', () => {
+                updateBroadcastSelectedCount();
+            });
+
+            broadcastHousesList.appendChild(itemEl);
+        }
+
+        // 2. Fetch and populate latest tenant badge for each house
+        for (const house of houses) {
+            const { tenants, latestTenantId } = await getTenantsForHouse(areaName, house);
+            const latestTenant = resolveLatestTenant(tenants);
+
+            const itemEl = broadcastHousesList.querySelector(`.broadcast-house-item[data-house="${house}"]`);
+            if (itemEl) {
+                const checkbox = itemEl.querySelector('.broadcast-house-checkbox');
+                if (checkbox) {
+                    checkbox.dataset.tenantId = latestTenantId || '';
+                }
+                const badge = itemEl.querySelector('.broadcast-tenant-badge');
+                if (badge) {
+                    if (latestTenant && latestTenant.name) {
+                        badge.textContent = `👤 ${latestTenant.name}`;
+                        badge.className = 'broadcast-tenant-badge text-[11px] px-2 py-0.5 rounded-full font-medium bg-blue-50 text-blue-700 border border-blue-100 flex-shrink-0';
+                    } else {
+                        badge.textContent = 'No Tenant';
+                        badge.className = 'broadcast-tenant-badge text-[11px] px-2 py-0.5 rounded-full font-medium bg-slate-100 text-slate-500 flex-shrink-0';
+                    }
+                }
+            }
+
+            broadcastHousesData.push({
+                house,
+                tenantId: latestTenantId || '',
+                tenantName: latestTenant ? latestTenant.name : '',
+            });
+        }
+
+        updateBroadcastSelectedCount();
+    }
+
+    function getSelectedBroadcastHouses() {
+        if (!broadcastHousesList) return [];
+        const checkedBoxes = broadcastHousesList.querySelectorAll('.broadcast-house-checkbox:checked');
+        const result = [];
+        checkedBoxes.forEach(cb => {
+            result.push({
+                house: cb.dataset.house || cb.value,
+                tenantId: cb.dataset.tenantId || '',
+            });
+        });
+        return result;
+    }
+
+    function updateBroadcastSelectedCount() {
+        const count = getSelectedBroadcastHouses().length;
+        if (broadcastSelectedCount) {
+            broadcastSelectedCount.textContent = `${count} selected`;
+        }
+        updateSubmitButtonText();
+    }
+
+    function selectAllBroadcastHouses(select = true) {
+        if (!broadcastHousesList) return;
+        const items = broadcastHousesList.querySelectorAll('.broadcast-house-item');
+        items.forEach(item => {
+            if (!select || !item.classList.contains('hidden')) {
+                const cb = item.querySelector('.broadcast-house-checkbox');
+                if (cb) cb.checked = select;
+            }
+        });
+        updateBroadcastSelectedCount();
+    }
+
+    function filterBroadcastHouses(query) {
+        if (!broadcastHousesList) return;
+        const q = (query || '').trim().toLowerCase();
+        const items = broadcastHousesList.querySelectorAll('.broadcast-house-item');
+        items.forEach(item => {
+            const house = item.dataset.house || '';
+            const text = item.textContent.toLowerCase();
+            if (!q || house.toLowerCase().includes(q) || text.includes(q)) {
+                item.classList.remove('hidden');
+            } else {
+                item.classList.add('hidden');
+            }
+        });
+    }
+
+    // ── House Batch Mode Logic ──
+    function populateHousebatchAreas(targetArea = null, targetHouse = null) {
+        if (!housebatchAreaSelect) return;
+        const tree = (typeof globalTreeData !== 'undefined' ? globalTreeData : window.globalTreeData) || [];
+        const curVal = housebatchAreaSelect.value;
+        housebatchAreaSelect.innerHTML = '<option value="">Select Area...</option>';
+        tree.forEach(area => {
+            const opt = document.createElement('option');
+            opt.value = area.name;
+            opt.textContent = area.name;
+            housebatchAreaSelect.appendChild(opt);
+        });
+
+        const activeArea = targetArea || curVal || getCurrentArea();
+        if (activeArea) {
+            housebatchAreaSelect.value = activeArea;
+        }
+        populateHousebatchHouses(housebatchAreaSelect.value, targetHouse);
+    }
+
+    function populateHousebatchHouses(areaName, targetHouse = null) {
+        if (!housebatchHouseSelect) return;
+        const curVal = housebatchHouseSelect.value;
+        housebatchHouseSelect.innerHTML = '<option value="">Select House...</option>';
+
+        if (!areaName) {
+            populateHousebatchTenants('', '');
+            return;
+        }
+
+        const tree = (typeof globalTreeData !== 'undefined' ? globalTreeData : window.globalTreeData) || [];
+        const areaNode = tree.find(a => a.name === areaName);
+        if (areaNode && Array.isArray(areaNode.children)) {
+            areaNode.children.forEach(house => {
+                const opt = document.createElement('option');
+                opt.value = house.name;
+                opt.textContent = house.name;
+                housebatchHouseSelect.appendChild(opt);
+            });
+        }
+
+        const activeHouse = targetHouse || curVal || getCurrentHouse();
+        if (activeHouse) {
+            housebatchHouseSelect.value = activeHouse;
+        }
+        populateHousebatchTenants(areaName, housebatchHouseSelect.value);
+    }
+
+    async function populateHousebatchTenants(areaName, houseName) {
+        if (!housebatchTenantSelect) return;
+        housebatchTenantSelect.innerHTML = '<option value="">(Auto-detect latest tenant)</option>';
+        if (!areaName || !houseName) return;
+
+        const currentSeq = ++housebatchTenantFetchSeq;
+        const { tenants, latestTenantId } = await getTenantsForHouse(areaName, houseName);
+        if (currentSeq !== housebatchTenantFetchSeq) return;
+
+        if (Array.isArray(tenants)) {
+            tenants.forEach(t => {
+                const opt = document.createElement('option');
+                opt.value = String(t.id != null ? t.id : t.name);
+                const yearHint = t.start_date ? ` (${t.start_date.substring(0, 4)})` : '';
+                opt.textContent = `${t.name}${yearHint}`;
+                if (String(opt.value) === String(latestTenantId)) {
+                    opt.selected = true;
+                }
+                housebatchTenantSelect.appendChild(opt);
+            });
+        }
+
+        if (latestTenantId) {
+            housebatchTenantSelect.value = String(latestTenantId);
+        }
+    }
+
+    function addFilesToHouseBatch(files) {
+        if (!files || files.length === 0) return;
+        const fileList = Array.from(files).filter(f => f.name.toLowerCase().endsWith('.pdf') || f.type === 'application/pdf');
+        if (fileList.length === 0) {
+            showStatusMsg('Invalid file format. Please select PDF documents (.pdf).', true);
+            return;
+        }
+
+        for (const f of fileList) {
+            const autoTitle = f.name.replace(/\.pdf$/i, '').replace(/[-_]+/g, ' ').trim();
+            houseBatchQueue.push({
+                id: 'hbf_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                file: f,
+                name: f.name,
+                size: f.size,
+                title: autoTitle,
+            });
+        }
+
+        if (housebatchAreaSelect && !housebatchAreaSelect.value) {
+            populateHousebatchAreas(getCurrentArea(), getCurrentHouse());
+        }
+        if (housebatchDateSelect && !housebatchDateSelect.value) {
+            housebatchDateSelect.value = getTodayIsoDate();
+        }
+
+        renderHouseBatchQueue();
+    }
+
+    function renderHouseBatchQueue() {
+        if (!housebatchFilesList) return;
+
+        if (housebatchCountBadge) {
+            housebatchCountBadge.textContent = `${houseBatchQueue.length} file${houseBatchQueue.length === 1 ? '' : 's'}`;
+        }
+
+        if (housebatchDropzone) {
+            if (houseBatchQueue.length === 0) {
+                housebatchDropzone.classList.remove('hidden');
+                housebatchFilesList.classList.add('hidden');
+            } else {
+                housebatchDropzone.classList.add('hidden');
+                housebatchFilesList.classList.remove('hidden');
+            }
+        }
+
+        updateSubmitButtonText();
+
+        housebatchFilesList.innerHTML = '';
+        houseBatchQueue.forEach((item, fileIdx) => {
+            const row = document.createElement('div');
+            row.className = 'bg-white border border-slate-200 rounded-xl p-3 shadow-2xs flex flex-col sm:flex-row sm:items-center gap-3 housebatch-file-row';
+            row.dataset.fileIdx = String(fileIdx);
+
+            row.innerHTML = `
+                <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                    <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <p class="text-xs font-bold text-slate-800 truncate housebatch-file-name" title="${item.name}">${item.name}</p>
+                        <p class="text-[10px] text-slate-400 font-mono housebatch-file-size">${formatFileSize(item.size)}</p>
+                    </div>
+                </div>
+                <div class="flex-1 min-w-[200px]">
+                    <input type="text" class="housebatch-title-input w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium" value="${item.title || ''}" placeholder="Document title..." />
+                </div>
+                <button type="button" class="btn-remove-housebatch-file text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer self-end sm:self-center" title="Remove file">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            `;
+
+            const titleInp = row.querySelector('.housebatch-title-input');
+            titleInp.addEventListener('input', (e) => {
+                item.title = e.target.value;
+            });
+
+            const btnRemove = row.querySelector('.btn-remove-housebatch-file');
+            btnRemove.addEventListener('click', () => {
+                houseBatchQueue.splice(fileIdx, 1);
+                renderHouseBatchQueue();
+            });
+
+            housebatchFilesList.appendChild(row);
+        });
+    }
+
+    // ── Shared Helper Functions ──
     function getHousesForArea(areaName) {
         if (!areaName) return [];
         const tree = (typeof globalTreeData !== 'undefined' ? globalTreeData : window.globalTreeData) || [];
@@ -516,7 +1050,6 @@
     function detectHouseFromFilename(filename, availableHouses = []) {
         if (!filename) return null;
 
-        // 1. Direct match with available houses in current area
         if (availableHouses.length > 0) {
             const sortedHouses = [...availableHouses].sort((a, b) => b.length - a.length);
             for (const h of sortedHouses) {
@@ -528,7 +1061,6 @@
             }
         }
 
-        // 2. Regex search for house/villa/منزل/فيلا number (e.g. 500, 514)
         const match = filename.match(/(?:house|villa|منزل|فيلا)?\s*(\d{3,4})/i);
         if (match && match[1]) {
             const num = match[1];
@@ -590,6 +1122,20 @@
         return result;
     }
 
+    function compareDatesDesc(aDate, bDate) {
+        if (!aDate && !bDate) return 0;
+        if (!aDate) return 1;
+        if (!bDate) return -1;
+        const strA = String(aDate).trim();
+        const strB = String(bDate).trim();
+        const timeA = new Date(strA).getTime();
+        const timeB = new Date(strB).getTime();
+        if (!isNaN(timeA) && !isNaN(timeB) && timeA !== timeB) {
+            return timeB - timeA;
+        }
+        return strB.localeCompare(strA);
+    }
+
     function resolveLatestTenant(tenants) {
         if (!tenants || tenants.length === 0) return null;
 
@@ -615,268 +1161,6 @@
         return sortedEnded[0];
     }
 
-    async function updateTargetTenants(item, target) {
-        const area = (batchAreaSelect && batchAreaSelect.value) ? batchAreaSelect.value : (getCurrentArea() || '');
-        if (!area || !target.house) {
-            target.tenants = [];
-            target.tenantId = '';
-            return;
-        }
-        const { tenants, latestTenantId } = await getTenantsForHouse(area, target.house);
-        target.tenants = tenants;
-        target.tenantId = latestTenantId;
-    }
-
-    async function addFilesToBatch(files) {
-        if (!files || files.length === 0) return;
-
-        const sharedArea = (batchAreaSelect && batchAreaSelect.value) ? batchAreaSelect.value : (getCurrentArea() || '');
-        if (batchAreaSelect && !batchAreaSelect.value && sharedArea) {
-            batchAreaSelect.value = sharedArea;
-        }
-        if (batchDateSelect && !batchDateSelect.value) {
-            batchDateSelect.value = getTodayIsoDate();
-        }
-
-        const availableHouses = getHousesForArea(batchAreaSelect ? batchAreaSelect.value : '');
-
-        const newItems = [];
-        for (const file of files) {
-            if (!file.name.toLowerCase().endsWith('.pdf') && file.type !== 'application/pdf') {
-                continue;
-            }
-            const detectedHouse = detectHouseFromFilename(file.name, availableHouses) || getCurrentHouse() || (availableHouses[0] || '');
-            const autoTitle = file.name.replace(/\.pdf$/i, '').replace(/[-_]+/g, ' ').trim();
-
-            const item = {
-                id: 'bf_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
-                file: file,
-                name: file.name,
-                size: file.size,
-                title: autoTitle,
-                targets: [
-                    {
-                        house: detectedHouse,
-                        tenantId: '',
-                        tenants: [],
-                    }
-                ]
-            };
-            batchQueue.push(item);
-            newItems.push(item);
-        }
-
-        renderBatchQueue();
-
-        for (const item of newItems) {
-            for (const target of item.targets) {
-                if (target.house) {
-                    await updateTargetTenants(item, target);
-                }
-            }
-        }
-        renderBatchQueue();
-    }
-
-    function renderBatchQueue() {
-        if (!batchFilesList) return;
-
-        if (batchCountBadge) {
-            batchCountBadge.textContent = `${batchQueue.length} file${batchQueue.length === 1 ? '' : 's'}`;
-        }
-
-        if (batchEmptyDropzone) {
-            if (batchQueue.length === 0) {
-                batchEmptyDropzone.classList.remove('hidden');
-                batchFilesList.classList.add('hidden');
-            } else {
-                batchEmptyDropzone.classList.add('hidden');
-                batchFilesList.classList.remove('hidden');
-            }
-        }
-
-        let totalTasks = 0;
-        batchQueue.forEach(item => {
-            totalTasks += (item.targets && item.targets.length > 0) ? item.targets.length : 1;
-        });
-
-        if (submitText && modeBatch && modeBatch.checked) {
-            submitText.textContent = `⚡ Ingest All (${totalTasks} Files)`;
-        }
-
-        batchFilesList.innerHTML = '';
-        const availableHouses = getHousesForArea(batchAreaSelect ? batchAreaSelect.value : '');
-
-        batchQueue.forEach((item, fileIdx) => {
-            const card = document.createElement('div');
-            card.className = 'bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs space-y-3 batch-file-card';
-            card.dataset.fileIdx = String(fileIdx);
-
-            // Header: Name, size, remove file button
-            const header = document.createElement('div');
-            header.className = 'flex items-center justify-between gap-3';
-            header.innerHTML = `
-                <div class="flex items-center gap-2.5 min-w-0 flex-1">
-                    <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
-                    </div>
-                    <div class="min-w-0 flex-1">
-                        <p class="text-xs font-bold text-slate-800 truncate batch-file-name" title="${item.name}">${item.name}</p>
-                        <p class="text-[10px] text-slate-400 font-mono">${formatFileSize(item.size)}</p>
-                    </div>
-                </div>
-                <button type="button" class="btn-remove-batch-file text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer" title="Remove file">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                </button>
-            `;
-            card.appendChild(header);
-
-            // Title row
-            const titleRow = document.createElement('div');
-            titleRow.innerHTML = `
-                <label class="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Document Title</label>
-                <input type="text" class="batch-title-input w-full px-3 py-1.5 text-xs border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium" value="${item.title || ''}" placeholder="Document title..." />
-            `;
-            const titleInputEl = titleRow.querySelector('.batch-title-input');
-            titleInputEl.addEventListener('input', (e) => {
-                item.title = e.target.value;
-            });
-            card.appendChild(titleRow);
-
-            // Target houses section
-            const targetsSection = document.createElement('div');
-            targetsSection.className = 'space-y-2';
-
-            const targetsHeader = document.createElement('div');
-            targetsHeader.className = 'flex items-center justify-between';
-            targetsHeader.innerHTML = `
-                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Target House(s) &amp; Assigned Tenant</label>
-                <button type="button" class="btn-batch-add-house text-[11px] font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer">
-                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                    <span>+ Add House</span>
-                </button>
-            `;
-            const btnAddHouse = targetsHeader.querySelector('.btn-batch-add-house');
-            btnAddHouse.addEventListener('click', async () => {
-                const nextHouse = availableHouses.find(h => !item.targets.some(t => t.house === h)) || availableHouses[0] || '';
-                const newTarget = { house: nextHouse, tenantId: '', tenants: [] };
-                item.targets.push(newTarget);
-                renderBatchQueue();
-                await updateTargetTenants(item, newTarget);
-                renderBatchQueue();
-            });
-            targetsSection.appendChild(targetsHeader);
-
-            const targetsList = document.createElement('div');
-            targetsList.className = 'batch-targets-list space-y-1.5';
-
-            item.targets.forEach((target, targetIdx) => {
-                const targetRow = document.createElement('div');
-                targetRow.className = 'flex items-center gap-2 p-2 rounded-lg bg-slate-50 border border-slate-200 batch-target-row';
-                targetRow.dataset.targetIdx = String(targetIdx);
-
-                const selectsContainer = document.createElement('div');
-                selectsContainer.className = 'flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2';
-
-                // House select
-                const houseWrapper = document.createElement('div');
-                const houseSel = document.createElement('select');
-                houseSel.className = 'batch-house-select w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg bg-white font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none';
-                houseSel.innerHTML = '<option value="">Select House...</option>';
-                availableHouses.forEach(h => {
-                    const opt = document.createElement('option');
-                    opt.value = h;
-                    opt.textContent = `House ${h}`;
-                    if (h === target.house) opt.selected = true;
-                    houseSel.appendChild(opt);
-                });
-                houseWrapper.appendChild(houseSel);
-
-                // Tenant select
-                const tenantWrapper = document.createElement('div');
-                const tenantSel = document.createElement('select');
-                tenantSel.className = 'batch-tenant-select w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg bg-white font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none';
-                tenantSel.innerHTML = '<option value="">(Auto-detect Tenant)</option>';
-                if (Array.isArray(target.tenants)) {
-                    target.tenants.forEach(t => {
-                        const opt = document.createElement('option');
-                        opt.value = String(t.id != null ? t.id : t.name);
-                        const yearHint = t.start_date ? ` (${t.start_date.substring(0, 4)})` : '';
-                        opt.textContent = `${t.name}${yearHint}`;
-                        if (String(opt.value) === String(target.tenantId)) {
-                            opt.selected = true;
-                        }
-                        tenantSel.appendChild(opt);
-                    });
-                }
-                tenantWrapper.appendChild(tenantSel);
-
-                selectsContainer.appendChild(houseWrapper);
-                selectsContainer.appendChild(tenantWrapper);
-                targetRow.appendChild(selectsContainer);
-
-                // House change listener
-                houseSel.addEventListener('change', async (e) => {
-                    target.house = e.target.value;
-                    await updateTargetTenants(item, target);
-                    renderBatchQueue();
-                });
-
-                // Tenant change listener
-                tenantSel.addEventListener('change', (e) => {
-                    target.tenantId = e.target.value;
-                });
-
-                // Remove target button
-                if (item.targets.length > 1) {
-                    const btnRemoveTarget = document.createElement('button');
-                    btnRemoveTarget.type = 'button';
-                    btnRemoveTarget.className = 'btn-remove-target text-slate-400 hover:text-rose-600 p-1 rounded hover:bg-rose-50 transition-colors cursor-pointer';
-                    btnRemoveTarget.title = 'Remove this house target';
-                    btnRemoveTarget.innerHTML = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>`;
-                    btnRemoveTarget.addEventListener('click', () => {
-                        item.targets.splice(targetIdx, 1);
-                        renderBatchQueue();
-                    });
-                    targetRow.appendChild(btnRemoveTarget);
-                }
-
-                targetsList.appendChild(targetRow);
-            });
-
-            targetsSection.appendChild(targetsList);
-            card.appendChild(targetsSection);
-
-            // Remove file button listener
-            const btnRemove = header.querySelector('.btn-remove-batch-file');
-            btnRemove.addEventListener('click', () => {
-                batchQueue.splice(fileIdx, 1);
-                renderBatchQueue();
-            });
-
-            batchFilesList.appendChild(card);
-        });
-    }
-
-    function populateBatchAreas() {
-        if (!batchAreaSelect) return;
-        const tree = (typeof globalTreeData !== 'undefined' ? globalTreeData : window.globalTreeData) || [];
-        const currentVal = batchAreaSelect.value;
-
-        batchAreaSelect.innerHTML = '<option value="">Select Area...</option>';
-        tree.forEach(area => {
-            const opt = document.createElement('option');
-            opt.value = area.name;
-            opt.textContent = area.name;
-            batchAreaSelect.appendChild(opt);
-        });
-
-        const activeArea = currentVal || getCurrentArea();
-        if (activeArea) {
-            batchAreaSelect.value = activeArea;
-        }
-    }
-
     function populateAreas(targetArea = null, targetHouse = null) {
         if (!areaSelect) return;
         const tree = (typeof globalTreeData !== 'undefined' ? globalTreeData : window.globalTreeData) || [];
@@ -889,7 +1173,7 @@
             areaSelect.appendChild(opt);
         });
 
-        const activeArea = targetArea || getCurrentArea();
+        const activeArea = targetArea || areaSelect.value || getCurrentArea();
         if (activeArea) {
             areaSelect.value = activeArea;
         }
@@ -916,25 +1200,11 @@
             });
         }
 
-        const activeHouse = targetHouse || getCurrentHouse();
+        const activeHouse = targetHouse || houseSelect.value || getCurrentHouse();
         if (activeHouse) {
             houseSelect.value = activeHouse;
         }
         populateTenants(areaName, houseSelect.value);
-    }
-
-    function compareDatesDesc(aDate, bDate) {
-        if (!aDate && !bDate) return 0;
-        if (!aDate) return 1;
-        if (!bDate) return -1;
-        const strA = String(aDate).trim();
-        const strB = String(bDate).trim();
-        const timeA = new Date(strA).getTime();
-        const timeB = new Date(strB).getTime();
-        if (!isNaN(timeA) && !isNaN(timeB) && timeA !== timeB) {
-            return timeB - timeA;
-        }
-        return strB.localeCompare(strA);
     }
 
     async function populateTenants(areaName, houseName, targetTenantId = null) {
@@ -978,7 +1248,6 @@
         } catch (err) {
             if (currentSeq !== tenantFetchSeq) return;
             isFallback = true;
-            // Fallback: check tree node children
             const tree = (typeof globalTreeData !== 'undefined' ? globalTreeData : window.globalTreeData) || [];
             const areaNode = tree.find(a => a.name === areaName);
             const houseNode = areaNode?.children?.find(h => h.name === houseName);
@@ -1010,7 +1279,7 @@
             return;
         }
 
-        // 1. If targetTenantId is provided and exists in the options, select it.
+        // 1. targetTenantId match
         if (targetTenantId != null && targetTenantId !== '') {
             const targetStr = String(targetTenantId).trim();
             const targetMatch = availableOptions.find(opt =>
@@ -1024,7 +1293,7 @@
             }
         }
 
-        // 2. Else if window.currentTenant is set and matches a tenant in the options (by ID or name), select it.
+        // 2. window.currentTenant match
         const currentTenant = typeof window !== 'undefined' ? window.currentTenant : null;
         if (currentTenant != null && currentTenant !== '') {
             let curId = null;
@@ -1048,13 +1317,12 @@
             }
         }
 
-        // 3. Otherwise (by default when a house is selected), identify the latest tenant:
+        // 3. Latest tenant resolution
         if (!isFallback && Array.isArray(fetchedTenants) && fetchedTenants.length > 0) {
             const isActive = (t) => !t.end_date || t.end_date === null || (typeof t.end_date === 'string' && (t.end_date.trim() === '' || t.end_date.trim().toLowerCase() === 'present' || t.end_date.trim().toLowerCase() === 'active'));
             const activeTenants = fetchedTenants.filter(isActive);
 
             if (activeTenants.length > 0) {
-                // Priority 1: An active tenant. If multiple exist, the one with latest start_date.
                 const sortedActive = [...activeTenants].sort((a, b) => {
                     const cmp = compareDatesDesc(a.start_date, b.start_date);
                     if (cmp !== 0) return cmp;
@@ -1064,7 +1332,6 @@
                 const opt = availableOptions.find(o => o.value === String(chosen.id) || (o.dataset.name && o.dataset.name === chosen.name));
                 if (opt) tenantSelect.value = opt.value;
             } else {
-                // Priority 2: If all tenants have ended, the tenant with latest end_date or start_date.
                 const sortedEnded = [...fetchedTenants].sort((a, b) => {
                     const aLatest = a.end_date || a.start_date;
                     const bLatest = b.end_date || b.start_date;
@@ -1077,7 +1344,6 @@
                 if (opt) tenantSelect.value = opt.value;
             }
         } else if (isFallback && Array.isArray(fallbackChildren) && fallbackChildren.length > 0) {
-            // Priority 3 (DOM fallback): The last tenant in houseNode.children.
             const lastTenant = fallbackChildren[fallbackChildren.length - 1];
             const lastVal = typeof lastTenant === 'string' ? lastTenant : (lastTenant?.name || '');
             const opt = availableOptions.find(o => o.value === lastVal || (o.dataset.name && o.dataset.name === lastVal));
@@ -1103,43 +1369,29 @@
         }
     }
 
-    function findMatchingCategory(suggestedCat) {
-        if (!suggestedCat || !categorySelect) return null;
-        const clean = suggestedCat.replace(/\s+/g, '');
-        for (const opt of categorySelect.options) {
-            const optClean = opt.value.replace(/\s+/g, '');
-            if (optClean === clean || opt.value.includes(suggestedCat) || suggestedCat.includes(opt.value)) {
-                return opt.value;
-            }
-        }
-        return null;
-    }
-
     function openIngestStation(initialFiles = null) {
         if (!ingestModal) return;
         ingestModal.classList.remove('hidden');
         resetStatusMsg();
 
-        if (dateInput && !dateInput.value) {
-            dateInput.value = getTodayIsoDate();
-        }
-        if (batchDateSelect && !batchDateSelect.value) {
-            batchDateSelect.value = getTodayIsoDate();
-        }
-
-        const activeArea = getCurrentArea();
-        const activeHouse = getCurrentHouse();
-        populateAreas(activeArea, activeHouse);
-        populateBatchAreas();
-
-        updateModeUI();
-
         if (initialFiles) {
-            if (Array.isArray(initialFiles) || (typeof FileList !== 'undefined' && initialFiles instanceof FileList)) {
-                handleFilesSelected(Array.from(initialFiles));
-            } else {
-                handleFilesSelected([initialFiles]);
+            const filesArray = Array.isArray(initialFiles) 
+                ? initialFiles 
+                : (typeof FileList !== 'undefined' && initialFiles instanceof FileList ? Array.from(initialFiles) : [initialFiles]);
+            
+            if (filesArray.length > 1) {
+                switchTab('housebatch');
+                addFilesToHouseBatch(filesArray);
+            } else if (filesArray.length === 1) {
+                if (activeTab === 'broadcast') {
+                    handleBroadcastFileSelected(filesArray[0]);
+                } else {
+                    switchTab('single');
+                    handleFileSelected(filesArray[0]);
+                }
             }
+        } else {
+            switchTab(activeTab);
         }
     }
 
@@ -1151,42 +1403,42 @@
 
     function resetIngestForm() {
         removeFile();
-        batchQueue = [];
-        renderBatchQueue();
+        removeBroadcastFile();
+        houseBatchQueue = [];
+        renderHouseBatchQueue();
         if (titleInput) titleInput.value = '';
         if (dateInput) dateInput.value = getTodayIsoDate();
-        if (batchDateSelect) batchDateSelect.value = getTodayIsoDate();
+        if (broadcastDateInput) broadcastDateInput.value = getTodayIsoDate();
+        if (housebatchDateSelect) housebatchDateSelect.value = getTodayIsoDate();
         if (notesInput) notesInput.value = '';
         if (newTenantInput) newTenantInput.value = '';
         if (newTenantContainer) newTenantContainer.classList.add('hidden');
         if (btnToggleNewTenant) btnToggleNewTenant.textContent = '+ Add New Tenant';
         if (categorySelect) categorySelect.value = '13 - رسائل متنوعة';
-        if (batchCategorySelect) batchCategorySelect.value = '06 - كهرباء وماء';
-        if (modeSingle) modeSingle.checked = true;
-        if (modeBatch) modeBatch.checked = false;
-        if (batchNotice) batchNotice.classList.add('hidden');
+        if (broadcastCategorySelect) broadcastCategorySelect.value = '09 - إشعارات';
+        if (housebatchCategorySelect) housebatchCategorySelect.value = '06 - كهرباء وماء';
         if (batchProgress) batchProgress.classList.add('hidden');
-        if (submitText) submitText.textContent = '⚡ Ingest Document';
         resetStatusMsg();
-        updateModeUI();
+        switchTab('single');
     }
 
     function resetStatusMsg() {
         if (!statusMsg) return;
-        statusMsg.className = 'px-3 py-2 rounded-xl text-xs font-medium hidden';
+        statusMsg.className = 'mx-6 my-2 px-3 py-2 rounded-xl text-xs font-medium hidden';
         statusMsg.textContent = '';
     }
 
     function showStatusMsg(text, isError = false) {
         if (!statusMsg) return;
-        statusMsg.className = `px-3 py-2 rounded-xl text-xs font-medium ${
+        statusMsg.className = `mx-6 my-2 px-3 py-2 rounded-xl text-xs font-medium ${
             isError ? 'bg-rose-50 text-rose-700 border border-rose-200' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
         }`;
         statusMsg.textContent = text;
         statusMsg.classList.remove('hidden');
     }
 
-    async function submitIngestForm() {
+    // ── Submission: Single Document ──
+    async function submitSingleIngest() {
         if (isSubmitting) return;
 
         if (!selectedFile) {
@@ -1214,7 +1466,6 @@
         formData.append('area_id', area);
         formData.append('house_id', house);
 
-        // Tenant resolution
         const isNewTenantVisible = newTenantContainer && !newTenantContainer.classList.contains('hidden');
         const newTenantName = newTenantInput ? newTenantInput.value.trim() : '';
 
@@ -1279,44 +1530,38 @@
             isSubmitting = false;
             if (btnSubmit) btnSubmit.disabled = false;
             if (submitSpinner) submitSpinner.classList.add('hidden');
-            if (submitText) submitText.textContent = '⚡ Ingest Document';
+            updateSubmitButtonText();
         }
     }
 
-    async function submitBatchIngest() {
+    // ── Submission: Broadcast Notice ──
+    async function submitBroadcastIngest() {
         if (isSubmitting) return;
 
-        if (batchQueue.length === 0) {
-            showStatusMsg('Please add at least one PDF file to the batch queue.', true);
+        if (!broadcastFile) {
+            showStatusMsg('Please select or drop a PDF notice to broadcast.', true);
             return;
         }
 
-        const sharedArea = batchAreaSelect ? batchAreaSelect.value.trim() : '';
-        if (!sharedArea) {
-            showStatusMsg('Please select a Shared Area for the batch.', true);
+        const area = broadcastAreaSelect ? broadcastAreaSelect.value.trim() : '';
+        if (!area) {
+            showStatusMsg('Please select a Target Area to broadcast to.', true);
             return;
         }
 
-        const sharedCategory = batchCategorySelect ? batchCategorySelect.value.trim() : '';
-        if (!sharedCategory) {
-            showStatusMsg('Please select a Shared Category for the batch.', true);
+        const selectedHouses = getSelectedBroadcastHouses();
+        if (selectedHouses.length === 0) {
+            showStatusMsg('Please select at least one house to broadcast to.', true);
             return;
         }
 
-        const sharedDate = batchDateSelect ? batchDateSelect.value.trim() : '';
-        if (!sharedDate) {
-            showStatusMsg('Please select a Shared Primary Date for the batch.', true);
-            return;
-        }
-
-        for (const item of batchQueue) {
-            for (const target of item.targets) {
-                if (!target.house || !target.house.trim()) {
-                    showStatusMsg(`Please select a Target House for document "${item.name}".`, true);
-                    return;
-                }
-            }
-        }
+        const category = broadcastCategorySelect ? broadcastCategorySelect.value.trim() : '09 - إشعارات';
+        const title = (broadcastTitleInput && broadcastTitleInput.value.trim()) 
+            ? broadcastTitleInput.value.trim() 
+            : broadcastFile.name.replace(/\.pdf$/i, '').replace(/[-_]+/g, ' ').trim();
+        const primaryDate = (broadcastDateInput && broadcastDateInput.value.trim()) 
+            ? broadcastDateInput.value.trim() 
+            : getTodayIsoDate();
 
         isSubmitting = true;
         if (btnSubmit) btnSubmit.disabled = true;
@@ -1324,66 +1569,54 @@
         if (batchProgress) batchProgress.classList.remove('hidden');
         resetStatusMsg();
 
-        const tasks = [];
-        batchQueue.forEach(item => {
-            item.targets.forEach(target => {
-                tasks.push({
-                    file: item.file,
-                    name: item.name,
-                    title: item.title || item.name.replace(/\.pdf$/i, '').replace(/[-_]+/g, ' ').trim(),
-                    house: target.house.trim(),
-                    tenantId: target.tenantId,
-                });
-            });
-        });
-
-        const totalTasks = tasks.length;
+        const total = selectedHouses.length;
         let completedCount = 0;
         let failedCount = 0;
         const errors = [];
-        let lastArea = sharedArea;
-        let lastHouse = tasks[0]?.house || '';
+        let lastHouse = selectedHouses[0]?.house || '';
 
-        for (let i = 0; i < totalTasks; i++) {
-            const task = tasks[i];
+        for (let i = 0; i < total; i++) {
+            const item = selectedHouses[i];
             const currentNum = i + 1;
-            const progressMsg = `Ingesting ${currentNum} of ${totalTasks}: ${task.name}...`;
 
-            if (batchProgressText) batchProgressText.textContent = progressMsg;
-            if (submitText) submitText.textContent = `Ingesting (${currentNum}/${totalTasks})...`;
-            const pct = Math.round(((currentNum - 1) / totalTasks) * 100);
+            if (batchProgressText) {
+                batchProgressText.textContent = `Broadcasting ${currentNum} of ${total}: House ${item.house}...`;
+            }
+            if (submitText) {
+                submitText.textContent = `Broadcasting (${currentNum}/${total})...`;
+            }
+            const pct = Math.round(((currentNum - 1) / total) * 100);
             if (batchProgressPct) batchProgressPct.textContent = `${pct}%`;
             if (batchProgressBar) batchProgressBar.style.width = `${pct}%`;
 
             const formData = new FormData();
-            formData.append('file', task.file);
+            formData.append('file', broadcastFile);
             formData.append('mode', 'manual');
-            formData.append('area_id', sharedArea);
-            formData.append('house_id', task.house);
-            if (task.tenantId) {
-                formData.append('tenant_id', task.tenantId);
+            formData.append('area_id', area);
+            formData.append('house_id', item.house);
+            if (item.tenantId) {
+                formData.append('tenant_id', item.tenantId);
             }
-            formData.append('category', sharedCategory);
-            formData.append('arabic_title', task.title);
-            formData.append('primary_date', sharedDate);
+            formData.append('category', category);
+            formData.append('arabic_title', title);
+            formData.append('primary_date', primaryDate);
 
             try {
                 const res = await fetch('/api/ingest', {
                     method: 'POST',
                     body: formData,
                 });
-
                 if (res.ok) {
                     completedCount++;
-                    lastHouse = task.house;
+                    lastHouse = item.house;
                 } else {
                     failedCount++;
                     const err = await res.json().catch(() => ({}));
-                    errors.push(`${task.name} (${task.house}): ${err.detail || 'Ingestion failed'}`);
+                    errors.push(`House ${item.house}: ${err.detail || 'Failed'}`);
                 }
             } catch (err) {
                 failedCount++;
-                errors.push(`${task.name} (${task.house}): Network error`);
+                errors.push(`House ${item.house}: Network error`);
             }
         }
 
@@ -1393,83 +1626,333 @@
         isSubmitting = false;
         if (btnSubmit) btnSubmit.disabled = false;
         if (submitSpinner) submitSpinner.classList.add('hidden');
-        if (submitText) submitText.textContent = `⚡ Ingest All (${totalTasks} Files)`;
+        updateSubmitButtonText();
 
-        const toastFn = (typeof showToast === 'function') 
-            ? showToast 
+        const toastFn = (typeof showToast === 'function')
+            ? showToast
+            : ((typeof window !== 'undefined' && typeof window.showToast === 'function') ? window.showToast : null);
+
+        if (failedCount === 0) {
+            const successMsg = `Successfully broadcasted to ${completedCount} house${completedCount === 1 ? '' : 's'}`;
+            if (toastFn) toastFn(successMsg, 'success');
+            else if (typeof alert === 'function') alert(successMsg);
+
+            closeIngestStation();
+            if (typeof window.refreshCurrentTab === 'function') window.refreshCurrentTab(area, lastHouse);
+            if (typeof window.loadTree === 'function') window.loadTree();
+        } else {
+            const partialMsg = `Broadcasted to ${completedCount} of ${total} houses. (${failedCount} failed: ${errors.join('; ')})`;
+            showStatusMsg(partialMsg, true);
+            if (toastFn) toastFn(partialMsg, 'error');
+            if (completedCount > 0) {
+                if (typeof window.refreshCurrentTab === 'function') window.refreshCurrentTab(area, lastHouse);
+                if (typeof window.loadTree === 'function') window.loadTree();
+            }
+        }
+    }
+
+    // ── Submission: House Batch ──
+    async function submitHouseBatchIngest() {
+        if (isSubmitting) return;
+
+        if (houseBatchQueue.length === 0) {
+            showStatusMsg('Please add at least one PDF file to the batch queue.', true);
+            return;
+        }
+
+        const area = housebatchAreaSelect ? housebatchAreaSelect.value.trim() : '';
+        const house = housebatchHouseSelect ? housebatchHouseSelect.value.trim() : '';
+        if (!area || !house) {
+            showStatusMsg('Please select both a Target Area and Target House for the batch.', true);
+            return;
+        }
+
+        const tenantId = housebatchTenantSelect ? housebatchTenantSelect.value.trim() : '';
+        const category = housebatchCategorySelect ? housebatchCategorySelect.value.trim() : '06 - كهرباء وماء';
+        const primaryDate = (housebatchDateSelect && housebatchDateSelect.value.trim()) 
+            ? housebatchDateSelect.value.trim() 
+            : getTodayIsoDate();
+
+        isSubmitting = true;
+        if (btnSubmit) btnSubmit.disabled = true;
+        if (submitSpinner) submitSpinner.classList.remove('hidden');
+        if (batchProgress) batchProgress.classList.remove('hidden');
+        resetStatusMsg();
+
+        const total = houseBatchQueue.length;
+        let completedCount = 0;
+        let failedCount = 0;
+        const errors = [];
+
+        for (let i = 0; i < total; i++) {
+            const item = houseBatchQueue[i];
+            const currentNum = i + 1;
+
+            if (batchProgressText) {
+                batchProgressText.textContent = `Ingesting ${currentNum} of ${total}: ${item.name}...`;
+            }
+            if (submitText) {
+                submitText.textContent = `Ingesting (${currentNum}/${total})...`;
+            }
+            const pct = Math.round(((currentNum - 1) / total) * 100);
+            if (batchProgressPct) batchProgressPct.textContent = `${pct}%`;
+            if (batchProgressBar) batchProgressBar.style.width = `${pct}%`;
+
+            const formData = new FormData();
+            formData.append('file', item.file);
+            formData.append('mode', 'manual');
+            formData.append('area_id', area);
+            formData.append('house_id', house);
+            if (tenantId) {
+                formData.append('tenant_id', tenantId);
+            }
+            formData.append('category', category);
+            formData.append('arabic_title', item.title || item.name.replace(/\.pdf$/i, '').replace(/[-_]+/g, ' ').trim());
+            formData.append('primary_date', primaryDate);
+
+            try {
+                const res = await fetch('/api/ingest', {
+                    method: 'POST',
+                    body: formData,
+                });
+                if (res.ok) {
+                    completedCount++;
+                } else {
+                    failedCount++;
+                    const err = await res.json().catch(() => ({}));
+                    errors.push(`${item.name}: ${err.detail || 'Failed'}`);
+                }
+            } catch (err) {
+                failedCount++;
+                errors.push(`${item.name}: Network error`);
+            }
+        }
+
+        if (batchProgressPct) batchProgressPct.textContent = '100%';
+        if (batchProgressBar) batchProgressBar.style.width = '100%';
+
+        isSubmitting = false;
+        if (btnSubmit) btnSubmit.disabled = false;
+        if (submitSpinner) submitSpinner.classList.add('hidden');
+        updateSubmitButtonText();
+
+        const toastFn = (typeof showToast === 'function')
+            ? showToast
             : ((typeof window !== 'undefined' && typeof window.showToast === 'function') ? window.showToast : null);
 
         if (failedCount === 0) {
             const successMsg = `Successfully ingested ${completedCount} document${completedCount === 1 ? '' : 's'}`;
-            if (toastFn) {
-                toastFn(successMsg, 'success');
-            } else if (typeof alert === 'function') {
-                alert(successMsg);
-            }
-            closeIngestStation();
+            if (toastFn) toastFn(successMsg, 'success');
+            else if (typeof alert === 'function') alert(successMsg);
 
-            if (typeof window.refreshCurrentTab === 'function') {
-                window.refreshCurrentTab(lastArea, lastHouse);
-            }
-            if (typeof window.loadTree === 'function') {
-                window.loadTree();
-            }
+            closeIngestStation();
+            if (typeof window.refreshCurrentTab === 'function') window.refreshCurrentTab(area, house);
+            if (typeof window.loadTree === 'function') window.loadTree();
         } else {
-            const partialMsg = `Ingested ${completedCount} of ${totalTasks} documents. (${failedCount} failed: ${errors.join('; ')})`;
+            const partialMsg = `Ingested ${completedCount} of ${total} documents. (${failedCount} failed: ${errors.join('; ')})`;
             showStatusMsg(partialMsg, true);
-            if (toastFn) {
-                toastFn(partialMsg, 'error');
-            }
+            if (toastFn) toastFn(partialMsg, 'error');
             if (completedCount > 0) {
-                if (typeof window.refreshCurrentTab === 'function') {
-                    window.refreshCurrentTab(lastArea, lastHouse);
-                }
-                if (typeof window.loadTree === 'function') {
-                    window.loadTree();
-                }
+                if (typeof window.refreshCurrentTab === 'function') window.refreshCurrentTab(area, house);
+                if (typeof window.loadTree === 'function') window.loadTree();
             }
         }
+    }
+
+    // ── Direct Drag-and-Drop Ingestion (House Card & Category Folder) ──
+    async function handleDirectHouseDrop(files, houseId, areaName = null) {
+        if (!files || files.length === 0 || !houseId) return;
+        const fileList = Array.from(files).filter(f => f.name.toLowerCase().endsWith('.pdf') || f.type === 'application/pdf');
+        if (fileList.length === 0) {
+            const toastFn = (typeof showToast === 'function') ? showToast : (window.showToast || null);
+            if (toastFn) toastFn('Only PDF files are supported for direct ingestion.', 'error');
+            return;
+        }
+
+        const area = areaName || getCurrentArea() || '';
+        const { tenants, latestTenantId } = await getTenantsForHouse(area, String(houseId));
+        const todayDate = getTodayIsoDate();
+        const toastFn = (typeof showToast === 'function') ? showToast : (window.showToast || null);
+
+        for (const file of fileList) {
+            const cleanTitle = file.name.replace(/\.pdf$/i, '').replace(/[-_]+/g, ' ').trim();
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('mode', 'manual');
+            formData.append('area_id', area);
+            formData.append('house_id', String(houseId));
+            if (latestTenantId) {
+                formData.append('tenant_id', latestTenantId);
+            }
+            formData.append('category', '13 - رسائل متنوعة');
+            formData.append('arabic_title', cleanTitle);
+            formData.append('primary_date', todayDate);
+
+            try {
+                const res = await fetch('/api/ingest', {
+                    method: 'POST',
+                    body: formData,
+                });
+                if (res.ok) {
+                    if (toastFn) toastFn(`⚡ Document "${cleanTitle}" filed into House ${houseId}!`, 'success');
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    if (toastFn) toastFn(`Failed to file "${cleanTitle}": ${err.detail || 'Error'}`, 'error');
+                }
+            } catch (err) {
+                if (toastFn) toastFn(`Network error filing "${cleanTitle}" into House ${houseId}`, 'error');
+            }
+        }
+
+        if (typeof window.refreshCurrentTab === 'function') window.refreshCurrentTab(area, String(houseId));
+        if (typeof window.loadTree === 'function') window.loadTree();
+    }
+
+    async function handleDirectCategoryDrop(files, categoryName, houseId = null, areaName = null) {
+        if (!files || files.length === 0 || !categoryName) return;
+        const fileList = Array.from(files).filter(f => f.name.toLowerCase().endsWith('.pdf') || f.type === 'application/pdf');
+        if (fileList.length === 0) {
+            const toastFn = (typeof showToast === 'function') ? showToast : (window.showToast || null);
+            if (toastFn) toastFn('Only PDF files are supported for direct ingestion.', 'error');
+            return;
+        }
+
+        const area = areaName || getCurrentArea() || '';
+        const house = houseId || getCurrentHouse() || '';
+        const { tenants, latestTenantId } = await getTenantsForHouse(area, String(house));
+        const todayDate = getTodayIsoDate();
+        const toastFn = (typeof showToast === 'function') ? showToast : (window.showToast || null);
+
+        for (const file of fileList) {
+            const cleanTitle = file.name.replace(/\.pdf$/i, '').replace(/[-_]+/g, ' ').trim();
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('mode', 'manual');
+            formData.append('area_id', area);
+            formData.append('house_id', String(house));
+            if (latestTenantId) {
+                formData.append('tenant_id', latestTenantId);
+            }
+            formData.append('category', categoryName);
+            formData.append('arabic_title', cleanTitle);
+            formData.append('primary_date', todayDate);
+
+            try {
+                const res = await fetch('/api/ingest', {
+                    method: 'POST',
+                    body: formData,
+                });
+                if (res.ok) {
+                    if (toastFn) toastFn(`⚡ Document "${cleanTitle}" filed into ${categoryName} for House ${house}!`, 'success');
+                } else {
+                    const err = await res.json().catch(() => ({}));
+                    if (toastFn) toastFn(`Failed to file "${cleanTitle}": ${err.detail || 'Error'}`, 'error');
+                }
+            } catch (err) {
+                if (toastFn) toastFn(`Network error filing "${cleanTitle}" into ${categoryName}`, 'error');
+            }
+        }
+
+        if (typeof window.loadCategories === 'function') window.loadCategories(area, String(house));
+        if (typeof window.refreshCurrentTab === 'function') window.refreshCurrentTab(area, String(house));
+        if (typeof window.loadTree === 'function') window.loadTree();
     }
 
     // Expose globals
     window.initIngestStation = initIngestStation;
     window.openIngestStation = openIngestStation;
     window.closeIngestStation = closeIngestStation;
+    window.switchTab = switchTab;
+    window.getActiveTab = () => activeTab;
+    window.getCurrentTab = () => activeTab;
     window.handleFileSelected = handleFileSelected;
+    window.handleBroadcastFileSelected = handleBroadcastFileSelected;
     window.handleFilesSelected = handleFilesSelected;
     window.removeFile = removeFile;
-    window.submitIngestForm = submitIngestForm;
-    window.submitBatchIngest = submitBatchIngest;
+    window.removeBroadcastFile = removeBroadcastFile;
+    window.submitSingleIngest = submitSingleIngest;
+    window.submitBroadcastIngest = submitBroadcastIngest;
+    window.submitHouseBatchIngest = submitHouseBatchIngest;
+    window.submitIngestForm = submitSingleIngest;
     window.formatFileSize = formatFileSize;
     window.getTodayIsoDate = getTodayIsoDate;
     window.resetIngestForm = resetIngestForm;
     window.detectHouseFromFilename = detectHouseFromFilename;
     window.getTenantsForHouse = getTenantsForHouse;
-    window.renderBatchQueue = renderBatchQueue;
+    window.resolveLatestTenant = resolveLatestTenant;
+    window.populateAreas = populateAreas;
+    window.populateHouses = populateHouses;
+    window.populateTenants = populateTenants;
+    window.populateBroadcastAreas = populateBroadcastAreas;
+    window.populateBroadcastHouses = populateBroadcastHouses;
+    window.getSelectedBroadcastHouses = getSelectedBroadcastHouses;
+    window.selectAllBroadcastHouses = selectAllBroadcastHouses;
+    window.filterBroadcastHouses = filterBroadcastHouses;
+    window.populateHousebatchAreas = populateHousebatchAreas;
+    window.populateHousebatchHouses = populateHousebatchHouses;
+    window.populateHousebatchTenants = populateHousebatchTenants;
+    window.addFilesToHouseBatch = addFilesToHouseBatch;
+    window.renderHouseBatchQueue = renderHouseBatchQueue;
+    window.getHouseBatchQueue = () => houseBatchQueue;
+    window.handleDirectHouseDrop = handleDirectHouseDrop;
+    window.handleDirectCategoryDrop = handleDirectCategoryDrop;
+    window.resetDragCounter = resetDragCounter;
+
+    // Backward compatibility shims
+    window.updateModeUI = () => switchTab(activeTab);
+    window.submitBatchIngest = submitHouseBatchIngest;
+    window.getBatchQueue = () => houseBatchQueue;
+    window.addFilesToBatch = addFilesToHouseBatch;
+    window.renderBatchQueue = renderHouseBatchQueue;
+    window.populateBatchAreas = populateHousebatchAreas;
 
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = {
             initIngestStation,
             openIngestStation,
             closeIngestStation,
+            switchTab,
+            getActiveTab: () => activeTab,
+            getCurrentTab: () => activeTab,
             handleFileSelected,
+            handleBroadcastFileSelected,
             handleFilesSelected,
             removeFile,
-            submitIngestForm,
-            submitBatchIngest,
+            removeBroadcastFile,
+            submitSingleIngest,
+            submitBroadcastIngest,
+            submitHouseBatchIngest,
+            submitIngestForm: submitSingleIngest,
             formatFileSize,
             populateAreas,
-            populateBatchAreas,
             populateHouses,
             populateTenants,
-            updateModeUI,
+            populateBroadcastAreas,
+            populateBroadcastHouses,
+            getSelectedBroadcastHouses,
+            selectAllBroadcastHouses,
+            filterBroadcastHouses,
+            populateHousebatchAreas,
+            populateHousebatchHouses,
+            populateHousebatchTenants,
+            addFilesToHouseBatch,
+            renderHouseBatchQueue,
+            getHouseBatchQueue: () => houseBatchQueue,
             getTodayIsoDate,
             resetIngestForm,
             detectHouseFromFilename,
             getTenantsForHouse,
-            addFilesToBatch,
-            renderBatchQueue,
-            getBatchQueue: () => batchQueue,
+            resolveLatestTenant,
+            handleDirectHouseDrop,
+            handleDirectCategoryDrop,
+            resetDragCounter,
+            // Backwards compatibility
+            updateModeUI: () => switchTab(activeTab),
+            submitBatchIngest: submitHouseBatchIngest,
+            getBatchQueue: () => houseBatchQueue,
+            addFilesToBatch: addFilesToHouseBatch,
+            renderBatchQueue: renderHouseBatchQueue,
+            populateBatchAreas: populateHousebatchAreas,
         };
     }
 })();

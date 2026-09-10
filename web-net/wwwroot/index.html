@@ -561,31 +561,26 @@
                 </button>
             </div>
 
-            <!-- Mode Switcher Bar -->
-            <div class="px-6 py-2.5 bg-slate-50 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
-                <div class="flex items-center gap-3">
-                    <span class="text-xs font-bold text-slate-600 uppercase tracking-wider">Filing Mode:</span>
-                    <div class="flex items-center gap-2">
-                        <label class="flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white cursor-pointer transition-all has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/60 has-[:checked]:ring-1 has-[:checked]:ring-blue-600 shadow-2xs">
-                            <input type="radio" name="ingest_mode" id="ingest-mode-single" value="manual" checked class="text-blue-600 focus:ring-blue-500" />
-                            <div>
-                                <span class="block text-xs font-bold text-slate-800">Single File</span>
-                                <span class="block text-[10px] text-slate-500">Single PDF document</span>
-                            </div>
-                        </label>
-                        <label class="flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white cursor-pointer transition-all has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/60 has-[:checked]:ring-1 has-[:checked]:ring-blue-600 shadow-2xs">
-                            <input type="radio" name="ingest_mode" id="ingest-mode-batch" value="batch" class="text-blue-600 focus:ring-blue-500" />
-                            <div>
-                                <span class="block text-xs font-bold text-slate-800">Batch Filing</span>
-                                <span class="block text-[10px] text-slate-500">Upload multiple PDFs with shared category</span>
-                            </div>
-                        </label>
-                    </div>
-                </div>
+            <!-- Mode Switcher Tabs -->
+            <div class="px-6 py-2.5 bg-slate-50 border-b border-slate-200 flex-shrink-0">
+                <nav class="grid grid-cols-1 sm:grid-cols-3 gap-2" aria-label="Ingest Modes">
+                    <button type="button" id="tab-mode-single" data-tab="single" class="ingest-tab-btn flex flex-col items-start px-3.5 py-2 rounded-xl border transition-all cursor-pointer bg-white border-blue-600 text-blue-700 shadow-xs ring-1 ring-blue-500/20">
+                        <span class="text-xs font-bold flex items-center gap-1.5">📄 Single Document</span>
+                        <span class="text-[10px] text-slate-500 font-normal">1 file → 1 house</span>
+                    </button>
+                    <button type="button" id="tab-mode-broadcast" data-tab="broadcast" class="ingest-tab-btn flex flex-col items-start px-3.5 py-2 rounded-xl border transition-all cursor-pointer bg-slate-100/80 border-slate-200 text-slate-700 hover:bg-white hover:border-slate-300">
+                        <span class="text-xs font-bold flex items-center gap-1.5">📢 Broadcast Notice</span>
+                        <span class="text-[10px] text-slate-500 font-normal">1 file → Multiple houses</span>
+                    </button>
+                    <button type="button" id="tab-mode-housebatch" data-tab="housebatch" class="ingest-tab-btn flex flex-col items-start px-3.5 py-2 rounded-xl border transition-all cursor-pointer bg-slate-100/80 border-slate-200 text-slate-700 hover:bg-white hover:border-slate-300">
+                        <span class="text-xs font-bold flex items-center gap-1.5">📁 House Batch</span>
+                        <span class="text-[10px] text-slate-500 font-normal">Multiple files → 1 house</span>
+                    </button>
+                </nav>
             </div>
 
-            <!-- Single Document Container (Two-Column Layout) -->
-            <div id="ingest-single-container" class="flex-1 overflow-y-auto flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100">
+            <!-- Section 1: Single Document (1 file → 1 house) -->
+            <div id="section-mode-single" class="flex-1 overflow-y-auto flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100">
                 <!-- Left Column: File Dropzone, Info Banner, PDF Preview -->
                 <div class="w-full md:w-1/2 p-5 bg-slate-50/60 flex flex-col gap-4 overflow-y-auto">
                     <!-- File Dropzone (shown when no file selected) -->
@@ -701,33 +696,145 @@
                             <textarea id="ingest-notes-input" rows="2" placeholder="Optional notes or context..." class="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white resize-none font-medium"></textarea>
                         </div>
                     </div>
-
-                    <!-- Status / Error Message Banner -->
-                    <div id="ingest-status-msg" class="px-3 py-2 rounded-xl text-xs font-medium hidden"></div>
                 </div>
             </div>
 
-            <!-- Batch Document Container (shown when Batch Filing is selected) -->
-            <div id="ingest-batch-queue-container" class="flex-1 overflow-y-auto p-5 flex flex-col gap-4 bg-slate-50/50 hidden">
-                <!-- Shared Controls Card -->
-                <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs">
-                    <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
-                        <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
-                            <span>Shared Batch Controls</span>
-                        </span>
-                        <span class="text-[11px] text-slate-400">Applies across all documents in this batch</span>
+            <!-- Section 2: Broadcast Notice (1 file → Multiple houses) -->
+            <div id="section-mode-broadcast" class="flex-1 overflow-y-auto flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100 hidden">
+                <!-- Left: 1 PDF dropzone + live PDF preview, Category select, Title input, Date input -->
+                <div class="w-full md:w-1/2 p-5 bg-slate-50/60 flex flex-col gap-3.5 overflow-y-auto">
+                    <!-- Dropzone -->
+                    <div id="broadcast-dropzone" class="border-2 border-dashed border-slate-300 hover:border-blue-500 bg-white hover:bg-blue-50/40 rounded-xl p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[140px]">
+                        <input id="broadcast-file-input" type="file" accept=".pdf" class="hidden" />
+                        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+                        </div>
+                        <p class="text-xs font-semibold text-slate-700">Click to choose PDF or drag &amp; drop</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">1 Notice PDF to broadcast to multiple houses</p>
                     </div>
+
+                    <!-- File Info Banner -->
+                    <div id="broadcast-file-info" class="hidden bg-white border border-slate-200 rounded-xl p-3 shadow-2xs flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p id="broadcast-file-name" class="text-xs font-bold text-slate-800 truncate">notice.pdf</p>
+                                <p id="broadcast-file-size" class="text-[10px] text-slate-400 font-mono">0 KB</p>
+                            </div>
+                        </div>
+                        <button id="btn-broadcast-remove-file" type="button" class="text-xs text-rose-600 hover:text-rose-800 px-2 py-1 rounded-lg hover:bg-rose-50 transition-colors font-medium flex-shrink-0 cursor-pointer">
+                            Change
+                        </button>
+                    </div>
+
+                    <!-- Live PDF Preview -->
+                    <div id="broadcast-preview-container" class="hidden flex-1 flex flex-col min-h-[180px]">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Notice Preview</span>
+                        </div>
+                        <iframe id="broadcast-pdf-preview" class="w-full h-44 md:h-52 rounded-xl border border-slate-200 bg-white shadow-2xs" src="about:blank"></iframe>
+                    </div>
+
+                    <!-- Metadata Fields -->
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Category</label>
+                            <select id="broadcast-category-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium">
+                                <option value="09 - إشعارات" selected>09 - إشعارات</option>
+                                <option value="01 - بيانات أساسية">01 - بيانات أساسية</option>
+                                <option value="05 - عقود">05 - عقود</option>
+                                <option value="06 - كهرباء وماء">06 - كهرباء وماء</option>
+                                <option value="10 - صيانة">10 - صيانة</option>
+                                <option value="13 - رسائل متنوعة">13 - رسائل متنوعة</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Title</label>
+                                <input id="broadcast-title-input" type="text" placeholder="e.g. إشعار عام للوحدات" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Primary Date</label>
+                                <input id="broadcast-date-input" type="date" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Target Area select, Select/Deselect All, Searchable House checklist -->
+                <div class="w-full md:w-1/2 p-5 flex flex-col gap-3 overflow-y-auto">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Target Area <span class="text-rose-500">*</span></label>
+                        <select id="broadcast-area-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
+                            <option value="">Select Area...</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-bold text-slate-800">Target Houses</span>
+                            <span id="broadcast-selected-count" class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full">0 selected</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button id="btn-broadcast-select-all" type="button" class="text-[11px] font-semibold text-blue-600 hover:text-blue-800 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer">
+                                Select All
+                            </button>
+                            <span class="text-slate-300">|</span>
+                            <button id="btn-broadcast-deselect-all" type="button" class="text-[11px] font-semibold text-slate-500 hover:text-slate-700 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+                                Deselect All
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <input id="broadcast-house-search" type="text" placeholder="Filter houses by number or tenant name..." class="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium" />
+                    </div>
+
+                    <div id="broadcast-houses-list" class="flex-1 min-h-[160px] max-h-[320px] overflow-y-auto space-y-1.5 pr-1 border border-slate-200 rounded-xl p-2 bg-slate-50/50">
+                        <!-- Populated dynamically with house checklist + tenant badges -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: House Batch (Multiple files → 1 house) -->
+            <div id="section-mode-housebatch" class="flex-1 overflow-y-auto p-5 flex flex-col gap-4 bg-slate-50/50 hidden">
+                <!-- Top/Header: Target Area and Target House select upfront, Assigned Tenant, Shared Category, Shared Date -->
+                <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                            <span>Target House &amp; Shared Properties</span>
+                        </span>
+                        <span class="text-[11px] text-slate-400">All uploaded files will be archived to this single house</span>
+                    </div>
+
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                         <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">Shared Area <span class="text-rose-500">*</span></label>
-                            <select id="ingest-batch-area-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Target Area <span class="text-rose-500">*</span></label>
+                            <select id="housebatch-area-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
                                 <option value="">Select Area...</option>
                             </select>
                         </div>
                         <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Target House <span class="text-rose-500">*</span></label>
+                            <select id="housebatch-house-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
+                                <option value="">Select House...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Assigned Tenant</label>
+                            <select id="housebatch-tenant-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
+                                <option value="">(Auto-detect latest tenant)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                        <div>
                             <label class="block text-xs font-bold text-slate-700 mb-1">Shared Category <span class="text-rose-500">*</span></label>
-                            <select id="ingest-batch-category-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
+                            <select id="housebatch-category-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
                                 <option value="01 - بيانات أساسية">01 - بيانات أساسية</option>
                                 <option value="02 - بيانات شخصية">02 - بيانات شخصية</option>
                                 <option value="03 - أمر تخصيص">03 - أمر تخصيص</option>
@@ -745,50 +852,51 @@
                         </div>
                         <div>
                             <label class="block text-xs font-bold text-slate-700 mb-1">Shared Primary Date <span class="text-rose-500">*</span></label>
-                            <input id="ingest-batch-date-select" type="date" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium" />
+                            <input id="housebatch-date-select" type="date" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium" />
                         </div>
                     </div>
                 </div>
 
-                <!-- Batch Queue Header & Add Files Bar -->
+                <!-- Middle: Multi-file Dropzone & Files List -->
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
-                        <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Batch Queue</h3>
-                        <span id="ingest-batch-count-badge" class="bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-full">0 files</span>
+                        <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">House Batch Files</h3>
+                        <span id="housebatch-count-badge" class="bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-full">0 files</span>
                     </div>
-                    <button id="btn-batch-add-more" type="button" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-blue-50 border border-blue-200 transition-colors cursor-pointer shadow-2xs">
+                    <button id="btn-housebatch-add-more" type="button" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-blue-50 border border-blue-200 transition-colors cursor-pointer shadow-2xs">
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                         <span>+ Add More Files</span>
                     </button>
                 </div>
 
-                <!-- Batch Empty Dropzone (shown when queue is empty) -->
-                <div id="ingest-batch-empty-dropzone" class="border-2 border-dashed border-slate-300 hover:border-blue-500 bg-white hover:bg-blue-50/40 rounded-xl p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[140px]">
+                <!-- Multi-file Dropzone (shown when list is empty) -->
+                <div id="housebatch-dropzone" class="border-2 border-dashed border-slate-300 hover:border-blue-500 bg-white hover:bg-blue-50/40 rounded-xl p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[140px]">
+                    <input id="housebatch-file-input" type="file" accept=".pdf" multiple class="hidden" />
                     <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     </div>
                     <p class="text-xs font-semibold text-slate-700">Click to choose PDFs or drag &amp; drop</p>
-                    <p class="text-[11px] text-slate-400 mt-1">Upload multiple PDFs with shared category &amp; date</p>
+                    <p class="text-[11px] text-slate-400 mt-1">Upload multiple PDFs for the selected house</p>
                 </div>
 
-                <!-- Batch Files List -->
-                <div id="ingest-batch-files-list" class="space-y-3">
-                    <!-- Dynamic batch file cards -->
+                <!-- Clean Files List Table -->
+                <div id="housebatch-files-list" class="space-y-2.5 hidden">
+                    <!-- Dynamic file rows -->
                 </div>
+            </div>
 
-                <!-- Batch Progress Indicator -->
-                <div id="ingest-batch-progress" class="hidden bg-white border border-blue-200 rounded-xl p-4 shadow-2xs space-y-2">
-                    <div class="flex items-center justify-between text-xs">
-                        <span id="ingest-batch-progress-text" class="font-bold text-blue-900">Ingesting 0 of 0...</span>
-                        <span id="ingest-batch-progress-pct" class="font-mono font-semibold text-blue-700">0%</span>
-                    </div>
-                    <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                        <div id="ingest-batch-progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
-                    </div>
+            <!-- Status / Validation Message Banner -->
+            <div id="ingest-status-msg" class="mx-6 my-2 px-3 py-2 rounded-xl text-xs font-medium hidden"></div>
+
+            <!-- Shared Batch & Broadcast Progress Bar -->
+            <div id="ingest-batch-progress" class="hidden px-6 py-3 bg-white border-t border-blue-200 shadow-2xs space-y-2 flex-shrink-0">
+                <div class="flex items-center justify-between text-xs">
+                    <span id="ingest-batch-progress-text" class="font-bold text-blue-900">Ingesting 0 of 0...</span>
+                    <span id="ingest-batch-progress-pct" class="font-mono font-semibold text-blue-700">0%</span>
                 </div>
-
-                <!-- Batch notice / placeholder for compatibility -->
-                <div id="ingest-batch-notice" class="hidden"></div>
+                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div id="ingest-batch-progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
             </div>
 
             <!-- Modal Footer -->
@@ -819,7 +927,7 @@
     <script src="js/categories-view.js?v=260909-3"></script>
     <script src="js/sidebar.js?v=260909-3"></script>
     <script src="js/router.js?v=260909-3"></script>
-    <script src="js/ingest-station.js?v=260909-3"></script>
+    <script src="js/ingest-station.js?v=260910-1"></script>
     <script src="js/app.js?v=260909-3"></script>
 </body>
 </html>

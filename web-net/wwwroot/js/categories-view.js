@@ -154,11 +154,44 @@
             card.className = 'p-3 bg-white rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 transition-all mb-2 cursor-pointer category-folder-card group/card';
             card.setAttribute('data-category-name', cat.name);
             
-            if (typeof window.handleCategoryDragOver === 'function') {
-                card.ondragover = (e) => window.handleCategoryDragOver(e, card);
-                card.ondragleave = (e) => window.handleCategoryDragLeave(e, card);
-                card.ondrop = (e) => window.handleCategoryDrop(e, cat.name, card);
-            }
+            card.ondragover = (e) => {
+                if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files') && !window.draggedDoc) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.dataTransfer.dropEffect = 'copy';
+                    card.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50/40');
+                } else if (typeof window.handleCategoryDragOver === 'function') {
+                    window.handleCategoryDragOver(e, card);
+                }
+            };
+
+            card.ondragleave = (e) => {
+                card.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50/40');
+                if (typeof window.handleCategoryDragLeave === 'function') {
+                    window.handleCategoryDragLeave(e, card);
+                }
+            };
+
+            card.ondrop = (e) => {
+                card.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50/40');
+                if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files') && !window.draggedDoc) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (typeof window.resetDragCounter === 'function') {
+                        window.resetDragCounter();
+                    } else {
+                        const overlay = document.getElementById('ingest-dropzone-overlay');
+                        if (overlay) overlay.classList.add('hidden');
+                    }
+                    if (typeof window.handleDirectCategoryDrop === 'function') {
+                        const activeArea = (typeof currentArea !== 'undefined' ? currentArea : window.currentArea) || '';
+                        const activeHouse = (typeof currentHouse !== 'undefined' ? currentHouse : window.currentHouse) || '';
+                        window.handleDirectCategoryDrop(e.dataTransfer.files, cat.name, activeHouse, activeArea);
+                    }
+                } else if (typeof window.handleCategoryDrop === 'function') {
+                    window.handleCategoryDrop(e, cat.name, card);
+                }
+            };
 
             const isCustomFolder = !isStandardCategoryName(cat.name);
             const deleteFolderBtn = isCustomFolder
