@@ -136,7 +136,7 @@ def test_ingest_station_mode_switch(page: Page):
     expect(page.locator("#section-mode-single")).to_be_visible()
     expect(page.locator("#section-mode-broadcast")).to_be_hidden()
     expect(page.locator("#section-mode-housebatch")).to_be_hidden()
-    expect(page.locator("#ingest-submit-text")).to_have_text("⚡ Ingest Document")
+    expect(page.locator("#ingest-submit-text")).to_have_text("⚡ Upload Document")
 
     # Switch to Broadcast Notice
     page.click("#tab-mode-broadcast")
@@ -150,14 +150,14 @@ def test_ingest_station_mode_switch(page: Page):
     expect(page.locator("#section-mode-single")).to_be_hidden()
     expect(page.locator("#section-mode-broadcast")).to_be_hidden()
     expect(page.locator("#section-mode-housebatch")).to_be_visible()
-    expect(page.locator("#ingest-submit-text")).to_have_text("⚡ Ingest 0 Documents")
+    expect(page.locator("#ingest-submit-text")).to_have_text("⚡ Upload 0 Documents")
 
     # Switch back to Single Document
     page.click("#tab-mode-single")
     expect(page.locator("#section-mode-single")).to_be_visible()
     expect(page.locator("#section-mode-broadcast")).to_be_hidden()
     expect(page.locator("#section-mode-housebatch")).to_be_hidden()
-    expect(page.locator("#ingest-submit-text")).to_have_text("⚡ Ingest Document")
+    expect(page.locator("#ingest-submit-text")).to_have_text("⚡ Upload Document")
 
 
 def test_house_batch_queue_population_and_submit(page: Page, tmp_path):
@@ -191,7 +191,7 @@ def test_house_batch_queue_population_and_submit(page: Page, tmp_path):
 
     # Check badge and submit button text
     expect(page.locator("#housebatch-count-badge")).to_have_text("2 files")
-    expect(page.locator("#ingest-submit-text")).to_have_text("⚡ Ingest 2 Documents")
+    expect(page.locator("#ingest-submit-text")).to_have_text("⚡ Upload 2 Documents")
 
     # Check that 2 file items exist in list
     file_items = page.locator(".housebatch-file-row")

@@ -188,11 +188,11 @@
         const area = getCurrentArea();
         const house = getCurrentHouse();
         if (area && house) {
-            dropzonePrompt.textContent = `Drop PDF to Ingest into ${area} / ${house}`;
+            dropzonePrompt.textContent = `Drop PDF to Upload into ${area} / ${house}`;
         } else if (area) {
-            dropzonePrompt.textContent = `Drop PDF to Ingest into ${area}`;
+            dropzonePrompt.textContent = `Drop PDF to Upload into ${area}`;
         } else {
-            dropzonePrompt.textContent = 'Drop PDF to Ingest Document';
+            dropzonePrompt.textContent = 'Drop PDF to Upload Document';
         }
     }
 
@@ -314,6 +314,14 @@
         // Trigger button
         if (btnIngestTrigger) {
             btnIngestTrigger.addEventListener('click', (e) => {
+                e.preventDefault();
+                openIngestStation();
+            });
+        }
+
+        const btnDragHint = document.getElementById('btn-drag-hint');
+        if (btnDragHint) {
+            btnDragHint.addEventListener('click', (e) => {
                 e.preventDefault();
                 openIngestStation();
             });
@@ -582,13 +590,13 @@
     function updateSubmitButtonText() {
         if (!submitText) return;
         if (activeTab === 'single') {
-            submitText.textContent = '⚡ Ingest Document';
+            submitText.textContent = '⚡ Upload Document';
         } else if (activeTab === 'broadcast') {
             const count = getSelectedBroadcastHouses().length;
             submitText.textContent = `⚡ Broadcast to ${count} Houses`;
         } else if (activeTab === 'housebatch') {
             const count = houseBatchQueue.length;
-            submitText.textContent = `⚡ Ingest ${count} Documents`;
+            submitText.textContent = `⚡ Upload ${count} Documents`;
         }
     }
 
@@ -1520,7 +1528,7 @@
         isSubmitting = true;
         if (btnSubmit) btnSubmit.disabled = true;
         if (submitSpinner) submitSpinner.classList.remove('hidden');
-        if (submitText) submitText.textContent = 'Ingesting...';
+        if (submitText) submitText.textContent = 'Uploading...';
         resetStatusMsg();
 
         const formData = new FormData();
@@ -1563,8 +1571,8 @@
 
                 const vaultId = data.vault_id || (data.vault_ids && data.vault_ids[0]) || '';
                 const successMsg = vaultId 
-                    ? `Document successfully ingested (Vault ID: ${vaultId})`
-                    : (data.message || 'Document successfully ingested');
+                    ? `Document successfully uploaded (Vault ID: ${vaultId})`
+                    : ((data.message && data.message.replace(/ingested/i, 'uploaded')) || 'Document successfully uploaded');
 
                 const toastFn = (typeof showToast === 'function') 
                     ? showToast 
@@ -1584,11 +1592,11 @@
                 }
             } else {
                 const err = await res.json().catch(() => ({}));
-                showStatusMsg(err.detail || 'Ingestion failed.', true);
+                showStatusMsg(err.detail || 'Upload failed.', true);
             }
         } catch (err) {
-            console.error('Ingestion failed:', err);
-            showStatusMsg('Network error while ingesting document.', true);
+            console.error('Upload failed:', err);
+            showStatusMsg('Upload failed due to a network error.', true);
         } finally {
             isSubmitting = false;
             if (btnSubmit) btnSubmit.disabled = false;
@@ -1748,10 +1756,10 @@
             const currentNum = i + 1;
 
             if (batchProgressText) {
-                batchProgressText.textContent = `Ingesting ${currentNum} of ${total}: ${item.name}...`;
+                batchProgressText.textContent = `Uploading ${currentNum} of ${total}: ${item.name}...`;
             }
             if (submitText) {
-                submitText.textContent = `Ingesting (${currentNum}/${total})...`;
+                submitText.textContent = `Uploading (${currentNum}/${total})...`;
             }
             const pct = Math.round(((currentNum - 1) / total) * 100);
             if (batchProgressPct) batchProgressPct.textContent = `${pct}%`;
@@ -1800,7 +1808,7 @@
             : ((typeof window !== 'undefined' && typeof window.showToast === 'function') ? window.showToast : null);
 
         if (failedCount === 0) {
-            const successMsg = `Successfully ingested ${completedCount} document${completedCount === 1 ? '' : 's'}`;
+            const successMsg = `Successfully uploaded ${completedCount} document${completedCount === 1 ? '' : 's'}`;
             if (toastFn) toastFn(successMsg, 'success');
             else if (typeof alert === 'function') alert(successMsg);
 
@@ -1808,7 +1816,7 @@
             if (typeof window.refreshCurrentTab === 'function') window.refreshCurrentTab(area, house);
             if (typeof window.loadTree === 'function') window.loadTree();
         } else {
-            const partialMsg = `Ingested ${completedCount} of ${total} documents. (${failedCount} failed: ${errors.join('; ')})`;
+            const partialMsg = `Uploaded ${completedCount} of ${total} documents. (${failedCount} failed: ${errors.join('; ')})`;
             showStatusMsg(partialMsg, true);
             if (toastFn) toastFn(partialMsg, 'error');
             if (completedCount > 0) {

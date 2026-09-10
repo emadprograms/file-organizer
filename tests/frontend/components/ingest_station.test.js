@@ -51,12 +51,12 @@ const {
 function setupDOM() {
     document.body.innerHTML = `
         <header id="top-navbar">
-            <button id="btn-ingest-trigger">+ Ingest <kbd>⌘I</kbd></button>
+            <button id="btn-ingest-trigger">Upload <kbd>⌘I</kbd></button>
             <button id="btn-search-trigger">Search</button>
         </header>
 
         <div id="ingest-dropzone-overlay" class="hidden">
-            <p id="ingest-dropzone-prompt">Drop PDF to Ingest Document</p>
+            <p id="ingest-dropzone-prompt">Drop PDF to Upload Document</p>
         </div>
 
         <div id="ingest-station-modal" class="hidden">
@@ -176,7 +176,7 @@ function setupDOM() {
                 <button id="btn-ingest-cancel">Cancel</button>
                 <button id="btn-ingest-submit">
                     <span id="ingest-submit-spinner" class="hidden"></span>
-                    <span id="ingest-submit-text">⚡ Ingest Document</span>
+                    <span id="ingest-submit-text">⚡ Upload Document</span>
                 </button>
             </div>
         </div>
@@ -285,7 +285,7 @@ describe('Ingest Station Component', () => {
         expect(sectionSingle.classList.contains('hidden')).toBe(false);
         expect(sectionBroadcast.classList.contains('hidden')).toBe(true);
         expect(sectionHousebatch.classList.contains('hidden')).toBe(true);
-        expect(submitText.textContent).toBe('⚡ Ingest Document');
+        expect(submitText.textContent).toBe('⚡ Upload Document');
 
         // Switch to Broadcast Notice
         tabBroadcast.click();
@@ -301,7 +301,7 @@ describe('Ingest Station Component', () => {
         expect(sectionSingle.classList.contains('hidden')).toBe(true);
         expect(sectionBroadcast.classList.contains('hidden')).toBe(true);
         expect(sectionHousebatch.classList.contains('hidden')).toBe(false);
-        expect(submitText.textContent).toBe('⚡ Ingest 0 Documents');
+        expect(submitText.textContent).toBe('⚡ Upload 0 Documents');
 
         // Switch back to Single Document
         tabSingle.click();
@@ -309,7 +309,7 @@ describe('Ingest Station Component', () => {
         expect(sectionSingle.classList.contains('hidden')).toBe(false);
         expect(sectionBroadcast.classList.contains('hidden')).toBe(true);
         expect(sectionHousebatch.classList.contains('hidden')).toBe(true);
-        expect(submitText.textContent).toBe('⚡ Ingest Document');
+        expect(submitText.textContent).toBe('⚡ Upload Document');
     });
 
     it('populates Area and House selects based on active context and handles dropdown changes in Single mode', () => {
@@ -360,7 +360,7 @@ describe('Ingest Station Component', () => {
         window.dispatchEvent(dragEvent);
 
         expect(overlay.classList.contains('hidden')).toBe(false);
-        expect(prompt.textContent).toBe('Drop PDF to Ingest into Zone North / Villa 42');
+        expect(prompt.textContent).toBe('Drop PDF to Upload into Zone North / Villa 42');
 
         // Dragleave
         const leaveEvent = new Event('dragleave');
@@ -466,7 +466,7 @@ describe('Ingest Station Component', () => {
         const countBadge = document.getElementById('housebatch-count-badge');
         expect(countBadge.textContent).toBe('2 files');
         const submitText = document.getElementById('ingest-submit-text');
-        expect(submitText.textContent).toBe('⚡ Ingest 2 Documents');
+        expect(submitText.textContent).toBe('⚡ Upload 2 Documents');
     });
 
     it('auto-fills editable titles and renders file list in house batch queue with individual category and date controls', () => {
@@ -665,7 +665,7 @@ describe('Ingest Station Component', () => {
 
         expect(modal.classList.contains('hidden')).toBe(true);
         expect(global.showToast).toHaveBeenCalledWith(
-            'Successfully ingested 2 documents',
+            'Successfully uploaded 2 documents',
             'success'
         );
         expect(window.loadTree).toHaveBeenCalled();
