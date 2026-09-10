@@ -341,6 +341,127 @@ def test_export_house_archive_pdf_empty_house(test_setup):
     merged_doc.close()
 
 
+def test_export_house_archive_pdf_running_footer(test_setup):
+    """Test ultra-clean 3-element running footer on each page of exported combined house PDF dossier.
+    Footer layout:
+    - Bottom Left: The document filing date (e.g. 2024-05-15). If undated, leave blank.
+    - Bottom Center: The clean category name WITHOUT the number prefix (e.g. '05 - عقود' -> 'عقود').
+    - Bottom Right: X/Y  (Z) where X is page within document, Y is doc page count, Z is master overall page.
+    - Zero verbose labels (no 'Date:', 'Category:', 'Page:', '05 -').
+    """
+    import unicodedata
+    repo = test_setup["repo"]
+    areas_root = Path(client.app.state.config.areas_root_path)
+    vault_300 = areas_root / "Area A" / "House 300" / "vault"
+    vault_300.mkdir(parents=True, exist_ok=True)
+    repo.add_house(house_id="House 300", area_id="Area A")
+    t = repo.add_tenant(house_id="House 300", name="مستأجر الفوتر", start_date="2024-01-01")
+
+    # Document 1: 2024-05-15, 2 pages, Category: "05 - عقود"
+    p1 = vault_300 / "doc_footer_doc1.pdf"
+    d1 = fitz.open()
+    d1.new_page().insert_text((50, 50), "DOC1_PAGE1")
+    d1.new_page().insert_text((50, 50), "DOC1_PAGE2")
+    p1.write_bytes(d1.tobytes())
+    d1.close()
+    b1 = repo.create_batch(filename="footer_doc1.pdf", file_path=str(p1), house_id="House 300", page_count=2)
+    repo.add_document(
+        vault_id="footer_doc1",
+        house_id="House 300",
+        tenant_id=t.id,
+        batch_id=b1.id,
+        primary_date="2024-05-15",
+        arabic_title="عقد إيجار متعدد الصفحات",
+        category="05 - عقود",
+        page_count=2,
+    )
+
+    # Document 2: 2024-02-10, 1 page, Category: "06 - كهرباء وماء"
+    p2 = vault_300 / "doc_footer_doc2.pdf"
+    d2 = fitz.open()
+    d2.new_page().insert_text((50, 50), "DOC2_PAGE1")
+    p2.write_bytes(d2.tobytes())
+    d2.close()
+    b2 = repo.create_batch(filename="footer_doc2.pdf", file_path=str(p2), house_id="House 300", page_count=1)
+    repo.add_document(
+        vault_id="footer_doc2",
+        house_id="House 300",
+        tenant_id=t.id,
+        batch_id=b2.id,
+        primary_date="2024-02-10",
+        arabic_title="فاتورة كهرباء",
+        category="06 - كهرباء وماء",
+        page_count=1,
+    )
+
+    # Document 3: Undated document, 1 page, Category: "صيانة"
+    p3 = vault_300 / "doc_footer_doc3.pdf"
+    d3 = fitz.open()
+    d3.new_page().insert_text((50, 50), "DOC3_PAGE1")
+    p3.write_bytes(d3.tobytes())
+    d3.close()
+    b3 = repo.create_batch(filename="footer_doc3.pdf", file_path=str(p3), house_id="House 300", page_count=1)
+    repo.add_document(
+        vault_id="footer_doc3",
+        house_id="House 300",
+        tenant_id=t.id,
+        batch_id=b3.id,
+        primary_date=None,
+        arabic_title="طلب صيانة عامة",
+        category="صيانة",
+        page_count=1,
+    )
+
+    res = client.get("/api/areas/Area A/houses/House 300/export-pdf")
+    assert res.status_code == 200
+    assert res.headers["content-type"] == "application/pdf"
+
+    merged = fitz.open(stream=res.content, filetype="pdf")
+    # Total pages = 2 (from doc1) + 1 (from doc2) + 1 (from doc3) = 4 pages
+    assert len(merged) == 4
+
+    # Document 1 (2024-05-15, "05 - عقود" -> "عقود", 2 pages)
+    # Page 1 of merged dossier: Doc 1 Page 1 -> pagination: "1/2  (1)"
+    text_p0 = merged[0].get_text()
+    assert "2024-05-15" in text_p0
+    assert "1/2  (1)" in text_p0
+    norm_p0 = unicodedata.normalize("NFKD", text_p0)
+    assert "عقود" in text_p0 or "عقود" in norm_p0[::-1]
+    assert "05 -" not in text_p0
+    assert "Date:" not in text_p0
+    assert "Category:" not in text_p0
+    assert "Page:" not in text_p0
+
+    # Page 2 of merged dossier: Doc 1 Page 2 -> pagination: "2/2  (2)"
+    text_p1 = merged[1].get_text()
+    assert "2024-05-15" in text_p1
+    assert "2/2  (2)" in text_p1
+    norm_p1 = unicodedata.normalize("NFKD", text_p1)
+    assert "عقود" in text_p1 or "عقود" in norm_p1[::-1]
+    assert "05 -" not in text_p1
+
+    # Document 2 (2024-02-10, "06 - كهرباء وماء" -> "كهرباء وماء", 1 page)
+    # Page 3 of merged dossier: Doc 2 Page 1 -> pagination: "1/1  (3)"
+    text_p2 = merged[2].get_text()
+    assert "2024-02-10" in text_p2
+    assert "1/1  (3)" in text_p2
+    norm_p2 = unicodedata.normalize("NFKD", text_p2)
+    assert "كهرباء وماء" in text_p2 or "كهرباء وماء" in norm_p2[::-1]
+    assert "06 -" not in text_p2
+
+    # Document 3 (Undated, "صيانة" -> "صيانة", 1 page)
+    # Page 4 of merged dossier: Doc 3 Page 1 -> pagination: "1/1  (4)"
+    text_p3 = merged[3].get_text()
+    assert "1/1  (4)" in text_p3
+    norm_p3 = unicodedata.normalize("NFKD", text_p3)
+    assert "صيانة" in text_p3 or "صيانة" in norm_p3[::-1]
+    # Undated: bottom left date must be left blank
+    assert "2024" not in text_p3
+    assert "None" not in text_p3
+
+    merged.close()
+
+
 def test_batch_move_documents(test_setup):
     repo = test_setup["repo"]
     vault_dir = test_setup["vault_dir"]

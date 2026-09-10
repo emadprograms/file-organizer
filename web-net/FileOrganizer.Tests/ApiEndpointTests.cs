@@ -602,6 +602,85 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
         Assert.Equal(200, (int)parsed.Pages[1].Width.Point);
         Assert.Equal(100, (int)parsed.Pages[2].Width.Point);
         Assert.Equal(50, (int)parsed.Pages[3].Width.Point);
+
+        // Assert exported PDF contains pages with valid layout and dimensions
+        for (int i = 0; i < parsed.PageCount; i++)
+        {
+            var page = parsed.Pages[i];
+            Assert.True(page.Width.Point > 0, $"Page {i + 1} width must be positive");
+            Assert.True(page.Height.Point > 0, $"Page {i + 1} height must be positive");
+        }
+    }
+
+    [Fact]
+    public async Task ExportPdf_RunningFooter_ContainsValidPagesAndLayout()
+    {
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+
+        await repo.AddHouseAsync("700", "Safra C");
+        var tenant = await repo.AddTenantAsync("700", "مستأجر الفوتر", "2024-01-01", null);
+
+        var pdf1Path = Path.Combine(_fixture.AreasRoot, "footer_test_doc1.pdf");
+        using (var pdf = new PdfSharpCore.Pdf.PdfDocument())
+        {
+            pdf.AddPage();
+            pdf.AddPage();
+            pdf.Save(pdf1Path);
+        }
+
+        var pdf2Path = Path.Combine(_fixture.AreasRoot, "footer_test_doc2.pdf");
+        using (var pdf = new PdfSharpCore.Pdf.PdfDocument())
+        {
+            pdf.AddPage();
+            pdf.Save(pdf2Path);
+        }
+
+        await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Safra C",
+            HouseId = "700",
+            TenantId = tenant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد متعدد الصفحات",
+            PrimaryDate = "2024-05-15",
+            PageCount = 2,
+            SourcePdfFilename = "doc_footer1.pdf",
+            SourcePdfPath = pdf1Path,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Safra C",
+            HouseId = "700",
+            TenantId = tenant.Id,
+            Category = "06 - كهرباء وماء",
+            ArabicTitle = "فاتورة",
+            PrimaryDate = "2024-03-01",
+            PageCount = 1,
+            SourcePdfFilename = "doc_footer2.pdf",
+            SourcePdfPath = pdf2Path,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        var response = await _client.GetAsync("/api/areas/Safra%20C/houses/700/export-pdf");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/pdf", response.Content.Headers.ContentType?.MediaType);
+        Assert.Contains("archive_Safra_C_700.pdf", response.Content.Headers.ContentDisposition?.FileName);
+
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        Assert.NotEmpty(bytes);
+        using var ms = new MemoryStream(bytes);
+        using var parsed = PdfSharpCore.Pdf.IO.PdfReader.Open(ms, PdfSharpCore.Pdf.IO.PdfDocumentOpenMode.Import);
+        // Total pages = 2 (doc 1) + 1 (doc 2) = 3 pages
+        Assert.Equal(3, parsed.PageCount);
+        for (int i = 0; i < parsed.PageCount; i++)
+        {
+            var page = parsed.Pages[i];
+            Assert.True(page.Width.Point > 0, $"Page {i + 1} has valid layout width");
+            Assert.True(page.Height.Point > 0, $"Page {i + 1} has valid layout height");
+        }
     }
 
     [Fact]

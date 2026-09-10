@@ -1,3 +1,4 @@
+import os
 import json
 import base64
 import re
@@ -741,6 +742,35 @@ async def export_house_archive_zip(request: Request, area_id: str, house_id: str
     return StreamingResponse(zip_buffer, media_type="application/zip", headers=headers)
 
 
+def _find_system_font() -> Optional[str]:
+    candidate_fonts = [
+        "/System/Library/Fonts/Supplemental/Arial.ttf",
+        "/System/Library/Fonts/Arial.ttf",
+        "/Library/Fonts/Arial.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
+    ]
+    for candidate in candidate_fonts:
+        if os.path.isfile(candidate):
+            return candidate
+    return None
+
+
+def _get_text_width(text: str, fontsize: float = 7.5, fontfile: Optional[str] = None) -> float:
+    if not text:
+        return 0.0
+    if fontfile and os.path.isfile(fontfile):
+        try:
+            return fitz.Font(fontfile=fontfile).text_length(text, fontsize=fontsize)
+        except Exception:
+            pass
+    try:
+        return fitz.get_text_length(text, fontname="helv", fontsize=fontsize)
+    except Exception:
+        return len(text) * (fontsize * 0.5)
+
+
 @router.get("/api/areas/{area_id}/houses/{house_id}/export-pdf")
 async def export_house_archive_pdf(request: Request, area_id: str, house_id: str, tenant_id: Optional[int] = None):
     repo = get_db_repo(request)
@@ -777,6 +807,9 @@ async def export_house_archive_pdf(request: Request, area_id: str, house_id: str
     vault_dir = house_dir / "vault"
 
     merged = fitz.open()
+    overall_page_idx = 0
+    system_font = _find_system_font()
+
     for doc in docs_sorted:
         src_candidates = [
             vault_dir / f"doc_{doc.vault_id}.pdf",
@@ -789,7 +822,44 @@ async def export_house_archive_pdf(request: Request, area_id: str, house_id: str
             continue
         try:
             with fitz.open(str(pdf_path)) as src:
+                doc_page_count = len(src)
+                clean_cat = re.sub(r'^\d+\s*-\s*', '', doc.category or '').strip()
+                date_str = str(doc.primary_date) if doc.primary_date else ""
+                start_page_idx = len(merged)
                 merged.insert_pdf(src)
+
+                for i in range(doc_page_count):
+                    overall_page_idx += 1
+                    page_num = i + 1
+                    page = merged[start_page_idx + i]
+
+                    # Bottom Left: filing date (e.g. 2024-05-15). If undated, leave blank.
+                    if date_str:
+                        left_pt = fitz.Point(36, page.rect.height - 16)
+                        page.insert_text(left_pt, date_str, fontsize=7.5, color=(0.4, 0.4, 0.45), fontname="helv")
+
+                    # Bottom Center: clean category name WITHOUT number prefix
+                    if clean_cat:
+                        approx_width = _get_text_width(clean_cat, fontsize=7.5, fontfile=system_font)
+                        center_pt = fitz.Point(page.rect.width / 2.0 - approx_width / 2.0, page.rect.height - 16)
+                        inserted = False
+                        if system_font:
+                            try:
+                                page.insert_text(center_pt, clean_cat, fontsize=7.5, color=(0.4, 0.4, 0.45), fontname="f0", fontfile=system_font)
+                                inserted = True
+                            except Exception:
+                                pass
+                        if not inserted:
+                            try:
+                                page.insert_text(center_pt, clean_cat, fontsize=7.5, color=(0.4, 0.4, 0.45), fontname="helv")
+                            except Exception:
+                                page.insert_text(center_pt, clean_cat, fontsize=7.5, color=(0.4, 0.4, 0.45))
+
+                    # Bottom Right: X/Y  (Z)
+                    pagination_str = f"{page_num}/{doc_page_count}  ({overall_page_idx})"
+                    right_width = _get_text_width(pagination_str, fontsize=7.5)
+                    right_pt = fitz.Point(page.rect.width - 36 - right_width, page.rect.height - 16)
+                    page.insert_text(right_pt, pagination_str, fontsize=7.5, color=(0.4, 0.4, 0.45), fontname="helv")
         except Exception:
             pass
 

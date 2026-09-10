@@ -7,6 +7,8 @@ using FileOrganizer.Web.Common;
 using FileOrganizer.Web.Data;
 using FileOrganizer.Web.Models;
 using Microsoft.AspNetCore.Http.Json;
+using PdfSharpCore.Drawing;
+using PdfSharpCore.Pdf;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -317,6 +319,9 @@ app.MapGet("/api/areas/{areaId}/houses/{houseId}/export-pdf", async (
     var sourceVaultDir = Path.Combine(houseDir, ".source_files", "vault");
 
     using var outputDoc = new PdfSharpCore.Pdf.PdfDocument();
+    var footerFont = new XFont("Arial", 7.5, XFontStyle.Regular);
+    var footerBrush = new XSolidBrush(XColor.FromArgb(100, 116, 139));
+    int overallPageIdx = 0;
 
     foreach (var doc in sortedDocs)
     {
@@ -334,9 +339,30 @@ app.MapGet("/api/areas/{areaId}/houses/{houseId}/export-pdf", async (
             try
             {
                 using var inputDoc = PdfSharpCore.Pdf.IO.PdfReader.Open(filePath, PdfSharpCore.Pdf.IO.PdfDocumentOpenMode.Import);
-                for (int i = 0; i < inputDoc.PageCount; i++)
+                var docPageCount = inputDoc.PageCount;
+                var cleanCat = Regex.Replace(doc.Category ?? "", @"^\d+\s*-\s*", "").Trim();
+                var dateStr = doc.Date ?? "";
+
+                for (int i = 0; i < docPageCount; i++)
                 {
-                    outputDoc.AddPage(inputDoc.Pages[i]);
+                    overallPageIdx++;
+                    int pageNum = i + 1;
+                    var newPage = outputDoc.AddPage(inputDoc.Pages[i]);
+
+                    using var gfx = XGraphics.FromPdfPage(newPage);
+
+                    if (!string.IsNullOrWhiteSpace(dateStr))
+                    {
+                        gfx.DrawString(dateStr, footerFont, footerBrush, new XPoint(36, newPage.Height - 16));
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(cleanCat))
+                    {
+                        gfx.DrawString(cleanCat, footerFont, footerBrush, new XPoint(newPage.Width / 2, newPage.Height - 16), XStringFormats.Center);
+                    }
+
+                    var paginationStr = $"{pageNum}/{docPageCount}  ({overallPageIdx})";
+                    gfx.DrawString(paginationStr, footerFont, footerBrush, new XPoint(newPage.Width - 36, newPage.Height - 16), XStringFormats.TopRight);
                 }
             }
             catch
