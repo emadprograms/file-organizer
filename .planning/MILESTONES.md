@@ -2,30 +2,34 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 3 quick refinements (QCK-01, QCK-02, QCK-03), 4 plans, comprehensive multi-stack test verification (51 .NET xUnit, 14+ v14 pytest, 26+ doc management, 101 Vitest across 9 files, 49 Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 4 quick refinements (QCK-01, QCK-02, QCK-03, QCK-04), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 15 v14 pytest, 13 doc management, 101 Vitest across 9 files, 49 Playwright E2E)
 
 **Key accomplishments:**
 
-- **One-Click House Archive Export & Dossier Generation (Phase 105 + Quick Refinements):**
+- **One-Click House Archive Export & Chronological Dossier (Phase 105 + Quick Refinements QCK-01, QCK-03, QCK-04):**
   - Full House Archive ZIP Export pipeline (`GET /api/areas/{area}/houses/{house}/export-zip`) across both FastAPI and ASP.NET Core Minimal APIs, packaging vault documents into collision-free structured ZIPs with clean Arabic filenames.
   - Standard 2-digit folder numbering fix (`FOLDER_PREFIXES` normalization so every folder in the ZIP has its proper `01 - `, `05 - `, `06 - `, etc. prefix).
-  - Interactive Export Options Modal (`#export-archive-modal`):
+  - Interactive Export Options Modal (`#export-archive-modal`, QCK-01):
     - Format Card A: Categorized ZIP Archive.
     - Format Card B: Combined Chronological PDF Dossier (recent documents first).
     - Tenancy Scope Filter: All Tenants (Full House) vs Individual active/past tenant.
-  - Combined Chronological PDF Dossier (`GET /api/areas/{area}/houses/{house}/export-pdf` via PyMuPDF and PdfSharpCore).
-  - Descending Chronological Sort (most recent document on Page 1, older documents towards the back, undated at the end).
-  - Minimalist 3-Column Running Footer on every page of the PDF dossier:
-    - Bottom-Left: Document date (e.g. `2024-05-15`).
-    - Bottom-Center: Clean category name without numbers (e.g. `عقود`, `صيانة`).
-    - Bottom-Right: Page within document group and overall dossier page, e.g. `1/3  (14)`.
-- **Multi-Select Batch Document Operations (Phase 106 + Quick Refinements):**
+  - Combined Chronological PDF Dossier (`GET /api/areas/{area}/houses/{house}/export-pdf` via PyMuPDF in Python and PdfSharpCore in .NET).
+  - Descending Chronological Sort (QCK-03): Most recent document on Page 1, older documents towards the back, undated at the end.
+  - Minimalist 3-Column Running Footer (QCK-03):
+    - Bottom-Left: Document primary filing date (`YYYY-MM-DD`), blank if undated.
+    - Bottom-Center: Category name with number prefix preserved (e.g. `05 - عقود`, `06 - كهرباء وماء`).
+    - Bottom-Right: Group & Master pagination `X/Y  (Z)` (e.g. `1/3  (14)`).
+    - Typography & Margins: 7.5 pt muted slate gray (`#64748b`), 16 pt margin. Zero verbose labels (no "Date:", "Category:", "Page:").
+  - Arabic Cursive Text Shaping & BiDi Visual Reordering (QCK-04):
+    - Python FastAPI (`src/api/routes.py`): Utilizes `arabic-reshaper` + `python-bidi` (`get_display(arabic_reshaper.reshape(cat))`), eliminating disjointed "terminal Arabic" isolated characters, connecting cursive letters accurately, and computing shaped text widths for exact centered alignment.
+    - ASP.NET Core 8.0 (`web-net/Common/ArabicReshaper.cs` & `web-net/Program.cs`): Engineered zero-dependency pure C# `ArabicReshaper.ReshapeAndReorder` mapping standard Arabic characters (`\u0600`–`\u06FF`) to Unicode Presentation Forms-B (`\uFE80`–`\uFEFC`), supporting dual-joining letters, right-joining letters, Lam-Alef ligatures (`لا`, `لأ`, `لإ`, `لآ`), reversing RTL Arabic runs while preserving LTR numeric tokens (`05 - `) and mirroring bracket punctuation.
+- **Multi-Select Batch Document Operations (Phase 106 + Quick Refinement QCK-02):**
   - Multi-select checkbox UI on document cards, folder-level toggle, and global Select All / Deselect All.
   - Glassmorphism dark floating action dock (`#batch-action-bar`) with dynamic selection counter and action buttons (`[ Move Selected ]`, `[ Copy Selected ]`, `[ Delete Selected ]`, `[ Deselect ]`).
   - Batch Move (`POST .../batch-move`): Atomic relocation to target standard or custom folder.
   - Batch Delete (`POST .../batch-delete`): Cascade deletion with confirmation modal and vault file unlinking.
   - Batch Copy (`POST .../batch-copy`): Copies documents to an additional category folder for instant reference.
-  - Timeline De-duplication Architecture:
+  - Timeline De-duplication Architecture (QCK-02):
     - `is_timeline_visible INTEGER DEFAULT 1` added to `documents` table with auto-migration across Python and C#.
     - Secondary copies are automatically stored with `is_timeline_visible = 0`.
     - Timeline queries filter out copies so the timeline strictly reflects 1 real-world event per row (0 duplicate clutter).
@@ -41,10 +45,11 @@
   - Subtle navbar trigger button (`#btn-shortcuts-trigger`).
   - Input/textarea suppression guards and backdrop/Esc dismissal.
 - **Multi-Stack Test Coverage & Verification:**
-  - Python Pytest (14+ tests in `test_v14_features.py`, 26+ in document management).
-  - ASP.NET Core xUnit (51+ tests in `FileOrganizer.Tests/ApiEndpointTests.cs`).
-  - Frontend Vitest (101+ tests across 9 test files).
-  - Playwright Browser E2E suite (49 passed).
+  - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
+  - 15 Python v14 pytest tests (`tests/test_v14_features.py`).
+  - 13 Python document management tests (`tests/test_document_management_api.py`).
+  - 101 Frontend Vitest tests across 9 test files (`npm run test:frontend`).
+  - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 
 ---

@@ -6,19 +6,26 @@ A document management system that processes scanned Arabic PDFs, categorizes the
 
 ## Current Milestone: None (v14.0 Completed & Shipped)
 
-Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive multi-stack test coverage (51 xUnit, 14+ v14 pytest, 26+ doc management, 101 Vitest across 9 files, and Playwright E2E), and power-user operational tooling. Ready for next milestone initialization.
+Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive multi-stack test coverage (84 xUnit including 32 in `ArabicReshaperTests.cs`, 15 v14 pytest, 13 doc management pytest, 101 Vitest across 9 files, and 49 Playwright E2E), and power-user operational tooling. Ready for next milestone initialization.
 
 ## Past Milestones
 
 <details>
 <summary>v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)</summary>
 
-- **One-Click House Archive Export & Dossier Generation (Phase 105 + Quick Refinements):**
+- **One-Click House Archive Export & Chronological Dossier (Phase 105 + Quick Refinements QCK-01, QCK-03, QCK-04):**
   - Categorized ZIP Archive Export (`GET /api/areas/{area}/houses/{house}/export-zip` across FastAPI & ASP.NET Core) streaming collision-free ZIP archives with standard 2-digit folder numbering normalization (`FOLDER_PREFIXES` ensuring proper `01 - `, `05 - `, `06 - ` prefixes).
   - Interactive Export Options Modal (`#export-archive-modal`): Selectable Format Cards (Format Card A: Categorized ZIP Archive; Format Card B: Combined Chronological PDF Dossier with recent documents first) and Tenancy Scope Filter (All Tenants / Full House Record vs Individual active/past tenant).
   - Combined Chronological PDF Dossier (`GET /api/areas/{area}/houses/{house}/export-pdf` via PyMuPDF in Python and PdfSharpCore in .NET) with descending chronological sort (most recent document on Page 1, older documents towards the back, undated at the end).
-  - Minimalist 3-Column Running Footer on every page of the PDF dossier: Bottom-Left displays document date (e.g. `2024-05-15`), Bottom-Center displays clean Arabic category name without numbers (e.g. `عقود`, `صيانة`), and Bottom-Right displays page within document group and overall dossier page (e.g. `1/3  (14)`).
-- **Multi-Select Batch Document Operations (Phase 106 + Quick Refinements):**
+  - Minimalist 3-Column Running Footer on every page of the PDF dossier:
+    - Bottom-Left: Document primary filing date (`YYYY-MM-DD`), blank if undated.
+    - Bottom-Center: Category name with number prefix preserved (e.g. `05 - عقود`, `06 - كهرباء وماء`).
+    - Bottom-Right: Group & Master pagination `X/Y  (Z)` (e.g. `1/3  (14)`).
+    - Typography & Layout: 7.5 pt muted slate gray (`#64748b`), 16 pt margin, zero verbose labels (no "Date:", "Category:", "Page:").
+  - Arabic Cursive Text Shaping & BiDi Visual Reordering (QCK-04):
+    - Python FastAPI (`src/api/routes.py`): Leverages `arabic-reshaper` + `python-bidi` (`get_display(arabic_reshaper.reshape(cat))`), preventing disjointed "terminal Arabic" letters and calculating precise text width for 100% centered rendering.
+    - ASP.NET Core 8.0 (`web-net/Common/ArabicReshaper.cs` & `web-net/Program.cs`): Implements zero-dependency pure C# `ArabicReshaper.ReshapeAndReorder` mapping standard Arabic characters (`\u0600`–`\u06FF`) to Unicode Presentation Forms-B (`\uFE80`–`\uFEFC`), supporting dual-joining letters, right-joining letters, Lam-Alef ligatures (`لا`, `لأ`, `لإ`, `لآ`), and BiDi visual run reversal while preserving LTR numeric tokens (`05 - `) and mirroring bracket punctuation.
+- **Multi-Select Batch Document Operations (Phase 106 + Quick Refinement QCK-02):**
   - Multi-select checkbox UI on document cards, folder-level toggle, and global Select All / Deselect All.
   - Glassmorphism dark floating action dock (`#batch-action-bar`) with dynamic selection counter and quick action buttons (`[ Move Selected ]`, `[ Copy Selected ]`, `[ Delete Selected ]`, `[ Deselect ]`).
   - Batch Move (`POST .../batch-move`): Atomic relocation to target standard or custom folder.
@@ -34,11 +41,12 @@ Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shi
   - Pressing `?` or Shift+/ opens `#keyboard-shortcuts-modal` displaying `⌘K` Search, `⌘I` Ingest, `Space` Quick Look, `Esc` Close, `?` Shortcuts.
   - Subtle navbar trigger button (`#btn-shortcuts-trigger`).
   - Strict input/textarea typing suppression guards and backdrop/Escape dismissal.
-- **Multi-Stack Test Coverage & Verification:**
-  - Python Pytest (14+ tests in `tests/test_v14_features.py`, 26+ in document management).
-  - ASP.NET Core xUnit (51+ tests in `FileOrganizer.Tests/ApiEndpointTests.cs`, `RepositoryTests.cs`, `ParityVerificationTests.cs`).
-  - Frontend Vitest (101+ tests across 9 test files).
-  - Playwright Browser E2E suite (49 passed).
+- **Comprehensive Multi-Stack Test Coverage & Verification:**
+  - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
+  - 15 Python v14 pytest tests (`tests/test_v14_features.py`).
+  - 13 Python document management tests (`tests/test_document_management_api.py`).
+  - 101 Frontend Vitest tests across 9 files (`npm run test:frontend`).
+  - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 
 </details>
@@ -127,7 +135,8 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 - ✓ Comprehensive multi-stack test suite across Pytest, xUnit, Vitest, Playwright (VER-07) — v14.0
 - ✓ Interactive Export Options Modal & Chronological PDF Dossier with Tenancy Filter and 2-digit folder prefixes (QCK-01) — v14.0
 - ✓ Multi-Select Batch Copy & Timeline De-duplication Architecture with `is_timeline_visible = 0` (QCK-02) — v14.0
-- ✓ Descending Chronological Dossier Sort & Minimalist 3-Column Running Footer Specification (QCK-03) — v14.0
+- ✓ Descending Chronological Dossier Sort & Minimalist 3-Column Running Footer with Preserved Category Numbers (QCK-03) — v14.0
+- ✓ Arabic Cursive Text Shaping & BiDi Visual Reordering in PDF Export Running Footer (QCK-04) — v14.0
 - ✓ Decoupled monorepo structure (`web-net/` for ASP.NET Core, `src/` for Python AI pipeline, shared `organizer.db`) (ARCH-01) — v13.0
 - ✓ ASP.NET Core 8.0 project with Dapper and `Microsoft.Data.Sqlite` in WAL mode (NET-01) — v13.0
 - ✓ Port all read API endpoints with 100% JSON parity (NET-02) — v13.0
@@ -177,7 +186,7 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 - ✅ Shipped v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server on 2026-09-09.
 - ✅ Shipped v12.0 Unified Document Ingestion System on 2026-09-09.
 - ✅ Shipped v11.0 Database Backend & Clean Storage Architecture on 2026-09-09.
-- Robust multi-stack test coverage: 51 ASP.NET Core xUnit tests, 14+ Python pytest tests in `test_v14_features.py`, 26+ in document management, 101 frontend Vitest tests across 9 test files, and Playwright Browser E2E suite.
+- Robust multi-stack test coverage: 84 ASP.NET Core xUnit tests (including 32 in `ArabicReshaperTests.cs`), 15 Python pytest tests in `test_v14_features.py`, 13 in `test_document_management_api.py`, 101 frontend Vitest tests across 9 test files, and 49 Playwright Browser E2E suite.
 - Dual-backend runtime parity: FastAPI and ASP.NET Core 8.0 Minimal APIs running with 100% JSON contract and functional parity, matching schema migrations, and zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 
 ## Context
@@ -193,7 +202,8 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 | Power-User Operations & Portfolio Expansion | Equip property managers with high-utility operations: one-click ZIP export, multi-select bulk operations, UI-based house creation, and global keyboard shortcuts. | ✓ Completed (Milestone v14.0). |
 | Export Options Modal & Chronological PDF Dossier | Single entry point modal (`#export-archive-modal`) offering choice between categorized ZIP archive and merged chronological PDF dossier, with tenancy scope filtering and normalized 2-digit folder prefixes. | ✓ Completed (Phase 105 & QCK-01). |
 | Timeline De-duplication Architecture | Copying documents to multiple category folders for cross-referencing sets `is_timeline_visible = 0`. Timeline queries filter copies so each physical event appears exactly once, avoiding timeline clutter while keeping category views complete. | ✓ Completed (QCK-02). |
-| Minimalist 3-Column Running Footer & Descending Sort | Dossier PDF sorted newest-to-oldest with a 3-column running footer on every page (Date, Category, Page X/Y) for seamless legal/administrative review. | ✓ Completed (QCK-03). |
+| Minimalist 3-Column Running Footer & Descending Sort | Dossier PDF sorted newest-to-oldest with a 3-column running footer on every page (Date, Category with preserved 2-digit number prefix, Page X/Y) for seamless legal/administrative review and category cross-referencing. | ✓ Completed (QCK-03). |
+| Arabic Cursive Shaping & BiDi Visual Reordering | PDF rendering engines lack complex script shaping and render raw Arabic characters as disconnected, isolated glyphs in LTR order. Mapped standard Arabic to Unicode Presentation Forms-B (`\uFE80`–`\uFEFC`) contextually with dual-joining, right-joining, and Lam-Alef ligatures, reversing Arabic runs while preserving LTR numeric tokens (`05 - `) via `arabic-reshaper` + `python-bidi` in Python and zero-dependency `ArabicReshaper` in C#. | ✓ Completed (QCK-04). |
 | Decoupled Monorepo & ASP.NET Core Web Server | Decouple read-heavy web dashboard into a high-efficiency native .NET 8 binary (`web-net/`) using Dapper and SQLite in WAL mode. Preserves Python strictly for offline/batch AI ingestion while giving Windows servers a zero-Python runtime footprint. | ✓ Completed (Milestone v13.0). |
 | SQLite Relational Schema | Single file with WAL mode provides ACID transactions, sub-10ms query execution, and eliminates SMB directory traversal overhead. | ✓ Completed (Phase 92). |
 | Two-Folder Disk Structure (`batches/` and `vault/`) | Clear separation between raw scanned inputs and sliced standalone documents. Eliminates deep Arabic directory nesting. | ✓ Completed (Phase 93). |

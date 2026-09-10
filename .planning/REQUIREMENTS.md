@@ -2,7 +2,7 @@
 
 ## Milestone v14.0 Goals
 
-Equip the digital archive management system with power-user operational tools: one-click house archive ZIP export, interactive export options modal with combined chronological PDF dossier generation, multi-document batch operations (bulk move, bulk delete, and bulk copy with timeline de-duplication), portfolio expansion with UI-based house creation, an interactive keyboard shortcuts modal (`?`), and complete parity across both FastAPI and ASP.NET Core 8.0 backends with comprehensive test coverage.
+Equip the digital archive management system with power-user operational tools: one-click house archive ZIP export, interactive export options modal with combined chronological PDF dossier generation (descending sort, running footer with preserved category numbering, Arabic cursive reshaping and BiDi visual reordering), multi-document batch operations (bulk move, bulk delete, and bulk copy with timeline de-duplication), portfolio expansion with UI-based house creation, an interactive keyboard shortcuts modal (`?`), and complete parity across both FastAPI and ASP.NET Core 8.0 backends with comprehensive test coverage.
 
 ## Requirements
 
@@ -17,9 +17,13 @@ Equip the digital archive management system with power-user operational tools: o
 - [x] **QCK-03**: Minimalist 3-Column Running Footer & Descending Chronological Sort for PDF Dossier:
   - **Descending Chronological Sort**: Orders documents newest-first (Page 1 contains the most recent document, followed by older documents, with undated documents placed at the end).
   - **Minimalist 3-Column Running Footer**: Rendered on every page of the generated PDF dossier:
-    - Bottom-Left: Document date (e.g. `2024-05-15` or undated placeholder).
-    - Bottom-Center: Clean Arabic category name without numbers (e.g. `عقود`, `صيانة`).
-    - Bottom-Right: Page within document group and overall dossier page number (e.g. `1/3  (14)`).
+    - Bottom-Left: Document primary filing date (`YYYY-MM-DD`), blank if undated.
+    - Bottom-Center: Category name with number prefix preserved (e.g. `05 - عقود`, `06 - كهرباء وماء`).
+    - Bottom-Right: Group & Master pagination `X/Y  (Z)` (e.g. `1/3  (14)`).
+    - Typography & Margins: 7.5 pt muted slate gray (`#64748b`), 16 pt margin. Zero verbose labels (no "Date:", "Category:", "Page:").
+- [x] **QCK-04**: Arabic Cursive Text Shaping & BiDi Visual Reordering in PDF Export Running Footer:
+  - **Python FastAPI Backend** (`src/api/routes.py`): Utilizes `arabic-reshaper` and `python-bidi` (`get_display(arabic_reshaper.reshape(cat))`) to eliminate disconnected "terminal Arabic" isolated characters and accurately compute shaped text width for center alignment.
+  - **ASP.NET Core 8.0 Backend** (`web-net/Common/ArabicReshaper.cs` & `web-net/Program.cs`): Zero-dependency pure C# `ArabicReshaper.ReshapeAndReorder` mapping standard Arabic characters (`\u0600`–`\u06FF`) to Unicode Presentation Forms-B (`\uFE80`–`\uFEFC`), supporting dual-joining, right-joining, and Lam-Alef ligatures (`لا`, `لأ`, `لإ`, `لآ`), reversing RTL Arabic runs while preserving LTR numeric tokens (`05 - `) and mirroring bracket punctuation.
 
 ### Multi-Select Batch Document Operations
 - [x] **BAT-01**: Multi-select checkbox UI in category folder document lists. Features per-card selection checkboxes, a folder-level toggle, and a global "Select All / Deselect All" toggle. Displays a glassmorphism dark floating action dock (`#batch-action-bar`) with dynamic selection counter and action buttons (`[ Move Selected ]`, `[ Copy Selected ]`, `[ Delete Selected ]`, `[ Deselect ]`).
@@ -41,10 +45,11 @@ Equip the digital archive management system with power-user operational tools: o
 ### Keyboard Shortcuts & Verification
 - [x] **KBD-01**: Global Keyboard Shortcuts Helper Modal (`?`). Pressing `?` (Shift+/) opens a clean modal listing all available keyboard shortcuts (`⌘K` Search, `⌘I` Ingest, `Space` Quick Look, `Esc` Close, `?` Shortcuts). Includes a subtle navbar trigger button (`#btn-shortcuts-trigger`), backdrop dismissal, and input/textarea typing suppression guards.
 - [x] **VER-07**: Comprehensive multi-stack test suite covering all capabilities across Python and .NET:
-  - Backend tests in Pytest: 14+ tests in `tests/test_v14_features.py`, 26+ in document management.
-  - ASP.NET Core xUnit: 51+ tests in `web-net/FileOrganizer.Tests/ApiEndpointTests.cs`, `RepositoryTests.cs`, and `ParityVerificationTests.cs`.
-  - Frontend Vitest component tests: 101+ tests across 9 test files in `tests/frontend/components/`.
-  - Playwright browser E2E test suite (49 passing tests).
+  - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
+  - 15 Python v14 pytest tests (`tests/test_v14_features.py`).
+  - 13 Python document management tests (`tests/test_document_management_api.py`).
+  - 101 Frontend Vitest tests across 9 files (`npm run test:frontend`).
+  - 49 Playwright E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 
 ## Traceability
@@ -54,11 +59,12 @@ Equip the digital archive management system with power-user operational tools: o
 | **EXP-01** | Backend ZIP export stream endpoint in FastAPI & ASP.NET Core | Phase 105 | Complete | `tests/test_v14_features.py` (`test_export_house_archive_zip`), `ApiEndpointTests.cs` (`ExportZip_ReturnsZipArchive`) |
 | **EXP-02** | UI Export Archive ZIP button on House Profile header | Phase 105 | Complete | `src/api/static/js/house-profile.js`, `tests/frontend/components/house_profile.test.js` |
 | **QCK-01** | Interactive Export Options Modal & Chronological PDF Dossier Pipeline | Phase 105 / QCK-01 | Complete | `tests/frontend/components/export_archive_modal.test.js` (5 tests), `tests/test_v14_features.py`, `ApiEndpointTests.cs` |
-| **QCK-03** | Descending Chronological Dossier Sort & Minimalist 3-Column Running Footer | Phase 105 / QCK-03 | Complete | `tests/test_v14_features.py` (`test_export_house_archive_pdf_descending_chronological_order`), `ApiEndpointTests.cs` (`ExportPdf_ReturnsChronologicalMergedPdf`) |
+| **QCK-03** | Descending Chronological Dossier Sort & Minimalist 3-Column Running Footer with Preserved Numbers | Phase 105 / QCK-03 | Complete | `tests/test_v14_features.py` (`test_export_house_archive_pdf_descending_chronological_order`), `ApiEndpointTests.cs` (`ExportPdf_ReturnsChronologicalMergedPdf`) |
+| **QCK-04** | Arabic Cursive Text Shaping & BiDi Visual Reordering in Running Footer | Phase 105 / QCK-04 | Complete | `tests/test_v14_features.py` (`test_export_house_archive_pdf_running_footer`), `web-net/FileOrganizer.Tests/ArabicReshaperTests.cs` (32 tests) |
 | **BAT-01** | Multi-select checkboxes & floating action bar in Category View | Phase 106 | Complete | `src/api/static/js/categories-view.js`, `tests/frontend/components/batch_operations.test.js` (10 tests) |
 | **BAT-02** | Batch Move and Batch Delete backend endpoints | Phase 106 | Complete | `tests/test_v14_features.py` (`test_batch_move_documents`, `test_batch_delete_documents`), `ApiEndpointTests.cs` |
 | **QCK-02** | Batch Copy & Timeline De-duplication Architecture (`is_timeline_visible`) | Phase 106 / QCK-02 | Complete | `tests/test_v14_features.py` (2 tests), `tests/frontend/components/batch_operations.test.js` (3 copy tests), `ApiEndpointTests.cs` (`BatchCopy_*`) |
 | **HSE-01** | House creation backend endpoint and directory scaffold | Phase 107 | Complete | `tests/test_v14_features.py` (`test_create_house_*`), `ApiEndpointTests.cs` (`PostCreateHouse_*`) |
 | **HSE-02** | "+ Add House" UI modal and live grid refresh in Area Grid | Phase 107 | Complete | `src/api/static/js/area-grid.js`, `tests/frontend/components/add_house.test.js` (5 tests) |
 | **KBD-01** | Global Keyboard Shortcuts Helper modal (`?`) & navbar button | Phase 108 | Complete | `src/api/static/js/keyboard-shortcuts.js`, `tests/frontend/components/keyboard_shortcuts.test.js` (12 tests) |
-| **VER-07** | Comprehensive multi-stack automated testing suite (Pytest, Vitest, Playwright, xUnit) | Phase 108 | Complete | 222+ automated tests passing across all 4 suites; zero static asset diff. |
+| **VER-07** | Comprehensive multi-stack automated testing suite (Pytest, Vitest, Playwright, xUnit) | Phase 108 | Complete | 262+ automated tests passing across 4 test runners (84 xUnit, 15 v14 pytest, 13 doc management, 101 Vitest, 49 Playwright); zero static asset diff. |
