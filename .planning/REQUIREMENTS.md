@@ -11,8 +11,8 @@ Equip the digital archive management system with power-user operational tools: o
 - [x] **EXP-02**: Modern UI Export Button on the House Profile header (`[ 📦 Export Archive ZIP ]`). Displays an active download spinner during generation, handles browser file download, and provides user feedback via toast notifications.
 
 ### Multi-Select Batch Document Operations
-- [ ] **BAT-01**: Multi-select checkbox UI in category folder document lists. Features per-card selection checkboxes, a "Select All / Deselect All" toggle, and a sleek floating bottom action bar displaying the count of selected documents and action buttons (`[ Move Selected ]`, `[ Delete Selected ]`, `[ Deselect ]`).
-- [ ] **BAT-02**: Batch Move and Batch Delete backend endpoints in both FastAPI and ASP.NET Core:
+- [x] **BAT-01**: Multi-select checkbox UI in category folder document lists. Features per-card selection checkboxes, a "Select All / Deselect All" toggle, and a sleek floating bottom action bar displaying the count of selected documents and action buttons (`[ Move Selected ]`, `[ Delete Selected ]`, `[ Deselect ]`).
+- [x] **BAT-02**: Batch Move and Batch Delete backend endpoints in both FastAPI and ASP.NET Core:
   - `POST /api/areas/{area}/houses/{house}/documents/batch-delete`: Cascade deletion of selected vault documents from SQLite database and filesystem storage.
   - `POST /api/areas/{area}/houses/{house}/documents/batch-move`: Move selected documents to a target category folder in a single atomic transaction.
 
@@ -33,8 +33,8 @@ Equip the digital archive management system with power-user operational tools: o
 |---|---|---|---|
 | EXP-01 | Backend ZIP export endpoint in FastAPI & ASP.NET Core | Phase 105 | Complete |
 | EXP-02 | UI Export Archive ZIP button on House Profile | Phase 105 | Complete |
-| BAT-01 | Multi-select checkboxes & floating action bar in Category View | Phase 106 | Pending |
-| BAT-02 | Batch Move and Batch Delete backend endpoints | Phase 106 | Pending |
+| BAT-01 | Multi-select checkboxes & floating action bar in Category View | Phase 106 | Complete |
+| BAT-02 | Batch Move and Batch Delete backend endpoints | Phase 106 | Complete |
 | HSE-01 | House creation backend endpoint and directory scaffold | Phase 107 | Pending |
 | HSE-02 | "+ Add House" UI modal and live grid refresh | Phase 107 | Pending |
 | KBD-01 | Global Keyboard Shortcuts Helper modal (`?`) | Phase 108 | Pending |

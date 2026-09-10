@@ -623,3 +623,45 @@ public record DbTableResponseDto
     public List<Dictionary<string, object?>> Rows { get; init; } = new();
 }
 
+public record BatchDeleteRequestDto
+{
+    [JsonPropertyName("vault_ids")]
+    public List<string> VaultIds { get; init; } = new();
+}
+
+public record BatchDeleteResponseDto
+{
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = "success";
+
+    [JsonPropertyName("deleted_count")]
+    public int DeletedCount { get; init; }
+
+    [JsonPropertyName("vault_ids")]
+    public List<string> VaultIds { get; init; } = new();
+}
+
+public record BatchMoveRequestDto
+{
+    [JsonPropertyName("vault_ids")]
+    public List<string> VaultIds { get; init; } = new();
+
+    [JsonPropertyName("target_category")]
+    public string TargetCategory { get; init; } = string.Empty;
+}
+
+public record BatchMoveResponseDto
+{
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = "success";
+
+    [JsonPropertyName("moved_count")]
+    public int MovedCount { get; init; }
+
+    [JsonPropertyName("target_category")]
+    public string TargetCategory { get; init; } = string.Empty;
+
+    [JsonPropertyName("vault_ids")]
+    public List<string> VaultIds { get; init; } = new();
+}
+

@@ -54,7 +54,8 @@ def test_setup(tmp_path):
         "repo": repo,
         "conn": conn,
         "areas_root": areas_root,
-        "vault_dir": vault_dir
+        "vault_dir": vault_dir,
+        "tenant": t,
     }
 
 def test_export_house_archive_zip(test_setup):
@@ -83,3 +84,100 @@ def test_export_house_archive_zip_empty_house(test_setup):
     zip_bytes = io.BytesIO(res.content)
     with zipfile.ZipFile(zip_bytes, "r") as zf:
         assert "README.txt" in zf.namelist()
+
+
+def test_batch_move_documents(test_setup):
+    repo = test_setup["repo"]
+    vault_dir = test_setup["vault_dir"]
+    t = test_setup["tenant"]
+
+    # Add second document
+    p2 = vault_dir / "doc_v14test02.pdf"
+    p2.write_bytes(b"%PDF-1.4 doc 2")
+    b2 = repo.create_batch(filename="test2.pdf", file_path=str(p2), house_id="House 100", page_count=1)
+    repo.add_document(
+        vault_id="v14test02",
+        house_id="House 100",
+        tenant_id=t.id,
+        batch_id=b2.id,
+        primary_date="2024-05-16",
+        arabic_title="فاتورة كهرباء",
+        category="05 - عقود",
+        page_count=1,
+    )
+
+    # Empty payload validation
+    res_err1 = client.post("/api/areas/Area A/houses/House 100/documents/batch-move", json={"vault_ids": [], "target_category": "صيانة"})
+    assert res_err1.status_code == 400
+
+    res_err2 = client.post("/api/areas/Area A/houses/House 100/documents/batch-move", json={"vault_ids": ["v14test01"], "target_category": ""})
+    assert res_err2.status_code == 400
+
+    # Successful batch move to standard category
+    res = client.post(
+        "/api/areas/Area A/houses/House 100/documents/batch-move",
+        json={"vault_ids": ["v14test01", "v14test02"], "target_category": "10 - صيانة"}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert data["moved_count"] == 2
+    assert data["target_category"] == "10 - صيانة"
+    assert set(data["vault_ids"]) == {"v14test01", "v14test02"}
+
+    # Verify DB update and is_manual flag
+    doc1 = repo.get_document("v14test01")
+    doc2 = repo.get_document("v14test02")
+    assert doc1.category == "10 - صيانة"
+    assert doc1.is_manual == 1
+    assert doc2.category == "10 - صيانة"
+    assert doc2.is_manual == 1
+
+
+def test_batch_delete_documents(test_setup):
+    repo = test_setup["repo"]
+    vault_dir = test_setup["vault_dir"]
+    t = test_setup["tenant"]
+
+    # Add second document with physical file
+    p2 = vault_dir / "doc_v14test03.pdf"
+    p2.write_bytes(b"%PDF-1.4 doc 3")
+    b3 = repo.create_batch(filename="test3.pdf", file_path=str(p2), house_id="House 100", page_count=1)
+    repo.add_document(
+        vault_id="v14test03",
+        house_id="House 100",
+        tenant_id=t.id,
+        batch_id=b3.id,
+        primary_date="2024-05-17",
+        arabic_title="مستند للحذف",
+        category="05 - عقود",
+        page_count=1,
+    )
+
+    pdf1 = vault_dir / "doc_v14test01.pdf"
+    assert pdf1.exists()
+    assert p2.exists()
+
+    # Empty payload validation
+    res_err = client.post("/api/areas/Area A/houses/House 100/documents/batch-delete", json={"vault_ids": []})
+    assert res_err.status_code == 400
+
+    # Successful batch delete
+    res = client.post(
+        "/api/areas/Area A/houses/House 100/documents/batch-delete",
+        json={"vault_ids": ["v14test01", "v14test03"]}
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "success"
+    assert data["deleted_count"] == 2
+    assert set(data["vault_ids"]) == {"v14test01", "v14test03"}
+
+    # Verify documents deleted from DB
+    assert repo.get_document("v14test01") is None
+    assert repo.get_document("v14test03") is None
+
+    # Verify physical files removed from disk
+    assert not pdf1.exists()
+    assert not p2.exists()
+

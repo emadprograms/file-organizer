@@ -15,7 +15,7 @@
 ### 🔄 v14.0 Power-User Operations & Portfolio Expansion (Phases 105-108)
 
 - [x] Phase 105: House Archive ZIP Export Pipeline (FastAPI, ASP.NET Core & UI Button) (1/1 plans) — completed 2026-09-10
-- [ ] Phase 106: Multi-Select Batch Document Operations (Batch Move, Batch Delete & Selection Bar) (0/1 plans)
+- [x] Phase 106: Multi-Select Batch Document Operations (Batch Move, Batch Delete & Selection Bar) (1/1 plans) — completed 2026-09-10
 - [ ] Phase 107: Portfolio Expansion ("+ Add House" Modal & Backend House Registration) (0/1 plans)
 - [ ] Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (0/1 plans)
 

@@ -165,4 +165,23 @@ class AIPreviewResponse(BaseModel):
     suggested_area_id: str | None = None
 
 
+class BatchDeleteRequest(BaseModel):
+    vault_ids: list[str]
 
+
+class BatchDeleteResponse(BaseModel):
+    status: str = "success"
+    deleted_count: int
+    vault_ids: list[str]
+
+
+class BatchMoveRequest(BaseModel):
+    vault_ids: list[str]
+    target_category: str
+
+
+class BatchMoveResponse(BaseModel):
+    status: str = "success"
+    moved_count: int
+    target_category: str
+    vault_ids: list[str]

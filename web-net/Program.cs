@@ -498,6 +498,37 @@ app.MapDelete("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}", async 
     return Results.Ok(new { status = "success", message = $"Document {vaultId} deleted" });
 });
 
+app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/batch-delete", async (
+    string areaId,
+    string houseId,
+    BatchDeleteRequestDto dto,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    if (dto.VaultIds == null || dto.VaultIds.Count == 0)
+        return Results.BadRequest(new { error = "vault_ids must not be empty." });
+
+    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var result = await repo.BatchDeleteDocumentsAsync(areaId, houseId, dto.VaultIds, areasRoot);
+    return Results.Ok(result);
+});
+
+app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/batch-move", async (
+    string areaId,
+    string houseId,
+    BatchMoveRequestDto dto,
+    IFileOrganizerRepository repo) =>
+{
+    if (dto.VaultIds == null || dto.VaultIds.Count == 0)
+        return Results.BadRequest(new { error = "vault_ids must not be empty." });
+
+    if (string.IsNullOrWhiteSpace(dto.TargetCategory))
+        return Results.BadRequest(new { error = "target_category must not be empty." });
+
+    var result = await repo.BatchMoveDocumentsAsync(areaId, houseId, dto.VaultIds, dto.TargetCategory);
+    return Results.Ok(result);
+});
+
 // ---------------------------------------------------------------------------
 // Ingest API
 // ---------------------------------------------------------------------------

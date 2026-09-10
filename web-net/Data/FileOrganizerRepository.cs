@@ -1389,6 +1389,106 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         return rows > 0;
     }
 
+    public async Task<BatchDeleteResponseDto> BatchDeleteDocumentsAsync(
+        string areaId,
+        string houseId,
+        IEnumerable<string> vaultIds,
+        string? areasRoot = null)
+    {
+        var resolvedAreasRoot = !string.IsNullOrEmpty(areasRoot)
+            ? areasRoot
+            : (_configuration?["AREAS_ROOT_PATH"] ?? Environment.GetEnvironmentVariable("AREAS_ROOT_PATH") ?? "../areas");
+
+        var cleanHouseId = houseId.Contains(" - ") ? houseId.Split(" - ")[0].Trim() : houseId.Trim();
+
+        var deletedIds = new List<string>();
+
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+        await using var tx = await conn.BeginTransactionAsync();
+
+        foreach (var vaultId in vaultIds)
+        {
+            var possiblePaths = new[]
+            {
+                Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"doc_{vaultId}.pdf"),
+                Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"doc_{vaultId}.pdf"),
+                Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"{vaultId}.pdf"),
+                Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"{vaultId}.pdf"),
+            };
+
+            foreach (var p in possiblePaths)
+            {
+                if (File.Exists(p))
+                {
+                    try
+                    {
+                        File.Delete(p);
+                    }
+                    catch (Exception)
+                    {
+                        // Ignore physical file deletion error
+                    }
+                }
+            }
+
+            const string deletePagesSql = "DELETE FROM pages WHERE vault_id = @VaultId;";
+            await conn.ExecuteAsync(deletePagesSql, new { VaultId = vaultId }, tx);
+
+            const string deleteDocSql = "DELETE FROM documents WHERE vault_id = @VaultId;";
+            var rows = await conn.ExecuteAsync(deleteDocSql, new { VaultId = vaultId }, tx);
+
+            if (rows > 0)
+            {
+                deletedIds.Add(vaultId);
+            }
+        }
+
+        await tx.CommitAsync();
+
+        return new BatchDeleteResponseDto
+        {
+            Status = "success",
+            DeletedCount = deletedIds.Count,
+            VaultIds = deletedIds
+        };
+    }
+
+    public async Task<BatchMoveResponseDto> BatchMoveDocumentsAsync(
+        string areaId,
+        string houseId,
+        IEnumerable<string> vaultIds,
+        string targetCategory)
+    {
+        var formattedCategory = Constants.FormatCategoryWithPrefix(targetCategory);
+
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+        await using var tx = await conn.BeginTransactionAsync();
+
+        var movedIds = new List<string>();
+        foreach (var vaultId in vaultIds)
+        {
+            var rows = await conn.ExecuteAsync(
+                "UPDATE documents SET category = @Category, is_manual = 1 WHERE vault_id = @VaultId;",
+                new { Category = formattedCategory, VaultId = vaultId },
+                tx);
+
+            if (rows > 0)
+            {
+                movedIds.Add(vaultId);
+            }
+        }
+
+        await tx.CommitAsync();
+
+        return new BatchMoveResponseDto
+        {
+            Status = "success",
+            MovedCount = movedIds.Count,
+            TargetCategory = formattedCategory,
+            VaultIds = movedIds
+        };
+    }
+
     public async Task<TenantReallocationResponseDto> BulkUpdateTenantsAsync(string houseId, IReadOnlyList<TenantDto> tenants, bool reallocate)
     {
         await using var conn = await _connectionFactory.CreateConnectionAsync();

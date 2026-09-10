@@ -445,5 +445,136 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
         using var zip = new ZipArchive(memoryStream, ZipArchiveMode.Read);
         Assert.NotEmpty(zip.Entries);
     }
+
+    [Fact]
+    public async Task BatchMove_UpdatesDocuments_Returns200Ok()
+    {
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+
+        var doc1 = await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Safra C",
+            HouseId = "500",
+            TenantId = 1,
+            Category = "05 - عقود",
+            ArabicTitle = "مستند لنقل 1",
+            PrimaryDate = "2022-04-01",
+            PageCount = 1,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        var doc2 = await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Safra C",
+            HouseId = "500",
+            TenantId = 1,
+            Category = "05 - عقود",
+            ArabicTitle = "مستند لنقل 2",
+            PrimaryDate = "2022-04-02",
+            PageCount = 1,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        // Validation for empty vault_ids
+        var emptyIdsResponse = await _client.PostAsJsonAsync(
+            "/api/areas/Safra%20C/houses/500/documents/batch-move",
+            new BatchMoveRequestDto { VaultIds = new List<string>(), TargetCategory = "10 - صيانة" });
+        Assert.Equal(HttpStatusCode.BadRequest, emptyIdsResponse.StatusCode);
+
+        // Validation for empty target_category
+        var emptyCatResponse = await _client.PostAsJsonAsync(
+            "/api/areas/Safra%20C/houses/500/documents/batch-move",
+            new BatchMoveRequestDto { VaultIds = new List<string> { doc1.VaultId! }, TargetCategory = "" });
+        Assert.Equal(HttpStatusCode.BadRequest, emptyCatResponse.StatusCode);
+
+        // Batch move execution
+        var response = await _client.PostAsJsonAsync(
+            "/api/areas/Safra%20C/houses/500/documents/batch-move",
+            new BatchMoveRequestDto
+            {
+                VaultIds = new List<string> { doc1.VaultId!, doc2.VaultId! },
+                TargetCategory = "10 - صيانة"
+            });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<BatchMoveResponseDto>();
+        Assert.NotNull(result);
+        Assert.Equal("success", result.Status);
+        Assert.Equal(2, result.MovedCount);
+        Assert.Equal("10 - صيانة", result.TargetCategory);
+        Assert.Contains(doc1.VaultId!, result.VaultIds);
+        Assert.Contains(doc2.VaultId!, result.VaultIds);
+
+        // Verify DB update
+        var updatedDoc1 = await repo.GetDocumentRawAsync(doc1.VaultId!);
+        var updatedDoc2 = await repo.GetDocumentRawAsync(doc2.VaultId!);
+        Assert.NotNull(updatedDoc1);
+        Assert.NotNull(updatedDoc2);
+        Assert.Equal("10 - صيانة", updatedDoc1.Category);
+        Assert.Equal(1, updatedDoc1.IsManual);
+        Assert.Equal("10 - صيانة", updatedDoc2.Category);
+        Assert.Equal(1, updatedDoc2.IsManual);
+    }
+
+    [Fact]
+    public async Task BatchDelete_RemovesDocuments_Returns200Ok()
+    {
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+
+        var doc1 = await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Safra C",
+            HouseId = "500",
+            TenantId = 1,
+            Category = "05 - عقود",
+            ArabicTitle = "مستند حذف دفعة 1",
+            PrimaryDate = "2022-04-03",
+            PageCount = 1,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        var doc2 = await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Safra C",
+            HouseId = "500",
+            TenantId = 1,
+            Category = "05 - عقود",
+            ArabicTitle = "مستند حذف دفعة 2",
+            PrimaryDate = "2022-04-04",
+            PageCount = 1,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        // Validation for empty vault_ids
+        var emptyResponse = await _client.PostAsJsonAsync(
+            "/api/areas/Safra%20C/houses/500/documents/batch-delete",
+            new BatchDeleteRequestDto { VaultIds = new List<string>() });
+        Assert.Equal(HttpStatusCode.BadRequest, emptyResponse.StatusCode);
+
+        // Batch delete execution
+        var response = await _client.PostAsJsonAsync(
+            "/api/areas/Safra%20C/houses/500/documents/batch-delete",
+            new BatchDeleteRequestDto
+            {
+                VaultIds = new List<string> { doc1.VaultId!, doc2.VaultId! }
+            });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var result = await response.Content.ReadFromJsonAsync<BatchDeleteResponseDto>();
+        Assert.NotNull(result);
+        Assert.Equal("success", result.Status);
+        Assert.Equal(2, result.DeletedCount);
+        Assert.Contains(doc1.VaultId!, result.VaultIds);
+        Assert.Contains(doc2.VaultId!, result.VaultIds);
+
+        // Verify DB deletion
+        var raw1 = await repo.GetDocumentRawAsync(doc1.VaultId!);
+        var raw2 = await repo.GetDocumentRawAsync(doc2.VaultId!);
+        Assert.Null(raw1);
+        Assert.Null(raw2);
+    }
 }
+
 

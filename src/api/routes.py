@@ -40,6 +40,10 @@ from src.api.models import (
     HouseProfileResponse,
     IngestResponse,
     AIPreviewResponse,
+    BatchDeleteRequest,
+    BatchDeleteResponse,
+    BatchMoveRequest,
+    BatchMoveResponse,
 )
 from src.db.repository import (
     Repository,
@@ -1000,6 +1004,76 @@ async def delete_single_document(
 
     clear_tree_cache()
     return {"status": "success", "message": f"Document {vault_id} deleted"}
+
+
+@router.post("/api/areas/{area_id}/houses/{house_id}/documents/batch-delete", response_model=BatchDeleteResponse)
+async def batch_delete_documents(
+    request: Request,
+    area_id: str,
+    house_id: str,
+    payload: BatchDeleteRequest,
+):
+    if not payload.vault_ids:
+        raise HTTPException(status_code=400, detail="vault_ids must not be empty.")
+    repo = get_db_repo(request)
+    if not repo:
+        raise HTTPException(status_code=500, detail="Database repository not available.")
+
+    config = getattr(request.app.state, "config", None)
+    areas_root = Path(config.areas_root_path) if (config and hasattr(config, "areas_root_path")) else Path(".")
+
+    deleted_ids = []
+    for vid in payload.vault_ids:
+        deleted = repo.delete_document(vid, house_id, area_id, areas_root)
+        if deleted:
+            deleted_ids.append(vid)
+
+    clear_tree_cache()
+    return BatchDeleteResponse(
+        status="success",
+        deleted_count=len(deleted_ids),
+        vault_ids=deleted_ids,
+    )
+
+
+@router.post("/api/areas/{area_id}/houses/{house_id}/documents/batch-move", response_model=BatchMoveResponse)
+async def batch_move_documents(
+    request: Request,
+    area_id: str,
+    house_id: str,
+    payload: BatchMoveRequest,
+):
+    if not payload.vault_ids:
+        raise HTTPException(status_code=400, detail="vault_ids must not be empty.")
+    if not payload.target_category or not payload.target_category.strip():
+        raise HTTPException(status_code=400, detail="target_category must not be empty.")
+
+    repo = get_db_repo(request)
+    if not repo:
+        raise HTTPException(status_code=500, detail="Database repository not available.")
+
+    target_folder = get_or_create_numbered_folder(repo.conn, house_id, payload.target_category)
+
+    moved_ids = []
+    for vid in payload.vault_ids:
+        cur = repo.conn.execute(
+            "UPDATE documents SET category = ?, is_manual = 1 WHERE vault_id = ?",
+            (target_folder, vid),
+        )
+        if cur.rowcount > 0:
+            moved_ids.append(vid)
+
+    if repo.autocommit:
+        repo.conn.commit()
+
+    clear_tree_cache()
+    return BatchMoveResponse(
+        status="success",
+        moved_count=len(moved_ids),
+        target_category=target_folder,
+        vault_ids=moved_ids,
+    )
+
 
 @router.get("/api/areas/{area_id}/houses/{house_id}/categories", response_model=list[CategoryResponse])
 async def list_categories(request: Request, area_id: str, house_id: str):
