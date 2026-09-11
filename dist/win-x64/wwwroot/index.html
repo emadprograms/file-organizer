@@ -70,21 +70,27 @@
                 </div>
 
                 <!-- Top Navbar Action Triggers -->
-                <div class="flex items-center gap-2.5 flex-shrink-0">
-                    <!-- Ingest Station Trigger Button -->
-                    <button id="btn-ingest-trigger" type="button" class="bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs px-3 py-1.5 rounded-xl shadow-xs flex items-center gap-2 cursor-pointer transition-all" title="Ingest Document (⌘I)">
-                        <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                        <span>+ Ingest</span>
-                        <kbd class="text-[10px] font-mono text-blue-100 bg-blue-700/60 border border-blue-500/40 rounded px-1.5 py-0.5 shadow-2xs font-semibold">⌘I</kbd>
-                    </button>
-
+                <div class="flex items-center gap-3.5 flex-shrink-0">
                     <!-- Command Palette Trigger Button -->
-                    <button id="btn-search-trigger" type="button" class="flex items-center gap-3 px-3.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-slate-100 hover:border-slate-300 text-slate-400 hover:text-slate-600 transition-all text-xs flex-shrink-0 shadow-2xs group cursor-pointer w-64 justify-between" title="Search houses, tenants, documents (⌘K)">
+                    <button id="btn-search-trigger" type="button" class="flex items-center gap-3 px-3.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-slate-100 hover:border-slate-300 text-slate-400 hover:text-slate-600 transition-all text-xs flex-shrink-0 shadow-2xs group cursor-pointer w-60 sm:w-64 justify-between" title="Search houses, tenants, documents (⌘K)">
                         <div class="flex items-center gap-2 truncate">
                             <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                             <span class="truncate font-medium text-slate-500 group-hover:text-slate-700">Search houses, tenants...</span>
                         </div>
                         <kbd class="text-[10px] font-mono text-slate-400 bg-white border border-slate-200 rounded px-1.5 py-0.5 shadow-2xs font-semibold group-hover:border-slate-300">⌘K</kbd>
+                    </button>
+
+                    <!-- Keyboard Shortcuts Helper Trigger Button -->
+                    <button id="btn-shortcuts-trigger" type="button" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-slate-100 hover:border-slate-300 text-slate-500 hover:text-slate-800 transition-all flex items-center justify-center shadow-2xs cursor-pointer flex-shrink-0 font-mono font-bold text-xs" title="Keyboard Shortcuts (?) / دليل اختصارات لوحة المفاتيح" aria-label="Keyboard Shortcuts">
+                        <span>?</span>
+                    </button>
+
+                    <!-- Subtle Vertical Divider -->
+                    <div class="h-5 w-px bg-slate-200/90 mx-0.5 select-none" aria-hidden="true"></div>
+
+                    <!-- Circular Rotating Plus Button (Upload Document) -->
+                    <button id="btn-ingest-trigger" type="button" class="group relative w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white bg-blue-600 hover:bg-blue-500 active:bg-blue-700 shadow-sm hover:shadow-lg hover:shadow-blue-500/35 transform transition-all duration-200 ease-out hover:scale-110 active:scale-95 cursor-pointer flex-shrink-0" title="Upload Document (⌘I)" aria-label="Upload Document">
+                        <svg class="w-5 h-5 text-white transition-transform duration-200 ease-out group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                     </button>
                 </div>
             </header>
@@ -112,6 +118,10 @@
                                 <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-500"></span> &gt; 10y</span>
                             </div>
                             <div id="grid-area-stats" class="bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold shadow-2xs">0 Houses</div>
+                            <button id="open-add-house-modal-btn" type="button" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-2xs transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 cursor-pointer" title="Add House">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                <span>+ إضافة منزل جديد</span>
+                            </button>
                         </div>
                     </div>
                     
@@ -190,6 +200,9 @@
                                 <span id="tab-timeline-label">Timeline</span>
                             </button>
                         </div>
+                        <button id="btn-export-house-archive" type="button" title="Export House Archive (ZIP / PDF Dossier) / تحميل أرشيف المنزل" class="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 border border-transparent hover:border-blue-200 rounded-lg transition-all flex items-center justify-center flex-shrink-0 cursor-pointer shadow-2xs" aria-label="Export House Archive">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                        </button>
                         <button id="btn-manage-tenants" title="House Settings & Tenants" class="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-200/70 rounded-lg transition-colors flex items-center justify-center flex-shrink-0">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
@@ -427,7 +440,7 @@
                         <p class="text-xs text-slate-500">Rename, reorganize folders, or assign to tenant.</p>
                     </div>
                 </div>
-                <button id="doc-modal-close" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors">
+                <button id="doc-modal-close" onclick="if(typeof window.closeDocModal==='function')window.closeDocModal();" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
@@ -486,7 +499,11 @@
 
             <!-- Modal Footer -->
             <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/70 flex justify-end gap-3">
-                <button id="doc-modal-cancel" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-2xs">Cancel</button>
+                <button id="btn-doc-delete" type="button" onclick="if(typeof window.handleDeleteDoc==='function')window.handleDeleteDoc(event);" class="px-3.5 py-2 text-xs font-bold text-rose-600 hover:text-white bg-rose-50 hover:bg-rose-600 border border-rose-200 rounded-xl transition-all mr-auto flex items-center gap-1.5 cursor-pointer shadow-2xs">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    <span>Delete Document</span>
+                </button>
+                <button id="doc-modal-cancel" type="button" onclick="if(typeof window.closeDocModal==='function')window.closeDocModal();" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-2xs">Cancel</button>
                 <button id="doc-modal-submit" type="button" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2 shadow-sm shadow-blue-500/25">
                     <span id="doc-modal-submit-text">💾 Apply Changes</span>
                 </button>
@@ -536,8 +553,8 @@
             <div class="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4 shadow-inner">
                 <svg class="w-8 h-8 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
             </div>
-            <h3 class="text-lg font-bold text-slate-900 mb-1">Ingest Station</h3>
-            <p id="ingest-dropzone-prompt" class="text-sm text-blue-700 font-semibold">Drop PDF to Ingest into [Area / House]</p>
+            <h3 class="text-lg font-bold text-slate-900 mb-1">Upload Document</h3>
+            <p id="ingest-dropzone-prompt" class="text-sm text-blue-700 font-semibold">Drop PDF to Upload into [Area / House]</p>
             <p class="text-xs text-slate-400 mt-2">Single document or multi-page batch (.pdf)</p>
         </div>
     </div>
@@ -552,8 +569,8 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                     </div>
                     <div>
-                        <h2 class="text-base font-bold text-slate-900 tracking-tight">Ingest Document</h2>
-                        <p class="text-xs text-slate-400">Add documents to archive with instant manual or AI-assisted processing</p>
+                        <h2 class="text-base font-bold text-slate-900 tracking-tight">Upload Document</h2>
+                        <p class="text-xs text-slate-400">Add documents to archive with instant single or batch multi-file filing</p>
                     </div>
                 </div>
                 <button id="btn-ingest-close" type="button" class="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer" title="Close (Esc)">
@@ -561,9 +578,27 @@
                 </button>
             </div>
 
-            <!-- Modal Body (Two-Column Layout) -->
-            <div class="flex-1 overflow-y-auto flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100">
-                <!-- Left Column: File Dropzone, Info Banner, PDF Preview, Mode Selector -->
+            <!-- Mode Switcher Tabs -->
+            <div class="px-6 py-2.5 bg-slate-50 border-b border-slate-200 flex-shrink-0">
+                <nav class="grid grid-cols-1 sm:grid-cols-3 gap-2" aria-label="Ingest Modes">
+                    <button type="button" id="tab-mode-single" data-tab="single" class="ingest-tab-btn flex flex-col items-start px-3.5 py-2 rounded-xl border transition-all cursor-pointer bg-white border-blue-600 text-blue-700 shadow-xs ring-1 ring-blue-500/20">
+                        <span class="text-xs font-bold flex items-center gap-1.5">📄 Single Document</span>
+                        <span class="text-[10px] text-slate-500 font-normal">1 file → 1 house</span>
+                    </button>
+                    <button type="button" id="tab-mode-broadcast" data-tab="broadcast" class="ingest-tab-btn flex flex-col items-start px-3.5 py-2 rounded-xl border transition-all cursor-pointer bg-slate-100/80 border-slate-200 text-slate-700 hover:bg-white hover:border-slate-300">
+                        <span class="text-xs font-bold flex items-center gap-1.5">📢 Broadcast Notice</span>
+                        <span class="text-[10px] text-slate-500 font-normal">1 file → Multiple houses</span>
+                    </button>
+                    <button type="button" id="tab-mode-housebatch" data-tab="housebatch" class="ingest-tab-btn flex flex-col items-start px-3.5 py-2 rounded-xl border transition-all cursor-pointer bg-slate-100/80 border-slate-200 text-slate-700 hover:bg-white hover:border-slate-300">
+                        <span class="text-xs font-bold flex items-center gap-1.5">📁 House Batch</span>
+                        <span class="text-[10px] text-slate-500 font-normal">Multiple files → 1 house</span>
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Section 1: Single Document (1 file → 1 house) -->
+            <div id="section-mode-single" class="flex-1 overflow-y-auto flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                <!-- Left Column: File Dropzone, Info Banner, PDF Preview -->
                 <div class="w-full md:w-1/2 p-5 bg-slate-50/60 flex flex-col gap-4 overflow-y-auto">
                     <!-- File Dropzone (shown when no file selected) -->
                     <div id="ingest-file-dropzone" class="border-2 border-dashed border-slate-300 hover:border-blue-500 bg-white hover:bg-blue-50/40 rounded-xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[160px]">
@@ -598,27 +633,6 @@
                             <span id="ingest-preview-pages-badge" class="text-[10px] font-semibold text-slate-400 bg-slate-200/60 px-2 py-0.5 rounded-full hidden"></span>
                         </div>
                         <iframe id="ingest-pdf-preview" class="w-full h-56 md:h-64 rounded-xl border border-slate-200 bg-white shadow-2xs" src="about:blank"></iframe>
-                    </div>
-
-                    <!-- Ingestion Mode Selector -->
-                    <div class="bg-white border border-slate-200 rounded-xl p-3.5 shadow-2xs">
-                        <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Ingestion Mode</label>
-                        <div class="grid grid-cols-2 gap-2">
-                            <label class="flex items-start gap-2.5 p-2.5 rounded-lg border border-blue-200 bg-blue-50/50 cursor-pointer transition-all has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50 has-[:checked]:ring-1 has-[:checked]:ring-blue-600">
-                                <input type="radio" name="ingest_mode" id="ingest-mode-single" value="manual" checked class="mt-0.5 text-blue-600 focus:ring-blue-500" />
-                                <div>
-                                    <span class="block text-xs font-bold text-slate-800">Single Document</span>
-                                    <span class="block text-[10px] text-slate-500 mt-0.5 leading-snug">Keep all pages together</span>
-                                </div>
-                            </label>
-                            <label class="flex items-start gap-2.5 p-2.5 rounded-lg border border-slate-200 hover:border-slate-300 bg-white cursor-pointer transition-all has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50 has-[:checked]:ring-1 has-[:checked]:ring-blue-600">
-                                <input type="radio" name="ingest_mode" id="ingest-mode-batch" value="auto_split" class="mt-0.5 text-blue-600 focus:ring-blue-500" />
-                                <div>
-                                    <span class="block text-xs font-bold text-slate-800">Multi-Doc Batch</span>
-                                    <span class="block text-[10px] text-slate-500 mt-0.5 leading-snug">Split pages automatically</span>
-                                </div>
-                            </label>
-                        </div>
                     </div>
                 </div>
 
@@ -699,61 +713,562 @@
                             <textarea id="ingest-notes-input" rows="2" placeholder="Optional notes or context..." class="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white resize-none font-medium"></textarea>
                         </div>
                     </div>
+                </div>
+            </div>
 
-                    <!-- Batch Mode Notice (shown when batch radio is selected) -->
-                    <div id="ingest-batch-notice" class="hidden p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
-                        <div class="flex items-start gap-2">
-                            <span class="text-amber-600 font-bold">ℹ️</span>
+            <!-- Section 2: Broadcast Notice (1 file → Multiple houses) -->
+            <div id="section-mode-broadcast" class="flex-1 overflow-y-auto flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-100 hidden">
+                <!-- Left: 1 PDF dropzone + live PDF preview, Category select, Title input, Date input -->
+                <div class="w-full md:w-1/2 p-5 bg-slate-50/60 flex flex-col gap-3.5 overflow-y-auto">
+                    <!-- Dropzone -->
+                    <div id="broadcast-dropzone" class="border-2 border-dashed border-slate-300 hover:border-blue-500 bg-white hover:bg-blue-50/40 rounded-xl p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[140px]">
+                        <input id="broadcast-file-input" type="file" accept=".pdf" class="hidden" />
+                        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/></svg>
+                        </div>
+                        <p class="text-xs font-semibold text-slate-700">Click to choose PDF or drag &amp; drop</p>
+                        <p class="text-[10px] text-slate-400 mt-0.5">1 Notice PDF to broadcast to multiple houses</p>
+                    </div>
+
+                    <!-- File Info Banner -->
+                    <div id="broadcast-file-info" class="hidden bg-white border border-slate-200 rounded-xl p-3 shadow-2xs flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                            </div>
+                            <div class="min-w-0">
+                                <p id="broadcast-file-name" class="text-xs font-bold text-slate-800 truncate">notice.pdf</p>
+                                <p id="broadcast-file-size" class="text-[10px] text-slate-400 font-mono">0 KB</p>
+                            </div>
+                        </div>
+                        <button id="btn-broadcast-remove-file" type="button" class="text-xs text-rose-600 hover:text-rose-800 px-2 py-1 rounded-lg hover:bg-rose-50 transition-colors font-medium flex-shrink-0 cursor-pointer">
+                            Change
+                        </button>
+                    </div>
+
+                    <!-- Live PDF Preview -->
+                    <div id="broadcast-preview-container" class="hidden flex-1 flex flex-col min-h-[180px]">
+                        <div class="flex items-center justify-between mb-1">
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Notice Preview</span>
+                        </div>
+                        <iframe id="broadcast-pdf-preview" class="w-full h-44 md:h-52 rounded-xl border border-slate-200 bg-white shadow-2xs" src="about:blank"></iframe>
+                    </div>
+
+                    <!-- Metadata Fields -->
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Category</label>
+                            <select id="broadcast-category-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium">
+                                <option value="09 - إشعارات" selected>09 - إشعارات</option>
+                                <option value="01 - بيانات أساسية">01 - بيانات أساسية</option>
+                                <option value="05 - عقود">05 - عقود</option>
+                                <option value="06 - كهرباء وماء">06 - كهرباء وماء</option>
+                                <option value="10 - صيانة">10 - صيانة</option>
+                                <option value="13 - رسائل متنوعة">13 - رسائل متنوعة</option>
+                            </select>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                             <div>
-                                <span class="font-bold">Multi-Document Batch Ingestion:</span>
-                                <p class="text-[11px] text-amber-700 mt-0.5">The PDF will be automatically scanned and split into individual documents with classification and page inheritance.</p>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Title</label>
+                                <input id="broadcast-title-input" type="text" placeholder="e.g. إشعار عام للوحدات" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Primary Date</label>
+                                <input id="broadcast-date-input" type="date" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white font-medium" />
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Status / Error Message Banner -->
-                    <div id="ingest-status-msg" class="px-3 py-2 rounded-xl text-xs font-medium hidden"></div>
+                <!-- Right: Target Area select, Select/Deselect All, Searchable House checklist -->
+                <div class="w-full md:w-1/2 p-5 flex flex-col gap-3 overflow-y-auto">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Target Area <span class="text-rose-500">*</span></label>
+                        <select id="broadcast-area-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
+                            <option value="">Select Area...</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-100">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-xs font-bold text-slate-800">Target Houses</span>
+                            <span id="broadcast-selected-count" class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full">0 selected</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <button id="btn-broadcast-select-all" type="button" class="text-[11px] font-semibold text-blue-600 hover:text-blue-800 px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors cursor-pointer">
+                                Select All
+                            </button>
+                            <span class="text-slate-300">|</span>
+                            <button id="btn-broadcast-deselect-all" type="button" class="text-[11px] font-semibold text-slate-500 hover:text-slate-700 px-2 py-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+                                Deselect All
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <input id="broadcast-house-search" type="text" placeholder="Filter houses by number or tenant name..." class="w-full px-3 py-1.5 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium" />
+                    </div>
+
+                    <div id="broadcast-houses-list" class="flex-1 min-h-[160px] max-h-[320px] overflow-y-auto space-y-1.5 pr-1 border border-slate-200 rounded-xl p-2 bg-slate-50/50">
+                        <!-- Populated dynamically with house checklist + tenant badges -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: House Batch (Multiple files → 1 house) -->
+            <div id="section-mode-housebatch" class="flex-1 overflow-y-auto p-5 flex flex-col gap-4 bg-slate-50/50 hidden">
+                <!-- Top/Header: Target Area and Target House select upfront, Assigned Tenant -->
+                <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-3">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <span class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                            <span>Target House Destination</span>
+                        </span>
+                        <span class="text-[11px] text-slate-400">All uploaded files will be archived to this single house</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Target Area <span class="text-rose-500">*</span></label>
+                            <select id="housebatch-area-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
+                                <option value="">Select Area...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Target House <span class="text-rose-500">*</span></label>
+                            <select id="housebatch-house-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
+                                <option value="">Select House...</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Assigned Tenant</label>
+                            <select id="housebatch-tenant-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
+                                <option value="">(Auto-detect latest tenant)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Middle: Multi-file Dropzone & Files List -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <h3 class="text-xs font-bold text-slate-800 uppercase tracking-wider">House Batch Files</h3>
+                        <span id="housebatch-count-badge" class="bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-full">0 files</span>
+                    </div>
+                    <button id="btn-housebatch-add-more" type="button" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1.5 px-3 py-1.5 rounded-xl hover:bg-blue-50 border border-blue-200 transition-colors cursor-pointer shadow-2xs">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                        <span>+ Add More Files</span>
+                    </button>
+                </div>
+
+                <!-- Multi-file Dropzone (shown when list is empty) -->
+                <div id="housebatch-dropzone" class="border-2 border-dashed border-slate-300 hover:border-blue-500 bg-white hover:bg-blue-50/40 rounded-xl p-8 text-center cursor-pointer transition-all flex flex-col items-center justify-center min-h-[140px]">
+                    <input id="housebatch-file-input" type="file" accept=".pdf" multiple class="hidden" />
+                    <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    </div>
+                    <p class="text-xs font-semibold text-slate-700">Click to choose PDFs or drag &amp; drop</p>
+                    <p class="text-[11px] text-slate-400 mt-1">Upload multiple PDFs for the selected house</p>
+                </div>
+
+                <!-- Clean Files List Table -->
+                <div id="housebatch-files-list" class="space-y-2.5 hidden">
+                    <!-- Dynamic file rows -->
+                </div>
+            </div>
+
+            <!-- Status / Validation Message Banner -->
+            <div id="ingest-status-msg" class="mx-6 my-2 px-3 py-2 rounded-xl text-xs font-medium hidden"></div>
+
+            <!-- Shared Batch & Broadcast Progress Bar -->
+            <div id="ingest-batch-progress" class="hidden px-6 py-3 bg-white border-t border-blue-200 shadow-2xs space-y-2 flex-shrink-0">
+                <div class="flex items-center justify-between text-xs">
+                    <span id="ingest-batch-progress-text" class="font-bold text-blue-900">Uploading 0 of 0...</span>
+                    <span id="ingest-batch-progress-pct" class="font-mono font-semibold text-blue-700">0%</span>
+                </div>
+                <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                    <div id="ingest-batch-progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
                 </div>
             </div>
 
             <!-- Modal Footer -->
-            <div class="px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 flex flex-col sm:flex-row items-center justify-between gap-3 flex-shrink-0">
+            <div class="px-6 py-3.5 border-t border-slate-100 bg-slate-50/80 flex items-center justify-end gap-3 flex-shrink-0">
+                <button id="btn-ingest-cancel" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer">
+                    Cancel
+                </button>
+                <button id="btn-ingest-submit" type="button" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all flex items-center gap-2 shadow-sm shadow-blue-500/25 cursor-pointer">
+                    <span id="ingest-submit-spinner" class="hidden animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
+                    <span id="ingest-submit-text">⚡ Upload Document</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Bottom Batch Action Bar -->
+    <div id="batch-action-bar" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 hidden items-center gap-3 px-4 py-2.5 bg-slate-900/90 backdrop-blur-md text-white rounded-2xl shadow-2xl border border-slate-700/60 text-xs transition-all animate-in fade-in slide-in-from-bottom-4">
+        <div class="flex items-center gap-2 pr-2 border-r border-slate-700">
+            <span class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+            <span id="batch-selected-count" class="font-bold text-slate-100">0 selected</span>
+        </div>
+        <button id="btn-batch-move" type="button" class="flex items-center px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold transition-colors cursor-pointer shadow-xs">
+            <span>Move Selected</span>
+        </button>
+        <button id="btn-batch-copy" type="button" class="flex items-center px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold transition-colors cursor-pointer shadow-xs">
+            <span>Copy Selected</span>
+        </button>
+        <button id="btn-batch-delete" type="button" class="flex items-center px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-semibold transition-colors cursor-pointer shadow-xs">
+            <span>Delete Selected</span>
+        </button>
+        <button id="btn-batch-deselect" type="button" class="flex items-center gap-1 px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl font-medium transition-colors cursor-pointer" title="Clear selection">
+            <span>✕</span>
+            <span>Deselect</span>
+        </button>
+    </div>
+
+    <!-- Batch Move Modal -->
+    <div id="batch-move-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shadow-2xs">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 tracking-tight">Move Selected Documents</h3>
+                        <p id="batch-move-subtitle" class="text-xs text-slate-500">Move documents to a target category folder.</p>
+                    </div>
+                </div>
+                <button id="batch-move-close" type="button" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
                 <div>
-                    <button id="btn-ingest-autofill" type="button" class="px-3.5 py-2 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 rounded-xl transition-all flex items-center gap-2 shadow-2xs cursor-pointer">
-                        <span id="ingest-autofill-spinner" class="hidden animate-spin w-3.5 h-3.5 border-2 border-indigo-600 border-t-transparent rounded-full"></span>
-                        <span id="ingest-autofill-text">✨ Auto-Fill with AI</span>
-                    </button>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">المستأجر • Target Tenant</label>
+                    <select id="batch-move-tenant-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Target Category Folder</label>
+                    <select id="batch-move-folder-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
+                        <!-- Standard 13 folders + custom folders + '+ Create New Folder...' -->
+                    </select>
+                    <div id="batch-move-custom-folder-container" class="mt-2 hidden">
+                        <input id="batch-move-custom-folder-input" type="text" placeholder="Enter new folder name (e.g. مستندات بنكية)..." class="w-full px-3 py-2 text-xs border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-blue-50/40 text-slate-800" />
+                        <p class="text-[10px] text-slate-400 mt-1">Will be automatically assigned the next sequential number (e.g. 14 - ...).</p>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex justify-end gap-3">
+                <button id="btn-batch-move-cancel" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer">Cancel</button>
+                <button id="btn-batch-move-confirm" type="button" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-sm shadow-blue-500/25 flex items-center gap-2 cursor-pointer">
+                    <span id="batch-move-spinner" class="hidden animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
+                    <span id="batch-move-btn-text">Move Documents</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Copy Modal -->
+    <div id="batch-copy-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center shadow-2xs">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 tracking-tight">Copy Selected Documents</h3>
+                        <p id="batch-copy-subtitle" class="text-xs text-slate-500">Add documents to another category folder.</p>
+                    </div>
+                </div>
+                <button id="batch-copy-close" type="button" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">المستأجر • Target Tenant</label>
+                    <select id="batch-copy-tenant-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1.5">Target Category Folder</label>
+                    <select id="batch-copy-folder-select" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
+                        <!-- Standard 13 folders + custom folders + '+ Create New Folder...' -->
+                    </select>
+                    <div id="batch-copy-custom-folder-container" class="mt-2 hidden">
+                        <input id="batch-copy-custom-folder-input" type="text" placeholder="Enter new folder name (e.g. مستندات بنكية)..." class="w-full px-3 py-2 text-xs border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-indigo-50/40 text-slate-800" />
+                        <p class="text-[10px] text-slate-400 mt-1">Will be automatically assigned the next sequential number (e.g. 14 - ...).</p>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex justify-end gap-3">
+                <button id="btn-batch-copy-cancel" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer">Cancel</button>
+                <button id="btn-batch-copy-confirm" type="button" class="px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-all shadow-sm shadow-indigo-500/25 flex items-center gap-2 cursor-pointer">
+                    <span id="batch-copy-spinner" class="hidden animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
+                    <span id="batch-copy-btn-text">Copy Documents</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Delete Confirmation Modal -->
+    <div id="batch-delete-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-rose-50/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-rose-100 border border-rose-200 text-rose-600 flex items-center justify-center shadow-2xs">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 tracking-tight">Delete Selected Documents</h3>
+                        <p id="batch-delete-subtitle" class="text-xs text-rose-600 font-medium">This action cannot be undone.</p>
+                    </div>
+                </div>
+                <button id="batch-delete-close" type="button" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-3">
+                <p id="batch-delete-message" class="text-xs text-slate-600 leading-relaxed">
+                    Are you sure you want to permanently delete the selected documents? All associated files and database records will be removed.
+                </p>
+                <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 flex items-center gap-2">
+                    <span>⚠️</span>
+                    <span>Both database entries and PDF vault files will be permanently erased.</span>
+                </div>
+            </div>
+            <div class="px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex justify-end gap-3">
+                <button id="btn-batch-delete-cancel" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer">Cancel</button>
+                <button id="btn-batch-delete-confirm" type="button" class="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-all shadow-sm shadow-rose-500/25 flex items-center gap-2 cursor-pointer">
+                    <span id="batch-delete-spinner" class="hidden animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
+                    <span id="batch-delete-btn-text">🗑️ Delete Permanently</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add House Modal -->
+    <div id="add-house-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4" tabindex="-1">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shadow-2xs">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 tracking-tight" id="add-house-modal-title">+ إضافة منزل جديد / Add House</h3>
+                        <p id="add-house-subtitle" class="text-xs text-slate-500">Register house and scaffold storage directories.</p>
+                    </div>
+                </div>
+                <button id="add-house-close" type="button" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <form id="add-house-form" class="p-6 space-y-4">
+                <div>
+                    <label for="add-house-area-select" class="block text-xs font-bold text-slate-700 mb-1.5">المنطقة / Area</label>
+                    <select id="add-house-area-select" required class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium">
+                        <!-- Dynamically populated with areas -->
+                    </select>
+                </div>
+                <div>
+                    <label for="add-house-id-input" class="block text-xs font-bold text-slate-700 mb-1.5">رقم أو اسم المنزل / House Number or Name <span class="text-rose-500">*</span></label>
+                    <input id="add-house-id-input" type="text" required placeholder="مثال: 515 أو Villa 12" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium" />
+                </div>
+                <div>
+                    <label for="add-house-tenant-name-input" class="block text-xs font-bold text-slate-700 mb-1.5">اسم الساكن الأولي / Initial Tenant Name (اختياري)</label>
+                    <input id="add-house-tenant-name-input" type="text" placeholder="مثال: عبد الله خالد الشمري" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium" />
+                </div>
+                <div>
+                    <label for="add-house-tenant-date-input" class="block text-xs font-bold text-slate-700 mb-1.5">تاريخ بدء العقد / Start Date (اختياري)</label>
+                    <input id="add-house-tenant-date-input" type="date" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white font-medium" />
+                </div>
+                <div id="add-house-status" class="p-2.5 rounded-lg text-xs font-medium hidden"></div>
+            </form>
+            <div class="px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex justify-end gap-3">
+                <button id="btn-add-house-cancel" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer">إلغاء / Cancel</button>
+                <button id="btn-add-house-submit" type="button" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-sm shadow-blue-500/25 flex items-center gap-2 cursor-pointer">
+                    <span id="add-house-spinner" class="hidden animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
+                    <span id="add-house-submit-text">[ + إضافة المنزل ] / [ + Create House ]</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Keyboard Shortcuts Helper Modal -->
+    <div id="keyboard-shortcuts-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4" tabindex="-1" role="dialog" aria-labelledby="shortcuts-modal-title" aria-modal="true">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shadow-2xs">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 tracking-tight" id="shortcuts-modal-title">Keyboard Shortcuts / دليل الاختصارات</h3>
+                        <p id="shortcuts-subtitle" class="text-xs text-slate-500">Quickly navigate and operate the archive with key bindings.</p>
+                    </div>
+                </div>
+                <button id="shortcuts-modal-close" type="button" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer" aria-label="Close">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-3">
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 hover:bg-slate-100/70 transition-colors">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold text-slate-800">Global Spotlight Search</span>
+                        <span class="text-[11px] text-slate-500">البحث السريع في الأرشيف</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <kbd class="px-2 py-1 text-xs font-mono font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg shadow-2xs">⌘K</kbd>
+                        <span class="text-xs text-slate-400 font-mono">/</span>
+                        <kbd class="px-2 py-1 text-xs font-mono font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg shadow-2xs">Ctrl+K</kbd>
+                    </div>
                 </div>
 
-                <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end">
-                    <button id="btn-ingest-cancel" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer">
-                        Cancel
-                    </button>
-                    <button id="btn-ingest-submit" type="button" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all flex items-center gap-2 shadow-sm shadow-blue-500/25 cursor-pointer">
-                        <span id="ingest-submit-spinner" class="hidden animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
-                        <span id="ingest-submit-text">⚡ Ingest Document</span>
-                    </button>
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 hover:bg-slate-100/70 transition-colors">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold text-slate-800">Ingest & Upload Document</span>
+                        <span class="text-[11px] text-slate-500">رفع وإيداع المستندات</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <kbd class="px-2 py-1 text-xs font-mono font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg shadow-2xs">⌘I</kbd>
+                        <span class="text-xs text-slate-400 font-mono">/</span>
+                        <kbd class="px-2 py-1 text-xs font-mono font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg shadow-2xs">Ctrl+I</kbd>
+                    </div>
                 </div>
+
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 hover:bg-slate-100/70 transition-colors">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold text-slate-800">Quick Look Document Preview & Inspector</span>
+                        <span class="text-[11px] text-slate-500">معاينة سريعة للوثيقة</span>
+                    </div>
+                    <kbd class="px-3 py-1 text-xs font-mono font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg shadow-2xs">Space</kbd>
+                </div>
+
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 hover:bg-slate-100/70 transition-colors">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold text-slate-800">Close Active Modal or Preview</span>
+                        <span class="text-[11px] text-slate-500">إغلاق النوافذ المنبثقة</span>
+                    </div>
+                    <kbd class="px-2.5 py-1 text-xs font-mono font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg shadow-2xs">Esc</kbd>
+                </div>
+
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 hover:bg-slate-100/70 transition-colors">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold text-slate-800">Keyboard Shortcuts Guide</span>
+                        <span class="text-[11px] text-slate-500">دليل اختصارات لوحة المفاتيح</span>
+                    </div>
+                    <kbd class="px-2.5 py-1 text-xs font-mono font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg shadow-2xs">?</kbd>
+                </div>
+            </div>
+            <div class="px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex justify-end">
+                <button id="btn-shortcuts-close" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer">إغلاق / Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- House Archive Export Modal -->
+    <div id="export-archive-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4" tabindex="-1" role="dialog" aria-labelledby="export-archive-modal-title" aria-modal="true">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shadow-2xs">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 tracking-tight" id="export-archive-modal-title">تصدير الأرشيف • Export Archive</h3>
+                    </div>
+                </div>
+                <button id="export-archive-modal-close" type="button" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer" aria-label="Close">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-5">
+                <!-- Question 1: Export Format -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-800 mb-2">
+                        <span>صيغة التصدير • Format</span>
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="export-format-options">
+                        <!-- Option A: ZIP (Selected by default) -->
+                        <div id="export-opt-zip" class="export-format-card border-2 border-blue-500 bg-blue-50/50 rounded-xl p-3.5 cursor-pointer transition-all flex flex-col justify-between hover:border-blue-500 relative" data-format="zip">
+                            <div class="flex items-start justify-between">
+                                <div class="w-9 h-9 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-lg mb-2">📦</div>
+                                <div class="w-4 h-4 rounded-full border-2 border-blue-600 flex items-center justify-center">
+                                    <div class="w-2 h-2 rounded-full bg-blue-600" id="export-radio-zip"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm text-slate-900 leading-snug">ZIP</div>
+                                <div class="text-xs font-medium text-slate-500 mt-0.5">مجلدات • Folders</div>
+                            </div>
+                        </div>
+
+                        <!-- Option B: PDF -->
+                        <div id="export-opt-pdf" class="export-format-card border-2 border-slate-200 bg-white rounded-xl p-3.5 cursor-pointer transition-all flex flex-col justify-between hover:border-slate-300 relative" data-format="pdf">
+                            <div class="flex items-start justify-between">
+                                <div class="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-lg mb-2">📄</div>
+                                <div class="w-4 h-4 rounded-full border-2 border-slate-300 flex items-center justify-center">
+                                    <div class="w-2 h-2 rounded-full bg-rose-600 hidden" id="export-radio-pdf"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm text-slate-900 leading-snug">PDF</div>
+                                <div class="text-xs font-medium text-slate-500 mt-0.5">تسلسل زمني • Timeline</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Question 2: Tenant Scope -->
+                <div>
+                    <label for="export-archive-tenant-select" class="block text-xs font-bold text-slate-800 mb-2">
+                        <span>المستأجر • Tenant</span>
+                    </label>
+                    <div class="relative">
+                        <select id="export-archive-tenant-select" class="w-full px-3.5 py-2.5 text-xs font-medium border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white transition-all appearance-none cursor-pointer">
+                            <option value="">🏛️ كامل السجل • All Records</option>
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center px-3 text-slate-400">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3.5 border-t border-slate-100 bg-slate-50/70 flex justify-end items-center gap-2">
+                <button id="btn-cancel-export-archive" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition-colors shadow-2xs cursor-pointer">Cancel</button>
+                <button id="btn-confirm-export-archive" type="button" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2 shadow-sm shadow-blue-500/25 cursor-pointer">
+                    <span id="export-archive-spinner" class="hidden animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
+                    <span id="export-archive-btn-text">⬇️ Download</span>
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Modular Application Scripts -->
-    <script src="js/api.js?v=260909-3"></script>
-    <script src="js/resizer.js?v=260909-3"></script>
-    <script src="js/pdf-preview.js?v=260909-3"></script>
-    <script src="js/command-palette.js?v=260909-3"></script>
-    <script src="js/tenant-manager.js?v=260909-3"></script>
-    <script src="js/doc-manager.js?v=260909-3"></script>
-    <script src="js/doc-viewer.js?v=260909-3"></script>
-    <script src="js/db-inspector.js?v=260909-3"></script>
-    <script src="js/area-grid.js?v=260909-3"></script>
-    <script src="js/house-profile.js?v=260909-3"></script>
-    <script src="js/timeline-view.js?v=260909-3"></script>
-    <script src="js/categories-view.js?v=260909-3"></script>
-    <script src="js/sidebar.js?v=260909-3"></script>
-    <script src="js/router.js?v=260909-3"></script>
-    <script src="js/ingest-station.js?v=260909-3"></script>
-    <script src="js/app.js?v=260909-3"></script>
+    <script src="js/api.js?v=260911-13"></script>
+    <script src="js/resizer.js?v=260911-13"></script>
+    <script src="js/pdf-preview.js?v=260911-13"></script>
+    <script src="js/command-palette.js?v=260911-13"></script>
+    <script src="js/tenant-manager.js?v=260911-13"></script>
+    <script src="js/doc-manager.js?v=260911-13"></script>
+    <script src="js/doc-viewer.js?v=260911-13"></script>
+    <script src="js/db-inspector.js?v=260911-13"></script>
+    <script src="js/area-grid.js?v=260911-13"></script>
+    <script src="js/house-profile.js?v=260911-13"></script>
+    <script src="js/timeline-view.js?v=260911-13"></script>
+    <script src="js/categories-view.js?v=260911-13"></script>
+    <script src="js/sidebar.js?v=260911-13"></script>
+    <script src="js/router.js?v=260911-13"></script>
+    <script src="js/ingest-station.js?v=260911-13"></script>
+    <script src="js/keyboard-shortcuts.js?v=260911-13"></script>
+    <script src="js/app.js?v=260911-13"></script>
 </body>
 </html>
