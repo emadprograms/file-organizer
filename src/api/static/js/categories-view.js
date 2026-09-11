@@ -122,7 +122,36 @@
         } else {
             selectedDocIds.delete(vaultId);
         }
+        const globalBtn = document.getElementById('btn-toggle-select-all-categories');
+        if (globalBtn) {
+            const allDocCbs = document.querySelectorAll('.doc-select-checkbox');
+            const allChecked = allDocCbs.length > 0 && Array.from(allDocCbs).every(cb => cb.checked);
+            globalBtn.textContent = allChecked ? 'Deselect All' : 'Select All';
+        }
         updateBatchActionBar();
+    }
+
+    function updateFolderCheckboxState(card, cat) {
+        const folderCb = card ? card.querySelector('.folder-select-checkbox') : null;
+        if (!folderCb) return;
+        const docs = (cat && cat.documents) ? cat.documents : [];
+        if (docs.length === 0) {
+            folderCb.checked = false;
+            folderCb.indeterminate = false;
+            return;
+        }
+        const docIds = docs.map(d => d.vault_id).filter(Boolean);
+        const selectedCount = docIds.filter(id => selectedDocIds.has(id)).length;
+        if (selectedCount === 0) {
+            folderCb.checked = false;
+            folderCb.indeterminate = false;
+        } else if (selectedCount === docIds.length) {
+            folderCb.checked = true;
+            folderCb.indeterminate = false;
+        } else {
+            folderCb.checked = false;
+            folderCb.indeterminate = true;
+        }
     }
 
     function toggleSelectAllInFolder(cat, card) {
@@ -135,7 +164,7 @@
         } else {
             docIds.forEach(id => selectedDocIds.add(id));
             const docsContainer = card.querySelector('.category-docs');
-            if (docsContainer && docsContainer.classList.contains('hidden')) {
+            if (docsContainer) {
                 docsContainer.classList.remove('hidden');
             }
         }
@@ -146,9 +175,22 @@
             cb.checked = selectedDocIds.has(vid);
         });
 
+        const folderCb = card.querySelector('.folder-select-checkbox');
+        if (folderCb) {
+            folderCb.checked = !allSelected;
+            folderCb.indeterminate = false;
+        }
+
         const selectAllBtn = card.querySelector('.btn-select-all-folder');
         if (selectAllBtn) {
             selectAllBtn.textContent = allSelected ? 'Select All' : 'Deselect All';
+        }
+
+        const globalBtn = document.getElementById('btn-toggle-select-all-categories');
+        if (globalBtn) {
+            const allDocCbs = document.querySelectorAll('.doc-select-checkbox');
+            const allChecked = allDocCbs.length > 0 && Array.from(allDocCbs).every(cb => cb.checked);
+            globalBtn.textContent = allChecked ? 'Deselect All' : 'Select All';
         }
 
         updateBatchActionBar();
@@ -171,6 +213,8 @@
             allDocIds.forEach(id => selectedDocIds.add(id));
             const cbs = document.querySelectorAll('.doc-select-checkbox');
             cbs.forEach(cb => { cb.checked = true; });
+            const folderCbs = document.querySelectorAll('.folder-select-checkbox');
+            folderCbs.forEach(cb => { cb.checked = true; cb.indeterminate = false; });
             const folderBtns = document.querySelectorAll('.btn-select-all-folder');
             folderBtns.forEach(btn => { btn.textContent = 'Deselect All'; });
             const globalBtn = document.getElementById('btn-toggle-select-all-categories');
@@ -183,6 +227,8 @@
         selectedDocIds.clear();
         const cbs = document.querySelectorAll('.doc-select-checkbox');
         cbs.forEach(cb => { cb.checked = false; });
+        const folderCbs = document.querySelectorAll('.folder-select-checkbox');
+        folderCbs.forEach(cb => { cb.checked = false; cb.indeterminate = false; });
         const folderBtns = document.querySelectorAll('.btn-select-all-folder');
         folderBtns.forEach(btn => { btn.textContent = 'Select All'; });
         const globalBtn = document.getElementById('btn-toggle-select-all-categories');
@@ -1125,15 +1171,19 @@
 
             const folderDocIds = (cat.documents || []).map(d => d.vault_id).filter(Boolean);
             const allFolderDocsSelected = folderDocIds.length > 0 && folderDocIds.every(id => selectedDocIds.has(id));
-            const selectAllFolderBtn = (cat.documents && cat.documents.length > 0)
-                ? `<button type="button" class="btn-select-all-folder text-[10px] font-medium text-slate-500 hover:text-blue-600 px-2 py-0.5 rounded-lg hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer flex-shrink-0" title="Select / Deselect all in this folder">${allFolderDocsSelected ? 'Deselect All' : 'Select All'}</button>`
-                : '';
+            const someFolderDocsSelected = folderDocIds.length > 0 && !allFolderDocsSelected && folderDocIds.some(id => selectedDocIds.has(id));
+            const hasDocs = Boolean(cat.documents && cat.documents.length > 0);
+
+            const folderSelectCheckbox = hasDocs
+                ? `<input type="checkbox" class="folder-select-checkbox w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer flex-shrink-0" data-category-name="${escapeHtml(cat.name)}" title="Select / Deselect all in this folder" ${allFolderDocsSelected ? 'checked' : ''} />`
+                : `<span class="w-3.5 h-3.5 flex-shrink-0"></span>`;
 
             const folderIconSvg = getFolderIconSvg(cat.name);
 
             card.innerHTML = `
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-2 min-w-0">
+                        ${folderSelectCheckbox}
                         <div class="folder-icon-box w-6 h-6 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center flex-shrink-0" data-category="${escapeHtml(cat.name)}">
                             ${folderIconSvg}
                         </div>
@@ -1141,7 +1191,6 @@
                     </div>
                     <div class="flex items-center gap-1.5 flex-shrink-0">
                         ${noteFolderBadge}
-                        ${selectAllFolderBtn}
                         <span class="doc-count-badge min-w-[20px] h-5 px-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200 flex items-center justify-center flex-shrink-0 select-none" title="${cat.document_count} ${cat.document_count === 1 ? 'Document' : 'Documents'}">${cat.document_count}</span>
                         ${deleteFolderBtn}
                     </div>
@@ -1149,6 +1198,17 @@
                 <div class="${docsContainerClasses}">
                 </div>
             `;
+
+            const folderCheckboxEl = card.querySelector('.folder-select-checkbox');
+            if (folderCheckboxEl) {
+                if (someFolderDocsSelected) {
+                    folderCheckboxEl.indeterminate = true;
+                }
+                folderCheckboxEl.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleSelectAllInFolder(cat, card);
+                };
+            }
             
             if (cat.documents && cat.documents.length > 0) {
                 const docsContainer = card.querySelector('.category-docs');
@@ -1205,6 +1265,7 @@
                         checkbox.onchange = (e) => {
                             e.stopPropagation();
                             toggleDocSelection(doc.vault_id, checkbox.checked);
+                            updateFolderCheckboxState(card, cat);
                         };
                     }
 
@@ -1341,6 +1402,7 @@
         window.getSelectedDocIds = getSelectedDocIds;
         window.toggleDocSelection = toggleDocSelection;
         window.toggleSelectAllInFolder = toggleSelectAllInFolder;
+        window.updateFolderCheckboxState = updateFolderCheckboxState;
         window.toggleSelectAllGlobal = toggleSelectAllGlobal;
         window.deselectAllDocs = deselectAllDocs;
         window.updateBatchActionBar = updateBatchActionBar;
@@ -1379,6 +1441,7 @@
             getSelectedDocIds,
             toggleDocSelection,
             toggleSelectAllInFolder,
+            updateFolderCheckboxState,
             toggleSelectAllGlobal,
             deselectAllDocs,
             updateBatchActionBar,

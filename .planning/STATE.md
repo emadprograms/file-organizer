@@ -4,9 +4,9 @@ milestone: v14.0
 milestone_name: Power-User Operations & Portfolio Expansion
 current_phase: 108 (All Complete)
 status: completed
-last_updated: "2026-09-11T08:15:00.000Z"
+last_updated: "2026-09-11T08:22:00.000Z"
 last_activity: 2026-09-11
-last_activity_desc: "Completed Quick Tasks QCK-10 (Category Folder Circular Count Badge & Refined Document Date Sizing) and QCK-11 (Category-Specific Folder Icons for 01-13 & Empty Folder for 14+). 133 Vitest tests across 12 files, 84 xUnit tests, and 30 Pytest tests passing; zero static asset diff."
+last_activity_desc: "Completed Quick Tasks QCK-10, QCK-11, and QCK-12 (Replace Folder Select All Text Button with Select Checkbox). 143 Vitest tests across 13 files, 84 xUnit tests, 30 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -25,7 +25,7 @@ stopped_at: Completed Milestone v14.0
 
 ## Context
 
-Equip the digital archive management system with power-user operational tools: one-click house archive ZIP export, interactive export options modal with combined chronological PDF dossier generation (descending sort, running footer with preserved category numbers, Arabic cursive reshaping and BiDi visual reordering), multi-document batch operations (bulk move, bulk delete, and bulk copy with timeline de-duplication architecture), target tenant selection during batch moves and copies, portfolio expansion with UI-based house creation, double-click inline document renaming in Categories and Timeline views, export button relocation to Document Panel header with bottom archive summary removal, an interactive keyboard shortcuts modal (`?`), and complete parity across both FastAPI and ASP.NET Core 8.0 backends with comprehensive multi-stack test coverage (84 xUnit, 17 v14 pytest, 13 doc management, 113 Vitest across 10 files, and 49 Playwright E2E).
+Equip the digital archive management system with power-user operational tools: one-click house archive ZIP export, interactive export options modal with combined chronological PDF dossier generation (descending sort, running footer with preserved category numbers, Arabic cursive reshaping and BiDi visual reordering), multi-document batch operations (bulk move, bulk delete, and bulk copy with timeline de-duplication architecture), target tenant selection during batch moves and copies, portfolio expansion with UI-based house creation, double-click inline document renaming in Categories and Timeline views, export button relocation to Document Panel header with bottom archive summary removal, an interactive keyboard shortcuts modal (`?`), category-specific folder icons for standard folders (01-13) with empty folder fallback for custom folders (14+), folder select checkbox replacing verbose text button that reveals documents and selects all, and complete parity across both FastAPI and ASP.NET Core 8.0 backends with comprehensive multi-stack test coverage (84 xUnit, 17 v14 pytest, 13 doc management, 143 Vitest across 13 files, and 49 Playwright E2E).
 
 ## Target Phases
 
@@ -58,15 +58,17 @@ Equip the digital archive management system with power-user operational tools: o
 - `260911-batch-tenant-selection-and-remove-copy-note`: Batch Tenant Selection in Move/Copy Modals & Remove Copy Note (QCK-08). Removed explanatory amber note from `#batch-copy-modal`. Added `#batch-move-tenant-select` and `#batch-copy-tenant-select` defaulting to Same Tenant (`🏛️ المستأجر الحالي للوثيقة • Same Tenant`), with dynamic tenant options (`🟢 ` active vs `👤 ` past and year tags). Supported optional `target_tenant_id` across FastAPI (`BatchMoveRequest`, `BatchCopyRequest`, `repo.batch_copy_documents`) and ASP.NET Core (`BatchMoveRequestDto`, `BatchCopyRequestDto`, `BatchMoveDocumentsAsync`, `BatchCopyDocumentsAsync`). 113 Vitest tests across 10 files (including 14 batch tests), 84 xUnit tests, and 30 Python pytest tests passing; zero static asset diff.
 - `260911-doc-menu-dropdown-and-folder-date`: Document 3-Dots Dropdown Action Menu & Folders Section Document Date Badge (QCK-09). Replaced heavy `#doc-action-modal` on 3-dots button click with a floating context menu containing 5 actions (Rename Document, Move Document, Copy Document, Show in Timeline, Delete Document). Added an always-visible document date badge with light gray background (`doc-date-badge bg-slate-100 text-slate-500 font-mono text-[10px]`) immediately before the 3-dots button in the Folders / Categories section. Wired smooth scrolling and pulse highlighting (`ring-4 ring-blue-500 bg-blue-50`) to target document when selecting Show in Timeline. 126 Vitest tests across 11 files (including 13 in `doc_dropdown_and_date.test.js`), 84 .NET xUnit tests, and 30 Python pytest tests passing; zero static asset diff.
 - `260911-category-doc-count-circle-and-smaller-doc-date`: Category Folder Circular Document Count Badge & Refined Document Date Sizing (QCK-10). Replaced folder header card document count text badge with a sleek circular count badge (`min-w-[20px] h-5 rounded-full`) showing just the count number inside a circle with tooltip. Refined document date badge on document rows to `text-[9px] font-mono tracking-tight`, freeing ~12-15px horizontal width per row to prevent document name truncation while keeping date clean and legible. 128 Vitest tests across 11 files, 84 .NET xUnit tests, and 30 Python pytest tests passing; zero static asset diff.
-- `260911-fdi-folder-specific-icons-for-categories-01-`: Category-Specific Folder Icons (01-13) & Empty Folder for Custom (14+) (QCK-11). Implemented distinct, descriptive Heroicons outline icons for each standard category 01 through 13 in Folders view with automatic fallback to empty folder icon for custom categories (14+). 133 Vitest tests across 12 files, 84 xUnit tests, and 30 Pytest tests passing; zero static asset diff.
+- `260911-fdi-folder-specific-icons-for-categories-01-`: Category-Specific Folder Icons (01-13) & Empty Folder for Custom (14+) (QCK-11). Implemented distinct, descriptive Heroicons outline icons for each standard category 01 through 13 in Folders view with automatic fallback to empty folder icon for custom categories (14+). 134 Vitest tests across 12 files, 84 xUnit tests, and 30 Pytest tests passing; zero static asset diff.
+- `260911-fs0-replace-folder-select-all-text-button-wi`: Replace Folder "Select All" Text Button with Select Checkbox (`.folder-select-checkbox`) that Reveals Documents and Selects All (QCK-12). Replaced `.btn-select-all-folder` text button on category cards with a styled select checkbox before `.folder-icon-box`, un-hiding collapsed documents and selecting all docs on click. Synchronized indeterminate state when child document checkboxes change, and updated global toggle. 143 Vitest tests across 13 files (including 16 in `batch_operations.test.js` and 8 in `folder_select_checkbox.test.js`), 84 .NET xUnit tests, 30 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-11 — Completed Quick Tasks QCK-10 and QCK-11. Verified by 84 xUnit, 17 v14 pytest, 13 doc management, 133 Vitest across 12 files, and Playwright E2E suites.
+Last activity: 2026-09-11 — Completed Quick Tasks QCK-10, QCK-11, and QCK-12. Verified by 84 xUnit, 17 v14 pytest, 13 doc management, 143 Vitest across 13 files, and 49 Playwright E2E tests.
 
 ## Operator Next Steps
 
 - Milestone v14.0 complete, fully audited, and archived. Ready for next milestone initialization.
+

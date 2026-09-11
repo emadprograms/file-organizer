@@ -6,7 +6,7 @@ A document management system that processes scanned Arabic PDFs, categorizes the
 
 ## Current Milestone: None (v14.0 Completed & Shipped)
 
-Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive multi-stack test coverage (84 xUnit including 32 in `ArabicReshaperTests.cs`, 17 v14 pytest, 13 doc management pytest, 133 Vitest across 12 files, and 49 Playwright E2E), and power-user operational tooling. Ready for next milestone initialization.
+Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive multi-stack test coverage (84 xUnit including 32 in `ArabicReshaperTests.cs`, 17 v14 pytest, 13 doc management pytest, 143 Vitest across 13 files, and 49 Playwright E2E), and power-user operational tooling. Ready for next milestone initialization.
 
 ## Past Milestones
 
@@ -71,11 +71,15 @@ Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shi
   - Refined document date badge on document rows in Categories view to `text-[9px] font-mono tracking-tight`, freeing ~12-15px horizontal width per row to prevent document title truncation while keeping the date crisp, legible, and neatly contained.
 - **Category-Specific Folder Icons (01-13) & Empty Folder for Custom Categories (Quick Refinement QCK-11):**
   - Implemented distinct, descriptive Heroicons outline icons for each standard category 01 through 13 in Folders view (`FOLDER_ICONS`, `.folder-icon-box`, `getFolderIconSvg`), while retaining the clean empty folder icon for custom folders (14+).
+- **Replace Folder "Select All" Text Button with Select Checkbox (Quick Refinement QCK-12):**
+  - Replaced the text button `.btn-select-all-folder` on category folder cards with a select checkbox (`.folder-select-checkbox`) positioned right before `.folder-icon-box`, matching the document item checkbox styling.
+  - Clicking this checkbox un-hides collapsed documents (`docsContainer.classList.remove('hidden')`) and selects all documents in the folder, or deselects all if already selected.
+  - Added reactive synchronization: individual document checkbox changes update the parent folder's checkbox state to checked, indeterminate, or unchecked. Global select/deselect synchronizes all folder checkboxes across the view.
 - **Comprehensive Multi-Stack Test Coverage & Verification:**
   - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
   - 17 Python v14 pytest tests (`tests/test_v14_features.py`).
   - 13 Python document management tests (`tests/test_document_management_api.py`).
-  - 133 Frontend Vitest tests across 12 files (`npm run test:frontend`, including 14 in `doc_dropdown_and_date.test.js` and 5 in `categories_folder_icons.test.js`).
+  - 143 Frontend Vitest tests across 13 files (`npm run test:frontend`, including 16 in `batch_operations.test.js` and 8 in `folder_select_checkbox.test.js`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 

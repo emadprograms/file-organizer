@@ -156,30 +156,84 @@ describe('Multi-Select Batch Document Operations (Phase 106)', () => {
         expect(bar.classList.contains('hidden')).toBe(false);
     });
 
-    it('toggles select all within a category folder', () => {
+    it('toggles select all within a category folder using folder select checkbox and reveals documents', () => {
         renderCategories();
         const docList = document.getElementById('document-list');
         const folderCard = docList.querySelector('[data-category-name="05 - عقود"]');
         expect(folderCard).not.toBeNull();
 
-        const selectAllBtn = folderCard.querySelector('.btn-select-all-folder');
-        expect(selectAllBtn).not.toBeNull();
-        expect(selectAllBtn.textContent).toBe('Select All');
+        const folderCheckbox = folderCard.querySelector('.folder-select-checkbox');
+        expect(folderCheckbox).not.toBeNull();
+        expect(folderCheckbox.checked).toBe(false);
 
-        // Click Select All in folder
-        selectAllBtn.click();
+        const docsContainer = folderCard.querySelector('.category-docs');
+        expect(docsContainer).not.toBeNull();
+        // Collapse folder first to verify clicking folder checkbox reveals it
+        docsContainer.classList.add('hidden');
+        expect(docsContainer.classList.contains('hidden')).toBe(true);
+
+        // Click folder select checkbox: selects all docs in folder and reveals documents list
+        folderCheckbox.click();
         expect(getSelectedDocIds().has('doc001')).toBe(true);
         expect(getSelectedDocIds().has('doc002')).toBe(true);
         expect(getSelectedDocIds().has('doc003')).toBe(false);
         expect(getSelectedDocIds().size).toBe(2);
-        expect(selectAllBtn.textContent).toBe('Deselect All');
+        expect(folderCheckbox.checked).toBe(true);
+        expect(docsContainer.classList.contains('hidden')).toBe(false);
 
-        // Click again to Deselect All in folder
-        selectAllBtn.click();
+        // Click again to deselect all in folder
+        folderCheckbox.click();
         expect(getSelectedDocIds().has('doc001')).toBe(false);
         expect(getSelectedDocIds().has('doc002')).toBe(false);
         expect(getSelectedDocIds().size).toBe(0);
-        expect(selectAllBtn.textContent).toBe('Select All');
+        expect(folderCheckbox.checked).toBe(false);
+
+        // Also verify on a folder that is naturally collapsed (no notes)
+        const maintCard = docList.querySelector('[data-category-name="10 - صيانة"]');
+        const maintDocs = maintCard.querySelector('.category-docs');
+        const maintCb = maintCard.querySelector('.folder-select-checkbox');
+        expect(maintDocs.classList.contains('hidden')).toBe(true);
+        maintCb.click();
+        expect(maintDocs.classList.contains('hidden')).toBe(false);
+        expect(getSelectedDocIds().has('doc003')).toBe(true);
+        expect(maintCb.checked).toBe(true);
+    });
+
+    it('updates folder checkbox to indeterminate when partially selected', () => {
+        renderCategories();
+        const docList = document.getElementById('document-list');
+        const folderCard = docList.querySelector('[data-category-name="05 - عقود"]');
+        const folderCb = folderCard.querySelector('.folder-select-checkbox');
+        const docCbs = folderCard.querySelectorAll('.doc-select-checkbox');
+        expect(docCbs.length).toBe(2);
+
+        // Select only first document
+        docCbs[0].checked = true;
+        docCbs[0].dispatchEvent(new Event('change'));
+
+        expect(folderCb.checked).toBe(false);
+        expect(folderCb.indeterminate).toBe(true);
+
+        // Select second document
+        docCbs[1].checked = true;
+        docCbs[1].dispatchEvent(new Event('change'));
+
+        expect(folderCb.checked).toBe(true);
+        expect(folderCb.indeterminate).toBe(false);
+
+        // Deselect first document
+        docCbs[0].checked = false;
+        docCbs[0].dispatchEvent(new Event('change'));
+
+        expect(folderCb.checked).toBe(false);
+        expect(folderCb.indeterminate).toBe(true);
+
+        // Deselect second document
+        docCbs[1].checked = false;
+        docCbs[1].dispatchEvent(new Event('change'));
+
+        expect(folderCb.checked).toBe(false);
+        expect(folderCb.indeterminate).toBe(false);
     });
 
     it('toggles select all globally across all category folders', () => {
@@ -196,9 +250,19 @@ describe('Multi-Select Batch Document Operations (Phase 106)', () => {
         expect(getSelectedDocIds().has('doc002')).toBe(true);
         expect(getSelectedDocIds().has('doc003')).toBe(true);
 
+        const folderCbs = docList.querySelectorAll('.folder-select-checkbox');
+        folderCbs.forEach(cb => {
+            expect(cb.checked).toBe(true);
+            expect(cb.indeterminate).toBe(false);
+        });
+
         // Click again to Deselect All
         globalBtn.click();
         expect(getSelectedDocIds().size).toBe(0);
+        folderCbs.forEach(cb => {
+            expect(cb.checked).toBe(false);
+            expect(cb.indeterminate).toBe(false);
+        });
     });
 
     it('opens batch move modal with standard folders and executes POST batch-move', async () => {

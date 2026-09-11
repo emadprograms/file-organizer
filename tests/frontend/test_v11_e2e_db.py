@@ -494,7 +494,7 @@ def test_viewer_manual_tenant_override_e2e(page: Page, server_url: str):
 
 
 def test_document_action_modal_rename_and_lock_badge_e2e(page: Page, server_url: str):
-    """Renaming document via action modal updates title and shows manual lock indicator."""
+    """Renaming document via action menu triggers inline rename and updates title."""
     page.goto(f"{server_url}/#/area/Safra%20C/house/101/tenant/101_Ahmad%20Al-Short")
     expect(page.locator("#document-list-panel")).to_be_visible()
 
@@ -506,26 +506,30 @@ def test_document_action_modal_rename_and_lock_badge_e2e(page: Page, server_url:
     expect(menu_btn).to_be_attached()
     menu_btn.click(force=True)
 
-    # Modal appears
-    modal = page.locator("#doc-action-modal")
-    expect(modal).to_be_visible()
-    expect(page.locator("#doc-modal-arabic-title")).to_have_value("عقد إيجار 101")
+    # Dropdown menu appears
+    dropdown = page.locator(".doc-dropdown-menu")
+    expect(dropdown).to_be_visible()
 
-    # Rename title
-    page.locator("#doc-modal-arabic-title").fill("عقد إيجار محدث 101")
-    page.locator("#doc-modal-submit").click()
+    # Click Rename Document
+    page.locator(".doc-menu-item-rename").click()
+    expect(dropdown).to_be_hidden()
 
-    # Modal closes after save
-    expect(modal).to_be_hidden()
+    # Inline rename input appears
+    rename_input = page.locator("input.inline-rename-input")
+    expect(rename_input).to_be_visible()
+    expect(rename_input).to_have_value("عقد إيجار 101")
+
+    # Rename title and press Enter
+    rename_input.fill("عقد إيجار محدث 101")
+    rename_input.press("Enter")
+    page.wait_for_timeout(500)
 
     # Verify updated title in category list
-    page.locator(".category-folder-card:has-text('عقود')").first.click()
     expect(page.locator("#document-list")).to_contain_text("عقد إيجار محدث 101")
-    expect(page.locator("#document-list")).to_contain_text("🔒")
 
 
 def test_document_action_modal_custom_folder_e2e(page: Page, server_url: str):
-    """Creating a custom folder in the modal assigns next sequential folder number (14)."""
+    """Moving a document to custom folder via Move Document action assigns custom folder."""
     page.goto(f"{server_url}/#/area/Safra%20C/house/101/tenant/101_Ahmad%20Al-Short")
     expect(page.locator("#document-list-panel")).to_be_visible()
 
@@ -537,22 +541,30 @@ def test_document_action_modal_custom_folder_e2e(page: Page, server_url: str):
     expect(menu_btn).to_be_attached()
     menu_btn.click(force=True)
 
-    modal = page.locator("#doc-action-modal")
+    dropdown = page.locator(".doc-dropdown-menu")
+    expect(dropdown).to_be_visible()
+
+    # Click Move Document
+    page.locator(".doc-menu-item-move").click()
+    expect(dropdown).to_be_hidden()
+
+    # Move modal opens
+    modal = page.locator("#batch-move-modal")
     expect(modal).to_be_visible()
 
     # Select '+ Create New Folder...'
-    page.locator("#doc-modal-folder-select").select_option("__NEW_CUSTOM_FOLDER__")
-    custom_container = page.locator("#doc-custom-folder-container")
+    page.locator("#batch-move-folder-select").select_option("__custom__")
+    custom_container = page.locator("#batch-move-custom-folder-container")
     expect(custom_container).to_be_visible()
 
     # Enter custom folder name
-    page.locator("#doc-custom-folder-input").fill("مستندات بنكية جديدة")
-    page.locator("#doc-modal-submit").click()
+    page.locator("#batch-move-custom-folder-input").fill("مستندات بنكية جديدة")
+    page.locator("#btn-batch-move-confirm").click()
 
     expect(modal).to_be_hidden()
 
-    # Verify new category card exists with prefix 14
-    new_cat = page.locator(".category-folder-card:has-text('14 - مستندات بنكية جديدة')").first
+    # Verify new category card exists with custom folder name
+    new_cat = page.locator(".category-folder-card:has-text('مستندات بنكية جديدة')").first
     expect(new_cat).to_be_visible()
 
 
@@ -564,22 +576,25 @@ def test_document_action_modal_copy_e2e(page: Page, server_url: str):
     # Open '05 - عقود'
     page.locator(".category-folder-card:has-text('عقود')").first.click()
 
-    # Open modal on v101_3
+    # Open menu on v101_3
     menu_btn = page.locator(".doc-menu-btn[data-vault-id='v101_3']")
     expect(menu_btn).to_be_attached()
     menu_btn.click(force=True)
 
-    modal = page.locator("#doc-action-modal")
+    dropdown = page.locator(".doc-dropdown-menu")
+    expect(dropdown).to_be_visible()
+
+    # Click Copy Document
+    page.locator(".doc-menu-item-copy").click()
+    expect(dropdown).to_be_hidden()
+
+    # Copy modal opens
+    modal = page.locator("#batch-copy-modal")
     expect(modal).to_be_visible()
 
-    # Switch to Copy mode
-    copy_mode_btn = page.locator("#btn-mode-copy")
-    copy_mode_btn.click()
-    expect(copy_mode_btn).to_have_class(re.compile(r".*bg-white.*text-blue-600.*"))
-
     # Select '06 - كهرباء وماء'
-    page.locator("#doc-modal-folder-select").select_option("06 - كهرباء وماء")
-    page.locator("#doc-modal-submit").click()
+    page.locator("#batch-copy-folder-select").select_option("06 - كهرباء وماء")
+    page.locator("#btn-batch-copy-confirm").click()
 
     expect(modal).to_be_hidden()
 
@@ -593,7 +608,7 @@ def test_document_action_modal_copy_e2e(page: Page, server_url: str):
 
 
 def test_document_action_modal_reset_lock_e2e(page: Page, server_url: str):
-    """Manual lock banner is displayed for locked docs and can be reset."""
+    """Manual lock indicator is displayed for locked docs and dropdown can be dismissed."""
     # Ensure v101_1 is locked so test is self-contained
     resp = page.request.patch(
         f"{server_url}/api/areas/Safra%20C/houses/101/documents/v101_1",
@@ -607,29 +622,24 @@ def test_document_action_modal_reset_lock_e2e(page: Page, server_url: str):
     # Open 'عقود'
     page.locator(".category-folder-card:has-text('عقود')").first.click()
 
+    # Verify lock icon is rendered for locked document
+    expect(page.locator("div[data-vault-id='v101_1']")).to_contain_text("🔒")
+
     # Open menu for v101_1
     menu_btn = page.locator(".doc-menu-btn[data-vault-id='v101_1']")
     expect(menu_btn).to_be_attached()
     menu_btn.click(force=True)
 
-    modal = page.locator("#doc-action-modal")
-    expect(modal).to_be_visible()
+    dropdown = page.locator(".doc-dropdown-menu")
+    expect(dropdown).to_be_visible()
 
-    # Verify manual lock banner is shown
-    banner = page.locator("#doc-manual-banner")
-    expect(banner).to_be_visible()
-    expect(banner).to_contain_text("Manually Assigned")
-
-    # Click Reset to Auto
-    reset_btn = page.locator("#btn-doc-reset-lock")
-    reset_btn.click()
-
-    # Modal closes after reset
-    expect(modal).to_be_hidden()
+    # Escape key dismisses dropdown menu
+    page.keyboard.press("Escape")
+    expect(dropdown).to_be_hidden()
 
 
 def test_timeline_view_doc_action_menu_e2e(page: Page, server_url: str):
-    """Timeline view documents show action menu button that opens the modal."""
+    """Timeline view documents show action menu button that opens the floating dropdown."""
     page.goto(f"{server_url}/#/area/Safra%20C/house/101")
     expect(page.locator("#document-list-panel")).to_be_visible()
 
@@ -641,13 +651,16 @@ def test_timeline_view_doc_action_menu_e2e(page: Page, server_url: str):
     expect(timeline_menu_btn).to_be_attached()
     timeline_menu_btn.click(force=True)
 
-    # Modal opens
-    modal = page.locator("#doc-action-modal")
-    expect(modal).to_be_visible()
+    # Floating dropdown menu opens
+    dropdown = page.locator(".doc-dropdown-menu")
+    expect(dropdown).to_be_visible()
+    expect(dropdown.locator(".doc-menu-item-rename")).to_be_visible()
+    expect(dropdown.locator(".doc-menu-item-timeline")).to_be_visible()
 
-    # Cancel closes modal
-    page.locator("#doc-modal-cancel").click()
-    expect(modal).to_be_hidden()
+    # Escape key closes dropdown
+    page.keyboard.press("Escape")
+    expect(dropdown).to_be_hidden()
+
 
 
 

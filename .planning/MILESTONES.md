@@ -2,13 +2,18 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 11 quick refinements (QCK-01 through QCK-11), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 17 v14 pytest, 13 doc management, 133 Vitest across 12 files, 49 Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 12 quick refinements (QCK-01 through QCK-12), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 17 v14 pytest, 13 doc management, 143 Vitest across 13 files, 49 Playwright E2E)
 
 **Key accomplishments:**
 
+- **Replace Folder "Select All" Text Button with Select Checkbox (Quick Refinement QCK-12):**
+  - Replaced `.btn-select-all-folder` text button on category cards with `.folder-select-checkbox` positioned directly before `.folder-icon-box`, matching the document select checkbox styling.
+  - Clicking this checkbox un-hides collapsed documents (`docsContainer.classList.remove('hidden')`) and selects all documents in the folder, or deselects all if already selected.
+  - Added reactive synchronization: individual document checkbox changes update parent folder checkbox (checked / indeterminate / unchecked), and global select/deselect synchronizes all folder checkboxes across the view.
+  - Added 8 unit tests in `tests/frontend/components/folder_select_checkbox.test.js` and expanded `batch_operations.test.js` (16 tests).
 - **Category-Specific Folder Icons (01-13) & Empty Folder for Custom Categories (Quick Refinement QCK-11):**
   - Implemented distinct, descriptive Heroicons outline icons for each standard category 01 through 13 in Folders view (`FOLDER_ICONS`, `.folder-icon-box`, `getFolderIconSvg`), while retaining the clean empty folder icon for custom folders (14+).
-  - Added 5 unit tests in `tests/frontend/components/categories_folder_icons.test.js` validating prefix matching, Arabic name resolution, fallback, and DOM rendering.
+  - Added 6 unit tests in `tests/frontend/components/categories_folder_icons.test.js` validating prefix matching, Arabic name resolution, fallback, and DOM rendering.
 - **Category Folder Circular Document Count Badge & Refined Document Date Sizing (Quick Refinement QCK-10):**
   - Replaced folder header card document count text badge with a sleek circular count badge (`.doc-count-badge min-w-[20px] h-5 rounded-full`) showing just the count number inside a circle with tooltip.
   - Refined document date badge on document rows in Categories view to `text-[9px] font-mono tracking-tight`, freeing ~12-15px horizontal width per row to prevent document name truncation while keeping date clean and legible.
@@ -17,7 +22,7 @@
   - Provided 5 direct action buttons: Rename Document (triggers inline rename), Move Document (`openBatchMoveForDoc`), Copy Document (`openBatchCopyForDoc`), Show in Timeline, and Delete Document (`handleDeleteSingleDoc`).
   - Added Show in Timeline navigation that switches active tab to Timeline, clears conflicting tenant filters, smoothly scrolls target card to center viewport, pulses blue highlight (`ring-4 ring-blue-500 bg-blue-50`), and selects the document.
   - Added an always-visible document date badge with light gray background (`doc-date-badge bg-slate-100 text-slate-500 text-[10px] font-mono`) in the Folders / Categories section immediately preceding the 3-dots button.
-  - Comprehensive unit test suite (`tests/frontend/components/doc_dropdown_and_date.test.js`) with 13 automated tests covering dropdown lifecycle, actions, date badge rendering, and timeline navigation.
+  - Comprehensive unit test suite (`tests/frontend/components/doc_dropdown_and_date.test.js`) with 14 automated tests covering dropdown lifecycle, actions, date badge rendering, and timeline navigation.
 - **Batch Tenant Selection & Remove Copy Note (Quick Refinement QCK-08):**
   - Removed confusing amber explanatory note from `#batch-copy-modal` without replacement.
   - Added Target Tenant selector (`المستأجر • Target Tenant`) to both Move Selected (`#batch-move-tenant-select`) and Copy Selected (`#batch-copy-tenant-select`) modals, defaulting to `🏛️ المستأجر الحالي للوثيقة • Same Tenant`.

@@ -641,12 +641,12 @@
             btnRename.onclick = (ev) => {
                 ev.stopPropagation();
                 closeDocDropdownMenu();
-                const card = triggerBtn.closest('[data-vault-id]') || document.querySelector(`[data-vault-id="${doc.vault_id}"]`);
+                const card = triggerBtn.closest('div[data-vault-id]') || document.querySelector(`div[data-vault-id="${doc.vault_id}"]`);
                 const titleEl = card ? card.querySelector('.doc-title-text') : null;
                 if (titleEl) {
                     const area = getResolvedArea(doc);
                     const house = getResolvedHouse(doc);
-                    const isTimeline = Boolean(card.closest('#document-list'));
+                    const isTimeline = (typeof window !== 'undefined' && window.currentTab === 'timeline') || (titleEl && titleEl.tagName === 'H4');
                     if (isTimeline && typeof window.handleInlineRenameTimeline === 'function') {
                         window.handleInlineRenameTimeline(null, doc, titleEl, area, house);
                     } else if (typeof window.handleInlineRename === 'function') {
