@@ -1,0 +1,1532 @@
+{
+  "total_houses": 254,
+  "passed_count": 254,
+  "failed_count": 0,
+  "duration_seconds": 1345.27,
+  "results": [
+    {
+      "area": "Safra C",
+      "house": "1245 - نصار أحمد الأنصاري",
+      "status": "PASS",
+      "elapsed": 37.95
+    },
+    {
+      "area": "Safra C",
+      "house": "1246 - محمد راشد سليم",
+      "status": "PASS",
+      "elapsed": 50.14
+    },
+    {
+      "area": "Safra C",
+      "house": "1247 - عبود خلف العماش",
+      "status": "PASS",
+      "elapsed": 68.99
+    },
+    {
+      "area": "Safra C",
+      "house": "1248 - مجاهد يحيى محمد علي",
+      "status": "PASS",
+      "elapsed": 72.71
+    },
+    {
+      "area": "Safra C",
+      "house": "1249 - محمد يوسف عبد الرشيد زمان",
+      "status": "PASS",
+      "elapsed": 53.52
+    },
+    {
+      "area": "Safra C",
+      "house": "1253 - صادق سالم عباد",
+      "status": "PASS",
+      "elapsed": 142.46
+    },
+    {
+      "area": "Safra C",
+      "house": "1259 - نور علي خان",
+      "status": "PASS",
+      "elapsed": 118.48
+    },
+    {
+      "area": "Safra C",
+      "house": "1260 - شوكت علي البلوشي",
+      "status": "PASS",
+      "elapsed": 68.35
+    },
+    {
+      "area": "Safra C",
+      "house": "1261 - صابر حسين كرم دلي",
+      "status": "PASS",
+      "elapsed": 70.44
+    },
+    {
+      "area": "Safra C",
+      "house": "1262 - كاظم عبد الرحمن النونوشي",
+      "status": "PASS",
+      "elapsed": 34.97
+    },
+    {
+      "area": "Safra C",
+      "house": "1263 - يوسف عبدالله يوسف أحمد القعود",
+      "status": "PASS",
+      "elapsed": 80.14
+    },
+    {
+      "area": "Safra C",
+      "house": "1264 - جاويد أكرم محمد",
+      "status": "PASS",
+      "elapsed": 44.12
+    },
+    {
+      "area": "Safra C",
+      "house": "1265 - خان محمد جان محمد أحمد فقير",
+      "status": "PASS",
+      "elapsed": 41.45
+    },
+    {
+      "area": "Safra C",
+      "house": "1267 - عبد الستار باراز ابدو دور",
+      "status": "PASS",
+      "elapsed": 35.2
+    },
+    {
+      "area": "Safra C",
+      "house": "1269 - فؤاد قائد محمد عبد الرحيم",
+      "status": "PASS",
+      "elapsed": 94.68
+    },
+    {
+      "area": "Safra C",
+      "house": "1271 - محمد حمزة حمزة فقير",
+      "status": "PASS",
+      "elapsed": 31.94
+    },
+    {
+      "area": "Safra C",
+      "house": "1273 - جاويد أكرم أحمد",
+      "status": "PASS",
+      "elapsed": 44.79
+    },
+    {
+      "area": "Safra C",
+      "house": "1275 - إبراهيم حمدان عبدالله",
+      "status": "PASS",
+      "elapsed": 58.97
+    },
+    {
+      "area": "Safra C",
+      "house": "1277 - محمود عواد خليفة عنفوس",
+      "status": "PASS",
+      "elapsed": 75.39
+    },
+    {
+      "area": "Safra C",
+      "house": "1279 - راشد محمد علي",
+      "status": "PASS",
+      "elapsed": 40.96
+    },
+    {
+      "area": "Safra C",
+      "house": "1281 - علي حسن عبد الله التميمي",
+      "status": "PASS",
+      "elapsed": 138.63
+    },
+    {
+      "area": "Safra C",
+      "house": "1283 - مسعود عذاب المحمد",
+      "status": "PASS",
+      "elapsed": 57.35
+    },
+    {
+      "area": "Safra C",
+      "house": "1284 - سعيد أحمد عبد الله",
+      "status": "PASS",
+      "elapsed": 68.8
+    },
+    {
+      "area": "Safra C",
+      "house": "1286 - عبد القادر إبراهيم حمزة محمود",
+      "status": "PASS",
+      "elapsed": 71.32
+    },
+    {
+      "area": "Safra C",
+      "house": "1288 - محمد طلب نهار العنزي",
+      "status": "PASS",
+      "elapsed": 65.48
+    },
+    {
+      "area": "Safra C",
+      "house": "1314 - سعد ناصر سعد المرّان",
+      "status": "PASS",
+      "elapsed": 54.7
+    },
+    {
+      "area": "Safra C",
+      "house": "1316 - علي عبد الكريم الأنصاري",
+      "status": "PASS",
+      "elapsed": 52.73
+    },
+    {
+      "area": "Safra C",
+      "house": "1318 - ناصر أحمد فضل النعيمي",
+      "status": "PASS",
+      "elapsed": 43.74
+    },
+    {
+      "area": "Safra C",
+      "house": "1322 - محمد عبدالله محمد غريب",
+      "status": "PASS",
+      "elapsed": 80.49
+    },
+    {
+      "area": "Safra C",
+      "house": "1324 - عبدالرحمن علي أحمد سيار كمال",
+      "status": "PASS",
+      "elapsed": 86.68
+    },
+    {
+      "area": "Safra C",
+      "house": "1326 - شيماء صلاح سالم",
+      "status": "PASS",
+      "elapsed": 61.13
+    },
+    {
+      "area": "Safra C",
+      "house": "1330 - حسين علي البسارة",
+      "status": "PASS",
+      "elapsed": 55.53
+    },
+    {
+      "area": "Safra C",
+      "house": "1332 - عيسى أحمد السبيعي",
+      "status": "PASS",
+      "elapsed": 135.0
+    },
+    {
+      "area": "Safra C",
+      "house": "1334 - ياسر محمد إدريس",
+      "status": "PASS",
+      "elapsed": 93.18
+    },
+    {
+      "area": "Safra C",
+      "house": "1336 - عادل عبد الرحمن عثمان البلوشي",
+      "status": "PASS",
+      "elapsed": 53.13
+    },
+    {
+      "area": "Safra C",
+      "house": "1338 - صالح علي محمد عبدالله البكري",
+      "status": "PASS",
+      "elapsed": 36.47
+    },
+    {
+      "area": "Safra C",
+      "house": "1340 - عبدالله قاسم ضيف الله",
+      "status": "PASS",
+      "elapsed": 33.41
+    },
+    {
+      "area": "Safra C",
+      "house": "1342 - عيد مطشر الدندل",
+      "status": "PASS",
+      "elapsed": 69.17
+    },
+    {
+      "area": "Safra C",
+      "house": "1346 - عمر فاروق ملك",
+      "status": "PASS",
+      "elapsed": 48.4
+    },
+    {
+      "area": "Safra C",
+      "house": "1348 - أبو أحمد بن ملك",
+      "status": "PASS",
+      "elapsed": 70.82
+    },
+    {
+      "area": "Safra C",
+      "house": "1350 - علي عبد الله محمد",
+      "status": "PASS",
+      "elapsed": 20.46
+    },
+    {
+      "area": "Safra C",
+      "house": "1352 - إبراهيم حسين حسين",
+      "status": "PASS",
+      "elapsed": 36.35
+    },
+    {
+      "area": "Safra C",
+      "house": "1354 - محمد أنور حاجي حسن البلوشي",
+      "status": "PASS",
+      "elapsed": 50.1
+    },
+    {
+      "area": "Safra C",
+      "house": "1358 - جاويد صادق",
+      "status": "PASS",
+      "elapsed": 24.49
+    },
+    {
+      "area": "Safra C",
+      "house": "1360 - نايف ناجي مثنى حيدرة",
+      "status": "PASS",
+      "elapsed": 91.39
+    },
+    {
+      "area": "Safra C",
+      "house": "1362 - زايد حليم يوسف محمد علي",
+      "status": "PASS",
+      "elapsed": 68.06
+    },
+    {
+      "area": "Safra C",
+      "house": "1364 - ياسر محمد إدريس",
+      "status": "PASS",
+      "elapsed": 51.91
+    },
+    {
+      "area": "Safra C",
+      "house": "1536 - صباح صادق محمد",
+      "status": "PASS",
+      "elapsed": 45.12
+    },
+    {
+      "area": "Safra C",
+      "house": "508 - عبدالله عيسى حمد الكواري",
+      "status": "PASS",
+      "elapsed": 69.02
+    },
+    {
+      "area": "Safra C",
+      "house": "510 - دعيج خالد محمد الدوسري",
+      "status": "PASS",
+      "elapsed": 74.82
+    },
+    {
+      "area": "Safra C",
+      "house": "512 - أحمد سالم بورشيد",
+      "status": "PASS",
+      "elapsed": 81.42
+    },
+    {
+      "area": "Safra C",
+      "house": "514 - محمد مبارك أحمد التميمي",
+      "status": "PASS",
+      "elapsed": 102.99
+    },
+    {
+      "area": "Safra C",
+      "house": "518 - محمد أحمد سعيد الشيبة",
+      "status": "PASS",
+      "elapsed": 32.42
+    },
+    {
+      "area": "Safra C",
+      "house": "524 - أحمد قائد صالح",
+      "status": "PASS",
+      "elapsed": 39.63
+    },
+    {
+      "area": "Safra C",
+      "house": "526 - عبد الله جاسم محمد جاسم بحر",
+      "status": "PASS",
+      "elapsed": 100.66
+    },
+    {
+      "area": "Safra C",
+      "house": "528 - شرف علي كونجي نزارت",
+      "status": "PASS",
+      "elapsed": 34.44
+    },
+    {
+      "area": "Safra C",
+      "house": "530 - فيصل محمود خالد",
+      "status": "PASS",
+      "elapsed": 79.68
+    },
+    {
+      "area": "Safra C",
+      "house": "551 - وسيم سردار محمد",
+      "status": "PASS",
+      "elapsed": 57.47
+    },
+    {
+      "area": "Safra C",
+      "house": "555 - أحمد عبدالله سالم البورشيد",
+      "status": "PASS",
+      "elapsed": 105.72
+    },
+    {
+      "area": "Safra C",
+      "house": "557 - مطلق إبراهيم الصياح",
+      "status": "PASS",
+      "elapsed": 127.8
+    },
+    {
+      "area": "Safra C",
+      "house": "559 - أحمد محمد عبد الله",
+      "status": "PASS",
+      "elapsed": 56.01
+    },
+    {
+      "area": "Safra C",
+      "house": "561 - عادل محمد حسن الأحمدي",
+      "status": "PASS",
+      "elapsed": 71.0
+    },
+    {
+      "area": "Safra C",
+      "house": "565 - دور محمد أبوبكر",
+      "status": "PASS",
+      "elapsed": 75.54
+    },
+    {
+      "area": "Safra C",
+      "house": "567 - عبدالله شمسان عبدالله البوعينين",
+      "status": "PASS",
+      "elapsed": 124.52
+    },
+    {
+      "area": "Safra C",
+      "house": "569 - غانم محمد عبد الله",
+      "status": "PASS",
+      "elapsed": 67.04
+    },
+    {
+      "area": "Safra C",
+      "house": "571 - راشد عبد الرحمن محمد",
+      "status": "PASS",
+      "elapsed": 72.43
+    },
+    {
+      "area": "Safra C",
+      "house": "607 - غانم دهام عوض",
+      "status": "PASS",
+      "elapsed": 73.22
+    },
+    {
+      "area": "Safra C",
+      "house": "609 - عبدالعزيز غنام رجا الدندل",
+      "status": "PASS",
+      "elapsed": 50.61
+    },
+    {
+      "area": "Safra C",
+      "house": "611 - وليد يعقوب محمد عبدالرحمن",
+      "status": "PASS",
+      "elapsed": 22.58
+    },
+    {
+      "area": "Safra C",
+      "house": "613 - فاروق إقبال عوان",
+      "status": "PASS",
+      "elapsed": 63.99
+    },
+    {
+      "area": "Safra C",
+      "house": "617 - أبو بكر صديق",
+      "status": "PASS",
+      "elapsed": 82.74
+    },
+    {
+      "area": "Safra C",
+      "house": "619 - محمد ظفر بت فيروز الدين محمد",
+      "status": "PASS",
+      "elapsed": 39.39
+    },
+    {
+      "area": "Safra C",
+      "house": "623 - لولوة خالد عبدالله جمعة الذوادي",
+      "status": "PASS",
+      "elapsed": 71.3
+    },
+    {
+      "area": "Safra C",
+      "house": "627 - محمد شفيع حسين بلوش",
+      "status": "PASS",
+      "elapsed": 45.57
+    },
+    {
+      "area": "Safra D",
+      "house": "500 - فواز خليل الطارش",
+      "status": "PASS",
+      "elapsed": 60.83
+    },
+    {
+      "area": "Safra D",
+      "house": "502 - أحمد الحبر الشيخ",
+      "status": "PASS",
+      "elapsed": 41.88
+    },
+    {
+      "area": "Safra D",
+      "house": "504 - أحمد يوسف المريسل",
+      "status": "PASS",
+      "elapsed": 63.35
+    },
+    {
+      "area": "Safra D",
+      "house": "534 - عادل عنايت محمد عنايت محمد دين الله ديتا",
+      "status": "PASS",
+      "elapsed": 24.63
+    },
+    {
+      "area": "Safra D",
+      "house": "536 - تركي سعود عبد الرحمن الدوسري",
+      "status": "PASS",
+      "elapsed": 64.88
+    },
+    {
+      "area": "Safra D",
+      "house": "538 - يحيى محمد علي",
+      "status": "PASS",
+      "elapsed": 87.08
+    },
+    {
+      "area": "Safra D",
+      "house": "540 - حمد علي حمد المري",
+      "status": "PASS",
+      "elapsed": 106.96
+    },
+    {
+      "area": "Safra D",
+      "house": "542 - عريف عبدالله علي إسماعيل",
+      "status": "PASS",
+      "elapsed": 51.15
+    },
+    {
+      "area": "Safra D",
+      "house": "547 - عبد الرحمن أمحان عوض العماش",
+      "status": "PASS",
+      "elapsed": 47.12
+    },
+    {
+      "area": "Safra D",
+      "house": "548 - أحمد محمد كناري بلوش",
+      "status": "PASS",
+      "elapsed": 27.86
+    },
+    {
+      "area": "Safra D",
+      "house": "548A - عبد السلام محمد نزار محمد مراد",
+      "status": "PASS",
+      "elapsed": 35.36
+    },
+    {
+      "area": "Safra D",
+      "house": "549 - محمد سلمان أحمد إبراهيم العويناتي",
+      "status": "PASS",
+      "elapsed": 46.51
+    },
+    {
+      "area": "Safra D",
+      "house": "549A - عبدالرحمن أحمد عبدالرحمن الشيخ آل محمود",
+      "status": "PASS",
+      "elapsed": 59.81
+    },
+    {
+      "area": "Safra D",
+      "house": "550 - خالد صالح عبد الله النوبي",
+      "status": "PASS",
+      "elapsed": 63.39
+    },
+    {
+      "area": "Safra D",
+      "house": "550A - مظهر حسين فضل حسين كرم علي غلام",
+      "status": "PASS",
+      "elapsed": 46.05
+    },
+    {
+      "area": "Safra D",
+      "house": "551 - محمد عثمان حاجي فقير محمد",
+      "status": "PASS",
+      "elapsed": 82.41
+    },
+    {
+      "area": "Safra D",
+      "house": "551A - محمد عثمان حاجي فقير محمد",
+      "status": "PASS",
+      "elapsed": 57.86
+    },
+    {
+      "area": "Safra D",
+      "house": "552 - سحر ميرزا افتخار أنور بيك",
+      "status": "PASS",
+      "elapsed": 81.45
+    },
+    {
+      "area": "Safra D",
+      "house": "552A - أفيناش راجانيكانت جورد",
+      "status": "PASS",
+      "elapsed": 86.51
+    },
+    {
+      "area": "Safra D",
+      "house": "553 - أحمد عارف محمد عاشق محمد فيروز عالم خان",
+      "status": "PASS",
+      "elapsed": 31.93
+    },
+    {
+      "area": "Safra D",
+      "house": "554 - سليم بيك ميرزا إرشاد بيك",
+      "status": "PASS",
+      "elapsed": 36.89
+    },
+    {
+      "area": "Safra D",
+      "house": "568 - محمد أرشد محمد أمير",
+      "status": "PASS",
+      "elapsed": 65.78
+    },
+    {
+      "area": "Safra D",
+      "house": "570 - زيشان محمد إدريس نظير أحمد",
+      "status": "PASS",
+      "elapsed": 23.28
+    },
+    {
+      "area": "Safra D",
+      "house": "572 - خليل أحمد الحمد العساف",
+      "status": "PASS",
+      "elapsed": 38.89
+    },
+    {
+      "area": "Safra D",
+      "house": "574 - علي عبدالله محمد أحمد عبدالله",
+      "status": "PASS",
+      "elapsed": 46.56
+    },
+    {
+      "area": "Safra D",
+      "house": "576 - يحيى مساعد محسن الشرفي",
+      "status": "PASS",
+      "elapsed": 21.41
+    },
+    {
+      "area": "Safra D",
+      "house": "604 - ضيف الله محسن محمد البحيري",
+      "status": "PASS",
+      "elapsed": 53.05
+    },
+    {
+      "area": "Safra D",
+      "house": "608 - ناصر حسين محمد الحاج",
+      "status": "PASS",
+      "elapsed": 56.44
+    },
+    {
+      "area": "Safra D",
+      "house": "610 - طلال محسن ناصر أحمد",
+      "status": "PASS",
+      "elapsed": 39.3
+    },
+    {
+      "area": "Safra D",
+      "house": "612 - قصي علي العون",
+      "status": "PASS",
+      "elapsed": 21.83
+    },
+    {
+      "area": "Safra D",
+      "house": "614 - عبد الباقي حسن داد محمد البلوشي",
+      "status": "PASS",
+      "elapsed": 19.06
+    },
+    {
+      "area": "Safra D",
+      "house": "615 - أمينة محمد عبد الله محمد المطوع",
+      "status": "PASS",
+      "elapsed": 59.13
+    },
+    {
+      "area": "Safra D",
+      "house": "616 - نادية ممتاز علي",
+      "status": "PASS",
+      "elapsed": 59.47
+    },
+    {
+      "area": "Safra D",
+      "house": "618 - راشد محمد جناحي",
+      "status": "PASS",
+      "elapsed": 42.24
+    },
+    {
+      "area": "Safra D",
+      "house": "620 - خالد راشد عبد الله محمد عبدي البلوشي",
+      "status": "PASS",
+      "elapsed": 44.63
+    },
+    {
+      "area": "Safra D",
+      "house": "622 - ماهر سالم الشبيبي النهدي",
+      "status": "PASS",
+      "elapsed": 59.57
+    },
+    {
+      "area": "Safra D",
+      "house": "624 - أحمد مراد محمد مراد",
+      "status": "PASS",
+      "elapsed": 33.18
+    },
+    {
+      "area": "Safra D",
+      "house": "624D - أحمد مراد محمد مراد",
+      "status": "PASS",
+      "elapsed": 21.6
+    },
+    {
+      "area": "Safra D",
+      "house": "624G - شبير أحمد علي أكبر خان دوست محمد",
+      "status": "PASS",
+      "elapsed": 21.31
+    },
+    {
+      "area": "Safra D",
+      "house": "626 - عبد حمد إبراهيم الإبراهيم",
+      "status": "PASS",
+      "elapsed": 46.58
+    },
+    {
+      "area": "Safra D",
+      "house": "679 - جميل عبد الله محمد عبدي البلوشي",
+      "status": "PASS",
+      "elapsed": 45.58
+    },
+    {
+      "area": "Safra D",
+      "house": "681 - إيمان مبارك حسن محمد أحمد الرويعي",
+      "status": "PASS",
+      "elapsed": 35.2
+    },
+    {
+      "area": "Safra D",
+      "house": "683 - عبدالله سعود الدوسري",
+      "status": "PASS",
+      "elapsed": 80.4
+    },
+    {
+      "area": "Safra D",
+      "house": "685 - صالح قاسم حسين عسكر",
+      "status": "PASS",
+      "elapsed": 26.49
+    },
+    {
+      "area": "Safra D",
+      "house": "687 - خليف مشبهر سالم",
+      "status": "PASS",
+      "elapsed": 38.04
+    },
+    {
+      "area": "Safra D",
+      "house": "689 - علي صالح علي العجي",
+      "status": "PASS",
+      "elapsed": 38.08
+    },
+    {
+      "area": "Safra D",
+      "house": "691 - حامد إبراهيم عبد الله الفايز",
+      "status": "PASS",
+      "elapsed": 54.46
+    },
+    {
+      "area": "Safra D",
+      "house": "693 - خالد قاسم يحيى",
+      "status": "PASS",
+      "elapsed": 65.02
+    },
+    {
+      "area": "Safra D",
+      "house": "695 - سالم حيدر هاشم",
+      "status": "PASS",
+      "elapsed": 35.55
+    },
+    {
+      "area": "Safra D",
+      "house": "697 - عادل عبد الواحد البلوشي",
+      "status": "PASS",
+      "elapsed": 29.06
+    },
+    {
+      "area": "Safra D",
+      "house": "699 - تقي أحمد حسين غواص",
+      "status": "PASS",
+      "elapsed": 55.24
+    },
+    {
+      "area": "Safra D",
+      "house": "701 - إعجاز عبد القادر محمد",
+      "status": "PASS",
+      "elapsed": 38.33
+    },
+    {
+      "area": "Safra D",
+      "house": "703 - أحمد طلب نهار العنزي",
+      "status": "PASS",
+      "elapsed": 34.34
+    },
+    {
+      "area": "Safra D",
+      "house": "705 - قاسم صالح محمد الخلاقي",
+      "status": "PASS",
+      "elapsed": 48.98
+    },
+    {
+      "area": "Safra D",
+      "house": "707 - مديان سيد رانا",
+      "status": "PASS",
+      "elapsed": 21.18
+    },
+    {
+      "area": "Safra D",
+      "house": "709 - محمد خلف علي السعود العنزي",
+      "status": "PASS",
+      "elapsed": 97.35
+    },
+    {
+      "area": "Safra D",
+      "house": "711 - عيد نجم عبد الله السالم",
+      "status": "PASS",
+      "elapsed": 61.71
+    },
+    {
+      "area": "Safra D",
+      "house": "713 - مبارك علي محمد علي",
+      "status": "PASS",
+      "elapsed": 48.93
+    },
+    {
+      "area": "Safra D",
+      "house": "715 - خالد محمد أشرف دين محمد نواب دين",
+      "status": "PASS",
+      "elapsed": 38.17
+    },
+    {
+      "area": "Safra D",
+      "house": "717 - محمد نور عبدالرحمن",
+      "status": "PASS",
+      "elapsed": 61.7
+    },
+    {
+      "area": "Safra D",
+      "house": "719 - نور الله دين محمد شيخ",
+      "status": "PASS",
+      "elapsed": 49.37
+    },
+    {
+      "area": "Safra D",
+      "house": "721 - علي أحمد المريسي",
+      "status": "PASS",
+      "elapsed": 135.46
+    },
+    {
+      "area": "Safra D",
+      "house": "723 - محمد علي ميرزا",
+      "status": "PASS",
+      "elapsed": 89.42
+    },
+    {
+      "area": "Safra D",
+      "house": "725 - حسين علي سالم إبراهيم",
+      "status": "PASS",
+      "elapsed": 62.68
+    },
+    {
+      "area": "Safra D",
+      "house": "936 - نبيل عبد الجليل",
+      "status": "PASS",
+      "elapsed": 82.17
+    },
+    {
+      "area": "Safra D",
+      "house": "938 - عبد الخالق غلام قادر",
+      "status": "PASS",
+      "elapsed": 60.37
+    },
+    {
+      "area": "Safra D",
+      "house": "940 - أحمد محمد صالح بامسعود",
+      "status": "PASS",
+      "elapsed": 52.66
+    },
+    {
+      "area": "Safra D",
+      "house": "942 - ريان محمد إسماعيل راشد أحمد",
+      "status": "PASS",
+      "elapsed": 38.72
+    },
+    {
+      "area": "Safra D",
+      "house": "943 - أحمد صالح راشد العجلان",
+      "status": "PASS",
+      "elapsed": 75.88
+    },
+    {
+      "area": "Safra D",
+      "house": "944 - سامي محمد ناجي الصميل",
+      "status": "PASS",
+      "elapsed": 76.77
+    },
+    {
+      "area": "Safra D",
+      "house": "945 - منصور أحمد جمادار",
+      "status": "PASS",
+      "elapsed": 87.79
+    },
+    {
+      "area": "Safra D",
+      "house": "946 - زكريا خالد عبد العزيز الدوسري",
+      "status": "PASS",
+      "elapsed": 93.21
+    },
+    {
+      "area": "Safra D",
+      "house": "947 - يونس أحمد داوود محمد حاجي",
+      "status": "PASS",
+      "elapsed": 41.51
+    },
+    {
+      "area": "Safra D",
+      "house": "948 - محسن قائد أحمد بدوي",
+      "status": "PASS",
+      "elapsed": 41.97
+    },
+    {
+      "area": "Safra D",
+      "house": "950 - فيصل قادر عمر",
+      "status": "PASS",
+      "elapsed": 85.7
+    },
+    {
+      "area": "Safra D",
+      "house": "952 - محمد علي عبدالله قاضي",
+      "status": "PASS",
+      "elapsed": 44.72
+    },
+    {
+      "area": "Safra D",
+      "house": "954 - سعد طالب نهار العنزي",
+      "status": "PASS",
+      "elapsed": 56.3
+    },
+    {
+      "area": "Safra D",
+      "house": "956 - محمد ناجي سعد صالح الكلبان",
+      "status": "PASS",
+      "elapsed": 72.64
+    },
+    {
+      "area": "Safra D",
+      "house": "958 - محمد عبد الحميد العلي",
+      "status": "PASS",
+      "elapsed": 45.34
+    },
+    {
+      "area": "Safra D",
+      "house": "962 - أحمد يعقوب رحمت",
+      "status": "PASS",
+      "elapsed": 110.45
+    },
+    {
+      "area": "Safra D",
+      "house": "964 - نبيل قاسم موسى الجمري",
+      "status": "PASS",
+      "elapsed": 49.18
+    },
+    {
+      "area": "Safra D",
+      "house": "966 - عبود محمد نملة",
+      "status": "PASS",
+      "elapsed": 24.33
+    },
+    {
+      "area": "Safra D",
+      "house": "967 - علي عبدالله الخلافي",
+      "status": "PASS",
+      "elapsed": 35.44
+    },
+    {
+      "area": "Safra D",
+      "house": "968 - خليل عبدالله محمد أحمد البلوشي",
+      "status": "PASS",
+      "elapsed": 78.6
+    },
+    {
+      "area": "Safra D",
+      "house": "970 - عبدالرحمن صلاح الزياني",
+      "status": "PASS",
+      "elapsed": 80.91
+    },
+    {
+      "area": "Safra D",
+      "house": "971 - سالم مسلم كرامة",
+      "status": "PASS",
+      "elapsed": 96.28
+    },
+    {
+      "area": "Safra D",
+      "house": "972 - محمد علي صابر الشلبي",
+      "status": "PASS",
+      "elapsed": 44.06
+    },
+    {
+      "area": "Safra D",
+      "house": "973 - محمد أسلم حسن يار البلوشي",
+      "status": "PASS",
+      "elapsed": 57.22
+    },
+    {
+      "area": "Safra D",
+      "house": "974 - صلاح محمد خليفة الزايد",
+      "status": "PASS",
+      "elapsed": 60.96
+    },
+    {
+      "area": "Safra D",
+      "house": "975 - محمد أحمد حسين البوعركي",
+      "status": "PASS",
+      "elapsed": 70.98
+    },
+    {
+      "area": "Safra D",
+      "house": "976 - خالد جمال عبد الله محمد غالي",
+      "status": "PASS",
+      "elapsed": 92.69
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2450_1 - عادل يعقوب رحمت داد",
+      "status": "PASS",
+      "elapsed": 109.43
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2450_11 - عبدالجبار صالح محسن",
+      "status": "PASS",
+      "elapsed": 80.37
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2450_12 - وجدي صالح محسن",
+      "status": "PASS",
+      "elapsed": 45.24
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2450_14 - فيرنان سرقنان",
+      "status": "PASS",
+      "elapsed": 28.19
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2450_2 - فواز يوسف عبدالله",
+      "status": "PASS",
+      "elapsed": 74.87
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2450_21 - زياد عوض السليمان",
+      "status": "PASS",
+      "elapsed": 123.33
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2450_22 - عميد علي محمد عزيز",
+      "status": "PASS",
+      "elapsed": 35.12
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2450_23 - محمد إبراهيم إسماعيل",
+      "status": "PASS",
+      "elapsed": 63.16
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2450_24 - أنور علي عوض علي",
+      "status": "PASS",
+      "elapsed": 77.78
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2450_3 - أحمد طه محمد طه فتح الدين",
+      "status": "PASS",
+      "elapsed": 49.6
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2450_31 - عدنان محسن النهام",
+      "status": "PASS",
+      "elapsed": 80.63
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2450_32 - سامي حسين رافع الهزاع",
+      "status": "PASS",
+      "elapsed": 66.75
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2450_33 - مبارك أحمد ناجي سالم",
+      "status": "PASS",
+      "elapsed": 70.69
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2450_34 - عبد الجبار غالب عامر",
+      "status": "PASS",
+      "elapsed": 96.14
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2450_4 - أحمد محمد أحمد سيف",
+      "status": "PASS",
+      "elapsed": 37.69
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2452_1 - أحمد إبراهيم نملة مرهش",
+      "status": "PASS",
+      "elapsed": 86.98
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2452_11 - نسيم عادل الأحمدي",
+      "status": "PASS",
+      "elapsed": 48.15
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2452_12 - جمشيد أنور محمد أنور",
+      "status": "PASS",
+      "elapsed": 52.68
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2452_13 - محمد شهزاد الله دته ميران بخش",
+      "status": "PASS",
+      "elapsed": 60.33
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2452_14 - صالح أحمد غالب مثنى",
+      "status": "PASS",
+      "elapsed": 48.27
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2452_2 - محمد إجاز نور محمد",
+      "status": "PASS",
+      "elapsed": 57.7
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2452_21 - جميل عبد الله محمد البلوشي",
+      "status": "PASS",
+      "elapsed": 36.74
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2452_22 - سجد علي غلام حيدر",
+      "status": "PASS",
+      "elapsed": 72.38
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2452_23 - يوسف سعيد يوسف عبد الحي",
+      "status": "PASS",
+      "elapsed": 73.22
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2452_24 - طلال أحمد العبد الظاهر",
+      "status": "PASS",
+      "elapsed": 93.82
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2452_3 - فريد محمد أحمد ناشر",
+      "status": "PASS",
+      "elapsed": 65.26
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2452_31 - صدام عبد الجليل محمد الشميري",
+      "status": "PASS",
+      "elapsed": 65.93
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2452_32 - وجدي صالح محسن",
+      "status": "PASS",
+      "elapsed": 63.67
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2452_33 - فينايكومار أوماناكوتان أشاري",
+      "status": "PASS",
+      "elapsed": 71.29
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2452_34 - رافع عبار خلف العبد",
+      "status": "PASS",
+      "elapsed": 60.99
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2452_4 - عبدالله ناجي محمد العثماني",
+      "status": "PASS",
+      "elapsed": 44.69
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2454_1 - محمد خليل نذير أحمد",
+      "status": "PASS",
+      "elapsed": 48.93
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2454_11 - طارق دوست محمد البلوشي",
+      "status": "PASS",
+      "elapsed": 30.12
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2454_12 - مقبول أحمد وحيد بخش بلوشي",
+      "status": "PASS",
+      "elapsed": 54.82
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2454_13 - محمد صالح محمد البيضاني",
+      "status": "PASS",
+      "elapsed": 41.81
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2454_14 - نسيم عبد القادر محمد حسين",
+      "status": "PASS",
+      "elapsed": 50.12
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2454_2 - سحر صفوق الرويلي",
+      "status": "PASS",
+      "elapsed": 98.55
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2454_21 - صالح مشعان مشلح",
+      "status": "PASS",
+      "elapsed": 39.87
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2454_22 - كوثر رحمان فضل",
+      "status": "PASS",
+      "elapsed": 42.43
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2454_23 - عارف عباس عبدالله قطب الدين",
+      "status": "PASS",
+      "elapsed": 95.43
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2454_24 - شاهد جاويد إقبال",
+      "status": "PASS",
+      "elapsed": 161.76
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2454_3 - دعاء عادل ناجي",
+      "status": "PASS",
+      "elapsed": 70.16
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2454_31 - علي عبدالله صالح المنهل",
+      "status": "PASS",
+      "elapsed": 60.95
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2454_32 - فواز محمد حسن الأحمدي",
+      "status": "PASS",
+      "elapsed": 41.16
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2454_33 - عبد الحميد رحمة الله عبد الكريم سيد",
+      "status": "PASS",
+      "elapsed": 83.01
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2454_34 - محمد مسعود الصيادي",
+      "status": "PASS",
+      "elapsed": 71.5
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2454_4 - محمد جابر عبدالله",
+      "status": "PASS",
+      "elapsed": 161.6
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2456_1 - ناديا ميرزا أنام محمد",
+      "status": "PASS",
+      "elapsed": 125.57
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2456_11 - محمد علي قاسم صالح",
+      "status": "PASS",
+      "elapsed": 99.07
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2456_12 - محسن صالح محمد القعر",
+      "status": "PASS",
+      "elapsed": 45.57
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2456_14 - يحيى أحمد محمد عبدالله المفلحي",
+      "status": "PASS",
+      "elapsed": 69.14
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2456_2 - محمد أسلم نور محمد",
+      "status": "PASS",
+      "elapsed": 82.58
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2456_21 - يوسف عبدالله محمد صالح",
+      "status": "PASS",
+      "elapsed": 60.1
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2456_22 - عبد الباري داوود روتر",
+      "status": "PASS",
+      "elapsed": 59.91
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2456_23 - عبد الله علي عبد الله",
+      "status": "PASS",
+      "elapsed": 63.5
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2456_24 - إيمان عطالله ضبعان الناصر",
+      "status": "PASS",
+      "elapsed": 91.1
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2456_3 - لؤي علي عون",
+      "status": "PASS",
+      "elapsed": 64.68
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2456_31 - مازن عبده قائد الشرفي",
+      "status": "PASS",
+      "elapsed": 45.58
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2456_32 - عبده ناصر مسعد حمران",
+      "status": "PASS",
+      "elapsed": 51.83
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2456_33 - نصار أحمد مياد",
+      "status": "PASS",
+      "elapsed": 131.08
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2456_34 - قاسم ثابت قاسم محمد",
+      "status": "PASS",
+      "elapsed": 20.2
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2456_4 - وسيم تاج محمد شفي",
+      "status": "PASS",
+      "elapsed": 68.15
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2458_1 - عبدالله صالح عبدالله ناجي",
+      "status": "PASS",
+      "elapsed": 52.74
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2458_11 - خالد قاسم محمد البريكي",
+      "status": "PASS",
+      "elapsed": 85.88
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2458_12 - عبدالقادر صالح علوي عقيل",
+      "status": "PASS",
+      "elapsed": 93.06
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2458_13 - صالح محمد أحمد",
+      "status": "PASS",
+      "elapsed": 81.93
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2458_14 - خالد نايف صالح الطيب",
+      "status": "PASS",
+      "elapsed": 36.74
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2458_2 - عليان حمد الشاوش",
+      "status": "PASS",
+      "elapsed": 40.93
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2458_21 - خالد صالح الجهمي",
+      "status": "PASS",
+      "elapsed": 56.53
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2458_22 - إيمان سالم عبدالله محمد بو عشوان",
+      "status": "PASS",
+      "elapsed": 77.06
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2458_23 - محمد نعمان ناهيد محمد ناهيد",
+      "status": "PASS",
+      "elapsed": 79.08
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2458_3 - علي محمد قاسم المكراني",
+      "status": "PASS",
+      "elapsed": 38.04
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2458_31 - عبدالجبار صالح محسن",
+      "status": "PASS",
+      "elapsed": 50.39
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2458_32 - محمد صالح أحمد أبو حيدر",
+      "status": "PASS",
+      "elapsed": 13.79
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2458_33 - صابر محمود الشلبي",
+      "status": "PASS",
+      "elapsed": 43.22
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2458_34 - أحمد محمد عبدالله صالح",
+      "status": "PASS",
+      "elapsed": 59.4
+    },
+    {
+      "area": "Safra Flats",
+      "house": "SAF F 2458_4 - صابر محمود صابر",
+      "status": "PASS",
+      "elapsed": 69.15
+    },
+    {
+      "area": "Um Al Hassam",
+      "house": "1137 - خليل محمد صادق الساعاتي",
+      "status": "PASS",
+      "elapsed": 60.41
+    },
+    {
+      "area": "Um Al Hassam",
+      "house": "1139 - السيد عبدالقادر أحمد محمد عبدالجليل",
+      "status": "PASS",
+      "elapsed": 45.42
+    },
+    {
+      "area": "Um Al Hassam",
+      "house": "1144 - عبدالعزيز النفيعي",
+      "status": "PASS",
+      "elapsed": 90.75
+    },
+    {
+      "area": "Um Al Hassam",
+      "house": "1147 - عيسى حسن محمد القطان",
+      "status": "PASS",
+      "elapsed": 31.75
+    },
+    {
+      "area": "Um Al Hassam",
+      "house": "1148 - سلطان جاسم أحمد",
+      "status": "PASS",
+      "elapsed": 70.15
+    },
+    {
+      "area": "Um Al Hassam",
+      "house": "1149 - مروة صالح خليفة الصقر",
+      "status": "PASS",
+      "elapsed": 62.64
+    },
+    {
+      "area": "Um Al Hassam",
+      "house": "1154 - ماجد عبدالحميد موسى",
+      "status": "PASS",
+      "elapsed": 94.48
+    },
+    {
+      "area": "Um Al Hassam",
+      "house": "1155 - محمود عبد الرحمن قائد",
+      "status": "PASS",
+      "elapsed": 75.14
+    },
+    {
+      "area": "Um Al Hassam",
+      "house": "1156 - يوسف حسن العربي",
+      "status": "PASS",
+      "elapsed": 51.48
+    },
+    {
+      "area": "Um Al Hassam",
+      "house": "1157 - محمد أحمد الجنيد",
+      "status": "PASS",
+      "elapsed": 38.66
+    },
+    {
+      "area": "Um Al Hassam",
+      "house": "1158 - حمد عبد الله المهزع",
+      "status": "PASS",
+      "elapsed": 45.17
+    },
+    {
+      "area": "Um Al Hassam",
+      "house": "1161 - هاشم السيد أحمد المعلا",
+      "status": "PASS",
+      "elapsed": 36.19
+    }
+  ]
+}
