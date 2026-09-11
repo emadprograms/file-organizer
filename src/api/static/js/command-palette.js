@@ -54,7 +54,7 @@
                 renderEmptyState();
                 return;
             }
-            searchDebounceTimer = setTimeout(() => executeSearch(q), 150);
+            searchDebounceTimer = setTimeout(() => executeSearch(q), 180);
         });
 
         // Search input keyboard handling
@@ -120,8 +120,16 @@
         if (resultCountEl) resultCountEl.textContent = '';
     }
 
+    let searchAbortController = null;
+
     async function executeSearch(q) {
         if (!searchResults) return;
+
+        if (searchAbortController) {
+            searchAbortController.abort();
+        }
+        searchAbortController = new AbortController();
+
         searchResults.innerHTML = `
             <div class="py-10 text-center text-slate-400">
                 <div class="inline-block animate-spin w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full mb-2"></div>
@@ -135,10 +143,10 @@
                 // Static JSON search fallback
                 if (!searchIndexData) {
                     try {
-                        const sRes = await fetch('./search_index.json');
+                        const sRes = await fetch('./search_index.json', { signal: searchAbortController.signal });
                         if (sRes.ok) searchIndexData = await sRes.json();
                     } catch (e) {
-                        console.error('Failed to load search_index.json', e);
+                        if (e.name !== 'AbortError') console.error('Failed to load search_index.json', e);
                     }
                 }
                 if (searchIndexData) {
@@ -178,13 +186,14 @@
                     });
                 }
             } else {
-                const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`);
+                const res = await fetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: searchAbortController.signal });
                 if (!res.ok) throw new Error('Search failed');
                 results = await res.json();
             }
 
             renderGroupedResults(results);
         } catch (err) {
+            if (err.name === 'AbortError') return;
             searchResults.innerHTML = `
                 <div class="py-8 text-center text-rose-500 text-xs">
                     <p class="font-semibold">Search failed</p>

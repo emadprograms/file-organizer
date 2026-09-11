@@ -698,27 +698,31 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         var tenantRows = await conn.QueryAsync<(int Id, string Name, string StartDate, string? EndDate, string HouseId, string AreaId)>(sqlTenants);
         var qPhonetic = TextUtils.PhoneticNormalize(q);
 
+        var exactTenants = new List<SearchResultDto>();
+        var fuzzyTenants = new List<SearchResultDto>();
+
         foreach (var t in tenantRows)
         {
             var tLower = t.Name.ToLowerInvariant();
             var tPhonetic = TextUtils.PhoneticNormalize(tLower);
-            var isMatch = false;
+            var isExact = false;
+            var isFuzzy = false;
 
             if (tLower.Contains(q) || t.HouseId.ToLowerInvariant().Contains(q))
             {
-                isMatch = true;
+                isExact = true;
             }
             else if (!string.IsNullOrEmpty(qPhonetic) && tPhonetic.Replace(" ", "").Contains(qPhonetic.Replace(" ", "")))
             {
-                isMatch = true;
+                isFuzzy = true;
             }
             else if (TextUtils.Similarity(tLower, q) >= 0.7 ||
                      (!string.IsNullOrEmpty(qPhonetic) && TextUtils.Similarity(tPhonetic, qPhonetic) >= 0.7))
             {
-                isMatch = true;
+                isFuzzy = true;
             }
 
-            if (isMatch)
+            if (isExact || isFuzzy)
             {
                 var sYr = t.StartDate.Length >= 4 ? t.StartDate[..4] : "";
                 var eYr = (string.IsNullOrEmpty(t.EndDate) || t.EndDate.ToLowerInvariant() == "present") ? "Present" : (t.EndDate.Length >= 4 ? t.EndDate[..4] : "");
@@ -727,7 +731,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                     ? $"House {t.HouseId} ({tenureStr}) • {t.AreaId}"
                     : $"House {t.HouseId} • {t.AreaId}";
 
-                results.Add(new SearchResultDto
+                var dto = new SearchResultDto
                 {
                     Id = $"{t.HouseId}_{t.Name}",
                     Type = "tenant",
@@ -738,25 +742,36 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                     HouseId = t.HouseId,
                     TenantName = t.Name,
                     ExtraInfo = tenureStr
-                });
+                };
+
+                if (isExact)
+                    exactTenants.Add(dto);
+                else
+                    fuzzyTenants.Add(dto);
             }
         }
 
+        results.AddRange(exactTenants);
+        results.AddRange(fuzzyTenants);
+
         // 3. Documents matching q (title, category, notes, page explanation, page subject)
         const string sqlDocs = @"
-            SELECT DISTINCT d.vault_id AS VaultId, d.arabic_title AS ArabicTitle, d.category AS Category,
+            SELECT d.vault_id AS VaultId, d.arabic_title AS ArabicTitle, d.category AS Category,
                    d.primary_date AS PrimaryDate, d.is_manual AS IsManual, d.house_id AS HouseId,
                    h.area_id AS AreaId, t.name AS TenantName
             FROM documents d
             JOIN houses h ON d.house_id = h.id
             LEFT JOIN tenants t ON d.tenant_id = t.id
-            LEFT JOIN pages p ON (p.vault_id = d.vault_id OR (p.vault_id IS NULL AND p.batch_id = d.batch_id))
-            WHERE LOWER(COALESCE(d.arabic_title, '')) LIKE @LikeQ
-               OR LOWER(COALESCE(d.category, '')) LIKE @LikeQ
-               OR LOWER(COALESCE(d.notes, '')) LIKE @LikeQ
-               OR LOWER(COALESCE(p.content_explanation, '')) LIKE @LikeQ
-               OR LOWER(COALESCE(p.subject, '')) LIKE @LikeQ
-            ORDER BY d.primary_date DESC;";
+            WHERE d.arabic_title LIKE @LikeQ
+               OR d.category LIKE @LikeQ
+               OR d.notes LIKE @LikeQ
+               OR EXISTS (
+                   SELECT 1 FROM pages p 
+                   WHERE p.vault_id = d.vault_id 
+                     AND (p.content_explanation LIKE @LikeQ OR p.subject LIKE @LikeQ)
+               )
+            ORDER BY d.primary_date DESC
+            LIMIT @DocLimit;";
 
         var docRows = await conn.QueryAsync<(
             string VaultId,
@@ -767,7 +782,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             string HouseId,
             string AreaId,
             string? TenantName
-        )>(sqlDocs, new { LikeQ = likeQ });
+        )>(sqlDocs, new { LikeQ = likeQ, DocLimit = Math.Max(limit, 50) });
 
         foreach (var d in docRows)
         {

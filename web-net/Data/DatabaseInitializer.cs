@@ -81,6 +81,10 @@ CREATE INDEX IF NOT EXISTS idx_documents_tenant ON documents(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_documents_date ON documents(primary_date);
 CREATE INDEX IF NOT EXISTS idx_documents_manual ON documents(is_manual);
 CREATE INDEX IF NOT EXISTS idx_documents_timeline ON documents(is_timeline_visible);
+CREATE INDEX IF NOT EXISTS idx_pages_vault ON pages(vault_id);
+CREATE INDEX IF NOT EXISTS idx_documents_house_cat ON documents(house_id, category);
+CREATE INDEX IF NOT EXISTS idx_documents_category ON documents(category);
+CREATE INDEX IF NOT EXISTS idx_documents_title ON documents(arabic_title);
 ";
 
     public static void InitializeSchema(SqliteConnection connection)

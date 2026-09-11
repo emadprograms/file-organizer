@@ -2255,17 +2255,21 @@ async def search(request: Request, q: str = ""):
 
         # 3. Documents matching arabic_title or category or content_explanation in pages
         cursor = conn.execute("""
-            SELECT DISTINCT d.vault_id, d.arabic_title, d.category, d.primary_date, d.is_manual, d.house_id, h.area_id, t.name as tenant_name
+            SELECT d.vault_id, d.arabic_title, d.category, d.primary_date, d.is_manual, d.house_id, h.area_id, t.name as tenant_name
             FROM documents d
             JOIN houses h ON d.house_id = h.id
             LEFT JOIN tenants t ON d.tenant_id = t.id
-            LEFT JOIN pages p ON (p.vault_id = d.vault_id OR (p.vault_id IS NULL AND p.batch_id = d.batch_id))
-            WHERE LOWER(COALESCE(d.arabic_title, '')) LIKE ?
-               OR LOWER(COALESCE(d.category, '')) LIKE ?
-               OR LOWER(COALESCE(p.content_explanation, '')) LIKE ?
-               OR LOWER(COALESCE(p.subject, '')) LIKE ?
+            WHERE d.arabic_title LIKE ?
+               OR d.category LIKE ?
+               OR d.notes LIKE ?
+               OR EXISTS (
+                   SELECT 1 FROM pages p 
+                   WHERE p.vault_id = d.vault_id 
+                     AND (p.content_explanation LIKE ? OR p.subject LIKE ?)
+               )
             ORDER BY d.primary_date DESC
-        """, (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"))
+            LIMIT 50
+        """, (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"))
 
         for d in cursor.fetchall():
             title = d["arabic_title"] or d["category"] or "Document"
