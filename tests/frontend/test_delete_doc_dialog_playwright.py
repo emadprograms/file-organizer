@@ -127,29 +127,22 @@ def test_delete_doc_dialog_closes(page: Page):
     doc_item.hover()
     page.wait_for_timeout(200)
 
-    # Click 3-dot button
+    # Click 3-dot button to open floating action menu
     menu_btn = page.locator(".doc-menu-btn[data-vault-id='test_vault_123']")
     menu_btn.click()
     page.wait_for_timeout(300)
 
-    # Modal should now be open
-    modal = page.locator("#doc-action-modal")
-    expect(modal).to_be_visible()
+    # Dropdown menu should now be open
+    dropdown = page.locator(".doc-dropdown-menu")
+    expect(dropdown).to_be_visible()
 
-    # Click Delete Document button (Step 1: arms the button)
-    delete_btn = page.locator("#btn-doc-delete")
-    delete_btn.click()
-    page.wait_for_timeout(200)
-
-    # Verify button changed to "Confirm Delete?" and modal remains open
-    expect(delete_btn).to_contain_text("Confirm Delete?")
-    expect(modal).to_be_visible()
-
-    # Step 2: Second click confirms permanent deletion
+    # Click Delete Document item in dropdown menu
+    delete_btn = page.locator(".doc-menu-item-delete")
+    expect(delete_btn).to_be_visible()
     delete_btn.click()
     page.wait_for_timeout(1000)
 
-    # VERIFY MODAL CLOSES
+    # VERIFY DROPDOWN CLOSES & DELETE WAS CALLED
     print("Delete called:", delete_called)
-    print("Modal class list:", modal.get_attribute("class"))
-    expect(modal).to_be_hidden()
+    expect(dropdown).to_be_hidden()
+    assert len(delete_called) > 0

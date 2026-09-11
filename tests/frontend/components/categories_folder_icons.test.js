@@ -119,4 +119,52 @@ describe('Category Folder Icons (01-13 descriptive, 14+ empty folder)', () => {
         expect(iconBox3).not.toBeNull();
         expect(iconBox3.querySelector('path').getAttribute('d')).toBe(extractPathD(EMPTY_FOLDER_SVG));
     });
+
+    it('renders descriptive icons on category cards in renderCategories for all 13 standard folders and empty folder for custom folders', () => {
+        const categoryNames = [
+            '01 - بيانات أساسية',
+            '02 - بيانات شخصية',
+            '03 - أمر تخصيص',
+            '04 - محضر تسليم مفتاح',
+            '05 - عقود',
+            '06 - كهرباء وماء',
+            '07 - استقطاع إيجار',
+            '08 - وقف استقطاع بدل',
+            '09 - إشعارات',
+            '10 - صيانة',
+            '11 - صور ومعاينات',
+            '12 - تعديلات',
+            '13 - رسائل متنوعة',
+            '14 - تصاريح بناء',
+            '15 - فواتير ومطالبات'
+        ];
+
+        const testCategories = categoryNames.map(name => ({
+            name,
+            document_count: 1,
+            documents: []
+        }));
+
+        window.currentCategories = testCategories;
+        global.currentCategories = testCategories;
+
+        renderCategories();
+
+        const cards = document.querySelectorAll('.category-folder-card');
+        expect(cards.length).toBe(15);
+
+        for (let i = 0; i < 13; i++) {
+            const prefix = String(i + 1).padStart(2, '0');
+            const iconBox = cards[i].querySelector('.folder-icon-box');
+            expect(iconBox, `Card ${categoryNames[i]} missing icon box`).not.toBeNull();
+            expect(iconBox.querySelector('path').getAttribute('d')).toBe(extractPathD(FOLDER_ICONS[prefix]));
+        }
+
+        // Custom folders 14 and 15
+        const iconBox14 = cards[13].querySelector('.folder-icon-box');
+        expect(iconBox14.querySelector('path').getAttribute('d')).toBe(extractPathD(EMPTY_FOLDER_SVG));
+
+        const iconBox15 = cards[14].querySelector('.folder-icon-box');
+        expect(iconBox15.querySelector('path').getAttribute('d')).toBe(extractPathD(EMPTY_FOLDER_SVG));
+    });
 });
