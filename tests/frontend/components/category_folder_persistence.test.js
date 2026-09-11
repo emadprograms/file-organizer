@@ -188,4 +188,31 @@ describe('Category Folder Expansion Persistence', () => {
         expect(reloadedTarget.querySelector('.category-docs').classList.contains('hidden')).toBe(false);
         expect(otherFolder.querySelector('.category-docs').classList.contains('hidden')).toBe(true);
     });
+
+    it('preserves scroll position across re-renders within the same house', () => {
+        renderCategories();
+
+        const docListEl = document.getElementById('document-list');
+        docListEl.scrollTop = 450;
+
+        renderCategories();
+
+        expect(docListEl.scrollTop).toBe(450);
+    });
+
+    it('smoothly scrolls target category into view when pending scroll category is set', async () => {
+        const scrollSpy = vi.fn();
+        window.HTMLElement.prototype.scrollIntoView = scrollSpy;
+
+        renderCategories();
+
+        const { setPendingScrollCategory } = require('../../../src/api/static/js/categories-view.js');
+        setPendingScrollCategory('06 - كهرباء وماء');
+
+        renderCategories();
+
+        await new Promise(r => setTimeout(r, 50));
+
+        expect(scrollSpy).toHaveBeenCalledWith({ block: 'nearest', behavior: 'smooth' });
+    });
 });

@@ -163,6 +163,9 @@
                     window.openCategoryFolder(data.category);
                 }
             }
+            if (typeof window.setPendingScrollCategory === 'function') {
+                window.setPendingScrollCategory(data.category || targetCategory);
+            }
             if (typeof window.refreshCurrentTab === 'function') {
                 await window.refreshCurrentTab(area, house);
             }
@@ -425,6 +428,9 @@
             closeDocModal();
             if (typeof window.openCategoryFolder === 'function') {
                 window.openCategoryFolder(chosenCategory);
+            }
+            if (typeof window.setPendingScrollCategory === 'function') {
+                window.setPendingScrollCategory(chosenCategory);
             }
             if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
                 await window.refreshCurrentTab(area, house);

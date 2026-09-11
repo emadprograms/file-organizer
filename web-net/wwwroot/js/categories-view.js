@@ -104,9 +104,46 @@
         return Array.from(openCategoryNames);
     }
 
+    let savedScrollOffsets = null;
+    let pendingScrollCategory = null;
+
+    function captureScrollOffsets() {
+        if (typeof document === 'undefined') return { listTop: 0, panelTop: 0 };
+        const docListEl = document.getElementById('document-list');
+        const docListPanel = document.getElementById('document-list-panel');
+        return {
+            listTop: docListEl ? docListEl.scrollTop : 0,
+            panelTop: docListPanel ? docListPanel.scrollTop : 0
+        };
+    }
+
+    function restoreScrollOffsets(offsets) {
+        if (!offsets || typeof document === 'undefined') return;
+        const docListEl = document.getElementById('document-list');
+        const docListPanel = document.getElementById('document-list-panel');
+        if (docListEl && offsets.listTop > 0) {
+            docListEl.scrollTop = offsets.listTop;
+        }
+        if (docListPanel && offsets.panelTop > 0) {
+            docListPanel.scrollTop = offsets.panelTop;
+        }
+        if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(() => {
+                if (docListEl && offsets.listTop > 0) docListEl.scrollTop = offsets.listTop;
+                if (docListPanel && offsets.panelTop > 0) docListPanel.scrollTop = offsets.panelTop;
+            });
+        }
+    }
+
+    function setPendingScrollCategory(catName) {
+        pendingScrollCategory = catName || null;
+    }
+
     function resetCategoryOpenState() {
         openCategoryNames.clear();
         lastRenderedScope = null;
+        savedScrollOffsets = null;
+        pendingScrollCategory = null;
     }
 
     function escapeHtml(str) {
@@ -611,6 +648,10 @@
                 toast(msg, 'success');
             }
 
+            const targetFolder = data.target_category || targetCat;
+            openCategoryFolder(targetFolder);
+            setPendingScrollCategory(targetFolder);
+
             if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
                 await window.refreshCurrentTab(activeArea, activeHouse);
             }
@@ -772,6 +813,10 @@
                 toast(msg, 'success');
             }
 
+            const targetFolder = data.target_category || targetCat;
+            openCategoryFolder(targetFolder);
+            setPendingScrollCategory(targetFolder);
+
             if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
                 await window.refreshCurrentTab(activeArea, activeHouse);
             }
@@ -916,7 +961,14 @@
         const docListEl = document.getElementById('document-list');
         const statsBadge = document.getElementById('stats-badge');
         if (!docListEl) return;
-        docListEl.innerHTML = '<p class="text-xs text-slate-500 p-3">Loading categories...</p>';
+
+        if (!savedScrollOffsets) {
+            savedScrollOffsets = captureScrollOffsets();
+        }
+        const hasExistingCards = docListEl.querySelector('.category-folder-card');
+        if (!hasExistingCards) {
+            docListEl.innerHTML = '<p class="text-xs text-slate-500 p-3">Loading categories...</p>';
+        }
         try {
             const isStatic = (typeof isStaticMode !== 'undefined' && isStaticMode) || (typeof window !== 'undefined' && window.isStaticMode);
             if (isStatic) {
@@ -1100,7 +1152,12 @@
         const isScopeChanged = lastRenderedScope !== null && lastRenderedScope !== currentScope;
         if (isScopeChanged) {
             openCategoryNames.clear();
+            savedScrollOffsets = null;
+            pendingScrollCategory = null;
         } else if (docListEl) {
+            if (!savedScrollOffsets) {
+                savedScrollOffsets = captureScrollOffsets();
+            }
             // Preserve currently open folder state from DOM within the same house/tenant scope
             const existingCards = docListEl.querySelectorAll('.category-folder-card');
             existingCards.forEach(c => {
@@ -1464,6 +1521,32 @@
             };
             docListEl.appendChild(card);
         });
+
+        // Restore scroll position so user doesn't jump to the top
+        const offsetsToRestore = savedScrollOffsets;
+        savedScrollOffsets = null;
+        if (offsetsToRestore) {
+            restoreScrollOffsets(offsetsToRestore);
+        }
+
+        // If a category was targeted by drag & drop or batch action, ensure it is in view smoothly
+        if (pendingScrollCategory) {
+            const catToScroll = pendingScrollCategory;
+            pendingScrollCategory = null;
+            if (typeof requestAnimationFrame === 'function') {
+                requestAnimationFrame(() => {
+                    const cards = docListEl.querySelectorAll('.category-folder-card');
+                    for (const c of cards) {
+                        if (c.getAttribute('data-category-name') === catToScroll) {
+                            if (typeof c.scrollIntoView === 'function') {
+                                c.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                            }
+                            break;
+                        }
+                    }
+                });
+            }
+        }
     }
 
     if (typeof document !== 'undefined') {
@@ -1511,6 +1594,9 @@
         window.getOpenCategoryFolders = getOpenCategoryFolders;
         window.resetCategoryOpenState = resetCategoryOpenState;
         window.getSingleTargetDoc = () => singleTargetDoc;
+        window.setPendingScrollCategory = setPendingScrollCategory;
+        window.captureScrollOffsets = captureScrollOffsets;
+        window.restoreScrollOffsets = restoreScrollOffsets;
     }
 
     if (typeof module !== 'undefined' && module.exports) {
@@ -1552,6 +1638,9 @@
             openCategoryFolder,
             getOpenCategoryFolders,
             resetCategoryOpenState,
+            setPendingScrollCategory,
+            captureScrollOffsets,
+            restoreScrollOffsets,
         };
     }
 })();

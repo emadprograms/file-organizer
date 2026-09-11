@@ -40,6 +40,12 @@
 - [x] Quick Refinement QCK-20: Add House Grid Card with Dashed Outline and Huge Plus Symbol & Remove Top Navbar Add House Button — completed 2026-09-11
 - [x] Quick Refinement QCK-21: Make Pinned Lock Emoji and Text Smaller in Timeline View — completed 2026-09-11
 - [x] Quick Refinement QCK-22: Clean Up House Settings Modal Layout & Danger Zone (max-w-4xl, Unified Table Container, English-Only Buttons, Ample Present-Delete Spacing, Removed Grey Boilerplate) — completed 2026-09-11
+- [x] Quick Refinement QCK-23: Replace Tenant Selector with Category Badge in Document Viewer Header — completed 2026-09-11
+- [x] Quick Refinement QCK-24: Add Vertical Scrollbar in House Card When More Than 3 Tenancies Exist — completed 2026-09-12
+- [x] Quick Refinement QCK-25: Search Tenant Timeline Color Coding & Cross-Language Phonetic Matching — completed 2026-09-12
+- [x] Quick Refinement QCK-26: Phonetic Consonant Skeleton Isolation & Strict Cross-Language Name Precision — completed 2026-09-12
+- [x] Quick Refinement QCK-27: Decouple Single Document Move/Copy from Multi-Select Batch State — completed 2026-09-12
+- [x] Quick Refinement QCK-28: Preserve Open Category Folders & Scroll Position on Document Move / Drag & Drop — completed 2026-09-12
 
 <details>
 <summary>✅ v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server (Phases 101-104) — SHIPPED 2026-09-09</summary>
