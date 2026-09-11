@@ -355,7 +355,7 @@
 
         const tenantSelect = document.getElementById('export-archive-tenant-select');
         if (tenantSelect) {
-            tenantSelect.innerHTML = '<option value="">🏛️ جميع المستأجرين / كامل سجل المنزل (All Tenants / Full Record)</option>';
+            tenantSelect.innerHTML = '<option value="">🏛️ كامل السجل • All Records</option>';
             if (profile && Array.isArray(profile.tenants)) {
                 profile.tenants.forEach(t => {
                     const opt = document.createElement('option');

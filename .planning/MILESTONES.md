@@ -2,10 +2,17 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 6 quick refinements (QCK-01, QCK-02, QCK-03, QCK-04, QCK-05, QCK-06), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 15 v14 pytest, 13 doc management, 109 Vitest across 10 files, 49 Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 7 quick refinements (QCK-01, QCK-02, QCK-03, QCK-04, QCK-05, QCK-06, QCK-07), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 15 v14 pytest, 13 doc management, 109 Vitest across 10 files, 49 Playwright E2E)
 
 **Key accomplishments:**
 
+- **Intuitive Visual-First Export Modal & Clean Batch Bar (Quick Refinement QCK-07):**
+  - Streamlined `#export-archive-modal` by removing verbose, explanatory English and Arabic paragraphs to create a clean, intuitive, visual-first dialog.
+  - Minimalist header title (`تصدير الأرشيف • Export Archive`) without explanatory subtitle.
+  - Intuitive format cards: Card A (`📦 ZIP` with `مجلدات • Folders`), Card B (`📄 PDF` with `تسلسل زمني • Timeline`), eliminating multi-sentence paragraph descriptions.
+  - Streamlined Tenancy Scope (`المستأجر • Tenant`) with clear default option `🏛️ كامل السجل • All Records` across HTML and JavaScript.
+  - Simplified modal footer buttons: `Cancel` and `⬇️ Download`.
+  - Polished floating bottom batch bar (`#batch-action-bar`): removed distracting emojis (`📁`, `📋`, `🗑️`) from Move, Copy, and Delete buttons while preserving the `✕` glyph on the Deselect button (`<span>✕</span><span>Deselect</span>`).
 - **Export Button Relocation & Archive Summary Box Removal (Quick Refinement QCK-06):**
   - Removed confusing and redundant digital archive summary box (`بيانات الأرشيف الرقمي للمنزل`) from the bottom of the House Profile, eliminating bottom visual clutter and keeping focus squarely on the Tenancy Register.
   - Relocated the Export House Archive button (`#btn-export-house-archive`) to the Document Panel header right beside `#btn-manage-tenants` for 0-scroll permanent visibility across all views (Profile, Folders, and Timeline).

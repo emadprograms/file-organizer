@@ -4,9 +4,9 @@ milestone: v14.0
 milestone_name: Power-User Operations & Portfolio Expansion
 current_phase: 108 (All Complete)
 status: completed
-last_updated: "2026-09-11T00:30:00.000Z"
+last_updated: "2026-09-11T06:15:00.000Z"
 last_activity: 2026-09-11
-last_activity_desc: "Completed Quick Task QCK-06: Relocated Export House Archive button to Document Panel header right beside House Settings for 0-scroll permanent visibility across Profile, Folders, and Timeline views, removed confusing bottom digital archive summary box from House Profile, and verified with 109 Vitest tests, 84 xUnit tests, and 28 Pytest tests."
+last_activity_desc: "Completed Quick Task QCK-07: Streamlined House Archive Export Options Modal to an intuitive, visual-first configuration dialog without verbose explanatory paragraphs, and polished floating bottom batch operations bar by removing distracting emojis from Move, Copy, and Delete buttons while preserving the '✕' Deselect icon. 109 Vitest tests, 84 xUnit tests, and 28 Pytest tests passing; zero static asset diff."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -54,13 +54,14 @@ Equip the digital archive management system with power-user operational tools: o
 - `260910-arabic-footer-shaping-fix`: Fix Arabic Cursive Text Shaping & BiDi Visual Reordering in Exported PDF Running Footer. Integrated `arabic-reshaper` and `python-bidi` in FastAPI backend and built zero-dependency `ArabicReshaper` in ASP.NET Core 8.0 with Unicode Presentation Forms-B mapping (`\uFE80`–`\uFEFC`), dual-joining/right-joining contextual selection, Lam-Alef ligatures, and category number preservation (`05 - عقود`). 15/15 Python pytest tests passing, 13/13 doc management tests passing, 84/84 .NET xUnit tests passing (including 32 new unit tests in `ArabicReshaperTests.cs`), and 101/101 frontend Vitest tests passing.
 - `260910-double-click-inline-rename`: Double-Click Inline Document Renaming in Categories and Timeline Views (QCK-05). Allows double-clicking document title text to rename inline with keyboard shortcuts (Enter to save, Escape to cancel, blur to commit/restore), event propagation isolation (preventing card click/drag conflicts), PATCH backend API integration, toast feedback, and dual-backend static synchronization. 108 Vitest tests across 10 files (including 7 new in `inline_rename.test.js`), 84 .NET xUnit tests, and 28 Python pytest tests passing.
 - `260911-relocate-export-button-and-remove-archive-summary`: Relocate Export House Archive Button to Document Panel Header & Remove Bottom Archive Summary Box (QCK-06). Removed redundant and confusing `archiveBox` (`بيانات الأرشيف الرقمي للمنزل`) from House Profile bottom. Pinned `#btn-export-house-archive` to Document Panel header adjacent to `#btn-manage-tenants` for 0-scroll permanent visibility in Profile, Folders, and Timeline views. 109 Vitest tests across 10 files, 84 .NET xUnit tests, and 28 Python pytest tests passing; zero static asset diff.
+- `260911-streamline-export-modal-and-remove-batch-emojis`: Streamline Export Options Modal & Remove Batch Button Emojis (QCK-07). Stripped verbose explanatory paragraphs from `#export-archive-modal` in favor of intuitive visual hierarchy (`📦 ZIP` with `مجلدات • Folders`, `📄 PDF` with `تسلسل زمني • Timeline`, `🏛️ كامل السجل • All Records`, `Cancel`, `⬇️ Download`). Polished `#batch-action-bar` by removing distracting emojis (`📁`, `📋`, `🗑️`) from Move, Copy, and Delete while retaining `✕` on Deselect. 109 Vitest tests across 10 files, 84 .NET xUnit tests, and 28 Python pytest tests passing; zero static asset diff.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-11 — Completed Quick Task QCK-06 (Relocated Export House Archive Button to Document Panel Header & Removed Bottom Archive Summary). Verified by 84 xUnit, 15 v14 pytest, 13 doc management, 109 Vitest, and 49 Playwright E2E tests.
+Last activity: 2026-09-11 — Completed Quick Task QCK-07 (Streamlined Export Modal & Removed Batch Button Emojis). Verified by 84 xUnit, 15 v14 pytest, 13 doc management, 109 Vitest, and 49 Playwright E2E tests.
 
 ## Operator Next Steps
 
