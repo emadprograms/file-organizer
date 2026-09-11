@@ -2,10 +2,15 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 14 quick refinements (QCK-01 through QCK-14), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 32 Pytest tests, 145 Vitest across 13 files, 49 Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 15 quick refinements (QCK-01 through QCK-15), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 32 Pytest tests, 148 Vitest across 14 files, 49 Playwright E2E)
 
 **Key accomplishments:**
 
+- **Remove Redundant Emojis from Tenant Selection List and Folders Tab (Quick Refinement QCK-15):**
+  - Removed redundant inline emojis (`📁` and `📋`) from the segmented tab buttons in the left Document List panel in favor of clean text labels (`Folders` and `سجل المستأجرين`).
+  - Implemented dynamic SVG iconography (`#tab-categories-icon`) matching the Timeline tab standard: displaying the Users SVG icon (`M17 20h5...`) when in tenant selection list state, and the Folder SVG icon (`M3 7v10...`) when viewing category folders.
+  - Cleaned emojis (`🏛️`, `🟢`, `🟡`, `🔴`, `👤`) from the export archive modal tenant dropdown options (`#export-archive-tenant-select`), standardizing clean typography across all views.
+  - Added unit test coverage in `tests/frontend/components/tab_labels.test.js` and updated assertions in `tests/frontend/components/export_archive_modal.test.js`.
 - **Tenure-Based Active Tenant Colors in Tenant Selection & House Overview (Quick Refinement QCK-14):**
   - Replaced the uniform hardcoded brand blue highlight for current/active tenants with dynamic tenure-duration-based colors matching the house overview standards across the entire tenant selection experience (`house-profile.js` and `area-grid.js`):
     - `< 5 years`: Emerald green (`short`, `bg-emerald-50`, `border-emerald-200`, `text-emerald-700`, `🟢`)

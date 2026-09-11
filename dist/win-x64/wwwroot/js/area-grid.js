@@ -33,6 +33,8 @@
         const statsBadge = document.getElementById('stats-badge');
         const gridAreaTitle = document.getElementById('grid-area-title');
         const gridAreaStats = document.getElementById('grid-area-stats');
+        const gridTenureLegend = document.getElementById('grid-tenure-legend');
+        const openAddHouseBtn = document.getElementById('open-add-house-modal-btn');
         const houseCardsContainer = document.getElementById('area-grid-container') || document.getElementById('house-cards-container');
 
         if (welcomePanel) welcomePanel.classList.add('hidden');
@@ -58,7 +60,18 @@
 
         if (gridAreaTitle) gridAreaTitle.textContent = areaNode.name;
         const houses = areaNode.children || [];
-        if (gridAreaStats) gridAreaStats.textContent = `${houses.length} Houses`;
+        if (gridAreaStats) {
+            gridAreaStats.textContent = `${houses.length} Houses`;
+            gridAreaStats.classList.remove('hidden');
+        }
+        if (gridTenureLegend) {
+            gridTenureLegend.classList.remove('hidden');
+            gridTenureLegend.classList.add('flex');
+        }
+        if (openAddHouseBtn) {
+            openAddHouseBtn.classList.remove('hidden');
+            openAddHouseBtn.classList.add('inline-flex');
+        }
 
         if (!houseCardsContainer) return;
         houseCardsContainer.innerHTML = '';
@@ -225,6 +238,18 @@
         if (areaGridPanel) {
             areaGridPanel.classList.add('hidden');
             areaGridPanel.classList.remove('flex');
+        }
+        const gridAreaStats = document.getElementById('grid-area-stats');
+        const gridTenureLegend = document.getElementById('grid-tenure-legend');
+        const openAddHouseBtn = document.getElementById('open-add-house-modal-btn');
+        if (gridAreaStats) gridAreaStats.classList.add('hidden');
+        if (gridTenureLegend) {
+            gridTenureLegend.classList.add('hidden');
+            gridTenureLegend.classList.remove('flex');
+        }
+        if (openAddHouseBtn) {
+            openAddHouseBtn.classList.add('hidden');
+            openAddHouseBtn.classList.remove('inline-flex');
         }
 
         window.location.hash = `#/area/${encodeURIComponent(areaName)}/house/${encodeURIComponent(houseId)}`;

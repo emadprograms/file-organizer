@@ -35,6 +35,18 @@
                 areaGridPanel.classList.add('hidden');
                 areaGridPanel.classList.remove('flex');
             }
+            const gridAreaStats = document.getElementById('grid-area-stats');
+            const gridTenureLegend = document.getElementById('grid-tenure-legend');
+            const openAddHouseBtn = document.getElementById('open-add-house-modal-btn');
+            if (gridAreaStats) gridAreaStats.classList.add('hidden');
+            if (gridTenureLegend) {
+                gridTenureLegend.classList.add('hidden');
+                gridTenureLegend.classList.remove('flex');
+            }
+            if (openAddHouseBtn) {
+                openAddHouseBtn.classList.add('hidden');
+                openAddHouseBtn.classList.remove('inline-flex');
+            }
 
             if (databaseInspectorPanel) {
                 databaseInspectorPanel.classList.remove('hidden');
@@ -197,6 +209,18 @@
         if (areaGridPanel) {
             areaGridPanel.classList.add('hidden');
             areaGridPanel.classList.remove('flex');
+        }
+        const gridAreaStats = document.getElementById('grid-area-stats');
+        const gridTenureLegend = document.getElementById('grid-tenure-legend');
+        const openAddHouseBtn = document.getElementById('open-add-house-modal-btn');
+        if (gridAreaStats) gridAreaStats.classList.add('hidden');
+        if (gridTenureLegend) {
+            gridTenureLegend.classList.add('hidden');
+            gridTenureLegend.classList.remove('flex');
+        }
+        if (openAddHouseBtn) {
+            openAddHouseBtn.classList.add('hidden');
+            openAddHouseBtn.classList.remove('inline-flex');
         }
 
         if (tabBackToTenants) {

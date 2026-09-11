@@ -32,6 +32,7 @@
 - [x] Quick Refinement QCK-12: Replace Folder "Select All" Text Button with Select Checkbox (`.folder-select-checkbox`) that Reveals Documents and Selects All — completed 2026-09-11
 - [x] Quick Refinement QCK-13: Harmonize Move, Copy, and Delete Action Colors Between Multi-Select Bar and 3-Dots Dropdown Menu (Move: Amber, Copy: Indigo, Delete: Rose, Rename: Blue, Timeline: Emerald) — completed 2026-09-11
 - [x] Quick Refinement QCK-14: Tenure-Based Active Tenant Colors in Tenant Selection & House Overview (Emerald green for <5 yrs, Amber yellow for 5-10 yrs, Rose red for >10 yrs matching house overview cards) — completed 2026-09-11
+- [x] Quick Refinement QCK-15: Remove Redundant Emojis from Tenant Selection List and Folders Tab (Dynamic SVG Iconography) — completed 2026-09-11
 
 <details>
 <summary>✅ v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server (Phases 101-104) — SHIPPED 2026-09-09</summary>
