@@ -442,19 +442,17 @@
 
         const tenantSelect = document.getElementById('export-archive-tenant-select');
         if (tenantSelect) {
-            tenantSelect.innerHTML = '<option value="">🏛️ كامل السجل • All Records</option>';
+            tenantSelect.innerHTML = '<option value="">كامل السجل • All Records</option>';
             if (profile && Array.isArray(profile.tenants)) {
                 profile.tenants.forEach(t => {
                     const opt = document.createElement('option');
                     opt.value = (t.id !== undefined && t.id !== null) ? String(t.id) : (t.name || '');
                     if (t.is_active) {
-                        const durCat = getTenantTenureCategory(t);
-                        const theme = TENURE_THEMES[durCat] || TENURE_THEMES.short;
                         const dur = t.duration_str_ar ? ` (${t.duration_str_ar})` : ' (المستأجر الحالي)';
-                        opt.textContent = `${theme.emoji} ${t.name}${dur}`;
+                        opt.textContent = `${t.name}${dur}`;
                     } else {
                         const dur = t.duration_str_ar ? ` (${t.duration_str_ar})` : '';
-                        opt.textContent = `👤 ${t.name}${dur}`;
+                        opt.textContent = `${t.name}${dur}`;
                     }
                     tenantSelect.appendChild(opt);
                 });

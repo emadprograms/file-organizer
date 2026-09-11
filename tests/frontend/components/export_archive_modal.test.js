@@ -132,15 +132,18 @@ describe('Export Archive Options Modal Component', () => {
     const modalTitle = document.getElementById('export-archive-modal-title');
     expect(modalTitle.textContent).toBe('تصدير الأرشيف • Export Archive');
 
-    // Verify tenant dropdown populated with streamlined default option
+    // Verify tenant dropdown populated with streamlined default option without emojis
     const tenantSelect = document.getElementById('export-archive-tenant-select');
     expect(tenantSelect.options.length).toBe(3); // All tenants + 2 tenants
     expect(tenantSelect.options[0].value).toBe('');
-    expect(tenantSelect.options[0].textContent).toContain('كامل السجل • All Records');
+    expect(tenantSelect.options[0].textContent).toBe('كامل السجل • All Records');
+    expect(tenantSelect.options[0].textContent).not.toContain('🏛️');
     expect(tenantSelect.options[1].value).toBe('1');
-    expect(tenantSelect.options[1].textContent).toContain('محمد مبارك');
+    expect(tenantSelect.options[1].textContent).toBe('محمد مبارك (2020 – 2022)');
+    expect(tenantSelect.options[1].textContent).not.toContain('👤');
     expect(tenantSelect.options[2].value).toBe('2');
-    expect(tenantSelect.options[2].textContent).toContain('خالد العتيبي');
+    expect(tenantSelect.options[2].textContent).toBe('خالد العتيبي (2022 (مستمر))');
+    expect(tenantSelect.options[2].textContent).not.toContain('🟢');
   });
 
   it('switches export format between ZIP and PDF', () => {
