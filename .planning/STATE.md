@@ -61,15 +61,15 @@ Equip the digital archive management system with power-user operational tools: o
 - `260911-fdi-folder-specific-icons-for-categories-01-`: Category-Specific Folder Icons (01-13) & Empty Folder for Custom (14+) (QCK-11). Implemented distinct, descriptive Heroicons outline icons for each standard category 01 through 13 in Folders view with automatic fallback to empty folder icon for custom categories (14+). 134 Vitest tests across 12 files, 84 xUnit tests, and 30 Pytest tests passing; zero static asset diff.
 - `260911-fs0-replace-folder-select-all-text-button-wi`: Replace Folder "Select All" Text Button with Select Checkbox (`.folder-select-checkbox`) that Reveals Documents and Selects All (QCK-12). Replaced `.btn-select-all-folder` text button on category cards with a styled select checkbox before `.folder-icon-box`, un-hiding collapsed documents and selecting all docs on click. Synchronized indeterminate state when child document checkboxes change, and updated global toggle. 143 Vitest tests across 13 files (including 16 in `batch_operations.test.js` and 8 in `folder_select_checkbox.test.js`), 84 .NET xUnit tests, 30 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff.
 - `260911-j4x-change-current-tenant-highlight-to-blue-`: Highlight Current Tenant in Brand Blue on House Overview Cards (`area-grid.js`) and House Tenancy Register (`house-profile.js`). Eliminates visual and semantic clash with `< 5 Yrs` green tenure badge across entire tenant selection workflow. 144 Vitest tests, 13 Playwright tests, and 84 .NET xUnit tests passing; zero static asset diff.
+- `260911-jhn-harmonize-document-action-colors-between`: Harmonize Document Action Colors Between 3-Dot Menu and Multi-Select Bar (QCK-13). Established unified semantic colors (Move: Amber, Copy: Indigo, Delete: Rose, Rename: Blue, Timeline: Emerald) across multi-select buttons, modals, and 3-dot dropdown while keeping consistent action title lengths. 144 Vitest tests, 13 Playwright tests, and 84 .NET xUnit tests passing; zero static asset diff.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-11 — Completed Quick Task 260911-j4x (current tenant highlight in brand blue across overview cards & tenancy register). Verified by 144 Vitest tests, 13 Playwright tests, and 84 .NET xUnit tests.
+Last activity: 2026-09-11 — Completed Quick Task 260911-jhn (harmonize action colors between multi-select and 3-dot menu). Verified by 144 Vitest tests, 13 Playwright tests, and 84 .NET xUnit tests.
 
 ## Operator Next Steps
 
 - Milestone v14.0 complete, fully audited, and archived. Ready for next milestone initialization.
-
