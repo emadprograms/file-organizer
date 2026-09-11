@@ -4,9 +4,9 @@ milestone: v14.0
 milestone_name: Power-User Operations & Portfolio Expansion
 current_phase: 108 (All Complete)
 status: completed
-last_updated: "2026-09-11T18:08:00.000Z"
-last_activity: 2026-09-11
-last_activity_desc: "Completed Quick Task 260911-nh6 (QCK-22: Clean Up House Settings Modal & Danger Zone). 170 Vitest tests across 18 files, 85 xUnit tests, 33 Pytest tests, and Playwright E2E tests passing; zero static asset diff."
+last_updated: "2026-09-12T02:12:00.000Z"
+last_activity: 2026-09-12
+last_activity_desc: "Completed Quick Task 260912-tenure-search-badges (QCK-25: Search Tenant Timeline Color Coding & Cross-Language Phonetic Matching). 184 Vitest tests across 21 files, 103 xUnit tests, and 33 Pytest tests passing; zero static asset diff."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -73,13 +73,14 @@ Equip the digital archive management system with power-user operational tools: o
 - `260911-nh6`: Clean Up House Settings Modal Layout & Danger Zone (QCK-22). Expanded modal to `max-w-4xl` (896px), removed top explanatory note banner, corrected title to `House Settings: ${currentHouse} (${currentArea})` and subtitle to useful guidance `Configure tenant residency timelines and house configuration`, strictly enforced single present tenant exclusivity (auto-unchecking other rows upon check and preventing multiple active tenants), removed redundant outer border box around Present checkbox, streamlined action buttons to clean English (`Add Tenant`, `Save Changes`, `Cancel`), eliminated bulky individual card boxes around each tenant row in favor of a unified table container with subtle dividers (`divide-y divide-slate-100`), resolved crowding between `Present` and `Delete` with dedicated centered columns and generous `gap-4`, placed Arabic deletion instructions in Danger Zone directly beneath the title with left alignment, removed trailing dots from `Delete House` button, and maintained sequential tenant row numbering (`1`, `2`, `3`). 170 Vitest tests across 18 files, 85 xUnit tests, 33 Pytest tests, and 13 Playwright E2E tests passing; zero static asset diff.
 - `260911-nh7`: Replace Tenant Selector with Category Badge in Document Viewer Header (QCK-23). Replaced misplaced `#viewer-tenant-select` and `#viewer-tenant-label` in the document viewer and live peek header with a dedicated `#viewer-category-badge` displaying the document's category folder with folder icon. Enforced multi-source category resolution across Categories, Timeline, Live Peek, Quick Look, and Command Palette, deprecated legacy tenant dropdown stubs, and added 6 unit tests in `doc_viewer.test.js`. 176 Vitest tests across 19 files, 85 xUnit tests, 33 Pytest tests, and 13 Playwright E2E tests passing; zero static asset diff.
 - `260912-0tg`: Add Vertical Scrollbar in House Card When More Than 3 Tenancies Exist (QCK-24). Conditionally applied `max-h-[118px] overflow-y-auto pr-1` to `.tenants-overview-section` when `tenants.length > 3`, keeping house cards uniform and compact across grid rows, with scrollbar click protection (stopping click propagation when dragging or clicking the scrollbar track). 179 Vitest tests across 20 files passing; zero static asset diff.
+- `260912-tenure-search-badges`: Search Tenant Timeline Color Coding & Cross-Language Phonetic Matching (QCK-25). Only the tenant currently residing in the property receives a colored timeline badge (< 5y: emerald green, 5-10y: amber yellow, > 10y: rose red), while past tenants receive a neutral slate grey timeline badge. Dual-backend parity across ASP.NET Core (`SearchResultDto.IsCurrent`, `SearchResultDto.DurationCategory`) and FastAPI (`SearchResultResponse.is_current`, `SearchResultResponse.duration_category`). Enhanced cross-language phonetic tokenization and transliteration scoring (`ameed` <-> `عميد`, `javed` / `jawed` <-> `جاويد`, etc.). Verified by 184 Vitest tests, 103 xUnit tests, and 33 Pytest tests; zero static asset diff.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-12 — Completed Quick Task 260912-0tg (QCK-24: Add Vertical Scrollbar in House Card When More Than 3 Tenancies Exist). Verified by 179 Vitest tests across 20 files.
+Last activity: 2026-09-12 — Completed Quick Task 260912-tenure-search-badges (QCK-25: Search Tenant Timeline Color Coding & Cross-Language Phonetic Matching). Verified by 184 Vitest tests, 103 xUnit tests, and Pytest test suite.
 
 ## Operator Next Steps
 

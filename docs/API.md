@@ -87,6 +87,8 @@ Performs high-performance unified search across houses, tenants, documents, and 
     - Exact word transliteration match: Score 500-600
     - Phonetic token match: Score 400
     - Token prefix match: Score 300
-    - First-name match bonus: +50
-  - Results are ranked strictly in descending score order.
+  - **Tenure Duration & Status Badges:**
+    - `is_current` (boolean): `true` if the tenant currently resides in the property (`end_date` is `null` or `Present`), otherwise `false`.
+    - `duration_category` (string, optional): `"short"` (< 5 years), `"medium"` (5–10 years), or `"long"` (> 10 years) for currently residing tenants; `null` for past tenants.
+
 

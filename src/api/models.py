@@ -61,6 +61,8 @@ class SearchResultResponse(BaseModel):
     vault_id: str | None = None
     is_manual: int | None = 0
     extra_info: str | None = None
+    is_current: bool | None = None
+    duration_category: str | None = None
 
 class TenantItem(BaseModel):
     id: int | None = None

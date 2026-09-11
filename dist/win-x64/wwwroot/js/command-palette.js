@@ -295,25 +295,77 @@
         // 2. Tenants Section
         createSection(
             'Tenants',
-            `<svg class="w-3.5 h-3.5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>`,
+            `<svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>`,
             tenants.length,
             tenants,
             (t) => {
                 const a = document.createElement('a');
                 a.href = t.url;
-                a.className = 'command-palette-result-item spotlight-result-item block p-2.5 rounded-xl hover:bg-emerald-50/70 border border-transparent hover:border-emerald-200 transition-all group cursor-pointer';
+
+                // Color code: only currently residing tenants (<5y green, 5-10y amber, >10y rose). Past tenants are grey.
+                const isCurrent = t.is_current === true || t.isCurrent === true || 
+                    (typeof t.extra_info === 'string' && (/present|الآن/i.test(t.extra_info)));
+
+                let durCat = t.duration_category || t.durationCategory;
+                if (!durCat && isCurrent && t.extra_info) {
+                    const match = t.extra_info.match(/^(\d{4})/);
+                    if (match) {
+                        const startYr = parseInt(match[1], 10);
+                        const years = Math.max(0, new Date().getFullYear() - startYr);
+                        if (years < 5) durCat = 'short';
+                        else if (years <= 10) durCat = 'medium';
+                        else durCat = 'long';
+                    } else {
+                        durCat = 'short';
+                    }
+                }
+
+                let theme = {
+                    card: 'hover:bg-slate-100/70 hover:border-slate-300',
+                    avatar: 'bg-slate-100 text-slate-500 group-hover:bg-slate-600 group-hover:text-white',
+                    badge: 'text-slate-600 bg-slate-100 border border-slate-200',
+                    titleHover: 'group-hover:text-slate-900'
+                };
+
+                if (isCurrent) {
+                    if (durCat === 'medium') {
+                        theme = {
+                            card: 'hover:bg-amber-50/70 hover:border-amber-300',
+                            avatar: 'bg-amber-50 text-amber-600 group-hover:bg-amber-600 group-hover:text-white',
+                            badge: 'text-amber-700 bg-amber-50 border border-amber-300',
+                            titleHover: 'group-hover:text-amber-700'
+                        };
+                    } else if (durCat === 'long') {
+                        theme = {
+                            card: 'hover:bg-rose-50/70 hover:border-rose-300',
+                            avatar: 'bg-rose-50 text-rose-600 group-hover:bg-rose-600 group-hover:text-white',
+                            badge: 'text-rose-700 bg-rose-50 border border-rose-300',
+                            titleHover: 'group-hover:text-rose-700'
+                        };
+                    } else {
+                        // short (< 5 years)
+                        theme = {
+                            card: 'hover:bg-emerald-50/70 hover:border-emerald-300',
+                            avatar: 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white',
+                            badge: 'text-emerald-700 bg-emerald-50 border border-emerald-300',
+                            titleHover: 'group-hover:text-emerald-700'
+                        };
+                    }
+                }
+
+                a.className = `command-palette-result-item spotlight-result-item block p-2.5 rounded-xl border border-transparent transition-all group cursor-pointer ${theme.card}`;
                 a.innerHTML = `
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2.5 min-w-0">
-                            <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-xs flex-shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                            <div class="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0 transition-colors ${theme.avatar}">
                                 👤
                             </div>
                             <div class="min-w-0">
-                                <div class="font-bold text-xs text-slate-800 group-hover:text-emerald-700 transition-colors">${t.title}</div>
+                                <div class="font-bold text-xs text-slate-800 transition-colors ${theme.titleHover}">${t.title}</div>
                                 <div class="text-[11px] text-slate-400 truncate mt-0.5">${t.subtitle || ''}</div>
                             </div>
                         </div>
-                        ${t.extra_info ? `<span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md flex-shrink-0">${t.extra_info}</span>` : ''}
+                        ${t.extra_info ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md flex-shrink-0 ${theme.badge}">${t.extra_info}</span>` : ''}
                     </div>
                 `;
                 a.onclick = (e) => {
@@ -390,8 +442,9 @@
 
         currentResultItems.forEach((item, idx) => {
             if (idx === activeResultIndex) {
-                item.element.classList.add('bg-blue-50/90', 'border-blue-300', 'ring-1', 'ring-blue-400/30');
-                item.element.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                if (typeof item.element.scrollIntoView === 'function') {
+                    item.element.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                }
             } else {
                 item.element.classList.remove('bg-blue-50/90', 'border-blue-300', 'ring-1', 'ring-blue-400/30');
             }
@@ -421,6 +474,8 @@
     window.closeCommandPalette = closeCommandPalette;
     window.openSpotlight = openCommandPalette;
     window.closeSpotlight = closeCommandPalette;
+    window.renderSearchResults = renderGroupedResults;
+    window.renderGroupedResults = renderGroupedResults;
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initCommandPalette);

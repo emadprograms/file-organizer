@@ -2,9 +2,17 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 22 quick refinements (QCK-01 through QCK-22), 4 plans, comprehensive multi-stack test verification (85 .NET xUnit, 33 Pytest tests, 169 Vitest across 18 files, Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 25 quick refinements (QCK-01 through QCK-25), 4 plans, comprehensive multi-stack test verification (103 .NET xUnit, 33 Pytest tests, 184 Vitest across 21 files, Playwright E2E)
 
 **Key accomplishments:**
+
+- **Search Tenant Timeline Color Coding & Cross-Language Phonetic Matching (Quick Refinement QCK-25):**
+  - Upgraded Command Palette search results to color-code tenant timelines strictly based on active residency and duration: only the tenant actually residing in the property receives a colored timeline badge and matching hover states (< 5 years: emerald green, 5–10 years: amber yellow, > 10 years: rose red), while past tenants receive a neutral slate grey timeline badge.
+  - Implemented dual-backend support for `is_current` (boolean) and `duration_category` ("short", "medium", "long", or `null`) across ASP.NET Core (`SearchResultDto.IsCurrent`, `SearchResultDto.DurationCategory`) and FastAPI (`SearchResultResponse.is_current`, `SearchResultResponse.duration_category`).
+  - Added full cross-language phonetic tokenization and transliteration scoring (`score_tenant_match`, `phonetic_normalize`) supporting Urdu, Arabic, and English name variants (e.g. `ameed` <-> `عميد`, `javed` / `jawed` <-> `جاويد`, `khalil` <-> `خليل`, `balushi` <-> `البلوشي`).
+  - Added unit test suites across both stacks: 103 xUnit tests in `RepositoryTests.cs` and `PhoneticSearchTests.cs`, 184 Vitest tests in `command_palette_tenants.test.js`, and Pytest tests in `test_api_v11.py` and `test_search_phonetic.py`.
+- **Add Vertical Scrollbar in House Card When More Than 3 Tenancies Exist (Quick Refinement QCK-24):**
+  - Conditionally applied `max-h-[118px] overflow-y-auto pr-1` to `.tenants-overview-section` when `tenants.length > 3`, keeping house cards uniform and compact across grid rows, with scrollbar click protection.
 
 - **Clean Up House Settings Modal Layout & Danger Zone (Quick Refinement QCK-22):**
   - Expanded House Settings modal (`#tenant-modal`) to `max-w-4xl` (896px), removed the massive explanatory note banner at the top, and reorganized into two clean sections: Section 1 (Tenants / المستأجرون) and Section 2 (Danger Zone / منطقة الخطر).

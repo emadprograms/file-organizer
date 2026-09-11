@@ -2199,14 +2199,27 @@ async def search(request: Request, q: str = ""):
             ORDER BY t.start_date DESC
         """)
         scored_tenants = []
+        current_year = datetime.now().year
         for t in cursor.fetchall():
             t_name = t["tenant_name"]
             score = score_tenant_match(q, t_name, str(t["house_id"]))
             if score > 0:
                 s_yr = t["start_date"][:4] if t["start_date"] else ""
-                e_yr = "Present" if not t["end_date"] or str(t["end_date"]).lower() == "present" else str(t["end_date"])[:4]
+                is_present = not t["end_date"] or str(t["end_date"]).lower() == "present"
+                e_yr = "Present" if is_present else (str(t["end_date"])[:4] if t["end_date"] else "")
                 tenure_str = f"{s_yr} - {e_yr}" if s_yr else ""
                 sub_label = f"House {t['house_id']} ({tenure_str}) • {t['area_id']}" if tenure_str else f"House {t['house_id']} • {t['area_id']}"
+
+                duration_category = None
+                if is_present and s_yr and s_yr.isdigit():
+                    years = max(0, current_year - int(s_yr))
+                    if years < 5:
+                        duration_category = "short"
+                    elif years <= 10:
+                        duration_category = "medium"
+                    else:
+                        duration_category = "long"
+
                 scored_tenants.append((score, SearchResultResponse(
                     id=f"{t['house_id']}_{t_name}",
                     type="tenant",
@@ -2216,7 +2229,9 @@ async def search(request: Request, q: str = ""):
                     area_id=t["area_id"],
                     house_id=t["house_id"],
                     tenant_name=t_name,
-                    extra_info=tenure_str
+                    extra_info=tenure_str,
+                    is_current=is_present,
+                    duration_category=duration_category
                 )))
 
         scored_tenants.sort(key=lambda x: x[0], reverse=True)

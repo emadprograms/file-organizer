@@ -706,11 +706,21 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             if (score > 0)
             {
                 var sYr = t.StartDate.Length >= 4 ? t.StartDate[..4] : "";
-                var eYr = (string.IsNullOrEmpty(t.EndDate) || t.EndDate.ToLowerInvariant() == "present") ? "Present" : (t.EndDate.Length >= 4 ? t.EndDate[..4] : "");
+                var isPresent = string.IsNullOrEmpty(t.EndDate) || t.EndDate.ToLowerInvariant() == "present";
+                var eYr = isPresent ? "Present" : (t.EndDate!.Length >= 4 ? t.EndDate[..4] : "");
                 var tenureStr = !string.IsNullOrEmpty(sYr) ? $"{sYr} - {eYr}" : "";
                 var subLabel = !string.IsNullOrEmpty(tenureStr)
                     ? $"House {t.HouseId} ({tenureStr}) • {t.AreaId}"
                     : $"House {t.HouseId} • {t.AreaId}";
+
+                string? durationCategory = null;
+                if (isPresent && int.TryParse(sYr, out var startYear))
+                {
+                    var years = Math.Max(0, DateTime.Now.Year - startYear);
+                    if (years < 5) durationCategory = "short";
+                    else if (years <= 10) durationCategory = "medium";
+                    else durationCategory = "long";
+                }
 
                 scoredTenants.Add((score, new SearchResultDto
                 {
@@ -722,7 +732,9 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                     AreaId = t.AreaId,
                     HouseId = t.HouseId,
                     TenantName = t.Name,
-                    ExtraInfo = tenureStr
+                    ExtraInfo = tenureStr,
+                    IsCurrent = isPresent,
+                    DurationCategory = durationCategory
                 }));
             }
         }

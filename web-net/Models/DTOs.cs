@@ -321,6 +321,12 @@ public record SearchResultDto
 
     [JsonPropertyName("extra_info")]
     public string? ExtraInfo { get; init; }
+
+    [JsonPropertyName("is_current")]
+    public bool? IsCurrent { get; init; }
+
+    [JsonPropertyName("duration_category")]
+    public string? DurationCategory { get; init; }
 }
 
 public record TenantDto

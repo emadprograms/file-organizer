@@ -334,6 +334,49 @@ public class RepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task SearchAsync_TenantTimelineColorCoding_AssignsCorrectStatusAndCategory()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("Safra C");
+        await _repo.AddHouseAsync("999", "Safra C");
+
+        int currentYear = DateTime.Now.Year;
+        // Tenant 1: Active < 5 years (e.g. current year - 2)
+        await _repo.AddTenantAsync("999", "طارق القصير", $"{currentYear - 2}-01-01", null);
+        // Tenant 2: Active 5-10 years (e.g. current year - 7)
+        await _repo.AddTenantAsync("999", "سعيد المتوسط", $"{currentYear - 7}-01-01", "Present");
+        // Tenant 3: Active > 10 years (e.g. current year - 14)
+        await _repo.AddTenantAsync("999", "ماجد الطويل", $"{currentYear - 14}-01-01", null);
+        // Tenant 4: Past tenant (ended)
+        await _repo.AddTenantAsync("999", "فهد المغادر", $"{currentYear - 10}-01-01", $"{currentYear - 5}-12-31");
+
+        // Act
+        var results = await _repo.SearchAsync("999");
+        var tenants = results.Where(r => r.Type == "tenant").ToList();
+
+        // Assert
+        var tareq = tenants.FirstOrDefault(t => t.TenantName == "طارق القصير");
+        Assert.NotNull(tareq);
+        Assert.True(tareq.IsCurrent);
+        Assert.Equal("short", tareq.DurationCategory);
+
+        var saeed = tenants.FirstOrDefault(t => t.TenantName == "سعيد المتوسط");
+        Assert.NotNull(saeed);
+        Assert.True(saeed.IsCurrent);
+        Assert.Equal("medium", saeed.DurationCategory);
+
+        var majed = tenants.FirstOrDefault(t => t.TenantName == "ماجد الطويل");
+        Assert.NotNull(majed);
+        Assert.True(majed.IsCurrent);
+        Assert.Equal("long", majed.DurationCategory);
+
+        var fahad = tenants.FirstOrDefault(t => t.TenantName == "فهد المغادر");
+        Assert.NotNull(fahad);
+        Assert.False(fahad.IsCurrent);
+        Assert.Null(fahad.DurationCategory);
+    }
+
+    [Fact]
     public async Task AddManualDocumentAsync_VerifiesIsManualAndPageInheritance()
     {
         // Arrange

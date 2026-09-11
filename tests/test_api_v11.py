@@ -297,6 +297,42 @@ def test_search_endpoint_with_db(db_setup):
     assert docs_content[0]["id"] == "101 - ShortStay_doc_v101_1"
 
 
+def test_search_tenants_timeline_color_coding(db_setup):
+    """Test /api/search tenant results contain accurate is_current and duration_category."""
+    # Active tenant < 5 years (Ali Short, started 2024) -> short
+    res_short = client.get("/api/search?q=Ali Short")
+    assert res_short.status_code == 200
+    tenants_short = [r for r in res_short.json() if r["type"] == "tenant" and r["title"] == "Ali Short"]
+    assert len(tenants_short) >= 1
+    assert tenants_short[0]["is_current"] is True
+    assert tenants_short[0]["duration_category"] == "short"
+
+    # Past tenant (Old Ali, 2020 - 2023) -> is_current False, duration_category None
+    res_past = client.get("/api/search?q=Old Ali")
+    assert res_past.status_code == 200
+    tenants_past = [r for r in res_past.json() if r["type"] == "tenant" and r["title"] == "Old Ali"]
+    assert len(tenants_past) >= 1
+    assert tenants_past[0]["is_current"] is False
+    assert tenants_past[0]["duration_category"] is None
+
+    # Active tenant 5-10 years (Hassan Medium, started 2019) -> medium
+    res_med = client.get("/api/search?q=Hassan Medium")
+    assert res_med.status_code == 200
+    tenants_med = [r for r in res_med.json() if r["type"] == "tenant" and r["title"] == "Hassan Medium"]
+    assert len(tenants_med) >= 1
+    assert tenants_med[0]["is_current"] is True
+    assert tenants_med[0]["duration_category"] == "medium"
+
+    # Active tenant > 10 years (Khalid Long, started 2012) -> long
+    res_long = client.get("/api/search?q=Khalid Long")
+    assert res_long.status_code == 200
+    tenants_long = [r for r in res_long.json() if r["type"] == "tenant" and r["title"] == "Khalid Long"]
+    assert len(tenants_long) >= 1
+    assert tenants_long[0]["is_current"] is True
+    assert tenants_long[0]["duration_category"] == "long"
+
+
+
 def test_pdf_endpoint_with_db(db_setup):
     """Test /api/areas/{area}/houses/{house}/pdf/{vault_id} serving PDF from vault."""
     res = client.get("/api/areas/Safra%20C/houses/101%20-%20ShortStay/pdf/v101_1")
