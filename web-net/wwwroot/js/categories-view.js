@@ -230,39 +230,41 @@
             }
         }
 
+        const activeTenant = (typeof currentTenant !== 'undefined' && currentTenant)
+            ? currentTenant
+            : (typeof window !== 'undefined' && window.currentTenant ? window.currentTenant : null);
+
+        const targetTenantId = tenantIds.size > 0 ? Array.from(tenantIds)[0] : null;
+        const targetTenantName = tenantNames.size > 0 ? Array.from(tenantNames)[0] : (activeTenant || null);
+
         return {
             tenantIds: Array.from(tenantIds),
             tenantNames: Array.from(tenantNames),
-            isMultiTenant: (tenantIds.size > 1 || tenantNames.size > 1),
-            singleTenantId: tenantIds.size === 1 ? Array.from(tenantIds)[0] : null,
-            singleTenantName: tenantNames.size === 1 ? Array.from(tenantNames)[0] : null,
+            singleTenantId: targetTenantId,
+            singleTenantName: targetTenantName,
             inMemoryTenants
         };
     }
 
     function renderTenantOptions(select, tenantsList, info) {
+        if (!select) return;
         const prevVal = select.value;
         select.innerHTML = '';
 
-        const defaultOpt = document.createElement('option');
-        defaultOpt.value = '';
-        defaultOpt.textContent = selectedDocIds.size > 1 
-            ? 'الاحتفاظ بمستأجر كل وثيقة (Keep current tenants)' 
-            : 'الاحتفاظ بالمستأجر الحالي (Keep current tenant)';
-        select.appendChild(defaultOpt);
+        if (!tenantsList || tenantsList.length === 0) return;
 
         let matchedOption = null;
 
-        tenantsList.forEach(t => {
+        tenantsList.forEach((t) => {
             if (!t || (!t.name && t.id == null)) return;
             const opt = document.createElement('option');
             opt.value = t.id != null ? String(t.id) : '';
             opt.textContent = formatBatchTenantLabel(t);
             
-            if (!info.isMultiTenant) {
+            if (!matchedOption) {
                 if (info.singleTenantId != null && t.id != null && String(t.id) === String(info.singleTenantId)) {
                     matchedOption = opt;
-                } else if (!matchedOption && info.singleTenantName && t.name && t.name.trim().toLowerCase() === info.singleTenantName.trim().toLowerCase()) {
+                } else if (info.singleTenantName && t.name && t.name.trim().toLowerCase() === info.singleTenantName.trim().toLowerCase()) {
                     matchedOption = opt;
                 }
             }
@@ -273,8 +275,8 @@
             select.value = prevVal;
         } else if (matchedOption) {
             matchedOption.selected = true;
-        } else {
-            defaultOpt.selected = true;
+        } else if (select.options.length > 0) {
+            select.options[0].selected = true;
         }
     }
 
@@ -429,7 +431,10 @@
                 target_category: targetCat
             };
             if (targetTenantVal) {
-                movePayload.target_tenant_id = parseInt(targetTenantVal, 10);
+                const parsedId = parseInt(targetTenantVal, 10);
+                if (!isNaN(parsedId)) {
+                    movePayload.target_tenant_id = parsedId;
+                }
             }
 
             const res = await fetch(`/api/areas/${encodeURIComponent(activeArea)}/houses/${encodeURIComponent(activeHouse)}/documents/batch-move`, {
@@ -574,7 +579,10 @@
                 target_category: targetCat
             };
             if (targetTenantVal) {
-                copyPayload.target_tenant_id = parseInt(targetTenantVal, 10);
+                const parsedId = parseInt(targetTenantVal, 10);
+                if (!isNaN(parsedId)) {
+                    copyPayload.target_tenant_id = parsedId;
+                }
             }
 
             const res = await fetch(`/api/areas/${encodeURIComponent(activeArea)}/houses/${encodeURIComponent(activeHouse)}/documents/batch-copy`, {

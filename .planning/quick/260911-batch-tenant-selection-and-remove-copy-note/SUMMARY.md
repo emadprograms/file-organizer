@@ -8,14 +8,13 @@
 ## Overview
 Implemented Quick Task `260911-batch-tenant-selection-and-remove-copy-note` (QCK-08) to provide granular tenancy control during multi-document batch operations and eliminate explanatory visual clutter:
 1. Removed the verbose amber explanatory note (`💡 ملاحظة: النسخ يتيح ظهور الوثائق في مجلد إضافي للرجوع السريع دون تكرارها في الخط الزمني`) from the Batch Copy modal (`#batch-copy-modal`) without replacement, preserving modal clarity and intuitive UI principles.
-2. Removed the pillar emoji (`🏛️`) and artificial placeholder abstraction.
-3. Added Target Tenant dropdown selectors (`المستأجر • Target Tenant`) to both the Batch Move modal (`#batch-move-tenant-select`) and Batch Copy modal (`#batch-copy-tenant-select`), listing the actual tenants registered for that house (e.g., `خالد العتيبي (المستأجر الحالي)`, `محمد مبارك (2020 – 2022)`).
-4. Pre-selects the selected document's current tenant by default, so moving/copying without touching the dropdown automatically moves/copies to that tenant.
-5. If documents from multiple tenants are selected, defaults to `الاحتفاظ بمستأجر كل وثيقة (Keep current tenants)` without emojis.
-6. Added robust Area and House resolution (`getBatchResolvedArea`, `getBatchResolvedHouse`) using memory variables and URL hash extraction to guarantee dependable tenant loading and batch API dispatch.
-7. Cleaned confirm button labels to concise action text: `Move Documents` and `Copy Documents`.
-8. Extended backend schemas, handlers, and repositories across FastAPI and ASP.NET Core 8.0 to support `target_tenant_id: Optional[int]`.
-9. Maintained zero diff between `src/api/static/` and `web-net/wwwroot/` with 100% test pass rate across Vitest, Pytest, and xUnit.
+2. Removed the pillar emoji (`🏛️`) and completely eliminated artificial options like "Keep current tenant" / "الاحتفاظ بالمستأجر الحالي".
+3. Added Target Tenant dropdown selectors (`المستأجر • Target Tenant`) to both the Batch Move modal (`#batch-move-tenant-select`) and Batch Copy modal (`#batch-copy-tenant-select`), listing ONLY the actual tenants registered for that house (e.g., `خالد العتيبي (المستأجر الحالي)`, `محمد مبارك (2020 – 2022)`).
+4. The tenant to whom the folder/document belongs is pre-selected by default. If the user wants to change it, they select another tenant from the dropdown.
+5. Added robust Area and House resolution (`getBatchResolvedArea`, `getBatchResolvedHouse`) using memory variables and URL hash extraction to guarantee dependable tenant loading and batch API dispatch.
+6. Cleaned confirm button labels to concise action text: `Move Documents` and `Copy Documents`.
+7. Extended backend schemas, handlers, and repositories across FastAPI and ASP.NET Core 8.0 to support `target_tenant_id: Optional[int]`.
+8. Maintained zero diff between `src/api/static/` and `web-net/wwwroot/` with 100% test pass rate across Vitest, Pytest, and xUnit.
 
 ---
 
@@ -24,19 +23,19 @@ Implemented Quick Task `260911-batch-tenant-selection-and-remove-copy-note` (QCK
 ### 1. Frontend UI & Templates (`src/api/static/index.html`)
 - In `#batch-copy-modal`:
   - Removed the entire amber note block (`<div class="p-3 bg-amber-50/80 border border-amber-200/80 rounded-xl text-amber-900 text-xs flex items-start gap-2">...</div>`).
-  - Added `#batch-copy-tenant-select` dropdown with default option `الاحتفاظ بالمستأجر الحالي (Keep current tenant)`.
+  - Added `#batch-copy-tenant-select` dropdown populated dynamically with house tenants (no artificial placeholder options).
   - Updated confirm button text to `Copy Documents`.
 - In `#batch-move-modal`:
-  - Added `#batch-move-tenant-select` dropdown with default option `الاحتفاظ بالمستأجر الحالي (Keep current tenant)`.
+  - Added `#batch-move-tenant-select` dropdown populated dynamically with house tenants (no artificial placeholder options).
   - Updated confirm button text to `Move Documents`.
 
 ### 2. Frontend Logic (`src/api/static/js/categories-view.js`)
 - Implemented `populateBatchTenantSelect(selectId)`:
-  - Eliminates `🏛️` pillar emoji and distracting emojis (`🟢`, `👤`).
+  - Eliminates `🏛️` pillar emoji, artificial placeholders, and distracting emojis (`🟢`, `👤`).
   - Formats options with clean Arabic indicators: `(المستأجر الحالي)` and date ranges `(YYYY – YYYY)`.
   - Analyzes selected documents via `getBatchSelectedDocsInfo()`.
-  - Pre-selects the document's current tenant by default.
-  - Defaults to `الاحتفاظ بمستأجر كل وثيقة (Keep current tenants)` if multiple tenants are selected.
+  - Pre-selects the tenant to whom the folder/document belongs by default.
+  - Lists only real house tenants; user changes selection directly if they want another tenant.
   - Fetches tenant records from `/api/areas/{area}/houses/{house}/tenants` resolved via `getBatchResolvedArea()` and `getBatchResolvedHouse()`.
   - Gracefully falls back to extracting unique non-null tenants from `currentCategories` if the network request fails or runs offline.
 - Updated `openBatchMoveModal` and `openBatchCopyModal` to invoke `populateBatchTenantSelect`.
