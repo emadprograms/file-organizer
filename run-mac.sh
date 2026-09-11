@@ -2,8 +2,8 @@
 export PATH="$HOME/.dotnet:$PATH"
 
 # Resolve DB path
-DB_PATH="/Volumes/arshad-pc/areas_20260908_v11test/organizer.db"
-AREAS_ROOT="/Volumes/arshad-pc/areas_20260908_v11test"
+DB_PATH="/Volumes/arshad-pc/areas_v11/organizer.db"
+AREAS_ROOT="/Volumes/arshad-pc/areas_v11"
 
 if [ ! -f "$DB_PATH" ]; then
     DB_PATH="$(pwd)/organizer.db"

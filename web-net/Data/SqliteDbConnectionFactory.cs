@@ -42,15 +42,61 @@ public class SqliteDbConnectionFactory : ISqliteDbConnectionFactory
         _connectionString = $"Data Source={resolvedPath};Mode={mode};Cache=Default;Pooling=True;";
     }
 
+    private static void ConfigurePragmas(SqliteConnection conn)
+    {
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON; PRAGMA synchronous=NORMAL;";
+        cmd.ExecuteNonQuery();
+
+        try
+        {
+            cmd.CommandText = "PRAGMA journal_mode=WAL;";
+            cmd.ExecuteNonQuery();
+        }
+        catch
+        {
+            try
+            {
+                cmd.CommandText = "PRAGMA journal_mode=DELETE;";
+                cmd.ExecuteNonQuery();
+            }
+            catch
+            {
+                // Ignore if pragma cannot be set
+            }
+        }
+    }
+
+    private static async Task ConfigurePragmasAsync(SqliteConnection conn, CancellationToken cancellationToken)
+    {
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON; PRAGMA synchronous=NORMAL;";
+        await cmd.ExecuteNonQueryAsync(cancellationToken);
+
+        try
+        {
+            cmd.CommandText = "PRAGMA journal_mode=WAL;";
+            await cmd.ExecuteNonQueryAsync(cancellationToken);
+        }
+        catch
+        {
+            try
+            {
+                cmd.CommandText = "PRAGMA journal_mode=DELETE;";
+                await cmd.ExecuteNonQueryAsync(cancellationToken);
+            }
+            catch
+            {
+                // Ignore if pragma cannot be set
+            }
+        }
+    }
+
     public SqliteConnection CreateConnection()
     {
         var conn = new SqliteConnection(_connectionString);
         conn.Open();
-
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON; PRAGMA synchronous=NORMAL;";
-        cmd.ExecuteNonQuery();
-
+        ConfigurePragmas(conn);
         return conn;
     }
 
@@ -58,11 +104,7 @@ public class SqliteDbConnectionFactory : ISqliteDbConnectionFactory
     {
         var conn = new SqliteConnection(_connectionString);
         await conn.OpenAsync(cancellationToken);
-
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = "PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000; PRAGMA foreign_keys=ON; PRAGMA synchronous=NORMAL;";
-        await cmd.ExecuteNonQueryAsync(cancellationToken);
-
+        await ConfigurePragmasAsync(conn, cancellationToken);
         return conn;
     }
 }
