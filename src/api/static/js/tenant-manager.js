@@ -99,10 +99,10 @@
             return;
         }
         if (!tenantModal) return;
-        tenantModalTitle.textContent = `Manage Tenants: ${currentHouse} (${currentArea})`;
+        tenantModalTitle.textContent = `House Settings: ${currentHouse} (${currentArea})`;
         const subtitle = document.getElementById('tenant-modal-subtitle');
         if (subtitle) {
-            subtitle.textContent = `${currentArea} • House ${currentHouse}`;
+            subtitle.textContent = 'Configure tenant residency timelines and house configuration';
         }
         tenantModalRows.innerHTML = '<p class="text-xs text-slate-500 py-3 text-center">Loading tenants...</p>';
         tenantModalStatus.classList.add('hidden');
@@ -142,7 +142,16 @@
         const nameVal = t ? (t.name || '') : '';
         const startVal = t ? (t.start_date || '') : '';
         const endVal = t ? (t.end_date || '') : '';
-        const isPresent = !endVal || endVal === 'present' || String(endVal).toLowerCase() === 'none';
+
+        // Only one tenant can be present at a time
+        const alreadyHasPresent = tenantModalRows ? tenantModalRows.querySelector('.tenant-present-check:checked') : null;
+        let isPresent = false;
+        if (t) {
+            const rawPresent = !endVal || endVal === 'present' || String(endVal).toLowerCase() === 'none';
+            isPresent = rawPresent && !alreadyHasPresent;
+        } else {
+            isPresent = !alreadyHasPresent;
+        }
 
         row.innerHTML = `
             <div class="sm:col-span-4 flex items-center gap-2">
@@ -173,6 +182,21 @@
         const endInput = row.querySelector('.tenant-end-input');
         presentCheck.addEventListener('change', (e) => {
             if (e.target.checked) {
+                // Enforce single active tenant: uncheck all other rows
+                const allRows = tenantModalRows.querySelectorAll('.tenant-row');
+                allRows.forEach(otherRow => {
+                    if (otherRow !== row) {
+                        const otherCheck = otherRow.querySelector('.tenant-present-check');
+                        const otherEnd = otherRow.querySelector('.tenant-end-input');
+                        if (otherCheck && otherCheck.checked) {
+                            otherCheck.checked = false;
+                        }
+                        if (otherEnd && otherEnd.disabled) {
+                            otherEnd.disabled = false;
+                            otherEnd.className = "tenant-end-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium";
+                        }
+                    }
+                });
                 endInput.value = '';
                 endInput.disabled = true;
                 endInput.className = "tenant-end-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed";
@@ -198,6 +222,17 @@
     async function saveTenantsAndReallocate() {
         const rows = Array.from(tenantModalRows.querySelectorAll('.tenant-row'));
         const tenantsPayload = [];
+
+        let presentCount = 0;
+        for (const r of rows) {
+            if (r.querySelector('.tenant-present-check').checked) {
+                presentCount++;
+            }
+        }
+        if (presentCount > 1) {
+            showTenantStatus('Only one tenant can be present at a time', true);
+            return;
+        }
 
         for (const r of rows) {
             const name = r.querySelector('.tenant-name-input').value.trim();

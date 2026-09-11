@@ -419,7 +419,7 @@ def test_tenant_management_modal_e2e(page: Page, server_url: str):
     # Modal appears
     modal = page.locator("#tenant-modal")
     expect(modal).to_be_visible()
-    expect(page.locator("#tenant-modal-title")).to_contain_text("Manage Tenants: 101 (Safra C)")
+    expect(page.locator("#tenant-modal-title")).to_contain_text("House Settings: 101 (Safra C)")
 
     # Wait for rows to load
     tenant_name_inputs = page.locator(".tenant-name-input")

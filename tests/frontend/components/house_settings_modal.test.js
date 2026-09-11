@@ -63,7 +63,7 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
   it('verifies index.html has removed the massive top notes banner and contains streamlined clean sections', () => {
     expect(htmlContent).not.toContain('Reallocation Priority Rules:');
     expect(htmlContent).not.toContain('Letters explicitly addressed to a specific tenant remain assigned');
-    expect(htmlContent).toContain('Manage Tenants');
+    expect(htmlContent).toContain('House Settings');
     expect(htmlContent).toContain('Tenants • المستأجرون');
     expect(htmlContent).toContain('Danger Zone • منطقة الخطر');
     expect(htmlContent).toContain('Delete House • حذف المنزل');
@@ -75,7 +75,7 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
     expect(htmlContent).not.toContain('Save Changes • حفظ التغييرات');
   });
 
-  it('updates modal title and subtitle with house context when opened', () => {
+  it('updates modal title and subtitle with house context and useful instructions when opened', () => {
     const manageBtn = document.getElementById('btn-manage-tenants');
     const modal = document.getElementById('tenant-modal');
     const title = document.getElementById('tenant-modal-title');
@@ -86,8 +86,8 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
     manageBtn.click();
 
     expect(modal.classList.contains('hidden')).toBe(false);
-    expect(title.textContent).toBe('Manage Tenants: 500 (Safra C)');
-    expect(subtitle.textContent).toBe('Safra C • House 500');
+    expect(title.textContent).toBe('House Settings: 500 (Safra C)');
+    expect(subtitle.textContent).toBe('Configure tenant residency timelines and house configuration');
   });
 
   it('renders tenant rows with sequential numbering and proper table alignment classes', () => {
@@ -157,5 +157,45 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
 
     expect(endInput.disabled).toBe(true);
     expect(endInput.value).toBe('');
+  });
+
+  it('enforces only one tenant can be marked present at a time', () => {
+    const addBtn = document.getElementById('btn-add-tenant-row');
+    const rowsContainer = document.getElementById('tenant-modal-rows');
+
+    // Row 1
+    addBtn.click();
+    const rows1 = rowsContainer.querySelectorAll('.tenant-row');
+    const check1 = rows1[0].querySelector('.tenant-present-check');
+    const end1 = rows1[0].querySelector('.tenant-end-input');
+    expect(check1.checked).toBe(true);
+    expect(end1.disabled).toBe(true);
+
+    // Row 2 added while Row 1 is present -> Row 2 should NOT be present
+    addBtn.click();
+    const rows2 = rowsContainer.querySelectorAll('.tenant-row');
+    const check2 = rows2[1].querySelector('.tenant-present-check');
+    const end2 = rows2[1].querySelector('.tenant-end-input');
+    expect(check2.checked).toBe(false);
+    expect(end2.disabled).toBe(false);
+    expect(check1.checked).toBe(true);
+
+    // Check Row 2 -> Row 1 should automatically be unchecked and its end date enabled
+    check2.checked = true;
+    check2.dispatchEvent(new Event('change'));
+
+    expect(check2.checked).toBe(true);
+    expect(end2.disabled).toBe(true);
+    expect(check1.checked).toBe(false);
+    expect(end1.disabled).toBe(false);
+
+    // Check Row 1 -> Row 2 should automatically be unchecked
+    check1.checked = true;
+    check1.dispatchEvent(new Event('change'));
+
+    expect(check1.checked).toBe(true);
+    expect(end1.disabled).toBe(true);
+    expect(check2.checked).toBe(false);
+    expect(end2.disabled).toBe(false);
   });
 });

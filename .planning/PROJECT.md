@@ -114,16 +114,18 @@ Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shi
   - Reduced badge typography to `text-[8.5px] font-medium leading-none` with tightened padding and spacing (`gap-0.5`), keeping the pinned indicator crisp, lightweight, and non-distracting next to document titles.
 - **Clean Up House Settings Modal Layout & Danger Zone (Quick Refinement QCK-22):**
   - Expanded House Settings modal (`#tenant-modal`) to `max-w-4xl` (896px), removed the massive explanatory note banner at the top, and reorganized into two clean sections: Section 1 (Tenants / المستأجرون) and Section 2 (Danger Zone / منطقة الخطر).
-  - Streamlined title to `Manage Tenants: ${currentHouse} (${currentArea})` and subtitle to `${currentArea} • House ${currentHouse}`, eliminating wall-of-text boilerplate.
+  - Corrected title to `House Settings: ${currentHouse} (${currentArea})` and subtitle to useful guidance: `Configure tenant residency timelines and house configuration`.
+  - Strictly enforced single present tenant exclusivity: checking Present on one row automatically unchecks all other rows and re-enables their end date inputs, with new rows defaulting to not present when an active tenant exists.
+  - Removed redundant outer border box around the Present checkbox, leaving a clean, standard, unobstructed checkbox.
   - Streamlined action buttons to clean English (`Add Tenant`, `Save Changes`, `Cancel`) without bulky Arabic text cluttering controls.
   - Eliminated bulky, oversized individual card boxes around each tenant row in favor of a single unified table container (`border border-slate-200 rounded-xl overflow-hidden`) with sleek row dividers (`divide-y divide-slate-100 py-2 px-4`).
   - Dedicated separate, generous columns with `gap-4` for Name (`col-span-4`), Start Date (`col-span-3`), End Date (`col-span-3`), Present (`col-span-1`), and Delete (`col-span-1`), ensuring ample horizontal spacing between Present and Delete.
-  - Completely removed the gray boilerplate sentence in the Danger Zone area, keeping a clean `Delete House • حذف المنزل` card with a minimal `Delete House...` action button.
-  - Added compact sequential tenant row numbering badges (`.tenant-row-number`: `1`, `2`, `3`) with automatic re-indexing via `updateRowNumbers()`, removed repetitive uppercase labels inside rows, and upgraded the "Present" toggle to an interactive status badge (`.tenant-present-badge`).
+  - Aligned Arabic deletion instructions in Danger Zone directly beneath the section title with left alignment, and removed trailing ellipsis from the `Delete House` button.
+  - Added compact sequential tenant row numbering badges (`.tenant-row-number`: `1`, `2`, `3`) with automatic re-indexing via `updateRowNumbers()`, and removed repetitive uppercase labels inside rows.
 - **Comprehensive Multi-Stack Test Coverage & Verification:**
   - 85 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
   - 33 Python backend tests (18 in `tests/test_v14_features.py`, 13 in `tests/test_document_management_api.py`, 2 in `tests/test_house_profile_api.py`).
-  - 169 Frontend Vitest tests across 18 files (`npm run test:frontend`, including 5 in `house_settings_modal.test.js`, 3 in `timeline_pinned_badge.test.js`, 7 in `add_house.test.js`, 5 in `delete_house.test.js`, 5 in `house_profile.test.js`, 4 in `unified_header.test.js`, 3 in `tab_labels.test.js`, 5 in `export_archive_modal.test.js`, 16 in `batch_operations.test.js`, and 8 in `folder_select_checkbox.test.js`).
+  - 170 Frontend Vitest tests across 18 files (`npm run test:frontend`, including 6 in `house_settings_modal.test.js`, 3 in `timeline_pinned_badge.test.js`, 7 in `add_house.test.js`, 5 in `delete_house.test.js`, 5 in `house_profile.test.js`, 4 in `unified_header.test.js`, 3 in `tab_labels.test.js`, 5 in `export_archive_modal.test.js`, 16 in `batch_operations.test.js`, and 8 in `folder_select_checkbox.test.js`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/`, `web-net/wwwroot/`, and `dist/win-x64/wwwroot/`.
 
