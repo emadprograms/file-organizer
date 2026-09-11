@@ -6,7 +6,7 @@ A document management system that processes scanned Arabic PDFs, categorizes the
 
 ## Current Milestone: None (v14.0 Completed & Shipped)
 
-Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive multi-stack test coverage (84 xUnit including 32 in `ArabicReshaperTests.cs`, 32 Pytest backend tests, 148 Vitest across 14 files, and 49 Playwright E2E), and power-user operational tooling. Ready for next milestone initialization.
+Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive multi-stack test coverage (84 xUnit including 32 in `ArabicReshaperTests.cs`, 32 Pytest backend tests, 152 Vitest across 15 files, and 49 Playwright E2E), and power-user operational tooling. Ready for next milestone initialization.
 
 ## Past Milestones
 
@@ -89,10 +89,14 @@ Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shi
   - Removed redundant inline emojis (`📁` and `📋`) from the segmented tab buttons in the left Document List panel in favor of clean text labels (`Folders` and `سجل المستأجرين`).
   - Added dynamic SVG iconography (`#tab-categories-icon`) matching the Timeline tab's clean design: rendering the Users SVG icon (`M17 20h5...`) in tenant selection list state, and the Folder SVG icon (`M3 7v10...`) in category folders mode.
   - Cleaned emojis (`🏛️`, `🟢`, `🟡`, `🔴`, `👤`) from the export archive modal tenant dropdown options (`#export-archive-tenant-select`), ensuring unified minimalist typography across all views.
+- **Merge Area Overview Headers into Single Top Bar (Quick Refinement QCK-16):**
+  - Consolidated area overview controls (`#grid-area-stats` house count badge, tenure duration legend `< 5y | 5–10y | > 10y`, and `+ إضافة منزل جديد` add house button) directly into the primary application top navbar (`#top-navbar`).
+  - Removed the redundant secondary sub-header bar inside `#area-grid-panel`, allowing the house cards grid to sit directly below the navbar and saving vertical screen real estate.
+  - Dynamically showed/hid area overview navbar controls across `area-grid.js` and `router.js` upon house navigation or DB inspector mode.
 - **Comprehensive Multi-Stack Test Coverage & Verification:**
   - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
   - 32 Python backend tests (17 in `tests/test_v14_features.py`, 13 in `tests/test_document_management_api.py`, 2 in `tests/test_house_profile_api.py`).
-  - 148 Frontend Vitest tests across 14 files (`npm run test:frontend`, including 3 in `tab_labels.test.js`, 5 in `export_archive_modal.test.js`, 4 in `house_profile.test.js`, 16 in `batch_operations.test.js`, and 8 in `folder_select_checkbox.test.js`).
+  - 152 Frontend Vitest tests across 15 files (`npm run test:frontend`, including 4 in `unified_header.test.js`, 3 in `tab_labels.test.js`, 5 in `export_archive_modal.test.js`, 4 in `house_profile.test.js`, 16 in `batch_operations.test.js`, and 8 in `folder_select_checkbox.test.js`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/`, `web-net/wwwroot/`, and `dist/win-x64/wwwroot/`.
 

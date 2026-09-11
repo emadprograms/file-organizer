@@ -2,10 +2,14 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 15 quick refinements (QCK-01 through QCK-15), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 32 Pytest tests, 148 Vitest across 14 files, 49 Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 16 quick refinements (QCK-01 through QCK-16), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 32 Pytest tests, 152 Vitest across 15 files, 49 Playwright E2E)
 
 **Key accomplishments:**
 
+- **Merge Area Overview Headers into Single Top Bar (Quick Refinement QCK-16):**
+  - Consolidated area overview controls (`#grid-area-stats` house count badge, tenure duration legend `< 5y | 5–10y | > 10y`, and `+ إضافة منزل جديد` add house button) directly into the primary application top navbar (`#top-navbar`).
+  - Removed the redundant secondary sub-header bar inside `#area-grid-panel`, allowing the house cards grid to sit directly below the navbar and saving vertical screen real estate.
+  - Dynamically showed/hid area overview navbar controls across `area-grid.js` and `router.js` upon house navigation or DB inspector mode.
 - **Remove Redundant Emojis from Tenant Selection List and Folders Tab (Quick Refinement QCK-15):**
   - Removed redundant inline emojis (`📁` and `📋`) from the segmented tab buttons in the left Document List panel in favor of clean text labels (`Folders` and `سجل المستأجرين`).
   - Implemented dynamic SVG iconography (`#tab-categories-icon`) matching the Timeline tab standard: displaying the Users SVG icon (`M17 20h5...`) when in tenant selection list state, and the Folder SVG icon (`M3 7v10...`) when viewing category folders.

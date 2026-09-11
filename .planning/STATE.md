@@ -6,7 +6,7 @@ current_phase: 108 (All Complete)
 status: completed
 last_updated: "2026-09-11T13:58:00.000Z"
 last_activity: 2026-09-11
-last_activity_desc: "Completed Quick Task 260911-nh3 (QCK-15: Remove Redundant Emojis from Tenant Selection List and Folders Tab). 148 Vitest tests across 14 files, 84 xUnit tests, 32 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff."
+last_activity_desc: "Completed Quick Task 260911-nj6 (QCK-16: Merge Area Overview Headers into Single Top Bar). 152 Vitest tests across 15 files, 84 xUnit tests, 32 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -64,14 +64,14 @@ Equip the digital archive management system with power-user operational tools: o
 - `260911-jhn-harmonize-document-action-colors-between`: Harmonize Document Action Colors Between 3-Dot Menu and Multi-Select Bar (QCK-13). Established unified semantic colors (Move: Amber, Copy: Indigo, Delete: Rose, Rename: Blue, Timeline: Emerald) across multi-select buttons, modals, and 3-dot dropdown while keeping consistent action title lengths. 144 Vitest tests, 13 Playwright tests, and 84 .NET xUnit tests passing; zero static asset diff.
 - `260911-tenure-based-active-tenant-colors`: Tenure-Based Active Tenant Colors in Tenant Selection & House Overview (QCK-14). Replaced the uniform hardcoded blue highlight with tenure-duration-based colors matching the house overview standards (< 5 yrs: emerald green, 5-10 yrs: amber yellow, > 10 yrs: rose red; past tenants: neutral slate). Added dynamic dual-backend computation of `duration_category` across FastAPI (`HouseTenantProfile.duration_category`) and ASP.NET Core (`HouseTenantProfileDto.DurationCategory`), and updated export options modal emojis (`🟢`, `🟡`, `🔴`). 145 Vitest tests across 13 files, 84 xUnit tests, 32 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff.
 - `260911-nh3-remove-emojis-from-tenant-selection-list`: Remove Redundant Emojis from Tenant Selection List and Folders Tab (QCK-15). Removed redundant inline emojis (`📁` and `📋`) from the segmented tab buttons in favor of clean text labels and dynamic SVG iconography (Users SVG icon when in tenant selection list state, Folder SVG icon when in folders state) matching the Timeline SVG standard, and cleaned emojis from export modal tenant selection options. 148 Vitest tests across 14 files, 84 xUnit tests, 32 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff.
-- `260911-nj6-merge-area-overview-headers-into-single-`: Merge Area Overview Headers into Single Top Bar & Remove Redundant Lower Header (QCK-16). Consolidated area overview controls (`#grid-area-stats`, tenure duration legend, and `+ إضافة منزل جديد`) into the primary top navbar, and eliminated the redundant secondary header bar inside `#area-grid-panel` so house cards sit directly underneath the main navbar. 148 Vitest tests across 14 files, 11 Playwright grid tests, and 9 backend API tests passing; zero static asset diff.
+- `260911-nj6-merge-area-overview-headers-into-single-`: Merge Area Overview Headers into Single Top Bar & Remove Redundant Lower Header (QCK-16). Consolidated area overview controls (`#grid-area-stats`, tenure duration legend, and `+ إضافة منزل جديد`) into the primary top navbar, and eliminated the redundant secondary header bar inside `#area-grid-panel` so house cards sit directly underneath the main navbar. 152 Vitest tests across 15 files, 84 xUnit tests, 32 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-11 — Completed Quick Task 260911-nj6 (QCK-16: merge area overview headers into single top bar and remove redundant lower header). Verified by 148 Vitest tests, 11 Playwright tests, and zero static asset diff across all 3 directories.
+Last activity: 2026-09-11 — Completed Quick Task 260911-nj6 (QCK-16: merge area overview headers into single top bar and remove redundant lower header). Verified by 152 Vitest tests, 84 xUnit tests, 32 Pytest tests, and 49 Playwright tests.
 
 ## Operator Next Steps
 
