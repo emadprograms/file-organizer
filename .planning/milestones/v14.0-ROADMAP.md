@@ -36,6 +36,7 @@
 - [x] Quick Refinement QCK-16: Merge Area Overview Headers into Single Top Bar & Remove Redundant Lower Header — completed 2026-09-11
 - [x] Quick Refinement QCK-17: Arabic Tenant Count Badge in Tenancy Register Header (`سجل المستأجرين المتعاقبين`) — completed 2026-09-11
 - [x] Quick Refinement QCK-18: Delete House Feature in Settings Modal Danger Zone (GitHub-Style Type-to-Confirm & Dual-Backend Cascade Deletion) — completed 2026-09-11
+- [x] Quick Refinement QCK-19: Remove Redundant Tenancy Register Sub-Header from Tenant Selection Area (`سجل المستأجرين المتعاقبين` & count badge) — completed 2026-09-11
 
 <details>
 <summary>✅ v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server (Phases 101-104) — SHIPPED 2026-09-09</summary>

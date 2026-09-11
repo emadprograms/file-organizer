@@ -6,7 +6,7 @@ current_phase: 108 (All Complete)
 status: completed
 last_updated: "2026-09-11T17:20:00.000Z"
 last_activity: 2026-09-11
-last_activity_desc: "Completed Quick Tasks 260911-ny4 (QCK-17: Arabic Tenant Count Badge in Tenancy Register Header) and 260911-nty (QCK-18: Delete House Feature in Settings Modal Danger Zone). 158 Vitest tests across 16 files, 85 xUnit tests, 33 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff."
+last_activity_desc: "Completed Quick Task 260911-nh4 (QCK-19: Remove Redundant Tenancy Register Sub-Header from Tenant Selection Area). 158 Vitest tests across 16 files, 85 xUnit tests, 33 Pytest tests, and Playwright E2E tests passing; zero static asset diff."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -67,13 +67,14 @@ Equip the digital archive management system with power-user operational tools: o
 - `260911-nj6-merge-area-overview-headers-into-single-`: Merge Area Overview Headers into Single Top Bar & Remove Redundant Lower Header (QCK-16). Consolidated area overview controls (`#grid-area-stats`, tenure duration legend, and `+ إضافة منزل جديد`) into the primary top navbar, and eliminated the redundant secondary header bar inside `#area-grid-panel` so house cards sit directly underneath the main navbar. 152 Vitest tests across 15 files, 84 xUnit tests, 32 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff.
 - `260911-ny4`: Arabic Tenant Count Badge in Tenancy Register Header (QCK-17). Enhanced the tenant count badge in the Tenancy Register header (`سجل المستأجرين المتعاقبين`) from a bare digit in a tiny circle to an Arabic tenant count badge (e.g. `3 مستأجرين` or `1 مستأجر`) formatted as an elegant rounded pill (`.tenants-count-badge`). Verified by unit tests in `tests/frontend/components/house_profile.test.js`.
 - `260911-nty`: Delete House Feature in Settings Modal Danger Zone (QCK-18). Added `DELETE /api/areas/{areaId}/houses/{houseId}` cascading across `pages`, `documents`, `batches`, `tenants`, and `houses` in SQLite and removing disk directories across ASP.NET Core and FastAPI. Integrated red Danger Zone in settings modal, `#delete-house-modal` with exact type-to-confirm validation, automated view reset to Area Grid, sidebar and area reload, and toast feedback. 158 Vitest tests across 16 files, 85 xUnit tests, and 33 Pytest tests passing; zero static asset diff.
+- `260911-nh4`: Remove Redundant Tenancy Register Sub-Header from Tenant Selection Area (QCK-19). Removed redundant sub-header bar (`سجل المستأجرين المتعاقبين` and count badge) from tenant selection area in house profile view, placing tenant cards directly beneath the tab bar. 158 Vitest tests across 16 files, 85 xUnit tests, and 33 Pytest tests passing; zero static asset diff.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-11 — Completed Quick Task 260911-ny4 (QCK-17: Arabic Tenant Count Badge in Tenancy Register Header) and 260911-nty (QCK-18: Delete House Feature in Settings Modal Danger Zone). Verified by 158 Vitest tests, 85 xUnit tests, 33 Pytest tests, and 49 Playwright tests.
+Last activity: 2026-09-11 — Completed Quick Task 260911-nh4 (QCK-19: Remove Redundant Tenancy Register Sub-Header from Tenant Selection Area). Verified by 158 Vitest tests, 85 xUnit tests, 33 Pytest tests, and Playwright tests.
 
 ## Operator Next Steps
 

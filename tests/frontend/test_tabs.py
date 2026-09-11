@@ -124,7 +124,7 @@ def test_tabs_switch_and_load_data(page: Page):
 
     # House level shows Tenancy Register and archive profile by default
     expect(page.locator("#tab-categories-label")).to_contain_text("سجل المستأجرين", timeout=5000)
-    expect(page.locator("#document-list")).to_contain_text("سجل المستأجرين المتعاقبين", timeout=5000)
+    expect(page.locator("#document-list")).not_to_contain_text("سجل المستأجرين المتعاقبين")
     expect(page.locator("#document-list")).to_contain_text("Ali", timeout=5000)
     assert any("/profile" in u for u in captured)
 

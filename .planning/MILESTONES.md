@@ -2,10 +2,18 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 17 quick refinements (QCK-01 through QCK-17), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 32 Pytest tests, 158 Vitest across 16 files, 49 Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 19 quick refinements (QCK-01 through QCK-19), 4 plans, comprehensive multi-stack test verification (85 .NET xUnit, 33 Pytest tests, 158 Vitest across 16 files, Playwright E2E)
 
 **Key accomplishments:**
 
+- **Remove Redundant Tenancy Register Sub-Header from Tenant Selection Area (Quick Refinement QCK-19):**
+  - Removed the redundant inner sub-header bar (`tenantsHeader`) and Arabic count badge (`.tenants-count-badge`) from the tenant selection area inside `#document-list`.
+  - With the tab label above already indicating `سجل المستأجرين` with the Users SVG icon (QCK-15), removing this repetitive secondary title (`سجل المستأجرين المتعاقبين`) and count badge eliminates visual clutter and allows tenant profile cards (`.tenant-profile-card`) to be positioned directly at the top of the container.
+- **Delete House Feature in Settings Modal Danger Zone (Quick Refinement QCK-18):**
+  - Implemented dual-backend `DELETE /api/areas/{areaId}/houses/{houseId}` across ASP.NET Core 8.0 and FastAPI with SQLite cascade deletion across 5 tables (`pages`, `documents`, `batches`, `tenants`, `houses`) and recursive directory removal on disk (`areas/{area}/{house}`).
+  - Added red-themed Danger Zone container in House Settings & Tenants modal (`#tenant-modal`) with trigger button `#btn-open-delete-house`.
+  - Built GitHub-style type-to-confirm modal `#delete-house-modal` requiring explicit typing of `delete <house_id>` to unlock the deletion button.
+  - Automated post-deletion state reset (`currentHouse = null`, `currentTenant = null`), navigation back to Area Grid view, sidebar and grid refresh, and toast notification.
 - **Arabic Tenant Count Badge in Tenancy Register Header (Quick Refinement QCK-17):**
   - Enhanced the tenant count badge in the Tenancy Register header (`سجل المستأجرين المتعاقبين`) from a bare digit in a tiny circle to an Arabic tenant count badge (e.g. `3 مستأجرين` or `1 مستأجر`).
   - Styled as an elegant rounded pill (`.tenants-count-badge`, `px-2.5 py-0.5 rounded-full`) harmonized with other metadata badges.

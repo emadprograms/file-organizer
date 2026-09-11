@@ -171,8 +171,9 @@ def test_house_tenancy_register_display(page: Page, server_url: str):
     # Tab 1 label should be 'سجل المستأجرين'
     expect(page.locator("#tab-categories-label")).to_contain_text("سجل المستأجرين")
 
-    # Tenancy Register section header
-    expect(page.locator("#document-list")).to_contain_text("سجل المستأجرين المتعاقبين")
+    # Tenancy Register displays tenant cards directly without redundant sub-header (QCK-19)
+    expect(page.locator("#document-list")).not_to_contain_text("سجل المستأجرين المتعاقبين")
+    expect(page.locator(".tenant-profile-card").first).to_be_visible()
 
     # Active Tenant card
     expect(page.locator("#document-list")).to_contain_text("فواز خليل الطارش")
@@ -223,6 +224,7 @@ def test_click_tenant_card_drills_down_to_folders(page: Page, server_url: str):
 
     # Restores house register view
     expect(page.locator("#tab-categories-label")).to_contain_text("سجل المستأجرين")
-    expect(page.locator("#document-list")).to_contain_text("سجل المستأجرين المتعاقبين")
+    expect(page.locator("#document-list")).not_to_contain_text("سجل المستأجرين المتعاقبين")
+    expect(page.locator(".tenant-profile-card").first).to_be_visible()
     expect(page.locator("#current-house-title")).to_contain_text("500")
     expect(page.locator("#btn-back-to-house-register")).to_be_hidden()

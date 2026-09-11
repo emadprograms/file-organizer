@@ -101,6 +101,9 @@ Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shi
   - Added red-themed Danger Zone container in House Settings & Tenants modal (`#tenant-modal`) with trigger button `#btn-open-delete-house`.
   - Built GitHub-style type-to-confirm modal `#delete-house-modal` requiring explicit typing of `delete <house_id>` to unlock the deletion button.
   - Automated post-deletion state reset (`currentHouse = null`, `currentTenant = null`), navigation back to Area Grid view, sidebar and grid refresh, and toast notification.
+- **Remove Redundant Tenancy Register Sub-Header from Tenant Selection Area (Quick Refinement QCK-19):**
+  - Removed the redundant inner sub-header bar (`tenantsHeader`) and Arabic count badge (`.tenants-count-badge`) from the tenant selection area inside `#document-list`.
+  - Since the tab label above already identifies the section as `سجل المستأجرين` with the Users SVG icon (standardized in QCK-15), removing this repetitive secondary title (`سجل المستأجرين المتعاقبين`) and count badge eliminates visual clutter and allows tenant profile cards (`.tenant-profile-card`) to be positioned directly at the top of the container.
 - **Comprehensive Multi-Stack Test Coverage & Verification:**
   - 85 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
   - 33 Python backend tests (18 in `tests/test_v14_features.py`, 13 in `tests/test_document_management_api.py`, 2 in `tests/test_house_profile_api.py`).

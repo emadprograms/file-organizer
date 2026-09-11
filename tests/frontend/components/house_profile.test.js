@@ -65,8 +65,8 @@ describe('House Profile & Header Archive Export', () => {
     expect(docList.textContent).not.toContain('النطاق الزمني للوثائق');
     expect(docList.textContent).not.toContain('التصنيفات الرئيسية المتوفرة');
 
-    // Verify tenant information is rendered
-    expect(docList.textContent).toContain('سجل المستأجرين المتعاقبين');
+    // Verify tenant information is rendered directly without redundant sub-header
+    expect(docList.textContent).not.toContain('سجل المستأجرين المتعاقبين');
     expect(docList.textContent).toContain('Tenant A');
 
     // Verify export button in header exists
@@ -130,9 +130,9 @@ describe('House Profile & Header Archive Export', () => {
     window.renderHouseProfile(mockProfile);
 
     const docList = document.getElementById('document-list');
-    // Header should contain the section title and Arabic tenant count badge
-    expect(docList.textContent).toContain('سجل المستأجرين المتعاقبين');
-    expect(docList.textContent).toContain('2 مستأجرين');
+    // Redundant tenancy register sub-header bar and count badge should NOT be rendered
+    expect(docList.textContent).not.toContain('سجل المستأجرين المتعاقبين');
+    expect(document.querySelector('.tenants-count-badge')).toBeNull();
 
     // Should NOT contain wordy boilerplate strings
     expect(docList.textContent).not.toContain('استعراض المجلدات');
@@ -216,40 +216,50 @@ describe('House Profile & Header Archive Export', () => {
     expect(cards[2].innerHTML).toContain('bg-rose-500');
   });
 
-  it('renders tenant count badge with Arabic noun in tenancy register header (QCK-17)', () => {
-    // 1. Multiple tenants (3 tenants) -> '3 مستأجرين'
+  it('omits redundant tenancy register sub-header and count badge in tenant selection area (QCK-19)', () => {
+    // 1. Multiple tenants (3 tenants)
     const mockProfile3 = {
       area_id: 'Area A',
       house_id: 'House 100',
       tenants: [
-        { name: 'Tenant 1', is_active: true, duration_category: 'short' },
-        { name: 'Tenant 2', is_active: false, duration_category: 'short' },
-        { name: 'Tenant 3', is_active: false, duration_category: 'short' }
+        { name: 'Tenant 1', is_active: true, duration_category: 'short', category_count: 3, document_count: 10 },
+        { name: 'Tenant 2', is_active: false, duration_category: 'short', category_count: 2, document_count: 4 },
+        { name: 'Tenant 3', is_active: false, duration_category: 'short', category_count: 1, document_count: 2 }
       ],
-      archive: { total_documents: 5, total_pages: 5, categories: [] }
+      archive: { total_documents: 16, total_pages: 20, categories: [] }
     };
 
     window.renderHouseProfile(mockProfile3);
 
-    const badge3 = document.querySelector('.tenants-count-badge');
-    expect(badge3).not.toBeNull();
-    expect(badge3.textContent.trim()).toBe('3 مستأجرين');
+    const docList = document.getElementById('document-list');
+    // Header text and count badge should be absent
+    expect(docList.textContent).not.toContain('سجل المستأجرين المتعاقبين');
+    expect(document.querySelector('.tenants-count-badge')).toBeNull();
 
-    // 2. Single tenant -> '1 مستأجر'
+    // Tenant cards should be directly present and populated
+    const cards = document.querySelectorAll('.tenant-profile-card');
+    expect(cards.length).toBe(3);
+    expect(cards[0].textContent).toContain('Tenant 1');
+    expect(cards[1].textContent).toContain('Tenant 2');
+    expect(cards[2].textContent).toContain('Tenant 3');
+
+    // 2. Single tenant
     const mockProfile1 = {
       area_id: 'Area A',
       house_id: 'House 100',
       tenants: [
-        { name: 'Tenant 1', is_active: true, duration_category: 'short' }
+        { name: 'Tenant 1', is_active: true, duration_category: 'short', category_count: 1, document_count: 1 }
       ],
       archive: { total_documents: 1, total_pages: 1, categories: [] }
     };
 
     window.renderHouseProfile(mockProfile1);
 
-    const badge1 = document.querySelector('.tenants-count-badge');
-    expect(badge1).not.toBeNull();
-    expect(badge1.textContent.trim()).toBe('1 مستأجر');
+    expect(docList.textContent).not.toContain('سجل المستأجرين المتعاقبين');
+    expect(document.querySelector('.tenants-count-badge')).toBeNull();
+    const singleCards = document.querySelectorAll('.tenant-profile-card');
+    expect(singleCards.length).toBe(1);
+    expect(singleCards[0].textContent).toContain('Tenant 1');
   });
 });
 
