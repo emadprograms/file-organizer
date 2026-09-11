@@ -147,77 +147,175 @@
         }
     }
 
+    function getBatchAreaFromHash() {
+        if (typeof window !== 'undefined' && window.location && window.location.hash) {
+            const match = window.location.hash.match(/#\/area\/([^/]+)/);
+            if (match) return decodeURIComponent(match[1]).replace(/^area_/, '');
+        }
+        return '';
+    }
+
+    function getBatchHouseFromHash() {
+        if (typeof window !== 'undefined' && window.location && window.location.hash) {
+            const match = window.location.hash.match(/house\/([^/]+)/);
+            if (match) return decodeURIComponent(match[1]);
+        }
+        return '';
+    }
+
+    function getBatchResolvedArea() {
+        if (typeof currentArea !== 'undefined' && currentArea) return currentArea;
+        if (typeof window !== 'undefined' && window.currentArea) return window.currentArea;
+        return getBatchAreaFromHash();
+    }
+
+    function getBatchResolvedHouse() {
+        if (typeof currentHouse !== 'undefined' && currentHouse) return currentHouse;
+        if (typeof window !== 'undefined' && window.currentHouse) return window.currentHouse;
+        return getBatchHouseFromHash();
+    }
+
+    function formatBatchTenantLabel(t) {
+        if (!t) return '';
+        const isActive = t.is_active != null 
+            ? Boolean(t.is_active) 
+            : (!t.end_date || String(t.end_date).toLowerCase() === 'present' || String(t.end_date).toLowerCase() === 'none' || t.end_date === '');
+        let label = t.name || 'Tenant';
+        if (isActive) {
+            label += ' (المستأجر الحالي)';
+        } else if (t.start_date) {
+            const startYear = String(t.start_date).substring(0, 4);
+            const endYear = (t.end_date && String(t.end_date).length >= 4) ? String(t.end_date).substring(0, 4) : '';
+            label += endYear ? ` (${startYear} – ${endYear})` : ` (${startYear})`;
+        }
+        return label;
+    }
+
+    function getBatchSelectedDocsInfo() {
+        const activeCats = (typeof currentCategories !== 'undefined' && currentCategories) 
+            ? currentCategories 
+            : (typeof window !== 'undefined' && window.currentCategories ? window.currentCategories : []);
+        
+        const tenantIds = new Set();
+        const tenantNames = new Set();
+        const inMemoryTenants = [];
+        const seenTenantKeys = new Set();
+
+        if (Array.isArray(activeCats)) {
+            for (const cat of activeCats) {
+                const catTenant = cat.tenant || '';
+                if (cat.documents && Array.isArray(cat.documents)) {
+                    for (const doc of cat.documents) {
+                        const tId = doc.tenant_id;
+                        const tName = doc.tenant || catTenant;
+                        if (tName) {
+                            const key = tId != null ? `id_${tId}` : `name_${tName.trim().toLowerCase()}`;
+                            if (!seenTenantKeys.has(key)) {
+                                seenTenantKeys.add(key);
+                                inMemoryTenants.push({ id: tId, name: tName, is_active: false });
+                            }
+                        }
+                        if (selectedDocIds.has(doc.vault_id)) {
+                            if (tId != null) tenantIds.add(tId);
+                            if (tName) tenantNames.add(tName);
+                        }
+                    }
+                } else if (catTenant) {
+                    const key = `name_${catTenant.trim().toLowerCase()}`;
+                    if (!seenTenantKeys.has(key)) {
+                        seenTenantKeys.add(key);
+                        inMemoryTenants.push({ id: null, name: catTenant, is_active: false });
+                    }
+                }
+            }
+        }
+
+        return {
+            tenantIds: Array.from(tenantIds),
+            tenantNames: Array.from(tenantNames),
+            isMultiTenant: (tenantIds.size > 1 || tenantNames.size > 1),
+            singleTenantId: tenantIds.size === 1 ? Array.from(tenantIds)[0] : null,
+            singleTenantName: tenantNames.size === 1 ? Array.from(tenantNames)[0] : null,
+            inMemoryTenants
+        };
+    }
+
+    function renderTenantOptions(select, tenantsList, info) {
+        const prevVal = select.value;
+        select.innerHTML = '';
+
+        const defaultOpt = document.createElement('option');
+        defaultOpt.value = '';
+        defaultOpt.textContent = selectedDocIds.size > 1 
+            ? 'الاحتفاظ بمستأجر كل وثيقة (Keep current tenants)' 
+            : 'الاحتفاظ بالمستأجر الحالي (Keep current tenant)';
+        select.appendChild(defaultOpt);
+
+        let matchedOption = null;
+
+        tenantsList.forEach(t => {
+            if (!t || (!t.name && t.id == null)) return;
+            const opt = document.createElement('option');
+            opt.value = t.id != null ? String(t.id) : '';
+            opt.textContent = formatBatchTenantLabel(t);
+            
+            if (!info.isMultiTenant) {
+                if (info.singleTenantId != null && t.id != null && String(t.id) === String(info.singleTenantId)) {
+                    matchedOption = opt;
+                } else if (!matchedOption && info.singleTenantName && t.name && t.name.trim().toLowerCase() === info.singleTenantName.trim().toLowerCase()) {
+                    matchedOption = opt;
+                }
+            }
+            select.appendChild(opt);
+        });
+
+        if (prevVal && Array.from(select.options).some(o => o.value === prevVal)) {
+            select.value = prevVal;
+        } else if (matchedOption) {
+            matchedOption.selected = true;
+        } else {
+            defaultOpt.selected = true;
+        }
+    }
+
     async function populateBatchTenantSelect(selectId) {
         const select = document.getElementById(selectId);
         if (!select) return;
 
-        select.innerHTML = '';
-        const defaultOpt = document.createElement('option');
-        defaultOpt.value = '';
-        defaultOpt.textContent = '🏛️ المستأجر الحالي للوثيقة • Same Tenant';
-        select.appendChild(defaultOpt);
+        const info = getBatchSelectedDocsInfo();
+        renderTenantOptions(select, info.inMemoryTenants, info);
 
-        const activeArea = (typeof currentArea !== 'undefined' ? currentArea : (typeof window !== 'undefined' ? window.currentArea : '')) || '';
-        const activeHouse = (typeof currentHouse !== 'undefined' ? currentHouse : (typeof window !== 'undefined' ? window.currentHouse : '')) || '';
+        const activeArea = getBatchResolvedArea();
+        const activeHouse = getBatchResolvedHouse();
         const isStatic = (typeof isStaticMode !== 'undefined' && isStaticMode) || (typeof window !== 'undefined' && window.isStaticMode);
 
-        const appendTenantOption = (t) => {
-            if (!t || t.id == null) return;
-            const opt = document.createElement('option');
-            opt.value = String(t.id);
-            const isActive = t.is_active != null 
-                ? Boolean(t.is_active) 
-                : (!t.end_date || String(t.end_date).toLowerCase() === 'present' || String(t.end_date).toLowerCase() === 'none' || t.end_date === '');
-            const year = t.start_date ? ` (${String(t.start_date).substring(0, 4)})` : '';
-            opt.textContent = `${isActive ? '🟢 ' : '👤 '}${t.name}${year}`;
-            select.appendChild(opt);
-        };
-
-        const fallbackFromCategories = () => {
-            const activeCats = (typeof currentCategories !== 'undefined' ? currentCategories : (typeof window !== 'undefined' ? window.currentCategories : [])) || [];
-            const seen = new Set();
-            const fallbackTenants = [];
-
-            activeCats.forEach(cat => {
-                const tenantName = cat.tenant || '';
-                let tenantId = null;
-                if (cat.documents && Array.isArray(cat.documents)) {
-                    for (const doc of cat.documents) {
-                        if (doc.tenant_id != null) {
-                            tenantId = doc.tenant_id;
-                            break;
-                        }
-                    }
-                }
-                if (tenantName && !seen.has(tenantName)) {
-                    seen.add(tenantName);
-                    fallbackTenants.push({
-                        id: tenantId != null ? tenantId : (fallbackTenants.length + 1),
-                        name: tenantName,
-                        is_active: false
-                    });
-                }
-            });
-
-            fallbackTenants.forEach(t => appendTenantOption(t));
-        };
-
         if (isStatic || !activeArea || !activeHouse) {
-            fallbackFromCategories();
             return;
         }
 
         try {
             const res = await fetch(`/api/areas/${encodeURIComponent(activeArea)}/houses/${encodeURIComponent(activeHouse)}/tenants`);
-            if (!res.ok) throw new Error('Failed to load tenants');
-            const tenants = await res.json();
-            if (Array.isArray(tenants) && tenants.length > 0) {
-                tenants.forEach(t => appendTenantOption(t));
-            } else {
-                fallbackFromCategories();
+            if (!res.ok) return;
+            const dbTenants = await res.json();
+            if (Array.isArray(dbTenants) && dbTenants.length > 0) {
+                const seenKeys = new Set();
+                const combinedTenants = [];
+                dbTenants.forEach(t => {
+                    const k = t.id != null ? `id_${t.id}` : `name_${(t.name || '').trim().toLowerCase()}`;
+                    seenKeys.add(k);
+                    combinedTenants.push(t);
+                });
+                info.inMemoryTenants.forEach(t => {
+                    const k = t.id != null ? `id_${t.id}` : `name_${(t.name || '').trim().toLowerCase()}`;
+                    if (!seenKeys.has(k)) {
+                        seenKeys.add(k);
+                        combinedTenants.push(t);
+                    }
+                });
+                renderTenantOptions(select, combinedTenants, info);
             }
         } catch (err) {
-            fallbackFromCategories();
+            // Silently fallback to in-memory category tenants
         }
     }
 
@@ -316,8 +414,8 @@
             return;
         }
 
-        const activeArea = (typeof currentArea !== 'undefined' ? currentArea : (typeof window !== 'undefined' ? window.currentArea : '')) || '';
-        const activeHouse = (typeof currentHouse !== 'undefined' ? currentHouse : (typeof window !== 'undefined' ? window.currentHouse : '')) || '';
+        const activeArea = getBatchResolvedArea();
+        const activeHouse = getBatchResolvedHouse();
 
         if (confirmBtn) confirmBtn.disabled = true;
         if (spinner) spinner.classList.remove('hidden');
@@ -461,8 +559,8 @@
             return;
         }
 
-        const activeArea = (typeof currentArea !== 'undefined' ? currentArea : (typeof window !== 'undefined' ? window.currentArea : '')) || '';
-        const activeHouse = (typeof currentHouse !== 'undefined' ? currentHouse : (typeof window !== 'undefined' ? window.currentHouse : '')) || '';
+        const activeArea = getBatchResolvedArea();
+        const activeHouse = getBatchResolvedHouse();
 
         if (confirmBtn) confirmBtn.disabled = true;
         if (spinner) spinner.classList.remove('hidden');
@@ -568,8 +666,8 @@
         const confirmBtn = document.getElementById('btn-batch-delete-confirm');
         const spinner = document.getElementById('batch-delete-spinner');
 
-        const activeArea = (typeof currentArea !== 'undefined' ? currentArea : (typeof window !== 'undefined' ? window.currentArea : '')) || '';
-        const activeHouse = (typeof currentHouse !== 'undefined' ? currentHouse : (typeof window !== 'undefined' ? window.currentHouse : '')) || '';
+        const activeArea = getBatchResolvedArea();
+        const activeHouse = getBatchResolvedHouse();
 
         if (confirmBtn) confirmBtn.disabled = true;
         if (spinner) spinner.classList.remove('hidden');
@@ -1183,6 +1281,10 @@
         window.openBatchMoveForDoc = openBatchMoveForDoc;
         window.openBatchCopyForDoc = openBatchCopyForDoc;
         window.handleInlineRename = handleInlineRename;
+        window.getBatchResolvedArea = getBatchResolvedArea;
+        window.getBatchResolvedHouse = getBatchResolvedHouse;
+        window.formatBatchTenantLabel = formatBatchTenantLabel;
+        window.getBatchSelectedDocsInfo = getBatchSelectedDocsInfo;
     }
 
     if (typeof module !== 'undefined' && module.exports) {
@@ -1201,6 +1303,10 @@
             deselectAllDocs,
             updateBatchActionBar,
             populateBatchTenantSelect,
+            getBatchResolvedArea,
+            getBatchResolvedHouse,
+            formatBatchTenantLabel,
+            getBatchSelectedDocsInfo,
             openBatchMoveModal,
             closeBatchMoveModal,
             handleBatchMoveSubmit,

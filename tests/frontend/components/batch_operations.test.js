@@ -40,7 +40,7 @@ function setupDOM() {
         <div id="batch-move-modal" class="hidden">
             <p id="batch-move-subtitle"></p>
             <select id="batch-move-tenant-select">
-                <option value="">🏛️ المستأجر الحالي للوثيقة • Same Tenant</option>
+                <option value="">الاحتفاظ بالمستأجر الحالي (Keep current tenant)</option>
             </select>
             <select id="batch-move-folder-select"></select>
             <div id="batch-move-custom-folder-container" class="hidden">
@@ -57,7 +57,7 @@ function setupDOM() {
         <div id="batch-copy-modal" class="hidden">
             <p id="batch-copy-subtitle"></p>
             <select id="batch-copy-tenant-select">
-                <option value="">🏛️ المستأجر الحالي للوثيقة • Same Tenant</option>
+                <option value="">الاحتفاظ بالمستأجر الحالي (Keep current tenant)</option>
             </select>
             <select id="batch-copy-folder-select"></select>
             <div id="batch-copy-custom-folder-container" class="hidden">
@@ -403,7 +403,19 @@ describe('Multi-Select Batch Document Operations (Phase 106)', () => {
         expect(bar.classList.contains('hidden')).toBe(true);
     });
 
-    it('populates batch tenant select with default Same Tenant option and loads tenants from API', async () => {
+    it('populates batch tenant select with real tenants without emojis and pre-selects document tenant', async () => {
+        global.currentCategories = [
+            {
+                tenant: 'فهد السالم',
+                name: '05 - عقود',
+                document_count: 1,
+                documents: [
+                    { vault_id: 'doc001', brief_arabic_title: 'عقد', is_manual: 0, tenant_id: 10 }
+                ]
+            }
+        ];
+        toggleDocSelection('doc001', true);
+
         global.fetch = vi.fn().mockResolvedValue({
             ok: true,
             json: async () => [
@@ -416,12 +428,60 @@ describe('Multi-Select Batch Document Operations (Phase 106)', () => {
 
         const select = document.getElementById('batch-move-tenant-select');
         expect(select.options.length).toBe(3);
+        // Clean default option without pillar emoji
         expect(select.options[0].value).toBe('');
-        expect(select.options[0].textContent).toContain('Same Tenant');
+        expect(select.options[0].textContent).toContain('الاحتفاظ بالمستأجر الحالي (Keep current tenant)');
+        expect(select.innerHTML).not.toContain('🏛️');
+        expect(select.innerHTML).not.toContain('🟢');
+        expect(select.innerHTML).not.toContain('👤');
+
+        // Real tenant options
         expect(select.options[1].value).toBe('10');
-        expect(select.options[1].textContent).toContain('🟢 فهد السالم (2023)');
+        expect(select.options[1].textContent).toBe('فهد السالم (المستأجر الحالي)');
         expect(select.options[2].value).toBe('20');
-        expect(select.options[2].textContent).toContain('👤 سعد القحطاني (2021)');
+        expect(select.options[2].textContent).toBe('سعد القحطاني (2021 – 2022)');
+
+        // Pre-selected document's current tenant by default!
+        expect(select.value).toBe('10');
+        expect(select.options[1].selected).toBe(true);
+    });
+
+    it('defaults to Keep current tenants when multiple documents with different tenants are selected', async () => {
+        global.currentCategories = [
+            {
+                tenant: 'فهد السالم',
+                name: '05 - عقود',
+                document_count: 1,
+                documents: [
+                    { vault_id: 'doc001', brief_arabic_title: 'عقد', tenant_id: 10 }
+                ]
+            },
+            {
+                tenant: 'سعد القحطاني',
+                name: '10 - صيانة',
+                document_count: 1,
+                documents: [
+                    { vault_id: 'doc002', brief_arabic_title: 'صيانة', tenant_id: 20 }
+                ]
+            }
+        ];
+        toggleDocSelection('doc001', true);
+        toggleDocSelection('doc002', true);
+
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => [
+                { id: 10, name: 'فهد السالم', start_date: '2023-01-01', is_active: true },
+                { id: 20, name: 'سعد القحطاني', start_date: '2021-01-01', end_date: '2022-12-31', is_active: false }
+            ]
+        });
+
+        await populateBatchTenantSelect('batch-move-tenant-select');
+
+        const select = document.getElementById('batch-move-tenant-select');
+        expect(select.options[0].textContent).toContain('الاحتفاظ بمستأجر كل وثيقة (Keep current tenants)');
+        expect(select.value).toBe('');
+        expect(select.options[0].selected).toBe(true);
     });
 
     it('submits batch move with selected target_tenant_id', async () => {
