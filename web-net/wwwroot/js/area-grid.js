@@ -152,6 +152,8 @@
                 `;
             }
 
+            const scrollClass = tenants.length > 3 ? 'max-h-[118px] overflow-y-auto pr-1' : '';
+
             card.innerHTML = `
                 <div>
                     <div class="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-slate-100">
@@ -166,7 +168,7 @@
                         <span class="tenure-badge text-[10px] px-2 py-0.5 rounded border flex-shrink-0 ${badgeClass}">${badgeLabel}</span>
                     </div>
 
-                    <div class="tenants-overview-section">
+                    <div class="tenants-overview-section ${scrollClass}">
                         ${tenantsHtml}
                     </div>
                 </div>
@@ -180,6 +182,17 @@
                     </span>
                 </div>
             `;
+
+            if (tenants.length > 3) {
+                const tenantsSection = card.querySelector('.tenants-overview-section');
+                if (tenantsSection) {
+                    tenantsSection.addEventListener('click', (e) => {
+                        if (e.offsetX > e.currentTarget.clientWidth) {
+                            e.stopPropagation();
+                        }
+                    });
+                }
+            }
 
             // Direct drag & drop ingestion onto house card
             card.addEventListener('dragover', (e) => {
