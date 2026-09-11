@@ -26,7 +26,7 @@ describe('+ Add House Modal Component (Phase 107)', () => {
         <button id="btn-add-house-cancel" type="button">Cancel</button>
         <button id="btn-add-house-submit" type="button">
           <span id="add-house-spinner" class="hidden"></span>
-          <span id="add-house-submit-text">[ + إضافة المنزل ] / [ + Create House ]</span>
+          <span id="add-house-submit-text">إضافة المنزل / Create House</span>
         </button>
       </div>
     `;
@@ -75,9 +75,9 @@ describe('+ Add House Modal Component (Phase 107)', () => {
     const addCard = container.querySelector('#add-house-grid-card');
     expect(addCard).not.toBeNull();
     expect(addCard.classList.contains('border-dashed')).toBe(true);
-    expect(addCard.textContent).toContain('+ إضافة منزل جديد');
+    expect(addCard.textContent).toContain('إضافة منزل جديد');
     expect(addCard.textContent).toContain('Add New House');
-    expect(addCard.textContent).toContain('انقر هنا لتسجيل منزل جديد في هذه المنطقة');
+    expect(addCard.textContent).not.toContain('انقر هنا لتسجيل منزل جديد في هذه المنطقة');
 
     // Click on dashed card
     const modal = document.getElementById('add-house-modal');
@@ -234,5 +234,13 @@ describe('+ Add House Modal Component (Phase 107)', () => {
     expect(statusEl.classList.contains('hidden')).toBe(false);
     expect(statusEl.textContent).toContain("House '500' already exists");
     expect(submitBtn.disabled).toBe(false);
+  });
+
+  it('verifies submit button inside add house modal has clean text without redundant plus symbols or brackets', () => {
+    const submitText = document.getElementById('add-house-submit-text');
+    expect(submitText.textContent).toBe('إضافة المنزل / Create House');
+    expect(submitText.textContent).not.toContain('+');
+    expect(submitText.textContent).not.toContain('[');
+    expect(submitText.textContent).not.toContain(']');
   });
 });

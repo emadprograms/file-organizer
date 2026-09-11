@@ -112,7 +112,7 @@ describe('Unified Single Header Bar Component & Area Grid (QCK-16)', () => {
       const addCard = document.getElementById('add-house-grid-card');
       expect(addCard).not.toBeNull();
       expect(addCard.classList.contains('border-dashed')).toBe(true);
-      expect(addCard.textContent).toContain('+ إضافة منزل جديد');
+      expect(addCard.textContent).toContain('إضافة منزل جديد');
       expect(addCard.textContent).toContain('Add New House');
 
       const currentHouseTitle = document.getElementById('current-house-title');
