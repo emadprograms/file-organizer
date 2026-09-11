@@ -177,22 +177,26 @@ def test_house_card_tenants_overview_details(page: Page):
     card = page.locator('.house-card[data-house-id="501 - MultiTenantHouse"]')
     expect(card).to_be_visible()
 
-    # Card has Tenants Overview header and count
+    # Card has Tenants count and tenure badge
     expect(card.locator(".tenants-overview-section")).to_be_visible()
     expect(card.locator(".tenants-count")).to_contain_text("2 Tenants")
+    expect(card.locator(".tenure-badge")).to_contain_text("< 5 Yrs")
 
-    # Current tenant is highlighted with green dot and 'Current' badge
+    # Current tenant is highlighted with dynamic glowing container and dates
     expect(card).to_contain_text("Zaid Modern")
-    expect(card).to_contain_text("Current")
     expect(card).to_contain_text("2022 - Present")
+    expect(card.locator(".tenant-overview-item").first).to_have_class(re.compile(r"tenant-current-glow"))
 
-    # Past tenant is shown with 'Past' badge and period
+    # Past tenant is shown with period
     expect(card).to_contain_text("Tariq Past")
-    expect(card).to_contain_text("Past")
     expect(card).to_contain_text("2019 - 2022")
 
     # Total archive doc count is shown
     expect(card.locator(".doc-count")).to_contain_text("7 Docs")
+
+    # Text badges 'Current' and 'Past' are removed in favor of glowing highlight and dates
+    expect(card).not_to_contain_text("Current")
+    expect(card.get_by_text("Past", exact=True)).to_have_count(0)
 
     # Category document pills should NOT be present on overview cards
     expect(card).not_to_contain_text("عقد الإيجار")

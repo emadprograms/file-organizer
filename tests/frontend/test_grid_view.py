@@ -159,33 +159,34 @@ def test_grid_area_selection_and_house_cards(page: Page):
     expect(green_card).to_contain_text("101 - GreenHouse")
     expect(green_card).to_contain_text("Ahmad Green")
     expect(green_card).to_contain_text("2023 - Present")
-    expect(green_card).to_contain_text("5 Docs")
     expect(green_card.locator(".tenants-overview-section")).to_be_visible()
-    expect(green_card.locator(".tenants-overview-section")).to_contain_text("Current")
-    expect(green_card.locator(".tenants-overview-section")).to_contain_text("1 Tenant")
-    # Category pills should NOT be present on the card
+    expect(green_card.locator(".tenants-count")).to_contain_text("1 Tenant")
+    expect(green_card.locator(".tenure-badge")).to_contain_text("< 5 Yrs")
+    expect(green_card.locator(".doc-count")).to_contain_text("5 Docs")
+    # Category pills and old badges should NOT be present on the card
     expect(green_card).not_to_contain_text("عقد الإيجار")
     expect(green_card).not_to_contain_text("سند قبض")
+    expect(green_card).not_to_contain_text("Current")
 
 
 def test_tenure_color_coding(page: Page):
-    """Verify tenure color indicators: Green (<5y), Yellow (5-10y), Red (>10y)."""
+    """Verify tenure color indicators: Green border (<5y), Yellow border (5-10y), Red border (>10y)."""
     _setup_grid_routes(page)
     page.goto("http://localhost:9999/")
 
     page.click(".area-grid-btn >> text=Safra C")
 
-    # House 1: < 5 years -> Green styling & badge
+    # House 1: < 5 years -> Green left border styling & badge
     card_green = page.locator('.house-card[data-house-id="101 - GreenHouse"]')
     expect(card_green).to_have_class(re.compile(r"border-l-emerald-500"))
     expect(card_green.locator(".tenure-badge")).to_contain_text("< 5 Yrs")
 
-    # House 2: 5-10 years -> Yellow styling & badge
+    # House 2: 5-10 years -> Yellow left border styling & badge
     card_yellow = page.locator('.house-card[data-house-id="102 - YellowHouse"]')
     expect(card_yellow).to_have_class(re.compile(r"border-l-amber-500"))
     expect(card_yellow.locator(".tenure-badge")).to_contain_text("5–10 Yrs")
 
-    # House 3: > 10 years -> Red styling & badge
+    # House 3: > 10 years -> Red left border styling & badge
     card_red = page.locator('.house-card[data-house-id="103 - RedHouse"]')
     expect(card_red).to_have_class(re.compile(r"border-l-rose-500"))
     expect(card_red.locator(".tenure-badge")).to_contain_text("> 10 Yrs")

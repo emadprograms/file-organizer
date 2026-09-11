@@ -108,19 +108,15 @@
                             const isCurrent = (house.current_tenant && t.name === house.current_tenant) 
                                 || (t.subtitle && (t.subtitle.includes('Present') || t.subtitle.includes('الآن')))
                                 || (idx === 0 && !t.subtitle?.includes('-'));
-                            const dotColor = isCurrent ? '🟢' : '⚪';
-                            const cardBg = isCurrent ? 'bg-emerald-50/70 border-emerald-200/80' : 'bg-slate-50 border-slate-200/60';
+                            const cardBg = isCurrent 
+                                ? 'tenant-current-glow bg-emerald-50/70 border border-emerald-200/80' 
+                                : 'bg-slate-50 border border-slate-200/60';
                             const nameClass = isCurrent ? 'font-bold text-slate-900' : 'font-medium text-slate-700';
-                            const statusBadge = isCurrent 
-                                ? '<span class="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded border border-emerald-300">Current</span>' 
-                                : '<span class="text-[9px] bg-slate-100 text-slate-500 font-medium px-1.5 py-0.2 rounded border border-slate-200">Past</span>';
                             
                             return `
-                                <div class="tenant-overview-item flex items-center justify-between text-xs p-1.5 rounded-lg border ${cardBg}">
-                                    <div class="flex items-center gap-1.5 min-w-0">
-                                        <span class="text-xs flex-shrink-0">${dotColor}</span>
+                                <div class="tenant-overview-item flex items-center justify-between text-xs p-1.5 rounded-lg ${cardBg}">
+                                    <div class="flex items-center min-w-0">
                                         <span class="tenant-name ${nameClass} truncate text-xs" title="${t.name}">${t.name}</span>
-                                        ${statusBadge}
                                     </div>
                                     <span class="tenure-text text-[10px] font-mono text-slate-500 ml-2 flex-shrink-0" title="${t.subtitle || ''}">
                                         ${t.subtitle || ''}
@@ -134,28 +130,24 @@
 
             card.innerHTML = `
                 <div>
-                    <div class="flex items-start justify-between gap-2 mb-3">
-                        <h3 class="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors line-clamp-1" title="${house.name}">
-                            🏠 ${house.name}
-                        </h3>
+                    <div class="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-slate-100">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <h3 class="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors truncate" title="${house.name}">
+                                🏠 ${house.name}
+                            </h3>
+                            <span class="tenants-count text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200 flex-shrink-0">
+                                ${tenants.length} ${tenants.length === 1 ? 'Tenant' : 'Tenants'}
+                            </span>
+                        </div>
                         <span class="tenure-badge text-[10px] px-2 py-0.5 rounded border flex-shrink-0 ${badgeClass}">${badgeLabel}</span>
                     </div>
 
                     <div class="tenants-overview-section">
-                        <div class="flex items-center justify-between text-[11px] mb-2">
-                            <span class="font-bold text-slate-400 uppercase tracking-wider text-[10px] flex items-center gap-1">
-                                <span>👥</span>
-                                <span>Tenants Overview</span>
-                            </span>
-                            <span class="tenants-count text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
-                                ${tenants.length} ${tenants.length === 1 ? 'Tenant' : 'Tenants'}
-                            </span>
-                        </div>
                         ${tenantsHtml}
                     </div>
                 </div>
 
-                <div class="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
                     <span class="text-slate-400 text-[11px] font-medium flex items-center gap-1">
                         <span>📄 Total Archive</span>
                     </span>
@@ -164,6 +156,37 @@
                     </span>
                 </div>
             `;
+
+            // Direct drag & drop ingestion onto house card
+            card.addEventListener('dragover', (e) => {
+                if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.dataTransfer.dropEffect = 'copy';
+                    card.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50/40');
+                }
+            });
+
+            card.addEventListener('dragleave', (e) => {
+                card.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50/40');
+            });
+
+            card.addEventListener('drop', (e) => {
+                if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    card.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50/40');
+                    if (typeof window.resetDragCounter === 'function') {
+                        window.resetDragCounter();
+                    } else {
+                        const overlay = document.getElementById('ingest-dropzone-overlay');
+                        if (overlay) overlay.classList.add('hidden');
+                    }
+                    if (typeof window.handleDirectHouseDrop === 'function') {
+                        window.handleDirectHouseDrop(e.dataTransfer.files, house.id, areaNode.name);
+                    }
+                }
+            });
 
             card.onclick = () => {
                 openHouseFromGrid(areaNode.name, house.id);
@@ -187,7 +210,235 @@
         window.location.hash = `#/area/${encodeURIComponent(areaName)}/house/${encodeURIComponent(houseId)}`;
     }
 
+    function openAddHouseModal(preselectedArea) {
+        const modal = document.getElementById('add-house-modal');
+        if (!modal) return;
+
+        const areaSelect = document.getElementById('add-house-area-select');
+        const idInput = document.getElementById('add-house-id-input');
+        const tenantInput = document.getElementById('add-house-tenant-name-input');
+        const dateInput = document.getElementById('add-house-tenant-date-input');
+        const statusEl = document.getElementById('add-house-status');
+        const spinner = document.getElementById('add-house-spinner');
+        const submitBtn = document.getElementById('btn-add-house-submit');
+
+        if (statusEl) {
+            statusEl.classList.add('hidden');
+            statusEl.textContent = '';
+            statusEl.className = 'p-2.5 rounded-lg text-xs font-medium hidden';
+        }
+        if (spinner) spinner.classList.add('hidden');
+        if (submitBtn) submitBtn.disabled = false;
+
+        if (idInput) idInput.value = '';
+        if (tenantInput) tenantInput.value = '';
+        if (dateInput) {
+            try {
+                dateInput.value = new Date().toISOString().split('T')[0];
+            } catch (e) {
+                dateInput.value = '';
+            }
+        }
+
+        // Populate area options
+        if (areaSelect) {
+            areaSelect.innerHTML = '';
+            const tree = (typeof globalTreeData !== 'undefined' ? globalTreeData : window.globalTreeData) || [];
+            const targetArea = preselectedArea || (typeof currentArea !== 'undefined' ? currentArea : window.currentArea);
+
+            if (tree.length > 0) {
+                tree.forEach(a => {
+                    const opt = document.createElement('option');
+                    opt.value = a.name || a.id;
+                    opt.textContent = a.name || a.id;
+                    if (targetArea && (a.name === targetArea || a.id === targetArea)) {
+                        opt.selected = true;
+                    }
+                    areaSelect.appendChild(opt);
+                });
+            } else if (targetArea) {
+                const opt = document.createElement('option');
+                opt.value = targetArea;
+                opt.textContent = targetArea;
+                opt.selected = true;
+                areaSelect.appendChild(opt);
+            }
+        }
+
+        modal.classList.remove('hidden');
+        if (idInput) {
+            setTimeout(() => idInput.focus(), 50);
+        }
+    }
+
+    function closeAddHouseModal() {
+        const modal = document.getElementById('add-house-modal');
+        if (modal) modal.classList.add('hidden');
+    }
+
+    async function handleAddHouseSubmit(e) {
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+
+        const areaSelect = document.getElementById('add-house-area-select');
+        const idInput = document.getElementById('add-house-id-input');
+        const tenantInput = document.getElementById('add-house-tenant-name-input');
+        const dateInput = document.getElementById('add-house-tenant-date-input');
+        const statusEl = document.getElementById('add-house-status');
+        const spinner = document.getElementById('add-house-spinner');
+        const submitBtn = document.getElementById('btn-add-house-submit');
+
+        const areaId = areaSelect ? areaSelect.value.trim() : '';
+        const houseId = idInput ? idInput.value.trim() : '';
+        const tenantName = tenantInput ? tenantInput.value.trim() : '';
+        const startDate = dateInput ? dateInput.value.trim() : '';
+
+        if (!areaId) {
+            showModalError('يرجى تحديد المنطقة / Please select an area.');
+            return;
+        }
+
+        if (!houseId) {
+            showModalError('يرجى إدخال رقم أو اسم المنزل / House number or name is required.');
+            if (idInput) idInput.focus();
+            return;
+        }
+
+        if (statusEl) {
+            statusEl.classList.add('hidden');
+            statusEl.textContent = '';
+        }
+        if (spinner) spinner.classList.remove('hidden');
+        if (submitBtn) submitBtn.disabled = true;
+
+        try {
+            const payload = {
+                house_id: houseId,
+                area_id: areaId,
+                initial_tenant_name: tenantName || null,
+                start_date: startDate || null,
+            };
+
+            const res = await fetch(`/api/areas/${encodeURIComponent(areaId)}/houses`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
+            });
+
+            if (!res.ok) {
+                let errText = `Error ${res.status}`;
+                try {
+                    const errData = await res.json();
+                    errText = errData.detail || errData.error || errData.message || errText;
+                } catch (_) {}
+                throw new Error(errText);
+            }
+
+            const data = await res.json();
+            closeAddHouseModal();
+            if (typeof showToast === 'function') {
+                showToast('تمت إضافة المنزل بنجاح', 'success');
+            } else if (typeof window.showToast === 'function') {
+                window.showToast('تمت إضافة المنزل بنجاح', 'success');
+            }
+
+            await loadAreaGrid(areaId);
+            return data;
+        } catch (err) {
+            showModalError(err.message || 'فشل إضافة المنزل / Failed to create house');
+        } finally {
+            if (spinner) spinner.classList.add('hidden');
+            if (submitBtn) submitBtn.disabled = false;
+        }
+    }
+
+    function showModalError(msg) {
+        const statusEl = document.getElementById('add-house-status');
+        if (statusEl) {
+            statusEl.className = 'p-2.5 rounded-lg text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200';
+            statusEl.textContent = msg;
+            statusEl.classList.remove('hidden');
+        }
+    }
+
+    async function loadAreaGrid(areaId) {
+        if (typeof window.loadTree === 'function') {
+            await window.loadTree();
+        }
+        const tree = (typeof globalTreeData !== 'undefined' ? globalTreeData : window.globalTreeData) || [];
+        const target = areaId || (typeof currentArea !== 'undefined' ? currentArea : window.currentArea);
+        if (target && tree.length > 0) {
+            const areaNode = tree.find(a => a.name === target || a.id === target);
+            if (areaNode) {
+                renderAreaGrid(areaNode);
+            }
+        }
+    }
+
+    function initAddHouseModal() {
+        const openBtn = document.getElementById('open-add-house-modal-btn');
+        if (openBtn) {
+            openBtn.onclick = () => {
+                const targetArea = (typeof currentArea !== 'undefined' ? currentArea : window.currentArea);
+                openAddHouseModal(targetArea);
+            };
+        }
+
+        const closeBtn = document.getElementById('add-house-close');
+        if (closeBtn) closeBtn.onclick = closeAddHouseModal;
+
+        const cancelBtn = document.getElementById('btn-add-house-cancel');
+        if (cancelBtn) cancelBtn.onclick = closeAddHouseModal;
+
+        const submitBtn = document.getElementById('btn-add-house-submit');
+        if (submitBtn) submitBtn.onclick = handleAddHouseSubmit;
+
+        const form = document.getElementById('add-house-form');
+        if (form) form.onsubmit = handleAddHouseSubmit;
+
+        const modal = document.getElementById('add-house-modal');
+        if (modal) {
+            modal.onclick = (e) => {
+                if (e.target === modal) closeAddHouseModal();
+            };
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const m = document.getElementById('add-house-modal');
+                if (m && !m.classList.contains('hidden')) {
+                    closeAddHouseModal();
+                }
+            }
+        });
+    }
+
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initAddHouseModal);
+        } else {
+            initAddHouseModal();
+        }
+    }
+
     window.selectAreaGrid = selectAreaGrid;
     window.renderAreaGrid = renderAreaGrid;
     window.openHouseFromGrid = openHouseFromGrid;
+    window.openAddHouseModal = openAddHouseModal;
+    window.closeAddHouseModal = closeAddHouseModal;
+    window.handleAddHouseSubmit = handleAddHouseSubmit;
+    window.initAddHouseModal = initAddHouseModal;
+    window.loadAreaGrid = loadAreaGrid;
+
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = {
+            selectAreaGrid,
+            renderAreaGrid,
+            openHouseFromGrid,
+            openAddHouseModal,
+            closeAddHouseModal,
+            handleAddHouseSubmit,
+            initAddHouseModal,
+            loadAreaGrid,
+        };
+    }
 })();

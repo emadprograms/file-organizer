@@ -108,19 +108,15 @@
                             const isCurrent = (house.current_tenant && t.name === house.current_tenant) 
                                 || (t.subtitle && (t.subtitle.includes('Present') || t.subtitle.includes('الآن')))
                                 || (idx === 0 && !t.subtitle?.includes('-'));
-                            const dotColor = isCurrent ? '🟢' : '⚪';
-                            const cardBg = isCurrent ? 'bg-emerald-50/70 border-emerald-200/80' : 'bg-slate-50 border-slate-200/60';
+                            const cardBg = isCurrent 
+                                ? 'tenant-current-glow bg-emerald-50/70 border border-emerald-200/80' 
+                                : 'bg-slate-50 border border-slate-200/60';
                             const nameClass = isCurrent ? 'font-bold text-slate-900' : 'font-medium text-slate-700';
-                            const statusBadge = isCurrent 
-                                ? '<span class="text-[9px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded border border-emerald-300">Current</span>' 
-                                : '<span class="text-[9px] bg-slate-100 text-slate-500 font-medium px-1.5 py-0.2 rounded border border-slate-200">Past</span>';
                             
                             return `
-                                <div class="tenant-overview-item flex items-center justify-between text-xs p-1.5 rounded-lg border ${cardBg}">
-                                    <div class="flex items-center gap-1.5 min-w-0">
-                                        <span class="text-xs flex-shrink-0">${dotColor}</span>
+                                <div class="tenant-overview-item flex items-center justify-between text-xs p-1.5 rounded-lg ${cardBg}">
+                                    <div class="flex items-center min-w-0">
                                         <span class="tenant-name ${nameClass} truncate text-xs" title="${t.name}">${t.name}</span>
-                                        ${statusBadge}
                                     </div>
                                     <span class="tenure-text text-[10px] font-mono text-slate-500 ml-2 flex-shrink-0" title="${t.subtitle || ''}">
                                         ${t.subtitle || ''}
@@ -134,28 +130,24 @@
 
             card.innerHTML = `
                 <div>
-                    <div class="flex items-start justify-between gap-2 mb-3">
-                        <h3 class="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors line-clamp-1" title="${house.name}">
-                            🏠 ${house.name}
-                        </h3>
+                    <div class="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-slate-100">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <h3 class="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors truncate" title="${house.name}">
+                                🏠 ${house.name}
+                            </h3>
+                            <span class="tenants-count text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200 flex-shrink-0">
+                                ${tenants.length} ${tenants.length === 1 ? 'Tenant' : 'Tenants'}
+                            </span>
+                        </div>
                         <span class="tenure-badge text-[10px] px-2 py-0.5 rounded border flex-shrink-0 ${badgeClass}">${badgeLabel}</span>
                     </div>
 
                     <div class="tenants-overview-section">
-                        <div class="flex items-center justify-between text-[11px] mb-2">
-                            <span class="font-bold text-slate-400 uppercase tracking-wider text-[10px] flex items-center gap-1">
-                                <span>👥</span>
-                                <span>Tenants Overview</span>
-                            </span>
-                            <span class="tenants-count text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
-                                ${tenants.length} ${tenants.length === 1 ? 'Tenant' : 'Tenants'}
-                            </span>
-                        </div>
                         ${tenantsHtml}
                     </div>
                 </div>
 
-                <div class="mt-4 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
+                <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
                     <span class="text-slate-400 text-[11px] font-medium flex items-center gap-1">
                         <span>📄 Total Archive</span>
                     </span>
