@@ -90,10 +90,12 @@ describe('Double-Click Inline Document Renaming (QCK-05)', () => {
         expect(input).not.toBeNull();
         expect(input.value).toBe('عقد إيجار شقة');
         expect(input.classList.contains('inline-rename-input')).toBe(true);
-        expect(input.classList.contains('text-sm')).toBe(true);
-        expect(input.classList.contains('px-3')).toBe(true);
-        expect(input.classList.contains('py-1.5')).toBe(true);
-        expect(input.getAttribute('dir')).toBe('auto');
+        expect(input.classList.contains('text-xs')).toBe(true);
+        expect(input.classList.contains('px-2')).toBe(true);
+        expect(input.classList.contains('py-0.5')).toBe(true);
+        expect(input.classList.contains('w-full')).toBe(true);
+        expect(input.classList.contains('min-w-0')).toBe(true);
+        expect(input.getAttribute('dir')).toBeNull();
         // Truncate removed during editing so input is not clipped
         expect(titleSpan.classList.contains('truncate')).toBe(false);
     });
@@ -240,10 +242,13 @@ describe('Double-Click Inline Document Renaming (QCK-05)', () => {
         const input = titleH4.querySelector('.inline-rename-input');
         expect(input).not.toBeNull();
         expect(input.value).toBe('إشعار صيانة قديم');
-        expect(input.classList.contains('text-sm')).toBe(true);
-        expect(input.classList.contains('px-3')).toBe(true);
-        expect(input.classList.contains('py-1.5')).toBe(true);
-        expect(input.getAttribute('dir')).toBe('auto');
+        expect(input.classList.contains('inline-rename-input')).toBe(true);
+        expect(input.classList.contains('text-xs')).toBe(true);
+        expect(input.classList.contains('px-2')).toBe(true);
+        expect(input.classList.contains('py-0.5')).toBe(true);
+        expect(input.classList.contains('w-full')).toBe(true);
+        expect(input.classList.contains('min-w-0')).toBe(true);
+        expect(input.getAttribute('dir')).toBeNull();
         // line-clamp-2 removed during editing so input is not distorted
         expect(titleH4.classList.contains('line-clamp-2')).toBe(false);
 

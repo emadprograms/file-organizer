@@ -76,7 +76,7 @@
 
         const originalTitle = doc.brief_arabic_title || doc.filename || titleEl.textContent.trim() || 'Untitled Document';
         titleEl.classList.remove('line-clamp-2');
-        titleEl.innerHTML = `<input type="text" dir="auto" class="inline-rename-input px-3 py-1.5 text-sm font-medium border-2 border-blue-500 rounded-lg bg-white text-slate-900 shadow-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 w-full min-w-0" value="${escapeHtml(originalTitle)}" />`;
+        titleEl.innerHTML = `<input type="text" class="inline-rename-input px-2 py-0.5 text-xs font-normal border border-blue-500 rounded bg-white text-slate-900 focus:outline-hidden focus:ring-1 focus:ring-blue-500 w-full min-w-0" value="${escapeHtml(originalTitle)}" />`;
 
         const input = titleEl.querySelector('.inline-rename-input');
         if (!input) return;
