@@ -199,3 +199,22 @@ def test_verification_null_state_arrays(mock_house):
         
     # With false-passes eliminated, missing document arrays in state must fail verification
     assert run_verification(mock_house) == 1
+
+def test_verification_legacy_manifest_fallback(mock_house):
+    state_file = mock_house / ".source_files" / "123_state.json"
+    with open(state_file, "r", encoding="utf-8") as f:
+        state_data = json.load(f)
+    
+    # Simulate legacy state schema: manifest is None, manifest dictionary in routed_documents
+    legacy_manifest = state_data.pop("manifest")
+    # Also omit total_input_pages to test the fallback to total_output_pages or len(manifest)
+    legacy_manifest["summary"].pop("total_input_pages", None)
+    legacy_manifest["summary"]["total_output_pages"] = 1
+    state_data["routed_documents"] = legacy_manifest
+    state_data["manifest"] = None
+
+    with open(state_file, "w", encoding="utf-8") as f:
+        json.dump(state_data, f)
+
+    assert run_verification(mock_house) == 0
+

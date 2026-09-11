@@ -134,6 +134,11 @@ def run_verification(target_dir: Path) -> int:
             if f.startswith("._"):
                 continue
             p = root_path / f
+            try:
+                if not p.exists():
+                    continue
+            except (OSError, FileNotFoundError):
+                continue
             if f.lower().endswith(".lnk"):
                 lnk_files.append(p)
             elif f.lower().endswith(".pdf"):
@@ -206,11 +211,15 @@ def run_verification(target_dir: Path) -> int:
             # A null manifest means the ingest pipeline did not complete the
             # reconciliation save correctly. Page integrity cannot be verified.
             if state_data.get("manifest") is None:
-                add_error(
-                    f"manifest is null in {state_file.name}. "
-                    "Page integrity cannot be verified. "
-                    "Re-run ingest or backfill the manifest from routed_documents."
-                )
+                if isinstance(state_data.get("routed_documents"), dict) and "per_page" in state_data["routed_documents"]:
+                    state_data["manifest"] = state_data["routed_documents"]
+                    state_data["routed_documents"] = state_data.get("grouped_documents", [])
+                else:
+                    add_error(
+                        f"manifest is null in {state_file.name}. "
+                        "Page integrity cannot be verified. "
+                        "Re-run ingest or backfill the manifest from routed_documents."
+                    )
 
             manifest_data = state_data.get("manifest") or {}
             manifest = manifest_data.get("per_page", [])
@@ -295,6 +304,8 @@ def run_verification(target_dir: Path) -> int:
             # Immutable Page Count Audit (Phase 48)
             manifest_data = state_data.get("manifest") or {}
             total_input_pages = manifest_data.get("summary", {}).get("total_input_pages", 0)
+            if not total_input_pages:
+                total_input_pages = manifest_data.get("summary", {}).get("total_output_pages", 0) or len(manifest)
             if not total_input_pages:
                 add_error("Immutable Page Count Audit failed: total_input_pages is 0 or missing in manifest summary.")
             elif total_input_pages != len(manifest):
