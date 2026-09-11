@@ -130,9 +130,9 @@ describe('House Profile & Header Archive Export', () => {
     window.renderHouseProfile(mockProfile);
 
     const docList = document.getElementById('document-list');
-    // Header should contain the section title and clean count badge (without writing 'مستأجر')
+    // Header should contain the section title and Arabic tenant count badge
     expect(docList.textContent).toContain('سجل المستأجرين المتعاقبين');
-    expect(docList.textContent).not.toContain('2 مستأجر');
+    expect(docList.textContent).toContain('2 مستأجرين');
 
     // Should NOT contain wordy boilerplate strings
     expect(docList.textContent).not.toContain('استعراض المجلدات');
@@ -215,5 +215,42 @@ describe('House Profile & Header Archive Export', () => {
     expect(cards[2].innerHTML).toContain('border-rose-300 bg-rose-100 text-rose-800');
     expect(cards[2].innerHTML).toContain('bg-rose-500');
   });
+
+  it('renders tenant count badge with Arabic noun in tenancy register header (QCK-17)', () => {
+    // 1. Multiple tenants (3 tenants) -> '3 مستأجرين'
+    const mockProfile3 = {
+      area_id: 'Area A',
+      house_id: 'House 100',
+      tenants: [
+        { name: 'Tenant 1', is_active: true, duration_category: 'short' },
+        { name: 'Tenant 2', is_active: false, duration_category: 'short' },
+        { name: 'Tenant 3', is_active: false, duration_category: 'short' }
+      ],
+      archive: { total_documents: 5, total_pages: 5, categories: [] }
+    };
+
+    window.renderHouseProfile(mockProfile3);
+
+    const badge3 = document.querySelector('.tenants-count-badge');
+    expect(badge3).not.toBeNull();
+    expect(badge3.textContent.trim()).toBe('3 مستأجرين');
+
+    // 2. Single tenant -> '1 مستأجر'
+    const mockProfile1 = {
+      area_id: 'Area A',
+      house_id: 'House 100',
+      tenants: [
+        { name: 'Tenant 1', is_active: true, duration_category: 'short' }
+      ],
+      archive: { total_documents: 1, total_pages: 1, categories: [] }
+    };
+
+    window.renderHouseProfile(mockProfile1);
+
+    const badge1 = document.querySelector('.tenants-count-badge');
+    expect(badge1).not.toBeNull();
+    expect(badge1.textContent.trim()).toBe('1 مستأجر');
+  });
 });
+
 
