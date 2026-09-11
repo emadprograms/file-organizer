@@ -4,9 +4,9 @@ milestone: v14.0
 milestone_name: Power-User Operations & Portfolio Expansion
 current_phase: 108 (All Complete)
 status: completed
-last_updated: "2026-09-11T07:15:00.000Z"
+last_updated: "2026-09-11T08:15:00.000Z"
 last_activity: 2026-09-11
-last_activity_desc: "Completed Quick Task QCK-09 (260911-doc-menu-dropdown-and-folder-date): Replaced heavy #doc-action-modal on 3-dots click with sleek floating dropdown menu (Rename, Move, Copy, Show in Timeline, Delete), added document date badge with light gray background before 3 dots in folders section, and wired smooth timeline navigation with pulse highlight. 126 Vitest tests across 11 files, 84 xUnit tests, and 30 Pytest tests passing; zero static asset diff."
+last_activity_desc: "Completed Quick Tasks QCK-10 (Category Folder Circular Count Badge & Refined Document Date Sizing) and QCK-11 (Category-Specific Folder Icons for 01-13 & Empty Folder for 14+). 133 Vitest tests across 12 files, 84 xUnit tests, and 30 Pytest tests passing; zero static asset diff."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -57,13 +57,15 @@ Equip the digital archive management system with power-user operational tools: o
 - `260911-streamline-export-modal-and-remove-batch-emojis`: Streamline Export Options Modal & Remove Batch Button Emojis (QCK-07). Stripped verbose explanatory paragraphs from `#export-archive-modal` in favor of intuitive visual hierarchy (`📦 ZIP` with `مجلدات • Folders`, `📄 PDF` with `تسلسل زمني • Timeline`, `🏛️ كامل السجل • All Records`, `Cancel`, `⬇️ Download`). Polished `#batch-action-bar` by removing distracting emojis (`📁`, `📋`, `🗑️`) from Move, Copy, and Delete while retaining `✕` on Deselect. 109 Vitest tests across 10 files, 84 .NET xUnit tests, and 28 Python pytest tests passing; zero static asset diff.
 - `260911-batch-tenant-selection-and-remove-copy-note`: Batch Tenant Selection in Move/Copy Modals & Remove Copy Note (QCK-08). Removed explanatory amber note from `#batch-copy-modal`. Added `#batch-move-tenant-select` and `#batch-copy-tenant-select` defaulting to Same Tenant (`🏛️ المستأجر الحالي للوثيقة • Same Tenant`), with dynamic tenant options (`🟢 ` active vs `👤 ` past and year tags). Supported optional `target_tenant_id` across FastAPI (`BatchMoveRequest`, `BatchCopyRequest`, `repo.batch_copy_documents`) and ASP.NET Core (`BatchMoveRequestDto`, `BatchCopyRequestDto`, `BatchMoveDocumentsAsync`, `BatchCopyDocumentsAsync`). 113 Vitest tests across 10 files (including 14 batch tests), 84 xUnit tests, and 30 Python pytest tests passing; zero static asset diff.
 - `260911-doc-menu-dropdown-and-folder-date`: Document 3-Dots Dropdown Action Menu & Folders Section Document Date Badge (QCK-09). Replaced heavy `#doc-action-modal` on 3-dots button click with a floating context menu containing 5 actions (Rename Document, Move Document, Copy Document, Show in Timeline, Delete Document). Added an always-visible document date badge with light gray background (`doc-date-badge bg-slate-100 text-slate-500 font-mono text-[10px]`) immediately before the 3-dots button in the Folders / Categories section. Wired smooth scrolling and pulse highlighting (`ring-4 ring-blue-500 bg-blue-50`) to target document when selecting Show in Timeline. 126 Vitest tests across 11 files (including 13 in `doc_dropdown_and_date.test.js`), 84 .NET xUnit tests, and 30 Python pytest tests passing; zero static asset diff.
+- `260911-category-doc-count-circle-and-smaller-doc-date`: Category Folder Circular Document Count Badge & Refined Document Date Sizing (QCK-10). Replaced folder header card document count text badge with a sleek circular count badge (`min-w-[20px] h-5 rounded-full`) showing just the count number inside a circle with tooltip. Refined document date badge on document rows to `text-[9px] font-mono tracking-tight`, freeing ~12-15px horizontal width per row to prevent document name truncation while keeping date clean and legible. 128 Vitest tests across 11 files, 84 .NET xUnit tests, and 30 Python pytest tests passing; zero static asset diff.
+- `260911-fdi-folder-specific-icons-for-categories-01-`: Category-Specific Folder Icons (01-13) & Empty Folder for Custom (14+) (QCK-11). Implemented distinct, descriptive Heroicons outline icons for each standard category 01 through 13 in Folders view with automatic fallback to empty folder icon for custom categories (14+). 133 Vitest tests across 12 files, 84 xUnit tests, and 30 Pytest tests passing; zero static asset diff.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-11 — Completed Quick Task QCK-09 (Document 3-Dots Dropdown Menu & Folders Date Badge). Verified by 84 xUnit, 17 v14 pytest, 13 doc management, 126 Vitest across 11 files, and Playwright E2E suites.
+Last activity: 2026-09-11 — Completed Quick Tasks QCK-10 and QCK-11. Verified by 84 xUnit, 17 v14 pytest, 13 doc management, 133 Vitest across 12 files, and Playwright E2E suites.
 
 ## Operator Next Steps
 

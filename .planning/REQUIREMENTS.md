@@ -71,11 +71,17 @@ Equip the digital archive management system with power-user operational tools: o
   - **Action Item Suite**: 5 direct action buttons: Rename Document (triggers inline rename), Move Document (`openBatchMoveForDoc`), Copy Document (`openBatchCopyForDoc`), Show in Timeline, and Delete Document (`handleDeleteSingleDoc`).
   - **Timeline Navigation**: "Show in Timeline" action switches active tab to Timeline, clears any conflicting tenant filter, smoothly scrolls the target document card to center viewport, and pulses blue highlight (`ring-4 ring-blue-500 bg-blue-50`).
   - **Folders Section Document Date Badge**: Always-visible document date badge with light gray background (`doc-date-badge bg-slate-100 text-slate-500 text-[10px] font-mono`) rendered directly before the 3-dots button in the Folders / Categories section (`categories-view.js`), showing document date with fallback to `No Date`.
+- [x] **QCK-10**: Category Folder Circular Document Count Badge & Refined Document Date Sizing:
+  - **Circular Document Count Badge**: Replaced the verbose `"${cat.document_count} Documents"` pill on folder header cards in `categories-view.js` with a sleek circular count badge (`min-w-[20px] h-5 rounded-full`) rendering just the count number inside a circle, equipped with accessibility tooltip (`title="${count} Documents"`).
+  - **Refined Document Date Badge Sizing**: Reduced font size of `.doc-date-badge` on document rows in Categories view to `text-[9px] font-mono tracking-tight`, freeing ~12-15px horizontal width per row to prevent document name truncation while maintaining crisp legibility.
+- [x] **QCK-11**: Category-Specific Folder Icons & Empty Folder for Custom Categories:
+  - **Descriptive Standard Icons**: Implemented unique, semantic Heroicons outline icons for categories 01 through 13 in Folders view (`FOLDER_ICONS`, `.folder-icon-box`, `getFolderIconSvg`), representing property, tenant profile, allocation, key handover, contracts, utilities, salary deductions, stop deduction, notices, maintenance, inspections, alterations, and letters.
+  - **Empty Folder for Custom**: Automatically uses the clean empty folder icon for custom user-created folders (14+).
 - [x] **VER-07**: Comprehensive multi-stack test suite covering all capabilities across Python and .NET:
   - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
   - 17 Python v14 pytest tests (`tests/test_v14_features.py`).
   - 13 Python document management tests (`tests/test_document_management_api.py`).
-  - 126 Frontend Vitest tests across 11 files (`npm run test:frontend`, including 13 in `doc_dropdown_and_date.test.js`).
+  - 133 Frontend Vitest tests across 12 files (`npm run test:frontend`, including 14 in `doc_dropdown_and_date.test.js` and 5 in `categories_folder_icons.test.js`).
   - 49 Playwright E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 
@@ -98,5 +104,7 @@ Equip the digital archive management system with power-user operational tools: o
 | **QCK-06** | Relocation of Export Archive button to Document Panel header & removal of bottom archive summary | Phase 105 / QCK-06 | Complete | `tests/frontend/components/house_profile.test.js`, `tests/frontend/components/export_archive_modal.test.js`, `tests/frontend/test_house_register.py` |
 | **QCK-07** | Streamline export modal to intuitive visual-first layout & remove emojis from batch buttons | Phase 105 / QCK-07 | Complete | `tests/frontend/components/export_archive_modal.test.js` (5 tests), `tests/frontend/components/batch_operations.test.js` (14 tests), zero static diff |
 | **QCK-08** | Batch Tenant Selection in Move/Copy Modals & Remove Copy Note | Phase 106 / QCK-08 | Complete | `tests/frontend/components/batch_operations.test.js` (14 tests), `tests/test_v14_features.py` (`test_batch_move_with_target_tenant`, `test_batch_copy_with_target_tenant`), `ApiEndpointTests.cs`, zero static diff |
-| **QCK-09** | Document 3-Dots Dropdown Action Menu & Folders Section Document Date Badge | Phase 108 / QCK-09 | Complete | `tests/frontend/components/doc_dropdown_and_date.test.js` (13 tests), `src/api/static/js/doc-manager.js`, `src/api/static/js/categories-view.js`, `src/api/static/js/timeline-view.js`, zero static diff |
-| **VER-07** | Comprehensive multi-stack automated testing suite (Pytest, Vitest, Playwright, xUnit) | Phase 108 | Complete | 288+ automated tests passing across 4 test runners (84 xUnit, 17 v14 pytest, 13 doc management, 126 Vitest across 11 files, 49 Playwright); zero static asset diff. |
+| **QCK-09** | Document 3-Dots Dropdown Action Menu & Folders Section Document Date Badge | Phase 108 / QCK-09 | Complete | `tests/frontend/components/doc_dropdown_and_date.test.js` (14 tests), `src/api/static/js/doc-manager.js`, `src/api/static/js/categories-view.js`, `src/api/static/js/timeline-view.js`, zero static diff |
+| **QCK-10** | Category Folder Circular Document Count Badge & Refined Document Date Sizing | Phase 108 / QCK-10 | Complete | `tests/frontend/components/doc_dropdown_and_date.test.js` (14 tests), `src/api/static/js/categories-view.js`, zero static diff |
+| **QCK-11** | Category-Specific Folder Icons (01-13 descriptive, 14+ empty folder) | Phase 108 / QCK-11 | Complete | `tests/frontend/components/categories_folder_icons.test.js` (5 tests), `src/api/static/js/categories-view.js`, zero static diff |
+| **VER-07** | Comprehensive multi-stack automated testing suite (Pytest, Vitest, Playwright, xUnit) | Phase 108 | Complete | 295+ automated tests passing across 4 test runners (84 xUnit, 17 v14 pytest, 13 doc management, 133 Vitest across 12 files, 49 Playwright); zero static asset diff. |

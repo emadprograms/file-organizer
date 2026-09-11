@@ -27,6 +27,8 @@
 - [x] Quick Refinement QCK-07: Streamline Export Modal to Intuitive Visual-First Layout & Remove Batch Button Emojis (`📁`, `📋`, `🗑️` removed, `✕ Deselect` preserved) — completed 2026-09-11
 - [x] Quick Refinement QCK-08: Batch Tenant Selection in Move/Copy Modals & Remove Copy Note (Dropdown defaulting to Same Tenant, dynamic tenant loading, note removal, dual-backend support) — completed 2026-09-11
 - [x] Quick Refinement QCK-09: Document 3-Dots Dropdown Action Menu & Folders Section Document Date Badge (Floating context menu with Rename, Move, Copy, Show in Timeline, Delete; always-visible date badge in folders; timeline navigation with smooth scroll & highlight) — completed 2026-09-11
+- [x] Quick Refinement QCK-10: Category Folder Circular Document Count Badge & Refined Document Date Sizing (Circular count badge on folder headers; text-[9px] tracking-tight date badge on document rows) — completed 2026-09-11
+- [x] Quick Refinement QCK-11: Category-Specific Folder Icons (01-13) & Empty Folder for Custom (14+) (Semantic Heroicons for 01-13; empty folder for 14+) — completed 2026-09-11
 
 <details>
 <summary>✅ v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server (Phases 101-104) — SHIPPED 2026-09-09</summary>

@@ -134,7 +134,8 @@ def test_tabs_switch_and_load_data(page: Page):
     # Should now switch to Folders and load categories
     expect(page.locator("#tab-categories-label")).to_contain_text("Folders", timeout=5000)
     expect(page.locator("#document-list")).to_contain_text("10 - Category A", timeout=5000)
-    expect(page.locator("#document-list")).to_contain_text("2 Documents", timeout=5000)
+    expect(page.locator(".category-folder-card", has_text="10 - Category A").locator(".doc-count-badge")).to_contain_text("2", timeout=5000)
+    expect(page.locator(".category-folder-card", has_text="10 - Category A").locator(".folder-icon-box")).to_be_visible()
     assert any("/categories" in u for u in captured)
     
     # Click to expand the category

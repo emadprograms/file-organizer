@@ -2,10 +2,16 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 9 quick refinements (QCK-01, QCK-02, QCK-03, QCK-04, QCK-05, QCK-06, QCK-07, QCK-08, QCK-09), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 17 v14 pytest, 13 doc management, 126 Vitest across 11 files, 49 Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 11 quick refinements (QCK-01 through QCK-11), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 17 v14 pytest, 13 doc management, 133 Vitest across 12 files, 49 Playwright E2E)
 
 **Key accomplishments:**
 
+- **Category-Specific Folder Icons (01-13) & Empty Folder for Custom Categories (Quick Refinement QCK-11):**
+  - Implemented distinct, descriptive Heroicons outline icons for each standard category 01 through 13 in Folders view (`FOLDER_ICONS`, `.folder-icon-box`, `getFolderIconSvg`), while retaining the clean empty folder icon for custom folders (14+).
+  - Added 5 unit tests in `tests/frontend/components/categories_folder_icons.test.js` validating prefix matching, Arabic name resolution, fallback, and DOM rendering.
+- **Category Folder Circular Document Count Badge & Refined Document Date Sizing (Quick Refinement QCK-10):**
+  - Replaced folder header card document count text badge with a sleek circular count badge (`.doc-count-badge min-w-[20px] h-5 rounded-full`) showing just the count number inside a circle with tooltip.
+  - Refined document date badge on document rows in Categories view to `text-[9px] font-mono tracking-tight`, freeing ~12-15px horizontal width per row to prevent document name truncation while keeping date clean and legible.
 - **Document 3-Dots Dropdown Action Menu & Folders Date Badge (Quick Refinement QCK-09):**
   - Replaced the large Document Action Modal (`#doc-action-modal`) when clicking the 3-dots button (`.doc-menu-btn`) with a compact, floating context menu anchored to the button with bounds checking and Escape/outside-click dismissal.
   - Provided 5 direct action buttons: Rename Document (triggers inline rename), Move Document (`openBatchMoveForDoc`), Copy Document (`openBatchCopyForDoc`), Show in Timeline, and Delete Document (`handleDeleteSingleDoc`).

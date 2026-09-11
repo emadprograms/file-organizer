@@ -16,6 +16,70 @@
         "رسائل متنوعة": "13"
     };
 
+    const EMPTY_FOLDER_SVG = `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>`;
+
+    const FOLDER_ICONS = {
+        // 01 - بيانات أساسية: Property/Home icon (base master data)
+        "01": `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>`,
+        // 02 - بيانات شخصية: User profile icon (personal identity & civil data)
+        "02": `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>`,
+        // 03 - أمر تخصيص: Official decree clipboard check / allocation certificate
+        "03": `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>`,
+        // 04 - محضر تسليم مفتاح: Key icon (key handover & receipt record)
+        "04": `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>`,
+        // 05 - عقود: Contract / legal document text icon
+        "05": `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>`,
+        // 06 - كهرباء وماء: Lightning bolt utility icon (electricity & water)
+        "06": `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
+        // 07 - استقطاع إيجار: Banknote / cash deduction icon
+        "07": `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"/></svg>`,
+        // 08 - وقف استقطاع بدل: Stop / ban deduction icon
+        "08": `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>`,
+        // 09 - إشعارات: Notification bell icon
+        "09": `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>`,
+        // 10 - صيانة: Maintenance wrench icon
+        "10": `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>`,
+        // 11 - صور ومعاينات: Camera photos & inspection icon
+        "11": `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
+        // 12 - تعديلات: Edit pencil / renovation alteration icon
+        "12": `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>`,
+        // 13 - رسائل متنوعة: Mail / correspondence envelope icon
+        "13": `<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>`
+    };
+
+    function getFolderIconSvg(name) {
+        if (!name) return EMPTY_FOLDER_SVG;
+        const clean = String(name).trim();
+
+        // 1. Check numeric prefix (e.g., "01 - ...", "05 - ...", "14 - ...")
+        const match = clean.match(/^(\d+)\s*-\s*(.+)$/);
+        if (match) {
+            const num = parseInt(match[1], 10);
+            if (num >= 1 && num <= 13) {
+                const key = String(num).padStart(2, '0');
+                if (FOLDER_ICONS[key]) return FOLDER_ICONS[key];
+            } else {
+                // 14 onwards: user custom folder -> empty folder icon
+                return EMPTY_FOLDER_SVG;
+            }
+        }
+
+        // 2. Check if clean name matches standard categories (without prefix)
+        if (FOLDER_PREFIXES[clean]) {
+            const key = FOLDER_PREFIXES[clean];
+            if (FOLDER_ICONS[key]) return FOLDER_ICONS[key];
+        }
+
+        for (const [folderName, prefix] of Object.entries(FOLDER_PREFIXES)) {
+            if (clean.endsWith(folderName) || clean.includes(folderName)) {
+                if (FOLDER_ICONS[prefix]) return FOLDER_ICONS[prefix];
+            }
+        }
+
+        // Custom folder (14 onwards or unlisted custom name)
+        return EMPTY_FOLDER_SVG;
+    }
+
     const selectedDocIds = new Set();
 
     function escapeHtml(str) {
@@ -1065,18 +1129,20 @@
                 ? `<button type="button" class="btn-select-all-folder text-[10px] font-medium text-slate-500 hover:text-blue-600 px-2 py-0.5 rounded-lg hover:bg-slate-100 border border-slate-200 transition-colors cursor-pointer flex-shrink-0" title="Select / Deselect all in this folder">${allFolderDocsSelected ? 'Deselect All' : 'Select All'}</button>`
                 : '';
 
+            const folderIconSvg = getFolderIconSvg(cat.name);
+
             card.innerHTML = `
                 <div class="flex justify-between items-center">
                     <div class="flex items-center gap-2 min-w-0">
-                        <div class="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center flex-shrink-0">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                        <div class="folder-icon-box w-6 h-6 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center flex-shrink-0" data-category="${escapeHtml(cat.name)}">
+                            ${folderIconSvg}
                         </div>
                         <h4 class="text-xs font-semibold text-slate-800 truncate">${escapeHtml(cat.name)}</h4>
                     </div>
                     <div class="flex items-center gap-1.5 flex-shrink-0">
                         ${noteFolderBadge}
                         ${selectAllFolderBtn}
-                        <span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-[10px] font-bold border border-slate-200 flex-shrink-0">${cat.document_count} Documents</span>
+                        <span class="doc-count-badge min-w-[20px] h-5 px-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200 flex items-center justify-center flex-shrink-0 select-none" title="${cat.document_count} ${cat.document_count === 1 ? 'Document' : 'Documents'}">${cat.document_count}</span>
                         ${deleteFolderBtn}
                     </div>
                 </div>
@@ -1124,7 +1190,7 @@
                             ${noteBadge}
                         </div>
                         <div class="flex items-center gap-1 flex-shrink-0">
-                            <span class="doc-date-badge text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/70 flex-shrink-0 select-none" title="Document Date: ${escapeHtml(docDate)}">${escapeHtml(docDate)}</span>
+                            <span class="doc-date-badge text-[9px] font-mono tracking-tight text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/70 flex-shrink-0 select-none" title="Document Date: ${escapeHtml(docDate)}">${escapeHtml(docDate)}</span>
                             <button type="button" class="doc-menu-btn opacity-0 group-hover/doc:opacity-100 p-1 hover:bg-blue-100 rounded text-slate-400 hover:text-slate-700 transition-opacity" data-vault-id="${escapeHtml(doc.vault_id)}" title="Manage Document">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
                             </button>
@@ -1268,6 +1334,9 @@
         window.loadCategories = loadCategories;
         window.renderCategories = renderCategories;
         window.FOLDER_PREFIXES = FOLDER_PREFIXES;
+        window.FOLDER_ICONS = FOLDER_ICONS;
+        window.EMPTY_FOLDER_SVG = EMPTY_FOLDER_SVG;
+        window.getFolderIconSvg = getFolderIconSvg;
         window.selectedDocIds = selectedDocIds;
         window.getSelectedDocIds = getSelectedDocIds;
         window.toggleDocSelection = toggleDocSelection;
@@ -1303,6 +1372,9 @@
             openBatchMoveForDoc,
             openBatchCopyForDoc,
             FOLDER_PREFIXES,
+            FOLDER_ICONS,
+            EMPTY_FOLDER_SVG,
+            getFolderIconSvg,
             selectedDocIds,
             getSelectedDocIds,
             toggleDocSelection,

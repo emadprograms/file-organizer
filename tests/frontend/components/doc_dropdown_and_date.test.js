@@ -268,6 +268,8 @@ describe('Document 3-Dots Dropdown Menu & Categories Date Badge', () => {
             expect(dateBadge1.textContent.trim()).toBe('2024-03-20');
             expect(dateBadge1.className).toContain('bg-slate-100');
             expect(dateBadge1.className).toContain('text-slate-500');
+            expect(dateBadge1.className).toContain('text-[9px]');
+            expect(dateBadge1.className).toContain('tracking-tight');
 
             // Check that date badge directly precedes 3-dots button
             const menuBtn1 = docRow1.querySelector('.doc-menu-btn');
@@ -280,6 +282,29 @@ describe('Document 3-Dots Dropdown Menu & Categories Date Badge', () => {
             const dateBadge2 = docRow2.querySelector('.doc-date-badge');
             expect(dateBadge2).not.toBeNull();
             expect(dateBadge2.textContent.trim()).toBe('No Date');
+        });
+
+        it('renders circular document count badge on category folder header with count and tooltip', () => {
+            const testCats = [
+                {
+                    name: '01 - عقود وإيجارات',
+                    document_count: 2,
+                    documents: [
+                        { vault_id: 'doc_1', brief_arabic_title: 'Doc 1' },
+                        { vault_id: 'doc_2', brief_arabic_title: 'Doc 2' }
+                    ]
+                }
+            ];
+            window.currentCategories = testCats;
+            global.currentCategories = testCats;
+
+            renderCategories();
+
+            const countBadge = document.querySelector('.doc-count-badge');
+            expect(countBadge).not.toBeNull();
+            expect(countBadge.textContent.trim()).toBe('2');
+            expect(countBadge.className).toContain('rounded-full');
+            expect(countBadge.getAttribute('title')).toBe('2 Documents');
         });
 
         it('clicking 3-dots button in categories view calls openDocDropdownMenu instead of modal', () => {
