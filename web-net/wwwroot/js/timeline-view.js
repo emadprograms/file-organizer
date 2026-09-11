@@ -288,7 +288,9 @@
                     if (typeof window.cancelPeek === 'function') {
                         window.cancelPeek();
                     }
-                    if (typeof window.openDocModal === 'function') {
+                    if (typeof window.openDocDropdownMenu === 'function') {
+                        window.openDocDropdownMenu(e, doc, doc.category, menuBtn);
+                    } else if (typeof window.openDocModal === 'function') {
                         window.openDocModal(doc, doc.category);
                     }
                 };

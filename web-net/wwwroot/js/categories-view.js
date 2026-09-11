@@ -510,6 +510,32 @@
         }
     }
 
+    function openBatchMoveForDoc(doc) {
+        if (!doc || !doc.vault_id) return;
+        selectedDocIds.clear();
+        selectedDocIds.add(doc.vault_id);
+        updateBatchActionBar();
+        if (typeof document !== 'undefined') {
+            document.querySelectorAll('.doc-select-checkbox').forEach(cb => {
+                cb.checked = (cb.dataset.vaultId === doc.vault_id);
+            });
+        }
+        openBatchMoveModal();
+    }
+
+    function openBatchCopyForDoc(doc) {
+        if (!doc || !doc.vault_id) return;
+        selectedDocIds.clear();
+        selectedDocIds.add(doc.vault_id);
+        updateBatchActionBar();
+        if (typeof document !== 'undefined') {
+            document.querySelectorAll('.doc-select-checkbox').forEach(cb => {
+                cb.checked = (cb.dataset.vaultId === doc.vault_id);
+            });
+        }
+        openBatchCopyModal();
+    }
+
     function openBatchDeleteModal() {
         if (selectedDocIds.size === 0) return;
         const modal = document.getElementById('batch-delete-modal');
@@ -978,6 +1004,8 @@
                     const isManual = Boolean(doc.is_manual);
                     const lockIcon = isManual ? '<span title="Manually assigned - protected from auto-reallocation" class="text-[10px] text-amber-600 flex-shrink-0">🔒</span>' : '';
                     const isChecked = selectedDocIds.has(doc.vault_id);
+                    const rawDate = doc.date || (doc.dates && doc.dates[0]) || doc.primary_date || '';
+                    const docDate = (rawDate && rawDate !== 'NONE' && rawDate !== 'null') ? rawDate : 'No Date';
 
                     docEl.innerHTML = `
                         <div class="flex items-center gap-2 min-w-0 flex-1">
@@ -990,7 +1018,8 @@
                             ${noteBadge}
                         </div>
                         <div class="flex items-center gap-1 flex-shrink-0">
-                            <button type="button" class="doc-menu-btn opacity-0 group-hover/doc:opacity-100 p-1 hover:bg-blue-100 rounded text-slate-400 hover:text-slate-700 transition-opacity" data-vault-id="${escapeHtml(doc.vault_id)}" title="Manage Document (Rename, Move, Copy)">
+                            <span class="doc-date-badge text-[10px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/70 flex-shrink-0 select-none" title="Document Date: ${escapeHtml(docDate)}">${escapeHtml(docDate)}</span>
+                            <button type="button" class="doc-menu-btn opacity-0 group-hover/doc:opacity-100 p-1 hover:bg-blue-100 rounded text-slate-400 hover:text-slate-700 transition-opacity" data-vault-id="${escapeHtml(doc.vault_id)}" title="Manage Document">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
                             </button>
                         </div>
@@ -1049,7 +1078,9 @@
                             if (typeof window !== 'undefined' && typeof window.cancelPeek === 'function') {
                                 window.cancelPeek();
                             }
-                            if (typeof window !== 'undefined' && typeof window.openDocModal === 'function') {
+                            if (typeof window !== 'undefined' && typeof window.openDocDropdownMenu === 'function') {
+                                window.openDocDropdownMenu(e, doc, cat.name, menuBtn);
+                            } else if (typeof window !== 'undefined' && typeof window.openDocModal === 'function') {
                                 window.openDocModal(doc, cat.name);
                             }
                         };
@@ -1149,6 +1180,8 @@
         window.closeBatchDeleteModal = closeBatchDeleteModal;
         window.handleBatchDeleteSubmit = handleBatchDeleteSubmit;
         window.initBatchOperations = initBatchOperations;
+        window.openBatchMoveForDoc = openBatchMoveForDoc;
+        window.openBatchCopyForDoc = openBatchCopyForDoc;
         window.handleInlineRename = handleInlineRename;
     }
 
@@ -1157,6 +1190,8 @@
             loadCategories,
             renderCategories,
             handleInlineRename,
+            openBatchMoveForDoc,
+            openBatchCopyForDoc,
             FOLDER_PREFIXES,
             selectedDocIds,
             getSelectedDocIds,

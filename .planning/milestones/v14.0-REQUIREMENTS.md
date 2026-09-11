@@ -66,11 +66,16 @@ Equip the digital archive management system with power-user operational tools: o
   - **Modal Button Polish**: Cleaned confirm button labels to `Move Documents` and `Copy Documents`.
   - **Dynamic Tenant Population**: `populateBatchTenantSelect` queries active house tenants from `/api/areas/{area}/houses/{house}/tenants` with active indicator (`🟢 ` active vs `👤 ` past) and lease year tags, gracefully falling back to distinct tenants in `currentCategories` in static or offline scenarios.
   - **Dual-Backend Support**: Added `target_tenant_id: Optional[int] = None` to `BatchMoveRequest` / `BatchCopyRequest` in FastAPI and `BatchMoveRequestDto` / `BatchCopyRequestDto` in ASP.NET Core; updates `tenant_id` when supplied and preserves existing tenancy when omitted; batch copy sets duplicate document's `tenant_id = target_tenant_id ?? src.tenant_id`.
+- [x] **QCK-09**: Document 3-Dots Dropdown Action Menu & Folders Section Document Date Badge:
+  - **Floating Context Menu**: Replaced heavy `#doc-action-modal` on 3-dots button click (`.doc-menu-btn`) with a compact, floating context menu (`.doc-dropdown-menu`) anchored to the trigger button with boundary clamping and Escape / outside-click dismissal.
+  - **Action Item Suite**: 5 direct action buttons: Rename Document (triggers inline rename), Move Document (`openBatchMoveForDoc`), Copy Document (`openBatchCopyForDoc`), Show in Timeline, and Delete Document (`handleDeleteSingleDoc`).
+  - **Timeline Navigation**: "Show in Timeline" action switches active tab to Timeline, clears any conflicting tenant filter, smoothly scrolls the target document card to center viewport, and pulses blue highlight (`ring-4 ring-blue-500 bg-blue-50`).
+  - **Folders Section Document Date Badge**: Always-visible document date badge with light gray background (`doc-date-badge bg-slate-100 text-slate-500 text-[10px] font-mono`) rendered directly before the 3-dots button in the Folders / Categories section (`categories-view.js`), showing document date with fallback to `No Date`.
 - [x] **VER-07**: Comprehensive multi-stack test suite covering all capabilities across Python and .NET:
   - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
   - 17 Python v14 pytest tests (`tests/test_v14_features.py`).
   - 13 Python document management tests (`tests/test_document_management_api.py`).
-  - 113 Frontend Vitest tests across 10 files (`npm run test:frontend`).
+  - 126 Frontend Vitest tests across 11 files (`npm run test:frontend`, including 13 in `doc_dropdown_and_date.test.js`).
   - 49 Playwright E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 
@@ -93,4 +98,5 @@ Equip the digital archive management system with power-user operational tools: o
 | **QCK-06** | Relocation of Export Archive button to Document Panel header & removal of bottom archive summary | Phase 105 / QCK-06 | Complete | `tests/frontend/components/house_profile.test.js`, `tests/frontend/components/export_archive_modal.test.js`, `tests/frontend/test_house_register.py` |
 | **QCK-07** | Streamline export modal to intuitive visual-first layout & remove emojis from batch buttons | Phase 105 / QCK-07 | Complete | `tests/frontend/components/export_archive_modal.test.js` (5 tests), `tests/frontend/components/batch_operations.test.js` (14 tests), zero static diff |
 | **QCK-08** | Batch Tenant Selection in Move/Copy Modals & Remove Copy Note | Phase 106 / QCK-08 | Complete | `tests/frontend/components/batch_operations.test.js` (14 tests), `tests/test_v14_features.py` (`test_batch_move_with_target_tenant`, `test_batch_copy_with_target_tenant`), `ApiEndpointTests.cs`, zero static diff |
-| **VER-07** | Comprehensive multi-stack automated testing suite (Pytest, Vitest, Playwright, xUnit) | Phase 108 | Complete | 275+ automated tests passing across 4 test runners (84 xUnit, 17 v14 pytest, 13 doc management, 113 Vitest, 49 Playwright); zero static asset diff. |
+| **QCK-09** | Document 3-Dots Dropdown Action Menu & Folders Section Document Date Badge | Phase 108 / QCK-09 | Complete | `tests/frontend/components/doc_dropdown_and_date.test.js` (13 tests), `src/api/static/js/doc-manager.js`, `src/api/static/js/categories-view.js`, `src/api/static/js/timeline-view.js`, zero static diff |
+| **VER-07** | Comprehensive multi-stack automated testing suite (Pytest, Vitest, Playwright, xUnit) | Phase 108 | Complete | 288+ automated tests passing across 4 test runners (84 xUnit, 17 v14 pytest, 13 doc management, 126 Vitest across 11 files, 49 Playwright); zero static asset diff. |

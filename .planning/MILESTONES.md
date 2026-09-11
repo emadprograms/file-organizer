@@ -2,10 +2,16 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 8 quick refinements (QCK-01, QCK-02, QCK-03, QCK-04, QCK-05, QCK-06, QCK-07, QCK-08), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 17 v14 pytest, 13 doc management, 113 Vitest across 10 files, 49 Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 9 quick refinements (QCK-01, QCK-02, QCK-03, QCK-04, QCK-05, QCK-06, QCK-07, QCK-08, QCK-09), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 17 v14 pytest, 13 doc management, 126 Vitest across 11 files, 49 Playwright E2E)
 
 **Key accomplishments:**
 
+- **Document 3-Dots Dropdown Action Menu & Folders Date Badge (Quick Refinement QCK-09):**
+  - Replaced the large Document Action Modal (`#doc-action-modal`) when clicking the 3-dots button (`.doc-menu-btn`) with a compact, floating context menu anchored to the button with bounds checking and Escape/outside-click dismissal.
+  - Provided 5 direct action buttons: Rename Document (triggers inline rename), Move Document (`openBatchMoveForDoc`), Copy Document (`openBatchCopyForDoc`), Show in Timeline, and Delete Document (`handleDeleteSingleDoc`).
+  - Added Show in Timeline navigation that switches active tab to Timeline, clears conflicting tenant filters, smoothly scrolls target card to center viewport, pulses blue highlight (`ring-4 ring-blue-500 bg-blue-50`), and selects the document.
+  - Added an always-visible document date badge with light gray background (`doc-date-badge bg-slate-100 text-slate-500 text-[10px] font-mono`) in the Folders / Categories section immediately preceding the 3-dots button.
+  - Comprehensive unit test suite (`tests/frontend/components/doc_dropdown_and_date.test.js`) with 13 automated tests covering dropdown lifecycle, actions, date badge rendering, and timeline navigation.
 - **Batch Tenant Selection & Remove Copy Note (Quick Refinement QCK-08):**
   - Removed confusing amber explanatory note from `#batch-copy-modal` without replacement.
   - Added Target Tenant selector (`المستأجر • Target Tenant`) to both Move Selected (`#batch-move-tenant-select`) and Copy Selected (`#batch-copy-tenant-select`) modals, defaulting to `🏛️ المستأجر الحالي للوثيقة • Same Tenant`.

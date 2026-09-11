@@ -581,9 +581,268 @@
         }
     }
 
+    // ── Floating 3-Dots Action Dropdown Menu ────────────────────────────────
+    let activeDocDropdown = null;
+    let activeMenuCleanup = null;
+
+    function closeDocDropdownMenu() {
+        if (activeMenuCleanup) {
+            activeMenuCleanup();
+            activeMenuCleanup = null;
+        }
+        activeDocDropdown = null;
+    }
+
+    function openDocDropdownMenu(e, doc, currentCategory, triggerBtn) {
+        if (e) {
+            if (typeof e.stopPropagation === 'function') e.stopPropagation();
+            if (typeof e.preventDefault === 'function') e.preventDefault();
+        }
+        if (!doc || !triggerBtn) return;
+
+        // Toggle: if clicking the trigger of the already open menu, close it
+        if (activeDocDropdown && activeDocDropdown.triggerBtn === triggerBtn) {
+            closeDocDropdownMenu();
+            return;
+        }
+
+        closeDocDropdownMenu();
+
+        const menu = document.createElement('div');
+        menu.className = 'doc-dropdown-menu fixed z-50 bg-white rounded-xl shadow-xl border border-slate-200 py-1 min-w-[190px] text-xs font-sans animate-in fade-in zoom-in-95 duration-100';
+        menu.setAttribute('role', 'menu');
+
+        menu.innerHTML = `
+            <button type="button" class="doc-menu-item-rename w-full px-3.5 py-2 text-left flex items-center gap-2.5 font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer">
+                <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                <span>Rename Document</span>
+            </button>
+            <button type="button" class="doc-menu-item-move w-full px-3.5 py-2 text-left flex items-center gap-2.5 font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer">
+                <svg class="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 13l3-3m0 0l-3-3m3 3H9"/></svg>
+                <span>Move Document</span>
+            </button>
+            <button type="button" class="doc-menu-item-copy w-full px-3.5 py-2 text-left flex items-center gap-2.5 font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer">
+                <svg class="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
+                <span>Copy Document</span>
+            </button>
+            <button type="button" class="doc-menu-item-timeline w-full px-3.5 py-2 text-left flex items-center gap-2.5 font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer">
+                <svg class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>Show in Timeline</span>
+            </button>
+            <hr class="my-1 border-slate-100" />
+            <button type="button" class="doc-menu-item-delete w-full px-3.5 py-2 text-left flex items-center gap-2.5 font-medium text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer">
+                <svg class="w-3.5 h-3.5 text-rose-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                <span>Delete Document</span>
+            </button>
+        `;
+
+        const btnRename = menu.querySelector('.doc-menu-item-rename');
+        if (btnRename) {
+            btnRename.onclick = (ev) => {
+                ev.stopPropagation();
+                closeDocDropdownMenu();
+                const card = triggerBtn.closest('[data-vault-id]') || document.querySelector(`[data-vault-id="${doc.vault_id}"]`);
+                const titleEl = card ? card.querySelector('.doc-title-text') : null;
+                if (titleEl) {
+                    const area = getResolvedArea(doc);
+                    const house = getResolvedHouse(doc);
+                    const isTimeline = Boolean(card.closest('#document-list'));
+                    if (isTimeline && typeof window.handleInlineRenameTimeline === 'function') {
+                        window.handleInlineRenameTimeline(null, doc, titleEl, area, house);
+                    } else if (typeof window.handleInlineRename === 'function') {
+                        window.handleInlineRename(null, doc, titleEl, area, house);
+                    } else if (typeof window.handleInlineRenameTimeline === 'function') {
+                        window.handleInlineRenameTimeline(null, doc, titleEl, area, house);
+                    }
+                }
+            };
+        }
+
+        const btnMove = menu.querySelector('.doc-menu-item-move');
+        if (btnMove) {
+            btnMove.onclick = (ev) => {
+                ev.stopPropagation();
+                closeDocDropdownMenu();
+                if (typeof window.openBatchMoveForDoc === 'function') {
+                    window.openBatchMoveForDoc(doc);
+                } else if (typeof window.openBatchMoveModal === 'function') {
+                    window.openBatchMoveModal();
+                }
+            };
+        }
+
+        const btnCopy = menu.querySelector('.doc-menu-item-copy');
+        if (btnCopy) {
+            btnCopy.onclick = (ev) => {
+                ev.stopPropagation();
+                closeDocDropdownMenu();
+                if (typeof window.openBatchCopyForDoc === 'function') {
+                    window.openBatchCopyForDoc(doc);
+                } else if (typeof window.openBatchCopyModal === 'function') {
+                    window.openBatchCopyModal();
+                }
+            };
+        }
+
+        const btnTimeline = menu.querySelector('.doc-menu-item-timeline');
+        if (btnTimeline) {
+            btnTimeline.onclick = (ev) => {
+                ev.stopPropagation();
+                closeDocDropdownMenu();
+                showDocInTimeline(doc);
+            };
+        }
+
+        const btnDelete = menu.querySelector('.doc-menu-item-delete');
+        if (btnDelete) {
+            btnDelete.onclick = (ev) => {
+                ev.stopPropagation();
+                closeDocDropdownMenu();
+                handleDeleteSingleDoc(doc);
+            };
+        }
+
+        document.body.appendChild(menu);
+
+        const rect = triggerBtn.getBoundingClientRect();
+        const menuWidth = 190;
+        let top = rect.bottom + 4;
+        let left = rect.right - menuWidth;
+        if (left < 10) left = 10;
+        const windowHeight = (typeof window !== 'undefined' && window.innerHeight) ? window.innerHeight : 800;
+        if (top + 220 > windowHeight) {
+            top = Math.max(10, rect.top - 220);
+        }
+        menu.style.top = `${top}px`;
+        menu.style.left = `${left}px`;
+
+        const onDocClick = (evt) => {
+            if (!menu.contains(evt.target) && evt.target !== triggerBtn && !triggerBtn.contains(evt.target)) {
+                closeDocDropdownMenu();
+            }
+        };
+        const onDocKeydown = (evt) => {
+            if (evt.key === 'Escape') closeDocDropdownMenu();
+        };
+
+        document.addEventListener('keydown', onDocKeydown, true);
+        setTimeout(() => {
+            document.addEventListener('click', onDocClick, true);
+        }, 10);
+
+        activeMenuCleanup = () => {
+            document.removeEventListener('click', onDocClick, true);
+            document.removeEventListener('keydown', onDocKeydown, true);
+            if (menu.parentNode) menu.parentNode.removeChild(menu);
+            activeDocDropdown = null;
+        };
+
+        activeDocDropdown = { menu, triggerBtn, doc };
+    }
+
+    function showDocInTimeline(doc) {
+        if (!doc || !doc.vault_id) return;
+        const vaultId = doc.vault_id;
+
+        const area = getResolvedArea(doc);
+        const house = getResolvedHouse(doc);
+        const activeArea = (typeof currentArea !== 'undefined' ? currentArea : (typeof window !== 'undefined' ? window.currentArea : ''));
+        const activeHouse = (typeof currentHouse !== 'undefined' ? currentHouse : (typeof window !== 'undefined' ? window.currentHouse : ''));
+
+        if (area && house && (activeArea !== area || activeHouse !== house)) {
+            if (typeof currentArea !== 'undefined') currentArea = area;
+            if (typeof window !== 'undefined') window.currentArea = area;
+            if (typeof currentHouse !== 'undefined') currentHouse = house;
+            if (typeof window !== 'undefined') window.currentHouse = house;
+            if (typeof window.refreshCurrentTab === 'function') {
+                window.refreshCurrentTab(area, house);
+            }
+        }
+
+        // If a tenant filter is restricting the timeline and doesn't match this document, clear it
+        if (typeof window.currentTenant !== 'undefined' && window.currentTenant && doc.primary_tenant && doc.primary_tenant !== window.currentTenant) {
+            window.currentTenant = null;
+            if (typeof currentTenant !== 'undefined') currentTenant = null;
+        }
+
+        // Switch tab to timeline if not currently on timeline
+        const tabTimeline = document.getElementById('tab-timeline');
+        if (tabTimeline && (typeof currentTab === 'undefined' || currentTab !== 'timeline')) {
+            tabTimeline.click();
+        }
+
+        const findAndHighlight = (attempts = 0) => {
+            const card = document.querySelector(`#document-list [data-vault-id="${vaultId}"]`);
+            if (card) {
+                if (typeof card.scrollIntoView === 'function') {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                card.classList.add('ring-4', 'ring-blue-500', 'bg-blue-50', 'shadow-md', 'transition-all');
+                setTimeout(() => {
+                    card.classList.remove('ring-4', 'ring-blue-500', 'bg-blue-50', 'shadow-md');
+                }, 2500);
+
+                const docTitle = doc.brief_arabic_title || doc.filename || 'Document';
+                if (typeof window.setSelectedDoc === 'function') {
+                    window.setSelectedDoc(doc, docTitle, card);
+                }
+                const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+                if (toast) toast('Showing document in timeline.');
+            } else if (attempts < 15) {
+                setTimeout(() => findAndHighlight(attempts + 1), 100);
+            } else {
+                const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+                if (toast) toast('Document displayed in timeline.');
+            }
+        };
+
+        setTimeout(() => findAndHighlight(0), 50);
+    }
+
+    async function handleDeleteSingleDoc(doc) {
+        if (!doc || !doc.vault_id) return;
+        const docTitle = doc.brief_arabic_title || doc.filename || 'Document';
+        const confirmed = (typeof window.confirm === 'function') ? window.confirm(`Are you sure you want to delete "${docTitle}"?`) : true;
+        if (!confirmed) return;
+
+        const area = getResolvedArea(doc);
+        const house = getResolvedHouse(doc);
+
+        try {
+            const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(doc.vault_id)}`, {
+                method: 'DELETE'
+            });
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || errData.message || 'Failed to delete document');
+            }
+
+            const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+            if (toast) toast('Document permanently deleted.');
+
+            if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                await window.refreshCurrentTab(area, house);
+            } else if (typeof refreshCurrentTab === 'function') {
+                await refreshCurrentTab(area, house);
+            }
+            if (typeof window !== 'undefined' && typeof window.loadTree === 'function') {
+                await window.loadTree();
+            } else if (typeof loadTree === 'function') {
+                await loadTree();
+            }
+        } catch (err) {
+            const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+            if (toast) toast('Failed to delete document: ' + err.message, 'error');
+        }
+    }
+
     // Expose globals
     window.openDocModal = openDocModal;
     window.closeDocModal = closeDocModal;
+    window.openDocDropdownMenu = openDocDropdownMenu;
+    window.closeDocDropdownMenu = closeDocDropdownMenu;
+    window.showDocInTimeline = showDocInTimeline;
+    window.handleDeleteSingleDoc = handleDeleteSingleDoc;
     window.handleDeleteDoc = handleDeleteDoc;
     window.resetDeleteButton = resetDeleteButton;
     window.getIsDeleteArmed = getIsDeleteArmed;
@@ -607,6 +866,10 @@
             initDocManager,
             openDocModal,
             closeDocModal,
+            openDocDropdownMenu,
+            closeDocDropdownMenu,
+            showDocInTimeline,
+            handleDeleteSingleDoc,
             handleDeleteDoc,
             resetDeleteButton,
             getIsDeleteArmed,
