@@ -95,6 +95,7 @@ describe('Double-Click Inline Document Renaming (QCK-05)', () => {
         expect(input.classList.contains('py-0.5')).toBe(true);
         expect(input.classList.contains('w-full')).toBe(true);
         expect(input.classList.contains('min-w-0')).toBe(true);
+        expect(input.classList.contains('border-slate-300')).toBe(true);
         expect(input.getAttribute('dir')).toBeNull();
         // Truncate removed during editing so input is not clipped
         expect(titleSpan.classList.contains('truncate')).toBe(false);
@@ -248,6 +249,7 @@ describe('Double-Click Inline Document Renaming (QCK-05)', () => {
         expect(input.classList.contains('py-0.5')).toBe(true);
         expect(input.classList.contains('w-full')).toBe(true);
         expect(input.classList.contains('min-w-0')).toBe(true);
+        expect(input.classList.contains('border-slate-300')).toBe(true);
         expect(input.getAttribute('dir')).toBeNull();
         // line-clamp-2 removed during editing so input is not distorted
         expect(titleH4.classList.contains('line-clamp-2')).toBe(false);
