@@ -6,7 +6,7 @@ A document management system that processes scanned Arabic PDFs, categorizes the
 
 ## Current Milestone: None (v14.0 Completed & Shipped)
 
-Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive multi-stack test coverage (84 xUnit including 32 in `ArabicReshaperTests.cs`, 17 v14 pytest, 13 doc management pytest, 143 Vitest across 13 files, and 49 Playwright E2E), and power-user operational tooling. Ready for next milestone initialization.
+Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive multi-stack test coverage (84 xUnit including 32 in `ArabicReshaperTests.cs`, 32 Pytest backend tests, 145 Vitest across 13 files, and 49 Playwright E2E), and power-user operational tooling. Ready for next milestone initialization.
 
 ## Past Milestones
 
@@ -75,11 +75,20 @@ Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shi
   - Replaced the text button `.btn-select-all-folder` on category folder cards with a select checkbox (`.folder-select-checkbox`) positioned right before `.folder-icon-box`, matching the document item checkbox styling.
   - Clicking this checkbox un-hides collapsed documents (`docsContainer.classList.remove('hidden')`) and selects all documents in the folder, or deselects all if already selected.
   - Added reactive synchronization: individual document checkbox changes update the parent folder's checkbox state to checked, indeterminate, or unchecked. Global select/deselect synchronizes all folder checkboxes across the view.
+- **Harmonize Document Action Colors (Quick Refinement QCK-13):**
+  - Standardized semantic color themes across document multi-select buttons, modals, and 3-dot dropdown menu items (Move: Amber, Copy: Indigo, Delete: Rose, Rename: Blue, Timeline: Emerald).
+- **Tenure-Based Active Tenant Colors in Tenant Selection & House Overview (Quick Refinement QCK-14):**
+  - Replaced the uniform hardcoded brand blue highlight for current/active tenants with dynamic tenure-duration-based colors matching the house overview standards across the entire tenant selection experience (`house-profile.js` and `area-grid.js`):
+    - `< 5 years`: Emerald green (`short`, `bg-emerald-50`, `border-emerald-200`, `text-emerald-700`, `🟢`)
+    - `5–10 years`: Amber yellow (`medium`, `bg-amber-50`, `border-amber-200`, `text-amber-700`, `🟡`)
+    - `> 10 years`: Rose red (`long`, `bg-rose-50`, `border-rose-200`, `text-rose-700`, `🔴`)
+    - Past tenants remain clean slate neutral (`bg-white`, `border-slate-200`, `text-slate-500`, `👤`).
+  - Added dual-backend parity: dynamic computation of `duration_category` (`short`/`medium`/`long`) in FastAPI (`HouseTenantProfile.duration_category`) and ASP.NET Core (`HouseTenantProfileDto.DurationCategory`).
+  - Dynamically updated export options modal tenant select options with duration category emojis (`🟢`, `🟡`, `🔴`).
 - **Comprehensive Multi-Stack Test Coverage & Verification:**
   - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
-  - 17 Python v14 pytest tests (`tests/test_v14_features.py`).
-  - 13 Python document management tests (`tests/test_document_management_api.py`).
-  - 143 Frontend Vitest tests across 13 files (`npm run test:frontend`, including 16 in `batch_operations.test.js` and 8 in `folder_select_checkbox.test.js`).
+  - 32 Python backend tests (17 in `tests/test_v14_features.py`, 13 in `tests/test_document_management_api.py`, 2 in `tests/test_house_profile_api.py`).
+  - 145 Frontend Vitest tests across 13 files (`npm run test:frontend`, including 4 in `house_profile.test.js`, 16 in `batch_operations.test.js`, and 8 in `folder_select_checkbox.test.js`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 

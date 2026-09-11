@@ -4,9 +4,9 @@ milestone: v14.0
 milestone_name: Power-User Operations & Portfolio Expansion
 current_phase: 108 (All Complete)
 status: completed
-last_updated: "2026-09-11T08:22:00.000Z"
+last_updated: "2026-09-11T11:25:00.000Z"
 last_activity: 2026-09-11
-last_activity_desc: "Completed Quick Tasks QCK-10, QCK-11, and QCK-12 (Replace Folder Select All Text Button with Select Checkbox). 143 Vitest tests across 13 files, 84 xUnit tests, 30 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff."
+last_activity_desc: "Completed Quick Task 260911-tenure-based-active-tenant-colors (QCK-14: Tenure-Based Active Tenant Colors in Tenant Selection & House Overview). 145 Vitest tests across 13 files, 84 xUnit tests, 32 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -60,15 +60,16 @@ Equip the digital archive management system with power-user operational tools: o
 - `260911-category-doc-count-circle-and-smaller-doc-date`: Category Folder Circular Document Count Badge & Refined Document Date Sizing (QCK-10). Replaced folder header card document count text badge with a sleek circular count badge (`min-w-[20px] h-5 rounded-full`) showing just the count number inside a circle with tooltip. Refined document date badge on document rows to `text-[9px] font-mono tracking-tight`, freeing ~12-15px horizontal width per row to prevent document name truncation while keeping date clean and legible. 128 Vitest tests across 11 files, 84 .NET xUnit tests, and 30 Python pytest tests passing; zero static asset diff.
 - `260911-fdi-folder-specific-icons-for-categories-01-`: Category-Specific Folder Icons (01-13) & Empty Folder for Custom (14+) (QCK-11). Implemented distinct, descriptive Heroicons outline icons for each standard category 01 through 13 in Folders view with automatic fallback to empty folder icon for custom categories (14+). 134 Vitest tests across 12 files, 84 xUnit tests, and 30 Pytest tests passing; zero static asset diff.
 - `260911-fs0-replace-folder-select-all-text-button-wi`: Replace Folder "Select All" Text Button with Select Checkbox (`.folder-select-checkbox`) that Reveals Documents and Selects All (QCK-12). Replaced `.btn-select-all-folder` text button on category cards with a styled select checkbox before `.folder-icon-box`, un-hiding collapsed documents and selecting all docs on click. Synchronized indeterminate state when child document checkboxes change, and updated global toggle. 143 Vitest tests across 13 files (including 16 in `batch_operations.test.js` and 8 in `folder_select_checkbox.test.js`), 84 .NET xUnit tests, 30 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff.
-- `260911-j4x-change-current-tenant-highlight-to-blue-`: Highlight Current Tenant in Brand Blue on House Overview Cards (`area-grid.js`) and House Tenancy Register (`house-profile.js`). Eliminates visual and semantic clash with `< 5 Yrs` green tenure badge across entire tenant selection workflow. 144 Vitest tests, 13 Playwright tests, and 84 .NET xUnit tests passing; zero static asset diff.
+- `260911-j4x-change-current-tenant-highlight-to-blue-`: Highlight Current Tenant in Brand Blue on House Overview Cards (`area-grid.js`) and House Tenancy Register (`house-profile.js`).
 - `260911-jhn-harmonize-document-action-colors-between`: Harmonize Document Action Colors Between 3-Dot Menu and Multi-Select Bar (QCK-13). Established unified semantic colors (Move: Amber, Copy: Indigo, Delete: Rose, Rename: Blue, Timeline: Emerald) across multi-select buttons, modals, and 3-dot dropdown while keeping consistent action title lengths. 144 Vitest tests, 13 Playwright tests, and 84 .NET xUnit tests passing; zero static asset diff.
+- `260911-tenure-based-active-tenant-colors`: Tenure-Based Active Tenant Colors in Tenant Selection & House Overview (QCK-14). Replaced the uniform hardcoded blue highlight with tenure-duration-based colors matching the house overview standards (< 5 yrs: emerald green, 5-10 yrs: amber yellow, > 10 yrs: rose red; past tenants: neutral slate). Added dynamic dual-backend computation of `duration_category` across FastAPI (`HouseTenantProfile.duration_category`) and ASP.NET Core (`HouseTenantProfileDto.DurationCategory`), and updated export options modal emojis (`🟢`, `🟡`, `🔴`). 145 Vitest tests across 13 files, 84 xUnit tests, 32 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-11 — Completed Quick Task 260911-jhn (harmonize action colors between multi-select and 3-dot menu). Verified by 144 Vitest tests, 13 Playwright tests, and 84 .NET xUnit tests.
+Last activity: 2026-09-11 — Completed Quick Task 260911-tenure-based-active-tenant-colors (QCK-14: tenure-based active tenant colors). Verified by 145 Vitest tests, 84 xUnit tests, 32 Pytest tests, and 49 Playwright tests.
 
 ## Operator Next Steps
 

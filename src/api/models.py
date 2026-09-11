@@ -118,6 +118,7 @@ class HouseTenantProfile(BaseModel):
     end_date: str | None = None
     is_active: bool = False
     duration_str_ar: str = ""
+    duration_category: str | None = None
     document_count: int = 0
     category_count: int = 0
 

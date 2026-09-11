@@ -93,6 +93,72 @@
         }
     }
 
+    function getTenantTenureCategory(t) {
+        if (!t) return 'short';
+        if (t.duration_category) return t.duration_category;
+
+        let years = null;
+        if (t.start_date) {
+            try {
+                const sY = parseInt(String(t.start_date).substring(0, 4), 10);
+                let eY = new Date().getFullYear();
+                if (t.end_date && t.end_date !== 'PRESENT' && t.end_date !== 'None' && t.end_date !== 'null') {
+                    eY = parseInt(String(t.end_date).substring(0, 4), 10);
+                }
+                if (!isNaN(sY) && !isNaN(eY)) {
+                    years = Math.max(0, eY - sY);
+                }
+            } catch {}
+        }
+
+        if (years === null && t.duration_str_ar) {
+            const match = t.duration_str_ar.match(/(\d+)\s*(?:سنوات|سنة|عام)/);
+            if (match) {
+                years = parseInt(match[1], 10);
+            } else if (t.duration_str_ar.includes('سنتين') || t.duration_str_ar.includes('سنتان')) {
+                years = 2;
+            } else if (t.duration_str_ar.includes('سنة واحدة') || t.duration_str_ar.includes('عام واحد')) {
+                years = 1;
+            } else if (t.duration_str_ar.includes('أقل من سنة') || t.duration_str_ar.includes('أقل من عام')) {
+                years = 0;
+            }
+        }
+
+        if (years === null) return 'short';
+        if (years < 5) return 'short';
+        if (years <= 10) return 'medium';
+        return 'long';
+    }
+
+    const TENURE_THEMES = {
+        short: {
+            card: 'border-emerald-200 bg-emerald-50/40 hover:border-emerald-300 hover:bg-emerald-50/70',
+            avatar: 'bg-emerald-100/80 text-emerald-700',
+            badge: 'border-emerald-300 bg-emerald-100 text-emerald-800',
+            dot: 'bg-emerald-500',
+            emoji: '🟢'
+        },
+        medium: {
+            card: 'border-amber-200 bg-amber-50/40 hover:border-amber-300 hover:bg-amber-50/70',
+            avatar: 'bg-amber-100/80 text-amber-700',
+            badge: 'border-amber-300 bg-amber-100 text-amber-800',
+            dot: 'bg-amber-500',
+            emoji: '🟡'
+        },
+        long: {
+            card: 'border-rose-200 bg-rose-50/40 hover:border-rose-300 hover:bg-rose-50/70',
+            avatar: 'bg-rose-100/80 text-rose-700',
+            badge: 'border-rose-300 bg-rose-100 text-rose-800',
+            dot: 'bg-rose-500',
+            emoji: '🔴'
+        }
+    };
+
+    if (typeof window !== 'undefined') {
+        window.getTenantTenureCategory = getTenantTenureCategory;
+        window.TENURE_THEMES = TENURE_THEMES;
+    }
+
     function renderHouseProfile(profile) {
         currentHouseProfile = profile;
         const docListEl = document.getElementById('document-list');
@@ -125,11 +191,14 @@
             tenantsList.innerHTML = '<p class="text-xs text-slate-400 p-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">لا يوجد مستأجرون مسجلون لهذا المنزل حالياً.</p>';
         } else {
             profile.tenants.forEach(t => {
+                const durCat = getTenantTenureCategory(t);
+                const theme = TENURE_THEMES[durCat] || TENURE_THEMES.short;
+
                 const card = document.createElement('div');
                 card.className = `tenant-profile-card p-3 rounded-xl border transition-all cursor-pointer group shadow-2xs hover:shadow-sm ${
                     t.is_active 
-                        ? 'border-blue-200 bg-blue-50/40 hover:border-blue-300 hover:bg-blue-50/70' 
-                        : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50/80'
+                        ? theme.card 
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/80'
                 }`;
                 card.dataset.tenantName = t.name;
 
@@ -138,7 +207,7 @@
                     .replace(/^فترة الإيجار:\s*/, '');
 
                 const avatarIcon = t.is_active
-                    ? `<div class="w-8 h-8 rounded-lg bg-blue-100/80 text-blue-700 flex items-center justify-center flex-shrink-0">
+                    ? `<div class="w-8 h-8 rounded-lg ${theme.avatar} flex items-center justify-center flex-shrink-0">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                        </div>`
                     : `<div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center flex-shrink-0">
@@ -146,8 +215,8 @@
                        </div>`;
 
                 const badgeHtml = t.is_active
-                    ? `<span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-blue-300 bg-blue-100 text-blue-800" title="المستأجر الحالي">
-                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                    ? `<span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${theme.badge}" title="المستأجر الحالي">
+                        <span class="w-1.5 h-1.5 rounded-full ${theme.dot}"></span>
                         حالي
                        </span>`
                     : `<span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-200 bg-slate-100 text-slate-600" title="مستأجر سابق">
@@ -379,8 +448,10 @@
                     const opt = document.createElement('option');
                     opt.value = (t.id !== undefined && t.id !== null) ? String(t.id) : (t.name || '');
                     if (t.is_active) {
+                        const durCat = getTenantTenureCategory(t);
+                        const theme = TENURE_THEMES[durCat] || TENURE_THEMES.short;
                         const dur = t.duration_str_ar ? ` (${t.duration_str_ar})` : ' (المستأجر الحالي)';
-                        opt.textContent = `🔵 ${t.name}${dur}`;
+                        opt.textContent = `${theme.emoji} ${t.name}${dur}`;
                     } else {
                         const dur = t.duration_str_ar ? ` (${t.duration_str_ar})` : '';
                         opt.textContent = `👤 ${t.name}${dur}`;

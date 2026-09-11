@@ -2,10 +2,21 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 12 quick refinements (QCK-01 through QCK-12), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 17 v14 pytest, 13 doc management, 143 Vitest across 13 files, 49 Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 14 quick refinements (QCK-01 through QCK-14), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 32 Pytest tests, 145 Vitest across 13 files, 49 Playwright E2E)
 
 **Key accomplishments:**
 
+- **Tenure-Based Active Tenant Colors in Tenant Selection & House Overview (Quick Refinement QCK-14):**
+  - Replaced the uniform hardcoded brand blue highlight for current/active tenants with dynamic tenure-duration-based colors matching the house overview standards across the entire tenant selection experience (`house-profile.js` and `area-grid.js`):
+    - `< 5 years`: Emerald green (`short`, `bg-emerald-50`, `border-emerald-200`, `text-emerald-700`, `🟢`)
+    - `5–10 years`: Amber yellow (`medium`, `bg-amber-50`, `border-amber-200`, `text-amber-700`, `🟡`)
+    - `> 10 years`: Rose red (`long`, `bg-rose-50`, `border-rose-200`, `text-rose-700`, `🔴`)
+    - Past tenants remain clean slate neutral (`bg-white`, `border-slate-200`, `text-slate-500`, `👤`).
+  - Added dual-backend parity: dynamic computation of `duration_category` (`short`/`medium`/`long`) in FastAPI (`HouseTenantProfile.duration_category`) and ASP.NET Core (`HouseTenantProfileDto.DurationCategory`).
+  - Dynamically updated export options modal tenant select options with duration category emojis (`🟢`, `🟡`, `🔴`).
+  - Added unit test coverage in `tests/frontend/components/house_profile.test.js` covering emerald, amber, rose, and slate tenure rendering.
+- **Harmonize Move, Copy, and Delete Action Colors (Quick Refinement QCK-13):**
+  - Standardized semantic color themes across document multi-select buttons, modals, and 3-dot dropdown menu items (Move: Amber, Copy: Indigo, Delete: Rose, Rename: Blue, Timeline: Emerald).
 - **Replace Folder "Select All" Text Button with Select Checkbox (Quick Refinement QCK-12):**
   - Replaced `.btn-select-all-folder` text button on category cards with `.folder-select-checkbox` positioned directly before `.folder-icon-box`, matching the document select checkbox styling.
   - Clicking this checkbox un-hides collapsed documents (`docsContainer.classList.remove('hidden')`) and selects all documents in the folder, or deselects all if already selected.
@@ -87,9 +98,8 @@
   - Input/textarea suppression guards and backdrop/Esc dismissal.
 - **Multi-Stack Test Coverage & Verification:**
   - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
-  - 17 Python v14 pytest tests (`tests/test_v14_features.py`).
-  - 13 Python document management tests (`tests/test_document_management_api.py`).
-  - 113 Frontend Vitest tests across 10 test files (`npm run test:frontend`).
+  - 32 Python backend tests (17 in `tests/test_v14_features.py`, 13 in `tests/test_document_management_api.py`, 2 in `tests/test_house_profile_api.py`).
+  - 145 Frontend Vitest tests across 13 test files (`npm run test:frontend`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 

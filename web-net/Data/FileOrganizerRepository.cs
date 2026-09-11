@@ -424,7 +424,8 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                 activeTenant = t;
             }
 
-            var (_, durStr) = TextUtils.FormatArabicDuration(t.StartDate, t.EndDate);
+            var (years, durStr) = TextUtils.FormatArabicDuration(t.StartDate, t.EndDate);
+            var durCat = years < 5 ? "short" : (years <= 10 ? "medium" : "long");
 
             tenantProfiles.Add(new HouseTenantProfileDto
             {
@@ -434,6 +435,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                 EndDate = t.EndDate,
                 IsActive = isActive,
                 DurationStrAr = durStr,
+                DurationCategory = durCat,
                 DocumentCount = tenantDocCounts.GetValueOrDefault(t.Id, 0),
                 CategoryCount = tenantCatSets.TryGetValue(t.Id, out var set) ? set.Count : 0
             });

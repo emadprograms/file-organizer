@@ -1175,7 +1175,7 @@
             const hasDocs = Boolean(cat.documents && cat.documents.length > 0);
 
             const folderSelectCheckbox = hasDocs
-                ? `<input type="checkbox" class="folder-select-checkbox w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer flex-shrink-0" data-category-name="${escapeHtml(cat.name)}" title="Select / Deselect all in this folder" ${allFolderDocsSelected ? 'checked' : ''} />`
+                ? `<input type="checkbox" class="folder-select-checkbox w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer flex-shrink-0" data-folder-category="${escapeHtml(cat.name)}" title="Select / Deselect all in this folder" ${allFolderDocsSelected ? 'checked' : ''} />`
                 : `<span class="w-3.5 h-3.5 flex-shrink-0"></span>`;
 
             const folderIconSvg = getFolderIconSvg(cat.name);

@@ -505,6 +505,7 @@ async def get_house_profile(request: Request, area_id: str, house_id: str):
         for t in tenants_db:
             is_active = (t.end_date is None)
             y_int, dur_str = _format_arabic_duration(str(t.start_date), str(t.end_date) if t.end_date else None)
+            t_dur_cat = "short" if y_int < 5 else ("medium" if y_int <= 10 else "long")
             tenant_profiles.append(HouseTenantProfile(
                 id=t.id,
                 name=t.name,
@@ -512,6 +513,7 @@ async def get_house_profile(request: Request, area_id: str, house_id: str):
                 end_date=str(t.end_date) if t.end_date else None,
                 is_active=is_active,
                 duration_str_ar=dur_str,
+                duration_category=t_dur_cat,
                 document_count=tenant_doc_counts.get(t.id, 0),
                 category_count=len(tenant_cat_sets.get(t.id, set())),
             ))

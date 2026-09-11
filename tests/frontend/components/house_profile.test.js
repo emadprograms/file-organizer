@@ -151,15 +151,69 @@ describe('House Profile & Header Archive Export', () => {
     expect(docList.textContent).toContain('25');
     expect(docList.textContent).toContain('10');
 
-    // Should have tenant cards with proper data attributes and blue styling for active tenant
+    // Should have tenant cards with proper data attributes and amber styling for 7-year active tenant
     const cards = docList.querySelectorAll('.tenant-profile-card');
     expect(cards.length).toBe(2);
     expect(cards[0].dataset.tenantName).toBe('فواز خليل الطارش');
-    expect(cards[0].className).toContain('border-blue-200');
-    expect(cards[0].className).toContain('bg-blue-50/40');
-    expect(cards[0].innerHTML).toContain('border-blue-300 bg-blue-100 text-blue-800');
+    expect(cards[0].className).toContain('border-amber-200');
+    expect(cards[0].className).toContain('bg-amber-50/40');
+    expect(cards[0].innerHTML).toContain('border-amber-300 bg-amber-100 text-amber-800');
     expect(cards[1].dataset.tenantName).toBe('عادل عبد الرحيم جاسم');
     expect(cards[1].className).toContain('border-slate-200');
+  });
+
+  it('renders green for <5 years, yellow for 5-10 years, and red for >10 years in tenant selection', () => {
+    const mockProfile = {
+      area_id: 'Area A',
+      house_id: 'House 100',
+      tenants: [
+        {
+          name: 'مستأجر قصير',
+          is_active: true,
+          duration_str_ar: 'بدء الإيجار 2024 (مستمر منذ سنتين)',
+          category_count: 1,
+          document_count: 2
+        },
+        {
+          name: 'مستأجر متوسط',
+          is_active: true,
+          duration_str_ar: 'بدء الإيجار 2018 (مستمر منذ 8 سنوات)',
+          category_count: 3,
+          document_count: 6
+        },
+        {
+          name: 'مستأجر طويل',
+          is_active: true,
+          duration_str_ar: 'بدء الإيجار 2010 (مستمر منذ 16 سنة)',
+          category_count: 5,
+          document_count: 12
+        }
+      ],
+      archive: { total_documents: 20, total_pages: 20, categories: [] }
+    };
+
+    window.renderHouseProfile(mockProfile);
+
+    const cards = document.querySelectorAll('.tenant-profile-card');
+    expect(cards.length).toBe(3);
+
+    // 1. < 5 Years: Emerald Green
+    expect(cards[0].className).toContain('border-emerald-200');
+    expect(cards[0].className).toContain('bg-emerald-50/40');
+    expect(cards[0].innerHTML).toContain('border-emerald-300 bg-emerald-100 text-emerald-800');
+    expect(cards[0].innerHTML).toContain('bg-emerald-500');
+
+    // 2. 5–10 Years: Amber Yellow
+    expect(cards[1].className).toContain('border-amber-200');
+    expect(cards[1].className).toContain('bg-amber-50/40');
+    expect(cards[1].innerHTML).toContain('border-amber-300 bg-amber-100 text-amber-800');
+    expect(cards[1].innerHTML).toContain('bg-amber-500');
+
+    // 3. > 10 Years: Rose Red
+    expect(cards[2].className).toContain('border-rose-200');
+    expect(cards[2].className).toContain('bg-rose-50/40');
+    expect(cards[2].innerHTML).toContain('border-rose-300 bg-rose-100 text-rose-800');
+    expect(cards[2].innerHTML).toContain('bg-rose-500');
   });
 });
 

@@ -151,6 +151,9 @@ public record HouseTenantProfileDto
     [JsonPropertyName("duration_str_ar")]
     public string DurationStrAr { get; init; } = string.Empty;
 
+    [JsonPropertyName("duration_category")]
+    public string? DurationCategory { get; init; }
+
     [JsonPropertyName("document_count")]
     public int DocumentCount { get; init; }
 
