@@ -84,6 +84,15 @@
         }
     }
 
+    function updateRowNumbers() {
+        if (!tenantModalRows) return;
+        const rows = tenantModalRows.querySelectorAll('.tenant-row');
+        rows.forEach((r, idx) => {
+            const numEl = r.querySelector('.tenant-row-number');
+            if (numEl) numEl.textContent = idx + 1;
+        });
+    }
+
     function openTenantModal() {
         if (!currentHouse || !currentArea) {
             alert('Please select a house first.');
@@ -91,7 +100,11 @@
         }
         if (!tenantModal) return;
         tenantModalTitle.textContent = `Manage Tenants: ${currentHouse} (${currentArea})`;
-        tenantModalRows.innerHTML = '<p class="text-sm text-gray-500">Loading tenants...</p>';
+        const subtitle = document.getElementById('tenant-modal-subtitle');
+        if (subtitle) {
+            subtitle.textContent = `${currentArea} • House ${currentHouse}`;
+        }
+        tenantModalRows.innerHTML = '<p class="text-xs text-slate-500 py-3 text-center">Loading tenants...</p>';
         tenantModalStatus.classList.add('hidden');
         tenantModal.classList.remove('hidden');
         loadTenantsForModal();
@@ -114,15 +127,16 @@
             } else {
                 tenants.forEach(t => addTenantRow(t));
             }
+            updateRowNumbers();
         } catch (err) {
             console.error(err);
-            tenantModalRows.innerHTML = '<p class="text-sm text-red-500">Error loading tenants.</p>';
+            tenantModalRows.innerHTML = '<p class="text-xs text-rose-500 py-3 text-center">Error loading tenants • حدث خطأ أثناء تحميل المستأجرين.</p>';
         }
     }
 
     function addTenantRow(t = null) {
         const row = document.createElement('div');
-        row.className = 'tenant-row flex flex-col sm:flex-row items-start sm:items-center gap-2.5 p-3.5 bg-slate-50/80 rounded-xl border border-slate-200 transition-all shadow-2xs';
+        row.className = 'tenant-row flex flex-col sm:grid sm:grid-cols-12 items-stretch sm:items-center gap-4 px-4 py-2 hover:bg-slate-50/60 transition-colors';
         if (t && t.id) row.dataset.id = t.id;
 
         const nameVal = t ? (t.name || '') : '';
@@ -131,27 +145,27 @@
         const isPresent = !endVal || endVal === 'present' || String(endVal).toLowerCase() === 'none';
 
         row.innerHTML = `
-            <div class="flex-1 w-full sm:w-auto">
-                <label class="block text-[10px] text-slate-500 font-bold tracking-wider uppercase mb-1">NAME / الاسم</label>
+            <div class="sm:col-span-4 flex items-center gap-2">
+                <span class="tenant-row-number w-5 h-5 rounded-full bg-slate-100 text-slate-500 font-bold text-[10px] flex items-center justify-center flex-shrink-0">1</span>
                 <input type="text" value="${nameVal.replace(/"/g, '&quot;')}" placeholder="Tenant Name" 
-                       class="tenant-name-input w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium shadow-2xs" required />
+                       class="tenant-name-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium" required />
             </div>
-            <div class="w-full sm:w-36">
-                <label class="block text-[10px] text-slate-500 font-bold tracking-wider uppercase mb-1">START DATE</label>
-                <input type="date" value="${startVal}" 
-                       class="tenant-start-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium shadow-2xs" required />
+            <div class="sm:col-span-3">
+                <input type="date" value="${startVal}" title="Start Date"
+                       class="tenant-start-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium" required />
             </div>
-            <div class="w-full sm:w-36">
-                <label class="block text-[10px] text-slate-500 font-bold tracking-wider uppercase mb-1">END DATE</label>
-                <input type="date" value="${isPresent ? '' : endVal}" ${isPresent ? 'disabled' : ''}
-                       class="tenant-end-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-medium shadow-2xs ${isPresent ? 'bg-slate-100 text-slate-400' : 'bg-white'}" />
+            <div class="sm:col-span-3">
+                <input type="date" value="${isPresent ? '' : endVal}" ${isPresent ? 'disabled' : ''} title="End Date"
+                       class="tenant-end-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 font-medium ${isPresent ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white'}" />
             </div>
-            <div class="flex items-center gap-2 pt-2 sm:pt-5">
-                <label class="flex items-center gap-1.5 text-xs text-slate-600 select-none cursor-pointer font-medium">
-                    <input type="checkbox" class="tenant-present-check rounded border-slate-300 text-blue-600 focus:ring-blue-500" ${isPresent ? 'checked' : ''} />
-                    <span>Present</span>
+            <div class="sm:col-span-1 flex items-center justify-between sm:justify-center">
+                <span class="text-xs font-semibold text-slate-600 sm:hidden">Present:</span>
+                <label class="tenant-present-badge w-7 h-7 rounded-lg border ${isPresent ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'} flex items-center justify-center cursor-pointer transition-all shadow-2xs" title="Present (Currently residing)">
+                    <input type="checkbox" class="tenant-present-check w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" ${isPresent ? 'checked' : ''} />
                 </label>
-                <button type="button" class="btn-remove-row text-slate-400 hover:text-rose-600 p-1 rounded-lg hover:bg-slate-200/60 transition-colors" title="Delete Tenant">
+            </div>
+            <div class="sm:col-span-1 flex items-center justify-end sm:justify-center">
+                <button type="button" class="btn-remove-row text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer" title="Delete Tenant">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
             </div>
@@ -159,14 +173,21 @@
 
         const presentCheck = row.querySelector('.tenant-present-check');
         const endInput = row.querySelector('.tenant-end-input');
+        const presentBadge = row.querySelector('.tenant-present-badge');
         presentCheck.addEventListener('change', (e) => {
             if (e.target.checked) {
                 endInput.value = '';
                 endInput.disabled = true;
-                endInput.className = "tenant-end-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-100 text-slate-400 font-medium shadow-2xs";
+                endInput.className = "tenant-end-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed";
+                if (presentBadge) {
+                    presentBadge.className = "tenant-present-badge w-7 h-7 rounded-lg border bg-emerald-50 border-emerald-200 text-emerald-700 flex items-center justify-center cursor-pointer transition-all shadow-2xs";
+                }
             } else {
                 endInput.disabled = false;
-                endInput.className = "tenant-end-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium shadow-2xs";
+                endInput.className = "tenant-end-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium";
+                if (presentBadge) {
+                    presentBadge.className = "tenant-present-badge w-7 h-7 rounded-lg border bg-white border-slate-200 text-slate-400 hover:border-slate-300 flex items-center justify-center cursor-pointer transition-all shadow-2xs";
+                }
             }
         });
 
@@ -174,10 +195,13 @@
             row.remove();
             if (tenantModalRows.children.length === 0) {
                 addTenantRow();
+            } else {
+                updateRowNumbers();
             }
         });
 
         tenantModalRows.appendChild(row);
+        updateRowNumbers();
     }
 
     async function saveTenantsAndReallocate() {
@@ -191,11 +215,11 @@
             const end = isPresent ? null : (r.querySelector('.tenant-end-input').value || null);
 
             if (!name) {
-                showTenantStatus('All tenants must have a name.', true);
+                showTenantStatus('All tenants must have a name', true);
                 return;
             }
             if (!start) {
-                showTenantStatus(`Please provide a start date for ${name}.`, true);
+                showTenantStatus(`Please provide a start date for ${name}`, true);
                 return;
             }
 
@@ -228,7 +252,7 @@
             }
 
             const data = await res.json();
-            showTenantStatus(`✓ Saved! ${data.reallocated_count} documents reallocated across ${data.tenants_count} tenants.`, false);
+            showTenantStatus(`✓ Saved! ${data.reallocated_count} documents reallocated across ${data.tenants_count} tenants`, false);
 
             setTimeout(() => {
                 closeTenantModal();
@@ -238,7 +262,7 @@
         } catch (err) {
             showTenantStatus(`Error: ${err.message}`, true);
         } finally {
-            saveBtnText.textContent = '💾 Save Changes';
+            saveBtnText.textContent = 'Save Changes';
             tenantModalSave.disabled = false;
         }
     }

@@ -39,6 +39,7 @@
 - [x] Quick Refinement QCK-19: Remove Redundant Tenancy Register Sub-Header from Tenant Selection Area (`سجل المستأجرين المتعاقبين` & count badge) — completed 2026-09-11
 - [x] Quick Refinement QCK-20: Add House Grid Card with Dashed Outline and Huge Plus Symbol & Remove Top Navbar Add House Button — completed 2026-09-11
 - [x] Quick Refinement QCK-21: Make Pinned Lock Emoji and Text Smaller in Timeline View — completed 2026-09-11
+- [x] Quick Refinement QCK-22: Clean Up House Settings Modal Layout & Danger Zone (max-w-4xl, Unified Table Container, English-Only Buttons, Ample Present-Delete Spacing, Removed Grey Boilerplate) — completed 2026-09-11
 
 <details>
 <summary>✅ v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server (Phases 101-104) — SHIPPED 2026-09-09</summary>

@@ -2,10 +2,18 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 21 quick refinements (QCK-01 through QCK-21), 4 plans, comprehensive multi-stack test verification (85 .NET xUnit, 33 Pytest tests, 164 Vitest across 17 files, Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 22 quick refinements (QCK-01 through QCK-22), 4 plans, comprehensive multi-stack test verification (85 .NET xUnit, 33 Pytest tests, 169 Vitest across 18 files, Playwright E2E)
 
 **Key accomplishments:**
 
+- **Clean Up House Settings Modal Layout & Danger Zone (Quick Refinement QCK-22):**
+  - Expanded House Settings modal (`#tenant-modal`) to `max-w-4xl` (896px), removed the massive explanatory note banner at the top, and reorganized into two clean sections: Section 1 (Tenants / المستأجرون) and Section 2 (Danger Zone / منطقة الخطر).
+  - Streamlined title to `Manage Tenants: ${currentHouse} (${currentArea})` and subtitle to `${currentArea} • House ${currentHouse}`, eliminating wall-of-text boilerplate.
+  - Streamlined action buttons to clean English (`Add Tenant`, `Save Changes`, `Cancel`) without bulky Arabic text cluttering controls.
+  - Eliminated bulky, oversized individual card boxes around each tenant row in favor of a single unified table container (`border border-slate-200 rounded-xl overflow-hidden`) with sleek row dividers (`divide-y divide-slate-100 py-2 px-4`).
+  - Dedicated separate, generous columns with `gap-4` for Name (`col-span-4`), Start Date (`col-span-3`), End Date (`col-span-3`), Present (`col-span-1`), and Delete (`col-span-1`), ensuring ample horizontal spacing between Present and Delete.
+  - Completely removed the gray boilerplate sentence in the Danger Zone area, keeping a clean `Delete House • حذف المنزل` card with a minimal `Delete House...` action button.
+  - Added compact sequential tenant row numbering badges (`.tenant-row-number`: `1`, `2`, `3`) with automatic re-indexing via `updateRowNumbers()`, removed repetitive uppercase labels inside rows, and upgraded the "Present" toggle to an interactive status badge (`.tenant-present-badge`).
 - **Make Pinned Lock Emoji and Text Smaller in Timeline View (Quick Refinement QCK-21):**
   - Scaled down the pinned status badge (`.doc-pinned-badge`) on manually assigned documents in the chronological Timeline view.
   - Wrapped the lock emoji in a dedicated span with `text-[8px] leading-none inline-block` to prevent oversized emoji rendering.

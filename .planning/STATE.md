@@ -4,9 +4,9 @@ milestone: v14.0
 milestone_name: Power-User Operations & Portfolio Expansion
 current_phase: 108 (All Complete)
 status: completed
-last_updated: "2026-09-11T17:50:00.000Z"
+last_updated: "2026-09-11T18:08:00.000Z"
 last_activity: 2026-09-11
-last_activity_desc: "Completed Quick Task 260911-nh5 (QCK-21: Make Pinned Lock Emoji and Text Smaller in Timeline View). 164 Vitest tests across 17 files, 85 xUnit tests, 33 Pytest tests, and Playwright E2E tests passing; zero static asset diff."
+last_activity_desc: "Completed Quick Task 260911-nh6 (QCK-22: Clean Up House Settings Modal & Danger Zone). 169 Vitest tests across 18 files, 85 xUnit tests, 33 Pytest tests, and Playwright E2E tests passing; zero static asset diff."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -70,13 +70,14 @@ Equip the digital archive management system with power-user operational tools: o
 - `260911-nh4`: Remove Redundant Tenancy Register Sub-Header from Tenant Selection Area (QCK-19). Removed redundant sub-header bar (`سجل المستأجرين المتعاقبين` and count badge) from tenant selection area in house profile view, placing tenant cards directly beneath the tab bar. 158 Vitest tests across 16 files, 85 xUnit tests, and 33 Pytest tests passing; zero static asset diff.
 - `260911-odx`: Add House Grid Card with Dashed Outline and Huge Plus Symbol & Remove Top Navbar Add House Button (QCK-20). Appended modern dashed-outline Add House card (`#add-house-grid-card`) at the end of the house cards grid in Area Grid view with large central plus icon, Arabic and English labels (`+ إضافة منزل جديد` / `Add New House`), and empty-area support. Removed old `#open-add-house-modal-btn` from top navbar. 160 Vitest tests across 16 files, 85 xUnit tests, and 18 Pytest tests passing; zero static asset diff.
 - `260911-nh5`: Make Pinned Lock Emoji and Text Smaller in Timeline View (QCK-21). Wrapped lock emoji in dedicated span with `text-[8px] leading-none inline-block` and reduced badge text to `text-[8.5px] font-medium leading-none gap-0.5` (`.doc-pinned-badge`) to keep pinned indicators lightweight and unobtrusive. 164 Vitest tests across 17 files, 85 xUnit tests, and 33 Pytest tests passing; zero static asset diff.
+- `260911-nh6`: Clean Up House Settings Modal Layout & Danger Zone (QCK-22). Expanded modal to `max-w-4xl` (896px), removed top explanatory note banner, streamlined title to `Manage Tenants: ${currentHouse} (${currentArea})` and subtitle to `${currentArea} • House ${currentHouse}`, streamlined action buttons to clean English (`Add Tenant`, `Save Changes`, `Cancel`), eliminated bulky individual card boxes around each tenant row in favor of a unified table container with subtle dividers (`divide-y divide-slate-100`), resolved crowding between `Present` and `Delete` with dedicated centered columns and generous `gap-4`, removed gray boilerplate from Danger Zone, and maintained sequential tenant row numbering (`1`, `2`, `3`). 169 Vitest tests across 18 files, 85 xUnit tests, 33 Pytest tests, and 13 Playwright E2E tests passing; zero static asset diff.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-11 — Completed Quick Task 260911-nh5 (QCK-21: Make Pinned Lock Emoji and Text Smaller in Timeline View). Verified by 164 Vitest tests across 17 files, 85 xUnit tests, 33 Pytest tests, and Playwright tests.
+Last activity: 2026-09-11 — Completed Quick Task 260911-nh6 (QCK-22: Clean Up House Settings Modal Layout & Danger Zone). Verified by 169 Vitest tests across 18 files, 85 xUnit tests, 33 Pytest tests, and 13 Playwright E2E tests.
 
 ## Operator Next Steps
 
