@@ -52,9 +52,17 @@ using (var scope = app.Services.CreateScope())
 
 app.UseCors();
 
-// Static file serving from wwwroot/
+// Static file serving from wwwroot/ with strict no-cache headers to prevent stale UI assets
 app.UseDefaultFiles();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+        ctx.Context.Response.Headers.Append("Pragma", "no-cache");
+        ctx.Context.Response.Headers.Append("Expires", "0");
+    }
+});
 
 // ---------------------------------------------------------------------------
 // Health check
@@ -124,6 +132,27 @@ app.MapPost("/api/areas/{areaId}/houses", async (
     {
         return Results.BadRequest(new { error = ex.Message });
     }
+});
+
+app.MapDelete("/api/areas/{areaId}/houses/{houseId}", async (
+    string areaId,
+    string houseId,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    if (string.IsNullOrWhiteSpace(houseId))
+    {
+        return Results.BadRequest(new { error = "House ID is required and cannot be empty." });
+    }
+
+    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var success = await repo.DeleteHouseAsync(areaId, houseId, areasRoot);
+    if (!success)
+    {
+        return Results.NotFound(new { error = $"House '{houseId}' not found in area '{areaId}'." });
+    }
+
+    return Results.Ok(new { status = "success", message = $"House '{houseId}' deleted successfully." });
 });
 
 // House profile / card
