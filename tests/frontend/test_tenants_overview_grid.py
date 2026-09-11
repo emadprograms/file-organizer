@@ -182,10 +182,10 @@ def test_house_card_tenants_overview_details(page: Page):
     expect(card.locator(".tenants-count")).to_contain_text("2 Tenants")
     expect(card.locator(".tenure-badge")).to_contain_text("< 5 Yrs")
 
-    # Current tenant is highlighted with green container, user icon, and dates
+    # Current tenant is highlighted with blue container, user icon, and dates
     expect(card).to_contain_text("Zaid Modern")
     expect(card).to_contain_text("2022 - Present")
-    expect(card.locator(".tenant-overview-item").first).to_have_class(re.compile(r"bg-emerald-50"))
+    expect(card.locator(".tenant-overview-item").first).to_have_class(re.compile(r"bg-blue-50"))
     expect(card.locator(".tenant-overview-item svg").first).to_be_visible()
 
     # Past tenant is shown with period

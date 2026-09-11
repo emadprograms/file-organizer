@@ -109,11 +109,11 @@
                                 || (t.subtitle && (t.subtitle.includes('Present') || t.subtitle.includes('الآن')))
                                 || (idx === 0 && !t.subtitle?.includes('-'));
                             const cardBg = isCurrent 
-                                ? 'bg-emerald-50/70 border-emerald-200/80' 
+                                ? 'bg-blue-50/70 border-blue-200/80' 
                                 : 'bg-slate-50 border-slate-200/60';
                             const nameClass = isCurrent ? 'font-bold text-slate-900' : 'font-medium text-slate-700';
                             const tenantIcon = isCurrent
-                                ? `<span class="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0" title="Residing Tenant">
+                                ? `<span class="w-5 h-5 rounded-md bg-blue-100 text-blue-700 flex items-center justify-center flex-shrink-0" title="Residing Tenant">
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                                    </span>`
                                 : `<span class="w-5 h-5 rounded-md bg-slate-200/80 text-slate-500 flex items-center justify-center flex-shrink-0" title="Past Tenant">
