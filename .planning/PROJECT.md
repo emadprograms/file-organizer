@@ -93,10 +93,18 @@ Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shi
   - Consolidated area overview controls (`#grid-area-stats` house count badge, tenure duration legend `< 5y | 5–10y | > 10y`, and `+ إضافة منزل جديد` add house button) directly into the primary application top navbar (`#top-navbar`).
   - Removed the redundant secondary sub-header bar inside `#area-grid-panel`, allowing the house cards grid to sit directly below the navbar and saving vertical screen real estate.
   - Dynamically showed/hid area overview navbar controls across `area-grid.js` and `router.js` upon house navigation or DB inspector mode.
+- **Arabic Tenant Count Badge in Tenancy Register Header (Quick Refinement QCK-17):**
+  - Replaced the bare digit in a tiny circle in the Tenancy Register header (`سجل المستأجرين المتعاقبين`) with an Arabic tenant count badge (e.g. `3 مستأجرين` or `1 مستأجر`).
+  - Styled as a rounded pill (`.tenants-count-badge`, `px-2.5 py-0.5 rounded-full`) matching metadata standards across the application.
+- **Delete House Feature in Settings Modal Danger Zone (Quick Refinement QCK-18):**
+  - Implemented dual-backend `DELETE /api/areas/{areaId}/houses/{houseId}` across ASP.NET Core 8.0 and FastAPI with SQLite cascade deletion across 5 tables (`pages`, `documents`, `batches`, `tenants`, `houses`) and recursive directory removal on disk (`areas/{area}/{house}`).
+  - Added red-themed Danger Zone container in House Settings & Tenants modal (`#tenant-modal`) with trigger button `#btn-open-delete-house`.
+  - Built GitHub-style type-to-confirm modal `#delete-house-modal` requiring explicit typing of `delete <house_id>` to unlock the deletion button.
+  - Automated post-deletion state reset (`currentHouse = null`, `currentTenant = null`), navigation back to Area Grid view, sidebar and grid refresh, and toast notification.
 - **Comprehensive Multi-Stack Test Coverage & Verification:**
-  - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
-  - 32 Python backend tests (17 in `tests/test_v14_features.py`, 13 in `tests/test_document_management_api.py`, 2 in `tests/test_house_profile_api.py`).
-  - 152 Frontend Vitest tests across 15 files (`npm run test:frontend`, including 4 in `unified_header.test.js`, 3 in `tab_labels.test.js`, 5 in `export_archive_modal.test.js`, 4 in `house_profile.test.js`, 16 in `batch_operations.test.js`, and 8 in `folder_select_checkbox.test.js`).
+  - 85 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
+  - 33 Python backend tests (18 in `tests/test_v14_features.py`, 13 in `tests/test_document_management_api.py`, 2 in `tests/test_house_profile_api.py`).
+  - 158 Frontend Vitest tests across 16 files (`npm run test:frontend`, including 5 in `delete_house.test.js`, 5 in `house_profile.test.js`, 4 in `unified_header.test.js`, 3 in `tab_labels.test.js`, 5 in `export_archive_modal.test.js`, 16 in `batch_operations.test.js`, and 8 in `folder_select_checkbox.test.js`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/`, `web-net/wwwroot/`, and `dist/win-x64/wwwroot/`.
 

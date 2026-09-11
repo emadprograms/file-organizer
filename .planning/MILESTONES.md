@@ -2,10 +2,14 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 16 quick refinements (QCK-01 through QCK-16), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 32 Pytest tests, 152 Vitest across 15 files, 49 Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 17 quick refinements (QCK-01 through QCK-17), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 32 Pytest tests, 158 Vitest across 16 files, 49 Playwright E2E)
 
 **Key accomplishments:**
 
+- **Arabic Tenant Count Badge in Tenancy Register Header (Quick Refinement QCK-17):**
+  - Enhanced the tenant count badge in the Tenancy Register header (`سجل المستأجرين المتعاقبين`) from a bare digit in a tiny circle to an Arabic tenant count badge (e.g. `3 مستأجرين` or `1 مستأجر`).
+  - Styled as an elegant rounded pill (`.tenants-count-badge`, `px-2.5 py-0.5 rounded-full`) harmonized with other metadata badges.
+  - Verified by unit tests in `tests/frontend/components/house_profile.test.js`.
 - **Merge Area Overview Headers into Single Top Bar (Quick Refinement QCK-16):**
   - Consolidated area overview controls (`#grid-area-stats` house count badge, tenure duration legend `< 5y | 5–10y | > 10y`, and `+ إضافة منزل جديد` add house button) directly into the primary application top navbar (`#top-navbar`).
   - Removed the redundant secondary sub-header bar inside `#area-grid-panel`, allowing the house cards grid to sit directly below the navbar and saving vertical screen real estate.
@@ -96,19 +100,20 @@
     - Timeline queries filter out copies so the timeline strictly reflects 1 real-world event per row (0 duplicate clutter).
     - Single 3-dot Copy (`POST .../documents/{vault_id}/copy`) also unified with `is_timeline_visible = 0`.
     - Physical vault storage: Vault stores 1 physical file without wasteful disk file duplication.
-- **Portfolio Expansion (Phase 107):**
+- **Portfolio Expansion (Phase 107 & QCK-17):**
   - "+ Add House" UI trigger and modal (`#add-house-modal`) in the Area Grid overview.
   - Backend endpoint `POST /api/areas/{area}/houses` across FastAPI & ASP.NET Core with conflict detection (409 on duplicates).
   - Automatic physical directory scaffolding (`batches/` and `vault/`).
   - Dynamic grid refresh without page reload.
+  - Delete House feature in House Settings & Tenants modal (`#tenant-modal`) with red Danger Zone, GitHub-style confirmation dialog (`#delete-house-modal`) requiring exact `delete <house_id>` text, cascade SQLite deletion across 5 tables (`pages`, `documents`, `batches`, `tenants`, `houses`), recursive directory removal on disk, and automated view reset to Area Grid.
 - **Global Keyboard Shortcuts Helper Modal (Phase 108):**
   - Pressing `?` or Shift+/ opens `#keyboard-shortcuts-modal` displaying `⌘K`, `⌘I`, `Space`, `Esc`, `?`.
   - Subtle navbar trigger button (`#btn-shortcuts-trigger`).
   - Input/textarea suppression guards and backdrop/Esc dismissal.
 - **Multi-Stack Test Coverage & Verification:**
-  - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
-  - 32 Python backend tests (17 in `tests/test_v14_features.py`, 13 in `tests/test_document_management_api.py`, 2 in `tests/test_house_profile_api.py`).
-  - 145 Frontend Vitest tests across 13 test files (`npm run test:frontend`).
+  - 85 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
+  - 33 Python backend tests (18 in `tests/test_v14_features.py`, 13 in `tests/test_document_management_api.py`, 2 in `tests/test_house_profile_api.py`).
+  - 157 Frontend Vitest tests across 16 test files (`npm run test:frontend`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 

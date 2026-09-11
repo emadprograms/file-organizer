@@ -34,6 +34,8 @@
 - [x] Quick Refinement QCK-14: Tenure-Based Active Tenant Colors in Tenant Selection & House Overview (Emerald green for <5 yrs, Amber yellow for 5-10 yrs, Rose red for >10 yrs matching house overview cards) — completed 2026-09-11
 - [x] Quick Refinement QCK-15: Remove Redundant Emojis from Tenant Selection List and Folders Tab (Dynamic SVG Iconography) — completed 2026-09-11
 - [x] Quick Refinement QCK-16: Merge Area Overview Headers into Single Top Bar & Remove Redundant Lower Header — completed 2026-09-11
+- [x] Quick Refinement QCK-17: Arabic Tenant Count Badge in Tenancy Register Header (`سجل المستأجرين المتعاقبين`) — completed 2026-09-11
+- [x] Quick Refinement QCK-18: Delete House Feature in Settings Modal Danger Zone (GitHub-Style Type-to-Confirm & Dual-Backend Cascade Deletion) — completed 2026-09-11
 
 <details>
 <summary>✅ v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server (Phases 101-104) — SHIPPED 2026-09-09</summary>

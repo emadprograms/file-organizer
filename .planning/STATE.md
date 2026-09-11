@@ -4,9 +4,9 @@ milestone: v14.0
 milestone_name: Power-User Operations & Portfolio Expansion
 current_phase: 108 (All Complete)
 status: completed
-last_updated: "2026-09-11T13:58:00.000Z"
+last_updated: "2026-09-11T17:20:00.000Z"
 last_activity: 2026-09-11
-last_activity_desc: "Completed Quick Task 260911-nj6 (QCK-16: Merge Area Overview Headers into Single Top Bar). 152 Vitest tests across 15 files, 84 xUnit tests, 32 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff."
+last_activity_desc: "Completed Quick Tasks 260911-ny4 (QCK-17: Arabic Tenant Count Badge in Tenancy Register Header) and 260911-nty (QCK-18: Delete House Feature in Settings Modal Danger Zone). 158 Vitest tests across 16 files, 85 xUnit tests, 33 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -65,13 +65,15 @@ Equip the digital archive management system with power-user operational tools: o
 - `260911-tenure-based-active-tenant-colors`: Tenure-Based Active Tenant Colors in Tenant Selection & House Overview (QCK-14). Replaced the uniform hardcoded blue highlight with tenure-duration-based colors matching the house overview standards (< 5 yrs: emerald green, 5-10 yrs: amber yellow, > 10 yrs: rose red; past tenants: neutral slate). Added dynamic dual-backend computation of `duration_category` across FastAPI (`HouseTenantProfile.duration_category`) and ASP.NET Core (`HouseTenantProfileDto.DurationCategory`), and updated export options modal emojis (`🟢`, `🟡`, `🔴`). 145 Vitest tests across 13 files, 84 xUnit tests, 32 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff.
 - `260911-nh3-remove-emojis-from-tenant-selection-list`: Remove Redundant Emojis from Tenant Selection List and Folders Tab (QCK-15). Removed redundant inline emojis (`📁` and `📋`) from the segmented tab buttons in favor of clean text labels and dynamic SVG iconography (Users SVG icon when in tenant selection list state, Folder SVG icon when in folders state) matching the Timeline SVG standard, and cleaned emojis from export modal tenant selection options. 148 Vitest tests across 14 files, 84 xUnit tests, 32 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff.
 - `260911-nj6-merge-area-overview-headers-into-single-`: Merge Area Overview Headers into Single Top Bar & Remove Redundant Lower Header (QCK-16). Consolidated area overview controls (`#grid-area-stats`, tenure duration legend, and `+ إضافة منزل جديد`) into the primary top navbar, and eliminated the redundant secondary header bar inside `#area-grid-panel` so house cards sit directly underneath the main navbar. 152 Vitest tests across 15 files, 84 xUnit tests, 32 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff.
+- `260911-ny4`: Arabic Tenant Count Badge in Tenancy Register Header (QCK-17). Enhanced the tenant count badge in the Tenancy Register header (`سجل المستأجرين المتعاقبين`) from a bare digit in a tiny circle to an Arabic tenant count badge (e.g. `3 مستأجرين` or `1 مستأجر`) formatted as an elegant rounded pill (`.tenants-count-badge`). Verified by unit tests in `tests/frontend/components/house_profile.test.js`.
+- `260911-nty`: Delete House Feature in Settings Modal Danger Zone (QCK-18). Added `DELETE /api/areas/{areaId}/houses/{houseId}` cascading across `pages`, `documents`, `batches`, `tenants`, and `houses` in SQLite and removing disk directories across ASP.NET Core and FastAPI. Integrated red Danger Zone in settings modal, `#delete-house-modal` with exact type-to-confirm validation, automated view reset to Area Grid, sidebar and area reload, and toast feedback. 158 Vitest tests across 16 files, 85 xUnit tests, and 33 Pytest tests passing; zero static asset diff.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-11 — Completed Quick Task 260911-nj6 (QCK-16: merge area overview headers into single top bar and remove redundant lower header). Verified by 152 Vitest tests, 84 xUnit tests, 32 Pytest tests, and 49 Playwright tests.
+Last activity: 2026-09-11 — Completed Quick Task 260911-ny4 (QCK-17: Arabic Tenant Count Badge in Tenancy Register Header) and 260911-nty (QCK-18: Delete House Feature in Settings Modal Danger Zone). Verified by 158 Vitest tests, 85 xUnit tests, 33 Pytest tests, and 49 Playwright tests.
 
 ## Operator Next Steps
 
