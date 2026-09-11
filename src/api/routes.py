@@ -2308,28 +2308,12 @@ async def search(request: Request, q: str = ""):
                 house_id=h["house_dir_name"]
             ))
             
-    q_phonetic = phonetic_normalize(q)
-    
+    scored_tenants = []
     for t in index["tenants"]:
         t_name = t["tenant_name"]
-        t_lower = t_name.lower()
-        t_phonetic = phonetic_normalize(t_lower)
-        is_match = False
-        if q in t_lower:
-            is_match = True
-        elif q_phonetic.replace(" ", "") in t_phonetic.replace(" ", ""):
-            is_match = True
-        else:
-            if len(q.split()) == 1:
-                if difflib.get_close_matches(q, t_lower.split(), n=1, cutoff=0.7) or \
-                   difflib.get_close_matches(q_phonetic, t_phonetic.split(), n=1, cutoff=0.7):
-                    is_match = True
-            else:
-                if difflib.SequenceMatcher(None, q, t_lower).ratio() >= 0.7 or \
-                   difflib.SequenceMatcher(None, q_phonetic, t_phonetic).ratio() >= 0.7:
-                    is_match = True
-        if is_match:
-            results.append(SearchResultResponse(
+        score = score_tenant_match(q, t_name, t.get("house_dir_name", ""))
+        if score > 0:
+            scored_tenants.append((score, SearchResultResponse(
                 id=f"{t['house_dir_name']}_{t_name}",
                 type="tenant",
                 title=t_name,
@@ -2338,7 +2322,11 @@ async def search(request: Request, q: str = ""):
                 area_id=t["area_name"],
                 house_id=t["house_dir_name"],
                 tenant_name=t_name
-            ))
+            )))
+
+    scored_tenants.sort(key=lambda x: x[0], reverse=True)
+    for _, item in scored_tenants:
+        results.append(item)
 
     for d in index["documents"]:
         if q in d["content"] or q in d["title_field"]:

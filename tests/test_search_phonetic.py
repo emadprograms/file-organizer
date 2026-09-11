@@ -36,3 +36,42 @@ def test_score_tenant_match_multiword():
     score = score_tenant_match("fawaz khalil", "فواز خليل الطارش", "500")
     assert score >= 800
     assert score_tenant_match("fawaz javed", "فواز خليل الطارش", "500") == 0
+
+
+def test_score_tenant_match_usman_othman_precision():
+    # Usman, Uthman, Osman, Othman MUST match عثمان with high score
+    assert score_tenant_match("usman", "محمد عثمان حاجي", "551") >= 400
+    assert score_tenant_match("uthman", "محمد عثمان حاجي", "551") >= 400
+    assert score_tenant_match("osman", "محسن عثمان عبد الرب", "950") >= 400
+    assert score_tenant_match("othman", "عادل عبد الرحمن عثمان البلوشي", "1336") >= 400
+
+    # Usman MUST NOT match Zaid, Salman, Sulaiman, or Waseem
+    assert score_tenant_match("usman", "زياد عوض السليمان", "SAF F 2450_21") == 0
+    assert score_tenant_match("usman", "سلمان عبيد عنفوس", "1281") == 0
+    assert score_tenant_match("usman", "سليمان مطلق نجم العبدالله", "608") == 0
+    assert score_tenant_match("usman", "وسيم سردار محمد", "551") == 0
+
+
+def test_score_tenant_match_waseem_precision():
+    # Waseem must match وسيم
+    assert score_tenant_match("waseem", "وسيم سردار محمد", "551") >= 400
+
+    # Waseem MUST NOT match Sami or Asma
+    assert score_tenant_match("waseem", "سامي محمد ناجي الصميل", "944") == 0
+    assert score_tenant_match("waseem", "أسماء خيام محمد الأنصاري", "514") == 0
+
+
+def test_score_tenant_match_zaid_precision():
+    # Zaid must match زياد and زيد
+    assert score_tenant_match("zaid", "زياد عوض السليمان", "SAF F 2450_21") >= 400
+    assert score_tenant_match("zaid", "مصلح عيسى علي زيد", "1336") >= 400
+
+    # Zaid MUST NOT match عثمان
+    assert score_tenant_match("zaid", "محمد عثمان حاجي", "551") == 0
+
+
+def test_score_tenant_match_balushi():
+    # Balushi must match البلوشي
+    assert score_tenant_match("balushi", "عدنان عبدالواحد علي البلوشي", "100") >= 400
+    assert score_tenant_match("al balushi", "عدنان عبدالواحد علي البلوشي", "100") >= 400
+

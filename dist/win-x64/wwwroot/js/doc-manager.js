@@ -138,14 +138,15 @@
     async function handleCategoryDrop(e, targetCategory, card) {
         e.preventDefault();
         card.classList.remove('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400');
-        if (!draggedDoc || !draggedDoc.vault_id) return;
-        if (draggedDoc.category === targetCategory) return;
+        const activeDragged = draggedDoc || (typeof window !== 'undefined' && window.draggedDoc);
+        if (!activeDragged || !activeDragged.vault_id) return;
+        if (activeDragged.category === targetCategory) return;
 
-        const area = getResolvedArea(draggedDoc);
-        const house = getResolvedHouse(draggedDoc);
+        const area = getResolvedArea(activeDragged);
+        const house = getResolvedHouse(activeDragged);
 
         try {
-            const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(draggedDoc.vault_id)}`, {
+            const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(activeDragged.vault_id)}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ category: targetCategory, is_manual: 1 })
@@ -156,6 +157,12 @@
             }
             const data = await res.json();
             showToast(`Moved to ${data.category || targetCategory}`);
+            if (typeof window.openCategoryFolder === 'function') {
+                window.openCategoryFolder(targetCategory);
+                if (data && data.category && data.category !== targetCategory) {
+                    window.openCategoryFolder(data.category);
+                }
+            }
             if (typeof window.refreshCurrentTab === 'function') {
                 await window.refreshCurrentTab(area, house);
             }
@@ -166,8 +173,9 @@
     }
 
     function handleTenantTreeDragOver(e, btn, parentPath) {
-        if (!draggedDoc || !draggedDoc.vault_id) return;
-        const house = getResolvedHouse(draggedDoc);
+        const activeDragged = draggedDoc || (typeof window !== 'undefined' && window.draggedDoc);
+        if (!activeDragged || !activeDragged.vault_id) return;
+        const house = getResolvedHouse(activeDragged);
         if (parentPath && house && !parentPath.includes(encodeURIComponent(house)) && !parentPath.includes(house)) {
             return;
         }
@@ -183,9 +191,10 @@
     async function handleTenantTreeDrop(e, tenantName, btn, parentPath) {
         e.preventDefault();
         btn.classList.remove('drag-over-active', 'bg-slate-700/80', 'ring-2', 'ring-blue-400');
-        if (!draggedDoc || !draggedDoc.vault_id) return;
-        const area = getResolvedArea(draggedDoc);
-        const house = getResolvedHouse(draggedDoc);
+        const activeDragged = draggedDoc || (typeof window !== 'undefined' && window.draggedDoc);
+        if (!activeDragged || !activeDragged.vault_id) return;
+        const area = getResolvedArea(activeDragged);
+        const house = getResolvedHouse(activeDragged);
         if (parentPath && house && !parentPath.includes(encodeURIComponent(house)) && !parentPath.includes(house)) {
             showToast('Cannot move document to another house.', 'error');
             return;
@@ -198,7 +207,7 @@
             const target = tenants.find(t => t.name.trim() === tenantName.trim());
             if (!target) throw new Error('Tenant not found');
 
-            const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(draggedDoc.vault_id)}`, {
+            const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(activeDragged.vault_id)}`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tenant_id: target.id, is_manual: 1 })
@@ -414,6 +423,9 @@
             }
 
             closeDocModal();
+            if (typeof window.openCategoryFolder === 'function') {
+                window.openCategoryFolder(chosenCategory);
+            }
             if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
                 await window.refreshCurrentTab(area, house);
             } else if (typeof refreshCurrentTab === 'function') {
@@ -881,6 +893,9 @@
             getHouseFromHash,
             getResolvedArea,
             getResolvedHouse,
+            handleCategoryDrop,
+            handleDocDragStart,
+            handleDocDragEnd,
         };
     }
 

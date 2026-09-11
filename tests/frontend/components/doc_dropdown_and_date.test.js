@@ -11,6 +11,12 @@ const {
     renderCategories,
     openBatchMoveForDoc,
     openBatchCopyForDoc,
+    getSingleTargetDoc,
+    closeBatchMoveModal,
+    closeBatchCopyModal,
+    handleBatchMoveSubmit,
+    handleBatchCopySubmit,
+    deselectAllDocs,
 } = require('../../../src/api/static/js/categories-view.js');
 
 const {
@@ -21,13 +27,34 @@ describe('Document 3-Dots Dropdown Menu & Categories Date Badge', () => {
     let mockDoc;
 
     beforeEach(() => {
+        if (typeof deselectAllDocs === 'function') {
+            deselectAllDocs();
+        }
+        if (typeof closeBatchMoveModal === 'function') {
+            closeBatchMoveModal();
+        }
+        if (typeof closeBatchCopyModal === 'function') {
+            closeBatchCopyModal();
+        }
+
         document.body.innerHTML = `
             <div id="tab-timeline" class="tab-btn">Timeline</div>
             <div id="tab-categories" class="tab-btn">Categories</div>
             <div id="categories-list"></div>
             <div id="document-list"></div>
-            <div id="batch-move-modal" class="hidden"></div>
-            <div id="batch-copy-modal" class="hidden"></div>
+            <div id="batch-action-bar" class="hidden"></div>
+            <div id="batch-move-modal" class="hidden">
+                <span id="batch-move-subtitle"></span>
+                <select id="batch-move-folder-select"></select>
+                <button id="btn-batch-move-confirm"></button>
+                <span id="batch-move-spinner" class="hidden"></span>
+            </div>
+            <div id="batch-copy-modal" class="hidden">
+                <span id="batch-copy-subtitle"></span>
+                <select id="batch-copy-folder-select"></select>
+                <button id="btn-batch-copy-confirm"></button>
+                <span id="batch-copy-spinner" class="hidden"></span>
+            </div>
             <div id="doc-action-modal" class="hidden"></div>
         `;
 
@@ -357,31 +384,111 @@ describe('Document 3-Dots Dropdown Menu & Categories Date Badge', () => {
         });
     });
 
-    describe('openBatchMoveForDoc & openBatchCopyForDoc helpers', () => {
-        it('sets single selectedDocIds and opens batch move modal', () => {
+    describe('openBatchMoveForDoc & openBatchCopyForDoc helpers (single doc mode)', () => {
+        it('opens move modal for single doc without activating multi-select or batch action bar', () => {
             const moveModal = document.getElementById('batch-move-modal');
-            const selectEl = document.createElement('select');
-            selectEl.id = 'batch-move-folder-select';
-            document.body.appendChild(selectEl);
+            const batchBar = document.getElementById('batch-action-bar');
+            const subtitle = document.getElementById('batch-move-subtitle');
 
             openBatchMoveForDoc(mockDoc);
 
-            expect(window.selectedDocIds.has(mockDoc.vault_id)).toBe(true);
-            expect(window.selectedDocIds.size).toBe(1);
+            // Does not activate multi-select or add to selectedDocIds
+            expect(window.selectedDocIds.has(mockDoc.vault_id)).toBe(false);
+            expect(window.selectedDocIds.size).toBe(0);
+            expect(batchBar.classList.contains('hidden')).toBe(true);
+
+            // Sets singleTargetDoc
+            expect(getSingleTargetDoc()).toEqual(mockDoc);
+
+            // Opens move modal and displays document name
             expect(moveModal.classList.contains('hidden')).toBe(false);
+            expect(subtitle.textContent).toContain('Move "contract_01.pdf"');
         });
 
-        it('sets single selectedDocIds and opens batch copy modal', () => {
+        it('opens copy modal for single doc without activating multi-select or batch action bar', () => {
             const copyModal = document.getElementById('batch-copy-modal');
-            const selectEl = document.createElement('select');
-            selectEl.id = 'batch-copy-folder-select';
-            document.body.appendChild(selectEl);
+            const batchBar = document.getElementById('batch-action-bar');
+            const subtitle = document.getElementById('batch-copy-subtitle');
 
             openBatchCopyForDoc(mockDoc);
 
-            expect(window.selectedDocIds.has(mockDoc.vault_id)).toBe(true);
-            expect(window.selectedDocIds.size).toBe(1);
+            // Does not activate multi-select or add to selectedDocIds
+            expect(window.selectedDocIds.has(mockDoc.vault_id)).toBe(false);
+            expect(window.selectedDocIds.size).toBe(0);
+            expect(batchBar.classList.contains('hidden')).toBe(true);
+
+            // Sets singleTargetDoc
+            expect(getSingleTargetDoc()).toEqual(mockDoc);
+
+            // Opens copy modal and displays document name
             expect(copyModal.classList.contains('hidden')).toBe(false);
+            expect(subtitle.textContent).toContain('Copy "contract_01.pdf"');
+        });
+
+        it('clears singleTargetDoc when closing move or copy modals', () => {
+            openBatchMoveForDoc(mockDoc);
+            expect(getSingleTargetDoc()).toEqual(mockDoc);
+            closeBatchMoveModal();
+            expect(getSingleTargetDoc()).toBeNull();
+
+            openBatchCopyForDoc(mockDoc);
+            expect(getSingleTargetDoc()).toEqual(mockDoc);
+            closeBatchCopyModal();
+            expect(getSingleTargetDoc()).toBeNull();
+        });
+
+        it('submits single doc move without touching multi-select state', async () => {
+            openBatchMoveForDoc(mockDoc);
+            const selectEl = document.getElementById('batch-move-folder-select');
+            selectEl.value = '05 - عقود';
+
+            await handleBatchMoveSubmit();
+
+            expect(global.fetch).toHaveBeenCalledWith(
+                '/api/areas/Safra%20C/houses/514/documents/batch-move',
+                expect.objectContaining({
+                    method: 'POST',
+                    body: JSON.stringify({
+                        vault_ids: [mockDoc.vault_id],
+                        target_category: '05 - عقود'
+                    })
+                })
+            );
+
+            expect(window.selectedDocIds.size).toBe(0);
+            expect(getSingleTargetDoc()).toBeNull();
+            expect(document.getElementById('batch-move-modal').classList.contains('hidden')).toBe(true);
+            expect(global.showToast).toHaveBeenCalledWith(
+                expect.stringContaining('Successfully moved document'),
+                'success'
+            );
+        });
+
+        it('submits single doc copy without touching multi-select state', async () => {
+            openBatchCopyForDoc(mockDoc);
+            const selectEl = document.getElementById('batch-copy-folder-select');
+            selectEl.value = '05 - عقود';
+
+            await handleBatchCopySubmit();
+
+            expect(global.fetch).toHaveBeenCalledWith(
+                '/api/areas/Safra%20C/houses/514/documents/batch-copy',
+                expect.objectContaining({
+                    method: 'POST',
+                    body: JSON.stringify({
+                        vault_ids: [mockDoc.vault_id],
+                        target_category: '05 - عقود'
+                    })
+                })
+            );
+
+            expect(window.selectedDocIds.size).toBe(0);
+            expect(getSingleTargetDoc()).toBeNull();
+            expect(document.getElementById('batch-copy-modal').classList.contains('hidden')).toBe(true);
+            expect(global.showToast).toHaveBeenCalledWith(
+                'تم نسخ الوثيقة بنجاح',
+                'success'
+            );
         });
     });
 });

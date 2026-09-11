@@ -216,6 +216,11 @@ def test_search_phonetic_arabic_english(tmp_path):
             {"primary_tenant": "محمد حسين"},
             {"primary_tenant": "عبد الله"},
             {"primary_tenant": "سحر ميرزا"},
+            {"primary_tenant": "محمد عثمان حاجي"},
+            {"primary_tenant": "زياد عوض السليمان"},
+            {"primary_tenant": "وسيم سردار محمد"},
+            {"primary_tenant": "عميد علي محمد عزيز"},
+            {"primary_tenant": "جاويد أكرم محمد"},
         ]}, f)
 
     class MockConfig:
@@ -248,3 +253,33 @@ def test_search_phonetic_arabic_english(tmp_path):
     res4 = client.get("/api/search?q=sahar mirza")
     assert res4.status_code == 200
     assert any(item["title"] == "سحر ميرزا" for item in res4.json())
+
+    # Test 5: Usman precision & rejection of Zaid/Waseem/Sulaiman
+    res_usman = client.get("/api/search?q=usman")
+    assert res_usman.status_code == 200
+    usman_titles = [item["title"] for item in res_usman.json()]
+    assert any("عثمان" in t for t in usman_titles)
+    assert not any("زياد" in t or "سليمان" in t or "وسيم" in t for t in usman_titles)
+
+    # Test 6: Waseem precision & rejection of Usman/Zaid
+    res_waseem = client.get("/api/search?q=waseem")
+    assert res_waseem.status_code == 200
+    waseem_titles = [item["title"] for item in res_waseem.json()]
+    assert any("وسيم" in t for t in waseem_titles)
+    assert not any("عثمان" in t or "زياد" in t for t in waseem_titles)
+
+    # Test 7: Zaid precision & rejection of Usman/Waseem
+    res_zaid = client.get("/api/search?q=zaid")
+    assert res_zaid.status_code == 200
+    zaid_titles = [item["title"] for item in res_zaid.json()]
+    assert any("زياد" in t for t in zaid_titles)
+    assert not any("عثمان" in t or "وسيم" in t for t in zaid_titles)
+
+    # Test 8: Ameed & Javed precision
+    res_ameed = client.get("/api/search?q=ameed")
+    assert res_ameed.status_code == 200
+    assert any("عميد" in item["title"] for item in res_ameed.json())
+
+    res_javed = client.get("/api/search?q=javed")
+    assert res_javed.status_code == 200
+    assert any("جاويد" in item["title"] for item in res_javed.json())

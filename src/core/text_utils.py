@@ -4,11 +4,11 @@ import difflib
 
 AR_TO_EN_MAP = {
     'ا': '', 'أ': '', 'إ': '', 'آ': '', 'ى': '',
-    'ب': 'b', 'ت': 't', 'ث': 'th', 'ج': 'j', 'ح': 'h', 'خ': 'kh',
-    'د': 'd', 'ذ': 'dh', 'ر': 'r', 'ز': 'z', 'س': 's', 'ش': 'sh',
-    'ص': 's', 'ض': 'd', 'ط': 't', 'ظ': 'dh', 'ع': '', 'غ': 'gh',
-    'ف': 'f', 'ق': 'q', 'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n',
-    'ه': 'h', 'ة': 'h', 'و': '', 'ي': '', 'ئ': '', 'ؤ': '', 'ء': ''
+    'ب': 'b', 'ت': 't', 'ث': 's', 'ج': 'j', 'ح': 'h', 'خ': 'k',
+    'د': 'd', 'ذ': 'z', 'ر': 'r', 'ز': 'z', 'س': 's', 'ش': 's',
+    'ص': 's', 'ض': 'd', 'ط': 't', 'ظ': 'z', 'ع': '', 'غ': 'g',
+    'ف': 'f', 'ق': 'k', 'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n',
+    'ه': 'h', 'ة': 'h', 'W': 'w', 'و': '', 'ي': '', 'ئ': '', 'ؤ': 'w', 'ء': ''
 }
 
 
@@ -34,13 +34,25 @@ def phonetic_normalize(text: str) -> str:
     """
     if not text:
         return ""
-    lower = text.lower()
+    lower = text.lower().strip()
+    # Distinguish Arabic 'و' as consonant 'W' vs long vowel (uu/oo)
+    # 1. Beginning of word (^و or [ -]و) -> consonant W (وسيم, وليد)
+    # 2. Adjacent to Alif (او or وا) -> consonant W (جاويد, فواز, أنور)
+    # 3. Preceded by Ayn (عو) -> consonant W (عوض)
+    lower = re.sub(r'(^|[\s\-])و', r'\1W', lower)
+    lower = re.sub(r'[اآإأ][وؤ]|[وؤ][اآإأ]', 'W', lower)
+    lower = re.sub(r'ع[وؤ]', 'W', lower)
+
+    # Replace English digraphs prior to Arabic mapping to prevent Arabic س + ح (Seen + Haa) from collapsing as English "sh"
+    lower = lower.replace('v', 'w')
+    lower = lower.replace('th', 's')
+    lower = lower.replace('kh', 'k').replace('gh', 'g').replace('sh', 's')
+    lower = lower.replace('dh', 'z').replace('zh', 'z')
+    lower = lower.replace('ph', 'f').replace('ck', 'k').replace('c', 'k').replace('q', 'k')
+
     res = [AR_TO_EN_MAP.get(char, char) for char in lower]
     val = "".join(res)
-    val = val.replace('v', 'w')
-    val = re.sub(r'[aeiouyw]', '', val)
-    val = val.replace('ph', 'f').replace('ck', 'k').replace('c', 'k')
-    val = val.replace('th', 't').replace('dh', 'd').replace('kh', 'k').replace('gh', 'g').replace('sh', 's')
+    val = re.sub(r'[aeiouy]', '', val)
     val = re.sub(r'(.)\1+', r'\1', val)
     return val.strip()
 
@@ -90,7 +102,10 @@ def score_tenant_match(query: str, tenant_name: str, house_id: str = "") -> int:
     # Direct substring matches
     if q_low in t_low:
         return 1000 + (len(q_low) * 10)
-    if h_low and q_low in h_low:
+    
+    # House number matching (e.g. searching "500" returns tenants in house 500)
+    h_num = h_low.split(" - ")[0].strip() if " - " in h_low else h_low
+    if h_num and (q_low == h_num or (q_low.isdigit() and q_low in h_num)):
         return 900
 
     q_words = [w for w in q_low.split() if w]
@@ -137,17 +152,21 @@ def score_tenant_match(query: str, tenant_name: str, house_id: str = "") -> int:
                         if qw_latin and tw_latin:
                             if qw_latin == tw_latin:
                                 s += 100
-                            else:
-                                if qw_latin[0] == tw_latin[0]:
-                                    s += 30
-                                s += int(difflib.SequenceMatcher(None, qw_latin, tw_latin).ratio() * 70)
+                            elif qw_latin[0] == tw_latin[0]:
+                                s += 30
                         best_word_score = max(best_word_score, s)
-                    elif (tw_norm.startswith(qw_norm) or qw_norm.startswith(tw_norm)) and min(len(qw_norm), len(tw_norm)) >= 3:
+                    elif len(qw_norm) >= 3 and tw_norm.startswith(qw_norm):
                         best_word_score = max(best_word_score, 200)
-                    elif len(qw_norm) >= 3 and len(tw_norm) >= 3 and qw_norm[0] == tw_norm[0]:
-                        sim = difflib.SequenceMatcher(None, qw_norm, tw_norm).ratio()
-                        if sim >= 0.75:
-                            best_word_score = max(best_word_score, int(sim * 150))
+
+            # Compound token pair check (e.g. "abdullah" matching "عبد" + "الله")
+            if ti + 1 < len(t_words):
+                tw_pair = tw_clean + " " + clean_article(t_words[ti + 1])
+                tw_pair_norm = phonetic_normalize(tw_pair).replace(" ", "")
+                if qw_norm and len(qw_norm) >= 4 and qw_norm == tw_pair_norm:
+                    s = 450
+                    if ti == 0 and qi == 0:
+                        s += 50
+                    best_word_score = max(best_word_score, s)
 
         if best_word_score > 0:
             matched_words += 1

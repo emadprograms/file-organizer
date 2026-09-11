@@ -8,11 +8,11 @@ public static class TextUtils
     private static readonly Dictionary<char, string> ArabicToEnglishMap = new()
     {
         ['ا'] = "", ['أ'] = "", ['إ'] = "", ['آ'] = "", ['ى'] = "",
-        ['ب'] = "b", ['ت'] = "t", ['ث'] = "th", ['ج'] = "j", ['ح'] = "h", ['خ'] = "kh",
-        ['د'] = "d", ['ذ'] = "dh", ['ر'] = "r", ['ز'] = "z", ['س'] = "s", ['ش'] = "sh",
-        ['ص'] = "s", ['ض'] = "d", ['ط'] = "t", ['ظ'] = "dh", ['ع'] = "", ['غ'] = "gh",
-        ['ف'] = "f", ['ق'] = "q", ['ك'] = "k", ['ل'] = "l", ['م'] = "m", ['ن'] = "n",
-        ['ه'] = "h", ['ة'] = "h", ['و'] = "", ['ي'] = "", ['ئ'] = "", ['ؤ'] = "", ['ء'] = ""
+        ['ب'] = "b", ['ت'] = "t", ['ث'] = "s", ['ج'] = "j", ['ح'] = "h", ['خ'] = "k",
+        ['د'] = "d", ['ذ'] = "z", ['ر'] = "r", ['ز'] = "z", ['س'] = "s", ['ش'] = "s",
+        ['ص'] = "s", ['ض'] = "d", ['ط'] = "t", ['ظ'] = "z", ['ع'] = "", ['غ'] = "g",
+        ['ف'] = "f", ['ق'] = "k", ['ك'] = "k", ['ل'] = "l", ['م'] = "m", ['ن'] = "n",
+        ['ه'] = "h", ['ة'] = "h", ['W'] = "w", ['و'] = "", ['ي'] = "", ['ئ'] = "", ['ؤ'] = "w", ['ء'] = ""
     };
 
     public static string CleanArticle(string? word)
@@ -35,7 +35,23 @@ public static class TextUtils
         if (string.IsNullOrWhiteSpace(text))
             return string.Empty;
 
-        var lower = text.ToLowerInvariant();
+        var lower = text.ToLowerInvariant().Trim();
+
+        // Distinguish Arabic 'و' as consonant 'W' vs long vowel (uu/oo)
+        // 1. Beginning of word (^و or [ -]و) -> consonant W (وسيم, وليد)
+        // 2. Adjacent to Alif (او or وا) -> consonant W (جاويد, فواز, أنور)
+        // 3. Preceded by Ayn (عو) -> consonant W (عوض)
+        lower = Regex.Replace(lower, @"(^|[\s\-])و", "$1W");
+        lower = Regex.Replace(lower, @"[اآإأ][وؤ]|[وؤ][اآإأ]", "W");
+        lower = Regex.Replace(lower, @"ع[وؤ]", "W");
+
+        // Replace English digraphs prior to Arabic mapping to prevent Arabic س + ح (Seen + Haa) from collapsing as English "sh"
+        lower = lower.Replace("v", "w");
+        lower = lower.Replace("th", "s");
+        lower = lower.Replace("kh", "k").Replace("gh", "g").Replace("sh", "s");
+        lower = lower.Replace("dh", "z").Replace("zh", "z");
+        lower = lower.Replace("ph", "f").Replace("ck", "k").Replace("c", "k").Replace("q", "k");
+
         var sb = new StringBuilder();
         foreach (var ch in lower)
         {
@@ -50,12 +66,7 @@ public static class TextUtils
         }
 
         var res = sb.ToString();
-        // In South Asian/Arabic transliterations, v and w represent the same sound (و)
-        res = res.Replace("v", "w");
-        res = Regex.Replace(res, "[aeiouyw]", "");
-        res = res.Replace("ph", "f").Replace("ck", "k").Replace("c", "k");
-        res = res.Replace("th", "t").Replace("dh", "d").Replace("kh", "k")
-                 .Replace("gh", "g").Replace("sh", "s");
+        res = Regex.Replace(res, "[aeiouy]", "");
         res = Regex.Replace(res, @"(.)\1+", "$1");
         return res.Trim();
     }
@@ -88,12 +99,14 @@ public static class TextUtils
             var qw = qWords[qi];
             var qwClean = CleanArticle(qw);
             var qwNorm = PhoneticNormalize(qwClean);
+            var qwLatin = NormalizeTranslit(qwClean);
             int bestWordScore = 0;
 
             for (int ti = 0; ti < tWords.Length; ti++)
             {
                 var tw = tWords[ti];
                 var twClean = CleanArticle(tw);
+                var twLatin = NormalizeTranslit(ToLatin(twClean));
 
                 // Exact word match
                 if (qw == tw || (!string.IsNullOrEmpty(qwClean) && qwClean == twClean))
@@ -118,8 +131,6 @@ public static class TextUtils
                 {
                     // Phonetic word match
                     var twNorm = PhoneticNormalize(twClean);
-                    var twLatin = NormalizeTranslit(ToLatin(twClean));
-                    var qwLatin = NormalizeTranslit(qwClean);
 
                     if (!string.IsNullOrEmpty(qwNorm) && !string.IsNullOrEmpty(twNorm))
                     {
@@ -131,26 +142,28 @@ public static class TextUtils
                             {
                                 if (qwLatin == twLatin)
                                     s += 100;
-                                else
-                                {
-                                    if (qwLatin[0] == twLatin[0]) s += 30;
-                                    s += (int)(Similarity(qwLatin, twLatin) * 70);
-                                }
+                                else if (qwLatin[0] == twLatin[0])
+                                    s += 30;
                             }
                             bestWordScore = Math.Max(bestWordScore, s);
                         }
-                        else if ((twNorm.StartsWith(qwNorm) || qwNorm.StartsWith(twNorm)) && Math.Min(qwNorm.Length, twNorm.Length) >= 3)
+                        else if (qwNorm.Length >= 3 && twNorm.StartsWith(qwNorm))
                         {
                             bestWordScore = Math.Max(bestWordScore, 200);
                         }
-                        else if (qwNorm.Length >= 3 && twNorm.Length >= 3 && qwNorm[0] == twNorm[0])
-                        {
-                            double sim = Similarity(qwNorm, twNorm);
-                            if (sim >= 0.75)
-                            {
-                                bestWordScore = Math.Max(bestWordScore, (int)(sim * 150));
-                            }
-                        }
+                    }
+                }
+
+                // Compound token pair check (e.g. "abdullah" matching "عبد" + "الله")
+                if (ti + 1 < tWords.Length)
+                {
+                    var twPair = twClean + " " + CleanArticle(tWords[ti + 1]);
+                    var twPairNorm = PhoneticNormalize(twPair).Replace(" ", "");
+                    if (!string.IsNullOrEmpty(qwNorm) && qwNorm.Length >= 4 && qwNorm == twPairNorm)
+                    {
+                        int s = 450;
+                        if (ti == 0 && qi == 0) s += 50;
+                        bestWordScore = Math.Max(bestWordScore, s);
                     }
                 }
             }

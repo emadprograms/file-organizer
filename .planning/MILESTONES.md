@@ -2,10 +2,22 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 25 quick refinements (QCK-01 through QCK-25), 4 plans, comprehensive multi-stack test verification (103 .NET xUnit, 33 Pytest tests, 184 Vitest across 21 files, Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 27 quick refinements (QCK-01 through QCK-27), 4 plans, comprehensive multi-stack test verification (120 .NET xUnit, 37 Pytest tests, 193 Vitest across 22 files, Playwright E2E)
 
 **Key accomplishments:**
 
+- **Decouple Single Document Move/Copy from Multi-Select Batch State (Quick Refinement QCK-27):**
+  - Resolved bug where clicking "Move" or "Copy" from an individual document's 3-dots action menu automatically activated multi-select batch mode, checked the document's checkbox, and revealed the floating batch action bar.
+  - Introduced `singleTargetDoc` state in `categories-view.js` to isolate single-document move/copy workflows from the global `selectedDocIds` Set.
+  - Refactored `openBatchMoveForDoc(doc)` and `openBatchCopyForDoc(doc)` to directly set `singleTargetDoc = doc` and open the modals with individualized subtitles (e.g. `Move "filename.pdf" to a target category folder.`), without touching checkboxes or displaying `#batch-action-bar`.
+  - Updated submission handlers (`handleBatchMoveSubmit`, `handleBatchCopySubmit`) to target `singleTargetDoc.vault_id`, reset `singleTargetDoc = null`, and avoid triggering bulk deselect side-effects.
+  - Added comprehensive unit tests in `doc_dropdown_and_date.test.js`, verifying that multi-select is untouched, checkboxes remain unchecked, and endpoints are properly called. Verified by 193 Vitest tests (22 files), 120 xUnit tests, and 18 Pytest tests with 0 static asset diff.
+- **Phonetic Consonant Skeleton Isolation & Strict Name Match Precision (Quick Refinement QCK-26):**
+  - Eliminated phonetic false-positive leakage where `usman` matched unrelated tenants `زياد عوض السليمان` (Zaid) and `سلمان` / `سليمان` (Salman / Sulaiman).
+  - Mapped `ث` (Thaa) to `s` and normalized English `th` to `s`, ensuring Latin variants `usman`, `uthman`, `osman`, and `othman` match Arabic `عثمان` with 100% precision (score $\ge 400$).
+  - Implemented smart contextual Arabic Waw rule (`(^|[\s\-])و`, `[اآإأ]و|وا`, `عو` $\to$ consonant `W`, otherwise vowel `uu/oo`), preserving `waseem` $\to$ `وسيم`, `javed` $\to$ `جاويد`, and `fawaz` $\to$ `فواز` while allowing `balushi` to match `بلوشي` and `mahmoud` to match `محمود`.
+  - Removed loose Levenshtein similarity fallback on 3-letter consonant roots, strictly requiring exact phonetic root equivalence or explicit query prefix matching.
+  - Added comprehensive precision and rejection unit tests across both xUnit (`PhoneticSearchTests.cs`) and Pytest (`test_search_phonetic.py`), ensuring 119 xUnit tests, 21 Pytest tests, and 184 Vitest tests pass.
 - **Search Tenant Timeline Color Coding & Cross-Language Phonetic Matching (Quick Refinement QCK-25):**
   - Upgraded Command Palette search results to color-code tenant timelines strictly based on active residency and duration: only the tenant actually residing in the property receives a colored timeline badge and matching hover states (< 5 years: emerald green, 5–10 years: amber yellow, > 10 years: rose red), while past tenants receive a neutral slate grey timeline badge.
   - Implemented dual-backend support for `is_current` (boolean) and `duration_category` ("short", "medium", "long", or `null`) across ASP.NET Core (`SearchResultDto.IsCurrent`, `SearchResultDto.DurationCategory`) and FastAPI (`SearchResultResponse.is_current`, `SearchResultResponse.duration_category`).

@@ -12,6 +12,20 @@ public class PhoneticSearchTests
     [InlineData("javed", "جاويد أكرم محمد", true)]
     [InlineData("javed", "خالد جاويد محمد", true)]
     [InlineData("jawed", "جاويد أكرم محمد", true)]
+    [InlineData("usman", "محمد عثمان حاجي فقير محمد", true)]
+    [InlineData("uthman", "محمد عثمان حاجي فقير محمد", true)]
+    [InlineData("osman", "محسن عثمان عبد الرب", true)]
+    [InlineData("othman", "عادل عبد الرحمن عثمان البلوشي", true)]
+    [InlineData("usman", "زياد عوض السليمان", false)]
+    [InlineData("usman", "سلمان عبيد عنفوس", false)]
+    [InlineData("usman", "سليمان مطلق نجم العبدالله", false)]
+    [InlineData("usman", "وسيم سردار محمد", false)]
+    [InlineData("waseem", "وسيم سردار محمد", true)]
+    [InlineData("waseem", "سامي محمد ناجي الصميل", false)]
+    [InlineData("waseem", "أسماء خيام محمد الأنصاري", false)]
+    [InlineData("zaid", "زياد عوض السليمان", true)]
+    [InlineData("zaid", "مصلح عيسى علي زيد", true)]
+    [InlineData("zaid", "محمد عثمان حاجي", false)]
     [InlineData("khalil", "فواز خليل الطارش", true)]
     [InlineData("khalil", "خليل محمد صادق الساعاتي", true)]
     [InlineData("fawaz", "فواز خليل الطارش", true)]
@@ -62,6 +76,44 @@ public class PhoneticSearchTests
 
         int mismatchScore = TextUtils.ScoreTenantMatch("fawaz javed", "فواز خليل الطارش", "500");
         Assert.Equal(0, mismatchScore);
+    }
+
+    [Fact]
+    public void ScoreTenantMatch_UsmanMatchesOthmanAndStrictlyRejectsZaidSalmanWaseem()
+    {
+        // Must match عثمان variations with high score
+        int usmanScore = TextUtils.ScoreTenantMatch("usman", "محمد عثمان حاجي فقير محمد", "551");
+        int uthmanScore = TextUtils.ScoreTenantMatch("uthman", "محمد عثمان حاجي فقير محمد", "551");
+        int osmanScore = TextUtils.ScoreTenantMatch("osman", "محسن عثمان عبد الرب", "950");
+        int othmanScore = TextUtils.ScoreTenantMatch("othman", "عادل عبد الرحمن عثمان البلوشي", "1336");
+
+        Assert.True(usmanScore >= 400, $"Expected usman to match عثمان with score >= 400, got {usmanScore}");
+        Assert.True(uthmanScore >= 400, $"Expected uthman to match عثمان with score >= 400, got {uthmanScore}");
+        Assert.True(osmanScore >= 400, $"Expected osman to match عثمان with score >= 400, got {osmanScore}");
+        Assert.True(othmanScore >= 400, $"Expected othman to match عثمان with score >= 400, got {othmanScore}");
+
+        // MUST NOT match Zaid, Salman, Sulaiman, or Waseem
+        int zaidScore = TextUtils.ScoreTenantMatch("usman", "زياد عوض السليمان", "SAF F 2450_21");
+        int salmanScore = TextUtils.ScoreTenantMatch("usman", "سلمان عبيد عنفوس", "1281");
+        int sulaimanScore = TextUtils.ScoreTenantMatch("usman", "سليمان مطلق نجم العبدالله", "608");
+        int waseemScore = TextUtils.ScoreTenantMatch("usman", "وسيم سردار محمد", "551");
+
+        Assert.Equal(0, zaidScore);
+        Assert.Equal(0, salmanScore);
+        Assert.Equal(0, sulaimanScore);
+        Assert.Equal(0, waseemScore);
+    }
+
+    [Fact]
+    public void ScoreTenantMatch_WaseemMatchesWaseemAndStrictlyRejectsSamiAsma()
+    {
+        int waseemScore = TextUtils.ScoreTenantMatch("waseem", "وسيم سردار محمد", "551");
+        int samiScore = TextUtils.ScoreTenantMatch("waseem", "سامي محمد ناجي الصميل", "944");
+        int asmaScore = TextUtils.ScoreTenantMatch("waseem", "أسماء خيام محمد الأنصاري", "514");
+
+        Assert.True(waseemScore >= 400, $"Expected waseem to match وسيم, got {waseemScore}");
+        Assert.Equal(0, samiScore);
+        Assert.Equal(0, asmaScore);
     }
 
     [Fact]

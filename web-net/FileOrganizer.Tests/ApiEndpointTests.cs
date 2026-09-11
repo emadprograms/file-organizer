@@ -166,6 +166,46 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
     }
 
     [Fact]
+    public async Task Search_PhoneticTenantAccuracy_UsmanMatchesOthmanAndStrictlyRejectsZaidSalmanWaseem()
+    {
+        // Seed houses and distinct tenants with potential phonetic collisions
+        using (var scope = _fixture.Services.CreateScope())
+        {
+            var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+            await repo.AddHouseAsync("551", "Safra C");
+            await repo.AddHouseAsync("552", "Safra C");
+            await repo.AddHouseAsync("553", "Safra C");
+            await repo.AddTenantAsync("551", "محمد عثمان حاجي فقير محمد", "2021-01-01", null);
+            await repo.AddTenantAsync("552", "زياد عوض السليمان", "2020-01-01", null);
+            await repo.AddTenantAsync("553", "وسيم سردار محمد", "2019-01-01", null);
+        }
+
+        // 1. Query 'usman': MUST return عثمان and MUST NOT return زياد, سليمان, or وسيم
+        var usmanRes = await _client.GetAsync("/api/search?q=usman");
+        Assert.Equal(HttpStatusCode.OK, usmanRes.StatusCode);
+        var usmanList = await usmanRes.Content.ReadFromJsonAsync<List<SearchResultDto>>();
+        Assert.NotNull(usmanList);
+        Assert.Contains(usmanList, r => r.Type == "tenant" && r.Title.Contains("عثمان"));
+        Assert.DoesNotContain(usmanList, r => r.Type == "tenant" && (r.Title.Contains("زياد") || r.Title.Contains("سليمان") || r.Title.Contains("وسيم")));
+
+        // 2. Query 'waseem': MUST return وسيم and MUST NOT return عثمان or زياد
+        var waseemRes = await _client.GetAsync("/api/search?q=waseem");
+        Assert.Equal(HttpStatusCode.OK, waseemRes.StatusCode);
+        var waseemList = await waseemRes.Content.ReadFromJsonAsync<List<SearchResultDto>>();
+        Assert.NotNull(waseemList);
+        Assert.Contains(waseemList, r => r.Type == "tenant" && r.Title.Contains("وسيم"));
+        Assert.DoesNotContain(waseemList, r => r.Type == "tenant" && (r.Title.Contains("عثمان") || r.Title.Contains("زياد")));
+
+        // 3. Query 'zaid': MUST return زياد and MUST NOT return عثمان or وسيم
+        var zaidRes = await _client.GetAsync("/api/search?q=zaid");
+        Assert.Equal(HttpStatusCode.OK, zaidRes.StatusCode);
+        var zaidList = await zaidRes.Content.ReadFromJsonAsync<List<SearchResultDto>>();
+        Assert.NotNull(zaidList);
+        Assert.Contains(zaidList, r => r.Type == "tenant" && r.Title.Contains("زياد"));
+        Assert.DoesNotContain(zaidList, r => r.Type == "tenant" && (r.Title.Contains("عثمان") || r.Title.Contains("وسيم")));
+    }
+
+    [Fact]
     public async Task PostIngest_WithMultipartUpload_Returns200Ok_AndPersists()
     {
         using var content = new MultipartFormDataContent();

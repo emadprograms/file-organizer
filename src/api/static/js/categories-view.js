@@ -81,6 +81,33 @@
     }
 
     const selectedDocIds = new Set();
+    let singleTargetDoc = null;
+    const openCategoryNames = new Set();
+    let lastRenderedScope = null;
+
+    function openCategoryFolder(categoryName) {
+        if (!categoryName) return;
+        openCategoryNames.add(categoryName);
+        if (typeof document !== 'undefined') {
+            const cards = document.querySelectorAll('.category-folder-card');
+            for (const c of cards) {
+                if (c.getAttribute('data-category-name') === categoryName) {
+                    const docs = c.querySelector('.category-docs');
+                    if (docs) docs.classList.remove('hidden');
+                    break;
+                }
+            }
+        }
+    }
+
+    function getOpenCategoryFolders() {
+        return Array.from(openCategoryNames);
+    }
+
+    function resetCategoryOpenState() {
+        openCategoryNames.clear();
+        lastRenderedScope = null;
+    }
 
     function escapeHtml(str) {
         if (!str) return '';
@@ -274,12 +301,14 @@
     }
 
     function getBatchResolvedArea() {
+        if (singleTargetDoc && singleTargetDoc.area_id) return singleTargetDoc.area_id;
         if (typeof currentArea !== 'undefined' && currentArea) return currentArea;
         if (typeof window !== 'undefined' && window.currentArea) return window.currentArea;
         return getBatchAreaFromHash();
     }
 
     function getBatchResolvedHouse() {
+        if (singleTargetDoc && singleTargetDoc.house_id) return singleTargetDoc.house_id;
         if (typeof currentHouse !== 'undefined' && currentHouse) return currentHouse;
         if (typeof window !== 'undefined' && window.currentHouse) return window.currentHouse;
         return getBatchHouseFromHash();
@@ -432,7 +461,7 @@
     }
 
     function openBatchMoveModal() {
-        if (selectedDocIds.size === 0) return;
+        if (selectedDocIds.size === 0 && !singleTargetDoc) return;
         const modal = document.getElementById('batch-move-modal');
         const select = document.getElementById('batch-move-folder-select');
         const subtitle = document.getElementById('batch-move-subtitle');
@@ -444,7 +473,12 @@
         populateBatchTenantSelect('batch-move-tenant-select');
 
         if (subtitle) {
-            subtitle.textContent = `Move ${selectedDocIds.size} ${selectedDocIds.size === 1 ? 'document' : 'documents'} to a target category folder.`;
+            if (singleTargetDoc) {
+                const docName = singleTargetDoc.file_name || singleTargetDoc.filename || singleTargetDoc.name || singleTargetDoc.brief_arabic_title || 'document';
+                subtitle.textContent = `Move "${docName}" to a target category folder.`;
+            } else {
+                subtitle.textContent = `Move ${selectedDocIds.size} ${selectedDocIds.size === 1 ? 'document' : 'documents'} to a target category folder.`;
+            }
         }
 
         if (customContainer) customContainer.classList.add('hidden');
@@ -502,6 +536,7 @@
     }
 
     function closeBatchMoveModal() {
+        singleTargetDoc = null;
         const modal = document.getElementById('batch-move-modal');
         if (modal) {
             modal.classList.add('hidden');
@@ -510,7 +545,10 @@
     }
 
     async function handleBatchMoveSubmit() {
-        if (selectedDocIds.size === 0) return;
+        const isSingle = !!singleTargetDoc;
+        const targetVaultIds = isSingle ? [singleTargetDoc.vault_id] : Array.from(selectedDocIds);
+        if (targetVaultIds.length === 0) return;
+
         const select = document.getElementById('batch-move-folder-select');
         const customInput = document.getElementById('batch-move-custom-folder-input');
         const confirmBtn = document.getElementById('btn-batch-move-confirm');
@@ -537,7 +575,7 @@
             const targetTenantVal = tenantSelect ? tenantSelect.value : '';
 
             const movePayload = {
-                vault_ids: Array.from(selectedDocIds),
+                vault_ids: targetVaultIds,
                 target_category: targetCat
             };
             if (targetTenantVal) {
@@ -560,11 +598,18 @@
 
             const data = await res.json();
             closeBatchMoveModal();
-            const movedCount = (typeof data.moved_count === 'number') ? data.moved_count : selectedDocIds.size;
-            deselectAllDocs();
+            const movedCount = (typeof data.moved_count === 'number') ? data.moved_count : targetVaultIds.length;
+            if (!isSingle) {
+                deselectAllDocs();
+            }
 
             const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
-            if (toast) toast(`Successfully moved ${movedCount} documents to "${data.target_category || targetCat}"`, 'success');
+            if (toast) {
+                const msg = isSingle 
+                    ? `Successfully moved document to "${data.target_category || targetCat}"`
+                    : `Successfully moved ${movedCount} documents to "${data.target_category || targetCat}"`;
+                toast(msg, 'success');
+            }
 
             if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
                 await window.refreshCurrentTab(activeArea, activeHouse);
@@ -580,7 +625,7 @@
     }
 
     function openBatchCopyModal() {
-        if (selectedDocIds.size === 0) return;
+        if (selectedDocIds.size === 0 && !singleTargetDoc) return;
         const modal = document.getElementById('batch-copy-modal');
         const select = document.getElementById('batch-copy-folder-select');
         const subtitle = document.getElementById('batch-copy-subtitle');
@@ -592,7 +637,12 @@
         populateBatchTenantSelect('batch-copy-tenant-select');
 
         if (subtitle) {
-            subtitle.textContent = `Copy ${selectedDocIds.size} ${selectedDocIds.size === 1 ? 'document' : 'documents'} to a target category folder.`;
+            if (singleTargetDoc) {
+                const docName = singleTargetDoc.file_name || singleTargetDoc.filename || singleTargetDoc.name || singleTargetDoc.brief_arabic_title || 'document';
+                subtitle.textContent = `Copy "${docName}" to a target category folder.`;
+            } else {
+                subtitle.textContent = `Copy ${selectedDocIds.size} ${selectedDocIds.size === 1 ? 'document' : 'documents'} to a target category folder.`;
+            }
         }
 
         if (customContainer) customContainer.classList.add('hidden');
@@ -650,6 +700,7 @@
     }
 
     function closeBatchCopyModal() {
+        singleTargetDoc = null;
         const modal = document.getElementById('batch-copy-modal');
         if (modal) {
             modal.classList.add('hidden');
@@ -658,7 +709,10 @@
     }
 
     async function handleBatchCopySubmit() {
-        if (selectedDocIds.size === 0) return;
+        const isSingle = !!singleTargetDoc;
+        const targetVaultIds = isSingle ? [singleTargetDoc.vault_id] : Array.from(selectedDocIds);
+        if (targetVaultIds.length === 0) return;
+
         const select = document.getElementById('batch-copy-folder-select');
         const customInput = document.getElementById('batch-copy-custom-folder-input');
         const confirmBtn = document.getElementById('btn-batch-copy-confirm');
@@ -685,7 +739,7 @@
             const targetTenantVal = tenantSelect ? tenantSelect.value : '';
 
             const copyPayload = {
-                vault_ids: Array.from(selectedDocIds),
+                vault_ids: targetVaultIds,
                 target_category: targetCat
             };
             if (targetTenantVal) {
@@ -708,10 +762,15 @@
 
             const data = await res.json();
             closeBatchCopyModal();
-            deselectAllDocs();
+            if (!isSingle) {
+                deselectAllDocs();
+            }
 
             const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
-            if (toast) toast('تم نسخ الوثائق المحددة بنجاح', 'success');
+            if (toast) {
+                const msg = isSingle ? 'تم نسخ الوثيقة بنجاح' : 'تم نسخ الوثائق المحددة بنجاح';
+                toast(msg, 'success');
+            }
 
             if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
                 await window.refreshCurrentTab(activeArea, activeHouse);
@@ -728,27 +787,13 @@
 
     function openBatchMoveForDoc(doc) {
         if (!doc || !doc.vault_id) return;
-        selectedDocIds.clear();
-        selectedDocIds.add(doc.vault_id);
-        updateBatchActionBar();
-        if (typeof document !== 'undefined') {
-            document.querySelectorAll('.doc-select-checkbox').forEach(cb => {
-                cb.checked = (cb.dataset.vaultId === doc.vault_id);
-            });
-        }
+        singleTargetDoc = doc;
         openBatchMoveModal();
     }
 
     function openBatchCopyForDoc(doc) {
         if (!doc || !doc.vault_id) return;
-        selectedDocIds.clear();
-        selectedDocIds.add(doc.vault_id);
-        updateBatchActionBar();
-        if (typeof document !== 'undefined') {
-            document.querySelectorAll('.doc-select-checkbox').forEach(cb => {
-                cb.checked = (cb.dataset.vaultId === doc.vault_id);
-            });
-        }
+        singleTargetDoc = doc;
         openBatchCopyModal();
     }
 
@@ -1046,9 +1091,34 @@
     function renderCategories() {
         const docListEl = document.getElementById('document-list');
         if (!docListEl) return;
-        docListEl.innerHTML = '';
 
         const activeTenant = (typeof currentTenant !== 'undefined' ? currentTenant : (typeof window !== 'undefined' ? window.currentTenant : null));
+        const activeArea = (typeof currentArea !== 'undefined' ? currentArea : (typeof window !== 'undefined' ? window.currentArea : null));
+        const activeHouse = (typeof currentHouse !== 'undefined' ? currentHouse : (typeof window !== 'undefined' ? window.currentHouse : null));
+        const currentScope = `${activeArea || ''}:::${activeHouse || ''}:::${activeTenant || ''}`;
+
+        const isScopeChanged = lastRenderedScope !== null && lastRenderedScope !== currentScope;
+        if (isScopeChanged) {
+            openCategoryNames.clear();
+        } else if (docListEl) {
+            // Preserve currently open folder state from DOM within the same house/tenant scope
+            const existingCards = docListEl.querySelectorAll('.category-folder-card');
+            existingCards.forEach(c => {
+                const docs = c.querySelector('.category-docs');
+                const catName = c.getAttribute('data-category-name');
+                if (docs && catName) {
+                    if (!docs.classList.contains('hidden')) {
+                        openCategoryNames.add(catName);
+                    } else {
+                        openCategoryNames.delete(catName);
+                    }
+                }
+            });
+        }
+        lastRenderedScope = currentScope;
+
+        docListEl.innerHTML = '';
+
         const activeCategories = (typeof currentCategories !== 'undefined' ? currentCategories : (typeof window !== 'undefined' ? window.currentCategories : [])) || [];
         
         let displayCategories = [];
@@ -1165,7 +1235,11 @@
             const noteFolderBadge = hasNotedDoc 
                 ? '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-300/80 flex-shrink-0" title="Contains documents with notes">📝 Notes</span>'
                 : '';
-            const docsContainerClasses = hasNotedDoc 
+            const isFolderOpen = openCategoryNames.has(cat.name) || hasNotedDoc;
+            if (isFolderOpen) {
+                openCategoryNames.add(cat.name);
+            }
+            const docsContainerClasses = isFolderOpen 
                 ? 'category-docs mt-2.5 pt-2.5 border-t border-slate-100 space-y-1'
                 : 'category-docs hidden mt-2.5 pt-2.5 border-t border-slate-100 space-y-1';
 
@@ -1380,7 +1454,12 @@
             card.onclick = () => {
                 const docsContainer = card.querySelector('.category-docs');
                 if (docsContainer) {
-                    docsContainer.classList.toggle('hidden');
+                    const isNowHidden = docsContainer.classList.toggle('hidden');
+                    if (isNowHidden) {
+                        openCategoryNames.delete(cat.name);
+                    } else {
+                        openCategoryNames.add(cat.name);
+                    }
                 }
             };
             docListEl.appendChild(card);
@@ -1428,6 +1507,10 @@
         window.getBatchResolvedHouse = getBatchResolvedHouse;
         window.formatBatchTenantLabel = formatBatchTenantLabel;
         window.getBatchSelectedDocsInfo = getBatchSelectedDocsInfo;
+        window.openCategoryFolder = openCategoryFolder;
+        window.getOpenCategoryFolders = getOpenCategoryFolders;
+        window.resetCategoryOpenState = resetCategoryOpenState;
+        window.getSingleTargetDoc = () => singleTargetDoc;
     }
 
     if (typeof module !== 'undefined' && module.exports) {
@@ -1443,6 +1526,7 @@
             getFolderIconSvg,
             selectedDocIds,
             getSelectedDocIds,
+            getSingleTargetDoc: () => singleTargetDoc,
             toggleDocSelection,
             toggleSelectAllInFolder,
             updateFolderCheckboxState,
@@ -1465,6 +1549,9 @@
             handleBatchDeleteSubmit,
             initBatchOperations,
             isStandardCategoryName,
+            openCategoryFolder,
+            getOpenCategoryFolders,
+            resetCategoryOpenState,
         };
     }
 })();
