@@ -68,17 +68,8 @@
             gridTenureLegend.classList.remove('hidden');
             gridTenureLegend.classList.add('flex');
         }
-        if (openAddHouseBtn) {
-            openAddHouseBtn.classList.remove('hidden');
-            openAddHouseBtn.classList.add('inline-flex');
-        }
-
         if (!houseCardsContainer) return;
         houseCardsContainer.innerHTML = '';
-        if (houses.length === 0) {
-            houseCardsContainer.innerHTML = '<p class="text-slate-500 text-xs col-span-full py-8 text-center">No houses found in this area.</p>';
-            return;
-        }
 
         houses.forEach(house => {
             const card = document.createElement('div');
@@ -227,6 +218,33 @@
 
             houseCardsContainer.appendChild(card);
         });
+
+        // Add House Card (dashed outline with plus icon at end of grid)
+        const addCard = document.createElement('div');
+        addCard.id = 'add-house-grid-card';
+        addCard.className = 'add-house-card group bg-slate-50/60 hover:bg-blue-50/40 border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-6 transition-all duration-200 cursor-pointer flex flex-col items-center justify-center text-center min-h-[200px] select-none';
+        addCard.setAttribute('role', 'button');
+        addCard.setAttribute('tabindex', '0');
+        addCard.setAttribute('aria-label', 'Add New House / إضافة منزل جديد');
+        addCard.title = 'Add New House / إضافة منزل جديد';
+        addCard.innerHTML = `
+            <div class="w-14 h-14 rounded-full bg-white border border-slate-200 text-slate-400 group-hover:text-blue-600 group-hover:border-blue-300 group-hover:scale-110 shadow-2xs flex items-center justify-center transition-all duration-200 mb-3.5">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+            </div>
+            <h3 class="font-bold text-slate-700 group-hover:text-blue-600 text-sm transition-colors">+ إضافة منزل جديد</h3>
+            <p class="text-xs font-medium text-slate-500 mt-0.5">Add New House</p>
+            <span class="text-[11px] text-slate-400 mt-2">انقر هنا لتسجيل منزل جديد في هذه المنطقة</span>
+        `;
+        addCard.onclick = () => {
+            openAddHouseModal(areaNode.name);
+        };
+        addCard.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openAddHouseModal(areaNode.name);
+            }
+        };
+        houseCardsContainer.appendChild(addCard);
     }
 
     function openHouseFromGrid(areaName, houseId) {

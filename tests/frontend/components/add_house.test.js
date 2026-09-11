@@ -64,6 +64,54 @@ describe('+ Add House Modal Component (Phase 107)', () => {
     vi.restoreAllMocks();
   });
 
+  it('renders dashed add house grid card at the end of house list in renderAreaGrid and opens modal on click', () => {
+    const areaNode = global.globalTreeData[0]; // Safra C with 1 house
+    window.renderAreaGrid(areaNode);
+
+    const container = document.getElementById('area-grid-container');
+    const houseCards = container.querySelectorAll('.house-card');
+    expect(houseCards.length).toBe(1);
+
+    const addCard = container.querySelector('#add-house-grid-card');
+    expect(addCard).not.toBeNull();
+    expect(addCard.classList.contains('border-dashed')).toBe(true);
+    expect(addCard.textContent).toContain('+ إضافة منزل جديد');
+    expect(addCard.textContent).toContain('Add New House');
+    expect(addCard.textContent).toContain('انقر هنا لتسجيل منزل جديد في هذه المنطقة');
+
+    // Click on dashed card
+    const modal = document.getElementById('add-house-modal');
+    expect(modal.classList.contains('hidden')).toBe(true);
+    addCard.click();
+    expect(modal.classList.contains('hidden')).toBe(false);
+
+    const areaSelect = document.getElementById('add-house-area-select');
+    expect(areaSelect.value).toBe('Safra C');
+  });
+
+  it('renders dashed add house grid card when area has 0 houses and supports keyboard activation', () => {
+    const emptyAreaNode = global.globalTreeData[1]; // Al-Malqa with 0 houses
+    window.renderAreaGrid(emptyAreaNode);
+
+    const container = document.getElementById('area-grid-container');
+    const houseCards = container.querySelectorAll('.house-card');
+    expect(houseCards.length).toBe(0);
+
+    const addCard = container.querySelector('#add-house-grid-card');
+    expect(addCard).not.toBeNull();
+    expect(addCard.classList.contains('border-dashed')).toBe(true);
+
+    const modal = document.getElementById('add-house-modal');
+    expect(modal.classList.contains('hidden')).toBe(true);
+
+    // Keyboard activation (Enter key)
+    addCard.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    expect(modal.classList.contains('hidden')).toBe(false);
+
+    const areaSelect = document.getElementById('add-house-area-select');
+    expect(areaSelect.value).toBe('Al-Malqa');
+  });
+
   it('opens add house modal and populates area select from globalTreeData with currentArea selected', () => {
     const openBtn = document.getElementById('open-add-house-modal-btn');
     const modal = document.getElementById('add-house-modal');

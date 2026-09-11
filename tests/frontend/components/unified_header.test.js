@@ -22,9 +22,9 @@ describe('Unified Single Header Bar Component & Area Grid (QCK-16)', () => {
     expect(tenureLegend.textContent).toContain('5–10y');
     expect(tenureLegend.textContent).toContain('> 10y');
 
+    // Add house button removed from navbar in favor of dashed grid card (QCK-19)
     const addHouseBtn = topNavbar.querySelector('#open-add-house-modal-btn');
-    expect(addHouseBtn).not.toBeNull();
-    expect(addHouseBtn.textContent).toContain('+ إضافة منزل جديد');
+    expect(addHouseBtn).toBeNull();
 
     // Invisible compatibility anchor for tests
     const gridAreaTitle = topNavbar.querySelector('#grid-area-title');
@@ -51,7 +51,6 @@ describe('Unified Single Header Bar Component & Area Grid (QCK-16)', () => {
           <div id="stats-badge" class="hidden"></div>
           <div id="grid-area-stats" class="hidden">0 Houses</div>
           <div id="grid-tenure-legend" class="hidden"></div>
-          <button id="open-add-house-modal-btn" class="hidden"></button>
         </header>
         <div id="welcome-panel" class="hidden"></div>
         <div id="document-list-panel" class="hidden"></div>
@@ -91,7 +90,7 @@ describe('Unified Single Header Bar Component & Area Grid (QCK-16)', () => {
       vi.restoreAllMocks();
     });
 
-    it('shows grid-area-stats, tenure legend, and add-house button upon renderAreaGrid', () => {
+    it('shows grid-area-stats, tenure legend, and renders dashed add-house card upon renderAreaGrid', () => {
       const areaNode = {
         name: 'Safra D',
         children: [
@@ -110,15 +109,17 @@ describe('Unified Single Header Bar Component & Area Grid (QCK-16)', () => {
       expect(legend.classList.contains('hidden')).toBe(false);
       expect(legend.classList.contains('flex')).toBe(true);
 
-      const addBtn = document.getElementById('open-add-house-modal-btn');
-      expect(addBtn.classList.contains('hidden')).toBe(false);
-      expect(addBtn.classList.contains('inline-flex')).toBe(true);
+      const addCard = document.getElementById('add-house-grid-card');
+      expect(addCard).not.toBeNull();
+      expect(addCard.classList.contains('border-dashed')).toBe(true);
+      expect(addCard.textContent).toContain('+ إضافة منزل جديد');
+      expect(addCard.textContent).toContain('Add New House');
 
       const currentHouseTitle = document.getElementById('current-house-title');
       expect(currentHouseTitle.textContent).toBe('Safra D — Houses Overview');
     });
 
-    it('hides grid-area-stats, tenure legend, and add-house button when openHouseFromGrid is triggered', () => {
+    it('hides grid-area-stats and tenure legend when openHouseFromGrid is triggered', () => {
       const areaNode = {
         name: 'Safra D',
         children: [
@@ -135,7 +136,6 @@ describe('Unified Single Header Bar Component & Area Grid (QCK-16)', () => {
 
       expect(document.getElementById('grid-area-stats').classList.contains('hidden')).toBe(true);
       expect(document.getElementById('grid-tenure-legend').classList.contains('hidden')).toBe(true);
-      expect(document.getElementById('open-add-house-modal-btn').classList.contains('hidden')).toBe(true);
     });
 
     it('hides area controls when switching to database view mode', () => {
@@ -149,7 +149,6 @@ describe('Unified Single Header Bar Component & Area Grid (QCK-16)', () => {
 
       expect(document.getElementById('grid-area-stats').classList.contains('hidden')).toBe(true);
       expect(document.getElementById('grid-tenure-legend').classList.contains('hidden')).toBe(true);
-      expect(document.getElementById('open-add-house-modal-btn').classList.contains('hidden')).toBe(true);
     });
   });
 });
