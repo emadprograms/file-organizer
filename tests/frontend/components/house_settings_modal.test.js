@@ -26,7 +26,7 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
             <div id="tenant-modal-status" class="hidden"></div>
           </div>
           <div id="danger-zone-section">
-            <button id="btn-open-delete-house" type="button">Delete House...</button>
+            <button id="btn-open-delete-house" type="button">Delete House</button>
           </div>
         </div>
         <div id="tenant-modal-footer">
@@ -67,6 +67,8 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
     expect(htmlContent).toContain('Tenants • المستأجرون');
     expect(htmlContent).toContain('Danger Zone • منطقة الخطر');
     expect(htmlContent).toContain('Delete House • حذف المنزل');
+    expect(htmlContent).toContain('حذف هذا المنزل نهائياً مع كافة المستأجرين والوثائق والملفات من القرص');
+    expect(htmlContent).not.toContain('Delete House...');
     expect(htmlContent).not.toContain('Permanently delete this house');
     expect(htmlContent).not.toContain('Delete House Permanently');
     expect(htmlContent).not.toContain('Add Tenant • إضافة مستأجر');
