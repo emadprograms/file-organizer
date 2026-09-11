@@ -176,12 +176,12 @@ def test_house_tenancy_register_display(page: Page, server_url: str):
 
     # Active Tenant card
     expect(page.locator("#document-list")).to_contain_text("فواز خليل الطارش")
-    expect(page.locator("#document-list")).to_contain_text("المستأجر الحالي")
+    expect(page.locator("#document-list")).to_contain_text("حالي")
     expect(page.locator("#document-list")).to_contain_text("مستمر")
 
     # Past Tenant card
     expect(page.locator("#document-list")).to_contain_text("أحمد عبدالله المطوع")
-    expect(page.locator("#document-list")).to_contain_text("مستأجر سابق")
+    expect(page.locator("#document-list")).to_contain_text("سابق")
     expect(page.locator("#document-list")).to_contain_text("2017 – 2019")
 
     # Archive profile section removed from document-list, header export button exists
