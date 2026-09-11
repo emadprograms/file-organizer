@@ -128,7 +128,7 @@
                 const card = document.createElement('div');
                 card.className = `tenant-profile-card p-3 rounded-xl border transition-all cursor-pointer group shadow-2xs hover:shadow-sm ${
                     t.is_active 
-                        ? 'border-emerald-200 bg-emerald-50/40 hover:border-emerald-300 hover:bg-emerald-50/70' 
+                        ? 'border-blue-200 bg-blue-50/40 hover:border-blue-300 hover:bg-blue-50/70' 
                         : 'border-slate-200 bg-white hover:border-blue-300 hover:bg-slate-50/80'
                 }`;
                 card.dataset.tenantName = t.name;
@@ -138,7 +138,7 @@
                     .replace(/^فترة الإيجار:\s*/, '');
 
                 const avatarIcon = t.is_active
-                    ? `<div class="w-8 h-8 rounded-lg bg-emerald-100/80 text-emerald-700 flex items-center justify-center flex-shrink-0">
+                    ? `<div class="w-8 h-8 rounded-lg bg-blue-100/80 text-blue-700 flex items-center justify-center flex-shrink-0">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
                        </div>`
                     : `<div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center flex-shrink-0">
@@ -146,8 +146,8 @@
                        </div>`;
 
                 const badgeHtml = t.is_active
-                    ? `<span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-emerald-300 bg-emerald-100 text-emerald-800" title="المستأجر الحالي">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    ? `<span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-blue-300 bg-blue-100 text-blue-800" title="المستأجر الحالي">
+                        <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
                         حالي
                        </span>`
                     : `<span class="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-200 bg-slate-100 text-slate-600" title="مستأجر سابق">
@@ -380,7 +380,7 @@
                     opt.value = (t.id !== undefined && t.id !== null) ? String(t.id) : (t.name || '');
                     if (t.is_active) {
                         const dur = t.duration_str_ar ? ` (${t.duration_str_ar})` : ' (المستأجر الحالي)';
-                        opt.textContent = `🟢 ${t.name}${dur}`;
+                        opt.textContent = `🔵 ${t.name}${dur}`;
                     } else {
                         const dur = t.duration_str_ar ? ` (${t.duration_str_ar})` : '';
                         opt.textContent = `👤 ${t.name}${dur}`;

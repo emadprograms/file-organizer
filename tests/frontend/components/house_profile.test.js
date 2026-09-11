@@ -151,11 +151,15 @@ describe('House Profile & Header Archive Export', () => {
     expect(docList.textContent).toContain('25');
     expect(docList.textContent).toContain('10');
 
-    // Should have tenant cards with proper data attributes
+    // Should have tenant cards with proper data attributes and blue styling for active tenant
     const cards = docList.querySelectorAll('.tenant-profile-card');
     expect(cards.length).toBe(2);
     expect(cards[0].dataset.tenantName).toBe('فواز خليل الطارش');
+    expect(cards[0].className).toContain('border-blue-200');
+    expect(cards[0].className).toContain('bg-blue-50/40');
+    expect(cards[0].innerHTML).toContain('border-blue-300 bg-blue-100 text-blue-800');
     expect(cards[1].dataset.tenantName).toBe('عادل عبد الرحيم جاسم');
+    expect(cards[1].className).toContain('border-slate-200');
   });
 });
 
