@@ -160,9 +160,7 @@
             </div>
             <div class="sm:col-span-1 flex items-center justify-between sm:justify-center">
                 <span class="text-xs font-semibold text-slate-600 sm:hidden">Present:</span>
-                <label class="tenant-present-badge w-7 h-7 rounded-lg border ${isPresent ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-white border-slate-200 text-slate-400 hover:border-slate-300'} flex items-center justify-center cursor-pointer transition-all shadow-2xs" title="Present (Currently residing)">
-                    <input type="checkbox" class="tenant-present-check w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer" ${isPresent ? 'checked' : ''} />
-                </label>
+                <input type="checkbox" class="tenant-present-check w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" ${isPresent ? 'checked' : ''} title="Present (Currently residing)" />
             </div>
             <div class="sm:col-span-1 flex items-center justify-end sm:justify-center">
                 <button type="button" class="btn-remove-row text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer" title="Delete Tenant">
@@ -173,21 +171,14 @@
 
         const presentCheck = row.querySelector('.tenant-present-check');
         const endInput = row.querySelector('.tenant-end-input');
-        const presentBadge = row.querySelector('.tenant-present-badge');
         presentCheck.addEventListener('change', (e) => {
             if (e.target.checked) {
                 endInput.value = '';
                 endInput.disabled = true;
                 endInput.className = "tenant-end-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed";
-                if (presentBadge) {
-                    presentBadge.className = "tenant-present-badge w-7 h-7 rounded-lg border bg-emerald-50 border-emerald-200 text-emerald-700 flex items-center justify-center cursor-pointer transition-all shadow-2xs";
-                }
             } else {
                 endInput.disabled = false;
                 endInput.className = "tenant-end-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium";
-                if (presentBadge) {
-                    presentBadge.className = "tenant-present-badge w-7 h-7 rounded-lg border bg-white border-slate-200 text-slate-400 hover:border-slate-300 flex items-center justify-center cursor-pointer transition-all shadow-2xs";
-                }
             }
         });
 

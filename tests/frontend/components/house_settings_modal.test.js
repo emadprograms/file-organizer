@@ -129,7 +129,7 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
     expect(renumbered).toEqual(['1', '2']);
   });
 
-  it('toggles Present checkbox, disables end date input, and updates badge styles', () => {
+  it('toggles Present checkbox and disables/enables end date input', () => {
     const addBtn = document.getElementById('btn-add-tenant-row');
     const rowsContainer = document.getElementById('tenant-modal-rows');
 
@@ -137,7 +137,6 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
     const row = rowsContainer.querySelector('.tenant-row');
     const presentCheck = row.querySelector('.tenant-present-check');
     const endInput = row.querySelector('.tenant-end-input');
-    const presentBadge = row.querySelector('.tenant-present-badge');
 
     // Initially present
     expect(presentCheck.checked).toBe(true);
@@ -148,7 +147,6 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
     presentCheck.dispatchEvent(new Event('change'));
 
     expect(endInput.disabled).toBe(false);
-    expect(presentBadge.className).toContain('text-slate-400');
 
     // Enter date then re-check present
     endInput.value = '2025-12-31';
@@ -157,6 +155,5 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
 
     expect(endInput.disabled).toBe(true);
     expect(endInput.value).toBe('');
-    expect(presentBadge.className).toContain('text-emerald-700');
   });
 });
