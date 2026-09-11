@@ -74,6 +74,7 @@ def double_check_others(group: DocumentGroup, llm_client: Any, category_name: st
     """
     all_folders = list(FOLDER_ROUTING.keys())
     folder_meanings = "\n".join([f"- {f}: {FOLDER_ROUTING[f]['desc']}" for f in all_folders])
+    allowed_folders_str = "\n".join(f"- {f}" for f in all_folders)
     
     # Step 1: Initial pick from all folders
     prompt = f"""You are an expert document routing assistant.
@@ -81,7 +82,7 @@ The document was initially categorized as '{category_name}'.
 Please re-evaluate if it fits into any of the following specific folders.
 
 Allowed Folders:
-{"\n".join(f"- {f}" for f in all_folders)}
+{allowed_folders_str}
 
 Folder meanings:
 {folder_meanings}

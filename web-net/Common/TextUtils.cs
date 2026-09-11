@@ -15,6 +15,21 @@ public static class TextUtils
         ['ه'] = "h", ['ة'] = "h", ['و'] = "", ['ي'] = "", ['ئ'] = "", ['ؤ'] = "", ['ء'] = ""
     };
 
+    public static string CleanArticle(string? word)
+    {
+        if (string.IsNullOrWhiteSpace(word))
+            return string.Empty;
+
+        var w = word.Trim().ToLowerInvariant();
+        if (w.StartsWith("al-") || w.StartsWith("al "))
+            return w[3..].Trim();
+        if (w.StartsWith("al") && w.Length > 4)
+            return w[2..].Trim();
+        if (w.StartsWith("ال") && w.Length > 3)
+            return w[2..].Trim();
+        return w;
+    }
+
     public static string PhoneticNormalize(string? text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -35,12 +50,158 @@ public static class TextUtils
         }
 
         var res = sb.ToString();
+        // In South Asian/Arabic transliterations, v and w represent the same sound (و)
+        res = res.Replace("v", "w");
         res = Regex.Replace(res, "[aeiouyw]", "");
         res = res.Replace("ph", "f").Replace("ck", "k").Replace("c", "k");
         res = res.Replace("th", "t").Replace("dh", "d").Replace("kh", "k")
                  .Replace("gh", "g").Replace("sh", "s");
         res = Regex.Replace(res, @"(.)\1+", "$1");
         return res.Trim();
+    }
+
+    public static int ScoreTenantMatch(string query, string tenantName, string houseId)
+    {
+        if (string.IsNullOrWhiteSpace(query) || string.IsNullOrWhiteSpace(tenantName))
+            return 0;
+
+        var qLow = query.Trim().ToLowerInvariant();
+        var tLow = tenantName.Trim().ToLowerInvariant();
+        var hLow = houseId.Trim().ToLowerInvariant();
+
+        // 1. Direct full substring match
+        if (tLow.Contains(qLow))
+            return 1000 + (qLow.Length * 10);
+        if (hLow.Contains(qLow))
+            return 900;
+
+        var qWords = qLow.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var tWords = tLow.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (qWords.Length == 0 || tWords.Length == 0)
+            return 0;
+
+        int matchedWords = 0;
+        int totalScore = 0;
+
+        for (int qi = 0; qi < qWords.Length; qi++)
+        {
+            var qw = qWords[qi];
+            var qwClean = CleanArticle(qw);
+            var qwNorm = PhoneticNormalize(qwClean);
+            int bestWordScore = 0;
+
+            for (int ti = 0; ti < tWords.Length; ti++)
+            {
+                var tw = tWords[ti];
+                var twClean = CleanArticle(tw);
+
+                // Exact word match
+                if (qw == tw || (!string.IsNullOrEmpty(qwClean) && qwClean == twClean))
+                {
+                    int s = 500;
+                    if (ti == 0 && qi == 0) s += 50;
+                    bestWordScore = Math.Max(bestWordScore, s);
+                }
+                // Prefix match (e.g. "khal" -> "khalil")
+                else if ((tw.StartsWith(qw) || (!string.IsNullOrEmpty(qwClean) && twClean.StartsWith(qwClean))) && qwClean.Length >= 3)
+                {
+                    int s = 300;
+                    if (ti == 0 && qi == 0) s += 30;
+                    bestWordScore = Math.Max(bestWordScore, s);
+                }
+                // Substring word match
+                else if (tw.Contains(qw) || (!string.IsNullOrEmpty(qwClean) && twClean.Contains(qwClean)))
+                {
+                    bestWordScore = Math.Max(bestWordScore, 250);
+                }
+                else
+                {
+                    // Phonetic word match
+                    var twNorm = PhoneticNormalize(twClean);
+                    var twLatin = NormalizeTranslit(ToLatin(twClean));
+                    var qwLatin = NormalizeTranslit(qwClean);
+
+                    if (!string.IsNullOrEmpty(qwNorm) && !string.IsNullOrEmpty(twNorm))
+                    {
+                        if (qwNorm == twNorm)
+                        {
+                            int s = 400;
+                            if (ti == 0 && qi == 0) s += 50;
+                            if (!string.IsNullOrEmpty(qwLatin) && !string.IsNullOrEmpty(twLatin))
+                            {
+                                if (qwLatin == twLatin)
+                                    s += 100;
+                                else
+                                {
+                                    if (qwLatin[0] == twLatin[0]) s += 30;
+                                    s += (int)(Similarity(qwLatin, twLatin) * 70);
+                                }
+                            }
+                            bestWordScore = Math.Max(bestWordScore, s);
+                        }
+                        else if ((twNorm.StartsWith(qwNorm) || qwNorm.StartsWith(twNorm)) && Math.Min(qwNorm.Length, twNorm.Length) >= 3)
+                        {
+                            bestWordScore = Math.Max(bestWordScore, 200);
+                        }
+                        else if (qwNorm.Length >= 3 && twNorm.Length >= 3 && qwNorm[0] == twNorm[0])
+                        {
+                            double sim = Similarity(qwNorm, twNorm);
+                            if (sim >= 0.75)
+                            {
+                                bestWordScore = Math.Max(bestWordScore, (int)(sim * 150));
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (bestWordScore > 0)
+            {
+                matchedWords++;
+                totalScore += bestWordScore;
+            }
+        }
+
+        if (matchedWords == qWords.Length)
+            return totalScore;
+
+        return 0;
+    }
+
+    private static readonly Dictionary<char, string> ArabicTranslitMap = new()
+    {
+        ['ا'] = "a", ['أ'] = "a", ['إ'] = "i", ['آ'] = "aa", ['ى'] = "a",
+        ['ب'] = "b", ['ت'] = "t", ['ث'] = "th", ['ج'] = "j", ['ح'] = "h", ['خ'] = "kh",
+        ['د'] = "d", ['ذ'] = "dh", ['ر'] = "r", ['ز'] = "z", ['س'] = "s", ['ش'] = "sh",
+        ['ص'] = "s", ['ض'] = "d", ['ط'] = "t", ['ظ'] = "dh", ['ع'] = "a", ['غ'] = "gh",
+        ['ف'] = "f", ['ق'] = "q", ['ك'] = "k", ['ل'] = "l", ['م'] = "m", ['ن'] = "n",
+        ['ه'] = "h", ['ة'] = "h", ['و'] = "w", ['ي'] = "y", ['ئ'] = "y", ['ؤ'] = "w", ['ء'] = ""
+    };
+
+    public static string ToLatin(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        var lower = text.ToLowerInvariant();
+        var sb = new StringBuilder();
+        foreach (var ch in lower)
+        {
+            if (ArabicTranslitMap.TryGetValue(ch, out var mapped))
+                sb.Append(mapped);
+            else
+                sb.Append(ch);
+        }
+        return sb.ToString();
+    }
+
+    public static string NormalizeTranslit(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+        var w = text.ToLowerInvariant();
+        w = Regex.Replace(w, "ee|ea|ey|ie|i", "y");
+        w = Regex.Replace(w, "oo|ou|u", "w");
+        w = Regex.Replace(w, "aa", "a");
+        w = w.Replace("v", "w");
+        return w;
     }
 
     public static double Similarity(string s, string t)

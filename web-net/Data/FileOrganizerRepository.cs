@@ -698,31 +698,12 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         var tenantRows = await conn.QueryAsync<(int Id, string Name, string StartDate, string? EndDate, string HouseId, string AreaId)>(sqlTenants);
         var qPhonetic = TextUtils.PhoneticNormalize(q);
 
-        var exactTenants = new List<SearchResultDto>();
-        var fuzzyTenants = new List<SearchResultDto>();
+        var scoredTenants = new List<(int Score, SearchResultDto Dto)>();
 
         foreach (var t in tenantRows)
         {
-            var tLower = t.Name.ToLowerInvariant();
-            var tPhonetic = TextUtils.PhoneticNormalize(tLower);
-            var isExact = false;
-            var isFuzzy = false;
-
-            if (tLower.Contains(q) || t.HouseId.ToLowerInvariant().Contains(q))
-            {
-                isExact = true;
-            }
-            else if (!string.IsNullOrEmpty(qPhonetic) && tPhonetic.Replace(" ", "").Contains(qPhonetic.Replace(" ", "")))
-            {
-                isFuzzy = true;
-            }
-            else if (TextUtils.Similarity(tLower, q) >= 0.7 ||
-                     (!string.IsNullOrEmpty(qPhonetic) && TextUtils.Similarity(tPhonetic, qPhonetic) >= 0.7))
-            {
-                isFuzzy = true;
-            }
-
-            if (isExact || isFuzzy)
+            int score = TextUtils.ScoreTenantMatch(q, t.Name, t.HouseId);
+            if (score > 0)
             {
                 var sYr = t.StartDate.Length >= 4 ? t.StartDate[..4] : "";
                 var eYr = (string.IsNullOrEmpty(t.EndDate) || t.EndDate.ToLowerInvariant() == "present") ? "Present" : (t.EndDate.Length >= 4 ? t.EndDate[..4] : "");
@@ -731,7 +712,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                     ? $"House {t.HouseId} ({tenureStr}) • {t.AreaId}"
                     : $"House {t.HouseId} • {t.AreaId}";
 
-                var dto = new SearchResultDto
+                scoredTenants.Add((score, new SearchResultDto
                 {
                     Id = $"{t.HouseId}_{t.Name}",
                     Type = "tenant",
@@ -742,17 +723,14 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                     HouseId = t.HouseId,
                     TenantName = t.Name,
                     ExtraInfo = tenureStr
-                };
-
-                if (isExact)
-                    exactTenants.Add(dto);
-                else
-                    fuzzyTenants.Add(dto);
+                }));
             }
         }
 
-        results.AddRange(exactTenants);
-        results.AddRange(fuzzyTenants);
+        foreach (var item in scoredTenants.OrderByDescending(x => x.Score))
+        {
+            results.Add(item.Dto);
+        }
 
         // 3. Documents matching q (title, category, notes, page explanation, page subject)
         const string sqlDocs = @"

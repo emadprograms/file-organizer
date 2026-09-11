@@ -110,25 +110,8 @@ def get_db_repo(request: Request) -> Optional[Repository]:
             return None
     return None
 
-def phonetic_normalize(text: str) -> str:
-    text = text.lower()
-    ar_to_en = {
-        'ا': '', 'أ': '', 'إ': '', 'آ': '', 'ى': '',
-        'ب': 'b', 'ت': 't', 'ث': 'th', 'ج': 'j', 'ح': 'h', 'خ': 'kh',
-        'د': 'd', 'ذ': 'dh', 'ر': 'r', 'ز': 'z', 'س': 's', 'ش': 'sh',
-        'ص': 's', 'ض': 'd', 'ط': 't', 'ظ': 'dh', 'ع': '', 'غ': 'gh',
-        'ف': 'f', 'ق': 'q', 'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n',
-        'ه': 'h', 'ة': 'h', 'و': '', 'ي': '', 'ئ': '', 'ؤ': '', 'ء': ''
-    }
-    res = []
-    for char in text:
-        res.append(ar_to_en.get(char, char))
-    text = "".join(res)
-    text = re.sub(r'[aeiouyw]', '', text)
-    text = text.replace('ph', 'f').replace('ck', 'k').replace('c', 'k')
-    text = text.replace('th', 't').replace('dh', 'd').replace('kh', 'k').replace('gh', 'g').replace('sh', 's')
-    text = re.sub(r'(.)\1+', r'\1', text)
-    return text.strip()
+from src.core.text_utils import clean_article, phonetic_normalize, score_tenant_match
+
 
 def validate_id(id_str: str, pattern: str) -> None:
     if not re.match(pattern, id_str):
@@ -2208,40 +2191,23 @@ async def search(request: Request, q: str = ""):
                 extra_info=f"{d_cnt} Docs"
             ))
 
-        # 2. Tenants matching q (with phonetic and fuzzy matching)
+        # 2. Tenants matching q (with phonetic, token-aware and fuzzy matching)
         cursor = conn.execute("""
             SELECT t.id, t.name as tenant_name, t.start_date, t.end_date, t.house_id, h.area_id
             FROM tenants t
             JOIN houses h ON t.house_id = h.id
             ORDER BY t.start_date DESC
         """)
-        q_phonetic = phonetic_normalize(q)
+        scored_tenants = []
         for t in cursor.fetchall():
             t_name = t["tenant_name"]
-            t_lower = t_name.lower()
-            t_phonetic = phonetic_normalize(t_lower)
-            is_match = False
-            if q in t_lower:
-                is_match = True
-            elif q in str(t["house_id"]).lower():
-                is_match = True
-            elif q_phonetic.replace(" ", "") in t_phonetic.replace(" ", ""):
-                is_match = True
-            else:
-                if len(q.split()) == 1:
-                    if difflib.get_close_matches(q, t_lower.split(), n=1, cutoff=0.7) or \
-                       difflib.get_close_matches(q_phonetic, t_phonetic.split(), n=1, cutoff=0.7):
-                        is_match = True
-                else:
-                    if difflib.SequenceMatcher(None, q, t_lower).ratio() >= 0.7 or \
-                       difflib.SequenceMatcher(None, q_phonetic, t_phonetic).ratio() >= 0.7:
-                        is_match = True
-            if is_match:
+            score = score_tenant_match(q, t_name, str(t["house_id"]))
+            if score > 0:
                 s_yr = t["start_date"][:4] if t["start_date"] else ""
                 e_yr = "Present" if not t["end_date"] or str(t["end_date"]).lower() == "present" else str(t["end_date"])[:4]
                 tenure_str = f"{s_yr} - {e_yr}" if s_yr else ""
                 sub_label = f"House {t['house_id']} ({tenure_str}) • {t['area_id']}" if tenure_str else f"House {t['house_id']} • {t['area_id']}"
-                results.append(SearchResultResponse(
+                scored_tenants.append((score, SearchResultResponse(
                     id=f"{t['house_id']}_{t_name}",
                     type="tenant",
                     title=t_name,
@@ -2251,7 +2217,11 @@ async def search(request: Request, q: str = ""):
                     house_id=t["house_id"],
                     tenant_name=t_name,
                     extra_info=tenure_str
-                ))
+                )))
+
+        scored_tenants.sort(key=lambda x: x[0], reverse=True)
+        for _, item in scored_tenants:
+            results.append(item)
 
         # 3. Documents matching arabic_title or category or content_explanation in pages
         cursor = conn.execute("""

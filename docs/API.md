@@ -63,3 +63,30 @@ Centralized LLM communication handler:
 ### 5. `FileOrganizer` (`src/timeline/core.py`)
 PDF extraction and Vault/Shortcut renderer:
 - `organize(documents, house_id, output_dir)` — Extracts page segments, writes them into the `.source_files/vault/`, and generates lightweight `.lnk` shortcuts in categorical folders.
+
+---
+
+## Web API Interface
+
+The .NET Kestrel server (`web-net`) and Python FastAPI server (`src/api`) expose identical REST endpoints.
+
+### Search API (`GET /api/search?q={query}&limit={limit}`)
+
+Performs high-performance unified search across houses, tenants, documents, and individual page records.
+
+- **Query Parameters:**
+  - `q` (string): Search query (house ID, Latin transliterated name, Arabic name, category, or keyword).
+  - `limit` (int, optional): Maximum results to return (default: `50`).
+
+- **Tenant Matching & Ranking Engine:**
+  - **Transliteration Normalization:** Normalizes English digraphs and vowels (`ee` $\to$ `y`, `oo` $\to$ `w`, `v` $\to$ `w`) to align Latin transliterations with Arabic script phonetics.
+  - **Article Stripping:** Automatically handles definite articles (`al-`, `al `, `al`, `ال`) so queries like `balushi` and `al balushi` match `البلوشي` identically.
+  - **Token-Level Matching:** Evaluates individual name tokens to prevent substring false positives (e.g. searching `ameed` correctly matches `عميد` without falsely matching common names like `أحمد` or `محمد`).
+  - **Relevance Scoring:**
+    - Substring matches: Score 1000+
+    - Exact word transliteration match: Score 500-600
+    - Phonetic token match: Score 400
+    - Token prefix match: Score 300
+    - First-name match bonus: +50
+  - Results are ranked strictly in descending score order.
+
