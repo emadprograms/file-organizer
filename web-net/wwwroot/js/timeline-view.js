@@ -215,7 +215,7 @@
 
             const isManual = Boolean(doc.is_manual);
             const lockBadgeHtml = isManual 
-                ? `<span title="Manually assigned - protected from auto-reallocation" class="text-[10px] bg-amber-50 text-amber-700 border border-amber-200 px-1.5 py-0.5 rounded flex items-center gap-1 font-semibold flex-shrink-0">🔒 Pinned</span>`
+                ? `<span title="Manually assigned - protected from auto-reallocation" class="doc-pinned-badge text-[8.5px] bg-amber-50 text-amber-700 border border-amber-200/80 px-1.5 py-0.5 rounded flex items-center gap-0.5 font-medium flex-shrink-0 select-none"><span class="text-[8px] leading-none inline-block">🔒</span><span class="leading-none">Pinned</span></span>`
                 : '';
             const noteBadgeHtml = hasNotes 
                 ? `<span class="doc-note-badge text-[10px] bg-amber-100 text-amber-800 border border-amber-300/70 px-1.5 py-0.5 rounded flex items-center gap-1 font-semibold flex-shrink-0" title="${escapeHtml(doc.notes)}">📝 ${escapeHtml(snippet)}</span>` 

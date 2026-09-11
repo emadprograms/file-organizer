@@ -2,10 +2,14 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 20 quick refinements (QCK-01 through QCK-20), 4 plans, comprehensive multi-stack test verification (85 .NET xUnit, 33 Pytest tests, 160 Vitest across 16 files, Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 21 quick refinements (QCK-01 through QCK-21), 4 plans, comprehensive multi-stack test verification (85 .NET xUnit, 33 Pytest tests, 164 Vitest across 17 files, Playwright E2E)
 
 **Key accomplishments:**
 
+- **Make Pinned Lock Emoji and Text Smaller in Timeline View (Quick Refinement QCK-21):**
+  - Scaled down the pinned status badge (`.doc-pinned-badge`) on manually assigned documents in the chronological Timeline view.
+  - Wrapped the lock emoji in a dedicated span with `text-[8px] leading-none inline-block` to prevent oversized emoji rendering.
+  - Reduced badge typography to `text-[8.5px] font-medium leading-none` with tightened padding and spacing (`gap-0.5`), keeping the pinned indicator crisp, lightweight, and non-distracting next to document titles.
 - **Add House Grid Card with Dashed Outline & Remove Top Navbar Button (Quick Refinement QCK-20):**
   - Replaced the top navbar Add House button with a modern dashed-outline "Add House" card (`#add-house-grid-card`) placed at the end of the houses list in Area Grid view.
   - Card features a prominent central plus icon, Arabic and English labels (`+ إضافة منزل جديد` / `Add New House`), and descriptive prompt (`انقر هنا لتسجيل منزل جديد في هذه المنطقة`), supporting both clicks and keyboard activation (`Enter` / `Space`) as well as empty area states.

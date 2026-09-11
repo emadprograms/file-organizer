@@ -108,10 +108,14 @@ Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shi
   - Replaced the top navbar Add House button with a modern dashed-outline "Add House" card (`#add-house-grid-card`) placed at the end of the houses list in Area Grid view.
   - Card features a prominent central plus icon, Arabic and English labels (`+ إضافة منزل جديد` / `Add New House`), and descriptive prompt (`انقر هنا لتسجيل منزل جديد في هذه المنطقة`), supporting both clicks and keyboard activation (`Enter` / `Space`) as well as empty area states.
   - Completely removed `#open-add-house-modal-btn` from the top navbar.
+- **Make Pinned Lock Emoji and Text Smaller in Timeline View (Quick Refinement QCK-21):**
+  - Scaled down the pinned status badge (`.doc-pinned-badge`) on manually assigned documents in the chronological Timeline view.
+  - Wrapped the lock emoji in a dedicated span with `text-[8px] leading-none inline-block` to prevent oversized emoji rendering.
+  - Reduced badge typography to `text-[8.5px] font-medium leading-none` with tightened padding and spacing (`gap-0.5`), keeping the pinned indicator crisp, lightweight, and non-distracting next to document titles.
 - **Comprehensive Multi-Stack Test Coverage & Verification:**
   - 85 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
   - 33 Python backend tests (18 in `tests/test_v14_features.py`, 13 in `tests/test_document_management_api.py`, 2 in `tests/test_house_profile_api.py`).
-  - 160 Frontend Vitest tests across 16 files (`npm run test:frontend`, including 7 in `add_house.test.js`, 5 in `delete_house.test.js`, 5 in `house_profile.test.js`, 4 in `unified_header.test.js`, 3 in `tab_labels.test.js`, 5 in `export_archive_modal.test.js`, 16 in `batch_operations.test.js`, and 8 in `folder_select_checkbox.test.js`).
+  - 164 Frontend Vitest tests across 17 files (`npm run test:frontend`, including 3 in `timeline_pinned_badge.test.js`, 7 in `add_house.test.js`, 5 in `delete_house.test.js`, 5 in `house_profile.test.js`, 4 in `unified_header.test.js`, 3 in `tab_labels.test.js`, 5 in `export_archive_modal.test.js`, 16 in `batch_operations.test.js`, and 8 in `folder_select_checkbox.test.js`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/`, `web-net/wwwroot/`, and `dist/win-x64/wwwroot/`.
 
