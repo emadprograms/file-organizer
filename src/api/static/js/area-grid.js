@@ -74,20 +74,20 @@
 
             let borderClass = 'border-l-[5px] border-l-slate-300';
             let badgeClass = 'bg-slate-100 text-slate-700 border-slate-200';
-            let badgeLabel = '⚪ Unknown';
+            let badgeLabel = 'Unknown';
 
             if (house.duration_category === 'short') {
                 borderClass = 'border-l-[5px] border-l-emerald-500 hover:border-emerald-400';
                 badgeClass = 'bg-emerald-50 text-emerald-800 border-emerald-300 font-semibold';
-                badgeLabel = '🟢 < 5 Yrs';
+                badgeLabel = '< 5 Yrs';
             } else if (house.duration_category === 'medium') {
                 borderClass = 'border-l-[5px] border-l-amber-500 hover:border-amber-400';
                 badgeClass = 'bg-amber-50 text-amber-800 border-amber-300 font-semibold';
-                badgeLabel = '🟡 5–10 Yrs';
+                badgeLabel = '5–10 Yrs';
             } else if (house.duration_category === 'long') {
                 borderClass = 'border-l-[5px] border-l-rose-500 hover:border-rose-400';
                 badgeClass = 'bg-rose-50 text-rose-800 border-rose-300 font-semibold';
-                badgeLabel = '🔴 > 10 Yrs';
+                badgeLabel = '> 10 Yrs';
             }
             card.className += ` ${borderClass}`;
 
@@ -157,7 +157,7 @@
 
                 <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
                     <span class="text-slate-400 text-[11px] font-medium flex items-center gap-1">
-                        <span>📄 Total Archive</span>
+                        <span>Total Archive</span>
                     </span>
                     <span class="doc-count font-bold text-slate-700 bg-blue-50/80 text-blue-700 px-2 py-0.5 rounded-md text-[11px] border border-blue-100">
                         ${totalDocs} Docs
