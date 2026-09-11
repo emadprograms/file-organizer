@@ -15,14 +15,16 @@ date: 2026-09-11
 
 ## 1. Overview
 Replaced the confusing and misplaced tenant dropdown in the Document Viewer and Live Peek header (`#viewer-tenant-select`) with a clean, intuitive Category badge (`#viewer-category-badge`):
-- When opening a document or hovering in Live Peek mode, users now see the document's category (e.g., `05 - عقود`, `06 - كهرباء وماء`, `13 - رسائل متنوعة`) clearly identified in the header bar with a dedicated folder icon and badge styling.
+- Positioned the Category folder badge **before the document title name**, establishing a natural breadcrumb hierarchy: `[📁 Folder Name] 📄 Document Title [Live Peek]`.
+- When opening a document or hovering in Live Peek mode, users now see the document's category (e.g., `05 - عقود`, `06 - كهرباء وماء`, `13 - رسائل متنوعة`) clearly identified on the left before the document title with a dedicated folder icon and badge styling.
+- Left the right side of the viewer header cleanly dedicated to action controls (`Open` in new tab).
 - Removed `#viewer-tenant-select` and `#viewer-tenant-label` from the viewer panel header. (Tenant manual assignment is already cleanly handled in the Document Action Modal).
 - Enforced instant category resolution across all views (`categories-view`, `timeline-view`, `pdf-preview`, `command-palette`), resolving from passed arguments, `currentTimeline`, `getSelectedDoc()`, `globalTreeData`, or async metadata API fallback.
 
 ## 2. Changes Made
 1. **`src/api/static/index.html`**:
-   - Replaced `#viewer-tenant-label` and `#viewer-tenant-select` with `#viewer-category-badge` and `#viewer-category-val`.
-   - Bumped cache bust versions for affected scripts to `?v=260911-34`.
+   - Replaced `#viewer-tenant-label` and `#viewer-tenant-select` with `#viewer-category-badge` placed immediately before the document title.
+   - Bumped cache bust version for `doc-viewer.js` to `?v=260911-35`.
 2. **`src/api/static/js/doc-viewer.js`**:
    - Added `updateViewerCategory(vaultId, explicitCategory)` supporting multi-source resolution (argument, timeline, active doc, tree data, metadata API).
    - Updated `openDocument` and `peekDocument` to call `updateViewerCategory(vaultId, category)` and display the category badge in both full view and Live Peek.
