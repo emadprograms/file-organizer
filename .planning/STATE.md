@@ -60,13 +60,14 @@ Equip the digital archive management system with power-user operational tools: o
 - `260911-category-doc-count-circle-and-smaller-doc-date`: Category Folder Circular Document Count Badge & Refined Document Date Sizing (QCK-10). Replaced folder header card document count text badge with a sleek circular count badge (`min-w-[20px] h-5 rounded-full`) showing just the count number inside a circle with tooltip. Refined document date badge on document rows to `text-[9px] font-mono tracking-tight`, freeing ~12-15px horizontal width per row to prevent document name truncation while keeping date clean and legible. 128 Vitest tests across 11 files, 84 .NET xUnit tests, and 30 Python pytest tests passing; zero static asset diff.
 - `260911-fdi-folder-specific-icons-for-categories-01-`: Category-Specific Folder Icons (01-13) & Empty Folder for Custom (14+) (QCK-11). Implemented distinct, descriptive Heroicons outline icons for each standard category 01 through 13 in Folders view with automatic fallback to empty folder icon for custom categories (14+). 134 Vitest tests across 12 files, 84 xUnit tests, and 30 Pytest tests passing; zero static asset diff.
 - `260911-fs0-replace-folder-select-all-text-button-wi`: Replace Folder "Select All" Text Button with Select Checkbox (`.folder-select-checkbox`) that Reveals Documents and Selects All (QCK-12). Replaced `.btn-select-all-folder` text button on category cards with a styled select checkbox before `.folder-icon-box`, un-hiding collapsed documents and selecting all docs on click. Synchronized indeterminate state when child document checkboxes change, and updated global toggle. 143 Vitest tests across 13 files (including 16 in `batch_operations.test.js` and 8 in `folder_select_checkbox.test.js`), 84 .NET xUnit tests, 30 Pytest tests, and 49 Playwright E2E tests passing; zero static asset diff.
+- `260911-j4x-change-current-tenant-highlight-to-blue-`: Highlight Current Tenant in Brand Blue (`bg-blue-50/70 border-blue-200/80` and `bg-blue-100 text-blue-700`) on House Overview Cards. Eliminates visual and semantic clash with `< 5 Yrs` green tenure badge. 144 Vitest tests, 11 Playwright grid tests, and 84 .NET xUnit tests passing; zero static asset diff.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-11 — Completed Quick Tasks QCK-10, QCK-11, and QCK-12. Verified by 84 xUnit, 17 v14 pytest, 13 doc management, 143 Vitest across 13 files, and 49 Playwright E2E tests.
+Last activity: 2026-09-11 — Completed Quick Task 260911-j4x (current tenant highlight in brand blue). Verified by 144 Vitest tests, 11 Playwright grid tests, and 84 .NET xUnit tests.
 
 ## Operator Next Steps
 
