@@ -109,13 +109,21 @@
                                 || (t.subtitle && (t.subtitle.includes('Present') || t.subtitle.includes('الآن')))
                                 || (idx === 0 && !t.subtitle?.includes('-'));
                             const cardBg = isCurrent 
-                                ? 'tenant-current-glow bg-emerald-50/70 border border-emerald-200/80' 
-                                : 'bg-slate-50 border border-slate-200/60';
+                                ? 'bg-emerald-50/70 border-emerald-200/80' 
+                                : 'bg-slate-50 border-slate-200/60';
                             const nameClass = isCurrent ? 'font-bold text-slate-900' : 'font-medium text-slate-700';
+                            const tenantIcon = isCurrent
+                                ? `<span class="w-5 h-5 rounded-md bg-emerald-100 text-emerald-700 flex items-center justify-center flex-shrink-0" title="Residing Tenant">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                   </span>`
+                                : `<span class="w-5 h-5 rounded-md bg-slate-200/80 text-slate-500 flex items-center justify-center flex-shrink-0" title="Past Tenant">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                   </span>`;
                             
                             return `
-                                <div class="tenant-overview-item flex items-center justify-between text-xs p-1.5 rounded-lg ${cardBg}">
-                                    <div class="flex items-center min-w-0">
+                                <div class="tenant-overview-item flex items-center justify-between text-xs p-1.5 rounded-lg border ${cardBg}">
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        ${tenantIcon}
                                         <span class="tenant-name ${nameClass} truncate text-xs" title="${t.name}">${t.name}</span>
                                     </div>
                                     <span class="tenure-text text-[10px] font-mono text-slate-500 ml-2 flex-shrink-0" title="${t.subtitle || ''}">

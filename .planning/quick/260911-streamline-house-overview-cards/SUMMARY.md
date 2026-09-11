@@ -13,10 +13,11 @@ task: streamline-house-overview-cards
    - Restored `.tenure-badge` with color coding (`🟢 < 5 Yrs`, `🟡 5–10 Yrs`, `🔴 > 10 Yrs`) in the top-right corner.
 3. **Moved Tenant Count Beside House Title**:
    - Positioned `.tenants-count` pill (`2 Tenants`) neatly in the header next to `🏠 ${house.name}`.
-4. **Dynamic Glowing Animation on Current Tenant**:
-   - Implemented `.tenant-current-glow` in `css/styles.css` using a high-performance rotating `conic-gradient` border beam (`@keyframes glow-border-beam`) with an inner emerald mask (`#ecfdf5`).
-   - The light beam continuously and subtly travels around the rectangle perimeter of the current tenant, providing an intuitive, dynamic visual indicator without clutter.
-   - Removed redundant `Current` and `Past` badges and emoji circles (`🟢`/`⚪`) as requested.
+4. **Heroicon SVGs for Tenants (Man for Residing, Clock for Past)**:
+   - Replaced green/grey dots and removed the light beam animation.
+   - Residing/current tenant is marked with the User (man) Heroicon SVG inside an emerald pill container (`bg-emerald-100 text-emerald-700`) on a clean emerald-highlighted card (`bg-emerald-50/70 border-emerald-200/80`).
+   - Past/non-residing tenants are marked with the Clock Heroicon SVG inside a slate pill container (`bg-slate-200/80 text-slate-500`) on a slate card (`bg-slate-50 border-slate-200/60`).
+   - Matches the iconography of `house-profile.js` 100%.
 5. **Restored Document Count at Card Bottom**:
    - Re-added the footer with `📄 Total Archive` and `.doc-count` (`${totalDocs} Docs`).
 
@@ -34,4 +35,4 @@ task: streamline-house-overview-cards
 - Vitest: 144/144 passed (`npm run test:frontend`).
 - Playwright: 11/11 passed (`pytest tests/frontend/test_grid_view.py tests/frontend/test_tenants_overview_grid.py`).
 - .NET xUnit: 84/84 passed (`dotnet test web-net/FileOrganizer.Tests/`).
-- Python & .NET live servers restarted with cache-busting version `?v=260911-16`.
+- Python & .NET live servers restarted with cache-busting version `?v=260911-17`.
