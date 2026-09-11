@@ -104,10 +104,14 @@ Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shi
 - **Remove Redundant Tenancy Register Sub-Header from Tenant Selection Area (Quick Refinement QCK-19):**
   - Removed the redundant inner sub-header bar (`tenantsHeader`) and Arabic count badge (`.tenants-count-badge`) from the tenant selection area inside `#document-list`.
   - Since the tab label above already identifies the section as `سجل المستأجرين` with the Users SVG icon (standardized in QCK-15), removing this repetitive secondary title (`سجل المستأجرين المتعاقبين`) and count badge eliminates visual clutter and allows tenant profile cards (`.tenant-profile-card`) to be positioned directly at the top of the container.
+- **Add House Grid Card with Dashed Outline & Remove Top Navbar Button (Quick Refinement QCK-20):**
+  - Replaced the top navbar Add House button with a modern dashed-outline "Add House" card (`#add-house-grid-card`) placed at the end of the houses list in Area Grid view.
+  - Card features a prominent central plus icon, Arabic and English labels (`+ إضافة منزل جديد` / `Add New House`), and descriptive prompt (`انقر هنا لتسجيل منزل جديد في هذه المنطقة`), supporting both clicks and keyboard activation (`Enter` / `Space`) as well as empty area states.
+  - Completely removed `#open-add-house-modal-btn` from the top navbar.
 - **Comprehensive Multi-Stack Test Coverage & Verification:**
   - 85 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
   - 33 Python backend tests (18 in `tests/test_v14_features.py`, 13 in `tests/test_document_management_api.py`, 2 in `tests/test_house_profile_api.py`).
-  - 158 Frontend Vitest tests across 16 files (`npm run test:frontend`, including 5 in `delete_house.test.js`, 5 in `house_profile.test.js`, 4 in `unified_header.test.js`, 3 in `tab_labels.test.js`, 5 in `export_archive_modal.test.js`, 16 in `batch_operations.test.js`, and 8 in `folder_select_checkbox.test.js`).
+  - 160 Frontend Vitest tests across 16 files (`npm run test:frontend`, including 7 in `add_house.test.js`, 5 in `delete_house.test.js`, 5 in `house_profile.test.js`, 4 in `unified_header.test.js`, 3 in `tab_labels.test.js`, 5 in `export_archive_modal.test.js`, 16 in `batch_operations.test.js`, and 8 in `folder_select_checkbox.test.js`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/`, `web-net/wwwroot/`, and `dist/win-x64/wwwroot/`.
 

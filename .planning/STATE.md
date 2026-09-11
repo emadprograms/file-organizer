@@ -4,9 +4,9 @@ milestone: v14.0
 milestone_name: Power-User Operations & Portfolio Expansion
 current_phase: 108 (All Complete)
 status: completed
-last_updated: "2026-09-11T17:20:00.000Z"
+last_updated: "2026-09-11T17:38:00.000Z"
 last_activity: 2026-09-11
-last_activity_desc: "Completed Quick Task 260911-nh4 (QCK-19: Remove Redundant Tenancy Register Sub-Header from Tenant Selection Area). 158 Vitest tests across 16 files, 85 xUnit tests, 33 Pytest tests, and Playwright E2E tests passing; zero static asset diff."
+last_activity_desc: "Completed Quick Task 260911-odx (QCK-20: Add House Grid Card with Dashed Outline and Huge Plus Symbol & Remove Top Navbar Add House Button). 160 Vitest tests across 16 files, 85 xUnit tests, 18 Pytest tests, and Playwright E2E tests passing; zero static asset diff."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -68,13 +68,14 @@ Equip the digital archive management system with power-user operational tools: o
 - `260911-ny4`: Arabic Tenant Count Badge in Tenancy Register Header (QCK-17). Enhanced the tenant count badge in the Tenancy Register header (`سجل المستأجرين المتعاقبين`) from a bare digit in a tiny circle to an Arabic tenant count badge (e.g. `3 مستأجرين` or `1 مستأجر`) formatted as an elegant rounded pill (`.tenants-count-badge`). Verified by unit tests in `tests/frontend/components/house_profile.test.js`.
 - `260911-nty`: Delete House Feature in Settings Modal Danger Zone (QCK-18). Added `DELETE /api/areas/{areaId}/houses/{houseId}` cascading across `pages`, `documents`, `batches`, `tenants`, and `houses` in SQLite and removing disk directories across ASP.NET Core and FastAPI. Integrated red Danger Zone in settings modal, `#delete-house-modal` with exact type-to-confirm validation, automated view reset to Area Grid, sidebar and area reload, and toast feedback. 158 Vitest tests across 16 files, 85 xUnit tests, and 33 Pytest tests passing; zero static asset diff.
 - `260911-nh4`: Remove Redundant Tenancy Register Sub-Header from Tenant Selection Area (QCK-19). Removed redundant sub-header bar (`سجل المستأجرين المتعاقبين` and count badge) from tenant selection area in house profile view, placing tenant cards directly beneath the tab bar. 158 Vitest tests across 16 files, 85 xUnit tests, and 33 Pytest tests passing; zero static asset diff.
+- `260911-odx`: Add House Grid Card with Dashed Outline and Huge Plus Symbol & Remove Top Navbar Add House Button (QCK-20). Appended modern dashed-outline Add House card (`#add-house-grid-card`) at the end of the house cards grid in Area Grid view with large central plus icon, Arabic and English labels (`+ إضافة منزل جديد` / `Add New House`), and empty-area support. Removed old `#open-add-house-modal-btn` from top navbar. 160 Vitest tests across 16 files, 85 xUnit tests, and 18 Pytest tests passing; zero static asset diff.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-11 — Completed Quick Task 260911-nh4 (QCK-19: Remove Redundant Tenancy Register Sub-Header from Tenant Selection Area). Verified by 158 Vitest tests, 85 xUnit tests, 33 Pytest tests, and Playwright tests.
+Last activity: 2026-09-11 — Completed Quick Task 260911-odx (QCK-20: Add House Grid Card with Dashed Outline and Huge Plus Symbol & Remove Top Navbar Add House Button). Verified by 160 Vitest tests, 85 xUnit tests, 18 Pytest tests, and Playwright tests.
 
 ## Operator Next Steps
 

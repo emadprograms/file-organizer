@@ -2,10 +2,14 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 19 quick refinements (QCK-01 through QCK-19), 4 plans, comprehensive multi-stack test verification (85 .NET xUnit, 33 Pytest tests, 158 Vitest across 16 files, Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 20 quick refinements (QCK-01 through QCK-20), 4 plans, comprehensive multi-stack test verification (85 .NET xUnit, 33 Pytest tests, 160 Vitest across 16 files, Playwright E2E)
 
 **Key accomplishments:**
 
+- **Add House Grid Card with Dashed Outline & Remove Top Navbar Button (Quick Refinement QCK-20):**
+  - Replaced the top navbar Add House button with a modern dashed-outline "Add House" card (`#add-house-grid-card`) placed at the end of the houses list in Area Grid view.
+  - Card features a prominent central plus icon, Arabic and English labels (`+ إضافة منزل جديد` / `Add New House`), and descriptive prompt (`انقر هنا لتسجيل منزل جديد في هذه المنطقة`), supporting both clicks and keyboard activation (`Enter` / `Space`) as well as empty area states.
+  - Completely removed `#open-add-house-modal-btn` from the top navbar.
 - **Remove Redundant Tenancy Register Sub-Header from Tenant Selection Area (Quick Refinement QCK-19):**
   - Removed the redundant inner sub-header bar (`tenantsHeader`) and Arabic count badge (`.tenants-count-badge`) from the tenant selection area inside `#document-list`.
   - With the tab label above already indicating `سجل المستأجرين` with the Users SVG icon (QCK-15), removing this repetitive secondary title (`سجل المستأجرين المتعاقبين`) and count badge eliminates visual clutter and allows tenant profile cards (`.tenant-profile-card`) to be positioned directly at the top of the container.
