@@ -2,10 +2,16 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
 
-**Phases completed:** 4 phases (105-108) + 7 quick refinements (QCK-01, QCK-02, QCK-03, QCK-04, QCK-05, QCK-06, QCK-07), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 15 v14 pytest, 13 doc management, 109 Vitest across 10 files, 49 Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 8 quick refinements (QCK-01, QCK-02, QCK-03, QCK-04, QCK-05, QCK-06, QCK-07, QCK-08), 4 plans, comprehensive multi-stack test verification (84 .NET xUnit, 17 v14 pytest, 13 doc management, 113 Vitest across 10 files, 49 Playwright E2E)
 
 **Key accomplishments:**
 
+- **Batch Tenant Selection & Remove Copy Note (Quick Refinement QCK-08):**
+  - Removed confusing amber explanatory note from `#batch-copy-modal` without replacement.
+  - Added Target Tenant selector (`المستأجر • Target Tenant`) to both Move Selected (`#batch-move-tenant-select`) and Copy Selected (`#batch-copy-tenant-select`) modals, defaulting to `🏛️ المستأجر الحالي للوثيقة • Same Tenant`.
+  - Cleaned modal action button labels to `Move Documents` and `Copy Documents`.
+  - Added dynamic tenant dropdown population (`populateBatchTenantSelect`) with active lease indicators (`🟢 ` vs `👤 `) and lease years, with graceful fallback to distinct tenants in `currentCategories`.
+  - Added full dual-stack backend support for `target_tenant_id: Optional[int]` in both FastAPI and ASP.NET Core 8.0, allowing cross-tenant or same-tenant batch moves and copies.
 - **Intuitive Visual-First Export Modal & Clean Batch Bar (Quick Refinement QCK-07):**
   - Streamlined `#export-archive-modal` by removing verbose, explanatory English and Arabic paragraphs to create a clean, intuitive, visual-first dialog.
   - Minimalist header title (`تصدير الأرشيف • Export Archive`) without explanatory subtitle.
@@ -64,9 +70,9 @@
   - Input/textarea suppression guards and backdrop/Esc dismissal.
 - **Multi-Stack Test Coverage & Verification:**
   - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
-  - 15 Python v14 pytest tests (`tests/test_v14_features.py`).
+  - 17 Python v14 pytest tests (`tests/test_v14_features.py`).
   - 13 Python document management tests (`tests/test_document_management_api.py`).
-  - 109 Frontend Vitest tests across 10 test files (`npm run test:frontend`).
+  - 113 Frontend Vitest tests across 10 test files (`npm run test:frontend`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 

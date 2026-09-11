@@ -1331,10 +1331,16 @@ async def batch_move_documents(
 
     moved_ids = []
     for vid in payload.vault_ids:
-        cur = repo.conn.execute(
-            "UPDATE documents SET category = ?, is_manual = 1 WHERE vault_id = ?",
-            (target_folder, vid),
-        )
+        if payload.target_tenant_id is not None:
+            cur = repo.conn.execute(
+                "UPDATE documents SET category = ?, tenant_id = ?, is_manual = 1 WHERE vault_id = ?",
+                (target_folder, payload.target_tenant_id, vid),
+            )
+        else:
+            cur = repo.conn.execute(
+                "UPDATE documents SET category = ?, is_manual = 1 WHERE vault_id = ?",
+                (target_folder, vid),
+            )
         if cur.rowcount > 0:
             moved_ids.append(vid)
 
@@ -1374,6 +1380,7 @@ async def batch_copy_documents_route(
         house_id=house_id,
         vault_ids=payload.vault_ids,
         target_category=payload.target_category,
+        target_tenant_id=payload.target_tenant_id,
         areas_root=areas_root,
     )
 

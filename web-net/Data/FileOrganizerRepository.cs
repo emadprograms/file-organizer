@@ -1557,7 +1557,8 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         string areaId,
         string houseId,
         IEnumerable<string> vaultIds,
-        string targetCategory)
+        string targetCategory,
+        int? targetTenantId = null)
     {
         var formattedCategory = Constants.FormatCategoryWithPrefix(targetCategory);
 
@@ -1567,10 +1568,21 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         var movedIds = new List<string>();
         foreach (var vaultId in vaultIds)
         {
-            var rows = await conn.ExecuteAsync(
-                "UPDATE documents SET category = @Category, is_manual = 1 WHERE vault_id = @VaultId;",
-                new { Category = formattedCategory, VaultId = vaultId },
-                tx);
+            int rows;
+            if (targetTenantId.HasValue)
+            {
+                rows = await conn.ExecuteAsync(
+                    "UPDATE documents SET category = @Category, tenant_id = @TargetTenantId, is_manual = 1 WHERE vault_id = @VaultId;",
+                    new { Category = formattedCategory, TargetTenantId = targetTenantId.Value, VaultId = vaultId },
+                    tx);
+            }
+            else
+            {
+                rows = await conn.ExecuteAsync(
+                    "UPDATE documents SET category = @Category, is_manual = 1 WHERE vault_id = @VaultId;",
+                    new { Category = formattedCategory, VaultId = vaultId },
+                    tx);
+            }
 
             if (rows > 0)
             {
@@ -1594,6 +1606,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         string houseId,
         IEnumerable<string> vaultIds,
         string targetCategory,
+        int? targetTenantId = null,
         string? areasRoot = null)
     {
         var resolvedAreasRoot = !string.IsNullOrEmpty(areasRoot)
@@ -1679,7 +1692,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             {
                 VaultId = newVaultId,
                 HouseId = src.HouseId,
-                TenantId = src.TenantId,
+                TenantId = targetTenantId ?? src.TenantId,
                 BatchId = src.BatchId,
                 PrimaryDate = src.PrimaryDate,
                 ArabicTitle = src.ArabicTitle,

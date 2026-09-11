@@ -657,6 +657,9 @@ public record BatchMoveRequestDto
 
     [JsonPropertyName("target_category")]
     public string TargetCategory { get; init; } = string.Empty;
+
+    [JsonPropertyName("target_tenant_id")]
+    public int? TargetTenantId { get; init; }
 }
 
 public record BatchMoveResponseDto
@@ -681,6 +684,9 @@ public record BatchCopyRequestDto
 
     [JsonPropertyName("target_category")]
     public string TargetCategory { get; init; } = string.Empty;
+
+    [JsonPropertyName("target_tenant_id")]
+    public int? TargetTenantId { get; init; }
 }
 
 public record BatchCopyResponseDto

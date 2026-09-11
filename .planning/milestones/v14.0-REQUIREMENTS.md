@@ -60,11 +60,17 @@ Equip the digital archive management system with power-user operational tools: o
 - [x] **QCK-07**: Streamline House Archive Export Options Modal & Remove Batch Button Emojis:
   - **Export Modal Streamlining**: Replaced verbose explanatory paragraphs with intuitive visual design in `#export-archive-modal`. Streamlined header title (`تصدير الأرشيف • Export Archive`) without subtitle paragraph; visual format cards (Card A: `📦 ZIP` with `مجلدات • Folders`; Card B: `📄 PDF` with `تسلسل زمني • Timeline`) without long descriptive paragraphs; streamlined tenant scope (`المستأجر • Tenant`) with default option `🏛️ كامل السجل • All Records`; footer buttons (`Cancel` and `⬇️ Download`).
   - **Batch Bar Emojis Removal**: Removed distracting emojis (`📁`, `📋`, `🗑️`) from Move, Copy, and Delete buttons while preserving the `✕` icon on `#btn-batch-deselect` (`<span>✕</span><span>Deselect</span>`).
+- [x] **QCK-08**: Batch Tenant Selection in Move/Copy Modals & Remove Copy Note:
+  - **Copy Modal Note Removal**: Removed the amber note block (`💡 ملاحظة: النسخ يتيح ظهور الوثائق في مجلد إضافي للرجوع السريع دون تكرارها في الخط الزمني`) from `#batch-copy-modal` without replacement, streamlining modal simplicity.
+  - **Target Tenant Selector**: Added tenant selection dropdown (`المستأجر • Target Tenant`) to both Move Selected (`#batch-move-tenant-select`) and Copy Selected (`#batch-copy-tenant-select`) modals, defaulting to `🏛️ المستأجر الحالي للوثيقة • Same Tenant` (empty value, preserving existing tenancy).
+  - **Modal Button Polish**: Cleaned confirm button labels to `Move Documents` and `Copy Documents`.
+  - **Dynamic Tenant Population**: `populateBatchTenantSelect` queries active house tenants from `/api/areas/{area}/houses/{house}/tenants` with active indicator (`🟢 ` active vs `👤 ` past) and lease year tags, gracefully falling back to distinct tenants in `currentCategories` in static or offline scenarios.
+  - **Dual-Backend Support**: Added `target_tenant_id: Optional[int] = None` to `BatchMoveRequest` / `BatchCopyRequest` in FastAPI and `BatchMoveRequestDto` / `BatchCopyRequestDto` in ASP.NET Core; updates `tenant_id` when supplied and preserves existing tenancy when omitted; batch copy sets duplicate document's `tenant_id = target_tenant_id ?? src.tenant_id`.
 - [x] **VER-07**: Comprehensive multi-stack test suite covering all capabilities across Python and .NET:
   - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
-  - 15 Python v14 pytest tests (`tests/test_v14_features.py`).
+  - 17 Python v14 pytest tests (`tests/test_v14_features.py`).
   - 13 Python document management tests (`tests/test_document_management_api.py`).
-  - 109 Frontend Vitest tests across 10 files (`npm run test:frontend`).
+  - 113 Frontend Vitest tests across 10 files (`npm run test:frontend`).
   - 49 Playwright E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 
@@ -77,7 +83,7 @@ Equip the digital archive management system with power-user operational tools: o
 | **QCK-01** | Interactive Export Options Modal & Chronological PDF Dossier Pipeline | Phase 105 / QCK-01 | Complete | `tests/frontend/components/export_archive_modal.test.js` (5 tests), `tests/test_v14_features.py`, `ApiEndpointTests.cs` |
 | **QCK-03** | Descending Chronological Dossier Sort & Minimalist 3-Column Running Footer with Preserved Numbers | Phase 105 / QCK-03 | Complete | `tests/test_v14_features.py` (`test_export_house_archive_pdf_descending_chronological_order`), `ApiEndpointTests.cs` (`ExportPdf_ReturnsChronologicalMergedPdf`) |
 | **QCK-04** | Arabic Cursive Text Shaping & BiDi Visual Reordering in Running Footer | Phase 105 / QCK-04 | Complete | `tests/test_v14_features.py` (`test_export_house_archive_pdf_running_footer`), `web-net/FileOrganizer.Tests/ArabicReshaperTests.cs` (32 tests) |
-| **BAT-01** | Multi-select checkboxes & floating action bar in Category View | Phase 106 | Complete | `src/api/static/js/categories-view.js`, `tests/frontend/components/batch_operations.test.js` (10 tests) |
+| **BAT-01** | Multi-select checkboxes & floating action bar in Category View | Phase 106 | Complete | `src/api/static/js/categories-view.js`, `tests/frontend/components/batch_operations.test.js` (14 tests) |
 | **BAT-02** | Batch Move and Batch Delete backend endpoints | Phase 106 | Complete | `tests/test_v14_features.py` (`test_batch_move_documents`, `test_batch_delete_documents`), `ApiEndpointTests.cs` |
 | **QCK-02** | Batch Copy & Timeline De-duplication Architecture (`is_timeline_visible`) | Phase 106 / QCK-02 | Complete | `tests/test_v14_features.py` (2 tests), `tests/frontend/components/batch_operations.test.js` (3 copy tests), `ApiEndpointTests.cs` (`BatchCopy_*`) |
 | **HSE-01** | House creation backend endpoint and directory scaffold | Phase 107 | Complete | `tests/test_v14_features.py` (`test_create_house_*`), `ApiEndpointTests.cs` (`PostCreateHouse_*`) |
@@ -85,5 +91,6 @@ Equip the digital archive management system with power-user operational tools: o
 | **KBD-01** | Global Keyboard Shortcuts Helper modal (`?`) & navbar button | Phase 108 | Complete | `src/api/static/js/keyboard-shortcuts.js`, `tests/frontend/components/keyboard_shortcuts.test.js` (12 tests) |
 | **QCK-05** | Double-Click Inline Document Renaming in Categories & Timeline views | Phase 108 / QCK-05 | Complete | `tests/frontend/components/inline_rename.test.js` (7 tests), `src/api/static/js/categories-view.js`, `src/api/static/js/timeline-view.js` |
 | **QCK-06** | Relocation of Export Archive button to Document Panel header & removal of bottom archive summary | Phase 105 / QCK-06 | Complete | `tests/frontend/components/house_profile.test.js`, `tests/frontend/components/export_archive_modal.test.js`, `tests/frontend/test_house_register.py` |
-| **QCK-07** | Streamline export modal to intuitive visual-first layout & remove emojis from batch buttons | Phase 105 / QCK-07 | Complete | `tests/frontend/components/export_archive_modal.test.js` (5 tests), `tests/frontend/components/batch_operations.test.js` (10 tests), zero static diff |
-| **VER-07** | Comprehensive multi-stack automated testing suite (Pytest, Vitest, Playwright, xUnit) | Phase 108 | Complete | 270+ automated tests passing across 4 test runners (84 xUnit, 15 v14 pytest, 13 doc management, 109 Vitest, 49 Playwright); zero static asset diff. |
+| **QCK-07** | Streamline export modal to intuitive visual-first layout & remove emojis from batch buttons | Phase 105 / QCK-07 | Complete | `tests/frontend/components/export_archive_modal.test.js` (5 tests), `tests/frontend/components/batch_operations.test.js` (14 tests), zero static diff |
+| **QCK-08** | Batch Tenant Selection in Move/Copy Modals & Remove Copy Note | Phase 106 / QCK-08 | Complete | `tests/frontend/components/batch_operations.test.js` (14 tests), `tests/test_v14_features.py` (`test_batch_move_with_target_tenant`, `test_batch_copy_with_target_tenant`), `ApiEndpointTests.cs`, zero static diff |
+| **VER-07** | Comprehensive multi-stack automated testing suite (Pytest, Vitest, Playwright, xUnit) | Phase 108 | Complete | 275+ automated tests passing across 4 test runners (84 xUnit, 17 v14 pytest, 13 doc management, 113 Vitest, 49 Playwright); zero static asset diff. |

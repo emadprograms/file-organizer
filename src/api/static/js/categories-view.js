@@ -1138,6 +1138,7 @@
         window.toggleSelectAllGlobal = toggleSelectAllGlobal;
         window.deselectAllDocs = deselectAllDocs;
         window.updateBatchActionBar = updateBatchActionBar;
+        window.populateBatchTenantSelect = populateBatchTenantSelect;
         window.openBatchMoveModal = openBatchMoveModal;
         window.closeBatchMoveModal = closeBatchMoveModal;
         window.handleBatchMoveSubmit = handleBatchMoveSubmit;
@@ -1164,6 +1165,7 @@
             toggleSelectAllGlobal,
             deselectAllDocs,
             updateBatchActionBar,
+            populateBatchTenantSelect,
             openBatchMoveModal,
             closeBatchMoveModal,
             handleBatchMoveSubmit,

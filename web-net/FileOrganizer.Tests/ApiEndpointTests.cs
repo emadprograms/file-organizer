@@ -764,13 +764,16 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
             new BatchMoveRequestDto { VaultIds = new List<string> { doc1.VaultId! }, TargetCategory = "" });
         Assert.Equal(HttpStatusCode.BadRequest, emptyCatResponse.StatusCode);
 
-        // Batch move execution
+        var t2 = await repo.AddTenantAsync("500", "سعد القحطاني", "2023-01-01", null);
+
+        // Batch move execution with TargetTenantId
         var response = await _client.PostAsJsonAsync(
             "/api/areas/Safra%20C/houses/500/documents/batch-move",
             new BatchMoveRequestDto
             {
                 VaultIds = new List<string> { doc1.VaultId!, doc2.VaultId! },
-                TargetCategory = "10 - صيانة"
+                TargetCategory = "10 - صيانة",
+                TargetTenantId = t2.Id
             });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -789,8 +792,10 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
         Assert.NotNull(updatedDoc2);
         Assert.Equal("10 - صيانة", updatedDoc1.Category);
         Assert.Equal(1, updatedDoc1.IsManual);
+        Assert.Equal(t2.Id, updatedDoc1.TenantId);
         Assert.Equal("10 - صيانة", updatedDoc2.Category);
         Assert.Equal(1, updatedDoc2.IsManual);
+        Assert.Equal(t2.Id, updatedDoc2.TenantId);
     }
 
     [Fact]
@@ -934,13 +939,16 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
             new BatchCopyRequestDto { VaultIds = new List<string> { doc1.VaultId! }, TargetCategory = "" });
         Assert.Equal(HttpStatusCode.BadRequest, emptyCatResponse.StatusCode);
 
-        // Batch copy execution
+        var t2 = await repo.AddTenantAsync("500", "عبد الله الشهري", "2024-01-01", null);
+
+        // Batch copy execution with TargetTenantId
         var response = await _client.PostAsJsonAsync(
             "/api/areas/Safra%20C/houses/500/documents/batch-copy",
             new BatchCopyRequestDto
             {
                 VaultIds = new List<string> { doc1.VaultId!, doc2.VaultId! },
-                TargetCategory = "08 - فواتير"
+                TargetCategory = "08 - فواتير",
+                TargetTenantId = t2.Id
             });
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -962,9 +970,19 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
         Assert.Equal(0, copyDoc1.IsTimelineVisible);
         Assert.Equal(1, copyDoc1.IsManual);
         Assert.Equal("08 - فواتير", copyDoc1.Category);
+        Assert.Equal(t2.Id, copyDoc1.TenantId);
         Assert.Equal(0, copyDoc2.IsTimelineVisible);
         Assert.Equal(1, copyDoc2.IsManual);
         Assert.Equal("08 - فواتير", copyDoc2.Category);
+        Assert.Equal(t2.Id, copyDoc2.TenantId);
+
+        // Verify original documents retained original tenant
+        var origDoc1 = await repo.GetDocumentRawAsync(doc1.VaultId!);
+        var origDoc2 = await repo.GetDocumentRawAsync(doc2.VaultId!);
+        Assert.NotNull(origDoc1);
+        Assert.NotNull(origDoc2);
+        Assert.Equal(1, origDoc1.TenantId);
+        Assert.Equal(1, origDoc2.TenantId);
 
         // Verify copied docs appear in /categories
         var catsResponse = await _client.GetAsync("/api/areas/Safra%20C/houses/500/categories");

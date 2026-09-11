@@ -25,6 +25,7 @@
 - [x] Quick Refinement QCK-05: Double-Click Inline Document Renaming in Categories and Timeline Views (Keyboard shortcuts Enter/Esc/Blur, Error Handling, Toast Feedback, and Backend Parity) — completed 2026-09-10
 - [x] Quick Refinement QCK-06: Relocate Export Archive Button to Document Panel Header & Remove Bottom Archive Summary Box (0-scroll permanent visibility across Profile, Folders, and Timeline views) — completed 2026-09-11
 - [x] Quick Refinement QCK-07: Streamline Export Modal to Intuitive Visual-First Layout & Remove Batch Button Emojis (`📁`, `📋`, `🗑️` removed, `✕ Deselect` preserved) — completed 2026-09-11
+- [x] Quick Refinement QCK-08: Batch Tenant Selection in Move/Copy Modals & Remove Copy Note (Dropdown defaulting to Same Tenant, dynamic tenant loading, note removal, dual-backend support) — completed 2026-09-11
 
 <details>
 <summary>✅ v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server (Phases 101-104) — SHIPPED 2026-09-09</summary>

@@ -759,4 +759,80 @@ def test_batch_copy_documents_excluded_from_timeline(test_setup):
     assert res_pdf2.content.startswith(b"%PDF")
 
 
+def test_batch_move_with_target_tenant(test_setup):
+    repo = test_setup["repo"]
+    t1 = test_setup["tenant"]
+    t2 = repo.add_tenant(house_id="House 100", name="سعيد الزهراني", start_date="2024-08-01")
+
+    # Move with target_tenant_id reassigns tenant
+    res = client.post(
+        "/api/areas/Area A/houses/House 100/documents/batch-move",
+        json={
+            "vault_ids": ["v14test01"],
+            "target_category": "06 - هويات",
+            "target_tenant_id": t2.id,
+        },
+    )
+    assert res.status_code == 200
+    doc = repo.get_document("v14test01")
+    assert doc.category == "06 - هويات"
+    assert doc.tenant_id == t2.id
+    assert doc.is_manual == 1
+
+    # Move without target_tenant_id preserves existing tenant
+    res_no_tenant = client.post(
+        "/api/areas/Area A/houses/House 100/documents/batch-move",
+        json={
+            "vault_ids": ["v14test01"],
+            "target_category": "07 - رخص",
+        },
+    )
+    assert res_no_tenant.status_code == 200
+    doc_preserved = repo.get_document("v14test01")
+    assert doc_preserved.category == "07 - رخص"
+    assert doc_preserved.tenant_id == t2.id
+
+
+def test_batch_copy_with_target_tenant(test_setup):
+    repo = test_setup["repo"]
+    t1 = test_setup["tenant"]
+    t2 = repo.add_tenant(house_id="House 100", name="عبد الرحمن الغامدي", start_date="2024-09-01")
+
+    # Copy with target_tenant_id assigns target tenant to copies
+    res = client.post(
+        "/api/areas/Area A/houses/House 100/documents/batch-copy",
+        json={
+            "vault_ids": ["v14test01"],
+            "target_category": "09 - سندات",
+            "target_tenant_id": t2.id,
+        },
+    )
+    assert res.status_code == 200
+    data = res.json()
+    assert data["copied_count"] == 1
+    new_vid = data["new_vault_ids"][0]
+    copied_doc = repo.get_document(new_vid)
+    assert copied_doc.tenant_id == t2.id
+    assert copied_doc.category == "09 - سندات"
+    assert copied_doc.is_timeline_visible == 0
+
+    # Original document keeps its original tenant
+    orig_doc = repo.get_document("v14test01")
+    assert orig_doc.tenant_id == t1.id
+
+    # Copy without target_tenant_id keeps original tenant on copy
+    res_no_tenant = client.post(
+        "/api/areas/Area A/houses/House 100/documents/batch-copy",
+        json={
+            "vault_ids": ["v14test01"],
+            "target_category": "11 - مراسلات",
+        },
+    )
+    assert res_no_tenant.status_code == 200
+    new_vid_2 = res_no_tenant.json()["new_vault_ids"][0]
+    copied_doc_2 = repo.get_document(new_vid_2)
+    assert copied_doc_2.tenant_id == t1.id
+
+
+
 

@@ -179,6 +179,7 @@ class BatchDeleteResponse(BaseModel):
 class BatchMoveRequest(BaseModel):
     vault_ids: list[str]
     target_category: str
+    target_tenant_id: Optional[int] = None
 
 
 class BatchMoveResponse(BaseModel):
@@ -191,6 +192,7 @@ class BatchMoveResponse(BaseModel):
 class BatchCopyRequest(BaseModel):
     vault_ids: list[str]
     target_category: str
+    target_tenant_id: Optional[int] = None
 
 
 class BatchCopyResponse(BaseModel):

@@ -376,6 +376,8 @@
 
         if (!modal || !select) return;
 
+        populateBatchTenantSelect('batch-copy-tenant-select');
+
         if (subtitle) {
             subtitle.textContent = `Copy ${selectedDocIds.size} ${selectedDocIds.size === 1 ? 'document' : 'documents'} to a target category folder.`;
         }
@@ -466,13 +468,21 @@
         if (spinner) spinner.classList.remove('hidden');
 
         try {
+            const tenantSelect = document.getElementById('batch-copy-tenant-select');
+            const targetTenantVal = tenantSelect ? tenantSelect.value : '';
+
+            const copyPayload = {
+                vault_ids: Array.from(selectedDocIds),
+                target_category: targetCat
+            };
+            if (targetTenantVal) {
+                copyPayload.target_tenant_id = parseInt(targetTenantVal, 10);
+            }
+
             const res = await fetch(`/api/areas/${encodeURIComponent(activeArea)}/houses/${encodeURIComponent(activeHouse)}/documents/batch-copy`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    vault_ids: Array.from(selectedDocIds),
-                    target_category: targetCat
-                })
+                body: JSON.stringify(copyPayload)
             });
 
             if (!res.ok) {
@@ -1128,6 +1138,7 @@
         window.toggleSelectAllGlobal = toggleSelectAllGlobal;
         window.deselectAllDocs = deselectAllDocs;
         window.updateBatchActionBar = updateBatchActionBar;
+        window.populateBatchTenantSelect = populateBatchTenantSelect;
         window.openBatchMoveModal = openBatchMoveModal;
         window.closeBatchMoveModal = closeBatchMoveModal;
         window.handleBatchMoveSubmit = handleBatchMoveSubmit;
@@ -1154,6 +1165,7 @@
             toggleSelectAllGlobal,
             deselectAllDocs,
             updateBatchActionBar,
+            populateBatchTenantSelect,
             openBatchMoveModal,
             closeBatchMoveModal,
             handleBatchMoveSubmit,

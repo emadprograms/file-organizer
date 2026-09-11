@@ -21,6 +21,7 @@ const {
     closeBatchDeleteModal,
     handleBatchDeleteSubmit,
     initBatchOperations,
+    populateBatchTenantSelect,
 } = require('../../../src/api/static/js/categories-view.js');
 
 function setupDOM() {
@@ -38,6 +39,9 @@ function setupDOM() {
 
         <div id="batch-move-modal" class="hidden">
             <p id="batch-move-subtitle"></p>
+            <select id="batch-move-tenant-select">
+                <option value="">🏛️ المستأجر الحالي للوثيقة • Same Tenant</option>
+            </select>
             <select id="batch-move-folder-select"></select>
             <div id="batch-move-custom-folder-container" class="hidden">
                 <input id="batch-move-custom-folder-input" type="text" />
@@ -52,6 +56,9 @@ function setupDOM() {
 
         <div id="batch-copy-modal" class="hidden">
             <p id="batch-copy-subtitle"></p>
+            <select id="batch-copy-tenant-select">
+                <option value="">🏛️ المستأجر الحالي للوثيقة • Same Tenant</option>
+            </select>
             <select id="batch-copy-folder-select"></select>
             <div id="batch-copy-custom-folder-container" class="hidden">
                 <input id="batch-copy-custom-folder-input" type="text" />
@@ -394,5 +401,114 @@ describe('Multi-Select Batch Document Operations (Phase 106)', () => {
         expect(getSelectedDocIds().size).toBe(0);
         const bar = document.getElementById('batch-action-bar');
         expect(bar.classList.contains('hidden')).toBe(true);
+    });
+
+    it('populates batch tenant select with default Same Tenant option and loads tenants from API', async () => {
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => [
+                { id: 10, name: 'فهد السالم', start_date: '2023-01-01', is_active: true },
+                { id: 20, name: 'سعد القحطاني', start_date: '2021-01-01', end_date: '2022-12-31', is_active: false }
+            ]
+        });
+
+        await populateBatchTenantSelect('batch-move-tenant-select');
+
+        const select = document.getElementById('batch-move-tenant-select');
+        expect(select.options.length).toBe(3);
+        expect(select.options[0].value).toBe('');
+        expect(select.options[0].textContent).toContain('Same Tenant');
+        expect(select.options[1].value).toBe('10');
+        expect(select.options[1].textContent).toContain('🟢 فهد السالم (2023)');
+        expect(select.options[2].value).toBe('20');
+        expect(select.options[2].textContent).toContain('👤 سعد القحطاني (2021)');
+    });
+
+    it('submits batch move with selected target_tenant_id', async () => {
+        toggleDocSelection('doc001', true);
+        openBatchMoveModal();
+
+        const folderSelect = document.getElementById('batch-move-folder-select');
+        folderSelect.value = '10 - صيانة';
+
+        const tenantSelect = document.getElementById('batch-move-tenant-select');
+        const opt = document.createElement('option');
+        opt.value = '42';
+        opt.textContent = '🟢 جديد';
+        tenantSelect.appendChild(opt);
+        tenantSelect.value = '42';
+
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                status: 'success',
+                moved_count: 1,
+                target_category: '10 - صيانة',
+                vault_ids: ['doc001']
+            })
+        });
+
+        await handleBatchMoveSubmit();
+
+        expect(global.fetch).toHaveBeenCalledWith(
+            '/api/areas/Safra%20C/houses/500/documents/batch-move',
+            expect.objectContaining({
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    vault_ids: ['doc001'],
+                    target_category: '10 - صيانة',
+                    target_tenant_id: 42
+                })
+            })
+        );
+    });
+
+    it('submits batch copy with selected target_tenant_id', async () => {
+        toggleDocSelection('doc001', true);
+        openBatchCopyModal();
+
+        const folderSelect = document.getElementById('batch-copy-folder-select');
+        folderSelect.value = '10 - صيانة';
+
+        const tenantSelect = document.getElementById('batch-copy-tenant-select');
+        const opt = document.createElement('option');
+        opt.value = '55';
+        opt.textContent = '🟢 مستأجر إضافي';
+        tenantSelect.appendChild(opt);
+        tenantSelect.value = '55';
+
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                status: 'success',
+                copied_count: 1,
+                target_category: '10 - صيانة',
+                copied_vault_ids: ['doc001_copy']
+            })
+        });
+
+        await handleBatchCopySubmit();
+
+        expect(global.fetch).toHaveBeenCalledWith(
+            '/api/areas/Safra%20C/houses/500/documents/batch-copy',
+            expect.objectContaining({
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    vault_ids: ['doc001'],
+                    target_category: '10 - صيانة',
+                    target_tenant_id: 55
+                })
+            })
+        );
+    });
+
+    it('verifies #batch-copy-modal in index.html no longer contains the amber note element', () => {
+        const fs = require('fs');
+        const path = require('path');
+        const html = fs.readFileSync(path.resolve(__dirname, '../../../src/api/static/index.html'), 'utf-8');
+        expect(html).not.toContain('النسخ يتيح ظهور الوثائق في مجلد إضافي');
+        expect(html).not.toContain('ملاحظة: النسخ يتيح ظهور');
     });
 });

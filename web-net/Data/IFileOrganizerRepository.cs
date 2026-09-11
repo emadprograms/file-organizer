@@ -34,8 +34,8 @@ public interface IFileOrganizerRepository
     Task<DocumentActionResponseDto?> UpdateDocumentTenantAsync(string vaultId, int tenantId);
     Task<bool> DeleteDocumentAsync(string areaId, string houseId, string vaultId, string? areasRoot = null);
     Task<BatchDeleteResponseDto> BatchDeleteDocumentsAsync(string areaId, string houseId, IEnumerable<string> vaultIds, string? areasRoot = null);
-    Task<BatchMoveResponseDto> BatchMoveDocumentsAsync(string areaId, string houseId, IEnumerable<string> vaultIds, string targetCategory);
-    Task<BatchCopyResponseDto> BatchCopyDocumentsAsync(string areaId, string houseId, IEnumerable<string> vaultIds, string targetCategory, string? areasRoot = null);
+    Task<BatchMoveResponseDto> BatchMoveDocumentsAsync(string areaId, string houseId, IEnumerable<string> vaultIds, string targetCategory, int? targetTenantId = null);
+    Task<BatchCopyResponseDto> BatchCopyDocumentsAsync(string areaId, string houseId, IEnumerable<string> vaultIds, string targetCategory, int? targetTenantId = null, string? areasRoot = null);
     Task<TenantReallocationResponseDto> BulkUpdateTenantsAsync(string houseId, IReadOnlyList<TenantDto> tenants, bool reallocate);
     Task<int> DeleteCategoryAsync(string houseId, string categoryName);
     Task<DbInfoResponseDto> GetDbStatsAsync();

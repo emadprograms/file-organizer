@@ -884,6 +884,7 @@ def batch_copy_documents(
     house_id: str,
     vault_ids: Sequence[str],
     target_category: str,
+    target_tenant_id: Optional[int] = None,
     areas_root: Union[str, Path] = ".",
     autocommit: bool = True,
 ) -> list[Document]:
@@ -933,7 +934,7 @@ def batch_copy_documents(
             conn,
             vault_id=new_vid,
             house_id=src.house_id,
-            tenant_id=src.tenant_id,
+            tenant_id=target_tenant_id if target_tenant_id is not None else src.tenant_id,
             batch_id=src.batch_id,
             primary_date=src.primary_date,
             arabic_title=src.arabic_title,
@@ -1300,6 +1301,7 @@ class Repository:
         house_id: str,
         vault_ids: Sequence[str],
         target_category: str,
+        target_tenant_id: Optional[int] = None,
         areas_root: Union[str, Path] = ".",
     ) -> list[Document]:
         return batch_copy_documents(
@@ -1308,6 +1310,7 @@ class Repository:
             house_id=house_id,
             vault_ids=vault_ids,
             target_category=target_category,
+            target_tenant_id=target_tenant_id,
             areas_root=areas_root,
             autocommit=self.autocommit,
         )

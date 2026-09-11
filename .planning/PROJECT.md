@@ -6,7 +6,7 @@ A document management system that processes scanned Arabic PDFs, categorizes the
 
 ## Current Milestone: None (v14.0 Completed & Shipped)
 
-Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive multi-stack test coverage (84 xUnit including 32 in `ArabicReshaperTests.cs`, 15 v14 pytest, 13 doc management pytest, 109 Vitest across 10 files, and 49 Playwright E2E), and power-user operational tooling. Ready for next milestone initialization.
+Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive multi-stack test coverage (84 xUnit including 32 in `ArabicReshaperTests.cs`, 17 v14 pytest, 13 doc management pytest, 113 Vitest across 10 files, and 49 Playwright E2E), and power-user operational tooling. Ready for next milestone initialization.
 
 ## Past Milestones
 
@@ -25,12 +25,12 @@ Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shi
   - Arabic Cursive Text Shaping & BiDi Visual Reordering (QCK-04):
     - Python FastAPI (`src/api/routes.py`): Leverages `arabic-reshaper` + `python-bidi` (`get_display(arabic_reshaper.reshape(cat))`), preventing disjointed "terminal Arabic" letters and calculating precise text width for 100% centered rendering.
     - ASP.NET Core 8.0 (`web-net/Common/ArabicReshaper.cs` & `web-net/Program.cs`): Implements zero-dependency pure C# `ArabicReshaper.ReshapeAndReorder` mapping standard Arabic characters (`\u0600`–`\u06FF`) to Unicode Presentation Forms-B (`\uFE80`–`\uFEFC`), supporting dual-joining letters, right-joining letters, Lam-Alef ligatures (`لا`, `لأ`, `لإ`, `لآ`), and BiDi visual run reversal while preserving LTR numeric tokens (`05 - `) and mirroring bracket punctuation.
-- **Multi-Select Batch Document Operations (Phase 106 + Quick Refinement QCK-02):**
+- **Multi-Select Batch Document Operations (Phase 106 + Quick Refinements QCK-02, QCK-08):**
   - Multi-select checkbox UI on document cards, folder-level toggle, and global Select All / Deselect All.
   - Glassmorphism dark floating action dock (`#batch-action-bar`) with dynamic selection counter and quick action buttons (`[ Move Selected ]`, `[ Copy Selected ]`, `[ Delete Selected ]`, `[ Deselect ]`).
-  - Batch Move (`POST .../batch-move`): Atomic relocation to target standard or custom folder.
+  - Batch Move (`POST .../batch-move`): Atomic relocation to target standard or custom folder with optional target tenant reassignment (`target_tenant_id`).
   - Batch Delete (`POST .../batch-delete`): Cascade deletion with confirmation modal and vault file unlinking.
-  - Batch Copy (`POST .../batch-copy`): Copies documents to an additional category folder for instant reference.
+  - Batch Copy (`POST .../batch-copy`): Copies documents to an additional category folder for instant reference with optional target tenant reassignment.
   - Timeline De-duplication Architecture: Added `is_timeline_visible INTEGER DEFAULT 1` to `documents` table with automatic column migrations across Python and C#; secondary copies are automatically stored with `is_timeline_visible = 0`; timeline queries filter out copies so the timeline strictly reflects 1 real-world event per row (zero duplicate clutter); single 3-dot Copy (`POST .../documents/{vault_id}/copy`) also unified with `is_timeline_visible = 0`; physical vault storage stores 1 physical file without wasteful disk duplication.
 - **Portfolio Expansion (Phase 107):**
   - "+ Add House" UI trigger and modal (`#add-house-modal`) in the Area Grid overview.
@@ -55,11 +55,17 @@ Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shi
 - **Streamline Export Modal & Remove Batch Button Emojis (Quick Refinement QCK-07):**
   - Stripped verbose explanatory paragraphs from `#export-archive-modal` in favor of a minimalist, intuitive visual layout: streamlined header title (`تصدير الأرشيف • Export Archive`), large format icons (`📦 ZIP` with `مجلدات • Folders`, `📄 PDF` with `تسلسل زمني • Timeline`), clean tenant scope label (`المستأجر • Tenant`) with default option `🏛️ كامل السجل • All Records`, and action buttons (`Cancel` and `⬇️ Download`).
   - Polished `#batch-action-bar` by removing distracting button emojis (`📁`, `📋`, `🗑️`) from Move, Copy, and Delete while retaining `✕` on Deselect and keeping clear action labels ("Move Selected", "Copy Selected", "Delete Selected", "Deselect").
+- **Batch Tenant Selection & Remove Copy Note (Quick Refinement QCK-08):**
+  - Removed verbose amber explanatory note (`💡 ملاحظة: النسخ يتيح ظهور الوثائق في مجلد إضافي...`) from `#batch-copy-modal` without replacement.
+  - Added Target Tenant dropdown (`المستأجر • Target Tenant`) to both Move Selected (`#batch-move-tenant-select`) and Copy Selected (`#batch-copy-tenant-select`) modals, defaulting to `🏛️ المستأجر الحالي للوثيقة • Same Tenant` (empty value, preserving existing tenancy).
+  - Cleaned confirm button labels to `Move Documents` and `Copy Documents`.
+  - Added dynamic tenant dropdown population (`populateBatchTenantSelect`) with active lease indicators (`🟢 ` vs `👤 `) and lease years, with graceful fallback to distinct tenants in `currentCategories`.
+  - Added full dual-stack backend support for `target_tenant_id: Optional[int]` in both FastAPI and ASP.NET Core 8.0, allowing cross-tenant or same-tenant batch moves and copies.
 - **Comprehensive Multi-Stack Test Coverage & Verification:**
   - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
-  - 15 Python v14 pytest tests (`tests/test_v14_features.py`).
+  - 17 Python v14 pytest tests (`tests/test_v14_features.py`).
   - 13 Python document management tests (`tests/test_document_management_api.py`).
-  - 109 Frontend Vitest tests across 10 files (`npm run test:frontend`).
+  - 113 Frontend Vitest tests across 10 files (`npm run test:frontend`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 

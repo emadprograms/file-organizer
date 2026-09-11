@@ -724,7 +724,7 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/batch-move", async (
     if (string.IsNullOrWhiteSpace(dto.TargetCategory))
         return Results.BadRequest(new { error = "target_category must not be empty." });
 
-    var result = await repo.BatchMoveDocumentsAsync(areaId, houseId, dto.VaultIds, dto.TargetCategory);
+    var result = await repo.BatchMoveDocumentsAsync(areaId, houseId, dto.VaultIds, dto.TargetCategory, dto.TargetTenantId);
     return Results.Ok(result);
 });
 
@@ -742,7 +742,7 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/batch-copy", async (
         return Results.BadRequest(new { error = "target_category must not be empty." });
 
     var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
-    var result = await repo.BatchCopyDocumentsAsync(areaId, houseId, dto.VaultIds, dto.TargetCategory, areasRoot);
+    var result = await repo.BatchCopyDocumentsAsync(areaId, houseId, dto.VaultIds, dto.TargetCategory, dto.TargetTenantId, areasRoot);
     return Results.Ok(result);
 });
 
