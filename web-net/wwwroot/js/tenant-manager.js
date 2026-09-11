@@ -301,43 +301,8 @@
     }
 
     async function updateViewerTenantSelect(vaultId) {
-        currentViewingVaultId = vaultId;
-        if (!viewerTenantSelect || isStaticMode || !currentArea || !currentHouse) {
-            if (viewerTenantSelect) viewerTenantSelect.classList.add('hidden');
-            if (viewerTenantLabel) viewerTenantLabel.classList.add('hidden');
-            return;
-        }
-
-        try {
-            const res = await fetch(`/api/areas/${encodeURIComponent(currentArea)}/houses/${encodeURIComponent(currentHouse)}/tenants`);
-            if (!res.ok) return;
-            const tenants = await res.json();
-            if (!tenants || tenants.length === 0) {
-                viewerTenantSelect.classList.add('hidden');
-                viewerTenantLabel.classList.add('hidden');
-                return;
-            }
-
-            let currentDocTenantName = null;
-            const timelineMatch = currentTimeline.find(d => d.vault_id === vaultId);
-            if (timelineMatch) currentDocTenantName = timelineMatch.primary_tenant;
-
-            viewerTenantSelect.innerHTML = '';
-            tenants.forEach(t => {
-                const opt = document.createElement('option');
-                opt.value = t.id;
-                opt.textContent = t.name + (t.start_date ? ` (${t.start_date.substring(0,4)})` : '');
-                if (currentDocTenantName && (t.name.trim() === currentDocTenantName.trim() || currentDocTenantName.includes(t.name.trim()))) {
-                    opt.selected = true;
-                }
-                viewerTenantSelect.appendChild(opt);
-            });
-
-            viewerTenantLabel.classList.remove('hidden');
-            viewerTenantSelect.classList.remove('hidden');
-        } catch (err) {
-            console.warn('Failed to load tenants for viewer dropdown:', err);
-        }
+        // Deprecated: Tenant assignment moved to Document Action Modal. Document viewer header displays Category badge.
+        return;
     }
 
     function openDeleteHouseModal() {

@@ -353,7 +353,7 @@
                     if (d.vault_id && typeof window.openDocument === 'function') {
                         // After hash route navigation, trigger document opening
                         setTimeout(() => {
-                            window.openDocument(d.vault_id, d.title);
+                            window.openDocument(d.vault_id, d.title, d.category || d.folder);
                         }, 120);
                     }
                 };

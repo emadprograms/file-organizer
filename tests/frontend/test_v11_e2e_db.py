@@ -473,8 +473,8 @@ def test_tenant_modal_present_checkbox_toggle(page: Page, server_url: str):
     expect(modal).to_be_hidden()
 
 
-def test_viewer_manual_tenant_override_e2e(page: Page, server_url: str):
-    """Document viewer shows tenant dropdown allowing manual assignment."""
+def test_viewer_category_badge_e2e(page: Page, server_url: str):
+    """Document viewer shows category badge in header and no tenant selector."""
     page.goto(f"{server_url}/#/area/Safra%20C/house/101/tenant/101_Ahmad%20Al-Short")
     expect(page.locator("#document-list-panel")).to_be_visible()
 
@@ -487,10 +487,13 @@ def test_viewer_manual_tenant_override_e2e(page: Page, server_url: str):
     # Viewer opens
     expect(page.locator("#document-viewer-panel")).to_be_visible()
 
-    # Tenant selector is visible with options
-    tenant_select = page.locator("#viewer-tenant-select")
-    expect(tenant_select).to_be_visible()
-    expect(tenant_select.locator("option")).not_to_have_count(0)
+    # Category badge is visible and shows category name
+    cat_badge = page.locator("#viewer-category-badge")
+    expect(cat_badge).to_be_visible()
+    expect(page.locator("#viewer-category-val")).to_contain_text("عقود")
+
+    # Tenant selector is removed from viewer header
+    expect(page.locator("#viewer-tenant-select")).to_have_count(0)
 
 
 def test_document_action_modal_rename_and_lock_badge_e2e(page: Page, server_url: str):

@@ -70,10 +70,11 @@
         if (quickLookOpenFull) {
             quickLookOpenFull.onclick = () => {
                 if (quickLookCurrentDoc) {
-                    const { vaultId, title } = quickLookCurrentDoc;
+                    const { vaultId, title, doc } = quickLookCurrentDoc;
+                    const docCategory = doc ? (doc.category || doc.folder || doc.subfolder) : null;
                     closeQuickLook();
                     if (typeof window.openDocument === 'function') {
-                        window.openDocument(vaultId, title);
+                        window.openDocument(vaultId, title, docCategory);
                     }
                 }
             };
@@ -162,7 +163,8 @@
             clearTimeout(peekTimer);
             peekTimer = setTimeout(() => {
                 if (typeof window.peekDocument === 'function') {
-                    window.peekDocument(vaultId, displayTitle);
+                    const docCategory = doc ? (doc.category || doc.folder || doc.subfolder) : null;
+                    window.peekDocument(vaultId, displayTitle, docCategory);
                 }
             }, PEEK_DELAY_MS);
         });
@@ -449,9 +451,9 @@
 
     // Compatibility stubs
     function positionTooltip() { return { left: 0, top: 0 }; }
-    function showPreview(vaultId, title) {
+    function showPreview(vaultId, title, category = null) {
         if (typeof window.peekDocument === 'function') {
-            window.peekDocument(vaultId, title);
+            window.peekDocument(vaultId, title, category);
         }
     }
     function hidePreview() { cancelPeek(); }

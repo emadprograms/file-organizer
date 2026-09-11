@@ -304,9 +304,9 @@
                     setSelectedDoc(doc, currentDocTitle, card);
                 }
                 if (typeof openDocument === 'function') {
-                    openDocument(doc.vault_id, currentDocTitle);
+                    openDocument(doc.vault_id, currentDocTitle, doc.category);
                 } else if (typeof window !== 'undefined' && typeof window.openDocument === 'function') {
-                    window.openDocument(doc.vault_id, currentDocTitle);
+                    window.openDocument(doc.vault_id, currentDocTitle, doc.category);
                 }
             };
             docListEl.appendChild(card);

@@ -122,10 +122,14 @@ Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shi
   - Dedicated separate, generous columns with `gap-4` for Name (`col-span-4`), Start Date (`col-span-3`), End Date (`col-span-3`), Present (`col-span-1`), and Delete (`col-span-1`), ensuring ample horizontal spacing between Present and Delete.
   - Aligned Arabic deletion instructions in Danger Zone directly beneath the section title with left alignment, and removed trailing ellipsis from the `Delete House` button.
   - Added compact sequential tenant row numbering badges (`.tenant-row-number`: `1`, `2`, `3`) with automatic re-indexing via `updateRowNumbers()`, and removed repetitive uppercase labels inside rows.
+- **Replace Tenant Selector with Category Badge in Document Viewer Header (Quick Refinement QCK-23):**
+  - Replaced the misplaced `#viewer-tenant-select` and `#viewer-tenant-label` in the document viewer and Live Peek header with a dedicated `#viewer-category-badge` displaying the document's category folder with a crisp folder icon.
+  - Enforced multi-source category resolution across Categories view, Timeline view, Live Peek hover, macOS Spacebar Quick Look, and Command Palette (`⌘K`), automatically resolving from arguments, timeline items, active selection, or global tree data.
+  - Deprecated legacy tenant dropdown functions to safe no-op stubs and added unit tests in `tests/frontend/components/doc_viewer.test.js`.
 - **Comprehensive Multi-Stack Test Coverage & Verification:**
   - 85 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
   - 33 Python backend tests (18 in `tests/test_v14_features.py`, 13 in `tests/test_document_management_api.py`, 2 in `tests/test_house_profile_api.py`).
-  - 170 Frontend Vitest tests across 18 files (`npm run test:frontend`, including 6 in `house_settings_modal.test.js`, 3 in `timeline_pinned_badge.test.js`, 7 in `add_house.test.js`, 5 in `delete_house.test.js`, 5 in `house_profile.test.js`, 4 in `unified_header.test.js`, 3 in `tab_labels.test.js`, 5 in `export_archive_modal.test.js`, 16 in `batch_operations.test.js`, and 8 in `folder_select_checkbox.test.js`).
+  - 176 Frontend Vitest tests across 19 files (`npm run test:frontend`, including 6 in `doc_viewer.test.js`, 6 in `house_settings_modal.test.js`, 3 in `timeline_pinned_badge.test.js`, 7 in `add_house.test.js`, 5 in `delete_house.test.js`, 5 in `house_profile.test.js`, 4 in `unified_header.test.js`, 3 in `tab_labels.test.js`, 5 in `export_archive_modal.test.js`, 16 in `batch_operations.test.js`, and 8 in `folder_select_checkbox.test.js`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/`, `web-net/wwwroot/`, and `dist/win-x64/wwwroot/`.
 

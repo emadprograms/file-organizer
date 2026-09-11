@@ -1279,6 +1279,10 @@
                         };
                     }
 
+                    if (!doc.category) {
+                        doc.category = cat.name;
+                    }
+
                     // Zero-click Live Peek in the right panel on hover (250ms debounce)
                     if (typeof window !== 'undefined' && typeof window.attachPreview === 'function') {
                         window.attachPreview(docEl, doc.vault_id, title, doc);
@@ -1326,9 +1330,9 @@
                             window.setSelectedDoc(doc, currentTitle, docEl);
                         }
                         if (typeof openDocument === 'function') {
-                            openDocument(doc.vault_id, currentTitle);
+                            openDocument(doc.vault_id, currentTitle, doc.category || cat.name);
                         } else if (typeof window !== 'undefined' && typeof window.openDocument === 'function') {
-                            window.openDocument(doc.vault_id, currentTitle);
+                            window.openDocument(doc.vault_id, currentTitle, doc.category || cat.name);
                         }
                     };
                     docsContainer.appendChild(docEl);

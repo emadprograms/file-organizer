@@ -277,9 +277,9 @@ describe('Double-Click Inline Document Renaming (QCK-05)', () => {
         // Verify openDocument was still not called during renaming
         expect(global.openDocument).not.toHaveBeenCalled();
 
-        // Now clicking the card directly opens document with the new title
+        // Now clicking the card directly opens document with the new title and category
         const card = docList.querySelector('[data-vault-id="doc_time_1"]');
         card.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-        expect(global.openDocument).toHaveBeenCalledWith('doc_time_1', 'إشعار صيانة دورية 2026');
+        expect(global.openDocument).toHaveBeenCalledWith('doc_time_1', 'إشعار صيانة دورية 2026', '10 - صيانة');
     });
 });
