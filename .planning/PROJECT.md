@@ -6,7 +6,7 @@ A document management system that processes scanned Arabic PDFs, categorizes the
 
 ## Current Milestone: None (v14.0 Completed & Shipped)
 
-Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive multi-stack test coverage (84 xUnit including 32 in `ArabicReshaperTests.cs`, 17 v14 pytest, 13 doc management pytest, 113 Vitest across 10 files, and 49 Playwright E2E), and power-user operational tooling. Ready for next milestone initialization.
+Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive multi-stack test coverage (84 xUnit including 32 in `ArabicReshaperTests.cs`, 17 v14 pytest, 13 doc management pytest, 126 Vitest across 11 files, and 49 Playwright E2E), and power-user operational tooling. Ready for next milestone initialization.
 
 ## Past Milestones
 
@@ -61,11 +61,16 @@ Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shi
   - Cleaned confirm button labels to `Move Documents` and `Copy Documents`.
   - Added dynamic tenant dropdown population (`populateBatchTenantSelect`) with active lease indicators (`🟢 ` vs `👤 `) and lease years, with graceful fallback to distinct tenants in `currentCategories`.
   - Added full dual-stack backend support for `target_tenant_id: Optional[int]` in both FastAPI and ASP.NET Core 8.0, allowing cross-tenant or same-tenant batch moves and copies.
+- **Document 3-Dots Dropdown Action Menu & Folders Date Badge (Quick Refinement QCK-09):**
+  - Replaced the large Document Action Modal (`#doc-action-modal`) when clicking the 3-dots button with an ergonomic floating context menu anchored to the trigger button (`.doc-dropdown-menu`).
+  - Provided 5 direct action buttons: Rename Document (triggers inline rename), Move Document (`openBatchMoveForDoc`), Copy Document (`openBatchCopyForDoc`), Show in Timeline, and Delete Document (`handleDeleteSingleDoc`).
+  - Added Show in Timeline navigation: switches to timeline view tab, clears conflicting tenant filters, smoothly scrolls target card to center viewport, pulses blue highlight (`ring-4 ring-blue-500 bg-blue-50`), and selects the document.
+  - Added an always-visible document date badge with light gray background (`doc-date-badge bg-slate-100 text-slate-500 font-mono text-[10px]`) in the Folders / Categories section immediately preceding the 3-dots button.
 - **Comprehensive Multi-Stack Test Coverage & Verification:**
   - 84 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
   - 17 Python v14 pytest tests (`tests/test_v14_features.py`).
   - 13 Python document management tests (`tests/test_document_management_api.py`).
-  - 113 Frontend Vitest tests across 10 files (`npm run test:frontend`).
+  - 126 Frontend Vitest tests across 11 files (`npm run test:frontend`, including 13 in `doc_dropdown_and_date.test.js`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
 
