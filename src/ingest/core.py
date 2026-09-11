@@ -161,7 +161,17 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
             if master_state.state_file.exists():
                 master_state.load()
             
-            is_prepend_mode = bool(master_state.data.get("cleaned_pages"))
+            existing_sources = {
+                doc.get("source_pdf")
+                for doc in (master_state.data.get("grouped_documents") or [])
+                if doc.get("source_pdf")
+            }
+            # Prepend mode only applies when an existing house manifest already exists
+            # and we are ingesting a different/new PDF (e.g. an addition).
+            is_prepend_mode = bool(
+                master_state.data.get("manifest")
+                and (not existing_sources or pdf_path.name not in existing_sources)
+            )
             
             state = State(house_number, state_dir)
             if state.state_file.exists():
@@ -305,11 +315,11 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
                         d_dict["relative_end_page"] = d_dict["end_page"]
                         new_grouped.append(d_dict)
                         
-                    for doc_dict in master_state.data.get("grouped_documents", []):
+                    for doc_dict in (master_state.data.get("grouped_documents") or []):
                         if "start_page" in doc_dict: doc_dict["start_page"] += shift_amount
                         if "end_page" in doc_dict: doc_dict["end_page"] += shift_amount
                             
-                    master_routed = master_state.data.get("routed_documents", [])
+                    master_routed = master_state.data.get("routed_documents") or []
                     if isinstance(master_routed, list):
                         for route in master_routed:
                             if "start_page" in route: route["start_page"] += shift_amount
@@ -320,27 +330,27 @@ def run_ingest_mode(args: Any, config: AppConfig, llm_client: Any) -> int:
                         master_manifest = master_state.data.get("routed_documents")
                         
                     if master_manifest and isinstance(master_manifest, dict):
-                        for page_route in master_manifest.get("per_page", []):
+                        for page_route in (master_manifest.get("per_page") or []):
                             if "page_index" in page_route: page_route["page_index"] += shift_amount
                             
-                    for page in master_state.data.get("cleaned_pages", []):
+                    for page in (master_state.data.get("cleaned_pages") or []):
                         if "original_index" in page: page["original_index"] += shift_amount
-                    for page in master_state.data.get("fine_categorized_pages", []):
+                    for page in (master_state.data.get("fine_categorized_pages") or []):
                         if "original_index" in page: page["original_index"] += shift_amount
                             
-                    master_state.data["cleaned_pages"] = state.data.get("cleaned_pages", []) + master_state.data.get("cleaned_pages", [])
-                    master_state.data["fine_categorized_pages"] = state.data.get("fine_categorized_pages", []) + master_state.data.get("fine_categorized_pages", [])
-                    master_state.data["grouped_documents"] = new_grouped + master_state.data.get("grouped_documents", [])
+                    master_state.data["cleaned_pages"] = (state.data.get("cleaned_pages") or []) + (master_state.data.get("cleaned_pages") or [])
+                    master_state.data["fine_categorized_pages"] = (state.data.get("fine_categorized_pages") or []) + (master_state.data.get("fine_categorized_pages") or [])
+                    master_state.data["grouped_documents"] = new_grouped + (master_state.data.get("grouped_documents") or [])
                     
                     if isinstance(master_routed, list):
-                        master_state.data["routed_documents"] = state.data["routed_documents"] + master_routed
+                        master_state.data["routed_documents"] = (state.data.get("routed_documents") or []) + master_routed
                     else:
                         # Fallback for legacy states where routed_documents was mistakenly a dict
                         # grouped_documents corresponds structurally to routed_documents
-                        master_state.data["routed_documents"] = state.data["routed_documents"] + master_state.data.get("grouped_documents", [])
+                        master_state.data["routed_documents"] = (state.data.get("routed_documents") or []) + (master_state.data.get("grouped_documents") or [])
                         
                     if master_manifest and isinstance(master_manifest, dict):
-                        master_manifest["per_page"] = state.data["manifest"]["per_page"] + master_manifest.get("per_page", [])
+                        master_manifest["per_page"] = (state.data.get("manifest") or {}).get("per_page", []) + (master_manifest.get("per_page") or [])
                         if "summary" not in master_manifest:
                             master_manifest["summary"] = {"total_output_pages": 0, "output_file_count": 0, "total_input_pages": 0}
                         master_manifest["summary"]["total_output_pages"] = master_manifest["summary"].get("total_output_pages", 0) + state.data["manifest"]["summary"]["total_output_pages"]

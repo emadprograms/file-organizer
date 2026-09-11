@@ -7,7 +7,7 @@ import io
 # Force UTF-8 for Windows stdout
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-AREA_DIR = r"D:\Areas\Safra C"
+AREA_DIR = r"D:\Areas\Um Al Hassam"
 ENV_PATH = r"C:\Users\Emad\Documents\GitHub\file-organizer\.env"
 
 def load_keys():
@@ -72,11 +72,33 @@ def run_pipeline():
         raw_house_path = os.path.join(AREA_DIR, house)
         
         while True:
-            print(f"Running ingest for {house}...")
+            target_path = raw_house_path
+            if not os.path.exists(target_path):
+                renamed_candidates = glob.glob(os.path.join(AREA_DIR, f"{house} - *"))
+                if renamed_candidates:
+                    target_path = renamed_candidates[0]
+                else:
+                    print(f"ERROR: Neither {raw_house_path} nor any renamed folder exists for {house}!")
+                    break
+
+            # Check if ingest was already completed (state has manifest)
+            state_file = os.path.join(target_path, ".source_files", f"{house}_state.json")
+            if os.path.exists(state_file):
+                try:
+                    import json
+                    with open(state_file, "r", encoding="utf-8") as sf:
+                        sdata = json.load(sf)
+                        if sdata.get("manifest") is not None:
+                            print(f"Ingest already complete for {house} (manifest found in state). Proceeding to reconcile...")
+                            break
+                except Exception:
+                    pass
+
+            print(f"Running ingest for {house} at {target_path}...")
             # Use utf-8 encoding for subprocess environment
             env = os.environ.copy()
             env["PYTHONIOENCODING"] = "utf-8"
-            result = subprocess.run([sys.executable, "src/main.py", "ingest", raw_house_path], cwd=r"C:\Users\Emad\Documents\GitHub\file-organizer", env=env)
+            result = subprocess.run([sys.executable, "src/main.py", "ingest", target_path], cwd=r"C:\Users\Emad\Documents\GitHub\file-organizer", env=env)
             
             if result.returncode == 0:
                 break

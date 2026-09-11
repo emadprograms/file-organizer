@@ -22,6 +22,7 @@ env/
 .tox/
 logs/
 *.log
+batch_log.txt
 
 # Build and distributions
 build/
@@ -59,7 +60,8 @@ planner_skills.txt
 tests/golden_data/
 tests/temp_*/
 tests/reconciliation_sandbox/
-
 # .NET Build Outputs
 **/bin/
 **/obj/
+
+test1/
