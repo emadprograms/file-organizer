@@ -147,6 +147,80 @@
         }
     }
 
+    async function populateBatchTenantSelect(selectId) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        select.innerHTML = '';
+        const defaultOpt = document.createElement('option');
+        defaultOpt.value = '';
+        defaultOpt.textContent = '🏛️ المستأجر الحالي للوثيقة • Same Tenant';
+        select.appendChild(defaultOpt);
+
+        const activeArea = (typeof currentArea !== 'undefined' ? currentArea : (typeof window !== 'undefined' ? window.currentArea : '')) || '';
+        const activeHouse = (typeof currentHouse !== 'undefined' ? currentHouse : (typeof window !== 'undefined' ? window.currentHouse : '')) || '';
+        const isStatic = (typeof isStaticMode !== 'undefined' && isStaticMode) || (typeof window !== 'undefined' && window.isStaticMode);
+
+        const appendTenantOption = (t) => {
+            if (!t || t.id == null) return;
+            const opt = document.createElement('option');
+            opt.value = String(t.id);
+            const isActive = t.is_active != null 
+                ? Boolean(t.is_active) 
+                : (!t.end_date || String(t.end_date).toLowerCase() === 'present' || String(t.end_date).toLowerCase() === 'none' || t.end_date === '');
+            const year = t.start_date ? ` (${String(t.start_date).substring(0, 4)})` : '';
+            opt.textContent = `${isActive ? '🟢 ' : '👤 '}${t.name}${year}`;
+            select.appendChild(opt);
+        };
+
+        const fallbackFromCategories = () => {
+            const activeCats = (typeof currentCategories !== 'undefined' ? currentCategories : (typeof window !== 'undefined' ? window.currentCategories : [])) || [];
+            const seen = new Set();
+            const fallbackTenants = [];
+
+            activeCats.forEach(cat => {
+                const tenantName = cat.tenant || '';
+                let tenantId = null;
+                if (cat.documents && Array.isArray(cat.documents)) {
+                    for (const doc of cat.documents) {
+                        if (doc.tenant_id != null) {
+                            tenantId = doc.tenant_id;
+                            break;
+                        }
+                    }
+                }
+                if (tenantName && !seen.has(tenantName)) {
+                    seen.add(tenantName);
+                    fallbackTenants.push({
+                        id: tenantId != null ? tenantId : (fallbackTenants.length + 1),
+                        name: tenantName,
+                        is_active: false
+                    });
+                }
+            });
+
+            fallbackTenants.forEach(t => appendTenantOption(t));
+        };
+
+        if (isStatic || !activeArea || !activeHouse) {
+            fallbackFromCategories();
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/areas/${encodeURIComponent(activeArea)}/houses/${encodeURIComponent(activeHouse)}/tenants`);
+            if (!res.ok) throw new Error('Failed to load tenants');
+            const tenants = await res.json();
+            if (Array.isArray(tenants) && tenants.length > 0) {
+                tenants.forEach(t => appendTenantOption(t));
+            } else {
+                fallbackFromCategories();
+            }
+        } catch (err) {
+            fallbackFromCategories();
+        }
+    }
+
     function openBatchMoveModal() {
         if (selectedDocIds.size === 0) return;
         const modal = document.getElementById('batch-move-modal');
@@ -156,6 +230,8 @@
         const customInput = document.getElementById('batch-move-custom-folder-input');
 
         if (!modal || !select) return;
+
+        populateBatchTenantSelect('batch-move-tenant-select');
 
         if (subtitle) {
             subtitle.textContent = `Move ${selectedDocIds.size} ${selectedDocIds.size === 1 ? 'document' : 'documents'} to a target category folder.`;
@@ -247,13 +323,21 @@
         if (spinner) spinner.classList.remove('hidden');
 
         try {
+            const tenantSelect = document.getElementById('batch-move-tenant-select');
+            const targetTenantVal = tenantSelect ? tenantSelect.value : '';
+
+            const movePayload = {
+                vault_ids: Array.from(selectedDocIds),
+                target_category: targetCat
+            };
+            if (targetTenantVal) {
+                movePayload.target_tenant_id = parseInt(targetTenantVal, 10);
+            }
+
             const res = await fetch(`/api/areas/${encodeURIComponent(activeArea)}/houses/${encodeURIComponent(activeHouse)}/documents/batch-move`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    vault_ids: Array.from(selectedDocIds),
-                    target_category: targetCat
-                })
+                body: JSON.stringify(movePayload)
             });
 
             if (!res.ok) {
@@ -291,6 +375,8 @@
         const customInput = document.getElementById('batch-copy-custom-folder-input');
 
         if (!modal || !select) return;
+
+        populateBatchTenantSelect('batch-copy-tenant-select');
 
         if (subtitle) {
             subtitle.textContent = `Copy ${selectedDocIds.size} ${selectedDocIds.size === 1 ? 'document' : 'documents'} to a target category folder.`;
@@ -382,13 +468,21 @@
         if (spinner) spinner.classList.remove('hidden');
 
         try {
+            const tenantSelect = document.getElementById('batch-copy-tenant-select');
+            const targetTenantVal = tenantSelect ? tenantSelect.value : '';
+
+            const copyPayload = {
+                vault_ids: Array.from(selectedDocIds),
+                target_category: targetCat
+            };
+            if (targetTenantVal) {
+                copyPayload.target_tenant_id = parseInt(targetTenantVal, 10);
+            }
+
             const res = await fetch(`/api/areas/${encodeURIComponent(activeArea)}/houses/${encodeURIComponent(activeHouse)}/documents/batch-copy`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    vault_ids: Array.from(selectedDocIds),
-                    target_category: targetCat
-                })
+                body: JSON.stringify(copyPayload)
             });
 
             if (!res.ok) {
@@ -608,7 +702,8 @@
         }
 
         const originalTitle = doc.brief_arabic_title || doc.filename || titleEl.textContent.trim() || 'Document';
-        titleEl.innerHTML = `<input type="text" class="inline-rename-input px-1.5 py-0.5 text-xs font-normal border border-blue-400 rounded bg-white text-slate-800 focus:outline-hidden focus:ring-1 focus:ring-blue-500 w-full" value="${escapeHtml(originalTitle)}" />`;
+        titleEl.classList.remove('truncate');
+        titleEl.innerHTML = `<input type="text" dir="auto" class="inline-rename-input px-3 py-1.5 text-sm font-medium border-2 border-blue-500 rounded-lg bg-white text-slate-900 shadow-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 w-full min-w-0" value="${escapeHtml(originalTitle)}" />`;
 
         const input = titleEl.querySelector('.inline-rename-input');
         if (!input) return;
@@ -635,6 +730,7 @@
         let committed = false;
 
         const restoreOriginal = () => {
+            titleEl.classList.add('truncate');
             titleEl.textContent = originalTitle;
             titleEl.title = 'Double-click to rename';
         };
@@ -675,6 +771,7 @@
 
                 doc.brief_arabic_title = newTitle;
                 doc.filename = newTitle;
+                titleEl.classList.add('truncate');
                 titleEl.textContent = newTitle;
                 titleEl.title = 'Double-click to rename';
 
@@ -888,7 +985,7 @@
                             <span class="doc-icon-preview p-0.5 rounded text-blue-500 hover:text-blue-700 hover:bg-blue-100 cursor-pointer flex-shrink-0 transition-colors" title="Document Details & Notes (Spacebar)">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             </span>
-                            <span class="truncate ${hasNotes ? 'text-amber-950 font-semibold' : 'text-slate-800'} doc-title-text cursor-text" title="Double-click to rename">${escapeHtml(title)}</span>
+                            <span class="truncate flex-1 min-w-0 ${hasNotes ? 'text-amber-950 font-semibold' : 'text-slate-800'} doc-title-text cursor-text" title="Double-click to rename">${escapeHtml(title)}</span>
                             ${lockIcon}
                             ${noteBadge}
                         </div>

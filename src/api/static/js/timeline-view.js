@@ -75,7 +75,8 @@
         }
 
         const originalTitle = doc.brief_arabic_title || doc.filename || titleEl.textContent.trim() || 'Untitled Document';
-        titleEl.innerHTML = `<input type="text" class="inline-rename-input px-1.5 py-0.5 text-xs font-normal border border-blue-400 rounded bg-white text-slate-800 focus:outline-hidden focus:ring-1 focus:ring-blue-500 w-full" value="${escapeHtml(originalTitle)}" />`;
+        titleEl.classList.remove('line-clamp-2');
+        titleEl.innerHTML = `<input type="text" dir="auto" class="inline-rename-input px-3 py-1.5 text-sm font-medium border-2 border-blue-500 rounded-lg bg-white text-slate-900 shadow-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 w-full min-w-0" value="${escapeHtml(originalTitle)}" />`;
 
         const input = titleEl.querySelector('.inline-rename-input');
         if (!input) return;
@@ -102,6 +103,7 @@
         let committed = false;
 
         const restoreOriginal = () => {
+            titleEl.classList.add('line-clamp-2');
             titleEl.textContent = originalTitle;
             titleEl.title = 'Double-click to rename';
         };
@@ -142,6 +144,7 @@
 
                 doc.brief_arabic_title = newTitle;
                 doc.filename = newTitle;
+                titleEl.classList.add('line-clamp-2');
                 titleEl.textContent = newTitle;
                 titleEl.title = 'Double-click to rename';
 
@@ -224,7 +227,7 @@
                         <span class="doc-icon-preview p-0.5 rounded text-blue-500 hover:text-blue-700 hover:bg-blue-100 cursor-pointer flex-shrink-0 mt-0.5 transition-colors" title="Document Details & Notes (Spacebar)">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                         </span>
-                        <h4 class="text-xs font-semibold ${hasNotes ? 'text-amber-950' : 'text-slate-800'} group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug doc-title-text cursor-text" title="Double-click to rename">${escapeHtml(title)}</h4>
+                        <h4 class="text-xs font-semibold flex-1 min-w-0 ${hasNotes ? 'text-amber-950' : 'text-slate-800'} group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug doc-title-text cursor-text" title="Double-click to rename">${escapeHtml(title)}</h4>
                     </div>
                     <div class="flex items-center gap-1 flex-shrink-0">
                         ${noteBadgeHtml}

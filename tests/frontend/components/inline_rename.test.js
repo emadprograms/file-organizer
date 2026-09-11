@@ -80,6 +80,9 @@ describe('Double-Click Inline Document Renaming (QCK-05)', () => {
         expect(titleSpan).not.toBeNull();
         expect(titleSpan.textContent).toBe('عقد إيجار شقة');
         expect(titleSpan.title).toBe('Double-click to rename');
+        expect(titleSpan.classList.contains('flex-1')).toBe(true);
+        expect(titleSpan.classList.contains('min-w-0')).toBe(true);
+        expect(titleSpan.classList.contains('truncate')).toBe(true);
 
         titleSpan.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
 
@@ -87,6 +90,12 @@ describe('Double-Click Inline Document Renaming (QCK-05)', () => {
         expect(input).not.toBeNull();
         expect(input.value).toBe('عقد إيجار شقة');
         expect(input.classList.contains('inline-rename-input')).toBe(true);
+        expect(input.classList.contains('text-sm')).toBe(true);
+        expect(input.classList.contains('px-3')).toBe(true);
+        expect(input.classList.contains('py-1.5')).toBe(true);
+        expect(input.getAttribute('dir')).toBe('auto');
+        // Truncate removed during editing so input is not clipped
+        expect(titleSpan.classList.contains('truncate')).toBe(false);
     });
 
     it('commits rename on Enter key, calls PATCH endpoint, updates in-memory doc, updates DOM, and shows success toast', async () => {
@@ -222,12 +231,21 @@ describe('Double-Click Inline Document Renaming (QCK-05)', () => {
         const titleH4 = docList.querySelector('.doc-title-text');
         expect(titleH4).not.toBeNull();
         expect(titleH4.textContent).toBe('إشعار صيانة قديم');
+        expect(titleH4.classList.contains('flex-1')).toBe(true);
+        expect(titleH4.classList.contains('min-w-0')).toBe(true);
+        expect(titleH4.classList.contains('line-clamp-2')).toBe(true);
 
         // Double-click transforms <h4>
         titleH4.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
         const input = titleH4.querySelector('.inline-rename-input');
         expect(input).not.toBeNull();
         expect(input.value).toBe('إشعار صيانة قديم');
+        expect(input.classList.contains('text-sm')).toBe(true);
+        expect(input.classList.contains('px-3')).toBe(true);
+        expect(input.classList.contains('py-1.5')).toBe(true);
+        expect(input.getAttribute('dir')).toBe('auto');
+        // line-clamp-2 removed during editing so input is not distorted
+        expect(titleH4.classList.contains('line-clamp-2')).toBe(false);
 
         // Clicking inside input should stop propagation and NOT trigger card.onclick
         input.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
@@ -245,6 +263,7 @@ describe('Double-Click Inline Document Renaming (QCK-05)', () => {
         expect(JSON.parse(options.body)).toEqual({ arabic_title: 'إشعار صيانة دورية 2026' });
 
         expect(titleH4.textContent).toBe('إشعار صيانة دورية 2026');
+        expect(titleH4.classList.contains('line-clamp-2')).toBe(true);
         expect(global.currentTimeline[0].brief_arabic_title).toBe('إشعار صيانة دورية 2026');
         expect(global.showToast).toHaveBeenCalledWith('Document renamed successfully.');
 

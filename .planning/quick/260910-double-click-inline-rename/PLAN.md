@@ -20,21 +20,22 @@ Prior to this feature, renaming a document required opening the 3-dots action me
 ## 2. Technical Objectives
 
 1. **Categories View Component (`src/api/static/js/categories-view.js`)**:
-   - Update document title span in `renderCategories` with class `doc-title-text cursor-text` and tooltip `title="Double-click to rename"`.
+   - Update document title span in `renderCategories` with class `doc-title-text cursor-text flex-1 min-w-0` and tooltip `title="Double-click to rename"`.
    - Attach `ondblclick` event handler:
      - Stop event propagation and prevent default browser text selection.
-     - Swap title contents with an inline `<input type="text" class="inline-rename-input ...">` pre-filled with the current title.
+     - Dynamically un-clamp by removing `truncate` during active editing.
+     - Swap title contents with a prominent, comfortable inline `<input type="text" dir="auto" class="inline-rename-input px-3 py-1.5 text-sm font-medium border-2 border-blue-500 rounded-lg bg-white text-slate-900 shadow-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 w-full min-w-0">` pre-filled with the current title.
      - Isolate `click`, `dblclick`, `mousedown`, and `dragstart` on the input to prevent card selection or card dragging.
      - Automatically focus and select all text in the input.
      - On `Enter` or `blur`: commit title change if non-empty and changed.
-     - On `Escape`: cancel edit and restore original title without sending network requests.
-     - On commit: call `PATCH /api/areas/{area}/houses/{house}/documents/{vault_id}` with `{ "arabic_title": newTitle }`, update in-memory doc (`brief_arabic_title` and `filename`), update DOM text and tooltip, and display success toast feedback.
-     - On error: display error toast and revert to original title.
+     - On `Escape`: cancel edit, restore `truncate`, and restore original title without sending network requests.
+     - On commit: call `PATCH /api/areas/{area}/houses/{house}/documents/{vault_id}` with `{ "arabic_title": newTitle }`, update in-memory doc (`brief_arabic_title` and `filename`), restore `truncate`, update DOM text and tooltip, and display success toast feedback.
+     - On error: display error toast, restore `truncate`, and revert to original title.
      - If empty or unchanged: revert to original title without sending network requests.
 
 2. **Timeline View Component (`src/api/static/js/timeline-view.js`)**:
-   - Update document card title `<h4>` in `renderTimeline` with class `doc-title-text cursor-text` and tooltip `title="Double-click to rename"`.
-   - Attach `ondblclick` event handler with identical inline editing, keyboard shortcuts (`Enter`/`Escape`/`blur`), event isolation (preventing `card.onclick` from opening the document during rename), and PATCH backend integration.
+   - Update document card title `<h4>` in `renderTimeline` with class `doc-title-text cursor-text flex-1 min-w-0` and tooltip `title="Double-click to rename"`.
+   - Attach `ondblclick` event handler with identical inline editing, dynamic removal of `line-clamp-2` during edit, keyboard shortcuts (`Enter`/`Escape`/`blur`), event isolation (preventing `card.onclick` from opening the document during rename), and PATCH backend integration.
 
 3. **Dual-Backend Parity & ASP.NET Core Static Asset Sync (`web-net/wwwroot/`)**:
    - Execute `~/.dotnet/dotnet build web-net/FileOrganizer.Web.csproj` to copy updated static JS assets to `web-net/wwwroot/`.

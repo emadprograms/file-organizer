@@ -19,6 +19,8 @@
   - Maintained full backward compatibility for `#btn-export-house-zip` and synchronized static assets across Python and ASP.NET Core with 0 diff.
 - **Double-Click Inline Document Renaming (Quick Refinement QCK-05):**
   - Instant inline document title renaming triggered by double-clicking the title text in both Categories view folder lists (`span.doc-title-text`) and Timeline view (`h4.doc-title-text`).
+  - Prominent, comfortable input field (`text-sm font-medium`, `px-3 py-1.5`, ~34px height, `border-2 border-blue-500 rounded-lg shadow-sm`) with `dir="auto"` for bidirectional Arabic/English alignment.
+  - Full-width row expansion (`flex-1 min-w-0` on container spans and headings) preventing input collapse on short filenames, with automatic removal of `truncate` / `line-clamp-2` during active editing.
   - Full keyboard shortcuts (`Enter` to commit, `Escape` to cancel and revert without network traffic, `blur` to commit or revert).
   - Event propagation isolation preventing card click opening or card drag conflicts.
   - Direct integration with `PATCH /api/areas/{area}/houses/{house}/documents/{vault_id}` with in-memory document state update, DOM refresh, and toast notifications.

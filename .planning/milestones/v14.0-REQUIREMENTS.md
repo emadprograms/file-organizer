@@ -46,6 +46,9 @@ Equip the digital archive management system with power-user operational tools: o
 - [x] **KBD-01**: Global Keyboard Shortcuts Helper Modal (`?`). Pressing `?` (Shift+/) opens a clean modal listing all available keyboard shortcuts (`⌘K` Search, `⌘I` Ingest, `Space` Quick Look, `Esc` Close, `?` Shortcuts). Includes a subtle navbar trigger button (`#btn-shortcuts-trigger`), backdrop dismissal, and input/textarea typing suppression guards.
 - [x] **QCK-05**: Double-Click Inline Document Renaming in Categories and Timeline views:
   - Double-clicking document title text in either Categories folder list (`span.doc-title-text`) or Timeline view (`h4.doc-title-text`) transforms title into an inline text input pre-filled with the original title.
+  - Generously sized input field (`text-sm font-medium`, `px-3 py-1.5`, ~34px height, `border-2 border-blue-500 rounded-lg shadow-sm`) with `dir="auto"` for bidirectional Arabic/English text alignment.
+  - Title container spans and headings equipped with `flex-1 min-w-0`, allowing the rename input to expand across the full available row width rather than collapsing to short title lengths.
+  - Display constraints (`truncate` in Categories view, `line-clamp-2` in Timeline view) dynamically unclasped during active editing to prevent input clipping/distortion and restored upon commit or cancellation.
   - Event isolation on input (`click`, `dblclick`, `mousedown`, `dragstart`, `keydown`) prevents accidental card selection, card-click open trigger, or dragging while editing.
   - Keyboard shortcuts & blur: `Enter` to commit, `Escape` to cancel and revert without network request, and `blur` to commit or revert.
   - Submits `PATCH /api/areas/{area}/houses/{house}/documents/{vault_id}` with `{ "arabic_title": newTitle }`, updates in-memory document state, updates DOM, and provides success/error toast notifications.

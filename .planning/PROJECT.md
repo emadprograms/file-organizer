@@ -43,6 +43,8 @@ Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shi
   - Strict input/textarea typing suppression guards and backdrop/Escape dismissal.
 - **Double-Click Inline Document Renaming (Quick Refinement QCK-05):**
   - Instant inline document title renaming triggered by double-clicking the title text in both Categories view folder lists and the chronological Timeline view.
+  - Prominent, comfortable input styling (`text-sm font-medium`, `px-3 py-1.5`, ~34px height, `border-2 border-blue-500 rounded-lg shadow-sm`) with `dir="auto"` for bidirectional Arabic/English alignment.
+  - Full-width row expansion (`flex-1 min-w-0` on container spans and headings) preventing input collapse on short filenames, with automatic removal of `truncate` / `line-clamp-2` during active editing.
   - Keyboard shortcuts and accessibility: `Enter` to commit changes, `Escape` to cancel and revert without network traffic, and `blur` to save or restore.
   - Event isolation: stops event propagation on `click`, `dblclick`, `mousedown`, `dragstart`, and keyboard events to prevent accidental parent card selection, card click opening, or drag-and-drop triggering while typing.
   - Dual-backend integration: calls `PATCH /api/areas/{area}/houses/{house}/documents/{vault_id}` with `{ "arabic_title": newTitle }`, updating in-memory document state (`brief_arabic_title`, `filename`), DOM text, and providing toast notifications on success/error.

@@ -10,25 +10,28 @@
 ## 1. Summary of Changes
 
 ### Categories View (`src/api/static/js/categories-view.js`)
-- Added class `doc-title-text cursor-text` and `title="Double-click to rename"` to the document title `<span>` rendered in category folder lists.
+- Added class `doc-title-text cursor-text flex-1 min-w-0` and `title="Double-click to rename"` to the document title `<span>` rendered in category folder lists.
 - Attached `ondblclick` event listener invoking `handleInlineRename(e, doc, titleSpan, currentArea, currentHouse)`.
 - Implemented `handleInlineRename`:
   - Isolates events with `e.stopPropagation()` and `e.preventDefault()`.
-  - Swaps span text with `<input type="text" class="inline-rename-input px-1.5 py-0.5 text-xs font-normal border border-blue-400 rounded bg-white text-slate-800 focus:outline-hidden focus:ring-1 focus:ring-blue-500 w-full" value="...">`.
+  - Dynamically removes `truncate` from `titleSpan` so the input focus ring and padding are never clipped.
+  - Swaps span text with `<input type="text" dir="auto" class="inline-rename-input px-3 py-1.5 text-sm font-medium border-2 border-blue-500 rounded-lg bg-white text-slate-900 shadow-sm focus:outline-hidden focus:ring-2 focus:ring-blue-500/30 w-full min-w-0" value="...">` (prominent ~34px height, 14px font, bidirectional alignment, full row width).
   - Stops propagation on `click`, `dblclick`, `mousedown`, and `dragstart` on the input element to prevent parent card selection or dragging.
   - Automatically focuses and selects all input text.
-  - Handles `Enter` key (commits rename), `Escape` key (cancels rename and reverts title without fetch), and `blur` (commits rename).
+  - Handles `Enter` key (commits rename), `Escape` key (cancels rename, restores `truncate`, and reverts title without fetch), and `blur` (commits rename).
   - State tracking prevents duplicate commit executions between Enter and subsequent blur.
   - Submits `PATCH /api/areas/{area}/houses/{house}/documents/{vault_id}` with `{ "arabic_title": newTitle }`.
-  - On HTTP success: updates in-memory `doc.brief_arabic_title` and `doc.filename`, updates DOM text content and tooltip, and triggers `showToast('Document renamed successfully.')`.
-  - On HTTP failure: displays error toast and reverts to original title.
+  - On HTTP success: updates in-memory `doc.brief_arabic_title` and `doc.filename`, restores `truncate` on `titleSpan`, updates DOM text content and tooltip, and triggers `showToast('Document renamed successfully.')`.
+  - On HTTP failure: displays error toast, restores `truncate`, and reverts to original title.
   - If new title is empty/whitespace or unchanged: reverts without sending network requests.
 - Updated `docEl.onclick` to dynamically use `doc.brief_arabic_title || doc.filename || title` so subsequent clicks immediately open the document with its updated title.
 - Exported `handleInlineRename` to `window` and `module.exports`.
 
 ### Timeline View (`src/api/static/js/timeline-view.js`)
-- Added class `doc-title-text cursor-text` and `title="Double-click to rename"` to the document card title `<h4>` in `renderTimeline`.
+- Added class `doc-title-text cursor-text flex-1 min-w-0` and `title="Double-click to rename"` to the document card title `<h4>` in `renderTimeline`.
 - Attached `ondblclick` event listener on `titleH4` invoking `handleInlineRename`.
+- Temporarily removes `line-clamp-2` during inline editing so `-webkit-box` display doesn't distort or compress the input element, restoring it upon commit or cancellation.
+- Uses identical enlarged input styling with `dir="auto"`, `text-sm font-medium`, and `px-3 py-1.5`.
 - Input event handlers prevent bubbling to `card.onclick` so clicking inside the input or typing does not trigger `openDocument`.
 - Updated `card.onclick` to use `doc.brief_arabic_title || doc.filename || title`.
 - Updated `renderTimeline(data)` to accept optional data parameter for flexible programmatic rendering and testing.
@@ -52,7 +55,7 @@ Created 7 comprehensive unit tests in `inline_rename.test.js`:
 6. `handles HTTP error gracefully by showing error toast and reverting to original title` — **PASSED**
 7. `double-clicking in Timeline View transforms title, isolates event propagation from card click, and commits on Enter` — **PASSED**
 
-All 10 frontend test files passed: **108 passed out of 108 tests** in 1.55s.
+All 10 frontend test files passed: **109 passed out of 109 tests** in 1.55s.
 
 ### Backend Python Pytest Suite
 - Ran `.venv/bin/pytest tests/test_v14_features.py tests/test_document_management_api.py -v`:
