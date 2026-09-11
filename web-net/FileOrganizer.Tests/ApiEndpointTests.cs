@@ -1013,6 +1013,44 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
         Assert.NotEmpty(pdf1Bytes);
         Assert.StartsWith("%PDF", System.Text.Encoding.ASCII.GetString(pdf1Bytes[..4]));
     }
+
+    [Fact]
+    public async Task DeleteHouse_CascadeDeletesRecordsAndDirectory_ReturnsOk()
+    {
+        await _fixture.SeedDataAsync();
+
+        // 1. Create a house with a tenant and scaffolding
+        var houseId = $"HouseDel_{Guid.NewGuid():N}";
+        var createRes = await _client.PostAsJsonAsync("/api/areas/Safra%20C/houses", new CreateHouseRequestDto
+        {
+            HouseId = houseId,
+            InitialTenantName = "Tenant To Remove",
+            StartDate = "2025-01-01"
+        });
+        Assert.Equal(HttpStatusCode.OK, createRes.StatusCode);
+
+        // Verify directory was created
+        var houseDir = Path.Combine(_fixture.AreasRoot, "Safra C", houseId);
+        Assert.True(Directory.Exists(houseDir));
+
+        // 2. Delete the house via DELETE /api/areas/{areaId}/houses/{houseId}
+        var deleteRes = await _client.DeleteAsync($"/api/areas/Safra%20C/houses/{houseId}");
+        Assert.Equal(HttpStatusCode.OK, deleteRes.StatusCode);
+
+        // 3. Verify directory was removed
+        Assert.False(Directory.Exists(houseDir));
+
+        // 4. Verify house no longer exists in DB
+        var housesRes = await _client.GetAsync("/api/houses?areaId=Safra%20C");
+        Assert.Equal(HttpStatusCode.OK, housesRes.StatusCode);
+        var houses = await housesRes.Content.ReadFromJsonAsync<List<HouseCardDto>>();
+        Assert.NotNull(houses);
+        Assert.DoesNotContain(houses, h => h.Id == houseId);
+
+        // 5. Deleting again returns 404
+        var secondDeleteRes = await _client.DeleteAsync($"/api/areas/Safra%20C/houses/{houseId}");
+        Assert.Equal(HttpStatusCode.NotFound, secondDeleteRes.StatusCode);
+    }
 }
 
 

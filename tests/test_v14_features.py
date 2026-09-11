@@ -834,5 +834,35 @@ def test_batch_copy_with_target_tenant(test_setup):
     assert copied_doc_2.tenant_id == t1.id
 
 
+def test_delete_house_endpoint(test_setup):
+    repo = test_setup["repo"]
+    areas_root = Path(client.app.state.config.areas_root_path)
+
+    # 1. Create a house
+    res_create = client.post(
+        "/api/areas/Area A/houses",
+        json={"house_id": "House Del Test", "initial_tenant_name": "Tenant Del", "start_date": "2025-01-01"},
+    )
+    assert res_create.status_code == 200
+    house_dir = areas_root / "Area A" / "House Del Test"
+    assert house_dir.exists()
+
+    # 2. Delete the house
+    res_del = client.delete("/api/areas/Area A/houses/House Del Test")
+    assert res_del.status_code == 200
+    assert res_del.json()["status"] == "success"
+
+    # 3. Verify directory removed
+    assert not house_dir.exists()
+
+    # 4. Verify house not in db
+    assert repo.get_house("House Del Test") is None
+
+    # 5. Second delete returns 404
+    res_del_2 = client.delete("/api/areas/Area A/houses/House Del Test")
+    assert res_del_2.status_code == 404
+
+
+
 
 

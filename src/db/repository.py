@@ -991,6 +991,50 @@ def delete_document(
     return True
 
 
+def delete_house(
+    conn: sqlite3.Connection,
+    house_id: str,
+    area_id: str,
+    areas_root: Union[str, Path],
+    *,
+    autocommit: bool = True,
+) -> bool:
+    """Delete physical directory and cascade database records for a house."""
+    house = get_house(conn, house_id)
+    if not house:
+        return False
+
+    clean_house_id = house_id.strip()
+    clean_area_id = area_id.strip()
+    stripped_house = clean_house_id.split(" - ")[0].strip() if " - " in clean_house_id else clean_house_id
+
+    root = Path(areas_root)
+    candidate_dirs = {
+        root / clean_area_id / clean_house_id,
+        root / clean_area_id / stripped_house,
+        root / house.area_id / clean_house_id,
+        root / house.area_id / stripped_house,
+    }
+
+    for cdir in candidate_dirs:
+        if cdir.exists() and cdir.is_dir():
+            try:
+                shutil.rmtree(cdir, ignore_errors=True)
+            except OSError:
+                pass
+
+    conn.execute("DELETE FROM pages WHERE house_id = ?", (clean_house_id,))
+    conn.execute("DELETE FROM documents WHERE house_id = ?", (clean_house_id,))
+    conn.execute("DELETE FROM batches WHERE house_id = ?", (clean_house_id,))
+    conn.execute("DELETE FROM tenants WHERE house_id = ?", (clean_house_id,))
+    cursor = conn.execute("DELETE FROM houses WHERE id = ?", (clean_house_id,))
+
+    if autocommit:
+        conn.commit()
+
+    return cursor.rowcount > 0
+
+
 def get_or_create_numbered_folder(
     conn: sqlite3.Connection,
     house_id: str,
@@ -1333,4 +1377,19 @@ class Repository:
             areas_root,
             autocommit=self.autocommit,
         )
+
+    def delete_house(
+        self,
+        house_id: str,
+        area_id: str,
+        areas_root: Union[str, Path] = "areas",
+    ) -> bool:
+        return delete_house(
+            self.conn,
+            house_id=house_id,
+            area_id=area_id,
+            areas_root=areas_root,
+            autocommit=self.autocommit,
+        )
+
 

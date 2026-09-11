@@ -1310,6 +1310,72 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         };
     }
 
+    public async Task<bool> DeleteHouseAsync(string areaId, string houseId, string? areasRoot = null)
+    {
+        var cleanHouseId = houseId?.Trim() ?? string.Empty;
+        var cleanAreaId = areaId?.Trim() ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(cleanHouseId) || string.IsNullOrWhiteSpace(cleanAreaId))
+        {
+            return false;
+        }
+
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+        var existingHouse = await conn.QueryFirstOrDefaultAsync<House>(
+            "SELECT id AS Id, area_id AS AreaId FROM houses WHERE id = @Id AND area_id = @AreaId;",
+            new { Id = cleanHouseId, AreaId = cleanAreaId });
+
+        if (existingHouse == null)
+        {
+            existingHouse = await conn.QueryFirstOrDefaultAsync<House>(
+                "SELECT id AS Id, area_id AS AreaId FROM houses WHERE id = @Id;",
+                new { Id = cleanHouseId });
+            if (existingHouse == null)
+            {
+                return false;
+            }
+        }
+
+        await using var tx = await conn.BeginTransactionAsync();
+
+        await conn.ExecuteAsync("DELETE FROM pages WHERE house_id = @HouseId;", new { HouseId = cleanHouseId }, tx);
+        await conn.ExecuteAsync("DELETE FROM documents WHERE house_id = @HouseId;", new { HouseId = cleanHouseId }, tx);
+        await conn.ExecuteAsync("DELETE FROM batches WHERE house_id = @HouseId;", new { HouseId = cleanHouseId }, tx);
+        await conn.ExecuteAsync("DELETE FROM tenants WHERE house_id = @HouseId;", new { HouseId = cleanHouseId }, tx);
+        var rows = await conn.ExecuteAsync("DELETE FROM houses WHERE id = @HouseId;", new { HouseId = cleanHouseId }, tx);
+
+        await tx.CommitAsync();
+
+        var resolvedAreasRoot = !string.IsNullOrEmpty(areasRoot)
+            ? areasRoot
+            : (_configuration?["AREAS_ROOT_PATH"] ?? Environment.GetEnvironmentVariable("AREAS_ROOT_PATH") ?? "../areas");
+
+        var strippedHouse = cleanHouseId.Contains(" - ") ? cleanHouseId.Split(" - ")[0].Trim() : cleanHouseId;
+        var candidateDirs = new List<string>
+        {
+            Path.Combine(resolvedAreasRoot, cleanAreaId, cleanHouseId),
+            Path.Combine(resolvedAreasRoot, cleanAreaId, strippedHouse),
+            Path.Combine(resolvedAreasRoot, existingHouse.AreaId, cleanHouseId),
+            Path.Combine(resolvedAreasRoot, existingHouse.AreaId, strippedHouse)
+        };
+
+        foreach (var dir in candidateDirs.Distinct())
+        {
+            if (Directory.Exists(dir))
+            {
+                try
+                {
+                    Directory.Delete(dir, recursive: true);
+                }
+                catch (Exception)
+                {
+                    // Ignore directory deletion errors
+                }
+            }
+        }
+
+        return rows > 0;
+    }
+
     // Seeding & testing helpers
     public async Task<Area> AddAreaAsync(string areaId, string? code = null)
     {

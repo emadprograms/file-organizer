@@ -12,6 +12,18 @@
     let viewerTenantSelect = null;
     let viewerTenantLabel = null;
     let currentViewingVaultId = null;
+    let btnOpenDeleteHouse = null;
+    let deleteHouseModal = null;
+    let deleteHouseModalClose = null;
+    let deleteHouseCancel = null;
+    let deleteHouseConfirmBtn = null;
+    let deleteHouseConfirmInput = null;
+    let deleteHouseTargetName = null;
+    let deleteHousePhraseHint = null;
+    let deleteHouseStatus = null;
+    let deleteHouseSpinner = null;
+    let targetHouseToDelete = null;
+    let targetAreaOfHouseToDelete = null;
 
     function initTenantManager() {
         tenantModal = document.getElementById('tenant-modal');
@@ -26,11 +38,28 @@
         viewerTenantSelect = document.getElementById('viewer-tenant-select');
         viewerTenantLabel = document.getElementById('viewer-tenant-label');
 
+        btnOpenDeleteHouse = document.getElementById('btn-open-delete-house');
+        deleteHouseModal = document.getElementById('delete-house-modal');
+        deleteHouseModalClose = document.getElementById('delete-house-modal-close');
+        deleteHouseCancel = document.getElementById('delete-house-cancel');
+        deleteHouseConfirmBtn = document.getElementById('delete-house-confirm-btn');
+        deleteHouseConfirmInput = document.getElementById('delete-house-confirm-input');
+        deleteHouseTargetName = document.getElementById('delete-house-target-name');
+        deleteHousePhraseHint = document.getElementById('delete-house-phrase-hint');
+        deleteHouseStatus = document.getElementById('delete-house-status');
+        deleteHouseSpinner = document.getElementById('delete-house-spinner');
+
         if (btnManageTenants) btnManageTenants.addEventListener('click', openTenantModal);
         if (tenantModalClose) tenantModalClose.addEventListener('click', closeTenantModal);
         if (tenantModalCancel) tenantModalCancel.addEventListener('click', closeTenantModal);
         if (tenantModalSave) tenantModalSave.addEventListener('click', saveTenantsAndReallocate);
         if (btnAddTenantRow) btnAddTenantRow.addEventListener('click', () => addTenantRow());
+
+        if (btnOpenDeleteHouse) btnOpenDeleteHouse.addEventListener('click', openDeleteHouseModal);
+        if (deleteHouseModalClose) deleteHouseModalClose.addEventListener('click', closeDeleteHouseModal);
+        if (deleteHouseCancel) deleteHouseCancel.addEventListener('click', closeDeleteHouseModal);
+        if (deleteHouseConfirmInput) deleteHouseConfirmInput.addEventListener('input', handleConfirmInputChange);
+        if (deleteHouseConfirmBtn) deleteHouseConfirmBtn.addEventListener('click', executeDeleteHouse);
 
         if (viewerTenantSelect) {
             viewerTenantSelect.addEventListener('change', async (e) => {
@@ -261,8 +290,148 @@
         }
     }
 
+    function openDeleteHouseModal() {
+        const area = (typeof currentArea !== 'undefined' && currentArea) ? currentArea : (window.currentArea || '');
+        const house = (typeof currentHouse !== 'undefined' && currentHouse) ? currentHouse : (window.currentHouse || '');
+        if (!house) {
+            alert('Please select a house first.');
+            return;
+        }
+
+        targetHouseToDelete = house;
+        targetAreaOfHouseToDelete = area;
+
+        closeTenantModal();
+
+        if (deleteHouseTargetName) deleteHouseTargetName.textContent = house;
+        if (deleteHousePhraseHint) deleteHousePhraseHint.textContent = `delete ${house}`;
+        if (deleteHouseConfirmInput) {
+            deleteHouseConfirmInput.value = '';
+            deleteHouseConfirmInput.disabled = false;
+        }
+        if (deleteHouseConfirmBtn) {
+            deleteHouseConfirmBtn.disabled = true;
+        }
+        if (deleteHouseStatus) {
+            deleteHouseStatus.classList.add('hidden');
+            deleteHouseStatus.textContent = '';
+        }
+        if (deleteHouseSpinner) {
+            deleteHouseSpinner.classList.add('hidden');
+        }
+        if (deleteHouseModal) {
+            deleteHouseModal.classList.remove('hidden');
+            if (deleteHouseConfirmInput) deleteHouseConfirmInput.focus();
+        }
+    }
+
+    function closeDeleteHouseModal() {
+        if (!deleteHouseModal) return;
+        deleteHouseModal.classList.add('hidden');
+        if (deleteHouseConfirmInput) deleteHouseConfirmInput.value = '';
+        if (deleteHouseStatus) {
+            deleteHouseStatus.classList.add('hidden');
+            deleteHouseStatus.textContent = '';
+        }
+        targetHouseToDelete = null;
+        targetAreaOfHouseToDelete = null;
+    }
+
+    function handleConfirmInputChange() {
+        if (!deleteHouseConfirmInput || !deleteHouseConfirmBtn || !targetHouseToDelete) return;
+        const val = deleteHouseConfirmInput.value.trim().toLowerCase();
+        const expected = (`delete ${targetHouseToDelete}`).trim().toLowerCase();
+        deleteHouseConfirmBtn.disabled = (val !== expected);
+    }
+
+    async function executeDeleteHouse() {
+        if (!targetHouseToDelete || !targetAreaOfHouseToDelete) return;
+        if (!deleteHouseConfirmBtn || deleteHouseConfirmBtn.disabled) return;
+
+        deleteHouseConfirmBtn.disabled = true;
+        if (deleteHouseConfirmInput) deleteHouseConfirmInput.disabled = true;
+        if (deleteHouseSpinner) deleteHouseSpinner.classList.remove('hidden');
+        if (deleteHouseStatus) deleteHouseStatus.classList.add('hidden');
+
+        try {
+            const res = await fetch(`/api/areas/${encodeURIComponent(targetAreaOfHouseToDelete)}/houses/${encodeURIComponent(targetHouseToDelete)}`, {
+                method: 'DELETE'
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || errData.detail || 'Failed to delete house.');
+            }
+
+            const deletedHouseName = targetHouseToDelete;
+            const targetArea = targetAreaOfHouseToDelete;
+
+            closeDeleteHouseModal();
+
+            // Reset current selection
+            if (typeof currentHouse !== 'undefined') currentHouse = null;
+            if (typeof window.currentHouse !== 'undefined') window.currentHouse = null;
+            if (typeof currentTenant !== 'undefined') currentTenant = null;
+            if (typeof window.currentTenant !== 'undefined') window.currentTenant = null;
+
+            // Route / switch back to Area Grid view
+            const areaGridPanel = document.getElementById('area-grid-panel');
+            const docViewerPanel = document.getElementById('document-viewer-panel');
+            const docList = document.getElementById('document-list');
+            const backToGridBtn = document.getElementById('back-to-grid-btn');
+            const tabBackToTenants = document.getElementById('tab-back-to-tenants');
+            const currentHouseTitle = document.getElementById('current-house-title');
+            const statsBadge = document.getElementById('stats-badge');
+
+            if (areaGridPanel) {
+                areaGridPanel.classList.remove('hidden');
+                areaGridPanel.classList.add('flex');
+            }
+            if (docViewerPanel) docViewerPanel.classList.add('hidden');
+            if (docList) docList.innerHTML = '';
+            if (backToGridBtn) backToGridBtn.classList.add('hidden');
+            if (tabBackToTenants) tabBackToTenants.classList.add('hidden');
+            if (currentHouseTitle) currentHouseTitle.textContent = targetArea;
+            if (statsBadge) statsBadge.classList.add('hidden');
+
+            if (typeof window.loadTree === 'function') {
+                await window.loadTree();
+            }
+            if (typeof window.renderSidebar === 'function') {
+                window.renderSidebar();
+            }
+
+            if (targetArea && typeof window.selectAreaGrid === 'function') {
+                const areaNode = (window.globalTreeData || []).find(a => a.name === targetArea);
+                if (areaNode) {
+                    window.selectAreaGrid(areaNode);
+                } else if (window.globalTreeData && window.globalTreeData.length > 0) {
+                    window.selectAreaGrid(window.globalTreeData[0]);
+                }
+            } else {
+                window.location.hash = targetArea ? `#/area/${encodeURIComponent(targetArea)}` : '';
+            }
+
+            const toastFn = (typeof showToast === 'function') ? showToast : (typeof window.showToast === 'function' ? window.showToast : null);
+            if (toastFn) {
+                toastFn(`تم حذف المنزل '${deletedHouseName}' بنجاح / House '${deletedHouseName}' was deleted`, 'success');
+            }
+        } catch (err) {
+            console.error(err);
+            if (deleteHouseStatus) {
+                deleteHouseStatus.textContent = err.message || 'Error deleting house.';
+                deleteHouseStatus.classList.remove('hidden');
+            }
+            if (deleteHouseSpinner) deleteHouseSpinner.classList.add('hidden');
+            if (deleteHouseConfirmBtn) deleteHouseConfirmBtn.disabled = false;
+            if (deleteHouseConfirmInput) deleteHouseConfirmInput.disabled = false;
+        }
+    }
+
     window.openTenantModal = openTenantModal;
     window.closeTenantModal = closeTenantModal;
+    window.openDeleteHouseModal = openDeleteHouseModal;
+    window.closeDeleteHouseModal = closeDeleteHouseModal;
     window.updateViewerTenantSelect = updateViewerTenantSelect;
 
     if (document.readyState === 'loading') {

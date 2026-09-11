@@ -302,6 +302,26 @@ async def create_house(request: Request, area_id: str, payload: CreateHouseReque
     )
 
 
+@router.delete("/api/areas/{area_id}/houses/{house_id}")
+async def delete_house_endpoint(request: Request, area_id: str, house_id: str):
+    clean_house_id = house_id.strip()
+    clean_area_id = area_id.strip()
+    if not clean_house_id:
+        raise HTTPException(status_code=400, detail="House ID is required and cannot be empty.")
+
+    repo = get_db_repo(request)
+    if not repo:
+        raise HTTPException(status_code=503, detail="Database not connected.")
+
+    areas_root = _get_areas_root_path(request)
+    deleted = repo.delete_house(clean_house_id, clean_area_id, areas_root)
+    if not deleted:
+        raise HTTPException(status_code=404, detail=f"House '{clean_house_id}' not found in area '{clean_area_id}'.")
+
+    clear_tree_cache()
+    return {"status": "success", "message": f"House '{clean_house_id}' deleted successfully."}
+
+
 @router.get("/api/areas/{area_id}/houses/{house_id}/timeline", response_model=list[TimelineGroupResponse])
 async def list_timeline(request: Request, area_id: str, house_id: str):
     repo = get_db_repo(request)
