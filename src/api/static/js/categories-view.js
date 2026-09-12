@@ -1297,6 +1297,194 @@
         return docEl;
     }
 
+    function createCategoryCardElement(cat) {
+        const card = document.createElement('div');
+        card.className = 'p-3 bg-white rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 transition-all mb-2 cursor-pointer category-folder-card group/card';
+        card.setAttribute('data-category-name', cat.name);
+        
+        card.ondragover = (e) => {
+            if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files') && !window.draggedDoc) {
+                e.preventDefault();
+                e.stopPropagation();
+                e.dataTransfer.dropEffect = 'copy';
+                card.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50/40');
+            } else if (typeof window !== 'undefined' && typeof window.handleCategoryDragOver === 'function') {
+                window.handleCategoryDragOver(e, card);
+            }
+        };
+
+        card.ondragleave = (e) => {
+            card.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50/40');
+            if (typeof window !== 'undefined' && typeof window.handleCategoryDragLeave === 'function') {
+                window.handleCategoryDragLeave(e, card);
+            }
+        };
+
+        card.ondrop = (e) => {
+            card.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50/40');
+            if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files') && !window.draggedDoc) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof window !== 'undefined' && typeof window.resetDragCounter === 'function') {
+                    window.resetDragCounter();
+                } else {
+                    const overlay = document.getElementById('ingest-dropzone-overlay');
+                    if (overlay) overlay.classList.add('hidden');
+                }
+                if (typeof window !== 'undefined' && typeof window.handleDirectCategoryDrop === 'function') {
+                    const activeArea = (typeof currentArea !== 'undefined' ? currentArea : window.currentArea) || '';
+                    const activeHouse = (typeof currentHouse !== 'undefined' ? currentHouse : window.currentHouse) || '';
+                    window.handleDirectCategoryDrop(e.dataTransfer.files, cat.name, activeHouse, activeArea);
+                }
+            } else if (typeof window !== 'undefined' && typeof window.handleCategoryDrop === 'function') {
+                window.handleCategoryDrop(e, cat.name, card);
+            }
+        };
+
+        const isCustomFolder = !isStandardCategoryName(cat.name);
+        const deleteFolderBtn = isCustomFolder
+            ? `<button type="button" class="btn-delete-folder opacity-0 group-hover/card:opacity-100 p-1 hover:bg-rose-50 rounded text-slate-400 hover:text-rose-600 transition-all text-xs flex-shrink-0" title="Delete Custom Folder" data-category-name="${escapeHtml(cat.name)}">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>`
+            : '';
+
+        const hasNotedDoc = Boolean(cat.documents && cat.documents.some(d => d.notes && d.notes.trim()));
+        const noteFolderBadge = hasNotedDoc 
+            ? '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-300/80 flex-shrink-0" title="Contains documents with notes">📝 Notes</span>'
+            : '';
+        const isFolderOpen = openCategoryNames.has(cat.name);
+        const docsContainerClasses = isFolderOpen 
+            ? 'category-docs mt-2.5 pt-2.5 border-t border-slate-100 space-y-1'
+            : 'category-docs hidden mt-2.5 pt-2.5 border-t border-slate-100 space-y-1';
+
+        const folderDocIds = (cat.documents || []).map(d => d.vault_id).filter(Boolean);
+        const allFolderDocsSelected = folderDocIds.length > 0 && folderDocIds.every(id => selectedDocIds.has(id));
+        const someFolderDocsSelected = folderDocIds.length > 0 && !allFolderDocsSelected && folderDocIds.some(id => selectedDocIds.has(id));
+        const hasDocs = Boolean(cat.documents && cat.documents.length > 0);
+
+        const folderSelectCheckbox = hasDocs
+            ? `<input type="checkbox" class="folder-select-checkbox w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer flex-shrink-0" data-folder-category="${escapeHtml(cat.name)}" title="Select / Deselect all in this folder" ${allFolderDocsSelected ? 'checked' : ''} />`
+            : `<span class="w-3.5 h-3.5 flex-shrink-0"></span>`;
+
+        const folderIconSvg = getFolderIconSvg(cat.name);
+        const docCount = typeof cat.document_count === 'number' ? cat.document_count : (cat.documents ? cat.documents.length : 0);
+
+        card.innerHTML = `
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-2 min-w-0">
+                    ${folderSelectCheckbox}
+                    <div class="folder-icon-box w-6 h-6 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center flex-shrink-0" data-category="${escapeHtml(cat.name)}">
+                        ${folderIconSvg}
+                    </div>
+                    <h4 class="text-xs font-semibold text-slate-800 truncate">${escapeHtml(cat.name)}</h4>
+                </div>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                    ${noteFolderBadge}
+                    <span class="doc-count-badge min-w-[20px] h-5 px-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200 flex items-center justify-center flex-shrink-0 select-none" title="${docCount} ${docCount === 1 ? 'Document' : 'Documents'}">${docCount}</span>
+                    ${deleteFolderBtn}
+                </div>
+            </div>
+            <div class="${docsContainerClasses}">
+            </div>
+        `;
+
+        const folderCheckboxEl = card.querySelector('.folder-select-checkbox');
+        if (folderCheckboxEl) {
+            if (someFolderDocsSelected) {
+                folderCheckboxEl.indeterminate = true;
+            }
+            folderCheckboxEl.onclick = (e) => {
+                e.stopPropagation();
+                toggleSelectAllInFolder(cat, card);
+            };
+        }
+        
+        if (cat.documents && cat.documents.length > 0) {
+            const docsContainer = card.querySelector('.category-docs');
+            cat.documents.forEach(doc => {
+                const docEl = createDocRowElement(doc, cat.name, card);
+                docsContainer.appendChild(docEl);
+            });
+        }
+
+        const selectAllBtn = card.querySelector('.btn-select-all-folder');
+        if (selectAllBtn) {
+            selectAllBtn.onclick = (e) => {
+                e.stopPropagation();
+                toggleSelectAllInFolder(cat, card);
+            };
+        }
+        
+        const deleteBtn = card.querySelector('.btn-delete-folder');
+        if (deleteBtn) {
+            deleteBtn.onclick = async (e) => {
+                e.stopPropagation();
+                const catName = cat.name;
+                if (!window.confirm(`Are you sure you want to delete custom folder "${catName}"?\nAny documents in it will be moved to "13 - رسائل متنوعة".`)) {
+                    return;
+                }
+                try {
+                    const activeArea = (typeof currentArea !== 'undefined' ? currentArea : window.currentArea) || '';
+                    const activeHouse = (typeof currentHouse !== 'undefined' ? currentHouse : window.currentHouse) || '';
+                    const res = await fetch(`/api/areas/${encodeURIComponent(activeArea)}/houses/${encodeURIComponent(activeHouse)}/categories/${encodeURIComponent(catName)}`, {
+                        method: 'DELETE'
+                    });
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        throw new Error(err.detail || 'Failed to delete folder');
+                    }
+                    const toast = (typeof showToast === 'function') ? showToast : (window.showToast || null);
+                    if (toast) toast(`Folder "${catName}" deleted successfully.`);
+                    if (typeof window.refreshCurrentTab === 'function') {
+                        await window.refreshCurrentTab(activeArea, activeHouse);
+                    }
+                } catch (err) {
+                    const toast = (typeof showToast === 'function') ? showToast : (window.showToast || null);
+                    if (toast) toast(err.message, 'error');
+                }
+            };
+        }
+
+        card.onclick = () => {
+            const docsContainer = card.querySelector('.category-docs');
+            if (docsContainer) {
+                const isNowHidden = docsContainer.classList.toggle('hidden');
+                if (isNowHidden) {
+                    openCategoryNames.delete(cat.name);
+                } else {
+                    openCategoryNames.add(cat.name);
+                }
+            }
+        };
+
+        return card;
+    }
+
+    function insertCategoryCardSorted(card, catName) {
+        const docListEl = document.getElementById('document-list');
+        if (!docListEl || !card) return;
+
+        // Remove empty state message if present
+        const emptyP = docListEl.querySelector('p');
+        if (emptyP && emptyP.textContent.includes('No folders found')) {
+            emptyP.remove();
+        }
+
+        const existingCards = docListEl.querySelectorAll('.category-folder-card');
+        let inserted = false;
+        for (const ec of existingCards) {
+            const ecName = ec.getAttribute('data-category-name') || '';
+            if (ecName.localeCompare(catName, undefined, { numeric: true }) > 0) {
+                docListEl.insertBefore(card, ec);
+                inserted = true;
+                break;
+            }
+        }
+        if (!inserted) {
+            docListEl.appendChild(card);
+        }
+    }
+
     function moveDocInDom(vaultId, sourceCatName, targetCatName) {
         if (typeof document === 'undefined' || !vaultId || !targetCatName) return false;
         const docListEl = document.getElementById('document-list');
@@ -1319,56 +1507,8 @@
             return null;
         };
 
-        const targetCard = findCard(targetCatName);
-        if (!targetCard) {
-            // Moved outside current house/tenant categories view
-            docEl.remove();
-            const sourceCard = findCard(sourceCatName) || docEl.closest('.category-folder-card');
-            if (sourceCard) {
-                const badge = sourceCard.querySelector('.doc-count-badge');
-                if (badge) {
-                    const count = Math.max(0, (parseInt(badge.textContent, 10) || 0) - 1);
-                    badge.textContent = count;
-                    badge.title = `${count} ${count === 1 ? 'Document' : 'Documents'}`;
-                }
-            }
-            return true;
-        }
-
-        const targetDocsContainer = targetCard.querySelector('.category-docs');
-        if (!targetDocsContainer) return false;
-
         const sourceCard = findCard(sourceCatName) || docEl.closest('.category-folder-card');
-
-        // Move the DOM element directly without touching open/closed state or scroll
-        targetDocsContainer.appendChild(docEl);
-        const resolvedTargetName = targetCard.getAttribute('data-category-name') || targetCatName;
-        docEl.setAttribute('data-category', resolvedTargetName);
-
-        // Update doc data & dragstart handler
-        const docObj = docEl._docData || { vault_id: vaultId, category: resolvedTargetName };
-        docObj.category = resolvedTargetName;
-        docEl._docData = docObj;
-        if (typeof window !== 'undefined' && typeof window.handleDocDragStart === 'function') {
-            docEl.ondragstart = (e) => window.handleDocDragStart(e, docObj, resolvedTargetName);
-        }
-
-        // Update counts in DOM
-        if (sourceCard && sourceCard !== targetCard) {
-            const sourceBadge = sourceCard.querySelector('.doc-count-badge');
-            if (sourceBadge) {
-                const count = Math.max(0, (parseInt(sourceBadge.textContent, 10) || 0) - 1);
-                sourceBadge.textContent = count;
-                sourceBadge.title = `${count} ${count === 1 ? 'Document' : 'Documents'}`;
-            }
-        }
-
-        const targetBadge = targetCard.querySelector('.doc-count-badge');
-        if (targetBadge && sourceCard !== targetCard) {
-            const count = (parseInt(targetBadge.textContent, 10) || 0) + 1;
-            targetBadge.textContent = count;
-            targetBadge.title = `${count} ${count === 1 ? 'Document' : 'Documents'}`;
-        }
+        let targetCard = findCard(targetCatName);
 
         // Update in-memory currentCategories
         const cats = (typeof currentCategories !== 'undefined' ? currentCategories : (typeof window !== 'undefined' ? window.currentCategories : [])) || [];
@@ -1383,6 +1523,90 @@
             }
         });
 
+        // 1. Source card updates & disappearing if empty
+        if (sourceCard && sourceCard !== targetCard) {
+            const sourceBadge = sourceCard.querySelector('.doc-count-badge');
+            let remainingCount = 0;
+            if (sourceBadge) {
+                remainingCount = Math.max(0, (parseInt(sourceBadge.textContent, 10) || 0) - 1);
+                sourceBadge.textContent = remainingCount;
+                sourceBadge.title = `${remainingCount} ${remainingCount === 1 ? 'Document' : 'Documents'}`;
+            }
+            if (remainingCount === 0) {
+                const sourceCatAttr = sourceCard.getAttribute('data-category-name') || sourceCatName;
+                openCategoryNames.delete(sourceCatAttr);
+                if (sourceCatName) openCategoryNames.delete(sourceCatName);
+                sourceCard.remove();
+
+                const srcIdx = cats.findIndex(c => (c.name === sourceCatName || c.name === sourceCatAttr) && (!c.documents || c.documents.length === 0));
+                if (srcIdx !== -1) {
+                    cats.splice(srcIdx, 1);
+                }
+
+                const remainingCards = docListEl.querySelectorAll('.category-folder-card');
+                if (remainingCards.length === 0) {
+                    const topBar = docListEl.querySelector('#btn-toggle-select-all-categories')?.closest('div');
+                    if (topBar) topBar.remove();
+                    const emptyP = document.createElement('p');
+                    emptyP.className = 'text-xs text-slate-400 p-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200';
+                    emptyP.textContent = 'No folders found for this selection.';
+                    docListEl.appendChild(emptyP);
+                }
+            }
+        }
+
+        // 2. Target card creation if not found (new folder created or empty folder re-appearing)
+        if (!targetCard) {
+            openCategoryNames.add(targetCatName);
+            const docData = docEl._docData || movedDoc || { vault_id: vaultId, category: targetCatName };
+            docData.category = targetCatName;
+            const newCatObj = {
+                name: targetCatName,
+                document_count: 1,
+                documents: [docData]
+            };
+            cats.push(newCatObj);
+            targetCard = createCategoryCardElement(newCatObj);
+            insertCategoryCardSorted(targetCard, targetCatName);
+            docEl.remove();
+
+            const statsBadge = document.getElementById('stats-badge');
+            if (statsBadge) {
+                const activeCats = cats.filter(c => (c.document_count || (c.documents && c.documents.length) || 0) > 0);
+                const totalDocs = activeCats.reduce((sum, cat) => sum + (cat.document_count || 0), 0);
+                statsBadge.textContent = `${activeCats.length} Categories (${totalDocs} Docs)`;
+            }
+
+            return true;
+        }
+
+        const targetDocsContainer = targetCard.querySelector('.category-docs');
+        if (!targetDocsContainer) return false;
+
+        const resolvedTargetName = targetCard.getAttribute('data-category-name') || targetCatName;
+
+        // Move the DOM element directly without touching open/closed state or scroll
+        targetDocsContainer.appendChild(docEl);
+        docEl.setAttribute('data-category', resolvedTargetName);
+
+        // Update doc data & dragstart handler
+        const docObj = docEl._docData || movedDoc || { vault_id: vaultId, category: resolvedTargetName };
+        docObj.category = resolvedTargetName;
+        docEl._docData = docObj;
+        if (typeof window !== 'undefined' && typeof window.handleDocDragStart === 'function') {
+            docEl.ondragstart = (e) => window.handleDocDragStart(e, docObj, resolvedTargetName);
+        }
+
+        // Update counts in DOM
+        if (sourceCard !== targetCard) {
+            const targetBadge = targetCard.querySelector('.doc-count-badge');
+            if (targetBadge) {
+                const count = (parseInt(targetBadge.textContent, 10) || 0) + 1;
+                targetBadge.textContent = count;
+                targetBadge.title = `${count} ${count === 1 ? 'Document' : 'Documents'}`;
+            }
+        }
+
         if (movedDoc) {
             movedDoc.category = resolvedTargetName;
             let targetCatObj = cats.find(c => c.name === resolvedTargetName);
@@ -1394,6 +1618,13 @@
                 targetCatObj.documents.push(movedDoc);
                 targetCatObj.document_count = (targetCatObj.document_count || 0) + 1;
             }
+        }
+
+        const statsBadge = document.getElementById('stats-badge');
+        if (statsBadge) {
+            const activeCats = cats.filter(c => (c.document_count || (c.documents && c.documents.length) || 0) > 0);
+            const totalDocs = activeCats.reduce((sum, cat) => sum + (cat.document_count || 0), 0);
+            statsBadge.textContent = `${activeCats.length} Categories (${totalDocs} Docs)`;
         }
 
         return true;
@@ -1418,8 +1649,30 @@
             return null;
         };
 
-        const targetCard = findCard(targetCatName);
-        if (!targetCard) return false;
+        const cats = (typeof currentCategories !== 'undefined' ? currentCategories : (typeof window !== 'undefined' ? window.currentCategories : [])) || [];
+        let targetCard = findCard(targetCatName);
+
+        if (!targetCard) {
+            openCategoryNames.add(targetCatName);
+            newDoc.category = targetCatName;
+            const newCatObj = {
+                name: targetCatName,
+                document_count: 1,
+                documents: [newDoc]
+            };
+            cats.push(newCatObj);
+            targetCard = createCategoryCardElement(newCatObj);
+            insertCategoryCardSorted(targetCard, targetCatName);
+
+            const statsBadge = document.getElementById('stats-badge');
+            if (statsBadge) {
+                const activeCats = cats.filter(c => (c.document_count || (c.documents && c.documents.length) || 0) > 0);
+                const totalDocs = activeCats.reduce((sum, cat) => sum + (cat.document_count || 0), 0);
+                statsBadge.textContent = `${activeCats.length} Categories (${totalDocs} Docs)`;
+            }
+
+            return true;
+        }
 
         const targetDocsContainer = targetCard.querySelector('.category-docs');
         if (!targetDocsContainer) return false;
@@ -1437,7 +1690,6 @@
             targetBadge.title = `${count} ${count === 1 ? 'Document' : 'Documents'}`;
         }
 
-        const cats = (typeof currentCategories !== 'undefined' ? currentCategories : (typeof window !== 'undefined' ? window.currentCategories : [])) || [];
         let targetCatObj = cats.find(c => c.name === resolvedTargetName);
         if (!targetCatObj) {
             targetCatObj = cats.find(c => c.name.endsWith(resolvedTargetName) || resolvedTargetName.endsWith(c.name));
@@ -1450,8 +1702,9 @@
 
         const statsBadge = document.getElementById('stats-badge');
         if (statsBadge) {
-            const totalDocs = cats.reduce((sum, cat) => sum + (cat.document_count || 0), 0);
-            statsBadge.textContent = `${cats.length} Categories (${totalDocs} Docs)`;
+            const activeCats = cats.filter(c => (c.document_count || (c.documents && c.documents.length) || 0) > 0);
+            const totalDocs = activeCats.reduce((sum, cat) => sum + (cat.document_count || 0), 0);
+            statsBadge.textContent = `${activeCats.length} Categories (${totalDocs} Docs)`;
         }
 
         return true;
@@ -1571,163 +1824,7 @@
         }
         
         displayCategories.forEach(cat => {
-            const card = document.createElement('div');
-            card.className = 'p-3 bg-white rounded-xl border border-slate-200 shadow-2xs hover:border-slate-300 transition-all mb-2 cursor-pointer category-folder-card group/card';
-            card.setAttribute('data-category-name', cat.name);
-            
-            card.ondragover = (e) => {
-                if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files') && !window.draggedDoc) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.dataTransfer.dropEffect = 'copy';
-                    card.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50/40');
-                } else if (typeof window !== 'undefined' && typeof window.handleCategoryDragOver === 'function') {
-                    window.handleCategoryDragOver(e, card);
-                }
-            };
-
-            card.ondragleave = (e) => {
-                card.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50/40');
-                if (typeof window !== 'undefined' && typeof window.handleCategoryDragLeave === 'function') {
-                    window.handleCategoryDragLeave(e, card);
-                }
-            };
-
-            card.ondrop = (e) => {
-                card.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50/40');
-                if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files') && !window.draggedDoc) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (typeof window !== 'undefined' && typeof window.resetDragCounter === 'function') {
-                        window.resetDragCounter();
-                    } else {
-                        const overlay = document.getElementById('ingest-dropzone-overlay');
-                        if (overlay) overlay.classList.add('hidden');
-                    }
-                    if (typeof window !== 'undefined' && typeof window.handleDirectCategoryDrop === 'function') {
-                        const activeArea = (typeof currentArea !== 'undefined' ? currentArea : window.currentArea) || '';
-                        const activeHouse = (typeof currentHouse !== 'undefined' ? currentHouse : window.currentHouse) || '';
-                        window.handleDirectCategoryDrop(e.dataTransfer.files, cat.name, activeHouse, activeArea);
-                    }
-                } else if (typeof window !== 'undefined' && typeof window.handleCategoryDrop === 'function') {
-                    window.handleCategoryDrop(e, cat.name, card);
-                }
-            };
-
-            const isCustomFolder = !isStandardCategoryName(cat.name);
-            const deleteFolderBtn = isCustomFolder
-                ? `<button type="button" class="btn-delete-folder opacity-0 group-hover/card:opacity-100 p-1 hover:bg-rose-50 rounded text-slate-400 hover:text-rose-600 transition-all text-xs flex-shrink-0" title="Delete Custom Folder" data-category-name="${escapeHtml(cat.name)}">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                </button>`
-                : '';
-
-            const hasNotedDoc = Boolean(cat.documents && cat.documents.some(d => d.notes && d.notes.trim()));
-            const noteFolderBadge = hasNotedDoc 
-                ? '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-300/80 flex-shrink-0" title="Contains documents with notes">📝 Notes</span>'
-                : '';
-            const isFolderOpen = openCategoryNames.has(cat.name);
-            const docsContainerClasses = isFolderOpen 
-                ? 'category-docs mt-2.5 pt-2.5 border-t border-slate-100 space-y-1'
-                : 'category-docs hidden mt-2.5 pt-2.5 border-t border-slate-100 space-y-1';
-
-            const folderDocIds = (cat.documents || []).map(d => d.vault_id).filter(Boolean);
-            const allFolderDocsSelected = folderDocIds.length > 0 && folderDocIds.every(id => selectedDocIds.has(id));
-            const someFolderDocsSelected = folderDocIds.length > 0 && !allFolderDocsSelected && folderDocIds.some(id => selectedDocIds.has(id));
-            const hasDocs = Boolean(cat.documents && cat.documents.length > 0);
-
-            const folderSelectCheckbox = hasDocs
-                ? `<input type="checkbox" class="folder-select-checkbox w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer flex-shrink-0" data-folder-category="${escapeHtml(cat.name)}" title="Select / Deselect all in this folder" ${allFolderDocsSelected ? 'checked' : ''} />`
-                : `<span class="w-3.5 h-3.5 flex-shrink-0"></span>`;
-
-            const folderIconSvg = getFolderIconSvg(cat.name);
-
-            card.innerHTML = `
-                <div class="flex justify-between items-center">
-                    <div class="flex items-center gap-2 min-w-0">
-                        ${folderSelectCheckbox}
-                        <div class="folder-icon-box w-6 h-6 rounded-lg bg-blue-50 text-blue-600 border border-blue-100 flex items-center justify-center flex-shrink-0" data-category="${escapeHtml(cat.name)}">
-                            ${folderIconSvg}
-                        </div>
-                        <h4 class="text-xs font-semibold text-slate-800 truncate">${escapeHtml(cat.name)}</h4>
-                    </div>
-                    <div class="flex items-center gap-1.5 flex-shrink-0">
-                        ${noteFolderBadge}
-                        <span class="doc-count-badge min-w-[20px] h-5 px-1 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold border border-slate-200 flex items-center justify-center flex-shrink-0 select-none" title="${cat.document_count} ${cat.document_count === 1 ? 'Document' : 'Documents'}">${cat.document_count}</span>
-                        ${deleteFolderBtn}
-                    </div>
-                </div>
-                <div class="${docsContainerClasses}">
-                </div>
-            `;
-
-            const folderCheckboxEl = card.querySelector('.folder-select-checkbox');
-            if (folderCheckboxEl) {
-                if (someFolderDocsSelected) {
-                    folderCheckboxEl.indeterminate = true;
-                }
-                folderCheckboxEl.onclick = (e) => {
-                    e.stopPropagation();
-                    toggleSelectAllInFolder(cat, card);
-                };
-            }
-            
-            if (cat.documents && cat.documents.length > 0) {
-                const docsContainer = card.querySelector('.category-docs');
-                cat.documents.forEach(doc => {
-                    const docEl = createDocRowElement(doc, cat.name, card);
-                    docsContainer.appendChild(docEl);
-                });
-            }
-
-            const selectAllBtn = card.querySelector('.btn-select-all-folder');
-            if (selectAllBtn) {
-                selectAllBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    toggleSelectAllInFolder(cat, card);
-                };
-            }
-            
-            const deleteBtn = card.querySelector('.btn-delete-folder');
-            if (deleteBtn) {
-                deleteBtn.onclick = async (e) => {
-                    e.stopPropagation();
-                    const catName = cat.name;
-                    if (!window.confirm(`Are you sure you want to delete custom folder "${catName}"?\nAny documents in it will be moved to "13 - رسائل متنوعة".`)) {
-                        return;
-                    }
-                    try {
-                        const activeArea = (typeof currentArea !== 'undefined' ? currentArea : window.currentArea) || '';
-                        const activeHouse = (typeof currentHouse !== 'undefined' ? currentHouse : window.currentHouse) || '';
-                        const res = await fetch(`/api/areas/${encodeURIComponent(activeArea)}/houses/${encodeURIComponent(activeHouse)}/categories/${encodeURIComponent(catName)}`, {
-                            method: 'DELETE'
-                        });
-                        if (!res.ok) {
-                            const err = await res.json().catch(() => ({}));
-                            throw new Error(err.detail || 'Failed to delete folder');
-                        }
-                        const toast = (typeof showToast === 'function') ? showToast : (window.showToast || null);
-                        if (toast) toast(`Folder "${catName}" deleted successfully.`);
-                        if (typeof window.refreshCurrentTab === 'function') {
-                            await window.refreshCurrentTab(activeArea, activeHouse);
-                        }
-                    } catch (err) {
-                        const toast = (typeof showToast === 'function') ? showToast : (window.showToast || null);
-                        if (toast) toast(err.message, 'error');
-                    }
-                };
-            }
-
-            card.onclick = () => {
-                const docsContainer = card.querySelector('.category-docs');
-                if (docsContainer) {
-                    const isNowHidden = docsContainer.classList.toggle('hidden');
-                    if (isNowHidden) {
-                        openCategoryNames.delete(cat.name);
-                    } else {
-                        openCategoryNames.add(cat.name);
-                    }
-                }
-            };
+            const card = createCategoryCardElement(cat);
             docListEl.appendChild(card);
         });
 
@@ -1796,6 +1893,8 @@
         window.captureScrollOffsets = captureScrollOffsets;
         window.restoreScrollOffsets = restoreScrollOffsets;
         window.createDocRowElement = createDocRowElement;
+        window.createCategoryCardElement = createCategoryCardElement;
+        window.insertCategoryCardSorted = insertCategoryCardSorted;
         window.moveDocInDom = moveDocInDom;
         window.copyDocInDom = copyDocInDom;
     }
@@ -1843,6 +1942,8 @@
             captureScrollOffsets,
             restoreScrollOffsets,
             createDocRowElement,
+            createCategoryCardElement,
+            insertCategoryCardSorted,
             moveDocInDom,
             copyDocInDom,
         };

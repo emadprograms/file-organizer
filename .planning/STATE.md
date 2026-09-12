@@ -4,9 +4,9 @@ milestone: v14.0
 milestone_name: Power-User Operations & Portfolio Expansion
 current_phase: 108 (All Complete)
 status: completed
-last_updated: "2026-09-12T06:00:00.000Z"
+last_updated: "2026-09-12T06:30:00.000Z"
 last_activity: 2026-09-12
-last_activity_desc: "Completed Quick Task 260912-zero-motion-move-copy (QCK-31: Zero-Motion & Zero-State-Shift Document Move & Copy Architecture). 197 Vitest tests across 22 files (100%), 146 xUnit tests (100%), and 12 Pytest tests passing."
+last_activity_desc: "Completed Quick Task 260912-empty-folder-disappear-new-appear (QCK-32: Dynamic Category Folder Lifecycle on Move/Copy). 200 Vitest tests across 22 files (100%), 146 xUnit tests (100%), and 12 Pytest tests passing."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -80,13 +80,14 @@ Equip the digital archive management system with power-user operational tools: o
 - `260912-unique-db-names-phonetic-tests`: Database-Wide Real-World Name Validation & Phonetic Precision (QCK-29). Sampled 716 real-world tenant names across 253 houses from production database (`organizer.db`). Expanded consonant Waw rules (`أنور` Anwar), Arabic `وي` glide preservation (`السويدي` Suwaidi, `برويز` Parwez), word-start anchoring for `عوض` Awad/Awadh (strictly isolating `سعود` Saud), English diphthong reduction (`showkat` / `shaukat` -> `شوكت`), P-to-B mapping (`parvez` -> `برويز`), Dhad `dh` transliteration (`awadh` -> `عوض`), and pre-flight SQLite integrity validation in `run-mac.sh`. Verified by 144 xUnit tests (100%), 10 Pytest tests, 195 Vitest tests, and live API queries.
 - `260912-arabic-search-normalization`: Arabic Search Optimization & Orthographic Normalization (QCK-30). Implemented Arabic Tashkeel (harakat / diacritics) and Tatweel stripping (`StripArabicDiacritics` / `strip_arabic_diacritics`) across query inputs (`أَنْوَر`, `مُحَمَّد`, `جَمْشِيد`, `تَيْسِير`). Added full Arabic text normalization in `ScoreTenantMatch` (`NormalizeArabic` / `normalize_arabic`) for Alef variants (`[أإآٱ] -> ا`), Taa Marbuta (`ة -> ه`), and Alif Maqsura (`ى -> ي`), enabling direct 1000+ match scores regardless of Hamza or letter form. Added dynamic Arabic search variant generation (`GetArabicSearchVariants` / `get_arabic_search_variants`) in SQLite database searching (`SearchAsync`), resolving SQLite unicode byte-matching limitations for documents and houses (e.g. `شهاده` finds 257 `شهادة` docs, `صيانه` finds 2,628 `صيانة` docs, `انور` finds 46 docs). Verified by 146 xUnit tests (100%), 12 Pytest tests, 197 Vitest tests, and live API queries.
 - `260912-zero-motion-move-copy`: Zero-Motion & Zero-State-Shift Document Move & Copy Architecture (QCK-31). Absolute UI immutability during document move and copy: open folders stay open, closed folders stay closed (target folder is never forced open), and scroll position remains 100% stable without jumps (`scrollIntoView` completely eliminated). In-place DOM and in-memory updates (`moveDocInDom`, `copyDocInDom`) update document placement and circular count badges seamlessly without triggering scroll collapse or re-renders. Verified by 10 automated unit tests in `category_folder_persistence.test.js` and all 197 Vitest tests across 22 test files with zero static asset diff.
+- `260912-empty-folder-disappear-new-appear`: Dynamic Category Folder Lifecycle on Move/Copy (QCK-32). Folders whose document count drops to 0 immediately disappear from the DOM (`card.remove()`), openCategoryNames is pruned, and empty state is rendered if 0 cards remain. When moving or copying into a folder that did not exist in the DOM (e.g. newly created custom folder or previously empty folder), the folder card is dynamically constructed via `createCategoryCardElement`, inserted at its proper sorted alphabetical position via `insertCategoryCardSorted`, and opened without jumping scroll. Verified by 13 unit tests in `category_folder_persistence.test.js` and all 200 Vitest tests across 22 test files with zero static asset diff.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-12 — Completed Quick Task 260912-zero-motion-move-copy (QCK-31: Zero-Motion & Zero-State-Shift Document Move & Copy Architecture). 197 Vitest tests across 22 files (100%), 146 xUnit tests (100%), and 12 Pytest tests passing.
+Last activity: 2026-09-12 — Completed Quick Task 260912-empty-folder-disappear-new-appear (QCK-32: Dynamic Category Folder Lifecycle on Move/Copy). 200 Vitest tests across 22 files (100%), 146 xUnit tests (100%), and 12 Pytest tests passing.
 
 ## Operator Next Steps
 

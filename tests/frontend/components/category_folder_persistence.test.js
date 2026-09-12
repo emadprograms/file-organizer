@@ -342,5 +342,80 @@ describe('Category Folder Expansion Persistence', () => {
         expect(docListEl.scrollTop).toBe(220);
         expect(scrollSpy).not.toHaveBeenCalled();
     });
+
+    it('shows folder disappearing when all its documents are moved out and it becomes empty', () => {
+        renderCategories();
+
+        const docListEl = document.getElementById('document-list');
+        // Folder '05 - عقود' initially exists with 1 document ('doc003')
+        const initialCard = document.querySelector('.category-folder-card[data-category-name="05 - عقود"]');
+        expect(initialCard).not.toBeNull();
+        expect(initialCard.querySelector('.doc-count-badge').textContent).toBe('1');
+
+        const { moveDocInDom } = require('../../../src/api/static/js/categories-view.js');
+        // Move doc003 out to '06 - كهرباء وماء'
+        const moved = moveDocInDom('doc003', '05 - عقود', '06 - كهرباء وماء');
+        expect(moved).toBe(true);
+
+        // Verify: Folder '05 - عقود' has disappeared from the DOM!
+        const disappearedCard = document.querySelector('.category-folder-card[data-category-name="05 - عقود"]');
+        expect(disappearedCard).toBeNull();
+
+        // Verify: Target folder '06 - كهرباء وماء' count updated 1 -> 2
+        const targetCard = document.querySelector('.category-folder-card[data-category-name="06 - كهرباء وماء"]');
+        expect(targetCard.querySelector('.doc-count-badge').textContent).toBe('2');
+        expect(targetCard.querySelector('[data-vault-id="doc003"]')).not.toBeNull();
+    });
+
+    it('shows new folder appearing at sorted position when document is moved into a new folder', () => {
+        renderCategories();
+
+        const docListEl = document.getElementById('document-list');
+        // '03 - فواتير' does not exist initially in DOM
+        expect(document.querySelector('.category-folder-card[data-category-name="03 - فواتير"]')).toBeNull();
+
+        const { moveDocInDom } = require('../../../src/api/static/js/categories-view.js');
+        // Move doc001 into new folder '03 - فواتير'
+        const moved = moveDocInDom('doc001', '01 - بيانات أساسية', '03 - فواتير');
+        expect(moved).toBe(true);
+
+        // Verify: New folder '03 - فواتير' now appears in the DOM!
+        const newFolderCard = document.querySelector('.category-folder-card[data-category-name="03 - فواتير"]');
+        expect(newFolderCard).not.toBeNull();
+        expect(newFolderCard.querySelector('.doc-count-badge').textContent).toBe('1');
+
+        // Verify: Document is inside the new folder and visible
+        const movedDoc = newFolderCard.querySelector('[data-vault-id="doc001"]');
+        expect(movedDoc).not.toBeNull();
+        expect(newFolderCard.querySelector('.category-docs').classList.contains('hidden')).toBe(false);
+
+        // Verify: Sorted order in DOM ('01 - بيانات أساسية', '03 - فواتير', '05 - عقود', '06 - كهرباء وماء')
+        const allCards = Array.from(document.querySelectorAll('.category-folder-card'));
+        const names = allCards.map(c => c.getAttribute('data-category-name'));
+        expect(names).toEqual(['01 - بيانات أساسية', '03 - فواتير', '05 - عقود', '06 - كهرباء وماء']);
+    });
+
+    it('handles folder disappearing and re-appearing when moving document out and then back in', () => {
+        renderCategories();
+
+        const { moveDocInDom } = require('../../../src/api/static/js/categories-view.js');
+
+        // 1. Move doc003 out of '05 - عقود' to '06 - كهرباء وماء' -> '05 - عقود' disappears
+        moveDocInDom('doc003', '05 - عقود', '06 - كهرباء وماء');
+        expect(document.querySelector('.category-folder-card[data-category-name="05 - عقود"]')).toBeNull();
+
+        // 2. Move doc003 back from '06 - كهرباء وماء' to '05 - عقود' -> '05 - عقود' re-appears!
+        moveDocInDom('doc003', '06 - كهرباء وماء', '05 - عقود');
+        const reappearedCard = document.querySelector('.category-folder-card[data-category-name="05 - عقود"]');
+        expect(reappearedCard).not.toBeNull();
+        expect(reappearedCard.querySelector('.doc-count-badge').textContent).toBe('1');
+        expect(reappearedCard.querySelector('[data-vault-id="doc003"]')).not.toBeNull();
+
+        // Verify: Sorted position is preserved ('01', '05', '06')
+        const allCards = Array.from(document.querySelectorAll('.category-folder-card'));
+        const names = allCards.map(c => c.getAttribute('data-category-name'));
+        expect(names).toEqual(['01 - بيانات أساسية', '05 - عقود', '06 - كهرباء وماء']);
+    });
 });
+
 
