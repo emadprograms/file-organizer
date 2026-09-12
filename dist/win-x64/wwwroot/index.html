@@ -46,7 +46,12 @@
                         <span class="text-[10px] text-slate-400 font-mono tracking-wider uppercase block">Database Core</span>
                     </div>
                 </div>
-                <span class="text-[10px] font-semibold bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">v11.0</span>
+                <div class="flex items-center gap-1.5">
+                    <span class="text-[10px] font-semibold bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full border border-slate-700">v11.0</span>
+                    <button id="sidebar-collapse-btn" type="button" class="p-1 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors cursor-pointer" title="Collapse sidebar (Ctrl+B) • طي الشريط الجانبي" aria-label="Collapse Sidebar">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+                    </button>
+                </div>
             </div>
             
             <!-- Sidebar Header Controls -->
@@ -76,6 +81,10 @@
             <!-- Top Navbar: Breadcrumb Title, Search Trigger -->
             <header id="top-navbar" class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-5 py-3 border-b border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between z-20 flex-shrink-0 gap-4">
                 <div class="flex items-center gap-2.5 min-w-0">
+                    <!-- Sidebar Toggle Button (Collapse / Expand) -->
+                    <button id="sidebar-toggle-btn" type="button" class="p-1.5 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 rounded-lg transition-colors cursor-pointer flex-shrink-0" title="Toggle sidebar (Ctrl+B) • تبديل الشريط الجانبي" aria-label="Toggle Sidebar" aria-expanded="true">
+                        <svg id="sidebar-toggle-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm6 0v16"/></svg>
+                    </button>
                     <!-- Back to Houses Button (Visible when viewing a house or tenant) -->
                     <button id="back-to-grid-btn" class="hidden items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg transition-all flex-shrink-0 cursor-pointer" title="Houses">
                         <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
@@ -1263,6 +1272,18 @@
                         <kbd class="px-2 py-1 text-xs font-mono font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg shadow-2xs">⌘K</kbd>
                         <span class="text-xs text-slate-400 font-mono">/</span>
                         <kbd class="px-2 py-1 text-xs font-mono font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg shadow-2xs">Ctrl+K</kbd>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 hover:bg-slate-100/70 transition-colors">
+                    <div class="flex flex-col">
+                        <span class="text-xs font-bold text-slate-800">Toggle Sidebar Navigation</span>
+                        <span class="text-[11px] text-slate-500">تبديل وإخفاء الشريط الجانبي</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <kbd class="px-2 py-1 text-xs font-mono font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg shadow-2xs">⌘B</kbd>
+                        <span class="text-xs text-slate-400 font-mono">/</span>
+                        <kbd class="px-2 py-1 text-xs font-mono font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg shadow-2xs">Ctrl+B</kbd>
                     </div>
                 </div>
 

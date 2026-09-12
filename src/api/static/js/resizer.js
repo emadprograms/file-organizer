@@ -8,6 +8,15 @@
         let startX;
         let startWidth;
 
+        if (panelId === 'main-sidebar') {
+            try {
+                const savedWidth = localStorage.getItem('sidebar_width');
+                if (savedWidth) {
+                    panel.style.width = savedWidth;
+                }
+            } catch (e) {}
+        }
+
         resizer.addEventListener('mousedown', (e) => {
             isResizing = true;
             startX = e.clientX;
@@ -37,6 +46,11 @@
                 isResizing = false;
                 document.body.style.cursor = 'default';
                 document.body.style.userSelect = '';
+                if (panelId === 'main-sidebar' && panel.style.width) {
+                    try {
+                        localStorage.setItem('sidebar_width', panel.style.width);
+                    } catch (e) {}
+                }
             }
         });
     }

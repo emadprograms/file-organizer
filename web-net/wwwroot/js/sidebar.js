@@ -79,6 +79,115 @@
         houseListEl.appendChild(ul);
     }
 
+    function isSidebarCollapsed() {
+        const sidebar = document.getElementById('main-sidebar');
+        if (!sidebar) return false;
+        return sidebar.classList.contains('hidden');
+    }
+
+    function toggleSidebar(forceCollapsed) {
+        const sidebar = document.getElementById('main-sidebar');
+        const resizer = document.getElementById('resizer-1');
+        const toggleBtn = document.getElementById('sidebar-toggle-btn');
+        if (!sidebar) return;
+
+        const currentCollapsed = isSidebarCollapsed();
+        const willCollapse = typeof forceCollapsed === 'boolean' ? forceCollapsed : !currentCollapsed;
+
+        if (willCollapse) {
+            if (sidebar.style.width && sidebar.style.width !== '0px') {
+                try {
+                    localStorage.setItem('sidebar_width', sidebar.style.width);
+                } catch (e) {}
+            }
+            sidebar.classList.add('hidden');
+            if (resizer) resizer.classList.add('hidden');
+
+            if (toggleBtn) {
+                toggleBtn.title = 'Expand sidebar (Ctrl+B) • توسيع الشريط الجانبي';
+                toggleBtn.setAttribute('aria-expanded', 'false');
+                toggleBtn.classList.add('text-blue-600', 'dark:text-blue-400', 'bg-blue-50', 'dark:bg-blue-900/30', 'border-blue-200', 'dark:border-blue-800');
+            }
+            try {
+                localStorage.setItem('sidebar_collapsed', 'true');
+            } catch (e) {}
+        } else {
+            try {
+                const savedWidth = localStorage.getItem('sidebar_width');
+                if (savedWidth) {
+                    sidebar.style.width = savedWidth;
+                }
+            } catch (e) {}
+
+            sidebar.classList.remove('hidden');
+            if (resizer) resizer.classList.remove('hidden');
+
+            if (toggleBtn) {
+                toggleBtn.title = 'Collapse sidebar (Ctrl+B) • طي الشريط الجانبي';
+                toggleBtn.setAttribute('aria-expanded', 'true');
+                toggleBtn.classList.remove('text-blue-600', 'dark:text-blue-400', 'bg-blue-50', 'dark:bg-blue-900/30', 'border-blue-200', 'dark:border-blue-800');
+            }
+            try {
+                localStorage.setItem('sidebar_collapsed', 'false');
+            } catch (e) {}
+        }
+    }
+
+    function initSidebarCollapse() {
+        const toggleBtn = document.getElementById('sidebar-toggle-btn');
+        const collapseBtn = document.getElementById('sidebar-collapse-btn');
+
+        if (toggleBtn && !toggleBtn._hasSidebarListener) {
+            toggleBtn._hasSidebarListener = true;
+            toggleBtn.onclick = (e) => {
+                e.preventDefault();
+                toggleSidebar();
+            };
+        }
+
+        if (collapseBtn && !collapseBtn._hasSidebarListener) {
+            collapseBtn._hasSidebarListener = true;
+            collapseBtn.onclick = (e) => {
+                e.preventDefault();
+                toggleSidebar(true);
+            };
+        }
+
+        try {
+            const savedState = localStorage.getItem('sidebar_collapsed');
+            if (savedState === 'true') {
+                toggleSidebar(true);
+            }
+        } catch (e) {}
+
+        if (typeof window !== 'undefined' && !window._sidebarShortcutAttached) {
+            window._sidebarShortcutAttached = true;
+            document.addEventListener('keydown', (e) => {
+                const isB = e.code === 'KeyB' || (e.key && e.key.toLowerCase() === 'b');
+                if (isB && (e.ctrlKey || e.metaKey) && !e.altKey) {
+                    const activeEl = document.activeElement;
+                    const tag = ((activeEl && activeEl.tagName) || (e.target && e.target.tagName) || '').toLowerCase();
+                    if (tag === 'input' || tag === 'textarea' || tag === 'select' || (activeEl && activeEl.isContentEditable) || (e.target && e.target.isContentEditable)) {
+                        return;
+                    }
+                    e.preventDefault();
+                    toggleSidebar();
+                }
+            });
+        }
+    }
+
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initSidebarCollapse);
+        } else {
+            initSidebarCollapse();
+        }
+    }
+
     window.loadTree = loadTree;
     window.renderSidebar = renderSidebar;
+    window.isSidebarCollapsed = isSidebarCollapsed;
+    window.toggleSidebar = toggleSidebar;
+    window.initSidebarCollapse = initSidebarCollapse;
 })();

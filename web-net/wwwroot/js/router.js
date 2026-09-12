@@ -203,7 +203,7 @@
             }
         }
         if (tabTimelineLabel) {
-            tabTimelineLabel.textContent = 'Timeline';
+            tabTimelineLabel.textContent = tenantName ? 'Tenant Timeline' : 'House Timeline';
         }
 
         if (areaGridPanel) {

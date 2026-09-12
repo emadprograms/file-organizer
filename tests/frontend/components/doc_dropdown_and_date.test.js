@@ -4,6 +4,8 @@ const {
     openDocDropdownMenu,
     closeDocDropdownMenu,
     showDocInTimeline,
+    showDocInCategories,
+    handleToggleDocPin,
     handleDeleteSingleDoc,
 } = require('../../../src/api/static/js/doc-manager.js');
 
@@ -110,10 +112,11 @@ describe('Document 3-Dots Dropdown Menu & Categories Date Badge', () => {
             expect(menu).not.toBeNull();
             expect(menu.getAttribute('role')).toBe('menu');
 
-            // 5 action buttons
+            // 6 action buttons
             const renameItem = menu.querySelector('.doc-menu-item-rename');
             const moveItem = menu.querySelector('.doc-menu-item-move');
             const copyItem = menu.querySelector('.doc-menu-item-copy');
+            const pinItem = menu.querySelector('.doc-menu-item-pin');
             const timelineItem = menu.querySelector('.doc-menu-item-timeline');
             const deleteItem = menu.querySelector('.doc-menu-item-delete');
 
@@ -123,6 +126,8 @@ describe('Document 3-Dots Dropdown Menu & Categories Date Badge', () => {
             expect(moveItem.textContent).toContain('Move Document');
             expect(copyItem).not.toBeNull();
             expect(copyItem.textContent).toContain('Copy Document');
+            expect(pinItem).not.toBeNull();
+            expect(pinItem.textContent).toContain('Pin Document');
             expect(timelineItem).not.toBeNull();
             expect(timelineItem.textContent).toContain('Show in Timeline');
             expect(deleteItem).not.toBeNull();
@@ -224,6 +229,136 @@ describe('Document 3-Dots Dropdown Menu & Categories Date Badge', () => {
             );
             await vi.waitFor(() => {
                 expect(global.refreshCurrentTab).toHaveBeenCalledWith('Safra C', '514');
+            });
+        });
+
+        it('renders Unpin Document when document is pinned (is_manual = 1)', () => {
+            const pinnedDoc = { ...mockDoc, is_manual: 1 };
+            const btn = document.createElement('button');
+            document.body.appendChild(btn);
+
+            openDocDropdownMenu(null, pinnedDoc, '01 - عقود وإيجارات', btn);
+
+            const menu = document.querySelector('.doc-dropdown-menu');
+            const unpinItem = menu.querySelector('.doc-menu-item-unpin');
+            expect(unpinItem).not.toBeNull();
+            expect(unpinItem.textContent).toContain('Unpin Document');
+        });
+
+        it('invokes handleToggleDocPin to pin an unpinned document via PATCH', async () => {
+            const unpinnedDoc = { ...mockDoc, is_manual: 0 };
+            const btn = document.createElement('button');
+            document.body.appendChild(btn);
+
+            global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ status: 'success' }) });
+
+            openDocDropdownMenu(null, unpinnedDoc, '01 - عقود وإيجارات', btn);
+            const menu = document.querySelector('.doc-dropdown-menu');
+            const pinBtn = menu.querySelector('.doc-menu-item-pin');
+            pinBtn.click();
+
+            expect(global.fetch).toHaveBeenCalledWith(
+                '/api/areas/Safra%20C/houses/514/documents/doc_abc_123',
+                expect.objectContaining({
+                    method: 'PATCH',
+                    body: JSON.stringify({ is_manual: 1 })
+                })
+            );
+            await vi.waitFor(() => {
+                expect(unpinnedDoc.is_manual).toBe(1);
+            });
+        });
+
+        it('invokes handleToggleDocPin to unpin a pinned document via POST reset-lock', async () => {
+            const pinnedDoc = { ...mockDoc, is_manual: 1 };
+            const btn = document.createElement('button');
+            document.body.appendChild(btn);
+
+            global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ status: 'success' }) });
+
+            openDocDropdownMenu(null, pinnedDoc, '01 - عقود وإيجارات', btn);
+            const menu = document.querySelector('.doc-dropdown-menu');
+            const unpinBtn = menu.querySelector('.doc-menu-item-pin');
+            unpinBtn.click();
+
+            expect(global.fetch).toHaveBeenCalledWith(
+                '/api/areas/Safra%20C/houses/514/documents/doc_abc_123/reset-lock',
+                expect.objectContaining({
+                    method: 'POST'
+                })
+            );
+            await vi.waitFor(() => {
+                expect(pinnedDoc.is_manual).toBe(0);
+            });
+        });
+
+        it('renders Show in Categories instead of Show in Timeline when in timeline view', () => {
+            global.currentTab = 'timeline';
+            const btn = document.createElement('button');
+            document.body.appendChild(btn);
+
+            openDocDropdownMenu(null, mockDoc, '01 - عقود وإيجارات', btn);
+
+            const menu = document.querySelector('.doc-dropdown-menu');
+            const categoriesItem = menu.querySelector('.doc-menu-item-categories');
+            const timelineItem = menu.querySelector('.doc-menu-item-timeline');
+
+            expect(categoriesItem).not.toBeNull();
+            expect(categoriesItem.textContent).toContain('Show in Categories');
+            expect(timelineItem).toBeNull();
+            global.currentTab = 'categories';
+        });
+
+        it('renders Show in Categories when trigger button is inside #timeline-container', () => {
+            const timelineContainer = document.createElement('div');
+            timelineContainer.id = 'timeline-container';
+            const btn = document.createElement('button');
+            timelineContainer.appendChild(btn);
+            document.body.appendChild(timelineContainer);
+
+            openDocDropdownMenu(null, mockDoc, '01 - عقود وإيجارات', btn);
+
+            const menu = document.querySelector('.doc-dropdown-menu');
+            const categoriesItem = menu.querySelector('.doc-menu-item-categories');
+            expect(categoriesItem).not.toBeNull();
+            expect(categoriesItem.textContent).toContain('Show in Categories');
+        });
+    });
+
+    describe('Show in Categories Navigation (showDocInCategories)', () => {
+        it('switches to categories tab, opens folder, and highlights target document', async () => {
+            global.currentTab = 'timeline';
+            const tabCategories = document.getElementById('tab-categories');
+            const tabClickSpy = vi.spyOn(tabCategories, 'click');
+
+            // Setup category folder and doc card in DOM
+            const docList = document.getElementById('document-list');
+            const folderCard = document.createElement('div');
+            folderCard.className = 'category-folder-card';
+            folderCard.setAttribute('data-category-name', '01 - عقود وإيجارات');
+            const docsContainer = document.createElement('div');
+            docsContainer.className = 'category-docs hidden';
+            const targetCard = document.createElement('div');
+            targetCard.setAttribute('data-vault-id', mockDoc.vault_id);
+            targetCard.className = 'category-doc-item';
+            docsContainer.appendChild(targetCard);
+            folderCard.appendChild(docsContainer);
+            docList.appendChild(folderCard);
+
+            targetCard.scrollIntoView = vi.fn();
+            window.setSelectedDoc = vi.fn();
+            window.openCategoryFolder = vi.fn();
+
+            showDocInCategories(mockDoc);
+
+            expect(tabClickSpy).toHaveBeenCalled();
+            expect(window.openCategoryFolder).toHaveBeenCalledWith('01 - عقود وإيجارات');
+
+            await vi.waitFor(() => {
+                expect(targetCard.scrollIntoView).toHaveBeenCalled();
+                expect(targetCard.classList.contains('ring-4')).toBe(true);
+                expect(window.setSelectedDoc).toHaveBeenCalled();
+                expect(docsContainer.classList.contains('hidden')).toBe(false);
             });
         });
     });

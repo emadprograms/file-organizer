@@ -1485,17 +1485,23 @@ public class FileOrganizerRepository : IFileOrganizerRepository
 
         await conn.ExecuteAsync("UPDATE documents SET is_manual = 0 WHERE vault_id = @VaultId;", new { VaultId = vaultId });
 
+        await BulkUpdateTenantsAsync(existing.HouseId, Array.Empty<TenantDto>(), reallocate: true);
+
+        var updated = await conn.QueryFirstOrDefaultAsync<Document>(
+            "SELECT vault_id AS VaultId, house_id AS HouseId, tenant_id AS TenantId, category AS Category, arabic_title AS ArabicTitle, is_manual AS IsManual FROM documents WHERE vault_id = @VaultId;",
+            new { VaultId = vaultId }) ?? existing;
+
         var tenantName = await conn.QueryFirstOrDefaultAsync<string>(
             "SELECT name FROM tenants WHERE id = @TenantId;",
-            new { TenantId = existing.TenantId });
+            new { TenantId = updated.TenantId });
 
         return new DocumentActionResponseDto
         {
             Status = "success",
             VaultId = vaultId,
-            ArabicTitle = existing.ArabicTitle,
-            Category = existing.Category,
-            TenantId = existing.TenantId,
+            ArabicTitle = updated.ArabicTitle,
+            Category = updated.Category,
+            TenantId = updated.TenantId,
             TenantName = tenantName,
             IsManual = 0
         };

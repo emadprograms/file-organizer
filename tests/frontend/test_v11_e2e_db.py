@@ -658,11 +658,44 @@ def test_timeline_view_doc_action_menu_e2e(page: Page, server_url: str):
     dropdown = page.locator(".doc-dropdown-menu")
     expect(dropdown).to_be_visible()
     expect(dropdown.locator(".doc-menu-item-rename")).to_be_visible()
-    expect(dropdown.locator(".doc-menu-item-timeline")).to_be_visible()
+    expect(dropdown.locator(".doc-menu-item-categories")).to_be_visible()
 
     # Escape key closes dropdown
     page.keyboard.press("Escape")
     expect(dropdown).to_be_hidden()
+
+
+def test_sidebar_collapse_and_expand_e2e(page: Page, server_url: str):
+    """Sidebar can be collapsed and expanded via toggle button and keyboard shortcut."""
+    page.goto(f"{server_url}/#/area/Safra%20C/house/101")
+    sidebar = page.locator("#main-sidebar")
+    toggle_btn = page.locator("#sidebar-toggle-btn")
+    collapse_btn = page.locator("#sidebar-collapse-btn")
+    resizer = page.locator("#resizer-1")
+
+    expect(sidebar).to_be_visible()
+    expect(resizer).to_be_visible()
+
+    # Collapse via sidebar collapse button
+    collapse_btn.click()
+    expect(sidebar).to_be_hidden()
+    expect(resizer).to_be_hidden()
+
+    # Expand via top navbar toggle button
+    toggle_btn.click()
+    expect(sidebar).to_be_visible()
+    expect(resizer).to_be_visible()
+
+    # Toggle via keyboard shortcut (ControlOrMeta+B)
+    page.keyboard.press("ControlOrMeta+b")
+    expect(sidebar).to_be_hidden()
+    expect(resizer).to_be_hidden()
+
+    # Toggle back via keyboard shortcut (ControlOrMeta+B)
+    page.keyboard.press("ControlOrMeta+b")
+    expect(sidebar).to_be_visible()
+    expect(resizer).to_be_visible()
+
 
 
 

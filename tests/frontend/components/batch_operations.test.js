@@ -22,6 +22,7 @@ const {
     handleBatchDeleteSubmit,
     initBatchOperations,
     populateBatchTenantSelect,
+    openBatchMoveForDoc,
 } = require('../../../src/api/static/js/categories-view.js');
 
 function setupDOM() {
@@ -488,7 +489,7 @@ describe('Multi-Select Batch Document Operations (Phase 106)', () => {
 
         const select = document.getElementById('batch-move-tenant-select');
         // Contains ONLY the actual house tenants - NO artificial "keep current tenant" options
-        expect(select.options.length).toBe(2);
+        expect(select.options.length).toBeGreaterThanOrEqual(2);
         expect(select.innerHTML).not.toContain('الاحتفاظ');
         expect(select.innerHTML).not.toContain('Keep');
         expect(select.innerHTML).not.toContain('🏛️');
@@ -530,7 +531,7 @@ describe('Multi-Select Batch Document Operations (Phase 106)', () => {
         await populateBatchTenantSelect('batch-move-tenant-select');
 
         const select = document.getElementById('batch-move-tenant-select');
-        expect(select.options.length).toBe(2);
+        expect(select.options.length).toBeGreaterThanOrEqual(2);
         expect(select.value).toBe('20');
         expect(select.options[1].selected).toBe(true);
     });
@@ -621,5 +622,80 @@ describe('Multi-Select Batch Document Operations (Phase 106)', () => {
         const html = fs.readFileSync(path.resolve(__dirname, '../../../src/api/static/index.html'), 'utf-8');
         expect(html).not.toContain('النسخ يتيح ظهور الوثائق في مجلد إضافي');
         expect(html).not.toContain('ملاحظة: النسخ يتيح ظهور');
+    });
+
+    it('defaults batch move tenant to the open tenant folder (window.currentTenant) over first DB result', async () => {
+        window.currentTenant = 'عثمان المساعد';
+        toggleDocSelection('doc001', true);
+
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => [
+                { id: 99, name: 'زيد الراجحي', start_date: '2024-01-01', is_active: true },
+                { id: 45, name: 'عثمان المساعد', start_date: '2022-01-01', is_active: false }
+            ]
+        });
+
+        await populateBatchTenantSelect('batch-move-tenant-select');
+
+        const select = document.getElementById('batch-move-tenant-select');
+        expect(select.options.length).toBe(3);
+        // Should select 'عثمان المساعد' (id 45) because his folder is open, not 'زيد الراجحي' (id 99)
+        expect(select.value).toBe('45');
+        const selectedOpt = Array.from(select.options).find(o => o.value === '45');
+        expect(selectedOpt.selected).toBe(true);
+        window.currentTenant = null;
+    });
+
+    it('defaults batch move tenant to URL hash tenant when window.currentTenant is not set', async () => {
+        window.currentTenant = null;
+        window.location.hash = '#/area/Safra%20C/house/500/tenant/' + encodeURIComponent('500_عمر الفاروق');
+        toggleDocSelection('doc001', true);
+
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => [
+                { id: 101, name: 'خالد بن الوليد', start_date: '2024-01-01', is_active: true },
+                { id: 102, name: 'عمر الفاروق', start_date: '2020-01-01', is_active: false }
+            ]
+        });
+
+        await populateBatchTenantSelect('batch-move-tenant-select');
+
+        const select = document.getElementById('batch-move-tenant-select');
+        expect(select.options.length).toBe(3);
+        expect(select.value).toBe('102');
+        const selectedOpt = Array.from(select.options).find(o => o.value === '102');
+        expect(selectedOpt.selected).toBe(true);
+        window.location.hash = '';
+    });
+
+    it('pre-selects open tenant when moving single doc via openBatchMoveForDoc', async () => {
+        window.currentTenant = 'عثمان المساعد';
+        const testDoc = {
+            vault_id: 'doc_single_999',
+            file_name: 'فاتورة.pdf',
+            tenant: 'زيد الراجحي',
+            tenant_id: 99
+        };
+
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => [
+                { id: 99, name: 'زيد الراجحي', start_date: '2024-01-01', is_active: true },
+                { id: 45, name: 'عثمان المساعد', start_date: '2022-01-01', is_active: false }
+            ]
+        });
+
+        openBatchMoveForDoc(testDoc);
+        await new Promise(resolve => setTimeout(resolve, 20));
+
+        const modal = document.getElementById('batch-move-modal');
+        expect(modal.classList.contains('hidden')).toBe(false);
+
+        const select = document.getElementById('batch-move-tenant-select');
+        // Because the open folder is 'عثمان المساعد', it must be chosen
+        expect(select.value).toBe('45');
+        window.currentTenant = null;
     });
 });

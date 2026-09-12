@@ -642,6 +642,41 @@
         menu.className = 'doc-dropdown-menu fixed z-50 bg-white rounded-xl shadow-xl border border-slate-200 py-1 min-w-[190px] text-xs font-sans animate-in fade-in zoom-in-95 duration-100';
         menu.setAttribute('role', 'menu');
 
+        const isPinned = Boolean(doc && doc.is_manual);
+        const pinActionHtml = isPinned
+            ? `
+            <button type="button" class="doc-menu-item-pin doc-menu-item-unpin w-full px-3.5 py-2 text-left flex items-center gap-2.5 font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-700 transition-colors cursor-pointer" title="Unlock document and reset to auto-reconciliation">
+                <svg class="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"/></svg>
+                <span>Unpin Document</span>
+            </button>
+            `
+            : `
+            <button type="button" class="doc-menu-item-pin w-full px-3.5 py-2 text-left flex items-center gap-2.5 font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-700 transition-colors cursor-pointer" title="Pin document to preserve its tenant assignment">
+                <svg class="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                <span>Pin Document</span>
+            </button>
+            `;
+
+        const isTimeline = Boolean(
+            (triggerBtn && triggerBtn.closest && triggerBtn.closest('#timeline-container')) ||
+            (typeof currentTab !== 'undefined' && currentTab === 'timeline') ||
+            (typeof window !== 'undefined' && window.currentTab === 'timeline')
+        );
+
+        const navActionHtml = isTimeline
+            ? `
+            <button type="button" class="doc-menu-item-categories w-full px-3.5 py-2 text-left flex items-center gap-2.5 font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors cursor-pointer">
+                <svg class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                <span>Show in Categories</span>
+            </button>
+            `
+            : `
+            <button type="button" class="doc-menu-item-timeline w-full px-3.5 py-2 text-left flex items-center gap-2.5 font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors cursor-pointer">
+                <svg class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                <span>Show in Timeline</span>
+            </button>
+            `;
+
         menu.innerHTML = `
             <button type="button" class="doc-menu-item-rename w-full px-3.5 py-2 text-left flex items-center gap-2.5 font-medium text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition-colors cursor-pointer">
                 <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
@@ -655,10 +690,8 @@
                 <svg class="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
                 <span>Copy Document</span>
             </button>
-            <button type="button" class="doc-menu-item-timeline w-full px-3.5 py-2 text-left flex items-center gap-2.5 font-medium text-slate-700 hover:bg-emerald-50 hover:text-emerald-700 transition-colors cursor-pointer">
-                <svg class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                <span>Show in Timeline</span>
-            </button>
+            ${pinActionHtml}
+            ${navActionHtml}
             <hr class="my-1 border-slate-100" />
             <button type="button" class="doc-menu-item-delete w-full px-3.5 py-2 text-left flex items-center gap-2.5 font-medium text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer">
                 <svg class="w-3.5 h-3.5 text-rose-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
@@ -676,8 +709,8 @@
                 if (titleEl) {
                     const area = getResolvedArea(doc);
                     const house = getResolvedHouse(doc);
-                    const isTimeline = (typeof window !== 'undefined' && window.currentTab === 'timeline') || (titleEl && titleEl.tagName === 'H4');
-                    if (isTimeline && typeof window.handleInlineRenameTimeline === 'function') {
+                    const isTimelineTab = (typeof window !== 'undefined' && window.currentTab === 'timeline') || (titleEl && titleEl.tagName === 'H4');
+                    if (isTimelineTab && typeof window.handleInlineRenameTimeline === 'function') {
                         window.handleInlineRenameTimeline(null, doc, titleEl, area, house);
                     } else if (typeof window.handleInlineRename === 'function') {
                         window.handleInlineRename(null, doc, titleEl, area, house);
@@ -711,6 +744,24 @@
                 } else if (typeof window.openBatchCopyModal === 'function') {
                     window.openBatchCopyModal();
                 }
+            };
+        }
+
+        const btnPin = menu.querySelector('.doc-menu-item-pin');
+        if (btnPin) {
+            btnPin.onclick = async (ev) => {
+                ev.stopPropagation();
+                closeDocDropdownMenu();
+                await handleToggleDocPin(doc);
+            };
+        }
+
+        const btnCategories = menu.querySelector('.doc-menu-item-categories');
+        if (btnCategories) {
+            btnCategories.onclick = (ev) => {
+                ev.stopPropagation();
+                closeDocDropdownMenu();
+                showDocInCategories(doc);
             };
         }
 
@@ -829,6 +880,163 @@
         setTimeout(() => findAndHighlight(0), 50);
     }
 
+    function showDocInCategories(doc) {
+        if (!doc || !doc.vault_id) return;
+        const vaultId = doc.vault_id;
+
+        const area = getResolvedArea(doc);
+        const house = getResolvedHouse(doc);
+        const docTenant = doc.primary_tenant || doc.tenant || null;
+        const docCategory = doc.category || '';
+
+        // Switch active tenant if document specifies a primary tenant
+        if (docTenant) {
+            if (typeof currentTenant !== 'undefined') currentTenant = docTenant;
+            if (typeof window !== 'undefined') window.currentTenant = docTenant;
+        }
+
+        // Switch tab to categories if not currently on categories
+        const tabCategories = document.getElementById('tab-categories');
+        if (tabCategories && (typeof currentTab === 'undefined' || currentTab !== 'categories')) {
+            tabCategories.click();
+        } else if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+            window.refreshCurrentTab(area, house);
+        } else if (typeof refreshCurrentTab === 'function') {
+            refreshCurrentTab(area, house);
+        }
+
+        // Ensure target category folder is open
+        if (docCategory && typeof window !== 'undefined' && typeof window.openCategoryFolder === 'function') {
+            window.openCategoryFolder(docCategory);
+        }
+
+        const findAndHighlight = (attempts = 0) => {
+            if (docCategory) {
+                const folderCard = document.querySelector(`.category-folder-card[data-category-name="${docCategory}"]`);
+                if (folderCard) {
+                    const docsContainer = folderCard.querySelector('.category-docs');
+                    if (docsContainer && docsContainer.classList.contains('hidden')) {
+                        docsContainer.classList.remove('hidden');
+                    }
+                }
+            }
+
+            const card = document.querySelector(`#document-list [data-vault-id="${vaultId}"]`);
+            if (card) {
+                const parentDocs = card.closest('.category-docs');
+                if (parentDocs && parentDocs.classList.contains('hidden')) {
+                    parentDocs.classList.remove('hidden');
+                }
+
+                if (typeof card.scrollIntoView === 'function') {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                card.classList.add('ring-4', 'ring-blue-500', 'bg-blue-50', 'shadow-md', 'transition-all');
+                setTimeout(() => {
+                    card.classList.remove('ring-4', 'ring-blue-500', 'bg-blue-50', 'shadow-md');
+                }, 2500);
+
+                const docTitle = doc.brief_arabic_title || doc.filename || 'Document';
+                if (typeof window.setSelectedDoc === 'function') {
+                    window.setSelectedDoc(doc, docTitle, card);
+                }
+                const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+                if (toast) toast('Showing document in categories.');
+            } else if (attempts < 15) {
+                setTimeout(() => findAndHighlight(attempts + 1), 100);
+            } else {
+                const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+                if (toast) toast('Document displayed in categories.');
+            }
+        };
+
+        setTimeout(() => findAndHighlight(0), 50);
+    }
+
+    async function handleToggleDocPin(doc) {
+        if (!doc || !doc.vault_id) return;
+        const isPinned = Boolean(doc.is_manual);
+        const area = getResolvedArea(doc);
+        const house = getResolvedHouse(doc);
+        const isStatic = (typeof isStaticMode !== 'undefined' && isStaticMode) || (typeof window !== 'undefined' && window.isStaticMode);
+
+        if (isPinned) {
+            // Unpin document & reset to auto-reconciliation
+            if (isStatic) {
+                doc.is_manual = 0;
+                const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+                if (toast) toast('Document unpinned & reset to auto.');
+                if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                    await window.refreshCurrentTab(area, house);
+                } else if (typeof refreshCurrentTab === 'function') {
+                    await refreshCurrentTab(area, house);
+                }
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(doc.vault_id)}/reset-lock`, {
+                    method: 'POST'
+                });
+                if (!res.ok) {
+                    // Fallback to PATCH if reset-lock endpoint is unavailable
+                    const patchRes = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(doc.vault_id)}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ is_manual: 0 })
+                    });
+                    if (!patchRes.ok) throw new Error('Failed to unpin document');
+                }
+                doc.is_manual = 0;
+                const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+                if (toast) toast('Document unpinned & reset to auto.');
+                if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                    await window.refreshCurrentTab(area, house);
+                } else if (typeof refreshCurrentTab === 'function') {
+                    await refreshCurrentTab(area, house);
+                }
+            } catch (err) {
+                console.error('Error unpinning document:', err);
+                const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+                if (toast) toast(err.message || 'Failed to unpin document');
+            }
+        } else {
+            // Pin document to preserve manual assignment
+            if (isStatic) {
+                doc.is_manual = 1;
+                const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+                if (toast) toast('Document pinned.');
+                if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                    await window.refreshCurrentTab(area, house);
+                } else if (typeof refreshCurrentTab === 'function') {
+                    await refreshCurrentTab(area, house);
+                }
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(doc.vault_id)}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ is_manual: 1 })
+                });
+                if (!res.ok) throw new Error('Failed to pin document');
+                doc.is_manual = 1;
+                const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+                if (toast) toast('Document pinned.');
+                if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                    await window.refreshCurrentTab(area, house);
+                } else if (typeof refreshCurrentTab === 'function') {
+                    await refreshCurrentTab(area, house);
+                }
+            } catch (err) {
+                console.error('Error pinning document:', err);
+                const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+                if (toast) toast(err.message || 'Failed to pin document');
+            }
+        }
+    }
+
     async function handleDeleteSingleDoc(doc) {
         if (!doc || !doc.vault_id) return;
         const docTitle = doc.brief_arabic_title || doc.filename || 'Document';
@@ -872,6 +1080,8 @@
     window.openDocDropdownMenu = openDocDropdownMenu;
     window.closeDocDropdownMenu = closeDocDropdownMenu;
     window.showDocInTimeline = showDocInTimeline;
+    window.showDocInCategories = showDocInCategories;
+    window.handleToggleDocPin = handleToggleDocPin;
     window.handleDeleteSingleDoc = handleDeleteSingleDoc;
     window.handleDeleteDoc = handleDeleteDoc;
     window.resetDeleteButton = resetDeleteButton;
@@ -899,6 +1109,8 @@
             openDocDropdownMenu,
             closeDocDropdownMenu,
             showDocInTimeline,
+            showDocInCategories,
+            handleToggleDocPin,
             handleDeleteSingleDoc,
             handleDeleteDoc,
             resetDeleteButton,

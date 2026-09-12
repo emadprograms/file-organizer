@@ -70,9 +70,32 @@ Run a listener in prepend mode on the inbox directory:
 python src/main.py prepend
 ```
 
+## Web Interface & Navigation Shortcuts
+
+The modern web application (`http://localhost:5000`) offers a responsive, high-performance interface for archive navigation and document management:
+
+- **Collapsible Sidebar**: Effortlessly collapse or expand the left areas navigation sidebar using the collapse button (`<<`) in the sidebar header or the sidebar toggle button in the top navigation bar.
+- **Persistent Layout**: Custom sidebar width and collapsed/expanded state are automatically persisted in `localStorage` across reloads.
+- **Keyboard Shortcuts**:
+  - `⌘B` / `Ctrl+B`: Toggle navigation sidebar collapse/expand.
+  - `⌘K` / `Ctrl+K`: Open Global Spotlight Search.
+  - `⌘I` / `Ctrl+I`: Open Ingest & Document Upload Station.
+  - `Space`: Quick Look document preview inspector.
+  - `Shift+D`: Toggle Dark / Light theme.
+  - `?`: Open the interactive Keyboard Shortcuts guide modal.
+  - `Esc`: Dismiss active modals, dropdowns, and previews.
+
 ## Testing
 
-The project uses `pytest` for its test suite. To run all tests, simply execute:
+The project uses `vitest` for frontend unit/component tests, `pytest` for Python backend and Playwright E2E suites, and `dotnet test` for .NET tests:
+
 ```bash
+# Frontend component tests
+npx vitest run
+
+# Backend and Playwright E2E tests
 pytest
+
+# .NET test suite
+dotnet test
 ```

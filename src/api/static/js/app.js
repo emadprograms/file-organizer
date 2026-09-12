@@ -81,6 +81,9 @@
             window.setupResizer('resizer-1', 'main-sidebar', false);
             window.setupResizer('resizer-2', 'document-list-panel', true);
         }
+        if (typeof window.initSidebarCollapse === 'function') {
+            window.initSidebarCollapse();
+        }
         if (typeof window.initIngestStation === 'function') {
             window.initIngestStation();
         }

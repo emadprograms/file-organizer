@@ -412,6 +412,21 @@
         return '';
     }
 
+    function getBatchTenantFromHash() {
+        if (typeof window !== 'undefined' && window.location && window.location.hash) {
+            const match = window.location.hash.match(/tenant\/([^/]+)/);
+            if (match) {
+                const rawTenant = decodeURIComponent(match[1]);
+                const houseId = getBatchHouseFromHash();
+                if (houseId && rawTenant.startsWith(houseId + '_')) {
+                    return rawTenant.substring(houseId.length + 1);
+                }
+                return rawTenant;
+            }
+        }
+        return '';
+    }
+
     function getBatchResolvedArea() {
         if (singleTargetDoc && singleTargetDoc.area_id) return singleTargetDoc.area_id;
         if (typeof currentArea !== 'undefined' && currentArea) return currentArea;
@@ -424,6 +439,25 @@
         if (typeof currentHouse !== 'undefined' && currentHouse) return currentHouse;
         if (typeof window !== 'undefined' && window.currentHouse) return window.currentHouse;
         return getBatchHouseFromHash();
+    }
+
+    function getBatchResolvedTenant() {
+        const activeTenant = (typeof currentTenant !== 'undefined' && currentTenant)
+            ? currentTenant
+            : (typeof window !== 'undefined' && window.currentTenant ? window.currentTenant : null);
+        if (activeTenant) {
+            if (typeof activeTenant === 'object' && activeTenant !== null) {
+                return activeTenant.name || (activeTenant.id != null ? String(activeTenant.id) : '');
+            }
+            return String(activeTenant);
+        }
+        const hashTenant = getBatchTenantFromHash();
+        if (hashTenant) return hashTenant;
+        if (singleTargetDoc) {
+            const docTenant = singleTargetDoc.tenant || singleTargetDoc.primary_tenant;
+            if (docTenant) return docTenant;
+        }
+        return '';
     }
 
     function formatBatchTenantLabel(t) {
@@ -481,12 +515,36 @@
             }
         }
 
-        const activeTenant = (typeof currentTenant !== 'undefined' && currentTenant)
-            ? currentTenant
-            : (typeof window !== 'undefined' && window.currentTenant ? window.currentTenant : null);
+        if (singleTargetDoc) {
+            if (singleTargetDoc.tenant_id != null) tenantIds.add(singleTargetDoc.tenant_id);
+            const sName = singleTargetDoc.tenant || singleTargetDoc.primary_tenant;
+            if (sName) tenantNames.add(sName);
+        }
 
-        const targetTenantId = tenantIds.size > 0 ? Array.from(tenantIds)[0] : null;
-        const targetTenantName = tenantNames.size > 0 ? Array.from(tenantNames)[0] : (activeTenant || null);
+        const openTenant = getBatchResolvedTenant();
+
+        // Priority 1: The tenant whose folder you are currently in
+        let targetTenantName = openTenant || null;
+        let targetTenantId = null;
+
+        // Fallback: If no open tenant folder is active, infer from singleTargetDoc or selected docs
+        if (!targetTenantName) {
+            if (singleTargetDoc) {
+                targetTenantName = singleTargetDoc.tenant || singleTargetDoc.primary_tenant || null;
+                targetTenantId = singleTargetDoc.tenant_id != null ? singleTargetDoc.tenant_id : null;
+            } else if (tenantNames.size > 0) {
+                targetTenantName = Array.from(tenantNames)[0];
+                targetTenantId = tenantIds.size > 0 ? Array.from(tenantIds)[0] : null;
+            }
+        }
+
+        if (targetTenantName && targetTenantId == null) {
+            const cleanTarget = targetTenantName.trim().toLowerCase();
+            const matched = inMemoryTenants.find(t => t.name && t.name.trim().toLowerCase() === cleanTarget);
+            if (matched && matched.id != null) {
+                targetTenantId = matched.id;
+            }
+        }
 
         return {
             tenantIds: Array.from(tenantIds),
@@ -515,17 +573,22 @@
             if (!matchedOption) {
                 if (info.singleTenantId != null && t.id != null && String(t.id) === String(info.singleTenantId)) {
                     matchedOption = opt;
-                } else if (info.singleTenantName && t.name && t.name.trim().toLowerCase() === info.singleTenantName.trim().toLowerCase()) {
-                    matchedOption = opt;
+                } else if (info.singleTenantName && t.name) {
+                    const tClean = t.name.trim().toLowerCase();
+                    const targetClean = info.singleTenantName.trim().toLowerCase();
+                    if (tClean === targetClean || tClean.includes(targetClean) || targetClean.includes(tClean)) {
+                        matchedOption = opt;
+                    }
                 }
             }
             select.appendChild(opt);
         });
 
-        if (prevVal && Array.from(select.options).some(o => o.value === prevVal)) {
-            select.value = prevVal;
-        } else if (matchedOption) {
+        if (matchedOption) {
             matchedOption.selected = true;
+            select.value = matchedOption.value;
+        } else if (prevVal && Array.from(select.options).some(o => o.value === prevVal)) {
+            select.value = prevVal;
         } else if (select.options.length > 0) {
             select.options[0].selected = true;
         }
@@ -581,6 +644,9 @@
         const customInput = document.getElementById('batch-move-custom-folder-input');
 
         if (!modal || !select) return;
+
+        const moveTenantSelect = document.getElementById('batch-move-tenant-select');
+        if (moveTenantSelect) moveTenantSelect.value = '';
 
         populateBatchTenantSelect('batch-move-tenant-select');
 
@@ -756,6 +822,9 @@
         const customInput = document.getElementById('batch-copy-custom-folder-input');
 
         if (!modal || !select) return;
+
+        const copyTenantSelect = document.getElementById('batch-copy-tenant-select');
+        if (copyTenantSelect) copyTenantSelect.value = '';
 
         populateBatchTenantSelect('batch-copy-tenant-select');
 
@@ -2265,6 +2334,8 @@
         window.handleInlineRename = handleInlineRename;
         window.getBatchResolvedArea = getBatchResolvedArea;
         window.getBatchResolvedHouse = getBatchResolvedHouse;
+        window.getBatchTenantFromHash = getBatchTenantFromHash;
+        window.getBatchResolvedTenant = getBatchResolvedTenant;
         window.formatBatchTenantLabel = formatBatchTenantLabel;
         window.getBatchSelectedDocsInfo = getBatchSelectedDocsInfo;
         window.openCategoryFolder = openCategoryFolder;
@@ -2312,6 +2383,8 @@
             populateBatchTenantSelect,
             getBatchResolvedArea,
             getBatchResolvedHouse,
+            getBatchTenantFromHash,
+            getBatchResolvedTenant,
             formatBatchTenantLabel,
             getBatchSelectedDocsInfo,
             openBatchMoveModal,
