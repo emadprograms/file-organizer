@@ -11,9 +11,26 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="css/styles.css?v=260911-29">
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        };
+    </script>
+    <script>
+        (function() {
+            try {
+                var stored = localStorage.getItem('theme');
+                if (stored === 'dark' || (!stored && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                    document.documentElement.classList.add('dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                }
+            } catch (e) {}
+        })();
+    </script>
+    <link rel="stylesheet" href="css/styles.css?v=260912-03">
 </head>
-<body class="bg-slate-100 font-sans text-slate-800 antialiased">
+<body class="bg-slate-100 dark:bg-slate-950 font-sans text-slate-800 dark:text-slate-100 antialiased transition-colors duration-150">
     <div class="flex h-screen w-full overflow-hidden">
         
         <!-- Sidebar (Resizable, Sleek Dark Theme) -->
@@ -57,16 +74,16 @@
         <div class="flex-1 flex flex-col bg-slate-50 h-screen overflow-hidden">
             
             <!-- Top Navbar: Breadcrumb Title, Search Trigger -->
-            <header id="top-navbar" class="bg-white/90 backdrop-blur-md px-5 py-3 border-b border-slate-200 shadow-2xs flex items-center justify-between z-20 flex-shrink-0 gap-4">
+            <header id="top-navbar" class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-5 py-3 border-b border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between z-20 flex-shrink-0 gap-4">
                 <div class="flex items-center gap-2.5 min-w-0">
                     <!-- Back to Houses Button (Visible when viewing a house or tenant) -->
-                    <button id="back-to-grid-btn" class="hidden items-center gap-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 px-3 py-1.5 rounded-lg transition-all flex-shrink-0 cursor-pointer" title="Houses">
+                    <button id="back-to-grid-btn" class="hidden items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:text-slate-900 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200/80 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg transition-all flex-shrink-0 cursor-pointer" title="Houses">
                         <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                         <span>Houses</span>
                     </button>
                     
                     <div class="flex items-center gap-2 min-w-0">
-                        <h1 id="current-house-title" class="text-lg font-bold text-slate-900 truncate tracking-tight">Select an Area</h1>
+                        <h1 id="current-house-title" class="text-lg font-bold text-slate-900 dark:text-slate-100 truncate tracking-tight">Select an Area</h1>
                         <span id="grid-area-title" class="hidden"></span>
                     </div>
                     
@@ -87,21 +104,26 @@
 
 
                     <!-- Command Palette Trigger Button -->
-                    <button id="btn-search-trigger" type="button" class="flex items-center gap-3 px-3.5 py-1.5 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-slate-100 hover:border-slate-300 text-slate-400 hover:text-slate-600 transition-all text-xs flex-shrink-0 shadow-2xs group cursor-pointer w-60 sm:w-64 justify-between" title="Search houses, tenants, documents (⌘K)">
+                    <button id="btn-search-trigger" type="button" class="flex items-center gap-3 px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 text-slate-400 hover:text-slate-600 dark:text-slate-300 transition-all text-xs flex-shrink-0 shadow-2xs group cursor-pointer w-60 sm:w-64 justify-between" title="Search houses, tenants, documents (⌘K)">
                         <div class="flex items-center gap-2 truncate">
                             <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-600 transition-colors flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-                            <span class="truncate font-medium text-slate-500 group-hover:text-slate-700">Search houses, tenants...</span>
+                            <span class="truncate font-medium text-slate-500 group-hover:text-slate-700 dark:text-slate-300">Search houses, tenants...</span>
                         </div>
-                        <kbd class="text-[10px] font-mono text-slate-400 bg-white border border-slate-200 rounded px-1.5 py-0.5 shadow-2xs font-semibold group-hover:border-slate-300">⌘K</kbd>
+                        <kbd class="text-[10px] font-mono text-slate-400 dark:text-slate-300 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-1.5 py-0.5 shadow-2xs font-semibold group-hover:border-slate-300">⌘K</kbd>
                     </button>
 
                     <!-- Keyboard Shortcuts Helper Trigger Button -->
-                    <button id="btn-shortcuts-trigger" type="button" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-slate-100 hover:border-slate-300 text-slate-500 hover:text-slate-800 transition-all flex items-center justify-center shadow-2xs cursor-pointer flex-shrink-0 font-mono font-bold text-xs" title="Keyboard Shortcuts (?) / دليل اختصارات لوحة المفاتيح" aria-label="Keyboard Shortcuts">
+                    <button id="btn-shortcuts-trigger" type="button" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 text-slate-500 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white transition-all flex items-center justify-center shadow-2xs cursor-pointer flex-shrink-0 font-mono font-bold text-xs" title="Keyboard Shortcuts (?) / دليل اختصارات لوحة المفاتيح" aria-label="Keyboard Shortcuts">
                         <span>?</span>
                     </button>
 
+                    <!-- Theme Toggle (Dark/Light Mode) Trigger Button -->
+                    <button id="btn-theme-toggle" type="button" class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 hover:border-slate-300 text-slate-500 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white transition-all flex items-center justify-center shadow-2xs cursor-pointer flex-shrink-0" title="Switch to Dark Mode (Shift+D) / تفعيل الوضع الداكن" aria-label="Toggle Theme">
+                        <svg class="w-4 h-4 text-slate-500 dark:text-slate-400 hover:text-slate-800 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+                    </button>
+
                     <!-- Subtle Vertical Divider -->
-                    <div class="h-5 w-px bg-slate-200/90 mx-0.5 select-none" aria-hidden="true"></div>
+                    <div class="h-5 w-px bg-slate-200/90 dark:bg-slate-700 mx-0.5 select-none" aria-hidden="true"></div>
 
                     <!-- Circular Rotating Plus Button (Upload Document) -->
                     <button id="btn-ingest-trigger" type="button" class="group relative w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white bg-blue-600 hover:bg-blue-500 active:bg-blue-700 shadow-sm hover:shadow-lg hover:shadow-blue-500/35 transform transition-all duration-200 ease-out hover:scale-110 active:scale-95 cursor-pointer flex-shrink-0" title="Upload Document (⌘I)" aria-label="Upload Document">
@@ -1242,6 +1264,14 @@
 
                 <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 hover:bg-slate-100/70 transition-colors">
                     <div class="flex flex-col">
+                        <span class="text-xs font-bold text-slate-800">Toggle Dark / Light Mode</span>
+                        <span class="text-[11px] text-slate-500">تبديل المظهر الداكن والفاتح</span>
+                    </div>
+                    <kbd class="px-2.5 py-1 text-xs font-mono font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg shadow-2xs">Shift+D</kbd>
+                </div>
+
+                <div class="flex items-center justify-between p-3 rounded-xl bg-slate-50/80 border border-slate-200/80 hover:bg-slate-100/70 transition-colors">
+                    <div class="flex flex-col">
                         <span class="text-xs font-bold text-slate-800">Keyboard Shortcuts Guide</span>
                         <span class="text-[11px] text-slate-500">دليل اختصارات لوحة المفاتيح</span>
                     </div>
@@ -1354,6 +1384,7 @@
     <script src="js/router.js?v=260911-29"></script>
     <script src="js/ingest-station.js?v=260911-29"></script>
     <script src="js/keyboard-shortcuts.js?v=260911-29"></script>
-    <script src="js/app.js?v=260911-29"></script>
+    <script src="js/theme-manager.js?v=260912-03"></script>
+    <script src="js/app.js?v=260912-03"></script>
 </body>
 </html>

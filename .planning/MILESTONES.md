@@ -2,10 +2,17 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-12)
 
-**Phases completed:** 4 phases (105-108) + 30 quick refinements (QCK-01 through QCK-30), 4 plans, comprehensive multi-stack test verification (146 .NET xUnit, 37 Pytest tests, 197 Vitest across 22 files, Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 33 quick refinements (QCK-01 through QCK-33), 4 plans, comprehensive multi-stack test verification (146 .NET xUnit, 18 Pytest tests, 209 Vitest across 23 files, Playwright E2E)
 
 **Key accomplishments:**
 
+- **Comprehensive Dark Mode Support & Theme Toggle (Quick Refinement QCK-33):**
+  - Configured Tailwind `darkMode: 'class'` across the application with pre-hydration script in `<head>` inspecting `localStorage` and `matchMedia('(prefers-color-scheme: dark)')` to prevent any flash of unstyled content (FOUC).
+  - Built standalone `theme-manager.js` providing `getTheme()`, `setTheme()`, `toggleTheme()`, and `initTheme()`, broadcasting `themechange` events and dynamically tracking OS system preference changes.
+  - Added dedicated interactive `#btn-theme-toggle` in top navbar with Sun/Moon dynamic SVGs and bilingual tooltips.
+  - Integrated `Shift+D` global keyboard shortcut (safely ignoring active editable inputs/textareas) and Command Palette toggle command (`⌘K` -> "Toggle Dark Mode").
+  - Polished dark styling rules in `styles.css` covering dark surfaces (`slate-950`), cards (`slate-900`), borders (`slate-800`), custom scrollbars, modals, dropdowns, and batch action bar.
+  - Verified 100% static asset parity across `web-net/wwwroot/`, `src/api/static/`, and `dist/win-x64/wwwroot/` with 9 new frontend tests in `tests/frontend/components/theme_manager.test.js`.
 - **Arabic Search Optimization & Orthographic Normalization (Quick Refinement QCK-30):**
   - Implemented Arabic Tashkeel (harakat / diacritics) and Tatweel stripping (`StripArabicDiacritics` / `strip_arabic_diacritics`) across query inputs, preventing vocalized Arabic input (`أَنْوَر`, `مُحَمَّد`, `جَمْشِيد`, `تَيْسِير`) from failing.
   - Implemented full Arabic text normalization in `ScoreTenantMatch` (`NormalizeArabic` / `normalize_arabic`):

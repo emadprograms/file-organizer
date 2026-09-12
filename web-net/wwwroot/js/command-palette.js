@@ -191,6 +191,23 @@
                 results = await res.json();
             }
 
+            const qTrim = (q || '').trim().toLowerCase();
+            if (['dark', 'light', 'theme', 'mode', 'داكن', 'فاتح', 'وضع', 'مظهر'].some(t => qTrim.includes(t))) {
+                const current = (typeof window.getTheme === 'function') ? window.getTheme() : 'light';
+                const next = current === 'dark' ? 'Light' : 'Dark';
+                results.unshift({
+                    id: 'cmd_toggle_theme',
+                    type: 'command',
+                    title: `Toggle ${next} Mode / الوضع ${next === 'Dark' ? 'الداكن' : 'الفاتح'}`,
+                    subtitle: `Currently in ${current} mode • Switch theme (Shift+D)`,
+                    action: () => {
+                        if (typeof window.toggleTheme === 'function') {
+                            window.toggleTheme();
+                        }
+                    }
+                });
+            }
+
             renderGroupedResults(results);
         } catch (err) {
             if (err.name === 'AbortError') return;
@@ -219,6 +236,7 @@
             return;
         }
 
+        const commands = results.filter(r => r.type === 'command');
         const houses = results.filter(r => r.type === 'house');
         const tenants = results.filter(r => r.type === 'tenant');
         const documents = results.filter(r => r.type === 'document');
@@ -260,6 +278,39 @@
             sectionEl.appendChild(listEl);
             searchResults.appendChild(sectionEl);
         }
+
+        // 0. Commands Section
+        createSection(
+            'Commands',
+            `<svg class="w-3.5 h-3.5 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>`,
+            commands.length,
+            commands,
+            (cmd) => {
+                const a = document.createElement('div');
+                a.className = 'command-palette-result-item spotlight-result-item block p-2.5 rounded-xl hover:bg-purple-50/70 border border-transparent hover:border-purple-200 transition-all group cursor-pointer';
+                a.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xs flex-shrink-0 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                                🌗
+                            </div>
+                            <div class="min-w-0">
+                                <div class="font-bold text-xs text-slate-800 group-hover:text-purple-600 transition-colors">${cmd.title}</div>
+                                <div class="text-[11px] text-slate-400 truncate mt-0.5">${cmd.subtitle || ''}</div>
+                            </div>
+                        </div>
+                        <kbd class="text-[10px] font-mono text-slate-400 bg-slate-100 border border-slate-200 px-1.5 py-0.5 rounded shadow-2xs">Shift+D</kbd>
+                    </div>
+                `;
+                a.onclick = (e) => {
+                    closeCommandPalette();
+                    if (typeof cmd.action === 'function') {
+                        cmd.action();
+                    }
+                };
+                return a;
+            }
+        );
 
         // 1. Houses Section
         createSection(
