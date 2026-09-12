@@ -139,8 +139,8 @@
         const tabTimeline = document.getElementById('tab-timeline');
         if (tenantName && currentTab !== 'categories' && tabCategories && tabTimeline) {
             currentTab = 'categories';
-            tabCategories.className = "flex-1 py-1.5 px-3 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all";
-            tabTimeline.className = "flex-1 py-1.5 px-3 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all";
+            tabCategories.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
+            tabTimeline.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
         }
 
         if (areaId && houseId) {
@@ -192,7 +192,9 @@
         }
 
         if (tabCategoriesLabel) {
-            tabCategoriesLabel.textContent = tenantName ? 'Folders' : 'سجل المستأجرين';
+            const catText = tenantName ? 'Folders' : 'سجل المستأجرين';
+            tabCategoriesLabel.textContent = catText;
+            tabCategoriesLabel.title = catText;
         }
         const tabCategoriesIcon = document.getElementById('tab-categories-icon') || document.querySelector('#tab-categories svg');
         if (tabCategoriesIcon) {
@@ -203,7 +205,9 @@
             }
         }
         if (tabTimelineLabel) {
-            tabTimelineLabel.textContent = tenantName ? 'Tenant Timeline' : 'House Timeline';
+            const timelineText = tenantName ? 'Tenant Timeline' : 'House Timeline';
+            tabTimelineLabel.textContent = timelineText;
+            tabTimelineLabel.title = timelineText;
         }
 
         if (areaGridPanel) {

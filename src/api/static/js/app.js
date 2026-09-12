@@ -50,8 +50,8 @@
             tabTimeline.addEventListener('click', () => {
                 if (currentTab === 'timeline') return;
                 currentTab = 'timeline';
-                tabTimeline.className = "flex-1 py-1.5 px-3 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all";
-                if (tabCategories) tabCategories.className = "flex-1 py-1.5 px-3 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all";
+                tabTimeline.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
+                if (tabCategories) tabCategories.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
                 if (currentArea && currentHouse && typeof window.refreshCurrentTab === 'function') {
                     window.refreshCurrentTab(currentArea, currentHouse);
                 }
@@ -62,8 +62,8 @@
             tabCategories.addEventListener('click', () => {
                 if (currentTab === 'categories') return;
                 currentTab = 'categories';
-                tabCategories.className = "flex-1 py-1.5 px-3 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all";
-                if (tabTimeline) tabTimeline.className = "flex-1 py-1.5 px-3 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all";
+                tabCategories.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
+                if (tabTimeline) tabTimeline.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
                 if (currentArea && currentHouse && typeof window.refreshCurrentTab === 'function') {
                     window.refreshCurrentTab(currentArea, currentHouse);
                 }

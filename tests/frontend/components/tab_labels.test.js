@@ -90,5 +90,54 @@ describe('Segmented Tabs Emojiless Labels & Dynamic SVG Iconography', () => {
 
     const timelineLabel = document.getElementById('tab-timeline-label');
     expect(timelineLabel.textContent).toBe('Tenant Timeline');
+    expect(timelineLabel.title).toBe('Tenant Timeline');
+  });
+
+  it('sets title tooltip matching label text for both house and tenant timeline modes', async () => {
+    const timelineLabel = document.getElementById('tab-timeline-label');
+    const categoriesLabel = document.getElementById('tab-categories-label');
+
+    // House mode
+    await window.selectHouse('Safra C', '500', null);
+    expect(timelineLabel.title).toBe('House Timeline');
+    expect(categoriesLabel.title).toBe('سجل المستأجرين');
+
+    // Tenant mode
+    await window.selectHouse('Safra C', '500', 'علي الحداد');
+    expect(timelineLabel.title).toBe('Tenant Timeline');
+    expect(categoriesLabel.title).toBe('Folders');
+  });
+
+  it('verifies index.html markup includes min-w-0, whitespace-nowrap, and truncate classes to prevent multiline wrapping on compression', () => {
+    const html = fs.readFileSync(
+      path.resolve(__dirname, '../../../src/api/static/index.html'),
+      'utf8'
+    );
+    // Tab wrapper allows flex shrinking
+    expect(html).toMatch(/class="[^"]*min-w-0[^"]*gap-1[^"]*bg-slate-200\/60/);
+    
+    // Tab timeline button has min-w-0, overflow-hidden, and whitespace-nowrap
+    expect(html).toMatch(/id="tab-timeline"[^>]*class="[^"]*min-w-0[^"]*overflow-hidden[^"]*whitespace-nowrap/);
+    
+    // Tab timeline label has truncate and whitespace-nowrap
+    expect(html).toMatch(/id="tab-timeline-label"[^>]*class="[^"]*truncate[^"]*whitespace-nowrap/);
+
+    // Tab categories button has min-w-0, overflow-hidden, and whitespace-nowrap
+    expect(html).toMatch(/id="tab-categories"[^>]*class="[^"]*min-w-0[^"]*overflow-hidden[^"]*whitespace-nowrap/);
+    
+    // Tab categories label has truncate and whitespace-nowrap
+    expect(html).toMatch(/id="tab-categories-label"[^>]*class="[^"]*truncate[^"]*whitespace-nowrap/);
+  });
+
+  it('verifies styles.css enforces nowrap, min-width 0, and text truncation so text disappears rather than wrapping', () => {
+    const css = fs.readFileSync(
+      path.resolve(__dirname, '../../../src/api/static/css/styles.css'),
+      'utf8'
+    );
+    expect(css).toContain('#tab-timeline');
+    expect(css).toContain('#tab-timeline-label');
+    expect(css).toMatch(/#tab-categories,\s*#tab-timeline\s*\{[^}]*white-space:\s*nowrap/);
+    expect(css).toMatch(/#tab-categories-label,\s*#tab-timeline-label\s*\{[^}]*text-overflow:\s*ellipsis/);
+    expect(css).toMatch(/#tab-categories-label,\s*#tab-timeline-label\s*\{[^}]*white-space:\s*nowrap/);
   });
 });

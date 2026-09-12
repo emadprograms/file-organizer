@@ -313,3 +313,28 @@ button, a, input, select, textarea, .cursor-pointer,
     cursor: grabbing;
 }
 
+/* ── Segmented Tabs: Single-line nowrap and truncation on compression ─────── */
+#tab-categories,
+#tab-timeline {
+    min-width: 0 !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+}
+
+#tab-categories-label,
+#tab-timeline-label {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    min-width: 0 !important;
+    vertical-align: middle;
+}
+
+#tab-categories svg,
+#tab-timeline svg {
+    flex-shrink: 0 !important;
+}
+
+
