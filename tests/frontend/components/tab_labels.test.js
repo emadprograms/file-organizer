@@ -72,7 +72,7 @@ describe('Segmented Tabs Emojiless Labels & Dynamic SVG Iconography', () => {
     expect(categoriesIcon.innerHTML).toContain('M17 20h5');
 
     const timelineLabel = document.getElementById('tab-timeline-label');
-    expect(timelineLabel.textContent).toBe('Timeline');
+    expect(timelineLabel.textContent).toBe('House Timeline');
     expect(timelineLabel.textContent).not.toContain('📅');
   });
 
@@ -89,6 +89,6 @@ describe('Segmented Tabs Emojiless Labels & Dynamic SVG Iconography', () => {
     expect(categoriesIcon.innerHTML).toContain('M3 7v10');
 
     const timelineLabel = document.getElementById('tab-timeline-label');
-    expect(timelineLabel.textContent).toBe('Timeline');
+    expect(timelineLabel.textContent).toBe('Tenant Timeline');
   });
 });
