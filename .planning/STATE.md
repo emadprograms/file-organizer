@@ -4,9 +4,9 @@ milestone: v14.0
 milestone_name: Power-User Operations & Portfolio Expansion
 current_phase: 108 (All Complete)
 status: completed
-last_updated: "2026-09-12T02:30:00.000Z"
+last_updated: "2026-09-12T05:50:00.000Z"
 last_activity: 2026-09-12
-last_activity_desc: "Completed Quick Task 260912-preserve-folder-and-scroll-on-move (QCK-28: Preserve Open Category Folders & Scroll Position on Document Move / Drag & Drop). 195 Vitest tests across 22 files, 120 xUnit tests, and Pytest test suite passing; zero static asset diff."
+last_activity_desc: "Completed Quick Task 260912-unique-db-names-phonetic-tests (QCK-29: Database-Wide Real-World Name Validation & Phonetic Precision). 195 Vitest tests across 22 files, 144 xUnit tests (100%), and Pytest test suite passing with live API validation."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -77,13 +77,14 @@ Equip the digital archive management system with power-user operational tools: o
 - `260912-phonetic-accuracy`: Phonetic Consonant Skeleton Isolation & Strict Cross-Language Name Precision (QCK-26). Resolved phonetic cross-matching regression where `usman` matched unrelated tenants `زياد عوض السليمان` (Zaid) and `سلمان` / `سليمان` (Salman / Sulaiman). Mapped `ث` (Thaa) to `s` and normalized English `th` to `s`, ensuring Latin variants `usman`, `uthman`, `osman`, and `othman` match Arabic `عثمان` with 100% precision (score $\ge 400$). Implemented smart contextual Arabic Waw rule (`(^|[\s\-])و`, `[اآإأ]و|وا`, `عو` $\to$ consonant `W`, otherwise vowel `uu/oo`), preserving `waseem` $\to$ `وسيم`, `javed` $\to$ `جاويد`, and `fawaz` $\to$ `فواز` while allowing `balushi` to match `بلوشي` and `mahmoud` to match `محمود`. Removed loose Levenshtein similarity fallback on 3-letter consonant roots, strictly requiring exact phonetic root equivalence or explicit query prefix matching. Verified by 184 Vitest tests, 119 xUnit tests, and 37 Pytest tests; zero static asset diff.
 - `260912-single-doc-multi-select-fix`: Decouple Single Document Move/Copy from Multi-Select Batch State (QCK-27). Resolved bug where clicking "Move" or "Copy" from an individual document's 3-dots action menu automatically activated multi-select batch mode, checked the document's checkbox, and revealed the floating batch action bar. Introduced `singleTargetDoc` state in `categories-view.js` to isolate single-document move/copy workflows from the global `selectedDocIds` Set. Submitting single moves/copies targets the specific document, resets `singleTargetDoc = null;`, and avoids clearing batch selection. Verified by 193 Vitest tests across 22 files, 120 xUnit tests, and 18 Pytest tests with zero static asset diff.
 - `260912-preserve-folder-and-scroll-on-move`: Preserve Open Category Folders & Scroll Position on Document Move / Drag & Drop (QCK-28). Preserved open folder accordion states across re-renders in `categories-view.js` using `openCategoryNames = new Set()`, expanded drop target folder, eliminated scroll height collapse in `loadCategories()`, preserved scroll offset (`scrollTop`), and smoothly scrolled destination category into view via `scrollIntoView({ block: 'nearest', behavior: 'smooth' })`. Verified by 195 Vitest tests across 22 files (including 8 in `category_folder_persistence.test.js`), 120 xUnit tests, and Pytest test suite with zero static asset diff.
+- `260912-unique-db-names-phonetic-tests`: Database-Wide Real-World Name Validation & Phonetic Precision (QCK-29). Sampled 716 real-world tenant names across 253 houses from production database (`organizer.db`). Expanded consonant Waw rules (`أنور` Anwar), Arabic `وي` glide preservation (`السويدي` Suwaidi, `برويز` Parwez), word-start anchoring for `عوض` Awad/Awadh (strictly isolating `سعود` Saud), English diphthong reduction (`showkat` / `shaukat` -> `شوكت`), P-to-B mapping (`parvez` -> `برويز`), Dhad `dh` transliteration (`awadh` -> `عوض`), and pre-flight SQLite integrity validation in `run-mac.sh`. Verified by 144 xUnit tests (100%), 10 Pytest tests, 195 Vitest tests, and live API queries.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-12 — Completed Quick Task 260912-preserve-folder-and-scroll-on-move (QCK-28: Preserve Open Category Folders & Scroll Position on Document Move / Drag & Drop). Verified by 195 Vitest tests across 22 files, 120 xUnit tests, and Pytest test suite.
+Last activity: 2026-09-12 — Completed Quick Task 260912-unique-db-names-phonetic-tests (QCK-29: Database-Wide Real-World Name Validation & Phonetic Precision). 195 Vitest tests across 22 files, 144 xUnit tests (100%), and Pytest test suite passing with live API validation.
 
 ## Operator Next Steps
 

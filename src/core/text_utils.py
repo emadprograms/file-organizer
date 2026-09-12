@@ -37,18 +37,26 @@ def phonetic_normalize(text: str) -> str:
     lower = text.lower().strip()
     # Distinguish Arabic 'و' as consonant 'W' vs long vowel (uu/oo)
     # 1. Beginning of word (^و or [ -]و) -> consonant W (وسيم, وليد)
-    # 2. Adjacent to Alif (او or وا) -> consonant W (جاويد, فواز, أنور)
-    # 3. Preceded by Ayn (عو) -> consonant W (عوض)
     lower = re.sub(r'(^|[\s\-])و', r'\1W', lower)
+    # 2. Adjacent to Alif (او or وا) -> consonant W (جاويد, فواز, نواز, رضوان)
     lower = re.sub(r'[اآإأ][وؤ]|[وؤ][اآإأ]', 'W', lower)
-    lower = re.sub(r'ع[وؤ]', 'W', lower)
+    # 3. Waw followed by Yaa (وي as in سويدي, برويز, كويت, رويلي) -> consonant W
+    lower = re.sub(r'[وؤ]ي', 'Wy', lower)
+    # 4. Word-initial Ayn followed by Waw (^عو as in عوض, عواض) -> consonant W
+    lower = re.sub(r'(^|[\s\-])ع[وؤ]', r'\1W', lower)
+    # 5. Names on pattern Anwar/Munawwar ([اآإأ]نو, منو, أرو) -> consonant W
+    lower = re.sub(r'(^|[\s\-])([اآإأ]ن|[اآإأ]ر|من)[وؤ]', r'\1\2W', lower)
+
+    # In English: diphthong ow/aw before consonant or end of token -> vowel (e.g. showkat -> shokat)
+    lower = re.sub(r'([oa])w(?=[^aeiouy\s]|$)', r'\1', lower)
 
     # Replace English digraphs prior to Arabic mapping to prevent Arabic س + ح (Seen + Haa) from collapsing as English "sh"
     lower = lower.replace('v', 'w')
     lower = lower.replace('th', 's')
     lower = lower.replace('kh', 'k').replace('gh', 'g').replace('sh', 's')
     lower = lower.replace('dh', 'z').replace('zh', 'z')
-    lower = lower.replace('ph', 'f').replace('ck', 'k').replace('c', 'k').replace('q', 'k')
+    lower = lower.replace('ph', 'f').replace('p', 'b')
+    lower = lower.replace('ck', 'k').replace('c', 'k').replace('q', 'k')
 
     res = [AR_TO_EN_MAP.get(char, char) for char in lower]
     val = "".join(res)
@@ -145,7 +153,10 @@ def score_tenant_match(query: str, tenant_name: str, house_id: str = "") -> int:
                 # Phonetic token match
                 tw_norm = phonetic_normalize(tw_clean)
                 if qw_norm and tw_norm:
-                    if qw_norm == tw_norm:
+                    is_phonetic_match = (qw_norm == tw_norm) or (
+                        'z' in qw_norm and qw_norm.replace('z', 'd') == tw_norm
+                    )
+                    if is_phonetic_match:
                         s = 400
                         if ti == 0 and qi == 0:
                             s += 50
@@ -162,7 +173,10 @@ def score_tenant_match(query: str, tenant_name: str, house_id: str = "") -> int:
             if ti + 1 < len(t_words):
                 tw_pair = tw_clean + " " + clean_article(t_words[ti + 1])
                 tw_pair_norm = phonetic_normalize(tw_pair).replace(" ", "")
-                if qw_norm and len(qw_norm) >= 4 and qw_norm == tw_pair_norm:
+                is_compound_match = (qw_norm == tw_pair_norm) or (
+                    'z' in qw_norm and qw_norm.replace('z', 'd') == tw_pair_norm
+                )
+                if qw_norm and len(qw_norm) >= 4 and is_compound_match:
                     s = 450
                     if ti == 0 and qi == 0:
                         s += 50

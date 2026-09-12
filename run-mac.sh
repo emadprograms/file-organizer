@@ -10,10 +10,28 @@ AREAS_ROOT="/Volumes/arshad-pc/areas_v11"
 LOCAL_DB="/tmp/file_organizer_local.db"
 
 if [ -f "$REMOTE_DB" ]; then
-    echo "📋 Copying database locally for performance (SMB → local)..."
-    cp "$REMOTE_DB" "$LOCAL_DB"
+    NEED_COPY=0
+    if [ ! -f "$LOCAL_DB" ]; then
+        NEED_COPY=1
+    elif [ "$(sqlite3 "$LOCAL_DB" "PRAGMA quick_check;" 2>/dev/null)" != "ok" ]; then
+        echo "⚠️  Local copy failed integrity check, re-copying..."
+        NEED_COPY=1
+    fi
+
+    if [ "$NEED_COPY" -eq 1 ]; then
+        echo "📋 Copying database locally for performance (SMB → local)..."
+        TEMP_COPY="/tmp/file_organizer_copy.db"
+        if cp "$REMOTE_DB" "$TEMP_COPY" && [ "$(sqlite3 "$TEMP_COPY" "PRAGMA quick_check;" 2>/dev/null)" = "ok" ]; then
+            mv "$TEMP_COPY" "$LOCAL_DB"
+            echo "✅ Local copy ready and verified: $LOCAL_DB ($(du -h "$LOCAL_DB" | cut -f1))"
+        else
+            echo "⚠️  Copy failed or corrupted, keeping existing local copy if available"
+            rm -f "$TEMP_COPY"
+        fi
+    else
+        echo "✅ Existing local copy is valid: $LOCAL_DB ($(du -h "$LOCAL_DB" | cut -f1))"
+    fi
     DB_PATH="$LOCAL_DB"
-    echo "✅ Local copy ready: $LOCAL_DB ($(du -h "$LOCAL_DB" | cut -f1))"
 elif [ -f "$LOCAL_DB" ]; then
     DB_PATH="$LOCAL_DB"
     echo "⚠️  Remote DB not available, using existing local copy"

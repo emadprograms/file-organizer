@@ -75,3 +75,47 @@ def test_score_tenant_match_balushi():
     assert score_tenant_match("balushi", "عدنان عبدالواحد علي البلوشي", "100") >= 400
     assert score_tenant_match("al balushi", "عدنان عبدالواحد علي البلوشي", "100") >= 400
 
+
+def test_score_tenant_match_unique_db_names():
+    # 1. Jamshed / Jamsheed / Jamshid -> جمشيد أنور محمد أنور
+    assert score_tenant_match("jamshed", "جمشيد أنور محمد أنور", "SAF F 2452_12") >= 400
+    assert score_tenant_match("jamsheed", "جمشيد أنور محمد أنور", "SAF F 2452_12") >= 400
+    assert score_tenant_match("jamshid", "جمشيد أنور محمد أنور", "SAF F 2452_12") >= 400
+
+    # 2. Tayseer / Taiseer -> تيسير خطاب عبد الكريم
+    assert score_tenant_match("tayseer", "تيسير خطاب عبد الكريم", "SAF F 2456_33") >= 400
+    assert score_tenant_match("taiseer", "تيسير خطاب عبد الكريم", "SAF F 2456_33") >= 400
+    assert score_tenant_match("khattab", "تيسير خطاب عبد الكريم", "SAF F 2456_33") >= 400
+
+    # 3. Sarfaraz / Sarfraz -> سرفراز نواز محمد يوسف عبد الصادق رجا
+    assert score_tenant_match("sarfaraz", "سرفراز نواز محمد يوسف عبد الصادق رجا", "SAF F 2452_33") >= 400
+    assert score_tenant_match("sarfraz", "سرفراز نواز محمد يوسف عبد الصادق رجا", "SAF F 2452_33") >= 400
+
+    # 4. Madhu / Soodanan / Sudanan / Nair -> مادو سودانان ناير
+    assert score_tenant_match("madu", "مادو سودانان ناير", "SAF F 2456_11") >= 400
+    assert score_tenant_match("soodanan", "مادو سودانان ناير", "SAF F 2456_11") >= 400
+    assert score_tenant_match("sudanan", "مادو سودانان ناير", "SAF F 2456_11") >= 400
+    assert score_tenant_match("nair", "مادو سودانان ناير", "SAF F 2456_11") >= 400
+
+    # 5. Shaukat / Showkat / Shoukat -> شوكت علي البلوشي
+    assert score_tenant_match("shaukat", "شوكت علي البلوشي", "1260") >= 400
+    assert score_tenant_match("showkat", "شوكت علي البلوشي", "1260") >= 400
+    assert score_tenant_match("shoukat", "شوكت علي البلوشي", "1260") >= 400
+
+    # 6. Anwar -> أنور (محمد أنور حاجي حسن البلوشي)
+    assert score_tenant_match("anwar", "محمد أنور حاجي حسن البلوشي", "1260") >= 400
+    assert score_tenant_match("anwar", "أنور علي عوض علي", "1260") >= 400
+
+    # 7. Parvez / Parwez -> شمس برويز محمد
+    assert score_tenant_match("parvez", "شمس برويز محمد", "SAF F 2450_12") >= 400
+    assert score_tenant_match("parwez", "شمس برويز محمد", "SAF F 2450_12") >= 400
+
+    # 8. Suwaidi vs Saud isolation: suwaidi must match السويدي and NOT match سعود
+    assert score_tenant_match("suwaidi", "محمد عبد القادر السويدي", "100") >= 400
+    assert score_tenant_match("suwaidi", "عبدالله سعود الدوسري", "500") == 0
+    assert score_tenant_match("saud", "عبدالله سعود الدوسري", "500") >= 400
+
+    # 9. Awadh / Awad -> زياد عوض السليمان
+    assert score_tenant_match("awadh", "زياد عوض السليمان", "SAF F 2450_21") >= 400
+    assert score_tenant_match("awad", "زياد عوض السليمان", "SAF F 2450_21") >= 400
+

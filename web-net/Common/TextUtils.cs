@@ -39,18 +39,26 @@ public static class TextUtils
 
         // Distinguish Arabic 'و' as consonant 'W' vs long vowel (uu/oo)
         // 1. Beginning of word (^و or [ -]و) -> consonant W (وسيم, وليد)
-        // 2. Adjacent to Alif (او or وا) -> consonant W (جاويد, فواز, أنور)
-        // 3. Preceded by Ayn (عو) -> consonant W (عوض)
         lower = Regex.Replace(lower, @"(^|[\s\-])و", "$1W");
+        // 2. Adjacent to Alif (او or وا) -> consonant W (جاويد, فواز, نواز, رضوان)
         lower = Regex.Replace(lower, @"[اآإأ][وؤ]|[وؤ][اآإأ]", "W");
-        lower = Regex.Replace(lower, @"ع[وؤ]", "W");
+        // 3. Waw followed by Yaa (وي as in سويدي, برويز, كويت, رويلي) -> consonant W
+        lower = Regex.Replace(lower, @"[وؤ]ي", "Wy");
+        // 4. Word-initial Ayn followed by Waw (^عو as in عوض, عواض) -> consonant W
+        lower = Regex.Replace(lower, @"(^|[\s\-])ع[وؤ]", "$1W");
+        // 5. Names on pattern Anwar/Munawwar ([اآإأ]نو, منو, أرو) -> consonant W
+        lower = Regex.Replace(lower, @"(^|[\s\-])([اآإأ]ن|[اآإأ]ر|من)[وؤ]", "$1$2W");
+
+        // In English: diphthong ow/aw before consonant or end of token -> vowel (e.g. showkat -> shokat)
+        lower = Regex.Replace(lower, @"([oa])w(?=[^aeiouy\s]|$)", "$1");
 
         // Replace English digraphs prior to Arabic mapping to prevent Arabic س + ح (Seen + Haa) from collapsing as English "sh"
         lower = lower.Replace("v", "w");
         lower = lower.Replace("th", "s");
         lower = lower.Replace("kh", "k").Replace("gh", "g").Replace("sh", "s");
         lower = lower.Replace("dh", "z").Replace("zh", "z");
-        lower = lower.Replace("ph", "f").Replace("ck", "k").Replace("c", "k").Replace("q", "k");
+        lower = lower.Replace("ph", "f").Replace("p", "b");
+        lower = lower.Replace("ck", "k").Replace("c", "k").Replace("q", "k");
 
         var sb = new StringBuilder();
         foreach (var ch in lower)
@@ -134,7 +142,10 @@ public static class TextUtils
 
                     if (!string.IsNullOrEmpty(qwNorm) && !string.IsNullOrEmpty(twNorm))
                     {
-                        if (qwNorm == twNorm)
+                        bool isPhoneticMatch = (qwNorm == twNorm) ||
+                            (qwNorm.Contains('z') && qwNorm.Replace("z", "d") == twNorm);
+
+                        if (isPhoneticMatch)
                         {
                             int s = 400;
                             if (ti == 0 && qi == 0) s += 50;
@@ -159,7 +170,10 @@ public static class TextUtils
                 {
                     var twPair = twClean + " " + CleanArticle(tWords[ti + 1]);
                     var twPairNorm = PhoneticNormalize(twPair).Replace(" ", "");
-                    if (!string.IsNullOrEmpty(qwNorm) && qwNorm.Length >= 4 && qwNorm == twPairNorm)
+                    bool isCompoundMatch = (qwNorm == twPairNorm) ||
+                        (!string.IsNullOrEmpty(qwNorm) && qwNorm.Contains('z') && qwNorm.Replace("z", "d") == twPairNorm);
+
+                    if (!string.IsNullOrEmpty(qwNorm) && qwNorm.Length >= 4 && isCompoundMatch)
                     {
                         int s = 450;
                         if (ti == 0 && qi == 0) s += 50;

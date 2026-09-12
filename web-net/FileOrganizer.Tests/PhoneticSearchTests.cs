@@ -33,6 +33,29 @@ public class PhoneticSearchTests
     [InlineData("al balushi", "عدنان عبدالواحد علي البلوشي", true)]
     [InlineData("iqbal", "جاويد إقبال شودري", true)]
     [InlineData("aziz", "عميد علي محمد عزيز", true)]
+    [InlineData("jamshed", "جمشيد أنور محمد أنور", true)]
+    [InlineData("jamsheed", "جمشيد أنور محمد أنور", true)]
+    [InlineData("jamshid", "جمشيد أنور محمد أنور", true)]
+    [InlineData("tayseer", "تيسير خطاب عبد الكريم", true)]
+    [InlineData("taiseer", "تيسير خطاب عبد الكريم", true)]
+    [InlineData("sarfaraz", "سرفراز نواز محمد يوسف عبد الصادق رجا", true)]
+    [InlineData("sarfraz", "سرفراز نواز محمد يوسف عبد الصادق رجا", true)]
+    [InlineData("madu", "مادو سودانان ناير", true)]
+    [InlineData("soodanan", "مادو سودانان ناير", true)]
+    [InlineData("sudanan", "مادو سودانان ناير", true)]
+    [InlineData("nair", "مادو سودانان ناير", true)]
+    [InlineData("shaukat", "شوكت علي البلوشي", true)]
+    [InlineData("showkat", "شوكت علي البلوشي", true)]
+    [InlineData("shoukat", "شوكت علي البلوشي", true)]
+    [InlineData("anwar", "محمد أنور حاجي حسن البلوشي", true)]
+    [InlineData("anwar", "أنور علي عوض علي", true)]
+    [InlineData("parvez", "شمس برويز محمد", true)]
+    [InlineData("parwez", "شمس برويز محمد", true)]
+    [InlineData("suwaidi", "محمد عبد القادر السويدي", true)]
+    [InlineData("suwaidi", "عبدالله سعود الدوسري", false)]
+    [InlineData("saud", "عبدالله سعود الدوسري", true)]
+    [InlineData("awadh", "زياد عوض السليمان", true)]
+    [InlineData("awad", "زياد عوض السليمان", true)]
     public void ScoreTenantMatch_AccuratelyMatchesOrRejects(string query, string tenantName, bool shouldMatch)
     {
         int score = TextUtils.ScoreTenantMatch(query, tenantName, "100");
@@ -124,5 +147,50 @@ public class PhoneticSearchTests
         Assert.Equal("balushi", TextUtils.CleanArticle("albalushi"));
         Assert.Equal("بلوشي", TextUtils.CleanArticle("البلوشي"));
         Assert.Equal("طارش", TextUtils.CleanArticle("الطارش"));
+    }
+
+    [Fact]
+    public void ScoreTenantMatch_UniqueDatabaseNamesPrecisionAndIsolation()
+    {
+        // Jamshed
+        Assert.True(TextUtils.ScoreTenantMatch("jamshed", "جمشيد أنور محمد أنور", "SAF F 2452_12") >= 400);
+        Assert.True(TextUtils.ScoreTenantMatch("jamsheed", "جمشيد أنور محمد أنور", "SAF F 2452_12") >= 400);
+        Assert.True(TextUtils.ScoreTenantMatch("jamshid", "جمشيد أنور محمد أنور", "SAF F 2452_12") >= 400);
+
+        // Tayseer / Taiseer
+        Assert.True(TextUtils.ScoreTenantMatch("tayseer", "تيسير خطاب عبد الكريم", "SAF F 2456_33") >= 400);
+        Assert.True(TextUtils.ScoreTenantMatch("taiseer", "تيسير خطاب عبد الكريم", "SAF F 2456_33") >= 400);
+        Assert.True(TextUtils.ScoreTenantMatch("khattab", "تيسير خطاب عبد الكريم", "SAF F 2456_33") >= 400);
+
+        // Sarfaraz / Sarfraz
+        Assert.True(TextUtils.ScoreTenantMatch("sarfaraz", "سرفراز نواز محمد يوسف عبد الصادق رجا", "SAF F 2452_33") >= 400);
+        Assert.True(TextUtils.ScoreTenantMatch("sarfraz", "سرفراز نواز محمد يوسف عبد الصادق رجا", "SAF F 2452_33") >= 400);
+
+        // Madhu / Soodanan / Nair
+        Assert.True(TextUtils.ScoreTenantMatch("madu", "مادو سودانان ناير", "SAF F 2456_11") >= 400);
+        Assert.True(TextUtils.ScoreTenantMatch("soodanan", "مادو سودانان ناير", "SAF F 2456_11") >= 400);
+        Assert.True(TextUtils.ScoreTenantMatch("nair", "مادو سودانان ناير", "SAF F 2456_11") >= 400);
+
+        // Shaukat / Showkat / Shoukat
+        Assert.True(TextUtils.ScoreTenantMatch("shaukat", "شوكت علي البلوشي", "1260") >= 400);
+        Assert.True(TextUtils.ScoreTenantMatch("showkat", "شوكت علي البلوشي", "1260") >= 400);
+        Assert.True(TextUtils.ScoreTenantMatch("shoukat", "شوكت علي البلوشي", "1260") >= 400);
+
+        // Anwar
+        Assert.True(TextUtils.ScoreTenantMatch("anwar", "محمد أنور حاجي حسن البلوشي", "1260") >= 400);
+        Assert.True(TextUtils.ScoreTenantMatch("anwar", "أنور علي عوض علي", "1260") >= 400);
+
+        // Parvez / Parwez
+        Assert.True(TextUtils.ScoreTenantMatch("parvez", "شمس برويز محمد", "SAF F 2450_12") >= 400);
+        Assert.True(TextUtils.ScoreTenantMatch("parwez", "شمس برويز محمد", "SAF F 2450_12") >= 400);
+
+        // Suwaidi vs Saud isolation
+        Assert.True(TextUtils.ScoreTenantMatch("suwaidi", "محمد عبد القادر السويدي", "100") >= 400);
+        Assert.Equal(0, TextUtils.ScoreTenantMatch("suwaidi", "عبدالله سعود الدوسري", "500"));
+        Assert.True(TextUtils.ScoreTenantMatch("saud", "عبدالله سعود الدوسري", "500") >= 400);
+
+        // Awadh / Awad
+        Assert.True(TextUtils.ScoreTenantMatch("awadh", "زياد عوض السليمان", "SAF F 2450_21") >= 400);
+        Assert.True(TextUtils.ScoreTenantMatch("awad", "زياد عوض السليمان", "SAF F 2450_21") >= 400);
     }
 }

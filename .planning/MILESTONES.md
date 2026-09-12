@@ -1,11 +1,24 @@
 # Milestones History
 
-## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)
+## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-12)
 
-**Phases completed:** 4 phases (105-108) + 27 quick refinements (QCK-01 through QCK-27), 4 plans, comprehensive multi-stack test verification (120 .NET xUnit, 37 Pytest tests, 193 Vitest across 22 files, Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 29 quick refinements (QCK-01 through QCK-29), 4 plans, comprehensive multi-stack test verification (144 .NET xUnit, 37 Pytest tests, 195 Vitest across 22 files, Playwright E2E)
 
 **Key accomplishments:**
 
+- **Database-Wide Real-World Name Validation & Phonetic Precision (Quick Refinement QCK-29):**
+  - Sampled real-world tenant names directly from the production database (`organizer.db`, 716 tenants across 253 houses and 18,770 documents) to discover unique single-occurrence tenants, South Asian expat transliterations, and nuanced Arabic phonotactics (`جمشيد أنور محمد أنور`, `تيسير خطاب عبد الكريم`, `مادو سودانان ناير`, `سرفراز نواز محمد يوسف عبد الصادق رجا`, `شوكت علي البلوشي`, `شمس برويز محمد`, `محمد عبد القادر السويدي`, `زياد عوض السليمان`).
+  - Expanded consonant Waw rules to cover `أنور` (Anwar) with `[اآإأ]ن[وؤ]` / `من[وؤ]` / `[اآإأ]ر[وؤ] -> W`.
+  - Added Arabic `وي` (`[وؤ]ي -> Wy`) glide preservation for `السويدي` (Suwaidi) and `برويز` (Parwez).
+  - Strictly anchored `(^|[\s\-])ع[وؤ]` to word start for `عوض` (Awad/Awadh) while preventing medial `عو` (`سعود` Saud) from falsely matching `suwaidi`.
+  - Added English diphthong reduction `([oa])w(?=[^aeiouy\s]|$) -> $1` so `showkat`, `shaukat`, and `shoukat` all normalize to `skt` and match `شوكت`.
+  - Mapped English `p -> b` so South Asian transliterations (`parvez`/`parwez`) match Arabic `برويز`.
+  - Added Dhad (`ض`) `dh -> z -> d` transliteration matching so both `awad` and `awadh` resolve to `عوض` with high confidence ($\ge 400$).
+  - Upgraded `run-mac.sh` with pre-flight SQLite integrity validation (`PRAGMA quick_check;`) and atomic copy staging, preventing torn database writes across SMB.
+  - Added 23 new unit test cases and isolation tests across .NET xUnit (`PhoneticSearchTests.cs`: 144 / 144 passing) and Pytest (`test_search_phonetic.py`: 10 / 10 passing).
+  - Verified live search queries directly against running ASP.NET Core server (`anwar`, `parvez`, `suwaidi`, `awadh`, `jamshed`, `tayseer`, `usman`, `waseem`, `ameed`, `javed`, `shaukat`, `showkat`, `sarfraz`, `sarfaraz`, `nair`, `madhu`).
+- **Preserve Open Category Folders & Scroll Position on Document Move (Quick Refinement QCK-28):**
+  - Preserved open folder accordion states across re-renders in `categories-view.js` using `openCategoryNames = new Set()`, expanded drop target folder, eliminated scroll height collapse in `loadCategories()`, preserved scroll offset (`scrollTop`), and smoothly scrolled destination category into view via `scrollIntoView({ block: 'nearest', behavior: 'smooth' })`. Verified by 195 Vitest tests across 22 files (including 8 in `category_folder_persistence.test.js`), 120 xUnit tests, and Pytest test suite with zero static asset diff.
 - **Decouple Single Document Move/Copy from Multi-Select Batch State (Quick Refinement QCK-27):**
   - Resolved bug where clicking "Move" or "Copy" from an individual document's 3-dots action menu automatically activated multi-select batch mode, checked the document's checkbox, and revealed the floating batch action bar.
   - Introduced `singleTargetDoc` state in `categories-view.js` to isolate single-document move/copy workflows from the global `selectedDocIds` Set.
