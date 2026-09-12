@@ -309,11 +309,12 @@ describe('Touchscreen & Mobile Interactions Protection (Android Tablet Support)'
             expect(window.draggedDoc.vault_id).toBe('doc_touch_01');
             expect(window.draggedDoc.category).toBe('05 - عقود');
 
-            // Floating drag avatar must be visible with Move badge
+            // Floating drag avatar must be visible with document title and document icon (without 'Move' text)
             const avatar = document.getElementById('touch-drag-avatar');
             expect(avatar).not.toBeNull();
             expect(avatar.textContent).toContain('عقد إيجار شقة');
-            expect(avatar.textContent).toContain('Move');
+            expect(avatar.textContent).not.toContain('Move');
+            expect(avatar.innerHTML).toContain('M9 12h6m-6 4h6m2 5H7');
 
             // Source element must have dimming & highlight classes
             expect(docEl.classList.contains('opacity-40')).toBe(true);
