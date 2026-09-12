@@ -4,9 +4,9 @@ milestone: v14.0
 milestone_name: Power-User Operations & Portfolio Expansion
 current_phase: 108 (All Complete)
 status: completed
-last_updated: "2026-09-12T14:10:00.000Z"
+last_updated: "2026-09-12T14:18:00.000Z"
 last_activity: 2026-09-12
-last_activity_desc: "Completed Cross-Tenant Move Fix (QCK-38: Instant Cross-Tenant Document Move & Folder Lifecycle). 273 Vitest tests across 27 files (100%), 18 backend pytest tests passing, zero static asset diff."
+last_activity_desc: "Completed Vacant House Grey Styling (QCK-38) & Cross-Tenant Document Move (QCK-39). 274 Vitest tests across 27 files (100%), 147 xUnit tests, 43 pytest tests passing, zero static asset diff."
 progress:
   total_phases: 4
   completed_phases: 4
