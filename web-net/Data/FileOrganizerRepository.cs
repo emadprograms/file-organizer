@@ -41,8 +41,8 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         var tenants = (await conn.QueryAsync<Tenant>(@"
             SELECT id, house_id AS HouseId, name, start_date AS StartDate, end_date AS EndDate 
             FROM tenants 
-            ORDER BY (CASE WHEN end_date IS NULL OR end_date = '' OR LOWER(end_date) = 'present' THEN 1 ELSE 0 END) DESC, 
-                     start_date DESC, id DESC;")).ToList();
+            ORDER BY (CASE WHEN end_date IS NULL OR end_date = '' OR LOWER(end_date) = 'present' OR end_date >= DATE('now') THEN 1 ELSE 0 END) DESC, 
+                     end_date DESC, start_date DESC, id DESC;")).ToList();
 
         var docCounts = (await conn.QueryAsync<(string HouseId, string? Category, int DocCount)>(@"
             SELECT house_id AS HouseId, category AS Category, COUNT(*) AS DocCount 
@@ -238,8 +238,8 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         var tenants = (await conn.QueryAsync<Tenant>(@"
             SELECT id, house_id AS HouseId, name, start_date AS StartDate, end_date AS EndDate 
             FROM tenants 
-            ORDER BY (CASE WHEN end_date IS NULL OR end_date = '' OR LOWER(end_date) = 'present' THEN 1 ELSE 0 END) DESC, 
-                     start_date DESC, id DESC;")).ToList();
+            ORDER BY (CASE WHEN end_date IS NULL OR end_date = '' OR LOWER(end_date) = 'present' OR end_date >= DATE('now') THEN 1 ELSE 0 END) DESC, 
+                     end_date DESC, start_date DESC, id DESC;")).ToList();
 
         var docCounts = (await conn.QueryAsync<(string HouseId, string? Category, int DocCount)>(@"
             SELECT house_id AS HouseId, category AS Category, COUNT(*) AS DocCount 
@@ -442,10 +442,12 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             });
         }
 
-        // Active first, then by start date descending
+        // Active first, then by end date descending (most recently vacated first), then start date descending
         tenantProfiles.Sort((a, b) =>
         {
             if (a.IsActive != b.IsActive) return b.IsActive.CompareTo(a.IsActive);
+            var endCmp = string.Compare(b.EndDate, a.EndDate, StringComparison.Ordinal);
+            if (endCmp != 0) return endCmp;
             return string.Compare(b.StartDate, a.StartDate, StringComparison.Ordinal);
         });
 
@@ -628,8 +630,8 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             SELECT id AS Id, name AS Name, start_date AS StartDate, end_date AS EndDate, house_id AS HouseId
             FROM tenants
             WHERE house_id = @HouseId OR house_id = @CleanHouseId
-            ORDER BY (CASE WHEN end_date IS NULL OR end_date = '' OR LOWER(end_date) = 'present' THEN 1 ELSE 0 END) DESC, 
-                     start_date DESC, id DESC;";
+            ORDER BY (CASE WHEN end_date IS NULL OR end_date = '' OR LOWER(end_date) = 'present' OR end_date >= DATE('now') THEN 1 ELSE 0 END) DESC, 
+                     end_date DESC, start_date DESC, id DESC;";
 
         var rows = (await conn.QueryAsync<TenantDto>(sql, new { HouseId = houseId, CleanHouseId = cleanHouseId })).ToList();
 

@@ -521,7 +521,12 @@ async def get_house_profile(request: Request, area_id: str, house_id: str):
                 category_count=len(tenant_cat_sets.get(t.id, set())),
             ))
 
-        tenant_profiles.sort(key=lambda x: (not x.is_active, x.start_date), reverse=False)
+        def _tp_sort_key(x):
+            end_yr = int(re.search(r'\d{4}', x.end_date).group(1)) if x.end_date and re.search(r'\d{4}', x.end_date) else 0
+            start_yr = int(re.search(r'\d{4}', x.start_date).group(1)) if x.start_date and re.search(r'\d{4}', x.start_date) else 0
+            return (not x.is_active, -end_yr, -start_yr)
+
+        tenant_profiles.sort(key=_tp_sort_key)
 
         valid_dates = [str(d["primary_date"]) for d in docs if d["primary_date"] and str(d["primary_date"]).upper() != "NONE"]
         oldest_date = min(valid_dates) if valid_dates else None
@@ -610,7 +615,12 @@ async def get_house_profile(request: Request, area_id: str, house_id: str):
             category_count=0,
         ))
 
-    tenant_profiles.sort(key=lambda x: (not x.is_active, x.start_date), reverse=False)
+    def _fs_tp_sort_key(x):
+        end_yr = int(re.search(r'\d{4}', x.end_date).group(1)) if x.end_date and re.search(r'\d{4}', x.end_date) else 0
+        start_yr = int(re.search(r'\d{4}', x.start_date).group(1)) if x.start_date and re.search(r'\d{4}', x.start_date) else 0
+        return (not x.is_active, -end_yr, -start_yr)
+
+    tenant_profiles.sort(key=_fs_tp_sort_key)
 
     valid_dates = []
     cat_counts = {}
@@ -1642,8 +1652,8 @@ async def get_tree(request: Request, include_categories: bool = False, include_t
 
         cursor = conn.execute(
             "SELECT id, house_id, name, start_date, end_date FROM tenants "
-            "ORDER BY (CASE WHEN end_date IS NULL OR end_date = '' OR LOWER(end_date) = 'present' THEN 1 ELSE 0 END) DESC, "
-            "start_date DESC, id DESC"
+            "ORDER BY (CASE WHEN end_date IS NULL OR end_date = '' OR LOWER(end_date) = 'present' OR end_date >= DATE('now') THEN 1 ELSE 0 END) DESC, "
+            "end_date DESC, start_date DESC, id DESC"
         )
         tenants_rows = cursor.fetchall()
 

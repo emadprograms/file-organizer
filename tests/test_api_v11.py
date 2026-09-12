@@ -407,10 +407,12 @@ def test_db_tables_endpoint(db_setup):
 
 
 def test_get_tree_vacant_house_no_active_tenant(db_setup):
-    """Test that a house whose tenants all vacated in the past has current_tenant=None and duration_category=None."""
+    """Test that a house whose tenants all vacated in the past has current_tenant=None, duration_category=None, and orders past tenants by end_date DESC."""
     repo = db_setup["repo"]
     repo.add_house(house_id="538", area_id="Safra C")
-    repo.add_tenant(house_id="538", name="فهد المغادر", start_date="2020-01-01", end_date="2024-12-31")
+    repo.add_tenant(house_id="538", name="مطلق إبراهيم", start_date="2011-11-21", end_date="2021-12-05")
+    repo.add_tenant(house_id="538", name="حمد إبراهيم", start_date="2013-07-21", end_date="2023-03-12")
+    repo.add_tenant(house_id="538", name="يحيى محمد", start_date="2000-09-16", end_date="2024-09-16")
 
     res = client.get("/api/tree")
     assert res.status_code == 200
@@ -420,10 +422,19 @@ def test_get_tree_vacant_house_no_active_tenant(db_setup):
 
     assert h538["current_tenant"] is None
     assert h538["duration_category"] is None
-    assert h538["subtitle"] == "2020 - 2024"
-    assert len(h538["children"]) == 1
+    assert h538["subtitle"] == "2000 - 2024"
+    assert len(h538["children"]) == 3
+    # Most recently vacated tenant (2024) must be first
+    assert h538["children"][0]["name"] == "يحيى محمد"
+    assert h538["children"][0]["subtitle"] == "2000 - 2024"
     assert h538["children"][0]["duration_category"] is None
     assert "Present" not in (h538["children"][0]["subtitle"] or "")
+
+    assert h538["children"][1]["name"] == "حمد إبراهيم"
+    assert h538["children"][1]["subtitle"] == "2013 - 2023"
+
+    assert h538["children"][2]["name"] == "مطلق إبراهيم"
+    assert h538["children"][2]["subtitle"] == "2011 - 2021"
 
 
 def test_ingest_vacated_tenant_date_conflict(db_setup):

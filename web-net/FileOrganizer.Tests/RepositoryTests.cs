@@ -660,10 +660,15 @@ public class RepositoryTests : IDisposable
     [Fact]
     public async Task GetHousesAsync_And_GetTreeAsync_VacantHouse_ReturnsGreyAndNoActiveTenant()
     {
-        // Arrange: House 538 in Safra C with a tenant who vacated in 2024 (past tenant, no active tenant)
+        // Arrange: House 538 in Safra C with multiple past tenants:
+        // - Tenant 1: 2011 - 2021
+        // - Tenant 2: 2013 - 2023
+        // - Tenant 3: 2000 - 2024 (earliest start year, but latest vacate year!)
         await _repo.AddAreaAsync("Safra C", "SC");
         await _repo.AddHouseAsync("538", "Safra C");
-        await _repo.AddTenantAsync("538", "فهد المغادر", "2020-01-01", "2024-12-31");
+        await _repo.AddTenantAsync("538", "مطلق إبراهيم", "2011-11-21", "2021-12-05");
+        await _repo.AddTenantAsync("538", "حمد إبراهيم", "2013-07-21", "2023-03-12");
+        await _repo.AddTenantAsync("538", "يحيى محمد", "2000-09-16", "2024-09-16");
 
         // Act 1: GetHousesAsync (Area Grid view)
         var houses = await _repo.GetHousesAsync("Safra C");
@@ -673,7 +678,8 @@ public class RepositoryTests : IDisposable
         Assert.Null(h538.DurationCategory);
         Assert.Equal("grey", h538.TenureColor);
         Assert.Null(h538.TenureDurationYears);
-        Assert.Equal("2020 - 2024", h538.Subtitle);
+        // The latest tenant who vacated was in 2024 (يحيى: 2000 - 2024)
+        Assert.Equal("2000 - 2024", h538.Subtitle);
 
         // Act 2: GetTreeAsync
         var tree = await _repo.GetTreeAsync();
@@ -684,20 +690,28 @@ public class RepositoryTests : IDisposable
         Assert.NotNull(treeHouse);
         Assert.Null(treeHouse.CurrentTenant);
         Assert.Null(treeHouse.DurationCategory);
-        Assert.Equal("2020 - 2024", treeHouse.Subtitle);
+        Assert.Equal("2000 - 2024", treeHouse.Subtitle);
         Assert.NotNull(treeHouse.Children);
+        Assert.Equal(3, treeHouse.Children!.Count);
 
-        var tenantNode = treeHouse.Children!.FirstOrDefault(t => t.Name == "فهد المغادر");
-        Assert.NotNull(tenantNode);
-        Assert.Null(tenantNode.DurationCategory);
-        Assert.Equal("2020 - 2024", tenantNode.Subtitle);
-        Assert.DoesNotContain("Present", tenantNode.Subtitle);
+        // Most recent vacate date (2024) should be first
+        Assert.Equal("يحيى محمد", treeHouse.Children[0].Name);
+        Assert.Equal("2000 - 2024", treeHouse.Children[0].Subtitle);
+        Assert.Null(treeHouse.Children[0].DurationCategory);
+
+        Assert.Equal("حمد إبراهيم", treeHouse.Children[1].Name);
+        Assert.Equal("2013 - 2023", treeHouse.Children[1].Subtitle);
+
+        Assert.Equal("مطلق إبراهيم", treeHouse.Children[2].Name);
+        Assert.Equal("2011 - 2021", treeHouse.Children[2].Subtitle);
 
         // Act 3: GetHouseProfileAsync
         var profile = await _repo.GetHouseProfileAsync("Safra C", "538");
         Assert.NotNull(profile);
         Assert.Null(profile.ActiveResident);
-        Assert.Single(profile.Tenants);
-        Assert.False(profile.Tenants[0].IsActive);
+        Assert.Equal(3, profile.Tenants.Count);
+        Assert.All(profile.Tenants, t => Assert.False(t.IsActive));
+        // Profile should also list most recent past tenant first
+        Assert.Equal("يحيى محمد", profile.Tenants[0].Name);
     }
 }
