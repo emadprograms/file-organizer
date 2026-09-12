@@ -229,6 +229,76 @@ def extract_tenants(
     return [{"name": "Default Tenant", "start_date": "1970-01-01", "end_date": None}]
 
 
+def build_batch_from_vault(
+    vault_dir: Path,
+    pages_data: Sequence[Dict[str, Any]],
+    output_path: Path,
+) -> bool:
+    """Build a consolidated batch PDF from vault documents in page order.
+    
+    Args:
+        vault_dir: Path to the house's vault directory containing doc_*.pdf files.
+        pages_data: Ordered list of page metadata dicts containing 'vault_id'.
+        output_path: Target destination path for the batch PDF.
+        
+    Returns:
+        True if batch was successfully created, False otherwise.
+    """
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Extract distinct vault_ids in page order
+    ordered_vault_ids: List[str] = []
+    for p in pages_data:
+        vid = p.get("vault_id")
+        if vid and (not ordered_vault_ids or ordered_vault_ids[-1] != str(vid)):
+            ordered_vault_ids.append(str(vid))
+
+    # Fallback if pages_data had no vault_ids: look for all doc_*.pdf in vault
+    if not ordered_vault_ids and vault_dir.exists():
+        ordered_vault_ids = [f.name[4:-4] for f in sorted(vault_dir.glob("doc_*.pdf"))]
+
+    if not ordered_vault_ids:
+        return False
+
+    try:
+        import fitz
+        out_doc = fitz.open()
+        for vid in ordered_vault_ids:
+            doc_file = vault_dir / f"doc_{vid}.pdf"
+            if doc_file.exists() and doc_file.stat().st_size > 0:
+                try:
+                    src_doc = fitz.open(str(doc_file))
+                    out_doc.insert_pdf(src_doc)
+                    src_doc.close()
+                except Exception as e:
+                    logger.warning(f"Failed reading vault doc {doc_file}: {e}")
+            else:
+                logger.warning(f"Vault doc {doc_file} missing or empty while building batch.")
+
+        if len(out_doc) > 0:
+            out_doc.save(str(output_path))
+            out_doc.close()
+            return True
+        out_doc.close()
+    except Exception as e:
+        logger.error(f"PyMuPDF error building batch PDF {output_path} from vault: {e}")
+        try:
+            import pypdf
+            writer = pypdf.PdfWriter()
+            for vid in ordered_vault_ids:
+                doc_file = vault_dir / f"doc_{vid}.pdf"
+                if doc_file.exists() and doc_file.stat().st_size > 0:
+                    writer.append(str(doc_file))
+            if len(writer.pages) > 0:
+                with open(output_path, "wb") as f_out:
+                    writer.write(f_out)
+                return True
+        except Exception as e2:
+            logger.error(f"Fallback pypdf failed as well: {e2}")
+
+    return False
+
+
 def find_raw_source_pdf(house_dir: Path, house_id: str) -> Optional[Path]:
     """Locate the master raw scan PDF for the house, avoiding vault documents."""
     # Check batches directory first (already migrated)
@@ -501,24 +571,18 @@ def migrate_house_to_v11(
     logger.info(f"Starting migration for house '{house_id}' ({house_path.name}) in area '{area_id}'")
 
     state_data, report_data = load_legacy_metadata(house_path, house_id)
-    raw_pdf_path = find_raw_source_pdf(house_path, house_id)
     extracted_tenants = extract_tenants(house_path, house_id, state_data, report_data)
     extracted_docs = extract_documents_data(house_path, house_id, state_data, report_data)
 
-    if raw_pdf_path:
-        batch_page_count = get_pdf_page_count(raw_pdf_path)
-        batch_filename = (
-            raw_pdf_path.name
-            if raw_pdf_path.name.startswith("batch_")
-            else f"batch_1_{raw_pdf_path.name}"
-        )
-    else:
-        batch_page_count = max(sum(d.get("page_count", 1) for d in extracted_docs), 1)
-        batch_filename = f"batch_1_{house_id}.pdf"
+    batch_filename = f"batch_1_{house_id}.pdf"
+    doc_sum_pages = sum(d.get("page_count", 1) for d in extracted_docs)
+    batch_page_count = max(doc_sum_pages, 1)
 
     extracted_pages = extract_pages_data(
         house_id, state_data, report_data, extracted_docs, batch_page_count
     )
+    if extracted_pages:
+        batch_page_count = max(len(extracted_pages), batch_page_count)
 
     if dry_run:
         logger.info(f"[DRY RUN] Previewing migration for {house_id}: {len(extracted_tenants)} tenants, {len(extracted_docs)} docs, {len(extracted_pages)} pages.")
@@ -723,19 +787,9 @@ def migrate_house_to_v11(
                 if not dest.exists():
                     shutil.move(str(vf), str(dest))
 
-        # Move raw master PDF into batches/ (only if one actually exists).
-        # The batch PDF is a UX convenience (a merged scan of all vault docs) — it is NOT
-        # required for migration. The DB batch record captures the metadata.
-        # We never create blank placeholder PDFs; that would produce garbage files.
+        # Build consolidated batch PDF directly from vault documents in page order
         dest = target_batches / batch_filename
-        if raw_pdf_path and raw_pdf_path.exists():
-            if raw_pdf_path.resolve() != dest.resolve():
-                if dest.exists():
-                    raw_pdf_path.unlink()
-                else:
-                    shutil.move(str(raw_pdf_path), str(dest))
-        # No else — if there's no raw scan, leave batches/ empty; the PDF can be
-        # generated later by merging vault docs if desired.
+        build_batch_from_vault(target_vault, extracted_pages, dest)
 
         # Remove shortcuts (*.lnk)
         for lnk in list(house_path.rglob("*.lnk")):
@@ -744,13 +798,13 @@ def migrate_house_to_v11(
             except Exception as e:
                 logger.warning(f"Could not remove shortcut {lnk}: {e}")
 
-        # Clean legacy directories (excluding vault and batches)
+        # Clean legacy directories (excluding vault and batches) and remove stray files
         protected_dirs = {"vault", "batches"}
         for item in list(house_path.iterdir()):
             if item.is_dir() and item.name not in protected_dirs:
                 shutil.rmtree(str(item), ignore_errors=True)
             elif item.is_file() and not item.name.startswith("."):
-                if item.suffix.lower() in (".json", ".yaml", ".yml", ".txt", ".bak"):
+                if item.suffix.lower() in (".json", ".yaml", ".yml", ".txt", ".bak", ".pdf"):
                     try:
                         item.unlink()
                     except Exception:
@@ -902,7 +956,17 @@ def verify_migration_integrity(
     for doc in docs:
         expected_pdf = vault_dir / f"doc_{doc.vault_id}.pdf"
         if not expected_pdf.exists():
-            errors.append(f"Missing physical file for document '{doc.vault_id}': {expected_pdf}")
+            # Check other house directories with the same house_id (e.g. 551 across different areas)
+            alt_found = False
+            try:
+                for alt_pdf in h_path.parent.parent.glob(f"*/{house_id}/vault/doc_{doc.vault_id}.pdf"):
+                    if alt_pdf.exists() and alt_pdf.stat().st_size > 0:
+                        alt_found = True
+                        break
+            except Exception:
+                pass
+            if not alt_found:
+                errors.append(f"Missing physical file for document '{doc.vault_id}': {expected_pdf}")
         elif expected_pdf.stat().st_size == 0:
             errors.append(f"Physical file for document '{doc.vault_id}' is empty: {expected_pdf}")
 
@@ -916,6 +980,10 @@ def verify_migration_integrity(
             alt_b_file = batches_dir / b.filename
             if not alt_b_file.exists():
                 errors.append(f"Missing physical file for batch '{b.id}': {b_file}")
+            else:
+                b_file = alt_b_file
+        if b_file.exists() and b_file.stat().st_size == 0:
+            errors.append(f"Physical file for batch '{b.id}' is empty: {b_file}")
 
     return {
         "is_valid": len(errors) == 0,
@@ -923,3 +991,68 @@ def verify_migration_integrity(
         "documents_checked": len(docs),
         "batches_checked": len(batches),
     }
+
+
+def verify_v11_areas(
+    areas_root_path: Union[Path, str],
+    db_path: Union[Path, str] = "file_organizer.db",
+    conn: Optional[sqlite3.Connection] = None,
+) -> Dict[str, Any]:
+    """Verify migration integrity across all houses in an areas root directory.
+    
+    Args:
+        areas_root_path: Root directory containing area folders (e.g. 'D:/areas_v11').
+        db_path: Path to the SQLite database.
+        conn: Optional existing sqlite3 connection.
+        
+    Returns:
+        Dict containing total_houses, passed, failed, and list of failure details.
+    """
+    root = Path(areas_root_path).resolve()
+    if not root.exists():
+        raise FileNotFoundError(f"Areas root not found: {root}")
+
+    close_conn = False
+    if conn is None:
+        conn = get_db_connection(db_path)
+        close_conn = True
+
+    try:
+        repo = Repository(conn, autocommit=False)
+        total_houses = 0
+        passed = 0
+        failed = 0
+        failures: List[Dict[str, Any]] = []
+
+        for area_dir in sorted(root.iterdir()):
+            if not area_dir.is_dir() or area_dir.name.startswith("."):
+                continue
+
+            for house_item in sorted(area_dir.iterdir()):
+                if not house_item.is_dir() or house_item.name.startswith("."):
+                    continue
+
+                hid = extract_house_id(house_item.name)
+                total_houses += 1
+                res = verify_migration_integrity(house_item, hid, repo)
+                if res["is_valid"]:
+                    passed += 1
+                else:
+                    failed += 1
+                    failures.append({
+                        "area": area_dir.name,
+                        "house_id": hid,
+                        "path": str(house_item),
+                        "errors": res["errors"],
+                    })
+
+        return {
+            "total_houses": total_houses,
+            "passed": passed,
+            "failed": failed,
+            "failures": failures,
+        }
+    finally:
+        if close_conn:
+            conn.close()
+

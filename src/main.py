@@ -225,6 +225,13 @@ def get_parser() -> argparse.ArgumentParser:
     migrate_v11_parser.add_argument("--dry-run", action="store_true", help="Preview changes without modifying files or database")
     migrate_v11_parser.add_argument("--no-rename", action="store_true", help="Do not rename house directory to clean house ID")
     migrate_v11_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
+
+    # verify-v11 mode
+    verify_v11_parser = subparsers.add_parser("verify-v11", help="Verify integrity of v11 houses and database records")
+    verify_v11_parser.add_argument("--areas-root", type=Path, default=None, help="Path to areas root directory (defaults to areas_root_path in config)")
+    verify_v11_parser.add_argument("--target-dir", type=Path, default=None, help="Optional specific house directory to verify")
+    verify_v11_parser.add_argument("--db-path", type=Path, default=None, help="Path to SQLite database file")
+    verify_v11_parser.add_argument("--verbose", action="store_true", help="Enable verbose logging")
     
     return parser
 
@@ -341,6 +348,40 @@ def main() -> int:
         logger.info(f"Migrated {len(results)} houses.")
         has_errors = any(r.get("status") == "error" for r in results)
         return 1 if has_errors else 0
+
+    if args.command == "verify-v11":
+        setup_logging(verbose=getattr(args, 'verbose', False))
+        set_verbosity(getattr(args, 'verbose', False))
+        from src.migration.v11_migration import verify_migration_integrity, verify_v11_areas, extract_house_id
+        from src.db.connection import get_db_connection
+        from src.db.repository import Repository
+        
+        db_path = getattr(args, 'db_path', None) or config.db_path or "organizer.db"
+        target_dir = getattr(args, 'target_dir', None)
+        if target_dir:
+            target_path = target_dir.resolve()
+            hid = extract_house_id(target_path.name)
+            conn = get_db_connection(db_path)
+            repo = Repository(conn)
+            res = verify_migration_integrity(target_path, hid, repo)
+            conn.close()
+            if res["is_valid"]:
+                logger.info(f"PASS: House {hid} verified successfully.")
+                return 0
+            else:
+                logger.error(f"FAIL: House {hid} verification errors: {res['errors']}")
+                return 1
+
+        areas_root_val = getattr(args, 'areas_root', None) or Path(config.areas_root_path)
+        areas_root = Path(areas_root_val).resolve()
+        logger.info(f"Running verify-v11 on areas root: {areas_root} with db: {db_path}")
+        res = verify_v11_areas(areas_root, db_path)
+        logger.info(f"Verification completed: {res['passed']}/{res['total_houses']} passed, {res['failed']} failed.")
+        if res["failed"] > 0:
+            for fail in res["failures"]:
+                logger.error(f"FAIL: [{fail['area']}] {fail['house_id']}: {fail['errors']}")
+            return 1
+        return 0
 
     if args.command == "verify":
         setup_logging(verbose=getattr(args, 'verbose', False))
