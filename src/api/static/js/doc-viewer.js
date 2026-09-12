@@ -51,29 +51,29 @@
             stored = (typeof localStorage !== 'undefined') ? localStorage.getItem('pdf_viewer_mode') : null;
         } catch (e) {}
 
-        if (stored === 'pdfjs' || stored === 'official' || stored === 'canvas') return true;
-        if (stored === 'native') return false;
+        if (stored === 'tab' || stored === 'tablet' || stored === 'pdfjs' || stored === 'official' || stored === 'canvas') return true;
+        if (stored === 'computer' || stored === 'native') return false;
 
         // In automated test runners (Playwright/Puppeteer), prefer native iframe for desktop assertions unless explicitly set
         if (typeof navigator !== 'undefined' && navigator.webdriver) {
             return false;
         }
 
-        // Mobile / Tablet auto-detection:
+        // Touchscreen / Tablet auto-detection:
         // Android, iOS (iPhone/iPad), tablets, or touch-first devices where iframe PDFs prompt downloads
         if (typeof navigator !== 'undefined') {
             const ua = navigator.userAgent || '';
             const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(ua);
-            const isTouchTablet = (navigator.maxTouchPoints > 1 || (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches));
-            const isIPad = /Macintosh/i.test(ua) && isTouchTablet;
+            const isTouchScreen = (navigator.maxTouchPoints > 0 || (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches));
+            const isIPad = /Macintosh/i.test(ua) && navigator.maxTouchPoints > 1;
 
-            if (isMobileUA || isIPad) return true;
+            if (isMobileUA || isIPad || isTouchScreen) return true;
 
             // Fallback for devices without native PDF viewer plugin
             if (navigator.pdfViewerEnabled === false) return true;
         }
 
-        // Default for desktop: native iframe (ensures desktop plugins & PDF viewers work)
+        // Default for computer: native iframe (ensures desktop plugins & PDF viewers work)
         return false;
     }
 
@@ -338,8 +338,8 @@
             modeToggleBtn._hasViewerListener = true;
             modeToggleBtn.onclick = (e) => {
                 e.preventDefault();
-                const currentIsOfficial = shouldUseOfficialViewer();
-                const newMode = currentIsOfficial ? 'native' : 'pdfjs';
+                const currentIsTab = shouldUseOfficialViewer();
+                const newMode = currentIsTab ? 'computer' : 'tab';
                 try {
                     localStorage.setItem('pdf_viewer_mode', newMode);
                 } catch (err) {}
@@ -356,21 +356,29 @@
             };
         }
 
-        const initialMode = shouldUseOfficialViewer() ? 'pdfjs' : 'native';
+        const initialMode = shouldUseOfficialViewer() ? 'tab' : 'computer';
         updateViewerModeButton(initialMode);
     }
 
     function updateViewerModeButton(mode) {
         const label = document.getElementById('viewer-mode-label');
+        const iconSvg = document.getElementById('viewer-mode-icon');
         const toggleBtn = document.getElementById('viewer-mode-toggle');
         if (!toggleBtn) return;
-        const isOfficial = mode === 'pdfjs' || mode === 'official' || mode === 'canvas' || (mode === null && shouldUseOfficialViewer());
+        const isTab = mode === 'tab' || mode === 'tablet' || mode === 'pdfjs' || mode === 'official' || mode === 'canvas' || (mode === null && shouldUseOfficialViewer());
         if (label) {
-            label.textContent = isOfficial ? 'PDF.js' : 'Native';
+            label.textContent = isTab ? 'Tab' : 'Computer';
         }
-        toggleBtn.title = isOfficial 
-            ? 'Switch to Native PDF viewer • التبديل إلى العارض الأصلي' 
-            : 'Switch to Mozilla PDF.js viewer • التبديل إلى عارض PDF.js';
+        if (iconSvg) {
+            if (isTab) {
+                iconSvg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>';
+            } else {
+                iconSvg.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>';
+            }
+        }
+        toggleBtn.title = isTab 
+            ? 'Using Tab viewer — Click to switch to Computer viewer • وضع التابلت — انقر للتبديل إلى وضع الكمبيوتر' 
+            : 'Using Computer viewer — Click to switch to Tab viewer • وضع الكمبيوتر — انقر للتبديل إلى وضع التابلت';
     }
 
     let lastOpenDocVaultId = null;
@@ -508,6 +516,8 @@
     window.renderPdfDocument = renderPdfDocument;
     window.shouldUseCanvasViewer = shouldUseOfficialViewer;
     window.shouldUseOfficialViewer = shouldUseOfficialViewer;
+    window.shouldUseTabViewer = shouldUseOfficialViewer;
+    window.updateViewerModeButton = updateViewerModeButton;
     window.resolveViewerSrc = resolveViewerSrc;
     window.toggleFullscreen = toggleFullscreen;
     window.initViewerControls = initViewerControls;
