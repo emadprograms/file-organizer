@@ -1249,6 +1249,264 @@
         };
     }
 
+    // ── Touch Drag & Drop Controller (Tablet & Touchscreen Support) ────────────
+    let touchDragTimer = null;
+    let touchDragState = null;
+    let currentHoverCard = null;
+
+    function initTouchDrag(docEl, doc, getCatName) {
+        if (!docEl) return;
+
+        docEl.addEventListener('touchstart', (e) => {
+            if (!e.touches || e.touches.length !== 1) return;
+
+            // Ignore touch on interactive controls: checkboxes, preview icon, 3-dots menu button, or inputs
+            const target = e.target;
+            if (target && target.closest && target.closest('.doc-select-checkbox, .doc-icon-preview, .doc-menu-btn, button, input, a')) {
+                return;
+            }
+
+            const touch = e.touches[0];
+            const startX = touch.clientX;
+            const startY = touch.clientY;
+            const sourceCat = typeof getCatName === 'function' ? getCatName() : (docEl.getAttribute('data-category') || doc.category || '');
+
+            if (touchDragTimer) {
+                clearTimeout(touchDragTimer);
+                touchDragTimer = null;
+            }
+
+            touchDragState = {
+                startX,
+                startY,
+                currentX: startX,
+                currentY: startY,
+                doc,
+                sourceCat,
+                docEl,
+                isActive: false
+            };
+
+            touchDragTimer = setTimeout(() => {
+                if (!touchDragState) return;
+                startTouchDrag(touchDragState);
+            }, 280);
+        }, { passive: true });
+
+        docEl.addEventListener('touchmove', (e) => {
+            if (!touchDragState) return;
+            const touch = e.touches && e.touches[0];
+            if (!touch) return;
+
+            touchDragState.currentX = touch.clientX;
+            touchDragState.currentY = touch.clientY;
+
+            if (!touchDragState.isActive) {
+                // If finger moves more than 8px before timer fires, cancel drag (user is scrolling)
+                const dist = Math.hypot(touch.clientX - touchDragState.startX, touch.clientY - touchDragState.startY);
+                if (dist > 8) {
+                    if (touchDragTimer) {
+                        clearTimeout(touchDragTimer);
+                        touchDragTimer = null;
+                    }
+                    touchDragState = null;
+                }
+            } else {
+                // Active touch drag: prevent browser scrolling and update position
+                if (e.cancelable) e.preventDefault();
+                updateTouchDrag(touchDragState);
+            }
+        }, { passive: false });
+
+        const endTouch = (e) => {
+            if (touchDragTimer) {
+                clearTimeout(touchDragTimer);
+                touchDragTimer = null;
+            }
+
+            if (touchDragState && touchDragState.isActive) {
+                if (e && e.cancelable) e.preventDefault();
+                if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+                if (typeof window !== 'undefined') {
+                    window._justFinishedTouchDrag = Date.now();
+                }
+
+                const touch = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]) || null;
+                finishTouchDrop(touchDragState, touch);
+            }
+
+            touchDragState = null;
+        };
+
+        docEl.addEventListener('touchend', endTouch, { passive: false });
+        docEl.addEventListener('touchcancel', () => {
+            if (touchDragTimer) {
+                clearTimeout(touchDragTimer);
+                touchDragTimer = null;
+            }
+            if (touchDragState && touchDragState.isActive) {
+                cancelTouchDrag(touchDragState);
+            }
+            touchDragState = null;
+        }, { passive: true });
+    }
+
+    function startTouchDrag(state) {
+        state.isActive = true;
+        if (typeof window !== 'undefined') {
+            window.isTouchDragging = true;
+            window._lastTouchTimestamp = Date.now();
+            window.draggedDoc = {
+                vault_id: state.doc.vault_id,
+                title: state.doc.brief_arabic_title || state.doc.filename || '',
+                category: state.sourceCat,
+                tenant: state.doc.tenant || state.doc.primary_tenant || '',
+                tenant_id: state.doc.tenant_id,
+                house_id: (typeof getBatchResolvedHouse === 'function' ? getBatchResolvedHouse() : ((typeof currentHouse !== 'undefined' ? currentHouse : (window.currentHouse || '')))),
+                area_id: (typeof getBatchResolvedArea === 'function' ? getBatchResolvedArea() : ((typeof currentArea !== 'undefined' ? currentArea : (window.currentArea || ''))))
+            };
+        }
+
+        // Haptic feedback
+        if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+            try { navigator.vibrate(40); } catch (e) {}
+        }
+
+        // Visual feedback on source doc element
+        if (state.docEl && state.docEl.classList) {
+            state.docEl.classList.add('opacity-40', 'ring-2', 'ring-blue-400');
+        }
+
+        // Create floating drag avatar
+        removeTouchAvatar();
+        const avatar = document.createElement('div');
+        avatar.id = 'touch-drag-avatar';
+        avatar.className = 'touch-drag-avatar fixed pointer-events-none z-[10000] px-3 py-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-xl shadow-2xl border-2 border-blue-500 flex items-center gap-2 max-w-xs text-xs font-semibold text-slate-800 dark:text-white select-none transition-transform';
+
+        const docTitle = getCleanDocTitle(state.doc, state.sourceCat);
+        avatar.innerHTML = `
+            <span class="p-1 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 flex-shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+            </span>
+            <span class="truncate flex-1 min-w-0">${escapeHtml(docTitle)}</span>
+            <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/80 text-blue-700 dark:text-blue-300 font-bold flex-shrink-0">نقل • Move</span>
+        `;
+        document.body.appendChild(avatar);
+
+        positionTouchAvatar(avatar, state.currentX, state.currentY);
+    }
+
+    function positionTouchAvatar(avatar, clientX, clientY) {
+        if (!avatar) return;
+        const x = Math.max(10, Math.min(((typeof window !== 'undefined' && window.innerWidth ? window.innerWidth : 800) - 220), clientX - 40));
+        const y = Math.max(10, clientY - 55);
+        avatar.style.left = `${x}px`;
+        avatar.style.top = `${y}px`;
+    }
+
+    function updateTouchDrag(state) {
+        const avatar = document.getElementById('touch-drag-avatar');
+        positionTouchAvatar(avatar, state.currentX, state.currentY);
+
+        // Find element under touch point
+        const elem = (typeof document !== 'undefined' && typeof document.elementFromPoint === 'function')
+            ? document.elementFromPoint(state.currentX, state.currentY)
+            : null;
+
+        const targetCard = elem && elem.closest ? elem.closest('.category-folder-card') : null;
+
+        if (targetCard) {
+            const targetCat = targetCard.getAttribute('data-category-name');
+            if (targetCat && targetCat !== state.sourceCat) {
+                if (currentHoverCard && currentHoverCard !== targetCard) {
+                    unhighlightFolderCard(currentHoverCard);
+                }
+                currentHoverCard = targetCard;
+                highlightFolderCard(targetCard);
+            } else {
+                if (currentHoverCard) {
+                    unhighlightFolderCard(currentHoverCard);
+                    currentHoverCard = null;
+                }
+            }
+        } else {
+            if (currentHoverCard) {
+                unhighlightFolderCard(currentHoverCard);
+                currentHoverCard = null;
+            }
+        }
+
+        // Auto-scroll near container edges
+        if (typeof document !== 'undefined') {
+            const scrollEl = document.getElementById('document-list-panel') || document.getElementById('document-list');
+            if (scrollEl && scrollEl.getBoundingClientRect) {
+                const rect = scrollEl.getBoundingClientRect();
+                const edgeThreshold = 60;
+                if (state.currentY < rect.top + edgeThreshold && scrollEl.scrollTop > 0) {
+                    scrollEl.scrollTop -= 8;
+                } else if (state.currentY > rect.bottom - edgeThreshold) {
+                    scrollEl.scrollTop += 8;
+                }
+            }
+        }
+    }
+
+    function highlightFolderCard(card) {
+        if (!card) return;
+        card.classList.add('drag-over-active', 'border-blue-500', 'bg-blue-50/70', 'dark:bg-blue-900/40', 'ring-2', 'ring-blue-400');
+    }
+
+    function unhighlightFolderCard(card) {
+        if (!card) return;
+        card.classList.remove('drag-over-active', 'border-blue-500', 'bg-blue-50/70', 'dark:bg-blue-900/40', 'ring-2', 'ring-blue-400');
+    }
+
+    async function finishTouchDrop(state, touch) {
+        const clientX = touch ? touch.clientX : state.currentX;
+        const clientY = touch ? touch.clientY : state.currentY;
+
+        cancelTouchDrag(state);
+
+        const elem = (typeof document !== 'undefined' && typeof document.elementFromPoint === 'function')
+            ? document.elementFromPoint(clientX, clientY)
+            : null;
+
+        const targetCard = elem && elem.closest ? elem.closest('.category-folder-card') : null;
+
+        if (targetCard) {
+            const targetCat = targetCard.getAttribute('data-category-name');
+            if (targetCat && targetCat !== state.sourceCat) {
+                if (typeof window !== 'undefined' && typeof window.handleCategoryDrop === 'function') {
+                    await window.handleCategoryDrop({ preventDefault: () => {} }, targetCat, targetCard);
+                } else if (typeof window !== 'undefined' && typeof window.moveDocInDom === 'function') {
+                    window.moveDocInDom(state.doc.vault_id, state.sourceCat, targetCat);
+                }
+            }
+        }
+    }
+
+    function cancelTouchDrag(state) {
+        removeTouchAvatar();
+        if (currentHoverCard) {
+            unhighlightFolderCard(currentHoverCard);
+            currentHoverCard = null;
+        }
+        if (state && state.docEl && state.docEl.classList) {
+            state.docEl.classList.remove('opacity-40', 'ring-2', 'ring-blue-400');
+        }
+        if (typeof window !== 'undefined') {
+            window.draggedDoc = null;
+            window.isTouchDragging = false;
+        }
+    }
+
+    function removeTouchAvatar() {
+        if (typeof document !== 'undefined') {
+            const avatar = document.getElementById('touch-drag-avatar');
+            if (avatar) avatar.remove();
+        }
+    }
+
     function createDocRowElement(doc, catName, card) {
         const docEl = document.createElement('div');
         const hasNotes = Boolean(doc.notes && doc.notes.trim());
@@ -1261,7 +1519,7 @@
             ? 'bg-amber-50/80 border-l-4 border-l-amber-400 border border-amber-200/80 text-amber-900 hover:bg-amber-100/70 hover:border-amber-300 shadow-2xs'
             : 'text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50';
 
-        docEl.className = `${highlightClasses} px-2.5 py-1.5 rounded-lg cursor-pointer transition-all flex items-center justify-between gap-2 font-medium group/doc`;
+        docEl.className = `${highlightClasses} px-2.5 py-1.5 rounded-lg cursor-pointer transition-all flex items-center justify-between gap-2 font-medium group/doc category-doc-item`;
         docEl.draggable = true;
         docEl.setAttribute('data-vault-id', doc.vault_id);
         docEl.setAttribute('data-category', catName);
@@ -1270,6 +1528,7 @@
             docEl.ondragstart = (e) => window.handleDocDragStart(e, doc, catName);
             docEl.ondragend = (e) => window.handleDocDragEnd(e);
         }
+        initTouchDrag(docEl, doc, () => docEl.getAttribute('data-category') || catName);
 
         const title = getCleanDocTitle(doc, catName);
         const isManual = Boolean(doc.is_manual);
@@ -1381,6 +1640,9 @@
 
         let lastDocRowClickTime = 0;
         docEl.onclick = (e) => {
+            if (typeof window !== 'undefined' && window._justFinishedTouchDrag && (Date.now() - window._justFinishedTouchDrag < 600)) {
+                return;
+            }
             const now = Date.now();
             if (e && isTouchEvent(e) && (now - lastDocRowClickTime < 250)) {
                 return;
@@ -1551,6 +1813,9 @@
 
         let lastCardClickTime = 0;
         card.onclick = (e) => {
+            if (typeof window !== 'undefined' && window._justFinishedTouchDrag && (Date.now() - window._justFinishedTouchDrag < 600)) {
+                return;
+            }
             const now = Date.now();
             if (e && isTouchEvent(e) && (now - lastCardClickTime < 250)) {
                 return;
@@ -1821,6 +2086,14 @@
     }
 
     function renderCategories() {
+        removeTouchAvatar();
+        if (touchDragTimer) {
+            clearTimeout(touchDragTimer);
+            touchDragTimer = null;
+        }
+        touchDragState = null;
+        currentHoverCard = null;
+
         const docListEl = document.getElementById('document-list');
         if (!docListEl) return;
 
@@ -2009,6 +2282,12 @@
         window.copyDocInDom = copyDocInDom;
         window.isTouchEvent = isTouchEvent;
         window.isTouchOrMobileDevice = isTouchOrMobileDevice;
+        window.initTouchDrag = initTouchDrag;
+        window.startTouchDrag = startTouchDrag;
+        window.updateTouchDrag = updateTouchDrag;
+        window.finishTouchDrop = finishTouchDrop;
+        window.cancelTouchDrag = cancelTouchDrag;
+        window.removeTouchAvatar = removeTouchAvatar;
     }
 
     if (typeof module !== 'undefined' && module.exports) {
@@ -2060,6 +2339,12 @@
             copyDocInDom,
             isTouchEvent,
             isTouchOrMobileDevice,
+            initTouchDrag,
+            startTouchDrag,
+            updateTouchDrag,
+            finishTouchDrop,
+            cancelTouchDrag,
+            removeTouchAvatar,
         };
     }
 })();

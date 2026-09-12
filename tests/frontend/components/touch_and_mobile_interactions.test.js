@@ -220,4 +220,220 @@ describe('Touchscreen & Mobile Interactions Protection (Android Tablet Support)'
             expect(titleH4.querySelector('.inline-rename-input')).not.toBeNull();
         });
     });
+
+    describe('Touchscreen Press-and-Hold Drag-and-Drop Document Move Support', () => {
+        function createTouchEvent(type, clientX, clientY) {
+            const event = new Event(type, { bubbles: true, cancelable: true });
+            const touch = { clientX, clientY, identifier: 1, target: null };
+            if (type === 'touchend' || type === 'touchcancel') {
+                event.changedTouches = [touch];
+                event.touches = [];
+            } else {
+                event.touches = [touch];
+                event.changedTouches = [touch];
+            }
+            return event;
+        }
+
+        beforeEach(() => {
+            vi.useFakeTimers();
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+            const avatar = document.getElementById('touch-drag-avatar');
+            if (avatar) avatar.remove();
+            delete window.isTouchDragging;
+            delete window.draggedDoc;
+            delete window._justFinishedTouchDrag;
+        });
+
+        it('short touch tap (< 280ms) does NOT activate touch drag mode and opens the document normally', () => {
+            renderCategories();
+            const docList = document.getElementById('document-list');
+            const docEl = docList.querySelector('.category-doc-item');
+            expect(docEl).not.toBeNull();
+
+            // Touch start
+            docEl.dispatchEvent(createTouchEvent('touchstart', 100, 200));
+
+            // Fast forward 100ms (< 280ms hold threshold)
+            vi.advanceTimersByTime(100);
+
+            // Touch end
+            docEl.dispatchEvent(createTouchEvent('touchend', 100, 200));
+
+            // Drag mode must NOT be active and no avatar created
+            expect(window.isTouchDragging).toBeFalsy();
+            expect(document.getElementById('touch-drag-avatar')).toBeNull();
+
+            // Normal click opens document
+            docEl.click();
+            expect(global.openDocument).toHaveBeenCalledWith('doc_touch_01', 'عقد إيجار شقة', '05 - عقود');
+        });
+
+        it('swiping finger > 8px before 280ms cancels drag timer so user can scroll normally', () => {
+            renderCategories();
+            const docList = document.getElementById('document-list');
+            const docEl = docList.querySelector('.category-doc-item');
+
+            // Touch start
+            docEl.dispatchEvent(createTouchEvent('touchstart', 100, 200));
+
+            // Move 25px vertically before hold threshold fires
+            vi.advanceTimersByTime(50);
+            docEl.dispatchEvent(createTouchEvent('touchmove', 100, 225));
+
+            // Advance past 280ms timer
+            vi.advanceTimersByTime(300);
+
+            // Drag mode must remain inactive
+            expect(window.isTouchDragging).toBeFalsy();
+            expect(document.getElementById('touch-drag-avatar')).toBeNull();
+        });
+
+        it('pressing and holding document title >= 280ms activates touch drag mode with avatar and source dimming', () => {
+            renderCategories();
+            const docList = document.getElementById('document-list');
+            const docEl = docList.querySelector('.category-doc-item');
+
+            // Touch start and hold still
+            docEl.dispatchEvent(createTouchEvent('touchstart', 100, 200));
+
+            // Advance 280ms
+            vi.advanceTimersByTime(290);
+
+            // Drag mode MUST be active
+            expect(window.isTouchDragging).toBe(true);
+            expect(window.draggedDoc).not.toBeNull();
+            expect(window.draggedDoc.vault_id).toBe('doc_touch_01');
+            expect(window.draggedDoc.category).toBe('05 - عقود');
+
+            // Floating drag avatar must be visible with Move badge
+            const avatar = document.getElementById('touch-drag-avatar');
+            expect(avatar).not.toBeNull();
+            expect(avatar.textContent).toContain('عقد إيجار شقة');
+            expect(avatar.textContent).toContain('Move');
+
+            // Source element must have dimming & highlight classes
+            expect(docEl.classList.contains('opacity-40')).toBe(true);
+            expect(docEl.classList.contains('ring-2')).toBe(true);
+        });
+
+        it('touchmove during active drag updates avatar position and highlights target category folder card', () => {
+            renderCategories();
+            const docList = document.getElementById('document-list');
+            const docEl = docList.querySelector('.category-doc-item');
+
+            // Add a second category folder card to test drop target hovering
+            const targetFolderCard = document.createElement('div');
+            targetFolderCard.className = 'category-folder-card';
+            targetFolderCard.setAttribute('data-category-name', '06 - كهرباء وماء');
+            docList.appendChild(targetFolderCard);
+
+            // Activate drag
+            docEl.dispatchEvent(createTouchEvent('touchstart', 100, 200));
+            vi.advanceTimersByTime(290);
+            expect(window.isTouchDragging).toBe(true);
+
+            // Mock elementFromPoint to return target folder card
+            const originalElementFromPoint = document.elementFromPoint;
+            document.elementFromPoint = vi.fn().mockReturnValue(targetFolderCard);
+
+            try {
+                // Move finger over target folder card
+                docEl.dispatchEvent(createTouchEvent('touchmove', 150, 350));
+
+                // Target card must get active highlight classes
+                expect(targetFolderCard.classList.contains('drag-over-active')).toBe(true);
+                expect(targetFolderCard.classList.contains('ring-2')).toBe(true);
+
+                // Move finger away from card
+                document.elementFromPoint = vi.fn().mockReturnValue(document.body);
+                docEl.dispatchEvent(createTouchEvent('touchmove', 20, 20));
+
+                // Highlight must be removed
+                expect(targetFolderCard.classList.contains('drag-over-active')).toBe(false);
+            } finally {
+                document.elementFromPoint = originalElementFromPoint;
+            }
+        });
+
+        it('releasing finger over target folder card executes move via handleCategoryDrop and suppresses click', async () => {
+            renderCategories();
+            const docList = document.getElementById('document-list');
+            const docEl = docList.querySelector('.category-doc-item');
+
+            const targetFolderCard = document.createElement('div');
+            targetFolderCard.className = 'category-folder-card';
+            targetFolderCard.setAttribute('data-category-name', '06 - كهرباء وماء');
+            docList.appendChild(targetFolderCard);
+
+            window.handleCategoryDrop = vi.fn().mockResolvedValue(true);
+
+            // Activate drag
+            docEl.dispatchEvent(createTouchEvent('touchstart', 100, 200));
+            vi.advanceTimersByTime(290);
+            expect(window.isTouchDragging).toBe(true);
+
+            const originalElementFromPoint = document.elementFromPoint;
+            document.elementFromPoint = vi.fn().mockReturnValue(targetFolderCard);
+
+            try {
+                // Release finger over target folder card
+                docEl.dispatchEvent(createTouchEvent('touchend', 150, 350));
+
+                // handleCategoryDrop must be invoked with target category
+                expect(window.handleCategoryDrop).toHaveBeenCalledWith(
+                    expect.anything(),
+                    '06 - كهرباء وماء',
+                    targetFolderCard
+                );
+
+                // State and avatar must be cleanly reset
+                expect(window.isTouchDragging).toBe(false);
+                expect(document.getElementById('touch-drag-avatar')).toBeNull();
+                expect(docEl.classList.contains('opacity-40')).toBe(false);
+
+                // Subsequent click must be suppressed (within 600ms)
+                global.openDocument.mockClear();
+                docEl.click();
+                expect(global.openDocument).not.toHaveBeenCalled();
+            } finally {
+                document.elementFromPoint = originalElementFromPoint;
+                delete window.handleCategoryDrop;
+            }
+        });
+
+        it('releasing finger over same folder card does NOT trigger a move', () => {
+            renderCategories();
+            const docList = document.getElementById('document-list');
+            const docEl = docList.querySelector('.category-doc-item');
+            const sourceCard = docList.querySelector('.category-folder-card');
+
+            window.handleCategoryDrop = vi.fn();
+
+            // Activate drag
+            docEl.dispatchEvent(createTouchEvent('touchstart', 100, 200));
+            vi.advanceTimersByTime(290);
+            expect(window.isTouchDragging).toBe(true);
+
+            const originalElementFromPoint = document.elementFromPoint;
+            document.elementFromPoint = vi.fn().mockReturnValue(sourceCard);
+
+            try {
+                // Release finger over the same folder card ('05 - عقود')
+                docEl.dispatchEvent(createTouchEvent('touchend', 100, 200));
+
+                // Must NOT invoke move
+                expect(window.handleCategoryDrop).not.toHaveBeenCalled();
+                expect(window.isTouchDragging).toBe(false);
+                expect(document.getElementById('touch-drag-avatar')).toBeNull();
+            } finally {
+                document.elementFromPoint = originalElementFromPoint;
+                delete window.handleCategoryDrop;
+            }
+        });
+    });
 });
+

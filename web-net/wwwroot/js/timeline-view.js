@@ -396,6 +396,9 @@
 
             let lastCardClickTime = 0;
             card.onclick = (e) => {
+                if (typeof window !== 'undefined' && window._justFinishedTouchDrag && (Date.now() - window._justFinishedTouchDrag < 600)) {
+                    return;
+                }
                 const now = Date.now();
                 if (e && isTouchEvent(e) && (now - lastCardClickTime < 250)) {
                     return;
