@@ -132,4 +132,46 @@ describe('Area Grid House Card Component - Scrollbar for > 3 Tenancies', () => {
     tenantsSection.dispatchEvent(normalClickEvent);
     expect(cardClicked).toBe(true);
   });
+
+  it('renders grey border and Vacant badge for vacant house with past tenants (e.g. house 538)', () => {
+    const areaNode = {
+      name: 'Safra C',
+      children: [
+        {
+          id: '538',
+          name: '538 - Vacant House',
+          duration_category: null,
+          current_tenant: null,
+          total_documents: 3,
+          children: [
+            { type: 'tenant', name: 'فهد المغادر', subtitle: '2024' }
+          ]
+        }
+      ]
+    };
+
+    window.renderAreaGrid(areaNode);
+
+    const card = document.querySelector('.house-card[data-house-id="538"]');
+    expect(card).not.toBeNull();
+    expect(card.classList.contains('border-l-slate-300')).toBe(true);
+    expect(card.classList.contains('border-l-rose-500')).toBe(false);
+    expect(card.classList.contains('border-l-amber-500')).toBe(false);
+    expect(card.classList.contains('border-l-emerald-500')).toBe(false);
+
+    const badge = card.querySelector('.tenure-badge');
+    expect(badge).not.toBeNull();
+    expect(badge.textContent.trim()).toBe('Vacant');
+    expect(badge.classList.contains('bg-slate-100')).toBe(true);
+
+    const tenantItem = card.querySelector('.tenant-overview-item');
+    expect(tenantItem).not.toBeNull();
+    expect(tenantItem.classList.contains('bg-slate-50')).toBe(true);
+    expect(tenantItem.classList.contains('bg-rose-50/70')).toBe(false);
+
+    const tenantIcon = tenantItem.querySelector('span[title="Past Tenant"]');
+    expect(tenantIcon).not.toBeNull();
+    expect(tenantItem.querySelector('span[title="Residing Tenant"]')).toBeNull();
+  });
 });
+

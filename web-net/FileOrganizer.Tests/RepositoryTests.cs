@@ -656,4 +656,48 @@ public class RepositoryTests : IDisposable
             // Ignore cleanup errors
         }
     }
+
+    [Fact]
+    public async Task GetHousesAsync_And_GetTreeAsync_VacantHouse_ReturnsGreyAndNoActiveTenant()
+    {
+        // Arrange: House 538 in Safra C with a tenant who vacated in 2024 (past tenant, no active tenant)
+        await _repo.AddAreaAsync("Safra C", "SC");
+        await _repo.AddHouseAsync("538", "Safra C");
+        await _repo.AddTenantAsync("538", "فهد المغادر", "2020-01-01", "2024-12-31");
+
+        // Act 1: GetHousesAsync (Area Grid view)
+        var houses = await _repo.GetHousesAsync("Safra C");
+        var h538 = houses.FirstOrDefault(h => h.Id == "538");
+        Assert.NotNull(h538);
+        Assert.Null(h538.CurrentTenant);
+        Assert.Null(h538.DurationCategory);
+        Assert.Equal("grey", h538.TenureColor);
+        Assert.Null(h538.TenureDurationYears);
+        Assert.Equal("2020 - 2024", h538.Subtitle);
+
+        // Act 2: GetTreeAsync
+        var tree = await _repo.GetTreeAsync();
+        var safra = tree.FirstOrDefault(a => a.Name == "Safra C");
+        Assert.NotNull(safra);
+        Assert.NotNull(safra.Children);
+        var treeHouse = safra.Children!.FirstOrDefault(h => h.Id == "538");
+        Assert.NotNull(treeHouse);
+        Assert.Null(treeHouse.CurrentTenant);
+        Assert.Null(treeHouse.DurationCategory);
+        Assert.Equal("2020 - 2024", treeHouse.Subtitle);
+        Assert.NotNull(treeHouse.Children);
+
+        var tenantNode = treeHouse.Children!.FirstOrDefault(t => t.Name == "فهد المغادر");
+        Assert.NotNull(tenantNode);
+        Assert.Null(tenantNode.DurationCategory);
+        Assert.Equal("2020 - 2024", tenantNode.Subtitle);
+        Assert.DoesNotContain("Present", tenantNode.Subtitle);
+
+        // Act 3: GetHouseProfileAsync
+        var profile = await _repo.GetHouseProfileAsync("Safra C", "538");
+        Assert.NotNull(profile);
+        Assert.Null(profile.ActiveResident);
+        Assert.Single(profile.Tenants);
+        Assert.False(profile.Tenants[0].IsActive);
+    }
 }

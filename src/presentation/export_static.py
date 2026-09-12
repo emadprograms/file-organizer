@@ -189,11 +189,13 @@ def build_tree_data(areas_root: Path) -> list[dict[str, Any]]:
 
             if not active_tenant and " - " in house_dir_name:
                 cand = house_dir_name.split(" - ", 1)[1].strip()
-                if cand in tenants_with_dates:
+                if cand in tenants_with_dates and tenant_is_present.get(cand):
                     active_tenant = cand
 
             if not active_tenant and len(tenants_with_dates) == 1:
-                active_tenant = next(iter(tenants_with_dates.keys()))
+                cand = next(iter(tenants_with_dates.keys()))
+                if tenant_is_present.get(cand):
+                    active_tenant = cand
 
             house_duration_cat = None
             house_sub = None
@@ -203,7 +205,7 @@ def build_tree_data(areas_root: Path) -> list[dict[str, Any]]:
                 min_val = min(years)
                 max_val = max(years)
                 is_pres = tenant_is_present.get(active_tenant, False)
-                if is_pres or active_tenant == (house_dir_name.split(" - ", 1)[1].strip() if " - " in house_dir_name else ""):
+                if is_pres:
                     duration = current_year - min_val
                     if duration < 5:
                         house_duration_cat = "short"

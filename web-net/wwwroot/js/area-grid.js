@@ -76,9 +76,9 @@
             card.className = 'house-card group bg-white rounded-xl p-4 border border-slate-200 shadow-2xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between';
             card.dataset.houseId = house.id;
 
-            let borderClass = 'border-l-[5px] border-l-slate-300';
-            let badgeClass = 'bg-slate-100 text-slate-700 border-slate-200';
-            let badgeLabel = 'Unknown';
+            let borderClass = 'border-l-[5px] border-l-slate-300 dark:border-l-slate-600 hover:border-slate-400';
+            let badgeClass = 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 font-medium';
+            let badgeLabel = 'Vacant';
 
             if (house.duration_category === 'short') {
                 borderClass = 'border-l-[5px] border-l-emerald-500 hover:border-emerald-400';
@@ -109,9 +109,11 @@
                 tenantsHtml = `
                     <div class="space-y-1.5">
                         ${tenants.map((t, idx) => {
-                            const isCurrent = (house.current_tenant && t.name === house.current_tenant) 
+                            const isCurrent = Boolean(
+                                (house.current_tenant && t.name === house.current_tenant) 
+                                || (t.is_active === true)
                                 || (t.subtitle && (t.subtitle.includes('Present') || t.subtitle.includes('الآن')))
-                                || (idx === 0 && !t.subtitle?.includes('-'));
+                            );
 
                             let currentCardBg = 'bg-emerald-50/70 border-emerald-200/80';
                             let currentIconBg = 'bg-emerald-100 text-emerald-700';

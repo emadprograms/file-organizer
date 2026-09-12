@@ -114,12 +114,10 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                 if (activeTenant == null && house.Id.Contains(" - "))
                 {
                     var cand = house.Id.Split(" - ", 2)[1].Trim();
-                    activeTenant = hTenants.FirstOrDefault(t => t.Name == cand);
-                }
-
-                if (activeTenant == null && hTenants.Count > 0)
-                {
-                    activeTenant = hTenants[0];
+                    activeTenant = hTenants.FirstOrDefault(t => t.Name == cand &&
+                        (string.IsNullOrEmpty(t.EndDate) ||
+                         t.EndDate.ToLowerInvariant() == "present" ||
+                         string.Compare(t.EndDate, todayStr, StringComparison.Ordinal) >= 0));
                 }
 
                 string? houseDurationCat = null;
@@ -283,12 +281,10 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             if (activeTenant == null && h.Id.Contains(" - "))
             {
                 var cand = h.Id.Split(" - ", 2)[1].Trim();
-                activeTenant = hTenants.FirstOrDefault(t => t.Name == cand);
-            }
-
-            if (activeTenant == null && hTenants.Count > 0)
-            {
-                activeTenant = hTenants[0];
+                activeTenant = hTenants.FirstOrDefault(t => t.Name == cand &&
+                    (string.IsNullOrEmpty(t.EndDate) ||
+                     t.EndDate.ToLowerInvariant() == "present" ||
+                     string.Compare(t.EndDate, todayStr, StringComparison.Ordinal) >= 0));
             }
 
             int? tenureDuration = null;
@@ -328,6 +324,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             }
             else if (hTenants.Count > 0)
             {
+                tenureColor = "grey";
                 var latest = hTenants[0];
                 var sStr = latest.StartDate.Length >= 4 ? latest.StartDate[..4] : "";
                 var eStr = (!string.IsNullOrEmpty(latest.EndDate) && latest.EndDate.Length >= 4) ? latest.EndDate[..4] : "";
@@ -335,6 +332,10 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                     subtitle = $"{sStr} - {eStr}";
                 else if (!string.IsNullOrEmpty(sStr))
                     subtitle = sStr;
+            }
+            else
+            {
+                tenureColor = "grey";
             }
 
             result.Add(new HouseCardDto
@@ -491,7 +492,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         {
             HouseId = dbHouseId,
             AreaId = areaId,
-            ActiveResident = activeTenant?.Name ?? tenantProfiles.FirstOrDefault()?.Name,
+            ActiveResident = activeTenant?.Name,
             Tenants = tenantProfiles,
             Archive = archive
         };

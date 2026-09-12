@@ -188,10 +188,11 @@ function buildTreeData(areasRoot) {
             }
             if (!activeTenant && houseEntry.name.includes(' - ')) {
                 const cand = houseEntry.name.split(' - ')[1].trim();
-                if (tenantsWithDates[cand]) activeTenant = cand;
+                if (tenantsWithDates[cand] && tenantIsPresent[cand]) activeTenant = cand;
             }
             if (!activeTenant && Object.keys(tenantsWithDates).length === 1) {
-                activeTenant = Object.keys(tenantsWithDates)[0];
+                const cand = Object.keys(tenantsWithDates)[0];
+                if (tenantIsPresent[cand]) activeTenant = cand;
             }
 
             let houseDurationCat = null;
@@ -201,7 +202,7 @@ function buildTreeData(areasRoot) {
                 const minVal = Math.min(...years);
                 const maxVal = Math.max(...years);
                 const isPres = !!tenantIsPresent[activeTenant];
-                if (isPres || activeTenant === (houseEntry.name.includes(' - ') ? houseEntry.name.split(' - ')[1].trim() : '')) {
+                if (isPres) {
                     const duration = currentYear - minVal;
                     if (duration < 5) houseDurationCat = 'short';
                     else if (duration < 10) houseDurationCat = 'medium';

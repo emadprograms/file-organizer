@@ -1700,12 +1700,11 @@ async def get_tree(request: Request, include_categories: bool = False, include_t
                 if not active_t and " - " in house_id:
                     cand = house_id.split(" - ", 1)[1].strip()
                     for t in h_tenants:
-                        if t["name"] == cand:
+                        end_d = t["end_date"]
+                        is_cand_active = (not end_d or str(end_d) >= today_str or str(end_d).lower() == "present")
+                        if t["name"] == cand and is_cand_active:
                             active_t = t
                             break
-
-                if not active_t and h_tenants:
-                    active_t = h_tenants[0]
 
                 house_duration_cat = None
                 house_subtitle = None
@@ -1997,11 +1996,13 @@ async def get_tree(request: Request, include_categories: bool = False, include_t
             
             if not active_tenant and " - " in house_dir_name:
                 cand = house_dir_name.split(" - ", 1)[1].strip()
-                if cand in tenants_with_dates:
+                if cand in tenants_with_dates and tenant_is_present.get(cand):
                     active_tenant = cand
 
             if not active_tenant and len(tenants_with_dates) == 1:
-                active_tenant = next(iter(tenants_with_dates.keys()))
+                cand = next(iter(tenants_with_dates.keys()))
+                if tenant_is_present.get(cand):
+                    active_tenant = cand
 
             house_duration_cat = None
             house_sub = None
@@ -2011,7 +2012,7 @@ async def get_tree(request: Request, include_categories: bool = False, include_t
                 min_val = min(years)
                 max_val = max(years)
                 is_pres = tenant_is_present.get(active_tenant, False)
-                if is_pres or active_tenant == (house_dir_name.split(" - ", 1)[1].strip() if " - " in house_dir_name else ""):
+                if is_pres:
                     duration = current_year - min_val
                     if duration < 5:
                         house_duration_cat = "short"
