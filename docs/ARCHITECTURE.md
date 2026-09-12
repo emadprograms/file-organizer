@@ -66,3 +66,22 @@ The application uses a modular, domain-driven directory structure under `src/`:
 - `tenant_config/`: Loads and parses optional tenant definitions from YAML.
 - `timeline/`: Manages date-based tenant timelines, date inference, vault saving, and shortcut linking.
 - `utils/`: Common utilities such as logging and safe file system operations.
+
+### Frontend Web UI & Interaction Architecture
+The web client provides a unified interface across both Desktop PC and Tablet devices ("وضع الكمبيوتر" / "وضع التابلت"), implemented in vanilla JavaScript with Tailwind CSS styling:
+- `src/api/static/js/doc-manager.js`: Handles document state, desktop HTML5 drag & drop (`dragstart`, `dragover`, `drop`, `dragend`), selection management (`selectedDocIds`), and document moves (single move PATCH or multi-document batch move `POST /api/areas/{area}/houses/{house}/documents/batch-move`).
+- `src/api/static/js/categories-view.js`: Handles category grouping, folder cards, and tablet touch gestures (press-and-hold >=280ms touch drag-and-drop with floating avatar and dynamic target folder detection).
+- **Multi-Select Drag & Drop Workflow**:
+  1. **Selection**: Documents are selected via checkboxes (`toggleDocSelection`, tracking `selectedDocIds`).
+  2. **Initiation**:
+     - *Desktop (Computers)*: Dragging any selected document sets `isMulti = true`, populates `vault_ids`, and dims all selected cards (`opacity-40 ring-2 ring-blue-400`).
+     - *Tablet (Tabs)*: Press-and-hold (>=280ms) on any selected document initiates touch dragging, creates a floating `#touch-drag-avatar` with a count badge pill (`.touch-drag-count-badge`), and dims all selected cards in DOM.
+  3. **Target Drop**:
+     - Dropping onto a category folder card triggers `POST /api/areas/{area}/houses/{house}/documents/batch-move` for multiple documents (or single PATCH for one document).
+     - Dropping onto a sidebar tenant tree node reassigns all dragged documents to the target resident.
+  4. **DOM Synchronization & Cleanup**:
+     - Each document card is moved to its target category container via `moveDocInDom` and count badges update smoothly.
+     - `deselectAllDocs()` clears selection checkboxes and state.
+     - All dimming styles and touch avatars are cleaned up reliably in `finally` handlers.
+- **Asset Mirroring**: Web assets are strictly mirrored across three locations: `src/api/static/js/`, `web-net/wwwroot/js/`, and `dist/win-x64/wwwroot/js/`.
+

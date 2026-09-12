@@ -30,13 +30,19 @@ To develop `file-organizer` locally, follow these steps:
    cp .env.example .env
    ```
 
-## Build Commands
-
-As this is a Python project, there is no formal compilation or build step required before running the application. The primary command used during development is for executing the test suite.
+## Build and Test Commands
 
 | Command | Description |
 |---------|-------------|
-| `pytest` | Runs the full test suite in the `tests/` directory. |
+| `pytest` | Runs the full Python backend test suite in the `tests/` directory. |
+| `npm run test:frontend` | Runs the Vitest frontend unit and integration test suite with JSDOM environment. |
+| `npm run test:e2e` | Runs Playwright end-to-end browser tests. |
+
+### Frontend Asset Mirroring
+The web interface client scripts are located in `src/api/static/js/`. When updating frontend JavaScript or styling:
+- Any changes to `src/api/static/js/*.js` must be synchronized to `web-net/wwwroot/js/*.js` and `dist/win-x64/wwwroot/js/*.js`.
+- Always verify all frontend tests pass using `npm run test:frontend`.
+
 
 ## Code Style
 

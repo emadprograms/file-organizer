@@ -99,9 +99,32 @@
         return getHouseFromHash();
     }
 
+    function getActiveSelectedDocIds() {
+        if (typeof window !== 'undefined') {
+            if (window.selectedDocIds instanceof Set) return window.selectedDocIds;
+            if (typeof window.getSelectedDocIds === 'function') {
+                const s = window.getSelectedDocIds();
+                if (s instanceof Set) return s;
+                if (Array.isArray(s)) return new Set(s);
+            }
+        }
+        if (typeof selectedDocIds !== 'undefined' && selectedDocIds instanceof Set) {
+            return selectedDocIds;
+        }
+        return new Set();
+    }
+
     function handleDocDragStart(e, doc, fromCategory) {
+        const activeSelected = getActiveSelectedDocIds();
+        const isPartOfSelection = activeSelected.has(doc.vault_id);
+        const targetVaultIds = isPartOfSelection ? Array.from(activeSelected) : [doc.vault_id];
+        const isMulti = targetVaultIds.length > 1;
+
         draggedDoc = {
             vault_id: doc.vault_id,
+            vault_ids: targetVaultIds,
+            isMulti: isMulti,
+            count: targetVaultIds.length,
             title: doc.brief_arabic_title || doc.filename || '',
             category: fromCategory || doc.category || '',
             tenant: doc.tenant || doc.primary_tenant || '',
@@ -109,91 +132,214 @@
             house_id: getResolvedHouse(doc),
             area_id: getResolvedArea(doc),
         };
-        e.dataTransfer.setData('text/plain', doc.vault_id);
-        e.dataTransfer.effectAllowed = 'copyMove';
-        setTimeout(() => {
-            if (e.target && e.target.classList) e.target.classList.add('opacity-40');
-        }, 0);
+        if (typeof window !== 'undefined') {
+            window.draggedDoc = draggedDoc;
+        }
+
+        if (e && e.dataTransfer) {
+            if (typeof e.dataTransfer.setData === 'function') {
+                e.dataTransfer.setData('text/plain', doc.vault_id);
+                try {
+                    e.dataTransfer.setData('application/json', JSON.stringify({
+                        vault_id: doc.vault_id,
+                        vault_ids: targetVaultIds,
+                        count: targetVaultIds.length
+                    }));
+                } catch (_) {}
+            }
+            e.dataTransfer.effectAllowed = 'copyMove';
+
+            if (isMulti && typeof e.dataTransfer.setDragImage === 'function' && typeof document !== 'undefined' && document.createElement) {
+                try {
+                    const dragBadge = document.createElement('div');
+                    dragBadge.id = 'desktop-drag-avatar';
+                    dragBadge.style.cssText = 'position: absolute; top: -1000px; left: -1000px; z-index: 10000; padding: 6px 12px; background-color: #1e293b; color: #ffffff; border-radius: 9999px; font-size: 12px; font-weight: 600; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 8px; pointer-events: none;';
+                    dragBadge.innerHTML = `<span>Moving ${targetVaultIds.length} items</span>`;
+                    document.body.appendChild(dragBadge);
+                    e.dataTransfer.setDragImage(dragBadge, 15, 15);
+                    setTimeout(() => {
+                        if (dragBadge.parentNode) dragBadge.remove();
+                    }, 0);
+                } catch (_) {}
+            }
+        }
+
+        const applyDimming = () => {
+            if (isMulti) {
+                targetVaultIds.forEach(id => {
+                    const el = (typeof document !== 'undefined') ? document.querySelector(`[data-vault-id="${id}"]`) : null;
+                    if (el && el.classList) el.classList.add('opacity-40', 'ring-2', 'ring-blue-400');
+                });
+            } else if (e && e.target && e.target.classList) {
+                e.target.classList.add('opacity-40');
+            }
+        };
+        applyDimming();
+        setTimeout(applyDimming, 0);
     }
 
     function handleDocDragEnd(e) {
-        if (e.target && e.target.classList) e.target.classList.remove('opacity-40');
+        if (typeof document !== 'undefined') {
+            document.querySelectorAll('.opacity-40, .ring-blue-400').forEach(el => {
+                el.classList.remove('opacity-40', 'ring-2', 'ring-blue-400');
+            });
+            document.querySelectorAll('.drag-over-active').forEach(el => {
+                el.classList.remove('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400', 'bg-slate-700/80');
+            });
+        } else if (e && e.target && e.target.classList) {
+            e.target.classList.remove('opacity-40');
+        }
         draggedDoc = null;
-        document.querySelectorAll('.drag-over-active').forEach(el => {
-            el.classList.remove('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400', 'bg-slate-700/80');
-        });
+        if (typeof window !== 'undefined') {
+            window.draggedDoc = null;
+        }
     }
 
     function handleCategoryDragOver(e, card) {
-        if (!draggedDoc || !draggedDoc.vault_id) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        card.classList.add('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400');
+        const activeDragged = draggedDoc || (typeof window !== 'undefined' && window.draggedDoc);
+        if (!activeDragged || (!activeDragged.vault_id && (!activeDragged.vault_ids || activeDragged.vault_ids.length === 0))) return;
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        if (e && e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+        if (card && card.classList) card.classList.add('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400');
     }
 
     function handleCategoryDragLeave(e, card) {
-        card.classList.remove('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400');
+        if (card && card.classList) card.classList.remove('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400');
     }
 
     async function handleCategoryDrop(e, targetCategory, card) {
-        e.preventDefault();
-        card.classList.remove('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400');
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        if (card && card.classList) {
+            card.classList.remove('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400');
+        }
         const activeDragged = draggedDoc || (typeof window !== 'undefined' && window.draggedDoc);
-        if (!activeDragged || !activeDragged.vault_id) return;
-        if (activeDragged.category === targetCategory) return;
+        if (!activeDragged) return;
+
+        const vaultIds = (activeDragged.vault_ids && activeDragged.vault_ids.length > 0)
+            ? activeDragged.vault_ids
+            : (activeDragged.vault_id ? [activeDragged.vault_id] : []);
+
+        if (vaultIds.length === 0) return;
+
+        const isMulti = vaultIds.length > 1;
+
+        // If single doc and it is already in targetCategory, skip
+        if (!isMulti && activeDragged.category === targetCategory) return;
 
         const area = getResolvedArea(activeDragged);
         const house = getResolvedHouse(activeDragged);
         const sourceCategory = activeDragged.category;
 
         try {
-            const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(activeDragged.vault_id)}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ category: targetCategory, is_manual: 1 })
-            });
-            if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.detail || 'Failed to move document');
-            }
-            const data = await res.json();
-            const finalCategory = data.category || targetCategory;
-            showToast(`Moved to ${finalCategory}`);
+            if (isMulti) {
+                const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/batch-move`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        vault_ids: vaultIds,
+                        target_category: targetCategory
+                    })
+                });
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.detail || errData.error || 'Failed to move documents');
+                }
+                const data = await res.json();
+                const finalCategory = data.target_category || targetCategory;
+                const movedCount = (typeof data.moved_count === 'number') ? data.moved_count : vaultIds.length;
 
-            let movedInDom = false;
-            if (typeof window.moveDocInDom === 'function') {
-                movedInDom = window.moveDocInDom(activeDragged.vault_id, sourceCategory, finalCategory);
-            }
-            if (!movedInDom && typeof window.refreshCurrentTab === 'function') {
-                await window.refreshCurrentTab(area, house);
+                if (typeof window !== 'undefined' && typeof window.deselectAllDocs === 'function') {
+                    window.deselectAllDocs();
+                } else if (typeof deselectAllDocs === 'function') {
+                    deselectAllDocs();
+                }
+
+                showToast(`Successfully moved ${movedCount} documents to "${finalCategory}"`);
+
+                let allMovedInDom = true;
+                if (typeof window !== 'undefined' && typeof window.moveDocInDom === 'function') {
+                    vaultIds.forEach(id => {
+                        const ok = window.moveDocInDom(id, null, finalCategory);
+                        if (!ok) allMovedInDom = false;
+                    });
+                } else {
+                    allMovedInDom = false;
+                }
+                if (!allMovedInDom && typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                    await window.refreshCurrentTab(area, house);
+                }
+            } else {
+                const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(activeDragged.vault_id)}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category: targetCategory, is_manual: 1 })
+                });
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.detail || 'Failed to move document');
+                }
+                const data = await res.json();
+                const finalCategory = data.category || targetCategory;
+
+                const activeSelected = getActiveSelectedDocIds();
+                if (activeSelected.has(activeDragged.vault_id)) {
+                    if (typeof window !== 'undefined' && typeof window.deselectAllDocs === 'function') {
+                        window.deselectAllDocs();
+                    } else if (typeof deselectAllDocs === 'function') {
+                        deselectAllDocs();
+                    }
+                }
+
+                showToast(`Moved to ${finalCategory}`);
+
+                let movedInDom = false;
+                if (typeof window !== 'undefined' && typeof window.moveDocInDom === 'function') {
+                    movedInDom = window.moveDocInDom(activeDragged.vault_id, sourceCategory, finalCategory);
+                }
+                if (!movedInDom && typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                    await window.refreshCurrentTab(area, house);
+                }
             }
         } catch (err) {
             console.error(err);
             showToast(err.message, 'error');
+        } finally {
+            draggedDoc = null;
+            if (typeof window !== 'undefined') {
+                window.draggedDoc = null;
+            }
         }
     }
 
     function handleTenantTreeDragOver(e, btn, parentPath) {
         const activeDragged = draggedDoc || (typeof window !== 'undefined' && window.draggedDoc);
-        if (!activeDragged || !activeDragged.vault_id) return;
+        if (!activeDragged || (!activeDragged.vault_id && (!activeDragged.vault_ids || activeDragged.vault_ids.length === 0))) return;
         const house = getResolvedHouse(activeDragged);
         if (parentPath && house && !parentPath.includes(encodeURIComponent(house)) && !parentPath.includes(house)) {
             return;
         }
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        btn.classList.add('drag-over-active', 'bg-slate-700/80', 'ring-2', 'ring-blue-400');
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        if (e && e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+        if (btn && btn.classList) btn.classList.add('drag-over-active', 'bg-slate-700/80', 'ring-2', 'ring-blue-400');
     }
 
     function handleTenantTreeDragLeave(e, btn) {
-        btn.classList.remove('drag-over-active', 'bg-slate-700/80', 'ring-2', 'ring-blue-400');
+        if (btn && btn.classList) btn.classList.remove('drag-over-active', 'bg-slate-700/80', 'ring-2', 'ring-blue-400');
     }
 
     async function handleTenantTreeDrop(e, tenantName, btn, parentPath) {
-        e.preventDefault();
-        btn.classList.remove('drag-over-active', 'bg-slate-700/80', 'ring-2', 'ring-blue-400');
+        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+        if (btn && btn.classList) {
+            btn.classList.remove('drag-over-active', 'bg-slate-700/80', 'ring-2', 'ring-blue-400');
+        }
         const activeDragged = draggedDoc || (typeof window !== 'undefined' && window.draggedDoc);
-        if (!activeDragged || !activeDragged.vault_id) return;
+        if (!activeDragged) return;
+
+        const vaultIds = (activeDragged.vault_ids && activeDragged.vault_ids.length > 0)
+            ? activeDragged.vault_ids
+            : (activeDragged.vault_id ? [activeDragged.vault_id] : []);
+        if (vaultIds.length === 0) return;
+
         const area = getResolvedArea(activeDragged);
         const house = getResolvedHouse(activeDragged);
         if (parentPath && house && !parentPath.includes(encodeURIComponent(house)) && !parentPath.includes(house)) {
@@ -208,22 +354,50 @@
             const target = tenants.find(t => t.name.trim() === tenantName.trim());
             if (!target) throw new Error('Tenant not found');
 
-            const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(activeDragged.vault_id)}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tenant_id: target.id, is_manual: 1 })
-            });
-            if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.detail || 'Failed to assign tenant');
+            const isMulti = vaultIds.length > 1;
+            if (isMulti) {
+                const patchPromises = vaultIds.map(vid =>
+                    fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(vid)}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ tenant_id: target.id, is_manual: 1 })
+                    })
+                );
+                const responses = await Promise.all(patchPromises);
+                const anyFailed = responses.some(r => !r.ok);
+                if (anyFailed) {
+                    throw new Error('Some documents failed to update tenant');
+                }
+                if (typeof window !== 'undefined' && typeof window.deselectAllDocs === 'function') {
+                    window.deselectAllDocs();
+                } else if (typeof deselectAllDocs === 'function') {
+                    deselectAllDocs();
+                }
+                showToast(`Assigned ${vaultIds.length} documents to ${tenantName}`);
+            } else {
+                const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(activeDragged.vault_id)}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tenant_id: target.id, is_manual: 1 })
+                });
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.detail || 'Failed to assign tenant');
+                }
+                showToast(`Assigned to ${tenantName}`);
             }
-            showToast(`Assigned to ${tenantName}`);
-            if (typeof window.refreshCurrentTab === 'function') {
+
+            if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
                 await window.refreshCurrentTab(area, house);
             }
         } catch (err) {
             console.error(err);
             showToast(err.message, 'error');
+        } finally {
+            draggedDoc = null;
+            if (typeof window !== 'undefined') {
+                window.draggedDoc = null;
+            }
         }
     }
 
@@ -1124,8 +1298,12 @@
             getResolvedArea,
             getResolvedHouse,
             handleCategoryDrop,
+            handleCategoryDragOver,
             handleDocDragStart,
             handleDocDragEnd,
+            handleTenantTreeDrop,
+            handleTenantTreeDragOver,
+            getActiveSelectedDocIds,
         };
     }
 

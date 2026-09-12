@@ -256,7 +256,8 @@
 
     function toggleDocSelection(vaultId, isSelected) {
         if (!vaultId) return;
-        if (isSelected) {
+        const willSelect = (isSelected !== undefined) ? Boolean(isSelected) : !selectedDocIds.has(vaultId);
+        if (willSelect) {
             selectedDocIds.add(vaultId);
         } else {
             selectedDocIds.delete(vaultId);
@@ -1422,11 +1423,23 @@
 
     function startTouchDrag(state) {
         state.isActive = true;
+
+        const isPartOfSelection = selectedDocIds.has(state.doc.vault_id);
+        const targetVaultIds = isPartOfSelection ? Array.from(selectedDocIds) : [state.doc.vault_id];
+        const isMulti = targetVaultIds.length > 1;
+
+        state.vault_ids = targetVaultIds;
+        state.isMulti = isMulti;
+        state.count = targetVaultIds.length;
+
         if (typeof window !== 'undefined') {
             window.isTouchDragging = true;
             window._lastTouchTimestamp = Date.now();
             window.draggedDoc = {
                 vault_id: state.doc.vault_id,
+                vault_ids: targetVaultIds,
+                isMulti: isMulti,
+                count: targetVaultIds.length,
                 title: state.doc.brief_arabic_title || state.doc.filename || '',
                 category: state.sourceCat,
                 tenant: state.doc.tenant || state.doc.primary_tenant || '',
@@ -1441,8 +1454,13 @@
             try { navigator.vibrate(40); } catch (e) {}
         }
 
-        // Visual feedback on source doc element
-        if (state.docEl && state.docEl.classList) {
+        // Visual feedback on all dragged doc elements
+        if (isMulti && typeof document !== 'undefined') {
+            targetVaultIds.forEach(id => {
+                const el = document.querySelector(`[data-vault-id="${id}"]`);
+                if (el && el.classList) el.classList.add('opacity-40', 'ring-2', 'ring-blue-400');
+            });
+        } else if (state.docEl && state.docEl.classList) {
             state.docEl.classList.add('opacity-40', 'ring-2', 'ring-blue-400');
         }
 
@@ -1453,11 +1471,15 @@
         avatar.className = 'touch-drag-avatar fixed pointer-events-none z-[10000] px-3 py-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-xl shadow-2xl border-2 border-blue-500 flex items-center gap-2 max-w-xs text-xs font-semibold text-slate-800 dark:text-white select-none transition-transform';
 
         const docTitle = getCleanDocTitle(state.doc, state.sourceCat);
+        const badgePill = isMulti
+            ? `<span class="touch-drag-count-badge px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white shadow-xs flex-shrink-0">${targetVaultIds.length}</span>`
+            : '';
         avatar.innerHTML = `
             <span class="p-1 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 flex-shrink-0">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             </span>
             <span class="truncate flex-1 min-w-0">${escapeHtml(docTitle)}</span>
+            ${badgePill}
         `;
         document.body.appendChild(avatar);
 
@@ -1485,7 +1507,8 @@
 
         if (targetCard) {
             const targetCat = targetCard.getAttribute('data-category-name');
-            if (targetCat && targetCat !== state.sourceCat) {
+            const isMulti = state.isMulti || (state.vault_ids && state.vault_ids.length > 1);
+            if (targetCat && (targetCat !== state.sourceCat || isMulti)) {
                 if (currentHoverCard && currentHoverCard !== targetCard) {
                     unhighlightFolderCard(currentHoverCard);
                 }
@@ -1532,8 +1555,39 @@
     async function finishTouchDrop(state, touch) {
         const clientX = touch ? touch.clientX : state.currentX;
         const clientY = touch ? touch.clientY : state.currentY;
+        const isMulti = state.isMulti || (state.vault_ids && state.vault_ids.length > 1);
+        const vaultIds = state.vault_ids || [state.doc.vault_id];
 
-        cancelTouchDrag(state);
+        // Ensure window.draggedDoc has current touch drag payload
+        const activeDoc = {
+            vault_id: state.doc.vault_id,
+            vault_ids: vaultIds,
+            isMulti: isMulti,
+            count: vaultIds.length,
+            title: state.doc.brief_arabic_title || state.doc.filename || '',
+            category: state.sourceCat,
+            tenant: state.doc.tenant || state.doc.primary_tenant || '',
+            tenant_id: state.doc.tenant_id,
+            house_id: (typeof getBatchResolvedHouse === 'function' ? getBatchResolvedHouse() : ((typeof currentHouse !== 'undefined' ? currentHouse : (window.currentHouse || '')))),
+            area_id: (typeof getBatchResolvedArea === 'function' ? getBatchResolvedArea() : ((typeof currentArea !== 'undefined' ? currentArea : (window.currentArea || ''))))
+        };
+        if (typeof window !== 'undefined') {
+            window.draggedDoc = activeDoc;
+            window.isTouchDragging = false;
+        }
+
+        removeTouchAvatar();
+        if (currentHoverCard) {
+            unhighlightFolderCard(currentHoverCard);
+            currentHoverCard = null;
+        }
+        if (typeof document !== 'undefined') {
+            document.querySelectorAll('.opacity-40, .ring-blue-400').forEach(el => {
+                el.classList.remove('opacity-40', 'ring-2', 'ring-blue-400');
+            });
+        } else if (state && state.docEl && state.docEl.classList) {
+            state.docEl.classList.remove('opacity-40', 'ring-2', 'ring-blue-400');
+        }
 
         const elem = (typeof document !== 'undefined' && typeof document.elementFromPoint === 'function')
             ? document.elementFromPoint(clientX, clientY)
@@ -1543,13 +1597,25 @@
 
         if (targetCard) {
             const targetCat = targetCard.getAttribute('data-category-name');
-            if (targetCat && targetCat !== state.sourceCat) {
+            if (targetCat && (targetCat !== state.sourceCat || isMulti)) {
                 if (typeof window !== 'undefined' && typeof window.handleCategoryDrop === 'function') {
                     await window.handleCategoryDrop({ preventDefault: () => {} }, targetCat, targetCard);
                 } else if (typeof window !== 'undefined' && typeof window.moveDocInDom === 'function') {
-                    window.moveDocInDom(state.doc.vault_id, state.sourceCat, targetCat);
+                    vaultIds.forEach(id => {
+                        window.moveDocInDom(id, state.sourceCat, targetCat);
+                    });
+                    if (typeof deselectAllDocs === 'function') {
+                        deselectAllDocs();
+                    } else if (typeof window !== 'undefined' && typeof window.deselectAllDocs === 'function') {
+                        window.deselectAllDocs();
+                    }
                 }
             }
+        }
+
+        if (typeof window !== 'undefined') {
+            window.draggedDoc = null;
+            window.isTouchDragging = false;
         }
     }
 
@@ -1559,7 +1625,11 @@
             unhighlightFolderCard(currentHoverCard);
             currentHoverCard = null;
         }
-        if (state && state.docEl && state.docEl.classList) {
+        if (typeof document !== 'undefined') {
+            document.querySelectorAll('.opacity-40, .ring-blue-400').forEach(el => {
+                el.classList.remove('opacity-40', 'ring-2', 'ring-blue-400');
+            });
+        } else if (state && state.docEl && state.docEl.classList) {
             state.docEl.classList.remove('opacity-40', 'ring-2', 'ring-blue-400');
         }
         if (typeof window !== 'undefined') {
