@@ -2022,4 +2022,25 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             Rows = rows
         };
     }
+
+    public async Task<bool> UpdateTenantDatesAsync(int tenantId, string? startDate, string? endDate)
+    {
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+        using var cmd = conn.CreateCommand();
+        if (startDate != null)
+        {
+            cmd.CommandText = "UPDATE tenants SET start_date = @StartDate, end_date = @EndDate WHERE id = @Id;";
+            cmd.Parameters.AddWithValue("@StartDate", startDate);
+            cmd.Parameters.AddWithValue("@EndDate", (object?)endDate ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Id", tenantId);
+        }
+        else
+        {
+            cmd.CommandText = "UPDATE tenants SET end_date = @EndDate WHERE id = @Id;";
+            cmd.Parameters.AddWithValue("@EndDate", (object?)endDate ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@Id", tenantId);
+        }
+        var rows = await cmd.ExecuteNonQueryAsync();
+        return rows > 0;
+    }
 }

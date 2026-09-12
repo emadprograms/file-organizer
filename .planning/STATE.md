@@ -4,9 +4,9 @@ milestone: v14.0
 milestone_name: Power-User Operations & Portfolio Expansion
 current_phase: 108 (All Complete)
 status: completed
-last_updated: "2026-09-12T14:18:00.000Z"
+last_updated: "2026-09-12T14:32:00.000Z"
 last_activity: 2026-09-12
-last_activity_desc: "Completed Vacant House Grey Styling (QCK-38) & Cross-Tenant Document Move (QCK-39). 274 Vitest tests across 27 files (100%), 147 xUnit tests, 43 pytest tests passing, zero static asset diff."
+last_activity_desc: "Completed Vacated Tenant Document Date Conflict & Tenancy Extension Prompt (QCK-40). 277 Vitest tests across 27 files (100%), 148 xUnit tests, 44 pytest tests passing, zero static asset diff."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -88,13 +88,14 @@ Equip the digital archive management system with power-user operational tools: o
 - `260912-j5r`: Multi-Select Drag and Drop for Tabs (Tablets) & Computers (Desktop) (QCK-37). Full parity for multi-document drag and drop: desktop HTML5 drag with multi-card dimming, payload synchronization, and batch move; tablet touch press-and-hold (>=280ms) multi-touch drag with floating avatar showing document count pill badge (`.touch-drag-count-badge`) and dimming of all selected cards; folder card drop calling `POST /api/areas/{area}/houses/{house}/documents/batch-move` and moving each document in the DOM without full re-render; sidebar tenant tree drop assigning all dragged documents; clean un-dimming and selection clearing (`deselectAllDocs()`). Verified by 9 new tests in `multi_select_drag_and_drop.test.js`, all 266 Vitest tests across 26 files (100%), and identical asset mirroring.
 - `260912-jf8`: Vacant House Grey Styling & False Active Tenant Fallback Removal (QCK-38). When a house has no active tenant (all tenants vacated in the past), the backend previously fell back to `activeTenant = hTenants[0]` and calculated duration category as if residing. Removed fallback across ASP.NET Core (`FileOrganizerRepository.cs`), Python FastAPI (`routes.py`), and static exporters (`export_static.py`, `export_web.cjs`), setting `CurrentTenant` and `DurationCategory` to null and `TenureColor` to "grey". Updated Area Grid (`area-grid.js`) to render a grey left border (`border-l-slate-300`), a `Vacant` badge instead of `Unknown`, and removed the `idx === 0` fallback that falsely colored past tenants. Verified by backend xUnit test in `RepositoryTests.cs`, Pytest test in `test_api_v11.py`, 4 frontend tests in `area_grid_card.test.js`, and zero static asset diff.
 - `260912-move-doc-other-tenant`: Instant Cross-Tenant Document Move & Folder Lifecycle (QCK-39). When moving single or multi-selected documents to another tenant within the same house, documents now immediately disappear from the current tenant's folder list without requiring a manual refresh. Implemented `isMovingToOtherTenant(targetTenantVal, targetVaultIds, targetDoc)` and `removeDocFromDom(vaultId, sourceCatName)`: removes document elements from the DOM, decrements folder count badges, cleans up empty folder cards when count reaches 0, renders the empty state message when no folders remain, updates category statistics, and triggers background `refreshCurrentTab` to reconcile server state. Verified by 7 new unit tests in `move_to_other_tenant.test.js`, all 274 Vitest tests across 27 files (100%), 18 backend pytest tests, and zero static asset diff.
+- `260912-vacated-tenant-date-conflict`: Vacated Tenant Document Date Conflict & Tenancy Extension Prompt (QCK-40). When adding a document dated after a tenant's vacate date, backend APIs (.NET and Python FastAPI) throw an explicit HTTP 400 prompt asking if the user wishes to extend the tenant's date or confirm the date mismatch. Frontend displays an interactive `#vacated-tenant-modal` allowing users to extend the tenant's residency period, upload without extending, or cancel. Batch queues pre-validate documents against selected tenants. Verified by unit tests across .NET xUnit (`ApiEndpointTests.cs`), Python Pytest (`test_api_v11.py`), Vitest (`ingest_station.test.js`), with 148 xUnit, 44 pytest, and 277 Vitest tests passing with zero static asset diff.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-12 — Completed Cross-Tenant Move Fix (QCK-39: Instant Cross-Tenant Document Move & Folder Lifecycle). 274 Vitest tests across 27 files (100%), 147 xUnit tests, 18 backend pytest tests passing, zero static asset diff.
+Last activity: 2026-09-12 — Completed Vacated Tenant Document Date Conflict & Tenancy Extension Prompt (QCK-40). 277 Vitest tests across 27 files (100%), 148 xUnit tests, 44 pytest tests passing, zero static asset diff.
 
 ## Operator Next Steps
 

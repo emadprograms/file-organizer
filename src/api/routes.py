@@ -2757,6 +2757,31 @@ async def preview_ai(
     )
 
 
+def is_doc_date_after_vacated(doc_date_str: Optional[str], tenant_end_date_str: Optional[str]) -> bool:
+    """Returns True if the document date strictly occurs after a tenant has vacated."""
+    if not doc_date_str or not tenant_end_date_str:
+        return False
+    doc_str = str(doc_date_str).strip()
+    end_str = str(tenant_end_date_str).strip()
+    if not doc_str or not end_str:
+        return False
+    if end_str.lower() in ("present", "active", "none", "null"):
+        return False
+
+    doc_year = int(doc_str[:4]) if len(doc_str) >= 4 and doc_str[:4].isdigit() else None
+    end_year = int(end_str[:4]) if len(end_str) >= 4 and end_str[:4].isdigit() else None
+
+    if doc_year is not None and end_year is not None:
+        if doc_year > end_year:
+            return True
+        if doc_year < end_year:
+            return False
+        if len(doc_str) >= 10 and len(end_str) >= 10:
+            return doc_str[:10] > end_str[:10]
+        return False
+    return False
+
+
 @router.post("/api/ingest", response_model=IngestResponse)
 async def ingest_document(
     request: Request,
@@ -2771,6 +2796,9 @@ async def ingest_document(
     primary_date: Optional[str] = Form(None),
     notes: Optional[str] = Form(None),
     dry_run: bool = Form(False),
+    extend_tenant_date: bool = Form(False),
+    confirm_date_mismatch: bool = Form(False),
+    new_end_date: Optional[str] = Form(None),
 ):
     """Unified document ingestion endpoint supporting manual, assisted, and auto_split modes."""
     if not file.filename or not file.filename.lower().endswith(".pdf"):
@@ -2938,6 +2966,26 @@ async def ingest_document(
             if str(t.house_id) != str(clean_house_id):
                 raise HTTPException(status_code=400, detail=f"Tenant {tenant_id} belongs to house '{t.house_id}', not '{clean_house_id}'.")
             resolved_tenant_id = tenant_id
+
+        # Vacated tenant date conflict check
+        t_record = repo.get_tenant(resolved_tenant_id)
+        if t_record and t_record.end_date and primary_date:
+            if is_doc_date_after_vacated(primary_date, str(t_record.end_date)):
+                if not extend_tenant_date and not confirm_date_mismatch:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=(
+                            f"Tenant '{t_record.name}' vacated on {t_record.end_date} and you are trying to add a document dated {primary_date}. "
+                            f"Do you want to extend his date?"
+                        ),
+                    )
+                elif extend_tenant_date:
+                    target_end = new_end_date.strip() if (new_end_date and new_end_date.strip()) else primary_date
+                    if target_end.lower() in ("present", "active", "none", "null", ""):
+                        target_end = None
+                    repo.update_tenant(tenant_id=resolved_tenant_id, end_date=target_end)
+                    if not repo.autocommit:
+                        repo.conn.commit()
 
         try:
             result = ingest_document_manual(

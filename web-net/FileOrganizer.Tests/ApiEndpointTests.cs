@@ -244,6 +244,54 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
     }
 
     [Fact]
+    public async Task PostIngest_VacatedTenant_WithFutureDate_ReturnsBadRequest_OrExtendsDate()
+    {
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+
+        await repo.AddAreaAsync("VacatedArea");
+        await repo.AddHouseAsync("999", "VacatedArea");
+        var vacatedTenant = await repo.AddTenantAsync("999", "Vacated Tenant Test", "2020-01-01", "2024-12-31");
+
+        // 1. Conflict without extension -> 400 Bad Request
+        using var content1 = new MultipartFormDataContent();
+        var pdfBytes = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"u8.ToArray();
+        var fileContent1 = new ByteArrayContent(pdfBytes);
+        fileContent1.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        content1.Add(fileContent1, "file", "test_doc.pdf");
+        content1.Add(new StringContent("VacatedArea"), "area_id");
+        content1.Add(new StringContent("999"), "house_id");
+        content1.Add(new StringContent(vacatedTenant.Id.ToString()), "tenant_id");
+        content1.Add(new StringContent("05 - عقود"), "category");
+        content1.Add(new StringContent("2026-09-12"), "primary_date");
+
+        var response1 = await _client.PostAsync("/api/ingest", content1);
+        Assert.Equal(HttpStatusCode.BadRequest, response1.StatusCode);
+        var errBody = await response1.Content.ReadAsStringAsync();
+        Assert.Contains("vacated", errBody, StringComparison.OrdinalIgnoreCase);
+
+        // 2. Conflict with extend_tenant_date = true -> 200 OK & extends end_date
+        using var content2 = new MultipartFormDataContent();
+        var fileContent2 = new ByteArrayContent(pdfBytes);
+        fileContent2.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        content2.Add(fileContent2, "file", "test_doc.pdf");
+        content2.Add(new StringContent("VacatedArea"), "area_id");
+        content2.Add(new StringContent("999"), "house_id");
+        content2.Add(new StringContent(vacatedTenant.Id.ToString()), "tenant_id");
+        content2.Add(new StringContent("05 - عقود"), "category");
+        content2.Add(new StringContent("2026-09-12"), "primary_date");
+        content2.Add(new StringContent("true"), "extend_tenant_date");
+
+        var response2 = await _client.PostAsync("/api/ingest", content2);
+        Assert.Equal(HttpStatusCode.OK, response2.StatusCode);
+
+        var updatedTenants = await repo.GetTenantsAsync("999");
+        var tUpdated = updatedTenants.FirstOrDefault(x => x.Id == vacatedTenant.Id);
+        Assert.NotNull(tUpdated);
+        Assert.Equal("2026-09-12", tUpdated.EndDate);
+    }
+
+    [Fact]
     public async Task GetRoot_ServesIndexHtml()
     {
         var response = await _client.GetAsync("/");

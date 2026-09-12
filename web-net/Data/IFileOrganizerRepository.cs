@@ -42,6 +42,7 @@ public interface IFileOrganizerRepository
     Task<DbTableResponseDto> GetDbTableDataAsync(string tableName, int limit = 50, int offset = 0, string? search = null);
     Task<CreateHouseResponseDto> CreateHouseAsync(string areaId, string houseId, string? initialTenantName = null, string? startDate = null, string? areasRoot = null);
     Task<bool> DeleteHouseAsync(string areaId, string houseId, string? areasRoot = null);
+    Task<bool> UpdateTenantDatesAsync(int tenantId, string? startDate, string? endDate);
 
     // Helpers for database seeding and testing
     Task<Area> AddAreaAsync(string areaId, string? code = null);

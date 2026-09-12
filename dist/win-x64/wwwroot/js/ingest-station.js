@@ -976,7 +976,15 @@
             tenants.forEach(t => {
                 const opt = document.createElement('option');
                 opt.value = String(t.id != null ? t.id : t.name);
-                const yearHint = t.start_date ? ` (${t.start_date.substring(0, 4)})` : '';
+                opt.dataset.name = t.name || '';
+                opt.dataset.endDate = t.end_date || '';
+                const isEnded = t.end_date && !['present', 'active', 'none', 'null', ''].includes(String(t.end_date).trim().toLowerCase());
+                let yearHint = '';
+                if (t.start_date && isEnded) {
+                    yearHint = ` (${t.start_date.substring(0, 4)} - ${String(t.end_date).substring(0, 4)}) [Vacated]`;
+                } else if (t.start_date) {
+                    yearHint = ` (${t.start_date.substring(0, 4)})`;
+                }
                 opt.textContent = `${t.name}${yearHint}`;
                 if (String(opt.value) === String(latestTenantId)) {
                     opt.selected = true;
@@ -1201,6 +1209,85 @@
         return strB.localeCompare(strA);
     }
 
+    function isDocDateAfterVacated(docDateStr, tenantEndDateStr) {
+        if (!docDateStr || !tenantEndDateStr) return false;
+        const docStr = String(docDateStr).trim();
+        const endStr = String(tenantEndDateStr).trim();
+        if (!docStr || !endStr) return false;
+        const lowerEnd = endStr.toLowerCase();
+        if (lowerEnd === 'present' || lowerEnd === 'active' || lowerEnd === 'none' || lowerEnd === 'null') return false;
+
+        const docYear = docStr.length >= 4 && !isNaN(parseInt(docStr.substring(0, 4), 10)) ? parseInt(docStr.substring(0, 4), 10) : null;
+        const endYear = endStr.length >= 4 && !isNaN(parseInt(endStr.substring(0, 4), 10)) ? parseInt(endStr.substring(0, 4), 10) : null;
+
+        if (docYear !== null && endYear !== null) {
+            if (docYear > endYear) return true;
+            if (docYear < endYear) return false;
+            if (docStr.length >= 10 && endStr.length >= 10) {
+                return docStr.substring(0, 10) > endStr.substring(0, 10);
+            }
+            return false;
+        }
+        return false;
+    }
+
+    function promptVacatedTenantConflict(tenantName, endDate, docDate) {
+        return new Promise((resolve) => {
+            const modal = document.getElementById('vacated-tenant-modal');
+            const endEl = document.getElementById('vacated-tenant-end-date');
+            const docEl = document.getElementById('vacated-tenant-doc-date');
+            const btnExtend = document.getElementById('btn-vacated-extend');
+            const btnProceed = document.getElementById('btn-vacated-proceed-anyway');
+            const btnCancel = document.getElementById('btn-vacated-cancel');
+            const btnClose = document.getElementById('btn-vacated-close');
+
+            if (!modal || !btnExtend || !btnProceed || !btnCancel) {
+                if (typeof window !== 'undefined' && typeof window.confirm === 'function') {
+                    const ans = window.confirm(
+                        `Tenant "${tenantName}" vacated at ${endDate} and document is dated ${docDate}.\n\nClick OK to extend tenancy date, or Cancel to proceed without extending.`
+                    );
+                    resolve(ans ? 'extend' : 'proceed');
+                } else {
+                    resolve('proceed');
+                }
+                return;
+            }
+
+            if (endEl) endEl.textContent = endDate;
+            if (docEl) docEl.textContent = docDate;
+
+            modal.classList.remove('hidden');
+
+            function cleanup() {
+                modal.classList.add('hidden');
+                btnExtend.removeEventListener('click', onExtend);
+                btnProceed.removeEventListener('click', onProceed);
+                btnCancel.removeEventListener('click', onCancel);
+                if (btnClose) btnClose.removeEventListener('click', onCancel);
+            }
+
+            function onExtend() {
+                cleanup();
+                resolve('extend');
+            }
+
+            function onProceed() {
+                cleanup();
+                resolve('proceed');
+            }
+
+            function onCancel() {
+                cleanup();
+                resolve('cancel');
+            }
+
+            btnExtend.addEventListener('click', onExtend);
+            btnProceed.addEventListener('click', onProceed);
+            btnCancel.addEventListener('click', onCancel);
+            if (btnClose) btnClose.addEventListener('click', onCancel);
+        });
+    }
+
     function resolveLatestTenant(tenants) {
         if (!tenants || tenants.length === 0) return null;
 
@@ -1304,7 +1391,15 @@
                     opt.value = t.id;
                     opt.dataset.id = t.id != null ? String(t.id) : '';
                     opt.dataset.name = t.name || '';
-                    const yearHint = t.start_date ? ` (${t.start_date.substring(0, 4)})` : '';
+                    opt.dataset.endDate = t.end_date || '';
+                    opt.dataset.startDate = t.start_date || '';
+                    const isEnded = t.end_date && !['present', 'active', 'none', 'null', ''].includes(String(t.end_date).trim().toLowerCase());
+                    let yearHint = '';
+                    if (t.start_date && isEnded) {
+                        yearHint = ` (${t.start_date.substring(0, 4)} - ${String(t.end_date).substring(0, 4)}) [Vacated]`;
+                    } else if (t.start_date) {
+                        yearHint = ` (${t.start_date.substring(0, 4)})`;
+                    }
                     opt.textContent = `${t.name}${yearHint}`;
                     tenantSelect.appendChild(opt);
                     fetchedTenants.push(t);
@@ -1330,7 +1425,16 @@
                     opt.value = tNode.name;
                     opt.dataset.id = tNode.id != null ? String(tNode.id) : '';
                     opt.dataset.name = tNode.name || '';
-                    opt.textContent = tNode.name;
+                    opt.dataset.endDate = tNode.end_date || '';
+                    opt.dataset.startDate = tNode.start_date || '';
+                    const isEnded = tNode.end_date && !['present', 'active', 'none', 'null', ''].includes(String(tNode.end_date).trim().toLowerCase());
+                    let yearHint = '';
+                    if (tNode.start_date && isEnded) {
+                        yearHint = ` (${tNode.start_date.substring(0, 4)} - ${String(tNode.end_date).substring(0, 4)}) [Vacated]`;
+                    } else if (tNode.start_date) {
+                        yearHint = ` (${tNode.start_date.substring(0, 4)})`;
+                    }
+                    opt.textContent = `${tNode.name}${yearHint}`;
                     tenantSelect.appendChild(opt);
                 });
             }
@@ -1551,6 +1655,26 @@
             formData.append('notes', notesInput.value.trim());
         }
 
+        const selectedOpt = tenantSelect && tenantSelect.selectedIndex >= 0 ? tenantSelect.options[tenantSelect.selectedIndex] : null;
+        const tenantEndDate = selectedOpt?.dataset?.endDate;
+        const tenantName = selectedOpt?.dataset?.name || (selectedOpt ? selectedOpt.textContent.trim() : 'هذا الشخص');
+        const docDate = (dateInput && dateInput.value) ? dateInput.value.trim() : '';
+
+        if (docDate && tenantEndDate && isDocDateAfterVacated(docDate, tenantEndDate)) {
+            const userChoice = await promptVacatedTenantConflict(tenantName, tenantEndDate, docDate);
+            if (userChoice === 'cancel') {
+                isSubmitting = false;
+                if (btnSubmit) btnSubmit.disabled = false;
+                if (submitSpinner) submitSpinner.classList.add('hidden');
+                updateSubmitButtonText();
+                return;
+            } else if (userChoice === 'extend') {
+                formData.append('extend_tenant_date', 'true');
+            } else if (userChoice === 'proceed') {
+                formData.append('confirm_date_mismatch', 'true');
+            }
+        }
+
         try {
             const res = await fetch('/api/ingest', {
                 method: 'POST',
@@ -1584,7 +1708,34 @@
                 }
             } else {
                 const err = await res.json().catch(() => ({}));
-                showStatusMsg(err.detail || 'Upload failed.', true);
+                const errDetail = err.detail || err.error || '';
+                if (typeof errDetail === 'string' && errDetail.toLowerCase().includes('vacated')) {
+                    const retryChoice = await promptVacatedTenantConflict(tenantName, tenantEndDate || 'تاريخ الإخلاء', docDate);
+                    if (retryChoice === 'extend') {
+                        formData.set('extend_tenant_date', 'true');
+                        const retryRes = await fetch('/api/ingest', { method: 'POST', body: formData }).catch(() => null);
+                        if (retryRes && retryRes.ok) {
+                            closeIngestStation();
+                            const toastFn = (typeof showToast === 'function') ? showToast : ((typeof window !== 'undefined' && typeof window.showToast === 'function') ? window.showToast : null);
+                            if (toastFn) toastFn('Tenancy extended and document uploaded', 'success');
+                            if (typeof window.refreshCurrentTab === 'function') window.refreshCurrentTab(area, house);
+                            if (typeof window.loadTree === 'function') window.loadTree();
+                            return;
+                        }
+                    } else if (retryChoice === 'proceed') {
+                        formData.set('confirm_date_mismatch', 'true');
+                        const retryRes = await fetch('/api/ingest', { method: 'POST', body: formData }).catch(() => null);
+                        if (retryRes && retryRes.ok) {
+                            closeIngestStation();
+                            const toastFn = (typeof showToast === 'function') ? showToast : ((typeof window !== 'undefined' && typeof window.showToast === 'function') ? window.showToast : null);
+                            if (toastFn) toastFn('Document uploaded successfully', 'success');
+                            if (typeof window.refreshCurrentTab === 'function') window.refreshCurrentTab(area, house);
+                            if (typeof window.loadTree === 'function') window.loadTree();
+                            return;
+                        }
+                    }
+                }
+                showStatusMsg(errDetail || 'Upload failed.', true);
             }
         } catch (err) {
             console.error('Upload failed:', err);
@@ -1731,6 +1882,32 @@
         }
 
         const tenantId = housebatchTenantSelect ? housebatchTenantSelect.value.trim() : '';
+        const selectedBatchOpt = housebatchTenantSelect && housebatchTenantSelect.selectedIndex >= 0
+            ? housebatchTenantSelect.options[housebatchTenantSelect.selectedIndex] : null;
+        const batchTenantEndDate = selectedBatchOpt?.dataset?.endDate;
+        const batchTenantName = selectedBatchOpt?.dataset?.name || (selectedBatchOpt ? selectedBatchOpt.textContent.trim() : 'هذا الشخص');
+
+        let batchExtendTenantDate = false;
+        let batchConfirmDateMismatch = false;
+
+        if (batchTenantEndDate) {
+            const hasConflict = houseBatchQueue.some(item => {
+                const itemDate = item.date || getTodayIsoDate();
+                return isDocDateAfterVacated(itemDate, batchTenantEndDate);
+            });
+            if (hasConflict) {
+                const sampleConflictItem = houseBatchQueue.find(item => isDocDateAfterVacated(item.date || getTodayIsoDate(), batchTenantEndDate));
+                const sampleDate = sampleConflictItem ? (sampleConflictItem.date || getTodayIsoDate()) : getTodayIsoDate();
+                const userChoice = await promptVacatedTenantConflict(batchTenantName, batchTenantEndDate, sampleDate);
+                if (userChoice === 'cancel') {
+                    return;
+                } else if (userChoice === 'extend') {
+                    batchExtendTenantDate = true;
+                } else if (userChoice === 'proceed') {
+                    batchConfirmDateMismatch = true;
+                }
+            }
+        }
 
         isSubmitting = true;
         if (btnSubmit) btnSubmit.disabled = true;
@@ -1768,6 +1945,11 @@
             formData.append('category', item.category || '13 - رسائل متنوعة');
             formData.append('arabic_title', item.title || item.name.replace(/\.pdf$/i, '').replace(/[-_]+/g, ' ').trim());
             formData.append('primary_date', item.date || getTodayIsoDate());
+            if (batchExtendTenantDate && i === 0) {
+                formData.append('extend_tenant_date', 'true');
+            } else if (batchConfirmDateMismatch) {
+                formData.append('confirm_date_mismatch', 'true');
+            }
 
             try {
                 const res = await fetch('/api/ingest', {
@@ -1957,6 +2139,8 @@
     window.handleDirectHouseDrop = handleDirectHouseDrop;
     window.handleDirectCategoryDrop = handleDirectCategoryDrop;
     window.resetDragCounter = resetDragCounter;
+    window.isDocDateAfterVacated = isDocDateAfterVacated;
+    window.promptVacatedTenantConflict = promptVacatedTenantConflict;
 
     // Backward compatibility shims
     window.updateModeUI = () => switchTab(activeTab);
@@ -2007,6 +2191,8 @@
             handleDirectHouseDrop,
             handleDirectCategoryDrop,
             resetDragCounter,
+            isDocDateAfterVacated,
+            promptVacatedTenantConflict,
             // Backwards compatibility
             updateModeUI: () => switchTab(activeTab),
             submitBatchIngest: submitHouseBatchIngest,

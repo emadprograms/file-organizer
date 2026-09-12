@@ -438,4 +438,34 @@ public static class TextUtils
         else
             return (years, $"من {y1} إلى {y2} ({years} سنة)");
     }
+
+    public static bool IsDocDateAfterVacated(string? docDateStr, string? tenantEndDateStr)
+    {
+        if (string.IsNullOrWhiteSpace(docDateStr) || string.IsNullOrWhiteSpace(tenantEndDateStr))
+            return false;
+
+        var docStr = docDateStr.Trim();
+        var endStr = tenantEndDateStr.Trim();
+
+        if (string.Equals(endStr, "present", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(endStr, "active", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(endStr, "none", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(endStr, "null", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        int? docYear = docStr.Length >= 4 && int.TryParse(docStr[..4], out var dy) ? dy : null;
+        int? endYear = endStr.Length >= 4 && int.TryParse(endStr[..4], out var ey) ? ey : null;
+
+        if (docYear.HasValue && endYear.HasValue)
+        {
+            if (docYear.Value > endYear.Value) return true;
+            if (docYear.Value < endYear.Value) return false;
+            if (docStr.Length >= 10 && endStr.Length >= 10)
+            {
+                return string.Compare(docStr[..10], endStr[..10], StringComparison.Ordinal) > 0;
+            }
+            return false;
+        }
+        return false;
+    }
 }

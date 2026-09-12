@@ -861,6 +861,7 @@ app.MapPost("/api/ingest", async (
 
     // Resolve tenant
     int resolvedTenantId;
+    TenantDto? resolvedTenant = null;
     if (tenantId.HasValue)
     {
         var tenants = await repo.GetTenantsAsync(cleanHouseId);
@@ -868,6 +869,7 @@ app.MapPost("/api/ingest", async (
         if (t == null)
             return Results.BadRequest(new { error = $"Tenant ID {tenantId.Value} does not exist or does not belong to house '{cleanHouseId}'." });
         resolvedTenantId = tenantId.Value;
+        resolvedTenant = t;
     }
     else if (!string.IsNullOrWhiteSpace(tenantName))
     {
@@ -876,11 +878,13 @@ app.MapPost("/api/ingest", async (
         if (matched != null && matched.Id.HasValue)
         {
             resolvedTenantId = matched.Id.Value;
+            resolvedTenant = matched;
         }
         else
         {
             var newT = await repo.AddTenantAsync(cleanHouseId, tenantName.Trim(), primaryDate ?? DateTime.Today.ToString("yyyy-MM-dd"));
             resolvedTenantId = newT.Id;
+            resolvedTenant = new TenantDto { Id = newT.Id, Name = newT.Name, StartDate = newT.StartDate, EndDate = newT.EndDate, HouseId = cleanHouseId };
         }
     }
     else
@@ -889,11 +893,49 @@ app.MapPost("/api/ingest", async (
         if (tenants.Count > 0 && tenants[0].Id.HasValue)
         {
             resolvedTenantId = tenants[0].Id!.Value;
+            resolvedTenant = tenants[0];
         }
         else
         {
             var defT = await repo.AddTenantAsync(cleanHouseId, "Default Tenant", "1970-01-01");
             resolvedTenantId = defT.Id;
+            resolvedTenant = new TenantDto { Id = defT.Id, Name = defT.Name, StartDate = defT.StartDate, EndDate = defT.EndDate, HouseId = cleanHouseId };
+        }
+    }
+
+    bool.TryParse(form["extend_tenant_date"].FirstOrDefault(), out var extendTenantDate);
+    bool.TryParse(form["confirm_date_mismatch"].FirstOrDefault(), out var confirmDateMismatch);
+    var newEndDate = form["new_end_date"].FirstOrDefault();
+
+    if (resolvedTenant != null && !string.IsNullOrWhiteSpace(resolvedTenant.EndDate) && !string.IsNullOrWhiteSpace(primaryDate))
+    {
+        if (TextUtils.IsDocDateAfterVacated(primaryDate, resolvedTenant.EndDate))
+        {
+            if (!extendTenantDate && !confirmDateMismatch)
+            {
+                return Results.BadRequest(new
+                {
+                    error = "tenancy_date_conflict",
+                    detail = $"Tenant '{resolvedTenant.Name}' vacated on {resolvedTenant.EndDate} and you are trying to add a document dated {primaryDate}. Do you want to extend his date?",
+                    tenant_id = resolvedTenant.Id,
+                    tenant_name = resolvedTenant.Name,
+                    end_date = resolvedTenant.EndDate,
+                    document_date = primaryDate
+                });
+            }
+            else if (extendTenantDate)
+            {
+                var targetEnd = !string.IsNullOrWhiteSpace(newEndDate) ? newEndDate.Trim() : primaryDate;
+                if (string.Equals(targetEnd, "present", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(targetEnd, "active", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(targetEnd, "none", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(targetEnd, "null", StringComparison.OrdinalIgnoreCase) ||
+                    targetEnd == "")
+                {
+                    targetEnd = null;
+                }
+                await repo.UpdateTenantDatesAsync(resolvedTenantId, null, targetEnd);
+            }
         }
     }
 

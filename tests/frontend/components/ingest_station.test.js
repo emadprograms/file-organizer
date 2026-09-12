@@ -180,6 +180,16 @@ function setupDOM() {
                 </button>
             </div>
         </div>
+
+        <div id="vacated-tenant-modal" class="hidden">
+            <span id="vacated-tenant-end-date"></span>
+            <span id="vacated-tenant-doc-date"></span>
+            <p id="vacated-tenant-msg"></p>
+            <button id="btn-vacated-extend">Extend</button>
+            <button id="btn-vacated-proceed-anyway">Proceed</button>
+            <button id="btn-vacated-cancel">Cancel</button>
+            <button id="btn-vacated-close">Close</button>
+        </div>
     `;
 }
 
@@ -945,5 +955,85 @@ describe('Ingest Station Component', () => {
 
         const tenantSelect = document.getElementById('ingest-tenant-select');
         expect(tenantSelect.value).toBe('103');
+    });
+
+    describe('Vacated Tenant Date Conflict & Tenancy Extension', () => {
+        it('isDocDateAfterVacated correctly compares document date and vacated end date', () => {
+            const { isDocDateAfterVacated } = require('../../../src/api/static/js/ingest-station.js');
+            // Document date after vacation year
+            expect(isDocDateAfterVacated('2026-09-12', '2024')).toBe(true);
+            expect(isDocDateAfterVacated('2026-09-12', '2024-12-31')).toBe(true);
+            // Document date later within same year
+            expect(isDocDateAfterVacated('2024-08-15', '2024-05-01')).toBe(true);
+            // Document date before end date
+            expect(isDocDateAfterVacated('2024-03-01', '2024-05-01')).toBe(false);
+            expect(isDocDateAfterVacated('2023-01-01', '2024')).toBe(false);
+            // Active / present tenant
+            expect(isDocDateAfterVacated('2026-09-12', 'present')).toBe(false);
+            expect(isDocDateAfterVacated('2026-09-12', '')).toBe(false);
+            expect(isDocDateAfterVacated('2026-09-12', null)).toBe(false);
+        });
+
+        it('promptVacatedTenantConflict renders modal and resolves user choice', async () => {
+            const { promptVacatedTenantConflict } = require('../../../src/api/static/js/ingest-station.js');
+            const modal = document.getElementById('vacated-tenant-modal');
+            const btnExtend = document.getElementById('btn-vacated-extend');
+
+            const promise = promptVacatedTenantConflict('فهد المغادر', '2024', '2026-09-12');
+            expect(modal.classList.contains('hidden')).toBe(false);
+            expect(document.getElementById('vacated-tenant-end-date').textContent).toBe('2024');
+            expect(document.getElementById('vacated-tenant-doc-date').textContent).toBe('2026-09-12');
+
+            btnExtend.click();
+            const choice = await promise;
+            expect(choice).toBe('extend');
+            expect(modal.classList.contains('hidden')).toBe(true);
+        });
+
+        it('submitSingleIngest intercepts date conflict and passes extend_tenant_date when user extends', async () => {
+            const { submitSingleIngest, openIngestStation, handleFileSelected } = require('../../../src/api/static/js/ingest-station.js');
+
+            window.currentArea = 'Area 1';
+            window.currentHouse = '501';
+            openIngestStation();
+
+            const tenantSelect = document.getElementById('ingest-tenant-select');
+            const dateInput = document.getElementById('ingest-date-input');
+
+            tenantSelect.innerHTML = '';
+            const opt = document.createElement('option');
+            opt.value = '999';
+            opt.dataset.endDate = '2024';
+            opt.dataset.name = 'فهد المغادر';
+            opt.textContent = 'فهد المغادر (2020 - 2024) [Vacated]';
+            tenantSelect.appendChild(opt);
+            tenantSelect.value = '999';
+            tenantSelect.selectedIndex = 0;
+
+            dateInput.value = '2026-09-12';
+
+            const testFile = new File(['%PDF-1.4 dummy'], 'doc.pdf', { type: 'application/pdf' });
+            handleFileSelected(testFile);
+
+            global.fetch = vi.fn().mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ status: 'success', vault_id: 'v_conflict_ext_1' }),
+            });
+
+            const submitPromise = submitSingleIngest();
+
+            const modal = document.getElementById('vacated-tenant-modal');
+            expect(modal.classList.contains('hidden')).toBe(false);
+
+            document.getElementById('btn-vacated-extend').click();
+
+            await submitPromise;
+
+            const ingestCall = global.fetch.mock.calls.find(c => c[0] === '/api/ingest');
+            expect(ingestCall).toBeDefined();
+            const formData = ingestCall[1].body;
+            expect(formData.get('extend_tenant_date')).toBe('true');
+            expect(formData.get('primary_date')).toBe('2026-09-12');
+        });
     });
 });

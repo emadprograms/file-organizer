@@ -426,3 +426,51 @@ def test_get_tree_vacant_house_no_active_tenant(db_setup):
     assert "Present" not in (h538["children"][0]["subtitle"] or "")
 
 
+def test_ingest_vacated_tenant_date_conflict(db_setup):
+    """Test /api/ingest raises 400 when document date exceeds vacated tenant end_date unless extended or confirmed."""
+    import io
+    repo = db_setup["repo"]
+    if not repo.get_area("Safra C"):
+        repo.add_area(area_id="Safra C")
+    repo.add_house(house_id="539", area_id="Safra C")
+    t = repo.add_tenant(house_id="539", name="منصور الراحل", start_date="2020-01-01", end_date="2024-12-31")
+
+    import fitz
+    doc = fitz.open()
+    doc.new_page(width=400, height=600)
+    pdf_bytes = doc.tobytes()
+    doc.close()
+
+    # 1. Conflict without extension -> 400 Bad Request
+    res1 = client.post(
+        "/api/ingest",
+        data={
+            "area_id": "Safra C",
+            "house_id": "539",
+            "tenant_id": t.id,
+            "category": "05 - عقود",
+            "primary_date": "2026-09-12",
+        },
+        files={"file": ("sample.pdf", io.BytesIO(pdf_bytes), "application/pdf")},
+    )
+    assert res1.status_code == 400
+    assert "vacated" in res1.json()["detail"].lower()
+
+    # 2. Conflict with extend_tenant_date=true -> 200 OK & extends tenant end_date
+    res2 = client.post(
+        "/api/ingest",
+        data={
+            "area_id": "Safra C",
+            "house_id": "539",
+            "tenant_id": t.id,
+            "category": "05 - عقود",
+            "primary_date": "2026-09-12",
+            "extend_tenant_date": "true",
+        },
+        files={"file": ("sample.pdf", io.BytesIO(pdf_bytes), "application/pdf")},
+    )
+    assert res2.status_code == 200
+    updated_t = repo.get_tenant(t.id)
+    assert str(updated_t.end_date) == "2026-09-12"
+
+
