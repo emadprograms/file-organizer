@@ -40,9 +40,15 @@ else
     AREAS_ROOT="$(pwd)/areas"
 fi
 
+PORT=5000
+LOCAL_IP=$(ipconfig getifaddr en0 2>/dev/null || ipconfig getifaddr en1 2>/dev/null || ifconfig | grep "inet " | grep -v 127.0.0.1 | head -n1 | awk '{print $2}')
+
 echo "🚀 Starting File Organizer .NET Web Server on Mac..."
 echo "📁 Database: $DB_PATH"
 echo "📂 Areas Root: $AREAS_ROOT"
-echo "🌐 Open browser at: http://localhost:5000"
+echo "🌐 Local:   http://localhost:$PORT"
+if [ -n "$LOCAL_IP" ]; then
+    echo "📱 Network: http://$LOCAL_IP:$PORT  (Accessible to other devices on the same Wi-Fi / network)"
+fi
 
-~/.dotnet/dotnet run --project web-net/FileOrganizer.Web.csproj --urls "http://localhost:5000" --ORGANIZER_DB_PATH "$DB_PATH" --AREAS_ROOT_PATH "$AREAS_ROOT"
+~/.dotnet/dotnet run --project web-net/FileOrganizer.Web.csproj --urls "http://0.0.0.0:$PORT" --ORGANIZER_DB_PATH "$DB_PATH" --AREAS_ROOT_PATH "$AREAS_ROOT"
