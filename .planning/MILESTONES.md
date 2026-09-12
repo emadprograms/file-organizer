@@ -2,10 +2,21 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-12)
 
-**Phases completed:** 4 phases (105-108) + 33 quick refinements (QCK-01 through QCK-33), 4 plans, comprehensive multi-stack test verification (146 .NET xUnit, 18 Pytest tests, 209 Vitest across 23 files, Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 39 quick refinements (QCK-01 through QCK-39), 4 plans, comprehensive multi-stack test verification (147 .NET xUnit, 18 Pytest tests, 274 Vitest across 27 files, Playwright E2E)
 
 **Key accomplishments:**
 
+- **Instant Cross-Tenant Document Move & Folder Lifecycle (Quick Refinement QCK-39):**
+  - Resolved issue where moving single or multi-selected documents to another tenant in the same house left documents visible in the source tenant's folder list until manual refresh.
+  - Implemented `isMovingToOtherTenant(targetTenantVal, targetVaultIds, targetDoc)` to distinguish cross-tenant reassignments from same-tenant folder movements.
+  - Implemented `removeDocFromDom(vaultId, sourceCatName)`: immediately removes document element from the DOM, decrements source folder count badge, removes empty folder cards from DOM when count reaches 0, displays the empty state message when no folders remain, updates category statistics, and triggers background `refreshCurrentTab` to reconcile server state.
+  - Updated `categories-view.js` and `doc-manager.js` (single-doc edit modal and sidebar tree drop) with 100% static asset parity across Python, ASP.NET Core, and Windows distribution packages.
+  - Added 7 new automated tests in `tests/frontend/components/move_to_other_tenant.test.js`; all 274 Vitest tests (27 files) and 18 Python backend tests pass.
+- **Vacant House Grey Styling & False Active Tenant Fallback Removal (Quick Refinement QCK-38):**
+  - Resolved issue where houses with no active tenant (all past tenants vacated) erroneously fell back to `activeTenant = hTenants[0]` and computed tenure duration as if the past tenant were still residing.
+  - Removed fallback in ASP.NET Core (`FileOrganizerRepository.cs`), Python FastAPI (`routes.py`), and static exporters (`export_static.py`, `export_web.cjs`), setting `ActiveTenant = null`, `DurationCategory = null`, and `TenureColor = "grey"`.
+  - Updated Area Grid (`area-grid.js`) to style vacant houses with a neutral grey border (`border-l-slate-300`), a `Vacant` badge instead of `Unknown`, and removed the `idx === 0` fallback that falsely colored past tenants.
+  - Added backend xUnit test in `RepositoryTests.cs`, Pytest test in `test_api_v11.py`, and 4 frontend tests in `area_grid_card.test.js`.
 - **Comprehensive Dark Mode Support & Theme Toggle (Quick Refinement QCK-33):**
   - Configured Tailwind `darkMode: 'class'` across the application with pre-hydration script in `<head>` inspecting `localStorage` and `matchMedia('(prefers-color-scheme: dark)')` to prevent any flash of unstyled content (FOUC).
   - Built standalone `theme-manager.js` providing `getTheme()`, `setTheme()`, `toggleTheme()`, and `initTheme()`, broadcasting `themechange` events and dynamically tracking OS system preference changes.

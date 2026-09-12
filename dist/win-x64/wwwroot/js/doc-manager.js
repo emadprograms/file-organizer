@@ -373,6 +373,9 @@
                 } else if (typeof deselectAllDocs === 'function') {
                     deselectAllDocs();
                 }
+                if (typeof window !== 'undefined' && typeof window.removeDocFromDom === 'function') {
+                    vaultIds.forEach(vid => window.removeDocFromDom(vid));
+                }
                 showToast(`Assigned ${vaultIds.length} documents to ${tenantName}`);
             } else {
                 const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(activeDragged.vault_id)}`, {
@@ -383,6 +386,9 @@
                 if (!res.ok) {
                     const errData = await res.json().catch(() => ({}));
                     throw new Error(errData.detail || 'Failed to assign tenant');
+                }
+                if (typeof window !== 'undefined' && typeof window.removeDocFromDom === 'function') {
+                    window.removeDocFromDom(activeDragged.vault_id);
                 }
                 showToast(`Assigned to ${tenantName}`);
             }
@@ -608,18 +614,30 @@
                 showToast('Document updated successfully');
                 closeDocModal();
                 let domHandled = false;
-                if (typeof window.moveDocInDom === 'function') {
-                    domHandled = window.moveDocInDom(activeDocModalDoc.vault_id, activeDocModalDoc.category, finalCategory);
-                    if (domHandled && newTitle) {
-                        const titleEl = document.querySelector(`[data-vault-id="${activeDocModalDoc.vault_id}"] .doc-title-text`);
-                        if (titleEl) titleEl.textContent = newTitle;
+                const isDifferentTenant = newTenantId && activeDocModalDoc.tenant_id && String(newTenantId) !== String(activeDocModalDoc.tenant_id);
+                if (isDifferentTenant) {
+                    if (typeof window !== 'undefined' && typeof window.removeDocFromDom === 'function') {
+                        window.removeDocFromDom(activeDocModalDoc.vault_id, activeDocModalDoc.category);
                     }
-                }
-                if (!domHandled) {
                     if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
                         await window.refreshCurrentTab(area, house);
                     } else if (typeof refreshCurrentTab === 'function') {
                         await refreshCurrentTab(area, house);
+                    }
+                } else {
+                    if (typeof window.moveDocInDom === 'function') {
+                        domHandled = window.moveDocInDom(activeDocModalDoc.vault_id, activeDocModalDoc.category, finalCategory);
+                        if (domHandled && newTitle) {
+                            const titleEl = document.querySelector(`[data-vault-id="${activeDocModalDoc.vault_id}"] .doc-title-text`);
+                            if (titleEl) titleEl.textContent = newTitle;
+                        }
+                    }
+                    if (!domHandled) {
+                        if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                            await window.refreshCurrentTab(area, house);
+                        } else if (typeof refreshCurrentTab === 'function') {
+                            await refreshCurrentTab(area, house);
+                        }
                     }
                 }
             }

@@ -593,6 +593,10 @@
         } else if (select.options.length > 0) {
             select.options[0].selected = true;
         }
+
+        const sourceVal = (matchedOption && matchedOption.value) || (info && info.singleTenantId != null ? String(info.singleTenantId) : (select.value || ''));
+        select.dataset.sourceTenantId = sourceVal;
+        select.dataset.sourceTenantName = (info && info.singleTenantName) || '';
     }
 
     async function populateBatchTenantSelect(selectId) {
@@ -647,7 +651,11 @@
         if (!modal || !select) return;
 
         const moveTenantSelect = document.getElementById('batch-move-tenant-select');
-        if (moveTenantSelect) moveTenantSelect.value = '';
+        if (moveTenantSelect) {
+            moveTenantSelect.value = '';
+            delete moveTenantSelect.dataset.sourceTenantId;
+            delete moveTenantSelect.dataset.sourceTenantName;
+        }
 
         populateBatchTenantSelect('batch-move-tenant-select');
 
@@ -723,6 +731,67 @@
         }
     }
 
+    function isMovingToOtherTenant(targetTenantVal, targetVaultIds, targetDoc) {
+        if (!targetTenantVal) return false;
+        const tenantSelect = document.getElementById('batch-move-tenant-select');
+        const sourceTenantId = tenantSelect ? (tenantSelect.dataset.sourceTenantId || '') : '';
+
+        // 1. Explicit sourceTenantId diff
+        if (sourceTenantId && String(sourceTenantId) !== String(targetTenantVal)) {
+            return true;
+        }
+
+        // 2. Check targetDoc (or singleTargetDoc)
+        const doc = targetDoc || singleTargetDoc;
+        if (doc && doc.tenant_id != null && String(doc.tenant_id) !== String(targetTenantVal)) {
+            return true;
+        }
+
+        // 3. Check activeTenant from current view
+        const activeTenant = (typeof currentTenant !== 'undefined' ? currentTenant : (typeof window !== 'undefined' ? window.currentTenant : null));
+        if (activeTenant && tenantSelect && tenantSelect.selectedIndex >= 0) {
+            const selectedOpt = tenantSelect.options[tenantSelect.selectedIndex];
+            if (selectedOpt) {
+                const optText = selectedOpt.textContent || '';
+                const cleanOpt = optText.replace(/^[🟢👤\s]+/, '').split('(')[0].trim().toLowerCase();
+                const cleanActive = (typeof activeTenant === 'string' ? activeTenant : (activeTenant.name || '')).trim().toLowerCase();
+                if (cleanActive && cleanOpt && cleanOpt !== cleanActive && !cleanOpt.includes(cleanActive) && !cleanActive.includes(cleanOpt)) {
+                    return true;
+                }
+            }
+        }
+
+        // 4. Check documents in currentCategories
+        const cats = (typeof currentCategories !== 'undefined' ? currentCategories : (typeof window !== 'undefined' ? window.currentCategories : [])) || [];
+        if (Array.isArray(targetVaultIds)) {
+            for (const vid of targetVaultIds) {
+                for (const c of cats) {
+                    if (c.documents) {
+                        const found = c.documents.find(d => d.vault_id === vid);
+                        if (found) {
+                            if (found.tenant_id != null && String(found.tenant_id) !== String(targetTenantVal)) {
+                                return true;
+                            }
+                            if (found.tenant && tenantSelect && tenantSelect.selectedIndex >= 0) {
+                                const selectedOpt = tenantSelect.options[tenantSelect.selectedIndex];
+                                if (selectedOpt) {
+                                    const optText = selectedOpt.textContent || '';
+                                    const cleanOpt = optText.replace(/^[🟢👤\s]+/, '').split('(')[0].trim().toLowerCase();
+                                    const docTenant = String(found.tenant).trim().toLowerCase();
+                                    if (docTenant && cleanOpt && cleanOpt !== docTenant && !cleanOpt.includes(docTenant) && !docTenant.includes(cleanOpt)) {
+                                        return true;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
     async function handleBatchMoveSubmit() {
         const isSingle = !!singleTargetDoc;
         const targetVaultIds = isSingle ? [singleTargetDoc.vault_id] : Array.from(selectedDocIds);
@@ -752,6 +821,9 @@
         try {
             const tenantSelect = document.getElementById('batch-move-tenant-select');
             const targetTenantVal = tenantSelect ? tenantSelect.value : '';
+
+            // Check BEFORE closing modal or clearing singleTargetDoc whether moving to another tenant
+            const isToOtherTenant = isMovingToOtherTenant(targetTenantVal, targetVaultIds, singleTargetDoc);
 
             const movePayload = {
                 vault_ids: targetVaultIds,
@@ -790,19 +862,31 @@
                 toast(msg, 'success');
             }
 
-            const targetFolder = data.target_category || targetCat;
-            let allMovedInDom = true;
-            if (typeof moveDocInDom === 'function') {
+            if (isToOtherTenant) {
+                // Documents moved to another tenant in the same house:
+                // They no longer belong to the current tenant's view and must disappear immediately.
                 targetVaultIds.forEach(id => {
-                    const ok = moveDocInDom(id, null, targetFolder);
-                    if (!ok) allMovedInDom = false;
+                    removeDocFromDom(id);
                 });
-            } else {
-                allMovedInDom = false;
-            }
 
-            if (!allMovedInDom && typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
-                await window.refreshCurrentTab(activeArea, activeHouse);
+                if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                    await window.refreshCurrentTab(activeArea, activeHouse);
+                }
+            } else {
+                const targetFolder = data.target_category || targetCat;
+                let allMovedInDom = true;
+                if (typeof moveDocInDom === 'function') {
+                    targetVaultIds.forEach(id => {
+                        const ok = moveDocInDom(id, null, targetFolder);
+                        if (!ok) allMovedInDom = false;
+                    });
+                } else {
+                    allMovedInDom = false;
+                }
+
+                if (!allMovedInDom && typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                    await window.refreshCurrentTab(activeArea, activeHouse);
+                }
             }
         } catch (err) {
             console.error(err);
@@ -1998,6 +2082,103 @@
         }
     }
 
+    function removeDocFromDom(vaultId, sourceCatName) {
+        if (typeof document === 'undefined' || !vaultId) return false;
+        const docListEl = document.getElementById('document-list');
+
+        let docEl = null;
+        if (docListEl) {
+            docEl = docListEl.querySelector(`[data-vault-id="${vaultId}"]`);
+        }
+        if (!docEl) {
+            docEl = document.querySelector(`[data-vault-id="${vaultId}"]`);
+        }
+
+        const findCard = (catName) => {
+            if (!catName || !docListEl) return null;
+            let card = docListEl.querySelector(`.category-folder-card[data-category-name="${catName}"]`);
+            if (card) return card;
+            const cards = docListEl.querySelectorAll('.category-folder-card');
+            for (const c of cards) {
+                const name = c.getAttribute('data-category-name') || '';
+                if (name === catName || name.endsWith(catName) || catName.endsWith(name)) {
+                    return c;
+                }
+            }
+            return null;
+        };
+
+        const sourceCard = findCard(sourceCatName) || (docEl ? docEl.closest('.category-folder-card') : null);
+
+        // Remove element from DOM
+        if (docEl) {
+            docEl.remove();
+        }
+
+        // Update in-memory currentCategories
+        const cats = (typeof currentCategories !== 'undefined' ? currentCategories : (typeof window !== 'undefined' ? window.currentCategories : [])) || [];
+        cats.forEach(c => {
+            if (c.documents) {
+                const idx = c.documents.findIndex(d => d.vault_id === vaultId);
+                if (idx !== -1) {
+                    c.documents.splice(idx, 1);
+                    c.document_count = Math.max(0, (c.document_count || 1) - 1);
+                }
+            }
+        });
+
+        // 1. Source card updates & disappearing if empty
+        if (sourceCard && docListEl) {
+            const sourceBadge = sourceCard.querySelector('.doc-count-badge');
+            let remainingCount = 0;
+            if (sourceBadge) {
+                remainingCount = Math.max(0, (parseInt(sourceBadge.textContent, 10) || 0) - 1);
+                sourceBadge.textContent = remainingCount;
+                sourceBadge.title = `${remainingCount} ${remainingCount === 1 ? 'Document' : 'Documents'}`;
+            }
+            if (remainingCount === 0) {
+                const sourceCatAttr = sourceCard.getAttribute('data-category-name') || sourceCatName;
+                openCategoryNames.delete(sourceCatAttr);
+                if (sourceCatName) openCategoryNames.delete(sourceCatName);
+                sourceCard.remove();
+
+                const srcIdx = cats.findIndex(c => (c.name === sourceCatName || c.name === sourceCatAttr) && (!c.documents || c.documents.length === 0));
+                if (srcIdx !== -1) {
+                    cats.splice(srcIdx, 1);
+                }
+
+                const remainingCards = docListEl.querySelectorAll('.category-folder-card');
+                if (remainingCards.length === 0) {
+                    const topBar = docListEl.querySelector('#btn-toggle-select-all-categories')?.closest('div');
+                    if (topBar) topBar.remove();
+                    const emptyP = document.createElement('p');
+                    emptyP.className = 'text-xs text-slate-400 p-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200';
+                    emptyP.textContent = 'No folders found for this selection.';
+                    docListEl.appendChild(emptyP);
+                }
+            }
+        }
+
+        // 2. Update stats badge
+        const statsBadge = document.getElementById('stats-badge');
+        if (statsBadge) {
+            const activeCats = cats.filter(c => (c.document_count || (c.documents && c.documents.length) || 0) > 0);
+            const totalDocs = activeCats.reduce((sum, cat) => sum + (cat.document_count || 0), 0);
+            statsBadge.textContent = `${activeCats.length} Categories (${totalDocs} Docs)`;
+        }
+
+        // 3. Update timeline in memory if in timeline view
+        const timeline = (typeof currentTimeline !== 'undefined' ? currentTimeline : (typeof window !== 'undefined' ? window.currentTimeline : [])) || [];
+        if (Array.isArray(timeline)) {
+            const tIdx = timeline.findIndex(d => d.vault_id === vaultId);
+            if (tIdx !== -1) {
+                timeline.splice(tIdx, 1);
+            }
+        }
+
+        return true;
+    }
+
     function moveDocInDom(vaultId, sourceCatName, targetCatName) {
         if (typeof document === 'undefined' || !vaultId || !targetCatName) return false;
         const docListEl = document.getElementById('document-list');
@@ -2419,6 +2600,8 @@
         window.createCategoryCardElement = createCategoryCardElement;
         window.insertCategoryCardSorted = insertCategoryCardSorted;
         window.moveDocInDom = moveDocInDom;
+        window.removeDocFromDom = removeDocFromDom;
+        window.isMovingToOtherTenant = isMovingToOtherTenant;
         window.copyDocInDom = copyDocInDom;
         window.isTouchEvent = isTouchEvent;
         window.isTouchOrMobileDevice = isTouchOrMobileDevice;
@@ -2478,6 +2661,8 @@
             createCategoryCardElement,
             insertCategoryCardSorted,
             moveDocInDom,
+            removeDocFromDom,
+            isMovingToOtherTenant,
             copyDocInDom,
             isTouchEvent,
             isTouchOrMobileDevice,
