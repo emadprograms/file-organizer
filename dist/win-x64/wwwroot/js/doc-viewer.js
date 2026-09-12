@@ -45,13 +45,13 @@
         return `/api/areas/default/houses/default/pdf/${encodeURIComponent(vaultId)}`;
     }
 
-    function shouldUseCanvasViewer() {
+    function shouldUseOfficialViewer() {
         let stored = null;
         try {
             stored = (typeof localStorage !== 'undefined') ? localStorage.getItem('pdf_viewer_mode') : null;
         } catch (e) {}
 
-        if (stored === 'canvas') return true;
+        if (stored === 'pdfjs' || stored === 'official' || stored === 'canvas') return true;
         if (stored === 'native') return false;
 
         // In automated test runners (Playwright/Puppeteer), prefer native iframe for desktop assertions unless explicitly set
@@ -69,12 +69,23 @@
 
             if (isMobileUA || isIPad) return true;
 
-            // Fallback for touch devices without PDF viewer support
-            if (navigator.pdfViewerEnabled === false && isTouchTablet) return true;
+            // Fallback for devices without native PDF viewer plugin
+            if (navigator.pdfViewerEnabled === false) return true;
         }
 
         // Default for desktop: native iframe (ensures desktop plugins & PDF viewers work)
         return false;
+    }
+
+    function shouldUseCanvasViewer() {
+        return shouldUseOfficialViewer();
+    }
+
+    function resolveViewerSrc(pdfUrl) {
+        if (shouldUseOfficialViewer()) {
+            return `/lib/pdfjs/web/viewer.html?file=${encodeURIComponent(pdfUrl)}`;
+        }
+        return pdfUrl + '#view=FitH';
     }
 
     function updateViewerCategory(vaultId, explicitCategory) {
@@ -283,6 +294,26 @@
         }
     }
 
+    function toggleFullscreen() {
+        const panel = document.getElementById('document-viewer-panel');
+        if (!panel) return;
+        const isFullscreen = panel.classList.toggle('fullscreen-viewer');
+        const expandIcon = document.getElementById('viewer-expand-icon');
+        const collapseIcon = document.getElementById('viewer-collapse-icon');
+        const expandBtn = document.getElementById('viewer-expand-btn');
+        if (expandIcon && collapseIcon) {
+            if (isFullscreen) {
+                expandIcon.classList.add('hidden');
+                collapseIcon.classList.remove('hidden');
+                if (expandBtn) expandBtn.title = 'Exit fullscreen • تصغير الشاشة';
+            } else {
+                expandIcon.classList.remove('hidden');
+                collapseIcon.classList.add('hidden');
+                if (expandBtn) expandBtn.title = 'Toggle fullscreen • شاشة كاملة';
+            }
+        }
+    }
+
     function initViewerControls() {
         const closeBtn = document.getElementById('viewer-close-btn');
         if (closeBtn && !closeBtn._hasViewerListener) {
@@ -293,40 +324,12 @@
             };
         }
 
-        const zoomInBtn = document.getElementById('viewer-zoom-in');
-        if (zoomInBtn && !zoomInBtn._hasViewerListener) {
-            zoomInBtn._hasViewerListener = true;
-            zoomInBtn.onclick = (e) => {
+        const expandBtn = document.getElementById('viewer-expand-btn');
+        if (expandBtn && !expandBtn._hasViewerListener) {
+            expandBtn._hasViewerListener = true;
+            expandBtn.onclick = (e) => {
                 e.preventDefault();
-                currentScaleMode = 'manual';
-                currentScale = Math.min(+(currentScale + 0.25).toFixed(2), 3.0);
-                renderPdfPages();
-            };
-        }
-
-        const zoomOutBtn = document.getElementById('viewer-zoom-out');
-        if (zoomOutBtn && !zoomOutBtn._hasViewerListener) {
-            zoomOutBtn._hasViewerListener = true;
-            zoomOutBtn.onclick = (e) => {
-                e.preventDefault();
-                currentScaleMode = 'manual';
-                currentScale = Math.max(+(currentScale - 0.25).toFixed(2), 0.5);
-                renderPdfPages();
-            };
-        }
-
-        const zoomLevelBtn = document.getElementById('viewer-zoom-level');
-        if (zoomLevelBtn && !zoomLevelBtn._hasViewerListener) {
-            zoomLevelBtn._hasViewerListener = true;
-            zoomLevelBtn.onclick = (e) => {
-                e.preventDefault();
-                if (currentScaleMode === 'fit') {
-                    currentScaleMode = 'manual';
-                    currentScale = 1.0;
-                } else {
-                    currentScaleMode = 'fit';
-                }
-                renderPdfPages();
+                toggleFullscreen();
             };
         }
 
@@ -335,8 +338,8 @@
             modeToggleBtn._hasViewerListener = true;
             modeToggleBtn.onclick = (e) => {
                 e.preventDefault();
-                const currentIsCanvas = shouldUseCanvasViewer();
-                const newMode = currentIsCanvas ? 'native' : 'canvas';
+                const currentIsOfficial = shouldUseOfficialViewer();
+                const newMode = currentIsOfficial ? 'native' : 'pdfjs';
                 try {
                     localStorage.setItem('pdf_viewer_mode', newMode);
                 } catch (err) {}
@@ -345,42 +348,15 @@
                 if (currentPinnedDoc && currentPinnedDoc.vaultId) {
                     const pdfUrl = resolvePdfUrl(currentPinnedDoc.vaultId);
                     const pdfFrame = document.getElementById('pdf-frame');
-                    const canvasContainer = document.getElementById('pdf-canvas-container');
-                    const zoomControls = document.getElementById('viewer-zoom-controls');
-
-                    if (newMode === 'canvas') {
-                        if (pdfFrame) pdfFrame.classList.add('hidden');
-                        if (canvasContainer) canvasContainer.classList.remove('hidden');
-                        if (zoomControls) {
-                            zoomControls.classList.remove('hidden');
-                            zoomControls.classList.add('flex');
-                        }
-                        renderPdfDocument(pdfUrl);
-                    } else {
-                        if (canvasContainer) canvasContainer.classList.add('hidden');
-                        if (pdfFrame) pdfFrame.classList.remove('hidden');
-                        if (zoomControls) {
-                            zoomControls.classList.add('hidden');
-                            zoomControls.classList.remove('flex');
-                        }
+                    if (pdfFrame) {
+                        pdfFrame.src = resolveViewerSrc(pdfUrl);
+                        pdfFrame.classList.remove('hidden');
                     }
                 }
             };
         }
 
-        const retryBtn = document.getElementById('pdf-viewer-retry-btn');
-        if (retryBtn && !retryBtn._hasViewerListener) {
-            retryBtn._hasViewerListener = true;
-            retryBtn.onclick = (e) => {
-                e.preventDefault();
-                if (currentPdfUrl) {
-                    renderPdfDocument(currentPdfUrl);
-                }
-            };
-        }
-
-        // Initialize mode button label based on initial state
-        const initialMode = shouldUseCanvasViewer() ? 'canvas' : 'native';
+        const initialMode = shouldUseOfficialViewer() ? 'pdfjs' : 'native';
         updateViewerModeButton(initialMode);
     }
 
@@ -388,13 +364,13 @@
         const label = document.getElementById('viewer-mode-label');
         const toggleBtn = document.getElementById('viewer-mode-toggle');
         if (!toggleBtn) return;
-        const isCanvas = mode === 'canvas';
+        const isOfficial = mode === 'pdfjs' || mode === 'official' || mode === 'canvas' || (mode === null && shouldUseOfficialViewer());
         if (label) {
-            label.textContent = isCanvas ? 'Inline' : 'Native';
+            label.textContent = isOfficial ? 'PDF.js' : 'Native';
         }
-        toggleBtn.title = isCanvas 
+        toggleBtn.title = isOfficial 
             ? 'Switch to Native PDF viewer • التبديل إلى العارض الأصلي' 
-            : 'Switch to Inline Canvas viewer • التبديل إلى العارض المباشر';
+            : 'Switch to Mozilla PDF.js viewer • التبديل إلى عارض PDF.js';
     }
 
     let lastOpenDocVaultId = null;
@@ -432,9 +408,12 @@
         currentPinnedDoc = { vaultId, title: cleanTitle, category };
 
         const pdfUrl = resolvePdfUrl(vaultId);
-        const targetSrc = pdfUrl + '#view=FitH';
+        const targetSrc = resolveViewerSrc(pdfUrl);
         if (pdfFrame && pdfFrame.src !== targetSrc) {
             pdfFrame.src = targetSrc;
+        }
+        if (pdfFrame) {
+            pdfFrame.classList.remove('hidden');
         }
         if (viewerDownload) {
             viewerDownload.href = pdfUrl;
@@ -442,19 +421,6 @@
         }
 
         updateViewerCategory(vaultId, category);
-
-        if (shouldUseCanvasViewer()) {
-            renderPdfDocument(pdfUrl);
-        } else {
-            if (pdfFrame) pdfFrame.classList.remove('hidden');
-            const canvasContainer = document.getElementById('pdf-canvas-container');
-            if (canvasContainer) canvasContainer.classList.add('hidden');
-            const zoomControls = document.getElementById('viewer-zoom-controls');
-            if (zoomControls) {
-                zoomControls.classList.add('hidden');
-                zoomControls.classList.remove('flex');
-            }
-        }
     }
 
     function peekDocument(vaultId, title, category = null) {
@@ -480,9 +446,12 @@
         if (viewerPeekBadge) viewerPeekBadge.classList.remove('hidden');
 
         const pdfUrl = resolvePdfUrl(vaultId);
-        const targetSrc = pdfUrl + '#view=FitH';
+        const targetSrc = resolveViewerSrc(pdfUrl);
         if (pdfFrame && pdfFrame.src !== targetSrc) {
             pdfFrame.src = targetSrc;
+        }
+        if (pdfFrame) {
+            pdfFrame.classList.remove('hidden');
         }
         if (viewerDownload) {
             viewerDownload.href = pdfUrl;
@@ -490,59 +459,30 @@
         }
 
         updateViewerCategory(vaultId, category);
-
-        if (shouldUseCanvasViewer()) {
-            renderPdfDocument(pdfUrl);
-        } else {
-            if (pdfFrame) pdfFrame.classList.remove('hidden');
-            const canvasContainer = document.getElementById('pdf-canvas-container');
-            if (canvasContainer) canvasContainer.classList.add('hidden');
-            const zoomControls = document.getElementById('viewer-zoom-controls');
-            if (zoomControls) {
-                zoomControls.classList.add('hidden');
-                zoomControls.classList.remove('flex');
-            }
-        }
     }
 
     function closeDocument() {
         const docViewerPanel = document.getElementById('document-viewer-panel');
         const welcomePanel = document.getElementById('welcome-panel');
         const pdfFrame = document.getElementById('pdf-frame');
-        const canvasContainer = document.getElementById('pdf-canvas-container');
         const catBadge = document.getElementById('viewer-category-badge');
         const catVal = document.getElementById('viewer-category-val');
-        const pageInfo = document.getElementById('viewer-page-info');
-        const zoomControls = document.getElementById('viewer-zoom-controls');
 
-        if (currentLoadingTask) {
-            try { currentLoadingTask.destroy(); } catch (e) {}
-            currentLoadingTask = null;
-        }
-        currentPdfDoc = null;
-        currentPdfUrl = null;
         currentPinnedDoc = null;
 
-        if (canvasContainer) {
-            canvasContainer.querySelectorAll('.pdf-page-wrapper').forEach(p => p.remove());
-            canvasContainer.classList.add('hidden');
-        }
-
-        if (pageInfo) {
-            pageInfo.textContent = '';
-            pageInfo.classList.add('hidden');
-        }
-        if (zoomControls) {
-            zoomControls.classList.add('hidden');
-            zoomControls.classList.remove('flex');
-        }
+        if (pdfFrame) pdfFrame.src = 'about:blank';
 
         if (docViewerPanel) {
+            docViewerPanel.classList.remove('fullscreen-viewer');
             docViewerPanel.classList.add('hidden');
             docViewerPanel.classList.remove('flex');
+            const expandIcon = document.getElementById('viewer-expand-icon');
+            const collapseIcon = document.getElementById('viewer-collapse-icon');
+            if (expandIcon) expandIcon.classList.remove('hidden');
+            if (collapseIcon) collapseIcon.classList.add('hidden');
         }
+
         if (welcomePanel) welcomePanel.classList.remove('hidden');
-        if (pdfFrame) pdfFrame.src = 'about:blank';
         if (catBadge) {
             catBadge.classList.add('hidden');
             catBadge.classList.remove('flex');
@@ -566,5 +506,9 @@
     window.getCleanDocTitle = getCleanDocTitle;
     window.isVaultHashName = isVaultHashName;
     window.renderPdfDocument = renderPdfDocument;
-    window.shouldUseCanvasViewer = shouldUseCanvasViewer;
+    window.shouldUseCanvasViewer = shouldUseOfficialViewer;
+    window.shouldUseOfficialViewer = shouldUseOfficialViewer;
+    window.resolveViewerSrc = resolveViewerSrc;
+    window.toggleFullscreen = toggleFullscreen;
+    window.initViewerControls = initViewerControls;
 })();

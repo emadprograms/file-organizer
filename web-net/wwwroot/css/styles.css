@@ -2,6 +2,25 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
 .font-arabic { font-family: 'Noto Sans Arabic', 'Inter', sans-serif; }
 .pdf-viewer { width: 100%; height: 80vh; border: none; }
 
+/* Fullscreen Viewer Expansion for Tablets & Desktops */
+#document-viewer-panel.fullscreen-viewer {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: 100% !important;
+    z-index: 9999 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+#document-viewer-panel.fullscreen-viewer > div {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 0 !important;
+    border: none !important;
+}
+
 /* Inline Canvas PDF Viewer */
 #pdf-canvas-container {
     -webkit-overflow-scrolling: touch;

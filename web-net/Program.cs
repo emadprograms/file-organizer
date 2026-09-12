@@ -53,9 +53,16 @@ using (var scope = app.Services.CreateScope())
 app.UseCors();
 
 // Static file serving from wwwroot/ with strict no-cache headers to prevent stale UI assets
+var staticContentTypeProvider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
+staticContentTypeProvider.Mappings[".properties"] = "text/plain";
+staticContentTypeProvider.Mappings[".bcmap"] = "application/octet-stream";
+staticContentTypeProvider.Mappings[".pfb"] = "application/octet-stream";
+staticContentTypeProvider.Mappings[".mjs"] = "text/javascript";
+
 app.UseDefaultFiles();
 app.UseStaticFiles(new StaticFileOptions
 {
+    ContentTypeProvider = staticContentTypeProvider,
     OnPrepareResponse = ctx =>
     {
         ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");

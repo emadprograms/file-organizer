@@ -218,35 +218,46 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       expect(viewerPanel.classList.contains('hidden')).toBe(true);
     });
 
-    it('renders PDF pages on canvas when pdfjsLib is present', async () => {
+    it('renders PDF in official viewer.html on tablet/mobile', () => {
+      const originalNavigator = global.navigator;
+      try {
+        Object.defineProperty(global, 'navigator', {
+          value: { pdfViewerEnabled: false, userAgent: 'Mozilla/5.0 (Linux; Android 14; Tablet)' },
+          configurable: true,
+          writable: true
+        });
+        localStorage.removeItem('pdf_viewer_mode');
+
+        const pdfUrl = '/api/areas/Safra/houses/101/pdf/doc_test';
+        const viewerSrc = window.resolveViewerSrc(pdfUrl);
+        expect(viewerSrc).toContain('/lib/pdfjs/web/viewer.html?file=');
+        expect(viewerSrc).toContain(encodeURIComponent(pdfUrl));
+
+        window.openDocument('doc_test', 'عقد', '05 - عقود');
+        const frame = document.getElementById('pdf-frame');
+        expect(frame.src).toContain('/lib/pdfjs/web/viewer.html?file=');
+      } finally {
+        Object.defineProperty(global, 'navigator', {
+          value: originalNavigator,
+          configurable: true,
+          writable: true
+        });
+      }
+    });
+
+    it('expand button toggles fullscreen-viewer class on viewer panel', () => {
       const panel = document.getElementById('document-viewer-panel');
-      panel.innerHTML += `
-        <div id="pdf-canvas-container" class="hidden"></div>
-        <div id="viewer-zoom-controls" class="hidden"></div>
-        <div id="viewer-page-info" class="hidden"></div>
-        <div id="pdf-viewer-loading" class="hidden"></div>
-      `;
+      const expandBtn = document.createElement('button');
+      expandBtn.id = 'viewer-expand-btn';
+      panel.querySelector('.header').appendChild(expandBtn);
 
-      global.pdfjsLib = {
-        GlobalWorkerOptions: {},
-        getDocument: vi.fn().mockReturnValue({
-          promise: Promise.resolve({
-            numPages: 2,
-            getPage: vi.fn().mockResolvedValue({
-              getViewport: vi.fn().mockReturnValue({ width: 600, height: 800 }),
-              render: vi.fn().mockReturnValue({ promise: Promise.resolve() })
-            })
-          })
-        })
-      };
+      window.initViewerControls();
 
-      await window.renderPdfDocument('/api/areas/Safra/houses/101/pdf/doc_test');
-
-      const canvasContainer = document.getElementById('pdf-canvas-container');
-      expect(canvasContainer.classList.contains('hidden')).toBe(false);
-      expect(canvasContainer.querySelectorAll('.pdf-page-wrapper').length).toBe(2);
-
-      delete global.pdfjsLib;
+      expect(panel.classList.contains('fullscreen-viewer')).toBe(false);
+      window.toggleFullscreen();
+      expect(panel.classList.contains('fullscreen-viewer')).toBe(true);
+      window.toggleFullscreen();
+      expect(panel.classList.contains('fullscreen-viewer')).toBe(false);
     });
   });
 });

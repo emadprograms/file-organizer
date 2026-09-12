@@ -25,7 +25,8 @@ logs/
 batch_log.txt
 
 # Build and distributions
-build/
+/build/
+!**/lib/pdfjs/build/
 # dist/ (tracked for self-contained distribution binaries)
 *.egg-info/
 

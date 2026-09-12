@@ -236,6 +236,10 @@
                                 <button id="viewer-close-btn" type="button" class="text-slate-400 hover:text-white p-1.5 -ml-1 rounded-lg hover:bg-slate-800 transition-colors flex-shrink-0 cursor-pointer" title="Close document / إغلاق المستند">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                 </button>
+                                <button id="viewer-expand-btn" type="button" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors flex-shrink-0 cursor-pointer" title="Toggle fullscreen / شاشة كاملة">
+                                    <svg id="viewer-expand-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
+                                    <svg id="viewer-collapse-icon" class="w-4 h-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v4H5m0 0l5-5M15 4v4h4m0 0l-5-5M9 20v-4H5m0 0l5 5M15 20v-4h4m0 0l-5 5"/></svg>
+                                </button>
                                 <div id="viewer-category-badge" class="hidden text-xs text-slate-300 bg-slate-800 border border-slate-700/80 px-2.5 py-1 rounded-lg flex items-center gap-1.5 font-medium flex-shrink-0 shadow-2xs" title="Category / التصنيف">
                                     <svg class="w-3.5 h-3.5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
                                     <span id="viewer-category-val" class="truncate max-w-[140px] sm:max-w-[180px]"></span>
@@ -244,19 +248,9 @@
                                 <span id="viewer-peek-badge" class="hidden text-[10px] bg-blue-500/20 text-blue-300 border border-blue-400/30 px-2 py-0.5 rounded font-medium flex-shrink-0">Live Peek</span>
                             </div>
                             <div class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-                                <span id="viewer-page-info" class="hidden text-xs text-slate-400 font-mono px-2 py-1 bg-slate-800 rounded-md"></span>
-                                <div id="viewer-zoom-controls" class="hidden items-center bg-slate-800 rounded-lg p-0.5 border border-slate-700">
-                                    <button id="viewer-zoom-out" type="button" class="p-1 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition-colors cursor-pointer" title="Zoom out / تصغير">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
-                                    </button>
-                                    <button id="viewer-zoom-level" type="button" class="px-2 py-0.5 text-xs text-slate-300 hover:text-white font-mono cursor-pointer" title="Reset zoom / استعادة الحجم">Fit</button>
-                                    <button id="viewer-zoom-in" type="button" class="p-1 text-slate-300 hover:text-white hover:bg-slate-700 rounded transition-colors cursor-pointer" title="Zoom in / تكبير">
-                                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                                    </button>
-                                </div>
-                                <button id="viewer-mode-toggle" type="button" class="text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border border-slate-700 hidden sm:flex items-center gap-1 transition-colors cursor-pointer" title="Toggle view mode (Inline / Native)">
+                                <button id="viewer-mode-toggle" type="button" class="text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border border-slate-700 hidden sm:flex items-center gap-1 transition-colors cursor-pointer" title="Toggle viewer mode (PDF.js / Native)">
                                     <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
-                                    <span id="viewer-mode-label">Inline</span>
+                                    <span id="viewer-mode-label">PDF.js</span>
                                 </button>
                                 <a id="viewer-download" href="#" target="_blank" download class="text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer" title="Download original PDF / تنزيل الملف الأصلي">
                                     <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
