@@ -21,6 +21,7 @@ describe('Unified Single Header Bar Component & Area Grid (QCK-16)', () => {
     expect(tenureLegend.textContent).toContain('< 5y');
     expect(tenureLegend.textContent).toContain('5–10y');
     expect(tenureLegend.textContent).toContain('> 10y');
+    expect(tenureLegend.textContent).toContain('Vacant');
 
     // Add house button removed from navbar in favor of dashed grid card (QCK-19)
     const addHouseBtn = topNavbar.querySelector('#open-add-house-modal-btn');
