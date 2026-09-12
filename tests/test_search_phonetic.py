@@ -119,3 +119,63 @@ def test_score_tenant_match_unique_db_names():
     assert score_tenant_match("awadh", "زياد عوض السليمان", "SAF F 2450_21") >= 400
     assert score_tenant_match("awad", "زياد عوض السليمان", "SAF F 2450_21") >= 400
 
+
+def test_score_tenant_match_arabic_searches():
+    # 1. Exact Arabic name matching
+    assert score_tenant_match("جمشيد", "جمشيد أنور محمد أنور", "SAF F 2452_12") >= 1000
+    assert score_tenant_match("تيسير", "تيسير خطاب عبد الكريم", "SAF F 2456_33") >= 1000
+    assert score_tenant_match("عميد", "عميد علي محمد عزيز", "SAF F 2450_22") >= 1000
+    assert score_tenant_match("جاويد", "جاويد إقبال شودري", "1264") >= 1000
+    assert score_tenant_match("شوكت", "شوكت علي البلوشي", "1260") >= 1000
+    assert score_tenant_match("عثمان", "محمد عثمان حاجي فقير محمد", "551") >= 1000
+    assert score_tenant_match("مادو", "مادو سودانان ناير", "SAF F 2456_11") >= 1000
+    assert score_tenant_match("سرفراز", "سرفراز نواز محمد يوسف عبد الصادق رجا", "SAF F 2452_33") >= 1000
+    assert score_tenant_match("شمس برويز", "شمس برويز محمد", "SAF F 2450_12") >= 1000
+
+    # 2. Hamza variations (bare Alif vs Hamza above/below: انور vs أنور, اقبال vs إقبال, احمد vs أحمد)
+    assert score_tenant_match("انور", "أنور علي عوض علي", "SAF F 2450_24") >= 1000
+    assert score_tenant_match("أنور", "أنور علي عوض علي", "SAF F 2450_24") >= 1000
+    assert score_tenant_match("اقبال", "جاويد إقبال شودري", "1264") >= 1000
+    assert score_tenant_match("إقبال", "جاويد إقبال شودري", "1264") >= 1000
+    assert score_tenant_match("احمد", "أحمد سالم بورشيد", "512") >= 1000
+    assert score_tenant_match("أحمد", "أحمد سالم بورشيد", "512") >= 1000
+
+    # 3. Arabic Tashkeel / Harakat (diacritics stripping)
+    assert score_tenant_match("أَنْوَر", "أنور علي عوض علي", "SAF F 2450_24") >= 1000
+    assert score_tenant_match("مُحَمَّد", "محمد أنور", "1260") >= 1000
+    assert score_tenant_match("جَمْشِيد", "جمشيد أنور محمد أنور", "SAF F 2452_12") >= 1000
+    assert score_tenant_match("تَيْسِير", "تيسير خطاب عبد الكريم", "SAF F 2456_33") >= 1000
+
+    # 4. Taa Marbuta (ة) vs Haa (ه) and Alif Maqsura (ى) vs Yaa (ي)
+    assert score_tenant_match("فاطمه", "فاطمة بنت علي", "100") >= 1000
+    assert score_tenant_match("فاطمة", "فاطمة بنت علي", "100") >= 1000
+    assert score_tenant_match("يحيي", "يحيى عبد الرحمن", "100") >= 1000
+    assert score_tenant_match("يحيى", "يحيى عبد الرحمن", "100") >= 1000
+
+    # 5. Arabic isolation: سويدي matches السويدي and NOT سعود
+    assert score_tenant_match("السويدي", "محمد عبد القادر السويدي", "100") >= 1000
+    assert score_tenant_match("سويدي", "محمد عبد القادر السويدي", "100") >= 1000
+    assert score_tenant_match("سويدي", "عبدالله سعود الدوسري", "500") == 0
+    assert score_tenant_match("سعود", "عبدالله سعود الدوسري", "500") >= 1000
+    assert score_tenant_match("سعود", "محمد عبد القادر السويدي", "100") == 0
+
+
+def test_arabic_normalization_and_variants():
+    from src.core.text_utils import strip_arabic_diacritics, normalize_arabic, get_arabic_search_variants
+
+    assert strip_arabic_diacritics("أَنْوَر") == "أنور"
+    assert strip_arabic_diacritics("مُحَمَّد") == "محمد"
+    assert normalize_arabic("إقبال") == "اقبال"
+    assert normalize_arabic("فاطمة") == "فاطمه"
+    assert normalize_arabic("مستشفى") == "مستشفي"
+
+    v_anwar = get_arabic_search_variants("انور")
+    assert "انور" in v_anwar and "أنور" in v_anwar
+
+    v_syana = get_arabic_search_variants("صيانه")
+    assert "صيانه" in v_syana and "صيانة" in v_syana
+
+    v_shahada = get_arabic_search_variants("شهاده")
+    assert "شهاده" in v_shahada and "شهادة" in v_shahada
+
+

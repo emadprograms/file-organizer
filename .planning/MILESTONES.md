@@ -2,10 +2,24 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-12)
 
-**Phases completed:** 4 phases (105-108) + 29 quick refinements (QCK-01 through QCK-29), 4 plans, comprehensive multi-stack test verification (144 .NET xUnit, 37 Pytest tests, 195 Vitest across 22 files, Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 30 quick refinements (QCK-01 through QCK-30), 4 plans, comprehensive multi-stack test verification (146 .NET xUnit, 37 Pytest tests, 197 Vitest across 22 files, Playwright E2E)
 
 **Key accomplishments:**
 
+- **Arabic Search Optimization & Orthographic Normalization (Quick Refinement QCK-30):**
+  - Implemented Arabic Tashkeel (harakat / diacritics) and Tatweel stripping (`StripArabicDiacritics` / `strip_arabic_diacritics`) across query inputs, preventing vocalized Arabic input (`أَنْوَر`, `مُحَمَّد`, `جَمْشِيد`, `تَيْسِير`) from failing.
+  - Implemented full Arabic text normalization in `ScoreTenantMatch` (`NormalizeArabic` / `normalize_arabic`):
+    - Normalized Alef variants: `[أإآٱ] -> ا`
+    - Normalized Taa Marbuta to Haa: `ة -> ه`
+    - Normalized Alif Maqsura to Yaa: `ى -> ي`
+    This unlocks direct substring 1000+ match scores whether the user writes with or without Hamza (`انور` vs `أنور`, `احمد` vs `أحمد`, `اقبال` vs `إقبال`), or with `ة` vs `ه` (`فاطمة` vs `فاطمه`).
+  - Added Arabic search variant generation (`GetArabicSearchVariants` / `get_arabic_search_variants`) in SQLite database searching (`SearchAsync` in ASP.NET Core and FastAPI):
+    - Overcame SQLite byte-for-byte matching limitations on non-ASCII characters by dynamically querying spelling variants.
+    - Searching `شهاده` (with `ه`) finds all 257 `شهادة` documents (was 0).
+    - Searching `صيانه` (with `ه`) finds all 2,628 `صيانة` documents (was 8).
+    - Searching `مستشفي` (with `ي`) finds all 23 `مستشفى` documents (was 0).
+    - Searching `انور` (bare Alif) finds all 46 documents (was 13).
+  - Added unit test suites across xUnit (`PhoneticSearchTests.cs`: 146/146 passing) and Pytest (`test_search_phonetic.py`: 12/12 passing). All 197 frontend Vitest tests passing.
 - **Database-Wide Real-World Name Validation & Phonetic Precision (Quick Refinement QCK-29):**
   - Sampled real-world tenant names directly from the production database (`organizer.db`, 716 tenants across 253 houses and 18,770 documents) to discover unique single-occurrence tenants, South Asian expat transliterations, and nuanced Arabic phonotactics (`جمشيد أنور محمد أنور`, `تيسير خطاب عبد الكريم`, `مادو سودانان ناير`, `سرفراز نواز محمد يوسف عبد الصادق رجا`, `شوكت علي البلوشي`, `شمس برويز محمد`, `محمد عبد القادر السويدي`, `زياد عوض السليمان`).
   - Expanded consonant Waw rules to cover `أنور` (Anwar) with `[اآإأ]ن[وؤ]` / `من[وؤ]` / `[اآإأ]ر[وؤ] -> W`.

@@ -110,7 +110,7 @@ def get_db_repo(request: Request) -> Optional[Repository]:
             return None
     return None
 
-from src.core.text_utils import clean_article, phonetic_normalize, score_tenant_match
+from src.core.text_utils import clean_article, phonetic_normalize, score_tenant_match, get_arabic_search_variants
 
 
 def validate_id(id_str: str, pattern: str) -> None:
@@ -2161,15 +2161,25 @@ async def search(request: Request, q: str = ""):
         conn = repo.conn
         results = []
 
-        # 1. Houses matching q
-        cursor = conn.execute("""
+        variants = get_arabic_search_variants(q)
+        if not variants:
+            variants = [q]
+
+        # 1. Houses matching q or variants
+        house_clauses = []
+        house_params = []
+        for v in variants:
+            house_clauses.append("(LOWER(h.id) LIKE ? OR LOWER(h.area_id) LIKE ?)")
+            house_params.extend([f"%{v}%", f"%{v}%"])
+
+        cursor = conn.execute(f"""
             SELECT h.id, h.area_id, 
                    (SELECT COUNT(*) FROM documents WHERE house_id = h.id) as doc_count,
                    (SELECT name FROM tenants WHERE house_id = h.id AND (end_date IS NULL OR end_date = '' OR LOWER(end_date) = 'present') ORDER BY start_date DESC LIMIT 1) as current_tenant
             FROM houses h 
-            WHERE LOWER(h.id) LIKE ? OR LOWER(h.area_id) LIKE ? 
+            WHERE {' OR '.join(house_clauses)}
             ORDER BY h.id
-        """, (f"%{q}%", f"%{q}%"))
+        """, house_params)
         for row in cursor.fetchall():
             h_id = row["id"]
             a_id = row["area_id"]
@@ -2239,22 +2249,30 @@ async def search(request: Request, q: str = ""):
             results.append(item)
 
         # 3. Documents matching arabic_title or category or content_explanation in pages
-        cursor = conn.execute("""
+        doc_clauses = []
+        doc_params = []
+        for v in variants:
+            doc_clauses.append("""(
+                d.arabic_title LIKE ?
+                OR d.category LIKE ?
+                OR d.notes LIKE ?
+                OR EXISTS (
+                    SELECT 1 FROM pages p 
+                    WHERE p.vault_id = d.vault_id 
+                      AND (p.content_explanation LIKE ? OR p.subject LIKE ?)
+                )
+            )""")
+            doc_params.extend([f"%{v}%", f"%{v}%", f"%{v}%", f"%{v}%", f"%{v}%"])
+
+        cursor = conn.execute(f"""
             SELECT d.vault_id, d.arabic_title, d.category, d.primary_date, d.is_manual, d.house_id, h.area_id, t.name as tenant_name
             FROM documents d
             JOIN houses h ON d.house_id = h.id
             LEFT JOIN tenants t ON d.tenant_id = t.id
-            WHERE d.arabic_title LIKE ?
-               OR d.category LIKE ?
-               OR d.notes LIKE ?
-               OR EXISTS (
-                   SELECT 1 FROM pages p 
-                   WHERE p.vault_id = d.vault_id 
-                     AND (p.content_explanation LIKE ? OR p.subject LIKE ?)
-               )
+            WHERE {' OR '.join(doc_clauses)}
             ORDER BY d.primary_date DESC
             LIMIT 50
-        """, (f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%", f"%{q}%"))
+        """, doc_params)
 
         for d in cursor.fetchall():
             title = d["arabic_title"] or d["category"] or "Document"

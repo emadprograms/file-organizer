@@ -142,7 +142,7 @@ describe('Category Folder Expansion Persistence', () => {
         });
     });
 
-    it('drag and drop move preserves the source open folder and expands the target folder', async () => {
+    it('drag and drop move preserves open folders without opening closed target folders and preserves scroll', async () => {
         const { handleCategoryDrop, handleDocDragStart } = require('../../../src/api/static/js/doc-manager.js');
         global.showToast = vi.fn();
         global.fetch = vi.fn().mockResolvedValue({
@@ -154,6 +154,9 @@ describe('Category Folder Expansion Persistence', () => {
         });
 
         renderCategories();
+
+        const docListEl = document.getElementById('document-list');
+        docListEl.scrollTop = 320;
 
         // Initially, user has source folder (01 - بيانات أساسية) open
         const sourceCard = document.querySelector('.category-folder-card[data-category-name="01 - بيانات أساسية"]');
@@ -177,16 +180,22 @@ describe('Category Folder Expansion Persistence', () => {
 
         await handleCategoryDrop(dropEvent, '06 - كهرباء وماء', targetCard);
 
-        expect(window.refreshCurrentTab).toHaveBeenCalled();
+        expect(global.showToast).toHaveBeenCalledWith('Moved to 06 - كهرباء وماء');
 
-        // After refresh, BOTH source and target folders should be open!
-        const reloadedSource = document.querySelector('.category-folder-card[data-category-name="01 - بيانات أساسية"]');
-        const reloadedTarget = document.querySelector('.category-folder-card[data-category-name="06 - كهرباء وماء"]');
-        const otherFolder = document.querySelector('.category-folder-card[data-category-name="05 - عقود"]');
+        // Verify: Source folder STAYS OPEN, closed target folder STAYS CLOSED!
+        expect(sourceCard.querySelector('.category-docs').classList.contains('hidden')).toBe(false);
+        expect(targetCard.querySelector('.category-docs').classList.contains('hidden')).toBe(true);
 
-        expect(reloadedSource.querySelector('.category-docs').classList.contains('hidden')).toBe(false);
-        expect(reloadedTarget.querySelector('.category-docs').classList.contains('hidden')).toBe(false);
-        expect(otherFolder.querySelector('.category-docs').classList.contains('hidden')).toBe(true);
+        // Verify: Document element moved into target folder's docs container
+        const movedDocInTarget = targetCard.querySelector('.category-docs [data-vault-id="doc001"]');
+        expect(movedDocInTarget).not.toBeNull();
+
+        // Verify: Counts updated (source 2 -> 1, target 1 -> 2)
+        expect(sourceCard.querySelector('.doc-count-badge').textContent).toBe('1');
+        expect(targetCard.querySelector('.doc-count-badge').textContent).toBe('2');
+
+        // Verify: Scroll did not jump
+        expect(docListEl.scrollTop).toBe(320);
     });
 
     it('preserves scroll position across re-renders within the same house', () => {
@@ -200,19 +209,138 @@ describe('Category Folder Expansion Persistence', () => {
         expect(docListEl.scrollTop).toBe(450);
     });
 
-    it('smoothly scrolls target category into view when pending scroll category is set', async () => {
+    it('does not jump or scroll when moving documents', async () => {
         const scrollSpy = vi.fn();
         window.HTMLElement.prototype.scrollIntoView = scrollSpy;
 
         renderCategories();
 
-        const { setPendingScrollCategory } = require('../../../src/api/static/js/categories-view.js');
-        setPendingScrollCategory('06 - كهرباء وماء');
+        const docListEl = document.getElementById('document-list');
+        docListEl.scrollTop = 250;
+
+        const { moveDocInDom } = require('../../../src/api/static/js/categories-view.js');
+        const moved = moveDocInDom('doc001', '01 - بيانات أساسية', '05 - عقود');
+
+        expect(moved).toBe(true);
+        expect(docListEl.scrollTop).toBe(250);
+        expect(scrollSpy).not.toHaveBeenCalled();
+    });
+
+    it('copying a document preserves open/closed folder states and updates count without scroll jump', () => {
+        const scrollSpy = vi.fn();
+        window.HTMLElement.prototype.scrollIntoView = scrollSpy;
 
         renderCategories();
 
-        await new Promise(r => setTimeout(r, 50));
+        const docListEl = document.getElementById('document-list');
+        docListEl.scrollTop = 180;
 
-        expect(scrollSpy).toHaveBeenCalledWith({ block: 'nearest', behavior: 'smooth' });
+        // Open folder 1, folder 2 ('05 - عقود') remains closed
+        const sourceCard = document.querySelector('.category-folder-card[data-category-name="01 - بيانات أساسية"]');
+        sourceCard.click();
+        expect(sourceCard.querySelector('.category-docs').classList.contains('hidden')).toBe(false);
+
+        const targetCard = document.querySelector('.category-folder-card[data-category-name="05 - عقود"]');
+        expect(targetCard.querySelector('.category-docs').classList.contains('hidden')).toBe(true);
+        expect(targetCard.querySelector('.doc-count-badge').textContent).toBe('1');
+
+        const { copyDocInDom } = require('../../../src/api/static/js/categories-view.js');
+        const copied = copyDocInDom({
+            vault_id: 'doc005_copy',
+            brief_arabic_title: 'نسخة عقد',
+            filename: 'contract_copy.pdf',
+            category: '05 - عقود'
+        }, '05 - عقود');
+
+        expect(copied).toBe(true);
+
+        // Open folder remains open
+        expect(sourceCard.querySelector('.category-docs').classList.contains('hidden')).toBe(false);
+        // Closed target folder remains closed
+        expect(targetCard.querySelector('.category-docs').classList.contains('hidden')).toBe(true);
+
+        // Target badge updated 1 -> 2
+        expect(targetCard.querySelector('.doc-count-badge').textContent).toBe('2');
+
+        // Document exists in target folder DOM
+        const copiedEl = targetCard.querySelector('[data-vault-id="doc005_copy"]');
+        expect(copiedEl).not.toBeNull();
+
+        // Scroll position unchanged, no scrollIntoView
+        expect(docListEl.scrollTop).toBe(180);
+        expect(scrollSpy).not.toHaveBeenCalled();
+    });
+
+    it('executeBatchMove moves docs in DOM and preserves open/closed folders without scrolling', async () => {
+        const scrollSpy = vi.fn();
+        window.HTMLElement.prototype.scrollIntoView = scrollSpy;
+
+        const {
+            toggleDocSelection,
+            openBatchMoveModal,
+            handleBatchMoveSubmit
+        } = require('../../../src/api/static/js/categories-view.js');
+
+        // Setup modal elements in DOM
+        const modalHtml = `
+            <div id="batch-move-modal" class="hidden">
+                <select id="batch-move-folder-select"></select>
+                <select id="batch-move-tenant-select"></select>
+                <button id="btn-batch-move-confirm"></button>
+                <div id="batch-move-spinner" class="hidden"></div>
+                <div id="batch-action-bar" class="hidden"></div>
+                <span id="batch-selected-count"></span>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        renderCategories();
+
+        const docListEl = document.getElementById('document-list');
+        docListEl.scrollTop = 220;
+
+        // Open folder 1 ('01 - بيانات أساسية')
+        const sourceCard = document.querySelector('.category-folder-card[data-category-name="01 - بيانات أساسية"]');
+        sourceCard.click();
+        expect(sourceCard.querySelector('.category-docs').classList.contains('hidden')).toBe(false);
+
+        // Folder 3 ('06 - كهرباء وماء') is closed
+        const targetCard = document.querySelector('.category-folder-card[data-category-name="06 - كهرباء وماء"]');
+        expect(targetCard.querySelector('.category-docs').classList.contains('hidden')).toBe(true);
+
+        // Select doc001 and open batch move modal
+        toggleDocSelection('doc001', true);
+        openBatchMoveModal();
+
+        const select = document.getElementById('batch-move-folder-select');
+        select.value = '06 - كهرباء وماء';
+
+        global.showToast = vi.fn();
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                status: 'success',
+                moved_count: 1,
+                target_category: '06 - كهرباء وماء'
+            })
+        });
+
+        await handleBatchMoveSubmit();
+
+        // Verify: open folder is still open, closed target folder is still closed
+        expect(sourceCard.querySelector('.category-docs').classList.contains('hidden')).toBe(false);
+        expect(targetCard.querySelector('.category-docs').classList.contains('hidden')).toBe(true);
+
+        // Verify: counts updated
+        expect(sourceCard.querySelector('.doc-count-badge').textContent).toBe('1');
+        expect(targetCard.querySelector('.doc-count-badge').textContent).toBe('2');
+
+        // Verify: doc moved to target docs container
+        expect(targetCard.querySelector('[data-vault-id="doc001"]')).not.toBeNull();
+
+        // Verify: scroll preserved, no scrollIntoView
+        expect(docListEl.scrollTop).toBe(220);
+        expect(scrollSpy).not.toHaveBeenCalled();
     });
 });
+

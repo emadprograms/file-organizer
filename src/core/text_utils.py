@@ -94,6 +94,66 @@ def normalize_translit(text: str) -> str:
     return w
 
 
+def strip_arabic_diacritics(text: str) -> str:
+    """Remove Arabic tashkeel (harakat / diacritics) and tatweel (kashida)."""
+    if not text:
+        return ""
+    return re.sub(r'[\u064B-\u065F\u0670\u0640]', '', text)
+
+
+def normalize_arabic(text: str) -> str:
+    """Normalize Arabic orthographic variations (Alefs, Taa Marbuta, Alif Maqsura)."""
+    if not text:
+        return ""
+    s = strip_arabic_diacritics(text).strip().lower()
+    s = re.sub(r'[أإآٱ]', 'ا', s)
+    s = s.replace('ة', 'ه').replace('ى', 'ي')
+    return s
+
+
+def get_arabic_search_variants(query: str) -> list[str]:
+    """Generate search query variants for Arabic spelling variations (Hamza, Taa Marbuta, Alif Maqsura)."""
+    if not query:
+        return []
+    clean = strip_arabic_diacritics(query).strip().lower()
+    variants = [clean]
+
+    # 1. Alef with Hamza <-> bare Alef
+    if any(c in clean for c in 'أإآٱ'):
+        v = re.sub(r'[أإآٱ]', 'ا', clean)
+        if v not in variants:
+            variants.append(v)
+    elif 'ا' in clean:
+        v1 = re.sub(r'(^|[\s\-])ا', r'\1أ', clean)
+        v2 = re.sub(r'(^|[\s\-])ا', r'\1إ', clean)
+        if v1 not in variants:
+            variants.append(v1)
+        if v2 not in variants:
+            variants.append(v2)
+
+    # 2. Taa Marbuta <-> Haa
+    if clean.endswith('ة'):
+        v = clean[:-1] + 'ه'
+        if v not in variants:
+            variants.append(v)
+    elif clean.endswith('ه'):
+        v = clean[:-1] + 'ة'
+        if v not in variants:
+            variants.append(v)
+
+    # 3. Alif Maqsura <-> Yaa
+    if clean.endswith('ى'):
+        v = clean[:-1] + 'ي'
+        if v not in variants:
+            variants.append(v)
+    elif clean.endswith('ي'):
+        v = clean[:-1] + 'ى'
+        if v not in variants:
+            variants.append(v)
+
+    return [v for v in variants if v]
+
+
 def score_tenant_match(query: str, tenant_name: str, house_id: str = "") -> int:
     """Score how well a query matches a tenant name, with token-aware matching and ranking.
     
@@ -103,12 +163,17 @@ def score_tenant_match(query: str, tenant_name: str, house_id: str = "") -> int:
     if not query or not tenant_name:
         return 0
 
-    q_low = query.strip().lower()
-    t_low = tenant_name.strip().lower()
+    q_clean = strip_arabic_diacritics(query)
+    t_clean = strip_arabic_diacritics(tenant_name)
+    q_low = q_clean.strip().lower()
+    t_low = t_clean.strip().lower()
     h_low = str(house_id).strip().lower()
 
-    # Direct substring matches
-    if q_low in t_low:
+    q_norm_ar = normalize_arabic(q_low)
+    t_norm_ar = normalize_arabic(t_low)
+
+    # Direct substring matches (exact or normalized Arabic)
+    if q_low in t_low or (q_norm_ar and q_norm_ar in t_norm_ar):
         return 1000 + (len(q_low) * 10)
     
     # House number matching (e.g. searching "500" returns tenants in house 500)
@@ -128,26 +193,35 @@ def score_tenant_match(query: str, tenant_name: str, house_id: str = "") -> int:
         qw_clean = clean_article(qw)
         qw_norm = phonetic_normalize(qw_clean)
         qw_latin = normalize_translit(qw_clean)
+        qw_norm_ar = normalize_arabic(qw_clean)
         best_word_score = 0
 
         for ti, tw in enumerate(t_words):
             tw_clean = clean_article(tw)
             tw_latin = normalize_translit(to_latin(tw_clean))
+            tw_norm_ar = normalize_arabic(tw_clean)
 
             # Exact word match
-            if qw == tw or (qw_clean and qw_clean == tw_clean):
+            if qw == tw or (qw_clean and qw_clean == tw_clean) or (qw_norm_ar and qw_norm_ar == tw_norm_ar):
                 s = 500
                 if ti == 0 and qi == 0:
                     s += 50
                 best_word_score = max(best_word_score, s)
             # Prefix match
-            elif (tw.startswith(qw) or (qw_clean and tw_clean.startswith(qw_clean))) and len(qw_clean) >= 3:
+            elif (
+                (tw.startswith(qw) or (qw_clean and tw_clean.startswith(qw_clean))) and len(qw_clean) >= 3
+            ) or (
+                (qw_norm_ar and tw_norm_ar.startswith(qw_norm_ar)) and len(qw_norm_ar) >= 3
+            ):
                 s = 300
                 if ti == 0 and qi == 0:
                     s += 30
                 best_word_score = max(best_word_score, s)
             # Substring word match
-            elif tw.find(qw) != -1 or (qw_clean and tw_clean.find(qw_clean) != -1):
+            elif (
+                (tw.find(qw) != -1 or (qw_clean and tw_clean.find(qw_clean) != -1))
+                or (qw_norm_ar and tw_norm_ar.find(qw_norm_ar) != -1)
+            ):
                 best_word_score = max(best_word_score, 250)
             else:
                 # Phonetic token match

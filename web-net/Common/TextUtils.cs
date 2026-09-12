@@ -79,17 +79,76 @@ public static class TextUtils
         return res.Trim();
     }
 
+    public static string StripArabicDiacritics(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        return Regex.Replace(text, @"[\u064B-\u065F\u0670\u0640]", "");
+    }
+
+    public static string NormalizeArabic(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        var s = StripArabicDiacritics(text).Trim().ToLowerInvariant();
+        s = Regex.Replace(s, "[أإآٱ]", "ا");
+        s = s.Replace('ة', 'ه');
+        s = s.Replace('ى', 'ي');
+        return s;
+    }
+
+    public static List<string> GetArabicSearchVariants(string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return new List<string>();
+
+        var clean = StripArabicDiacritics(query).Trim().ToLowerInvariant();
+        var variants = new HashSet<string> { clean };
+
+        // 1. Alef with Hamza <-> bare Alef
+        if (clean.IndexOfAny(new[] { 'أ', 'إ', 'آ', 'ٱ' }) >= 0)
+        {
+            variants.Add(Regex.Replace(clean, "[أإآٱ]", "ا"));
+        }
+        else if (clean.Contains('ا'))
+        {
+            variants.Add(Regex.Replace(clean, @"(^|[\s\-])ا", "$1أ"));
+            variants.Add(Regex.Replace(clean, @"(^|[\s\-])ا", "$1إ"));
+        }
+
+        // 2. Taa Marbuta <-> Haa
+        if (clean.EndsWith('ة'))
+            variants.Add(clean[..^1] + "ه");
+        else if (clean.EndsWith('ه'))
+            variants.Add(clean[..^1] + "ة");
+
+        // 3. Alif Maqsura <-> Yaa
+        if (clean.EndsWith('ى'))
+            variants.Add(clean[..^1] + "ي");
+        else if (clean.EndsWith('ي'))
+            variants.Add(clean[..^1] + "ى");
+
+        return variants.Where(v => !string.IsNullOrWhiteSpace(v)).Distinct().ToList();
+    }
+
     public static int ScoreTenantMatch(string query, string tenantName, string houseId)
     {
         if (string.IsNullOrWhiteSpace(query) || string.IsNullOrWhiteSpace(tenantName))
             return 0;
 
-        var qLow = query.Trim().ToLowerInvariant();
-        var tLow = tenantName.Trim().ToLowerInvariant();
+        var qClean = StripArabicDiacritics(query);
+        var tClean = StripArabicDiacritics(tenantName);
+        var qLow = qClean.Trim().ToLowerInvariant();
+        var tLow = tClean.Trim().ToLowerInvariant();
         var hLow = houseId.Trim().ToLowerInvariant();
 
-        // 1. Direct full substring match
-        if (tLow.Contains(qLow))
+        var qNormAr = NormalizeArabic(qLow);
+        var tNormAr = NormalizeArabic(tLow);
+
+        // 1. Direct full substring match (raw or normalized Arabic)
+        if (tLow.Contains(qLow) || (!string.IsNullOrEmpty(qNormAr) && tNormAr.Contains(qNormAr)))
             return 1000 + (qLow.Length * 10);
         if (hLow.Contains(qLow))
             return 900;
@@ -108,6 +167,7 @@ public static class TextUtils
             var qwClean = CleanArticle(qw);
             var qwNorm = PhoneticNormalize(qwClean);
             var qwLatin = NormalizeTranslit(qwClean);
+            var qwNormAr = NormalizeArabic(qwClean);
             int bestWordScore = 0;
 
             for (int ti = 0; ti < tWords.Length; ti++)
@@ -115,23 +175,27 @@ public static class TextUtils
                 var tw = tWords[ti];
                 var twClean = CleanArticle(tw);
                 var twLatin = NormalizeTranslit(ToLatin(twClean));
+                var twNormAr = NormalizeArabic(twClean);
 
                 // Exact word match
-                if (qw == tw || (!string.IsNullOrEmpty(qwClean) && qwClean == twClean))
+                if (qw == tw || (!string.IsNullOrEmpty(qwClean) && qwClean == twClean) ||
+                    (!string.IsNullOrEmpty(qwNormAr) && qwNormAr == twNormAr))
                 {
                     int s = 500;
                     if (ti == 0 && qi == 0) s += 50;
                     bestWordScore = Math.Max(bestWordScore, s);
                 }
                 // Prefix match (e.g. "khal" -> "khalil")
-                else if ((tw.StartsWith(qw) || (!string.IsNullOrEmpty(qwClean) && twClean.StartsWith(qwClean))) && qwClean.Length >= 3)
+                else if (((tw.StartsWith(qw) || (!string.IsNullOrEmpty(qwClean) && twClean.StartsWith(qwClean))) && qwClean.Length >= 3) ||
+                         ((!string.IsNullOrEmpty(qwNormAr) && twNormAr.StartsWith(qwNormAr)) && qwNormAr.Length >= 3))
                 {
                     int s = 300;
                     if (ti == 0 && qi == 0) s += 30;
                     bestWordScore = Math.Max(bestWordScore, s);
                 }
                 // Substring word match
-                else if (tw.Contains(qw) || (!string.IsNullOrEmpty(qwClean) && twClean.Contains(qwClean)))
+                else if (tw.Contains(qw) || (!string.IsNullOrEmpty(qwClean) && twClean.Contains(qwClean)) ||
+                         (!string.IsNullOrEmpty(qwNormAr) && twNormAr.Contains(qwNormAr)))
                 {
                     bestWordScore = Math.Max(bestWordScore, 250);
                 }

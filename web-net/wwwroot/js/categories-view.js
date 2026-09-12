@@ -105,15 +105,15 @@
     }
 
     let savedScrollOffsets = null;
-    let pendingScrollCategory = null;
 
     function captureScrollOffsets() {
-        if (typeof document === 'undefined') return { listTop: 0, panelTop: 0 };
+        if (typeof document === 'undefined') return { listTop: 0, panelTop: 0, windowTop: 0 };
         const docListEl = document.getElementById('document-list');
         const docListPanel = document.getElementById('document-list-panel');
         return {
             listTop: docListEl ? docListEl.scrollTop : 0,
-            panelTop: docListPanel ? docListPanel.scrollTop : 0
+            panelTop: docListPanel ? docListPanel.scrollTop : 0,
+            windowTop: (typeof window !== 'undefined') ? (window.scrollY || (document.documentElement && document.documentElement.scrollTop) || 0) : 0
         };
     }
 
@@ -121,29 +121,31 @@
         if (!offsets || typeof document === 'undefined') return;
         const docListEl = document.getElementById('document-list');
         const docListPanel = document.getElementById('document-list-panel');
-        if (docListEl && offsets.listTop > 0) {
+        if (docListEl && typeof offsets.listTop === 'number') {
             docListEl.scrollTop = offsets.listTop;
         }
-        if (docListPanel && offsets.panelTop > 0) {
+        if (docListPanel && typeof offsets.panelTop === 'number') {
             docListPanel.scrollTop = offsets.panelTop;
+        }
+        if (typeof window !== 'undefined' && typeof offsets.windowTop === 'number' && offsets.windowTop > 0) {
+            window.scrollTo(0, offsets.windowTop);
         }
         if (typeof requestAnimationFrame === 'function') {
             requestAnimationFrame(() => {
-                if (docListEl && offsets.listTop > 0) docListEl.scrollTop = offsets.listTop;
-                if (docListPanel && offsets.panelTop > 0) docListPanel.scrollTop = offsets.panelTop;
+                if (docListEl && typeof offsets.listTop === 'number') docListEl.scrollTop = offsets.listTop;
+                if (docListPanel && typeof offsets.panelTop === 'number') docListPanel.scrollTop = offsets.panelTop;
             });
         }
     }
 
-    function setPendingScrollCategory(catName) {
-        pendingScrollCategory = catName || null;
+    function setPendingScrollCategory() {
+        // No-op: scroll position must remain exactly as is without jumping
     }
 
     function resetCategoryOpenState() {
         openCategoryNames.clear();
         lastRenderedScope = null;
         savedScrollOffsets = null;
-        pendingScrollCategory = null;
     }
 
     function escapeHtml(str) {
@@ -649,10 +651,17 @@
             }
 
             const targetFolder = data.target_category || targetCat;
-            openCategoryFolder(targetFolder);
-            setPendingScrollCategory(targetFolder);
+            let allMovedInDom = true;
+            if (typeof moveDocInDom === 'function') {
+                targetVaultIds.forEach(id => {
+                    const ok = moveDocInDom(id, null, targetFolder);
+                    if (!ok) allMovedInDom = false;
+                });
+            } else {
+                allMovedInDom = false;
+            }
 
-            if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+            if (!allMovedInDom && typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
                 await window.refreshCurrentTab(activeArea, activeHouse);
             }
         } catch (err) {
@@ -814,11 +823,27 @@
             }
 
             const targetFolder = data.target_category || targetCat;
-            openCategoryFolder(targetFolder);
-            setPendingScrollCategory(targetFolder);
+            const docListEl = document.getElementById('document-list');
+            if (docListEl) {
+                const targetCard = docListEl.querySelector(`.category-folder-card[data-category-name="${targetFolder}"]`);
+                if (targetCard) {
+                    const targetBadge = targetCard.querySelector('.doc-count-badge');
+                    if (targetBadge) {
+                        const count = (parseInt(targetBadge.textContent, 10) || 0) + targetVaultIds.length;
+                        targetBadge.textContent = count;
+                        targetBadge.title = `${count} ${count === 1 ? 'Document' : 'Documents'}`;
+                    }
+                }
+            }
+            const cats = (typeof currentCategories !== 'undefined' ? currentCategories : (typeof window !== 'undefined' ? window.currentCategories : [])) || [];
+            const targetCatObj = cats.find(c => c.name === targetFolder);
+            if (targetCatObj) {
+                targetCatObj.document_count = (targetCatObj.document_count || 0) + targetVaultIds.length;
+            }
 
-            if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
-                await window.refreshCurrentTab(activeArea, activeHouse);
+            const refreshFn = (typeof refreshCurrentTab === 'function') ? refreshCurrentTab : ((typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') ? window.refreshCurrentTab : null);
+            if (refreshFn) {
+                await refreshFn(activeArea, activeHouse);
             }
         } catch (err) {
             console.error(err);
@@ -1140,6 +1165,298 @@
         };
     }
 
+    function createDocRowElement(doc, catName, card) {
+        const docEl = document.createElement('div');
+        const hasNotes = Boolean(doc.notes && doc.notes.trim());
+        const snippet = hasNotes ? getNoteSnippet(doc.notes) : '';
+        const noteBadge = hasNotes 
+            ? `<span class="doc-note-badge inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-medium bg-amber-100 text-amber-800 border border-amber-300/60 flex-shrink-0" title="${escapeHtml(doc.notes)}">📝 ${escapeHtml(snippet)}</span>` 
+            : '';
+
+        const highlightClasses = hasNotes
+            ? 'bg-amber-50/80 border-l-4 border-l-amber-400 border border-amber-200/80 text-amber-900 hover:bg-amber-100/70 hover:border-amber-300 shadow-2xs'
+            : 'text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50';
+
+        docEl.className = `${highlightClasses} px-2.5 py-1.5 rounded-lg cursor-pointer transition-all flex items-center justify-between gap-2 font-medium group/doc`;
+        docEl.draggable = true;
+        docEl.setAttribute('data-vault-id', doc.vault_id);
+        docEl.setAttribute('data-category', catName);
+        docEl._docData = doc;
+        if (typeof window !== 'undefined' && typeof window.handleDocDragStart === 'function') {
+            docEl.ondragstart = (e) => window.handleDocDragStart(e, doc, catName);
+            docEl.ondragend = (e) => window.handleDocDragEnd(e);
+        }
+
+        const title = doc.brief_arabic_title || doc.filename || 'Document';
+        const isManual = Boolean(doc.is_manual);
+        const lockIcon = isManual ? '<span title="Manually assigned - protected from auto-reallocation" class="text-[10px] text-amber-600 flex-shrink-0">🔒</span>' : '';
+        const isChecked = selectedDocIds.has(doc.vault_id);
+        const rawDate = doc.date || (doc.dates && doc.dates[0]) || doc.primary_date || '';
+        const docDate = (rawDate && rawDate !== 'NONE' && rawDate !== 'null') ? rawDate : 'No Date';
+
+        docEl.innerHTML = `
+            <div class="flex items-center gap-2 min-w-0 flex-1">
+                <input type="checkbox" class="doc-select-checkbox w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer flex-shrink-0" data-vault-id="${escapeHtml(doc.vault_id)}" ${isChecked ? 'checked' : ''} />
+                <span class="doc-icon-preview p-0.5 rounded text-blue-500 hover:text-blue-700 hover:bg-blue-100 cursor-pointer flex-shrink-0 transition-colors" title="Document Details & Notes (Spacebar)">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </span>
+                <span class="truncate flex-1 min-w-0 ${hasNotes ? 'text-amber-950 font-semibold' : 'text-slate-800'} doc-title-text cursor-text" title="Double-click to rename">${escapeHtml(title)}</span>
+                ${lockIcon}
+                ${noteBadge}
+            </div>
+            <div class="flex items-center gap-1 flex-shrink-0">
+                <span class="doc-date-badge text-[9px] font-mono tracking-tight text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/70 flex-shrink-0 select-none" title="Document Date: ${escapeHtml(docDate)}">${escapeHtml(docDate)}</span>
+                <button type="button" class="doc-menu-btn opacity-0 group-hover/doc:opacity-100 p-1 hover:bg-blue-100 rounded text-slate-400 hover:text-slate-700 transition-opacity" data-vault-id="${escapeHtml(doc.vault_id)}" title="Manage Document">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
+                </button>
+            </div>
+        `;
+
+        const checkbox = docEl.querySelector('.doc-select-checkbox');
+        if (checkbox) {
+            checkbox.onclick = (e) => {
+                e.stopPropagation();
+            };
+            checkbox.onchange = (e) => {
+                e.stopPropagation();
+                toggleDocSelection(doc.vault_id, checkbox.checked);
+                if (card) {
+                    const catObj = (currentCategories || []).find(c => c.name === catName) || { name: catName, documents: [] };
+                    updateFolderCheckboxState(card, catObj);
+                }
+            };
+        }
+
+        const previewIcon = docEl.querySelector('.doc-icon-preview');
+        const menuBtn = docEl.querySelector('.doc-menu-btn');
+        const titleSpan = docEl.querySelector('.doc-title-text');
+
+        if (titleSpan) {
+            titleSpan.ondblclick = (e) => {
+                handleInlineRename(e, doc, titleSpan, (typeof currentArea !== 'undefined' ? currentArea : (typeof window !== 'undefined' ? window.currentArea : '')), (typeof currentHouse !== 'undefined' ? currentHouse : (typeof window !== 'undefined' ? window.currentHouse : '')));
+            };
+        }
+
+        if (!doc.category) {
+            doc.category = catName;
+        }
+
+        // Zero-click Live Peek in the right panel on hover (250ms debounce)
+        if (typeof window !== 'undefined' && typeof window.attachPreview === 'function') {
+            window.attachPreview(docEl, doc.vault_id, title, doc);
+        }
+
+        // Info icon on left before name: opens Document Inspector & Notes modal
+        if (previewIcon) {
+            previewIcon.onclick = (e) => {
+                e.stopPropagation();
+                if (typeof window !== 'undefined' && typeof window.setSelectedDoc === 'function') {
+                    window.setSelectedDoc(doc, title, docEl);
+                }
+                if (typeof window !== 'undefined' && typeof window.openDocInspector === 'function') {
+                    window.openDocInspector(doc.vault_id, title, doc);
+                } else if (typeof window !== 'undefined' && typeof window.openQuickLook === 'function') {
+                    window.openQuickLook(doc.vault_id, title, doc);
+                }
+            };
+        }
+
+        // 3-dot Menu: hover immediately cancels any pending peek so action menu is 100% free
+        if (menuBtn) {
+            menuBtn.onmouseenter = () => {
+                if (typeof window !== 'undefined' && typeof window.cancelPeek === 'function') {
+                    window.cancelPeek();
+                }
+            };
+            menuBtn.onclick = (e) => {
+                e.stopPropagation();
+                if (typeof window !== 'undefined' && typeof window.cancelPeek === 'function') {
+                    window.cancelPeek();
+                }
+                if (typeof window !== 'undefined' && typeof window.openDocDropdownMenu === 'function') {
+                    window.openDocDropdownMenu(e, doc, catName, menuBtn);
+                } else if (typeof window !== 'undefined' && typeof window.openDocModal === 'function') {
+                    window.openDocModal(doc, catName);
+                }
+            };
+        }
+
+        docEl.onclick = (e) => {
+            e.stopPropagation();
+            const currentTitle = doc.brief_arabic_title || doc.filename || title;
+            if (typeof window !== 'undefined' && typeof window.setSelectedDoc === 'function') {
+                window.setSelectedDoc(doc, currentTitle, docEl);
+            }
+            if (typeof openDocument === 'function') {
+                openDocument(doc.vault_id, currentTitle, doc.category || catName);
+            } else if (typeof window !== 'undefined' && typeof window.openDocument === 'function') {
+                window.openDocument(doc.vault_id, currentTitle, doc.category || catName);
+            }
+        };
+
+        return docEl;
+    }
+
+    function moveDocInDom(vaultId, sourceCatName, targetCatName) {
+        if (typeof document === 'undefined' || !vaultId || !targetCatName) return false;
+        const docListEl = document.getElementById('document-list');
+        if (!docListEl) return false;
+
+        const docEl = docListEl.querySelector(`[data-vault-id="${vaultId}"]`);
+        if (!docEl) return false;
+
+        const findCard = (catName) => {
+            if (!catName) return null;
+            let card = docListEl.querySelector(`.category-folder-card[data-category-name="${catName}"]`);
+            if (card) return card;
+            const cards = docListEl.querySelectorAll('.category-folder-card');
+            for (const c of cards) {
+                const name = c.getAttribute('data-category-name') || '';
+                if (name === catName || name.endsWith(catName) || catName.endsWith(name)) {
+                    return c;
+                }
+            }
+            return null;
+        };
+
+        const targetCard = findCard(targetCatName);
+        if (!targetCard) {
+            // Moved outside current house/tenant categories view
+            docEl.remove();
+            const sourceCard = findCard(sourceCatName) || docEl.closest('.category-folder-card');
+            if (sourceCard) {
+                const badge = sourceCard.querySelector('.doc-count-badge');
+                if (badge) {
+                    const count = Math.max(0, (parseInt(badge.textContent, 10) || 0) - 1);
+                    badge.textContent = count;
+                    badge.title = `${count} ${count === 1 ? 'Document' : 'Documents'}`;
+                }
+            }
+            return true;
+        }
+
+        const targetDocsContainer = targetCard.querySelector('.category-docs');
+        if (!targetDocsContainer) return false;
+
+        const sourceCard = findCard(sourceCatName) || docEl.closest('.category-folder-card');
+
+        // Move the DOM element directly without touching open/closed state or scroll
+        targetDocsContainer.appendChild(docEl);
+        const resolvedTargetName = targetCard.getAttribute('data-category-name') || targetCatName;
+        docEl.setAttribute('data-category', resolvedTargetName);
+
+        // Update doc data & dragstart handler
+        const docObj = docEl._docData || { vault_id: vaultId, category: resolvedTargetName };
+        docObj.category = resolvedTargetName;
+        docEl._docData = docObj;
+        if (typeof window !== 'undefined' && typeof window.handleDocDragStart === 'function') {
+            docEl.ondragstart = (e) => window.handleDocDragStart(e, docObj, resolvedTargetName);
+        }
+
+        // Update counts in DOM
+        if (sourceCard && sourceCard !== targetCard) {
+            const sourceBadge = sourceCard.querySelector('.doc-count-badge');
+            if (sourceBadge) {
+                const count = Math.max(0, (parseInt(sourceBadge.textContent, 10) || 0) - 1);
+                sourceBadge.textContent = count;
+                sourceBadge.title = `${count} ${count === 1 ? 'Document' : 'Documents'}`;
+            }
+        }
+
+        const targetBadge = targetCard.querySelector('.doc-count-badge');
+        if (targetBadge && sourceCard !== targetCard) {
+            const count = (parseInt(targetBadge.textContent, 10) || 0) + 1;
+            targetBadge.textContent = count;
+            targetBadge.title = `${count} ${count === 1 ? 'Document' : 'Documents'}`;
+        }
+
+        // Update in-memory currentCategories
+        const cats = (typeof currentCategories !== 'undefined' ? currentCategories : (typeof window !== 'undefined' ? window.currentCategories : [])) || [];
+        let movedDoc = null;
+        cats.forEach(c => {
+            if (c.documents) {
+                const idx = c.documents.findIndex(d => d.vault_id === vaultId);
+                if (idx !== -1) {
+                    movedDoc = c.documents.splice(idx, 1)[0];
+                    c.document_count = Math.max(0, (c.document_count || 1) - 1);
+                }
+            }
+        });
+
+        if (movedDoc) {
+            movedDoc.category = resolvedTargetName;
+            let targetCatObj = cats.find(c => c.name === resolvedTargetName);
+            if (!targetCatObj) {
+                targetCatObj = cats.find(c => c.name.endsWith(resolvedTargetName) || resolvedTargetName.endsWith(c.name));
+            }
+            if (targetCatObj) {
+                if (!targetCatObj.documents) targetCatObj.documents = [];
+                targetCatObj.documents.push(movedDoc);
+                targetCatObj.document_count = (targetCatObj.document_count || 0) + 1;
+            }
+        }
+
+        return true;
+    }
+
+    function copyDocInDom(newDoc, targetCatName) {
+        if (typeof document === 'undefined' || !newDoc || !targetCatName) return false;
+        const docListEl = document.getElementById('document-list');
+        if (!docListEl) return false;
+
+        const findCard = (catName) => {
+            if (!catName) return null;
+            let card = docListEl.querySelector(`.category-folder-card[data-category-name="${catName}"]`);
+            if (card) return card;
+            const cards = docListEl.querySelectorAll('.category-folder-card');
+            for (const c of cards) {
+                const name = c.getAttribute('data-category-name') || '';
+                if (name === catName || name.endsWith(catName) || catName.endsWith(name)) {
+                    return c;
+                }
+            }
+            return null;
+        };
+
+        const targetCard = findCard(targetCatName);
+        if (!targetCard) return false;
+
+        const targetDocsContainer = targetCard.querySelector('.category-docs');
+        if (!targetDocsContainer) return false;
+
+        const resolvedTargetName = targetCard.getAttribute('data-category-name') || targetCatName;
+        newDoc.category = resolvedTargetName;
+
+        const newDocEl = createDocRowElement(newDoc, resolvedTargetName, targetCard);
+        targetDocsContainer.appendChild(newDocEl);
+
+        const targetBadge = targetCard.querySelector('.doc-count-badge');
+        if (targetBadge) {
+            const count = (parseInt(targetBadge.textContent, 10) || 0) + 1;
+            targetBadge.textContent = count;
+            targetBadge.title = `${count} ${count === 1 ? 'Document' : 'Documents'}`;
+        }
+
+        const cats = (typeof currentCategories !== 'undefined' ? currentCategories : (typeof window !== 'undefined' ? window.currentCategories : [])) || [];
+        let targetCatObj = cats.find(c => c.name === resolvedTargetName);
+        if (!targetCatObj) {
+            targetCatObj = cats.find(c => c.name.endsWith(resolvedTargetName) || resolvedTargetName.endsWith(c.name));
+        }
+        if (targetCatObj) {
+            if (!targetCatObj.documents) targetCatObj.documents = [];
+            targetCatObj.documents.push(newDoc);
+            targetCatObj.document_count = (targetCatObj.document_count || 0) + 1;
+        }
+
+        const statsBadge = document.getElementById('stats-badge');
+        if (statsBadge) {
+            const totalDocs = cats.reduce((sum, cat) => sum + (cat.document_count || 0), 0);
+            statsBadge.textContent = `${cats.length} Categories (${totalDocs} Docs)`;
+        }
+
+        return true;
+    }
+
     function renderCategories() {
         const docListEl = document.getElementById('document-list');
         if (!docListEl) return;
@@ -1149,11 +1466,11 @@
         const activeHouse = (typeof currentHouse !== 'undefined' ? currentHouse : (typeof window !== 'undefined' ? window.currentHouse : null));
         const currentScope = `${activeArea || ''}:::${activeHouse || ''}:::${activeTenant || ''}`;
 
-        const isScopeChanged = lastRenderedScope !== null && lastRenderedScope !== currentScope;
-        if (isScopeChanged) {
+        const isInitialLoad = lastRenderedScope === null;
+        const isScopeChanged = !isInitialLoad && lastRenderedScope !== currentScope;
+        if (isInitialLoad || isScopeChanged) {
             openCategoryNames.clear();
             savedScrollOffsets = null;
-            pendingScrollCategory = null;
         } else if (docListEl) {
             if (!savedScrollOffsets) {
                 savedScrollOffsets = captureScrollOffsets();
@@ -1173,6 +1490,12 @@
             });
         }
         lastRenderedScope = currentScope;
+
+        // Prevent scroll container height collapse during re-render
+        const prevHeight = docListEl.offsetHeight;
+        if (prevHeight > 0) {
+            docListEl.style.minHeight = `${prevHeight}px`;
+        }
 
         docListEl.innerHTML = '';
 
@@ -1199,8 +1522,18 @@
         }
         
         displayCategories.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+
+        // Initial scope load: only open folders containing notes by default
+        if (isInitialLoad || isScopeChanged) {
+            displayCategories.forEach(cat => {
+                if (cat.documents && cat.documents.some(d => d.notes && d.notes.trim())) {
+                    openCategoryNames.add(cat.name);
+                }
+            });
+        }
         
         if (displayCategories.length === 0) {
+            docListEl.style.minHeight = '';
             const emptyP = document.createElement('p');
             emptyP.className = 'text-xs text-slate-400 p-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200';
             emptyP.textContent = 'No folders found for this selection.';
@@ -1292,10 +1625,7 @@
             const noteFolderBadge = hasNotedDoc 
                 ? '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-300/80 flex-shrink-0" title="Contains documents with notes">📝 Notes</span>'
                 : '';
-            const isFolderOpen = openCategoryNames.has(cat.name) || hasNotedDoc;
-            if (isFolderOpen) {
-                openCategoryNames.add(cat.name);
-            }
+            const isFolderOpen = openCategoryNames.has(cat.name);
             const docsContainerClasses = isFolderOpen 
                 ? 'category-docs mt-2.5 pt-2.5 border-t border-slate-100 space-y-1'
                 : 'category-docs hidden mt-2.5 pt-2.5 border-t border-slate-100 space-y-1';
@@ -1344,128 +1674,7 @@
             if (cat.documents && cat.documents.length > 0) {
                 const docsContainer = card.querySelector('.category-docs');
                 cat.documents.forEach(doc => {
-                    const docEl = document.createElement('div');
-                    const hasNotes = Boolean(doc.notes && doc.notes.trim());
-                    const snippet = hasNotes ? getNoteSnippet(doc.notes) : '';
-                    const noteBadge = hasNotes 
-                        ? `<span class="doc-note-badge inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-medium bg-amber-100 text-amber-800 border border-amber-300/60 flex-shrink-0" title="${escapeHtml(doc.notes)}">📝 ${escapeHtml(snippet)}</span>` 
-                        : '';
-
-                    const highlightClasses = hasNotes
-                        ? 'bg-amber-50/80 border-l-4 border-l-amber-400 border border-amber-200/80 text-amber-900 hover:bg-amber-100/70 hover:border-amber-300 shadow-2xs'
-                        : 'text-xs text-blue-600 hover:text-blue-800 hover:bg-blue-50';
-
-                    docEl.className = `${highlightClasses} px-2.5 py-1.5 rounded-lg cursor-pointer transition-all flex items-center justify-between gap-2 font-medium group/doc`;
-                    docEl.draggable = true;
-                    docEl.setAttribute('data-vault-id', doc.vault_id);
-                    if (typeof window !== 'undefined' && typeof window.handleDocDragStart === 'function') {
-                        docEl.ondragstart = (e) => window.handleDocDragStart(e, doc, cat.name);
-                        docEl.ondragend = (e) => window.handleDocDragEnd(e);
-                    }
-
-                    const title = doc.brief_arabic_title || doc.filename || 'Document';
-                    const isManual = Boolean(doc.is_manual);
-                    const lockIcon = isManual ? '<span title="Manually assigned - protected from auto-reallocation" class="text-[10px] text-amber-600 flex-shrink-0">🔒</span>' : '';
-                    const isChecked = selectedDocIds.has(doc.vault_id);
-                    const rawDate = doc.date || (doc.dates && doc.dates[0]) || doc.primary_date || '';
-                    const docDate = (rawDate && rawDate !== 'NONE' && rawDate !== 'null') ? rawDate : 'No Date';
-
-                    docEl.innerHTML = `
-                        <div class="flex items-center gap-2 min-w-0 flex-1">
-                            <input type="checkbox" class="doc-select-checkbox w-3.5 h-3.5 rounded text-blue-600 focus:ring-blue-500 border-slate-300 cursor-pointer flex-shrink-0" data-vault-id="${escapeHtml(doc.vault_id)}" ${isChecked ? 'checked' : ''} />
-                            <span class="doc-icon-preview p-0.5 rounded text-blue-500 hover:text-blue-700 hover:bg-blue-100 cursor-pointer flex-shrink-0 transition-colors" title="Document Details & Notes (Spacebar)">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            </span>
-                            <span class="truncate flex-1 min-w-0 ${hasNotes ? 'text-amber-950 font-semibold' : 'text-slate-800'} doc-title-text cursor-text" title="Double-click to rename">${escapeHtml(title)}</span>
-                            ${lockIcon}
-                            ${noteBadge}
-                        </div>
-                        <div class="flex items-center gap-1 flex-shrink-0">
-                            <span class="doc-date-badge text-[9px] font-mono tracking-tight text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200/70 flex-shrink-0 select-none" title="Document Date: ${escapeHtml(docDate)}">${escapeHtml(docDate)}</span>
-                            <button type="button" class="doc-menu-btn opacity-0 group-hover/doc:opacity-100 p-1 hover:bg-blue-100 rounded text-slate-400 hover:text-slate-700 transition-opacity" data-vault-id="${escapeHtml(doc.vault_id)}" title="Manage Document">
-                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/></svg>
-                            </button>
-                        </div>
-                    `;
-
-                    const checkbox = docEl.querySelector('.doc-select-checkbox');
-                    if (checkbox) {
-                        checkbox.onclick = (e) => {
-                            e.stopPropagation();
-                        };
-                        checkbox.onchange = (e) => {
-                            e.stopPropagation();
-                            toggleDocSelection(doc.vault_id, checkbox.checked);
-                            updateFolderCheckboxState(card, cat);
-                        };
-                    }
-
-                    const previewIcon = docEl.querySelector('.doc-icon-preview');
-                    const menuBtn = docEl.querySelector('.doc-menu-btn');
-                    const titleSpan = docEl.querySelector('.doc-title-text');
-
-                    if (titleSpan) {
-                        titleSpan.ondblclick = (e) => {
-                            handleInlineRename(e, doc, titleSpan, (typeof currentArea !== 'undefined' ? currentArea : (typeof window !== 'undefined' ? window.currentArea : '')), (typeof currentHouse !== 'undefined' ? currentHouse : (typeof window !== 'undefined' ? window.currentHouse : '')));
-                        };
-                    }
-
-                    if (!doc.category) {
-                        doc.category = cat.name;
-                    }
-
-                    // Zero-click Live Peek in the right panel on hover (250ms debounce)
-                    if (typeof window !== 'undefined' && typeof window.attachPreview === 'function') {
-                        window.attachPreview(docEl, doc.vault_id, title, doc);
-                    }
-
-                    // Info icon on left before name: opens Document Inspector & Notes modal
-                    if (previewIcon) {
-                        previewIcon.onclick = (e) => {
-                            e.stopPropagation();
-                            if (typeof window !== 'undefined' && typeof window.setSelectedDoc === 'function') {
-                                window.setSelectedDoc(doc, title, docEl);
-                            }
-                            if (typeof window !== 'undefined' && typeof window.openDocInspector === 'function') {
-                                window.openDocInspector(doc.vault_id, title, doc);
-                            } else if (typeof window !== 'undefined' && typeof window.openQuickLook === 'function') {
-                                window.openQuickLook(doc.vault_id, title, doc);
-                            }
-                        };
-                    }
-
-                    // 3-dot Menu: hover immediately cancels any pending peek so action menu is 100% free
-                    if (menuBtn) {
-                        menuBtn.onmouseenter = () => {
-                            if (typeof window !== 'undefined' && typeof window.cancelPeek === 'function') {
-                                window.cancelPeek();
-                            }
-                        };
-                        menuBtn.onclick = (e) => {
-                            e.stopPropagation();
-                            if (typeof window !== 'undefined' && typeof window.cancelPeek === 'function') {
-                                window.cancelPeek();
-                            }
-                            if (typeof window !== 'undefined' && typeof window.openDocDropdownMenu === 'function') {
-                                window.openDocDropdownMenu(e, doc, cat.name, menuBtn);
-                            } else if (typeof window !== 'undefined' && typeof window.openDocModal === 'function') {
-                                window.openDocModal(doc, cat.name);
-                            }
-                        };
-                    }
-
-                    docEl.onclick = (e) => {
-                        e.stopPropagation();
-                        const currentTitle = doc.brief_arabic_title || doc.filename || title;
-                        if (typeof window !== 'undefined' && typeof window.setSelectedDoc === 'function') {
-                            window.setSelectedDoc(doc, currentTitle, docEl);
-                        }
-                        if (typeof openDocument === 'function') {
-                            openDocument(doc.vault_id, currentTitle, doc.category || cat.name);
-                        } else if (typeof window !== 'undefined' && typeof window.openDocument === 'function') {
-                            window.openDocument(doc.vault_id, currentTitle, doc.category || cat.name);
-                        }
-                    };
+                    const docEl = createDocRowElement(doc, cat.name, card);
                     docsContainer.appendChild(docEl);
                 });
             }
@@ -1528,24 +1737,13 @@
         if (offsetsToRestore) {
             restoreScrollOffsets(offsetsToRestore);
         }
-
-        // If a category was targeted by drag & drop or batch action, ensure it is in view smoothly
-        if (pendingScrollCategory) {
-            const catToScroll = pendingScrollCategory;
-            pendingScrollCategory = null;
-            if (typeof requestAnimationFrame === 'function') {
-                requestAnimationFrame(() => {
-                    const cards = docListEl.querySelectorAll('.category-folder-card');
-                    for (const c of cards) {
-                        if (c.getAttribute('data-category-name') === catToScroll) {
-                            if (typeof c.scrollIntoView === 'function') {
-                                c.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-                            }
-                            break;
-                        }
-                    }
-                });
-            }
+        if (typeof requestAnimationFrame === 'function') {
+            requestAnimationFrame(() => {
+                docListEl.style.minHeight = '';
+                if (offsetsToRestore) {
+                    restoreScrollOffsets(offsetsToRestore);
+                }
+            });
         }
     }
 
@@ -1597,6 +1795,9 @@
         window.setPendingScrollCategory = setPendingScrollCategory;
         window.captureScrollOffsets = captureScrollOffsets;
         window.restoreScrollOffsets = restoreScrollOffsets;
+        window.createDocRowElement = createDocRowElement;
+        window.moveDocInDom = moveDocInDom;
+        window.copyDocInDom = copyDocInDom;
     }
 
     if (typeof module !== 'undefined' && module.exports) {
@@ -1641,6 +1842,9 @@
             setPendingScrollCategory,
             captureScrollOffsets,
             restoreScrollOffsets,
+            createDocRowElement,
+            moveDocInDom,
+            copyDocInDom,
         };
     }
 })();

@@ -652,21 +652,46 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             return Array.Empty<SearchResultDto>();
 
         var q = query.Trim().ToLowerInvariant();
-        var likeQ = $"%{q}%";
+        var variants = TextUtils.GetArabicSearchVariants(query);
+        if (variants.Count == 0)
+            variants.Add(q);
+
         await using var conn = await _connectionFactory.CreateConnectionAsync();
 
         var results = new List<SearchResultDto>();
 
+        var houseClauses = new List<string>();
+        var docClauses = new List<string>();
+        var queryParams = new DynamicParameters();
+        queryParams.Add("DocLimit", Math.Max(limit, 50));
+
+        for (int i = 0; i < variants.Count; i++)
+        {
+            var p = $"@LikeQ{i}";
+            queryParams.Add(p, $"%{variants[i]}%");
+            houseClauses.Add($"(LOWER(h.id) LIKE {p} OR LOWER(h.area_id) LIKE {p})");
+            docClauses.Add($@"(
+                d.arabic_title LIKE {p}
+                OR d.category LIKE {p}
+                OR d.notes LIKE {p}
+                OR EXISTS (
+                    SELECT 1 FROM pages p 
+                    WHERE p.vault_id = d.vault_id 
+                      AND (p.content_explanation LIKE {p} OR p.subject LIKE {p})
+                )
+            )");
+        }
+
         // 1. Houses matching q
-        const string sqlHouses = @"
+        var sqlHouses = $@"
             SELECT h.id AS Id, h.area_id AS AreaId,
                    (SELECT COUNT(*) FROM documents WHERE house_id = h.id) AS DocCount,
                    (SELECT name FROM tenants WHERE house_id = h.id AND (end_date IS NULL OR end_date = '' OR LOWER(end_date) = 'present') ORDER BY start_date DESC LIMIT 1) AS CurrentTenant
             FROM houses h
-            WHERE LOWER(h.id) LIKE @LikeQ OR LOWER(h.area_id) LIKE @LikeQ
+            WHERE {string.Join(" OR ", houseClauses)}
             ORDER BY h.id;";
 
-        var houseRows = await conn.QueryAsync<(string Id, string AreaId, int DocCount, string? CurrentTenant)>(sqlHouses, new { LikeQ = likeQ });
+        var houseRows = await conn.QueryAsync<(string Id, string AreaId, int DocCount, string? CurrentTenant)>(sqlHouses, queryParams);
         foreach (var hr in houseRows)
         {
             var subParts = new List<string> { hr.AreaId };
@@ -745,21 +770,14 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         }
 
         // 3. Documents matching q (title, category, notes, page explanation, page subject)
-        const string sqlDocs = @"
+        var sqlDocs = $@"
             SELECT d.vault_id AS VaultId, d.arabic_title AS ArabicTitle, d.category AS Category,
                    d.primary_date AS PrimaryDate, d.is_manual AS IsManual, d.house_id AS HouseId,
                    h.area_id AS AreaId, t.name AS TenantName
             FROM documents d
             JOIN houses h ON d.house_id = h.id
             LEFT JOIN tenants t ON d.tenant_id = t.id
-            WHERE d.arabic_title LIKE @LikeQ
-               OR d.category LIKE @LikeQ
-               OR d.notes LIKE @LikeQ
-               OR EXISTS (
-                   SELECT 1 FROM pages p 
-                   WHERE p.vault_id = d.vault_id 
-                     AND (p.content_explanation LIKE @LikeQ OR p.subject LIKE @LikeQ)
-               )
+            WHERE {string.Join(" OR ", docClauses)}
             ORDER BY d.primary_date DESC
             LIMIT @DocLimit;";
 
@@ -772,7 +790,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             string HouseId,
             string AreaId,
             string? TenantName
-        )>(sqlDocs, new { LikeQ = likeQ, DocLimit = Math.Max(limit, 50) });
+        )>(sqlDocs, queryParams);
 
         foreach (var d in docRows)
         {

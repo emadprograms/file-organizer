@@ -193,4 +193,68 @@ public class PhoneticSearchTests
         Assert.True(TextUtils.ScoreTenantMatch("awadh", "زياد عوض السليمان", "SAF F 2450_21") >= 400);
         Assert.True(TextUtils.ScoreTenantMatch("awad", "زياد عوض السليمان", "SAF F 2450_21") >= 400);
     }
+
+    [Fact]
+    public void ScoreTenantMatch_ArabicSearches_PrecisionAndVariations()
+    {
+        // 1. Exact Arabic name matching
+        Assert.True(TextUtils.ScoreTenantMatch("جمشيد", "جمشيد أنور محمد أنور", "SAF F 2452_12") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("تيسير", "تيسير خطاب عبد الكريم", "SAF F 2456_33") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("عميد", "عميد علي محمد عزيز", "SAF F 2450_22") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("جاويد", "جاويد إقبال شودري", "1264") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("شوكت", "شوكت علي البلوشي", "1260") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("عثمان", "محمد عثمان حاجي فقير محمد", "551") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("مادو", "مادو سودانان ناير", "SAF F 2456_11") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("سرفراز", "سرفراز نواز محمد يوسف عبد الصادق رجا", "SAF F 2452_33") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("شمس برويز", "شمس برويز محمد", "SAF F 2450_12") >= 1000);
+
+        // 2. Hamza variations (bare Alif vs Hamza above/below: انور vs أنور, اقبال vs إقبال, احمد vs أحمد)
+        Assert.True(TextUtils.ScoreTenantMatch("انور", "أنور علي عوض علي", "SAF F 2450_24") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("أنور", "أنور علي عوض علي", "SAF F 2450_24") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("اقبال", "جاويد إقبال شودري", "1264") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("إقبال", "جاويد إقبال شودري", "1264") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("احمد", "أحمد سالم بورشيد", "512") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("أحمد", "أحمد سالم بورشيد", "512") >= 1000);
+
+        // 3. Arabic Tashkeel / Harakat (diacritics stripping)
+        Assert.True(TextUtils.ScoreTenantMatch("أَنْوَر", "أنور علي عوض علي", "SAF F 2450_24") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("مُحَمَّد", "محمد أنور", "1260") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("جَمْشِيد", "جمشيد أنور محمد أنور", "SAF F 2452_12") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("تَيْسِير", "تيسير خطاب عبد الكريم", "SAF F 2456_33") >= 1000);
+
+        // 4. Taa Marbuta (ة) vs Haa (ه) and Alif Maqsura (ى) vs Yaa (ي)
+        Assert.True(TextUtils.ScoreTenantMatch("فاطمه", "فاطمة بنت علي", "100") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("فاطمة", "فاطمة بنت علي", "100") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("يحيي", "يحيى عبد الرحمن", "100") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("يحيى", "يحيى عبد الرحمن", "100") >= 1000);
+
+        // 5. Arabic isolation: سويدي matches السويدي and NOT سعود
+        Assert.True(TextUtils.ScoreTenantMatch("السويدي", "محمد عبد القادر السويدي", "100") >= 1000);
+        Assert.True(TextUtils.ScoreTenantMatch("سويدي", "محمد عبد القادر السويدي", "100") >= 1000);
+        Assert.Equal(0, TextUtils.ScoreTenantMatch("سويدي", "عبدالله سعود الدوسري", "500"));
+        Assert.True(TextUtils.ScoreTenantMatch("سعود", "عبدالله سعود الدوسري", "500") >= 1000);
+        Assert.Equal(0, TextUtils.ScoreTenantMatch("سعود", "محمد عبد القادر السويدي", "100"));
+    }
+
+    [Fact]
+    public void ArabicNormalizationAndVariants_WorksProperly()
+    {
+        Assert.Equal("أنور", TextUtils.StripArabicDiacritics("أَنْوَر"));
+        Assert.Equal("محمد", TextUtils.StripArabicDiacritics("مُحَمَّد"));
+        Assert.Equal("اقبال", TextUtils.NormalizeArabic("إقبال"));
+        Assert.Equal("فاطمه", TextUtils.NormalizeArabic("فاطمة"));
+        Assert.Equal("مستشفي", TextUtils.NormalizeArabic("مستشفى"));
+
+        var vAnwar = TextUtils.GetArabicSearchVariants("انور");
+        Assert.Contains("انور", vAnwar);
+        Assert.Contains("أنور", vAnwar);
+
+        var vSyana = TextUtils.GetArabicSearchVariants("صيانه");
+        Assert.Contains("صيانه", vSyana);
+        Assert.Contains("صيانة", vSyana);
+
+        var vShahada = TextUtils.GetArabicSearchVariants("شهاده");
+        Assert.Contains("شهاده", vShahada);
+        Assert.Contains("شهادة", vShahada);
+    }
 }

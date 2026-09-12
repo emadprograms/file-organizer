@@ -144,6 +144,7 @@
 
         const area = getResolvedArea(activeDragged);
         const house = getResolvedHouse(activeDragged);
+        const sourceCategory = activeDragged.category;
 
         try {
             const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(activeDragged.vault_id)}`, {
@@ -156,17 +157,14 @@
                 throw new Error(errData.detail || 'Failed to move document');
             }
             const data = await res.json();
-            showToast(`Moved to ${data.category || targetCategory}`);
-            if (typeof window.openCategoryFolder === 'function') {
-                window.openCategoryFolder(targetCategory);
-                if (data && data.category && data.category !== targetCategory) {
-                    window.openCategoryFolder(data.category);
-                }
+            const finalCategory = data.category || targetCategory;
+            showToast(`Moved to ${finalCategory}`);
+
+            let movedInDom = false;
+            if (typeof window.moveDocInDom === 'function') {
+                movedInDom = window.moveDocInDom(activeDragged.vault_id, sourceCategory, finalCategory);
             }
-            if (typeof window.setPendingScrollCategory === 'function') {
-                window.setPendingScrollCategory(data.category || targetCategory);
-            }
-            if (typeof window.refreshCurrentTab === 'function') {
+            if (!movedInDom && typeof window.refreshCurrentTab === 'function') {
                 await window.refreshCurrentTab(area, house);
             }
         } catch (err) {
@@ -402,11 +400,20 @@
                         target_tenant_id: newTenantId || undefined,
                     })
                 });
-                if (!res.ok) {
-                    const errData = await res.json().catch(() => ({}));
-                    throw new Error(errData.detail || 'Failed to copy document');
-                }
+                const resData = await res.json().catch(() => null);
                 showToast('Document duplicated successfully');
+                closeDocModal();
+                let domHandled = false;
+                if (resData && typeof window.copyDocInDom === 'function') {
+                    domHandled = window.copyDocInDom(resData, chosenCategory);
+                }
+                if (!domHandled) {
+                    if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                        await window.refreshCurrentTab(area, house);
+                    } else if (typeof refreshCurrentTab === 'function') {
+                        await refreshCurrentTab(area, house);
+                    }
+                }
             } else {
                 const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(activeDocModalDoc.vault_id)}`, {
                     method: 'PATCH',
@@ -422,20 +429,25 @@
                     const errData = await res.json().catch(() => ({}));
                     throw new Error(errData.detail || 'Failed to update document');
                 }
+                const resData = await res.json().catch(() => null);
+                const finalCategory = (resData && resData.category) || chosenCategory;
                 showToast('Document updated successfully');
-            }
-
-            closeDocModal();
-            if (typeof window.openCategoryFolder === 'function') {
-                window.openCategoryFolder(chosenCategory);
-            }
-            if (typeof window.setPendingScrollCategory === 'function') {
-                window.setPendingScrollCategory(chosenCategory);
-            }
-            if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
-                await window.refreshCurrentTab(area, house);
-            } else if (typeof refreshCurrentTab === 'function') {
-                await refreshCurrentTab(area, house);
+                closeDocModal();
+                let domHandled = false;
+                if (typeof window.moveDocInDom === 'function') {
+                    domHandled = window.moveDocInDom(activeDocModalDoc.vault_id, activeDocModalDoc.category, finalCategory);
+                    if (domHandled && newTitle) {
+                        const titleEl = document.querySelector(`[data-vault-id="${activeDocModalDoc.vault_id}"] .doc-title-text`);
+                        if (titleEl) titleEl.textContent = newTitle;
+                    }
+                }
+                if (!domHandled) {
+                    if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                        await window.refreshCurrentTab(area, house);
+                    } else if (typeof refreshCurrentTab === 'function') {
+                        await refreshCurrentTab(area, house);
+                    }
+                }
             }
         } catch (err) {
             docModalStatus.textContent = err.message;
