@@ -8,7 +8,17 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
     'utf8'
   );
 
+  let store = {};
+  const localStorageMock = {
+    getItem: vi.fn(key => (key in store ? store[key] : null)),
+    setItem: vi.fn((key, val) => { store[key] = String(val); }),
+    removeItem: vi.fn(key => { delete store[key]; }),
+    clear: vi.fn(() => { store = {}; })
+  };
+
   beforeEach(() => {
+    store = {};
+    vi.stubGlobal('localStorage', localStorageMock);
     document.body.innerHTML = `
       <div id="welcome-panel"></div>
       <div id="resizer-2" class="hidden"></div>
@@ -57,6 +67,7 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
   afterEach(() => {
     document.body.innerHTML = '';
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('verifies index.html has removed viewer-tenant-select and added viewer-category-badge', () => {
@@ -133,5 +144,109 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
     expect(viewerPanel.classList.contains('hidden')).toBe(true);
     expect(catBadge.classList.contains('hidden')).toBe(true);
     expect(catVal.textContent).toBe('');
+  });
+
+  describe('Tablet Inline PDF & Vault Hash Title Sanitization (Android Tablet Support)', () => {
+    it('isVaultHashName correctly identifies raw vault hashes and ignores normal filenames', () => {
+      expect(window.isVaultHashName('doc_ac132cf0a3824f96.pdf')).toBe(true);
+      expect(window.isVaultHashName('ac132cf0a3824f96.pdf')).toBe(true);
+      expect(window.isVaultHashName('doc_03e6137c5dd841c2bad7b6bb71f622f3.pdf')).toBe(true);
+      expect(window.isVaultHashName('03e6137c5dd841c2bad7b6bb71f622f3')).toBe(true);
+
+      expect(window.isVaultHashName('contract.pdf')).toBe(false);
+      expect(window.isVaultHashName('عقد إيجار')).toBe(false);
+      expect(window.isVaultHashName('فاتورة كهرباء 2026.pdf')).toBe(false);
+      expect(window.isVaultHashName(null)).toBe(false);
+    });
+
+    it('getCleanDocTitle replaces raw vault hash filenames with category or fallback', () => {
+      // 1. Raw vault hash filename without arabic title -> returns category
+      const docWithHash = {
+        vault_id: 'ac132cf0a3824f96',
+        filename: 'doc_ac132cf0a3824f96.pdf',
+        brief_arabic_title: '',
+        category: '13 - رسائل متنوعة'
+      };
+      expect(window.getCleanDocTitle(docWithHash)).toBe('13 - رسائل متنوعة');
+
+      // 2. Normal Arabic title -> preserves Arabic title
+      const docWithArabic = {
+        vault_id: 'ac132cf0a3824f96',
+        filename: 'doc_ac132cf0a3824f96.pdf',
+        brief_arabic_title: 'محضر تسليم مفتاح',
+        category: '04 - محضر تسليم مفتاح'
+      };
+      expect(window.getCleanDocTitle(docWithArabic)).toBe('محضر تسليم مفتاح');
+
+      // 3. String hash passed directly -> returns fallback
+      expect(window.getCleanDocTitle('doc_ac132cf0a3824f96.pdf', '05 - عقود')).toBe('05 - عقود');
+    });
+
+    it('openDocument sanitizes vault hash titles so ac132cf.. is never displayed in viewer header', () => {
+      window.openDocument('ac132cf0a3824f96', 'doc_ac132cf0a3824f96.pdf', '05 - عقود');
+
+      const titleEl = document.getElementById('viewer-title');
+      expect(titleEl.textContent).not.toContain('ac132cf');
+      expect(titleEl.textContent).toBe('05 - عقود');
+    });
+
+    it('detects tablet / mobile device when navigator.pdfViewerEnabled is false', () => {
+      const originalNavigator = global.navigator;
+      try {
+        Object.defineProperty(global, 'navigator', {
+          value: { pdfViewerEnabled: false, userAgent: 'Mozilla/5.0 (Linux; Android 14; Tablet)' },
+          configurable: true,
+          writable: true
+        });
+        localStorage.removeItem('pdf_viewer_mode');
+        expect(window.shouldUseCanvasViewer()).toBe(true);
+      } finally {
+        Object.defineProperty(global, 'navigator', {
+          value: originalNavigator,
+          configurable: true,
+          writable: true
+        });
+      }
+    });
+
+    it('close button in header dismisses the viewer panel', () => {
+      window.openDocument('doc_1', 'مستند اختباري', '05 - عقود');
+      const viewerPanel = document.getElementById('document-viewer-panel');
+      expect(viewerPanel.classList.contains('hidden')).toBe(false);
+
+      window.closeDocument();
+      expect(viewerPanel.classList.contains('hidden')).toBe(true);
+    });
+
+    it('renders PDF pages on canvas when pdfjsLib is present', async () => {
+      const panel = document.getElementById('document-viewer-panel');
+      panel.innerHTML += `
+        <div id="pdf-canvas-container" class="hidden"></div>
+        <div id="viewer-zoom-controls" class="hidden"></div>
+        <div id="viewer-page-info" class="hidden"></div>
+        <div id="pdf-viewer-loading" class="hidden"></div>
+      `;
+
+      global.pdfjsLib = {
+        GlobalWorkerOptions: {},
+        getDocument: vi.fn().mockReturnValue({
+          promise: Promise.resolve({
+            numPages: 2,
+            getPage: vi.fn().mockResolvedValue({
+              getViewport: vi.fn().mockReturnValue({ width: 600, height: 800 }),
+              render: vi.fn().mockReturnValue({ promise: Promise.resolve() })
+            })
+          })
+        })
+      };
+
+      await window.renderPdfDocument('/api/areas/Safra/houses/101/pdf/doc_test');
+
+      const canvasContainer = document.getElementById('pdf-canvas-container');
+      expect(canvasContainer.classList.contains('hidden')).toBe(false);
+      expect(canvasContainer.querySelectorAll('.pdf-page-wrapper').length).toBe(2);
+
+      delete global.pdfjsLib;
+    });
   });
 });

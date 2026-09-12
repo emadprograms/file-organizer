@@ -2,6 +2,20 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
 .font-arabic { font-family: 'Noto Sans Arabic', 'Inter', sans-serif; }
 .pdf-viewer { width: 100%; height: 80vh; border: none; }
 
+/* Inline Canvas PDF Viewer */
+#pdf-canvas-container {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
+.pdf-page-wrapper {
+    transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+}
+.pdf-page-canvas {
+    max-width: 100%;
+    height: auto !important;
+}
+
 /* Modern scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
@@ -205,5 +219,64 @@ html.dark #batch-action-bar {
     color: #f1f5f9;
 }
 
+/* ── Touchscreen & Mobile Optimizations ─────────────────────────────────── */
+html, body {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
 
+button, a, input, select, textarea, .cursor-pointer, 
+.category-folder-card, .category-doc-item, .house-card, .doc-title-text {
+    touch-action: manipulation;
+}
 
+/* Smooth touch scrolling */
+#document-list-panel,
+#document-list,
+#pdf-canvas-container,
+#main-sidebar,
+#area-grid-panel {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile & Touch Devices (Coarse Pointer or No Hover) */
+@media (hover: none), (pointer: coarse) {
+    /* Make document action 3-dot menu button always visible on touchscreens */
+    .doc-menu-btn {
+        opacity: 1 !important;
+    }
+
+    /* Provide comfortable touch target heights and tap areas */
+    .doc-menu-btn,
+    .doc-icon-preview {
+        min-width: 32px;
+        min-height: 32px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .doc-select-checkbox {
+        min-width: 18px;
+        min-height: 18px;
+    }
+
+    .category-doc-item {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    /* Prevent mobile browser text selection gestures on document title from simulating dblclick */
+    .doc-title-text {
+        cursor: pointer !important;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    /* Prevent mobile browser unwanted auto-zoom on input focus */
+    .inline-rename-input {
+        font-size: 14px !important;
+        padding-top: 0.35rem !important;
+        padding-bottom: 0.35rem !important;
+    }
+}

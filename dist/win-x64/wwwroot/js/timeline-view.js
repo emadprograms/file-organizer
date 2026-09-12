@@ -1,5 +1,35 @@
 // ── Timeline View Component ──────────────────────────────────────────────
 (function() {
+    function isVaultHashName(name) {
+        if (!name || typeof name !== 'string') return false;
+        const clean = name.trim();
+        return /^(?:doc_)?[0-9a-f]{16,}(?:\.pdf)?$/i.test(clean);
+    }
+
+    function getCleanDocTitle(doc, fallbackCategory = null) {
+        if (!doc) return fallbackCategory || 'وثيقة';
+        if (typeof doc === 'string') {
+            return isVaultHashName(doc) ? (fallbackCategory || 'وثيقة') : doc.trim();
+        }
+        const arabicTitle = doc.brief_arabic_title || doc.arabic_title;
+        if (arabicTitle && !isVaultHashName(arabicTitle)) {
+            return arabicTitle.trim();
+        }
+        const title = doc.title;
+        if (title && !isVaultHashName(title)) {
+            return title.trim();
+        }
+        const filename = doc.filename || doc.file_name || doc.name;
+        if (filename && !isVaultHashName(filename)) {
+            return filename.trim();
+        }
+        const category = doc.category || doc.folder || doc.subfolder || fallbackCategory;
+        if (category && typeof category === 'string' && category.trim()) {
+            return category.trim();
+        }
+        return fallbackCategory || 'وثيقة';
+    }
+
     async function loadTimeline(areaId, houseId) {
         const docListEl = document.getElementById('document-list');
         const statsBadge = document.getElementById('stats-badge');
@@ -64,7 +94,61 @@
         return clean.substring(0, maxLen).trim() + '…';
     }
 
+    // Global Touch & Pointer Tracking for Mobile / Touchscreen Support
+    if (typeof window !== 'undefined' && !window._touchTrackingInitialized) {
+        window._touchTrackingInitialized = true;
+        window._lastTouchTimestamp = 0;
+        window.addEventListener('touchstart', () => {
+            window._lastTouchTimestamp = Date.now();
+        }, { passive: true, capture: true });
+        window.addEventListener('pointerdown', (e) => {
+            if (e && (e.pointerType === 'touch' || e.pointerType === 'pen')) {
+                window._lastTouchTimestamp = Date.now();
+            }
+        }, { passive: true, capture: true });
+    }
+
+    function isTouchOrMobileDevice() {
+        if (typeof window === 'undefined') return false;
+        if (window.matchMedia) {
+            try {
+                const hasCoarse = window.matchMedia('(pointer: coarse)').matches;
+                const hasFine = window.matchMedia('(pointer: fine)').matches;
+                if (hasCoarse && !hasFine) return true;
+                if (window.matchMedia('(hover: none)').matches && hasCoarse) return true;
+            } catch (err) {}
+        }
+        if (typeof navigator !== 'undefined' && ('ontouchstart' in window || (navigator.maxTouchPoints && navigator.maxTouchPoints > 0))) {
+            const ua = navigator.userAgent || '';
+            if (/Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(ua)) return true;
+        }
+        return false;
+    }
+
+    function isTouchEvent(e) {
+        if (!e) return false;
+        if (e.pointerType === 'touch' || e.pointerType === 'pen') return true;
+        if (typeof window !== 'undefined' && window._lastTouchTimestamp && (Date.now() - window._lastTouchTimestamp < 1500)) {
+            return true;
+        }
+        if (isTouchOrMobileDevice()) {
+            return true;
+        }
+        return false;
+    }
+
     function handleInlineRename(e, doc, titleEl, currentArea, currentHouse) {
+        if (isTouchEvent(e)) {
+            // Touch interactions on document titles must open the document, never enter rename mode
+            if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
+            const currentDocTitle = doc.brief_arabic_title || (!isVaultHashName(doc.filename) ? doc.filename : null) || (titleEl ? titleEl.textContent.trim() : '') || 'Document';
+            if (typeof window !== 'undefined' && typeof window.openDocument === 'function') {
+                window.openDocument(doc.vault_id, currentDocTitle, doc.category || null);
+            }
+            return;
+        }
+
         if (e) {
             if (typeof e.stopPropagation === 'function') e.stopPropagation();
             if (typeof e.preventDefault === 'function') e.preventDefault();
@@ -74,7 +158,7 @@
             return;
         }
 
-        const originalTitle = doc.brief_arabic_title || doc.filename || titleEl.textContent.trim() || 'Untitled Document';
+        const originalTitle = doc.brief_arabic_title || (!isVaultHashName(doc.filename) ? doc.filename : null) || titleEl.textContent.trim() || 'Untitled Document';
         titleEl.classList.remove('line-clamp-2');
         titleEl.innerHTML = `<input type="text" class="inline-rename-input px-2 py-0.5 text-xs font-normal border border-slate-300 rounded-md bg-white text-slate-800 focus:outline-hidden focus:border-blue-400 focus:ring-1 focus:ring-blue-400/30 w-full min-w-0" value="${escapeHtml(originalTitle)}" />`;
 
@@ -210,7 +294,7 @@
                 card.ondragstart = (e) => window.handleDocDragStart(e, doc, doc.category);
                 card.ondragend = (e) => window.handleDocDragEnd(e);
             }
-            const title = doc.brief_arabic_title || doc.filename || 'Untitled Document';
+            const title = getCleanDocTitle(doc, doc.category);
             const date = (doc.dates && doc.dates[0] && doc.dates[0] !== 'NONE') ? doc.dates[0] : 'No Date';
 
             const isManual = Boolean(doc.is_manual);
@@ -252,6 +336,20 @@
 
             if (titleH4) {
                 titleH4.ondblclick = (e) => {
+                    if (isTouchEvent(e)) {
+                        if (e && typeof e.stopPropagation === 'function') e.stopPropagation();
+                        if (e && typeof e.preventDefault === 'function') e.preventDefault();
+                        const currentDocTitle = getCleanDocTitle(doc, title);
+                        if (typeof window !== 'undefined' && typeof window.setSelectedDoc === 'function') {
+                            window.setSelectedDoc(doc, currentDocTitle, card);
+                        }
+                        if (typeof openDocument === 'function') {
+                            openDocument(doc.vault_id, currentDocTitle, doc.category);
+                        } else if (typeof window !== 'undefined' && typeof window.openDocument === 'function') {
+                            window.openDocument(doc.vault_id, currentDocTitle, doc.category);
+                        }
+                        return;
+                    }
                     handleInlineRename(e, doc, titleH4, (typeof currentArea !== 'undefined' ? currentArea : (typeof window !== 'undefined' ? window.currentArea : '')), (typeof currentHouse !== 'undefined' ? currentHouse : (typeof window !== 'undefined' ? window.currentHouse : '')));
                 };
             }
@@ -296,8 +394,14 @@
                 };
             }
 
-            card.onclick = () => {
-                const currentDocTitle = doc.brief_arabic_title || doc.filename || title;
+            let lastCardClickTime = 0;
+            card.onclick = (e) => {
+                const now = Date.now();
+                if (e && isTouchEvent(e) && (now - lastCardClickTime < 250)) {
+                    return;
+                }
+                lastCardClickTime = now;
+                const currentDocTitle = getCleanDocTitle(doc, title);
                 if (typeof window !== 'undefined' && typeof window.setSelectedDoc === 'function') {
                     window.setSelectedDoc(doc, currentDocTitle, card);
                 } else if (typeof setSelectedDoc === 'function') {
@@ -317,6 +421,8 @@
         window.loadTimeline = loadTimeline;
         window.renderTimeline = renderTimeline;
         window.handleInlineRenameTimeline = handleInlineRename;
+        window.isTouchEvent = isTouchEvent;
+        window.isTouchOrMobileDevice = isTouchOrMobileDevice;
     }
 
     if (typeof module !== 'undefined' && module.exports) {
@@ -324,6 +430,8 @@
             loadTimeline,
             renderTimeline,
             handleInlineRename,
+            isTouchEvent,
+            isTouchOrMobileDevice,
         };
     }
 })();

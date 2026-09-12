@@ -4,9 +4,9 @@ milestone: v14.0
 milestone_name: Power-User Operations & Portfolio Expansion
 current_phase: 108 (All Complete)
 status: completed
-last_updated: "2026-09-12T06:30:00.000Z"
+last_updated: "2026-09-12T07:15:00.000Z"
 last_activity: 2026-09-12
-last_activity_desc: "Completed Quick Task 260912-d7x (QCK-33: Comprehensive Dark Mode Support & Theme Toggle). 209 Vitest tests across 23 files (100%), 146 xUnit tests (100%), and 18 Pytest tests passing."
+last_activity_desc: "Completed Quick Task 260912-android-touch-and-mobile-support (QCK-34: Android Tablet Touchscreen Protection, Touch-Immune File Opening & Mobile Support). 225 Vitest tests across 24 files (100%), 146 xUnit tests (100%) passing."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -82,15 +82,17 @@ Equip the digital archive management system with power-user operational tools: o
 - `260912-zero-motion-move-copy`: Zero-Motion & Zero-State-Shift Document Move & Copy Architecture (QCK-31). Absolute UI immutability during document move and copy: open folders stay open, closed folders stay closed (target folder is never forced open), and scroll position remains 100% stable without jumps (`scrollIntoView` completely eliminated). In-place DOM and in-memory updates (`moveDocInDom`, `copyDocInDom`) update document placement and circular count badges seamlessly without triggering scroll collapse or re-renders. Verified by 10 automated unit tests in `category_folder_persistence.test.js` and all 197 Vitest tests across 22 test files with zero static asset diff.
 - `260912-empty-folder-disappear-new-appear`: Dynamic Category Folder Lifecycle on Move/Copy (QCK-32). Folders whose document count drops to 0 immediately disappear from the DOM (`card.remove()`), openCategoryNames is pruned, and empty state is rendered if 0 cards remain. When moving or copying into a folder that did not exist in the DOM (e.g. newly created custom folder or previously empty folder), the folder card is dynamically constructed via `createCategoryCardElement`, inserted at its proper sorted alphabetical position via `insertCategoryCardSorted`, and opened without jumping scroll. Verified by 13 unit tests in `category_folder_persistence.test.js` and all 200 Vitest tests across 22 test files with zero static asset diff.
 - `260912-d7x`: Comprehensive Dark Mode Support & Theme Toggle (QCK-33). Implemented full dark mode support across the entire app with Tailwind `darkMode: 'class'`, pre-hydration FOUC prevention script in `<head>`, standalone `theme-manager.js` with persistence (`localStorage`) and system preference fallback (`prefers-color-scheme`), top navbar `#btn-theme-toggle` button with Sun/Moon dynamic SVGs, `Shift+D` keyboard shortcut, Command Palette dark mode toggle command, comprehensive dark styling rules in `styles.css` (surfaces, cards, modals, dropdowns, inputs, scrollbars), 209 Vitest tests across 23 files (including 9 in `theme_manager.test.js`), 146 xUnit tests, and 18 Pytest tests with zero static asset diff.
+- `260912-android-touch-and-mobile-support`: Touchscreen & Mobile Protection: Touch-Immune File Opening, Double-Click Rename Suppression, Offline Canvas PDF Viewer & Mobile Touch Optimization (QCK-34). Resolved issue on Android tablets where tapping a document registered synthetic double clicks and triggered inline rename dialog instead of opening the document. Added touch event detection (`isTouchEvent`, `isTouchOrMobileDevice`, touch timestamp tracking) across Categories View (`categories-view.js`) and Timeline View (`timeline-view.js`). Guarded `titleSpan.ondblclick` and `handleInlineRename` so touch taps always route cleanly to `openDocument` while preserving desktop mouse double-click rename. Renaming on touchscreens is cleanly delegated to the 3-dots action menu ("Rename Document"). Made 3-dots menu buttons permanently visible on touchscreens (`opacity: 1 !important` in `@media (hover: none), (pointer: coarse)`), applied `touch-action: manipulation` across interactive elements to remove 300ms delay and prevent double-tap zoom misinterpretation, debounced category accordion and document row clicks against capacitive bounce, bundled local PDF.js canvas renderer (`lib/pdfjs/`) for tablet browsers lacking iframe PDF plugins, and sanitized raw vault hash filenames (`isVaultHashName`, `getCleanDocTitle`) in the viewer header. Verified by 225 Vitest tests across 24 test files (including 10 in `touch_and_mobile_interactions.test.js` and 12 in `doc_viewer.test.js`), 146 .NET xUnit tests (100%), with zero static asset diff across `src/api/static/`, `web-net/wwwroot/`, and `dist/win-x64/wwwroot/`.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-12 — Completed Quick Task 260912-d7x (QCK-33: Comprehensive Dark Mode Support & Theme Toggle). 209 Vitest tests across 23 files (100%), 146 xUnit tests (100%), and 18 Pytest tests passing.
+Last activity: 2026-09-12 — Completed Quick Task 260912-android-touch-and-mobile-support (QCK-34: Android Tablet Touchscreen Protection, Touch-Immune File Opening & Mobile Support). 225 Vitest tests across 24 files (100%), 146 xUnit tests (100%) passing.
 
 ## Operator Next Steps
 
 - Milestone v14.0 complete, fully audited, and archived. Ready for next milestone initialization.
+
 
