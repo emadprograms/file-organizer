@@ -1,36 +1,33 @@
 ---
 gsd_state_version: 1.0
-milestone: v15.0
-milestone_name: Decoupled .NET Core Architecture & Non-Residing Applicants Archive
-current_phase: 0
-status: completed
-last_updated: "2026-09-13T18:24:21.437Z"
+milestone: v16.0
+milestone_name: Settings Streamlining & Applicant Alignment
+current_phase: 114
+status: archived
+last_updated: "2026-09-13T22:32:00.000Z"
 last_activity: 2026-09-13
-last_activity_desc: Milestone v15.0 completed and archived
+last_activity_desc: Shipped Milestone v16.0 Settings Streamlining & Applicant Alignment
 progress:
-  total_phases: 5
-  completed_phases: 5
-  total_plans: 5
-  completed_plans: 5
+  total_phases: 1
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
   percent: 100
 ---
 
 # Milestone State
 
-**Current Milestone:** v15.0: Decoupled .NET Core Architecture & Non-Residing Applicants Archive
-**Status:** v15.0 milestone complete
+**Current Milestone:** v16.0: Settings Streamlining & Applicant Alignment (Archived)
+**Current Phase:** 114: Settings Modal Simplification & Applicant Clean-Up
+**Status:** archived
 
 ## Context
 
-Milestone v15.0 has successfully completed and archived. The application now runs on a pure ASP.NET Core 8.0 Minimal API architecture with zero Python dependencies, featuring complete database and UI support for non-residing applicants, unfulfilled allocations, segregated tenancy registers, and robust vacancy guardrails. 158 backend xUnit tests and 293 frontend Vitest tests across 28 files pass 100%.
+Milestone v16.0 successfully streamlined the House Settings modal by eliminating redundant notes inputs, rebalancing the tenant management table to a clean 12-column grid, ensuring seamless Resident vs. Applicant toggling, removing notes display badges from applicant cards in the House Profile, and ensuring non-residing applicants are exempt from vacated tenant conflict prompts. All 6 requirements satisfied and verified across 159 .NET tests and 293 web tests. Ready for next milestone.
 
 ## Target Phases
 
-- [x] Phase 109: Pure .NET Core Architecture & Python Elimination (completed 2026-09-13)
-- [x] Phase 110: Database Schema & Vacancy Guardrails for Applicants (completed 2026-09-13)
-- [x] Phase 111: Segregated Tenancy & Applicant Register UI (completed 2026-09-13)
-- [x] Phase 112: House Settings Modal & Ingestion Badging (completed 2026-09-13)
-- [x] Phase 113: End-to-End Test Suite Verification & Milestone Audit (completed 2026-09-13)
+- [x] Phase 114: Settings Modal Simplification & Applicant Clean-Up
 
 ## Quick Tasks Completed
 

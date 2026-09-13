@@ -119,10 +119,9 @@ describe('Applicant Integrated Workflows Suite (Phase 113)', () => {
     // Document count
     expect(applicantCard.textContent).toContain('4');
 
-    // Notes
+    // Notes badge should be removed
     const notesEl = applicantCard.querySelector('.applicant-notes');
-    expect(notesEl).not.toBeNull();
-    expect(notesEl.textContent).toContain('ألغي التخصيص لعدم المراجعة');
+    expect(notesEl).toBeNull();
   });
 
   it('Test 2: Applicant card click updates window.location.hash to #/area/.../house/.../tenant/{houseId}_{applicantName}', () => {
@@ -179,7 +178,7 @@ describe('Applicant Integrated Workflows Suite (Phase 113)', () => {
     const endInput = row.querySelector('.tenant-end-input');
     const startInput = row.querySelector('.tenant-start-input');
     const nameInput = row.querySelector('.tenant-name-input');
-    const notesInput = row.querySelector('.tenant-notes-input');
+    expect(row.querySelector('.tenant-notes-input')).toBeNull();
 
     // Default is resident
     expect(typeSelect.value).toBe('resident');
@@ -206,7 +205,6 @@ describe('Applicant Integrated Workflows Suite (Phase 113)', () => {
     // Fill applicant data
     nameInput.value = 'خالد عبد الله';
     startInput.value = '2024-03-15';
-    notesInput.value = 'ألغي التخصيص لعدم المراجعة';
 
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -232,7 +230,7 @@ describe('Applicant Integrated Workflows Suite (Phase 113)', () => {
               end_date: null,
               house_id: '500',
               is_resident: 0,
-              notes: 'ألغي التخصيص لعدم المراجعة'
+              notes: null
             }
           ],
           reallocate: true

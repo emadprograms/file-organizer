@@ -2,6 +2,7 @@
 
 ## Milestones
 
+- ✅ **v16.0 Settings Streamlining & Applicant Alignment** — Phase 114 (shipped 2026-09-13)
 - ✅ **v15.0 Decoupled .NET Core Architecture & Non-Residing Applicants Archive** — Phases 109-113 (shipped 2026-09-13)
 - ✅ **v14.0 Power-User Operations & Portfolio Expansion** — Phases 105-108 (shipped 2026-09-12)
 - ✅ **v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server** — Phases 101-104 (shipped 2026-09-09)
@@ -12,6 +13,15 @@
 - ✅ **v8.0 Web-Based File Viewer** — Phases 81-83 (shipped 2026-09-02)
 
 ## Phases
+
+<details>
+<summary>✅ v16.0 Settings Streamlining & Applicant Alignment (Phase 114) — SHIPPED 2026-09-13</summary>
+
+See [.planning/milestones/v16.0-ROADMAP.md](milestones/v16.0-ROADMAP.md) for full phase details.
+
+- [x] Phase 114: Settings Modal Simplification & Applicant Clean-Up (1/1 plans) — completed 2026-09-13
+
+</details>
 
 <details>
 <summary>✅ v15.0 Decoupled .NET Core Architecture & Non-Residing Applicants Archive (Phases 109-113) — SHIPPED 2026-09-13</summary>
@@ -85,3 +95,4 @@ See [.planning/milestones/v11.0-ROADMAP.md](milestones/v11.0-ROADMAP.md) for ful
 | 111. Segregated Tenancy & Applicant Register UI | v15.0 | 1/1 | Complete | 2026-09-13 |
 | 112. House Settings Modal & Ingestion Badging | v15.0 | 1/1 | Complete | 2026-09-13 |
 | 113. End-to-End Test Suite Verification & Milestone Audit | v15.0 | 1/1 | Complete | 2026-09-13 |
+| 114. Settings Modal Simplification & Applicant Clean-Up | v16.0 | 1/1 | Complete | 2026-09-13 |

@@ -295,8 +295,7 @@ describe('House Profile & Header Archive Export', () => {
       const applicantsSection = docList.querySelector('.applicants-section');
       expect(applicantsSection).not.toBeNull();
       expect(applicantsSection.textContent).toContain('سجل المتقدمين وطلبات التخصيص');
-      expect(applicantsSection.textContent).toContain('📋 متقدم (لم يسكن)');
-      expect(applicantsSection.textContent).toContain('ألغي التخصيص لعدم المراجعة');
+      expect(applicantsSection.querySelector('.applicant-notes')).toBeNull();
       expect(applicantsSection.textContent).toContain('2024-03-15');
 
       // Residents section header also displayed when applicants exist

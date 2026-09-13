@@ -1,5 +1,30 @@
 # Milestones History
 
+## v16.0 Settings Streamlining & Applicant Alignment (Shipped: 2026-09-13)
+
+**Phases completed:** 1 phase (114), 1 plan, 159 .NET xUnit tests (100% passing), 293 Vitest tests across 28 test files (100% passing)
+
+**Key accomplishments:**
+
+- **Tenant Modal UI Streamlining & Rebalancing (Phase 114):**
+  - Removed redundant `Notes` column header from `#tenant-modal` in `index.html`.
+  - Rebalanced the tenant management table into a clean 12-column responsive grid: Name (4 spans), Type (2 spans), Start/Application Date (2 spans), End Date (2 spans), Present checkbox (1 span), Delete action (1 span).
+- **Tenant Manager Script & Payload Clean-Up (Phase 114):**
+  - Removed `.tenant-notes-input` and its container from dynamic row creation in `tenant-manager.js`.
+  - Maintained backward database compatibility by sending `notes: null` in `handleSaveTenants`.
+  - Preserved fluid two-way switching between `Resident` (`is_resident = 1`) and `Applicant` (`is_resident = 0`).
+- **Applicant Card Visual Simplification (Phase 114):**
+  - Removed `.applicant-notes` badge from applicant profile card template in `house-profile.js`, keeping the cards focused on applicant name, application date, document count, and folder count.
+- **Vacated Tenancy Backend Safeguard (Phase 114):**
+  - Updated `Program.cs` `/api/ingest` date conflict check to explicitly require `resolvedTenant.IsResident == 1` before performing `TextUtils.IsDocDateAfterVacated`.
+  - Guarantees non-residing applicants (`IsResident == 0`) never trigger false vacated warnings when files dated after allocation or application dates are uploaded.
+- **Comprehensive Testing & Verification (Phase 114):**
+  - Added unit test `PostIngest_ApplicantNonResident_WithFutureDate_DoesNotConflict_AndSucceeds` to `ApiEndpointTests.cs`.
+  - Updated Vitest suites in `house_settings_modal.test.js`, `applicant_workflow.test.js`, and `house_profile.test.js`.
+  - 159/159 .NET xUnit tests and 293/293 web tests passing cleanly.
+
+---
+
 ## v15.0 Decoupled .NET Core Architecture & Non-Residing Applicants Archive (Shipped: 2026-09-13)
 
 **Phases completed:** 5 phases (109-113), 5 plans, 158 .NET xUnit tests (100% passing), 293 Vitest tests across 28 test files (100% passing)

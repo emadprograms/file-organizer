@@ -258,7 +258,7 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
     row.querySelector('.tenant-start-input').value = '2024-05-01';
     row.querySelector('.tenant-type-select').value = 'applicant';
     row.querySelector('.tenant-type-select').dispatchEvent(new Event('change'));
-    row.querySelector('.tenant-notes-input').value = 'Order #123';
+    expect(row.querySelector('.tenant-notes-input')).toBeNull();
 
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
@@ -284,7 +284,7 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
               end_date: null,
               house_id: '500',
               is_resident: 0,
-              notes: 'Order #123'
+              notes: null
             }
           ],
           reallocate: true

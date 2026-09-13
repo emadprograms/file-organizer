@@ -303,13 +303,6 @@
 
                 const appDateStr = t.start_date ? `طلب / تخصيص: ${String(t.start_date).substring(0, 10)}` : 'طلب تخصيص';
 
-                const notesHtml = t.notes ? `
-                    <div class="applicant-notes mt-1.5 text-[11px] text-purple-800 dark:text-purple-300 bg-purple-100/70 dark:bg-purple-900/40 px-2 py-0.5 rounded border border-purple-200/60 dark:border-purple-800/40 inline-flex items-center gap-1">
-                        <svg class="w-3 h-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                        <span>${t.notes}</span>
-                    </div>
-                ` : '';
-
                 card.innerHTML = `
                     <div class="flex items-center justify-between gap-3">
                         <div class="flex items-center gap-2.5 min-w-0 flex-1">
@@ -336,7 +329,6 @@
                                         <span class="font-semibold">${t.category_count || 0}</span>
                                     </span>
                                 </div>
-                                ${notesHtml}
                             </div>
                         </div>
                         <div class="flex items-center text-slate-300 group-hover:text-purple-600 group-hover:-translate-x-1 transition-all flex-shrink-0">

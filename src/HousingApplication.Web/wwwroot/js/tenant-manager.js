@@ -142,7 +142,6 @@
         const nameVal = t ? (t.name || '') : '';
         const startVal = t ? (t.start_date || '') : '';
         const endVal = t ? (t.end_date || '') : '';
-        const notesVal = t ? (t.notes || '') : '';
         const isApplicant = Boolean(t && (t.is_resident === 0 || t.is_resident === false));
 
         // Only one tenant can be present at a time
@@ -158,7 +157,7 @@
         }
 
         row.innerHTML = `
-            <div class="sm:col-span-3 flex items-center gap-2">
+            <div class="sm:col-span-4 flex items-center gap-2">
                 <span class="tenant-row-number w-5 h-5 rounded-full bg-slate-100 text-slate-500 font-bold text-[10px] flex items-center justify-center flex-shrink-0">1</span>
                 <input type="text" value="${nameVal.replace(/"/g, '&quot;')}" placeholder="Tenant Name" 
                        class="tenant-name-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium" required />
@@ -180,10 +179,6 @@
             <div class="sm:col-span-1 flex items-center justify-between sm:justify-center">
                 <span class="text-xs font-semibold text-slate-600 sm:hidden">Present:</span>
                 <input type="checkbox" class="tenant-present-check w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 ${isApplicant ? 'cursor-not-allowed opacity-30' : 'cursor-pointer'}" ${isApplicant ? 'disabled' : (isPresent ? 'checked' : '')} title="Present (Currently residing)" />
-            </div>
-            <div class="sm:col-span-1">
-                <input type="text" value="${notesVal.replace(/"/g, '&quot;')}" placeholder="Notes • ملاحظات"
-                       class="tenant-notes-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium" />
             </div>
             <div class="sm:col-span-1 flex items-center justify-end sm:justify-center">
                 <button type="button" class="btn-remove-row text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer" title="Delete Tenant">
@@ -294,7 +289,6 @@
             const typeVal = r.querySelector('.tenant-type-select')?.value || 'resident';
             const isResident = typeVal === 'applicant' ? 0 : 1;
             const end = (isResident === 0 || isPresent) ? null : (r.querySelector('.tenant-end-input').value || null);
-            const notesVal = r.querySelector('.tenant-notes-input')?.value.trim() || null;
 
             if (!name) {
                 showTenantStatus('All tenants must have a name', true);
@@ -312,7 +306,7 @@
                 end_date: isResident === 0 ? null : end,
                 house_id: currentHouse,
                 is_resident: isResident,
-                notes: notesVal
+                notes: null
             });
         }
 

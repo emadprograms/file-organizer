@@ -102,6 +102,35 @@
 
 ---
 
+---
+
+## Milestone: v16.0 — Settings Streamlining & Applicant Alignment
+
+**Shipped:** 2026-09-13
+**Phases:** 1 (Phase 114) | **Plans:** 1 | **Tests:** 159 xUnit tests, 293 Vitest tests across 28 test files (100% passing)
+
+### What Was Built
+- Streamlined the House Settings modal (`#tenant-modal`) by completely removing the redundant `Notes` column and input field.
+- Rebalanced the tenant management table into a clean 12-column responsive layout: Name (4 spans), Type (2 spans), Start/Application Date (2 spans), End Date (2 spans), Present checkbox (1 span), Delete action (1 span).
+- Maintained backend database and API compatibility by sending `notes: null` in the save payload (`handleSaveTenants`).
+- Removed notes display badges (`.applicant-notes`) from applicant cards in House Profile (`house-profile.js`), focusing the card strictly on core identity, dates, and file counts.
+- Safeguarded the backend document ingestion pipeline in `Program.cs` (`/api/ingest`), ensuring non-residing applicants (`IsResident == 0`) are explicitly exempt from vacated tenant date conflict prompts (`tenancy_date_conflict`).
+- Added full regression test coverage across .NET xUnit (`ApiEndpointTests.cs`) and web Vitest suites (`house_settings_modal.test.js`, `applicant_workflow.test.js`, `house_profile.test.js`).
+
+### What Worked
+- Rebalancing the modal to a 12-column grid gave immediate breathing room to Name, Type, and Date fields on desktop and mobile viewports.
+- Passing `notes: null` preserved backwards compatibility with the underlying SQLite database schema without requiring any risky table migrations.
+- Exempting applicants from the vacated tenant conflict check in `Program.cs` prevented false-positive warning dialogs when archiving historical allocation orders and applications.
+
+### What Was Inefficient
+- Earlier iterations had added a notes field without clear functional purpose; removing it simplified both the UI and test assertions.
+
+### Key Lessons
+- Simplify aggressively: unnecessary input fields generate visual clutter and cognitive overhead for users.
+- Business validations (like tenancy vacated checks) must strictly respect entity types (`is_resident` flag) to prevent spurious warnings.
+
+---
+
 ## Cross-Milestone Trends
 
 | Milestone | Architecture | Backend | Frontend Tests | Backend Tests | Python Dependency |
@@ -110,3 +139,4 @@
 | v13.0 | Decoupled Monorepo | Python + ASP.NET Core | 61 Vitest | 40 xUnit, 62 Pytest | Yes |
 | v14.0 | Dual-Backend Parity | Python + ASP.NET Core | 277 Vitest (27 files) | 148 xUnit, 44 Pytest | Yes |
 | v15.0 | Pure .NET Core Single-Stack | ASP.NET Core 8.0 Minimal API | 293 Vitest (28 files) | 158 xUnit | None (0%) |
+| v16.0 | Pure .NET Core Single-Stack | ASP.NET Core 8.0 Minimal API | 293 Vitest (28 files) | 159 xUnit | None (0%) |

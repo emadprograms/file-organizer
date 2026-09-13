@@ -293,6 +293,35 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
     }
 
     [Fact]
+    public async Task PostIngest_ApplicantNonResident_WithFutureDate_DoesNotConflict_AndSucceeds()
+    {
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+
+        await repo.AddAreaAsync("ApplicantArea");
+        await repo.AddHouseAsync("888", "ApplicantArea");
+        var applicant = await repo.AddTenantAsync("888", "Non Resident Applicant", "2020-01-01", "2024-12-31", isResident: 0);
+
+        using var content = new MultipartFormDataContent();
+        var pdfBytes = "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\n%%EOF"u8.ToArray();
+        var fileContent = new ByteArrayContent(pdfBytes);
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
+        content.Add(fileContent, "file", "applicant_doc.pdf");
+        content.Add(new StringContent("ApplicantArea"), "area_id");
+        content.Add(new StringContent("888"), "house_id");
+        content.Add(new StringContent(applicant.Id.ToString()), "tenant_id");
+        content.Add(new StringContent("05 - عقود"), "category");
+        content.Add(new StringContent("2026-09-12"), "primary_date");
+
+        var response = await _client.PostAsync("/api/ingest", content);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var ingestRes = await response.Content.ReadFromJsonAsync<IngestResponseDto>();
+        Assert.NotNull(ingestRes);
+        Assert.Equal("success", ingestRes.Status);
+    }
+
+    [Fact]
     public async Task GetRoot_ServesIndexHtml()
     {
         var response = await _client.GetAsync("/");

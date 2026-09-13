@@ -913,7 +913,7 @@ app.MapPost("/api/ingest", async (
     bool.TryParse(form["confirm_date_mismatch"].FirstOrDefault(), out var confirmDateMismatch);
     var newEndDate = form["new_end_date"].FirstOrDefault();
 
-    if (resolvedTenant != null && !string.IsNullOrWhiteSpace(resolvedTenant.EndDate) && !string.IsNullOrWhiteSpace(primaryDate))
+    if (resolvedTenant != null && resolvedTenant.IsResident == 1 && !string.IsNullOrWhiteSpace(resolvedTenant.EndDate) && !string.IsNullOrWhiteSpace(primaryDate))
     {
         if (TextUtils.IsDocDateAfterVacated(primaryDate, resolvedTenant.EndDate))
         {
