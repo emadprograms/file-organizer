@@ -463,6 +463,9 @@
 
     function formatBatchTenantLabel(t) {
         if (!t) return '';
+        if (t.is_resident === 0 || t.is_resident === false) {
+            return `📋 ${t.name || 'Applicant'} (متقدم - لم يسكن)`;
+        }
         const isActive = t.is_active != null 
             ? Boolean(t.is_active) 
             : (!t.end_date || String(t.end_date).toLowerCase() === 'present' || String(t.end_date).toLowerCase() === 'none' || t.end_date === '');

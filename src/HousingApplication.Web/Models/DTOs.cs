@@ -234,6 +234,9 @@ public record TimelineItemDto
 
     [JsonPropertyName("notes")]
     public string? Notes { get; init; }
+
+    [JsonPropertyName("is_resident")]
+    public int IsResident { get; init; } = 1;
 }
 
 public record CategoryFolderDto

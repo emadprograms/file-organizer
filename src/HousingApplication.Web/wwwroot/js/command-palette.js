@@ -353,6 +353,8 @@
                 const a = document.createElement('a');
                 a.href = t.url;
 
+                const isApplicant = t.is_resident === 0 || t.isResident === 0 || t.is_resident === false;
+
                 // Color code: only currently residing tenants (<5y green, 5-10y amber, >10y rose). Past tenants are grey.
                 const isCurrent = t.is_current === true || t.isCurrent === true || 
                     (typeof t.extra_info === 'string' && (/present|الآن/i.test(t.extra_info)));
@@ -377,8 +379,21 @@
                     badge: 'text-slate-600 bg-slate-100 border border-slate-200',
                     titleHover: 'group-hover:text-slate-900'
                 };
+                let avatarIcon = '👤';
+                let extraInfoText = t.extra_info;
 
-                if (isCurrent) {
+                if (isApplicant) {
+                    theme = {
+                        card: 'hover:bg-purple-50/70 hover:border-purple-300',
+                        avatar: 'bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white',
+                        badge: 'text-purple-700 bg-purple-50 border border-purple-300',
+                        titleHover: 'group-hover:text-purple-700'
+                    };
+                    avatarIcon = '📋';
+                    if (!extraInfoText) {
+                        extraInfoText = '📋 متقدم (لم يسكن)';
+                    }
+                } else if (isCurrent) {
                     if (durCat === 'medium') {
                         theme = {
                             card: 'hover:bg-amber-50/70 hover:border-amber-300',
@@ -409,14 +424,14 @@
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2.5 min-w-0">
                             <div class="w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0 transition-colors ${theme.avatar}">
-                                👤
+                                ${avatarIcon}
                             </div>
                             <div class="min-w-0">
                                 <div class="font-bold text-xs text-slate-800 transition-colors ${theme.titleHover}">${t.title}</div>
                                 <div class="text-[11px] text-slate-400 truncate mt-0.5">${t.subtitle || ''}</div>
                             </div>
                         </div>
-                        ${t.extra_info ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md flex-shrink-0 ${theme.badge}">${t.extra_info}</span>` : ''}
+                        ${extraInfoText ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-md flex-shrink-0 ${theme.badge}">${extraInfoText}</span>` : ''}
                     </div>
                 `;
                 a.onclick = (e) => {

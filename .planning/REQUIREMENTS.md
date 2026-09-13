@@ -28,9 +28,9 @@
 
 ### House Settings Modal & Ingestion Badging (SET & ING)
 
-- [ ] **SET-01**: Update House Settings modal (`#tenant-modal` in `tenant-manager.js` and `index.html`) to support adding/editing applicants via a Resident / Applicant toggle, automatically disabling/hiding "Present" and "End Date" and relabeling "Start Date" to "Application / Order Date".
-- [ ] **ING-01**: Update Ingest Station (`ingest-station.js`), Batch Move, and Batch Copy modals to clearly group or badge applicant options in tenant dropdowns (`📋 فلان (متقدم - لم يسكن)`).
-- [ ] **TIM-01**: Display an applicant badge in Timeline View and Command Palette search results for documents belonging to applicants.
+- [x] **SET-01**: Update House Settings modal (`#tenant-modal` in `tenant-manager.js` and `index.html`) to support adding/editing applicants via a Resident / Applicant toggle, automatically disabling/hiding "Present" and "End Date" and relabeling "Start Date" to "Application / Order Date".
+- [x] **ING-01**: Update Ingest Station (`ingest-station.js`), Batch Move, and Batch Copy modals to clearly group or badge applicant options in tenant dropdowns (`📋 فلان (متقدم - لم يسكن)`).
+- [x] **TIM-01**: Display an applicant badge in Timeline View and Command Palette search results for documents belonging to applicants.
 
 ### Verification & Automated Testing (VER)
 
@@ -60,9 +60,9 @@
 | REG-01 | Phase 111 | Complete |
 | REG-02 | Phase 111 | Complete |
 | REG-03 | Phase 111 | Complete |
-| SET-01 | Phase 112 | Pending |
-| ING-01 | Phase 112 | Pending |
-| TIM-01 | Phase 112 | Pending |
+| SET-01 | Phase 112 | Complete |
+| ING-01 | Phase 112 | Complete |
+| TIM-01 | Phase 112 | Complete |
 | VER-01 | Phase 113 | Pending |
 | VER-02 | Phase 113 | Pending |
 

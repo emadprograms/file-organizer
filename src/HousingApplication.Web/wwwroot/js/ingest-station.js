@@ -978,14 +978,18 @@
                 opt.value = String(t.id != null ? t.id : t.name);
                 opt.dataset.name = t.name || '';
                 opt.dataset.endDate = t.end_date || '';
-                const isEnded = t.end_date && !['present', 'active', 'none', 'null', ''].includes(String(t.end_date).trim().toLowerCase());
-                let yearHint = '';
-                if (t.start_date && isEnded) {
-                    yearHint = ` (${t.start_date.substring(0, 4)} - ${String(t.end_date).substring(0, 4)}) [Vacated]`;
-                } else if (t.start_date) {
-                    yearHint = ` (${t.start_date.substring(0, 4)})`;
+                if (t.is_resident === 0 || t.is_resident === false) {
+                    opt.textContent = `📋 ${t.name} (متقدم - لم يسكن)`;
+                } else {
+                    const isEnded = t.end_date && !['present', 'active', 'none', 'null', ''].includes(String(t.end_date).trim().toLowerCase());
+                    let yearHint = '';
+                    if (t.start_date && isEnded) {
+                        yearHint = ` (${t.start_date.substring(0, 4)} - ${String(t.end_date).substring(0, 4)}) [Vacated]`;
+                    } else if (t.start_date) {
+                        yearHint = ` (${t.start_date.substring(0, 4)})`;
+                    }
+                    opt.textContent = `${t.name}${yearHint}`;
                 }
-                opt.textContent = `${t.name}${yearHint}`;
                 if (String(opt.value) === String(latestTenantId)) {
                     opt.selected = true;
                 }
@@ -1291,8 +1295,12 @@
     function resolveLatestTenant(tenants) {
         if (!tenants || tenants.length === 0) return null;
 
+        const isResident = (t) => t.is_resident !== 0 && t.is_resident !== false;
+        const residentTenants = tenants.filter(isResident);
+        const pool = residentTenants.length > 0 ? residentTenants : tenants;
+
         const isActive = (t) => !t.end_date || t.end_date === null || (typeof t.end_date === 'string' && (t.end_date.trim() === '' || t.end_date.trim().toLowerCase() === 'present' || t.end_date.trim().toLowerCase() === 'active'));
-        const activeTenants = tenants.filter(isActive);
+        const activeTenants = pool.filter(isActive);
 
         if (activeTenants.length > 0) {
             const sortedActive = [...activeTenants].sort((a, b) => {
@@ -1303,7 +1311,7 @@
             return sortedActive[0];
         }
 
-        const sortedEnded = [...tenants].sort((a, b) => {
+        const sortedEnded = [...pool].sort((a, b) => {
             const aLatest = a.end_date || a.start_date;
             const bLatest = b.end_date || b.start_date;
             const cmp = compareDatesDesc(aLatest, bLatest);
@@ -1393,14 +1401,18 @@
                     opt.dataset.name = t.name || '';
                     opt.dataset.endDate = t.end_date || '';
                     opt.dataset.startDate = t.start_date || '';
-                    const isEnded = t.end_date && !['present', 'active', 'none', 'null', ''].includes(String(t.end_date).trim().toLowerCase());
-                    let yearHint = '';
-                    if (t.start_date && isEnded) {
-                        yearHint = ` (${t.start_date.substring(0, 4)} - ${String(t.end_date).substring(0, 4)}) [Vacated]`;
-                    } else if (t.start_date) {
-                        yearHint = ` (${t.start_date.substring(0, 4)})`;
+                    if (t.is_resident === 0 || t.is_resident === false) {
+                        opt.textContent = `📋 ${t.name} (متقدم - لم يسكن)`;
+                    } else {
+                        const isEnded = t.end_date && !['present', 'active', 'none', 'null', ''].includes(String(t.end_date).trim().toLowerCase());
+                        let yearHint = '';
+                        if (t.start_date && isEnded) {
+                            yearHint = ` (${t.start_date.substring(0, 4)} - ${String(t.end_date).substring(0, 4)}) [Vacated]`;
+                        } else if (t.start_date) {
+                            yearHint = ` (${t.start_date.substring(0, 4)})`;
+                        }
+                        opt.textContent = `${t.name}${yearHint}`;
                     }
-                    opt.textContent = `${t.name}${yearHint}`;
                     tenantSelect.appendChild(opt);
                     fetchedTenants.push(t);
                 });
@@ -1427,14 +1439,18 @@
                     opt.dataset.name = tNode.name || '';
                     opt.dataset.endDate = tNode.end_date || '';
                     opt.dataset.startDate = tNode.start_date || '';
-                    const isEnded = tNode.end_date && !['present', 'active', 'none', 'null', ''].includes(String(tNode.end_date).trim().toLowerCase());
-                    let yearHint = '';
-                    if (tNode.start_date && isEnded) {
-                        yearHint = ` (${tNode.start_date.substring(0, 4)} - ${String(tNode.end_date).substring(0, 4)}) [Vacated]`;
-                    } else if (tNode.start_date) {
-                        yearHint = ` (${tNode.start_date.substring(0, 4)})`;
+                    if (tNode.is_resident === 0 || tNode.is_resident === false) {
+                        opt.textContent = `📋 ${tNode.name} (متقدم - لم يسكن)`;
+                    } else {
+                        const isEnded = tNode.end_date && !['present', 'active', 'none', 'null', ''].includes(String(tNode.end_date).trim().toLowerCase());
+                        let yearHint = '';
+                        if (tNode.start_date && isEnded) {
+                            yearHint = ` (${tNode.start_date.substring(0, 4)} - ${String(tNode.end_date).substring(0, 4)}) [Vacated]`;
+                        } else if (tNode.start_date) {
+                            yearHint = ` (${tNode.start_date.substring(0, 4)})`;
+                        }
+                        opt.textContent = `${tNode.name}${yearHint}`;
                     }
-                    opt.textContent = `${tNode.name}${yearHint}`;
                     tenantSelect.appendChild(opt);
                 });
             }
@@ -2133,6 +2149,7 @@
     window.populateHousebatchAreas = populateHousebatchAreas;
     window.populateHousebatchHouses = populateHousebatchHouses;
     window.populateHousebatchTenants = populateHousebatchTenants;
+    window.populateHousebatchTenantSelect = populateHousebatchTenants;
     window.addFilesToHouseBatch = addFilesToHouseBatch;
     window.renderHouseBatchQueue = renderHouseBatchQueue;
     window.getHouseBatchQueue = () => houseBatchQueue;
@@ -2179,6 +2196,7 @@
             populateHousebatchAreas,
             populateHousebatchHouses,
             populateHousebatchTenants,
+            populateHousebatchTenantSelect: populateHousebatchTenants,
             addFilesToHouseBatch,
             renderHouseBatchQueue,
             getHouseBatchQueue: () => houseBatchQueue,

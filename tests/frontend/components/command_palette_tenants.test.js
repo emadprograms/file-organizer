@@ -192,4 +192,37 @@ describe('Command Palette Tenant Search Timeline Color Coding', () => {
     // Item 3: long (>10y) -> rose
     expect(items[2].querySelector('span.text-\\[10px\\]').className).toContain('text-rose-700');
   });
+
+  it('renders purple styling and clipboard icon 📋 for applicant (is_resident: 0)', () => {
+    const results = [
+      {
+        id: '200_applicant',
+        type: 'tenant',
+        title: 'Applicant Person',
+        subtitle: 'House 200 • Safra C',
+        url: '/#/area/Safra C/house/200',
+        is_resident: 0
+      }
+    ];
+
+    window.renderSearchResults(results);
+
+    const item = document.querySelector('.command-palette-result-item');
+    expect(item).not.toBeNull();
+    expect(item.className).toContain('hover:bg-purple-50/70');
+    expect(item.className).toContain('hover:border-purple-300');
+
+    const avatar = item.querySelector('.w-7');
+    expect(avatar).not.toBeNull();
+    expect(avatar.textContent.trim()).toBe('📋');
+    expect(avatar.className).toContain('text-purple-600');
+    expect(avatar.className).toContain('bg-purple-50');
+
+    const badge = item.querySelector('span.text-\\[10px\\]');
+    expect(badge).not.toBeNull();
+    expect(badge.textContent).toBe('📋 متقدم (لم يسكن)');
+    expect(badge.className).toContain('text-purple-700');
+    expect(badge.className).toContain('bg-purple-50');
+    expect(badge.className).toContain('border-purple-300');
+  });
 });

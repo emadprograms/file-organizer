@@ -198,4 +198,98 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
     expect(check2.checked).toBe(false);
     expect(end2.disabled).toBe(false);
   });
+
+  it('disables Present checkbox and End Date input when selecting applicant', () => {
+    const addBtn = document.getElementById('btn-add-tenant-row');
+    const rowsContainer = document.getElementById('tenant-modal-rows');
+
+    addBtn.click();
+    const row = rowsContainer.querySelector('.tenant-row');
+    const typeSelect = row.querySelector('.tenant-type-select');
+    const presentCheck = row.querySelector('.tenant-present-check');
+    const endInput = row.querySelector('.tenant-end-input');
+    const startInput = row.querySelector('.tenant-start-input');
+
+    expect(typeSelect.value).toBe('resident');
+
+    typeSelect.value = 'applicant';
+    typeSelect.dispatchEvent(new Event('change'));
+
+    expect(presentCheck.checked).toBe(false);
+    expect(presentCheck.disabled).toBe(true);
+    expect(presentCheck.classList.contains('opacity-30')).toBe(true);
+    expect(endInput.disabled).toBe(true);
+    expect(endInput.value).toBe('');
+    expect(endInput.title).toBe('N/A (لم يسكن)');
+    expect(startInput.title).toBe('Application / Order Date • تاريخ الطلب/التخصيص');
+  });
+
+  it('re-enables Present checkbox and End Date when changing back to resident', () => {
+    const addBtn = document.getElementById('btn-add-tenant-row');
+    const rowsContainer = document.getElementById('tenant-modal-rows');
+
+    addBtn.click();
+    const row = rowsContainer.querySelector('.tenant-row');
+    const typeSelect = row.querySelector('.tenant-type-select');
+    const presentCheck = row.querySelector('.tenant-present-check');
+    const endInput = row.querySelector('.tenant-end-input');
+    const startInput = row.querySelector('.tenant-start-input');
+
+    typeSelect.value = 'applicant';
+    typeSelect.dispatchEvent(new Event('change'));
+    expect(presentCheck.disabled).toBe(true);
+
+    typeSelect.value = 'resident';
+    typeSelect.dispatchEvent(new Event('change'));
+
+    expect(presentCheck.disabled).toBe(false);
+    expect(presentCheck.classList.contains('opacity-30')).toBe(false);
+    expect(endInput.disabled).toBe(false);
+    expect(startInput.title).toBe('Start Date • تاريخ البدء');
+  });
+
+  it('includes is_resident: 0 in payload when saving an applicant row', async () => {
+    const addBtn = document.getElementById('btn-add-tenant-row');
+    const rowsContainer = document.getElementById('tenant-modal-rows');
+
+    addBtn.click();
+    const row = rowsContainer.querySelector('.tenant-row');
+    row.querySelector('.tenant-name-input').value = 'Applicant Person';
+    row.querySelector('.tenant-start-input').value = '2024-05-01';
+    row.querySelector('.tenant-type-select').value = 'applicant';
+    row.querySelector('.tenant-type-select').dispatchEvent(new Event('change'));
+    row.querySelector('.tenant-notes-input').value = 'Order #123';
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 'success', reallocated_count: 0, tenants_count: 1 })
+    });
+
+    const saveBtn = document.getElementById('tenant-modal-save');
+    saveBtn.click();
+
+    await new Promise(r => setTimeout(r, 10));
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/areas/Safra%20C/houses/500/tenants',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenants: [
+            {
+              id: null,
+              name: 'Applicant Person',
+              start_date: '2024-05-01',
+              end_date: null,
+              house_id: '500',
+              is_resident: 0,
+              notes: 'Order #123'
+            }
+          ],
+          reallocate: true
+        })
+      })
+    );
+  });
 });

@@ -23,6 +23,7 @@ const {
     initBatchOperations,
     populateBatchTenantSelect,
     openBatchMoveForDoc,
+    formatBatchTenantLabel,
 } = require('../../../src/HousingApplication.Web/wwwroot/js/categories-view.js');
 
 function setupDOM() {
@@ -697,5 +698,37 @@ describe('Multi-Select Batch Document Operations (Phase 106)', () => {
         // Because the open folder is 'عثمان المساعد', it must be chosen
         expect(select.value).toBe('45');
         window.currentTenant = null;
+    });
+
+    it('formats applicant options with 📋 and (متقدم - لم يسكن)', async () => {
+        global.currentCategories = [
+            {
+                tenant: 'متقدم تجريبي',
+                name: '05 - عقود',
+                document_count: 1,
+                documents: [
+                    { vault_id: 'doc099', brief_arabic_title: 'طلب', is_manual: 0, tenant_id: 88 }
+                ]
+            }
+        ];
+        toggleDocSelection('doc099', true);
+
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => [
+                { id: 88, name: 'متقدم تجريبي', start_date: '2024-01-01', is_resident: 0 },
+                { id: 89, name: 'مقيم رسمي', start_date: '2023-01-01', is_resident: 1, is_active: true }
+            ]
+        });
+
+        await populateBatchTenantSelect('batch-move-tenant-select');
+
+        const select = document.getElementById('batch-move-tenant-select');
+        const applicantOpt = Array.from(select.options).find(o => o.value === '88');
+        expect(applicantOpt).toBeDefined();
+        expect(applicantOpt.textContent).toBe('📋 متقدم تجريبي (متقدم - لم يسكن)');
+
+        const label = formatBatchTenantLabel({ name: 'سارة خالد', is_resident: 0 });
+        expect(label).toBe('📋 سارة خالد (متقدم - لم يسكن)');
     });
 });
