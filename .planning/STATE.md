@@ -2,22 +2,21 @@
 gsd_state_version: 1.0
 milestone: v15.0
 milestone_name: Decoupled .NET Core Architecture & Non-Residing Applicants Archive
-status: planning
-last_updated: "2026-09-13T17:31:12.427Z"
+status: in_progress
+last_updated: "2026-09-13T20:43:00.000Z"
 last_activity: 2026-09-13
 progress:
-  total_phases: 0
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_phases: 5
+  completed_phases: 1
+  total_plans: 5
+  completed_plans: 1
+  percent: 20
 ---
 
 # Milestone State
 
-**Current Milestone:** None (v14.0 Archived & Shipped)
-**Next Milestone:** v15.0: Non-Residing Applicants & Unfulfilled Allocations Archive
-**Status:** archived
+**Current Milestone:** v15.0: Decoupled .NET Core Architecture & Non-Residing Applicants Archive
+**Status:** in_progress
 
 ## Context
 
@@ -25,10 +24,11 @@ Equip the digital archive management system with power-user operational tools: o
 
 ## Target Phases
 
-- [x] Phase 105: House Archive ZIP Export Pipeline (FastAPI, ASP.NET Core & UI Button)
-- [x] Phase 106: Multi-Select Batch Document Operations (Batch Move, Batch Delete & Selection Bar)
-- [x] Phase 107: Portfolio Expansion ("+ Add House" Modal & Backend House Registration)
-- [x] Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit
+- [x] Phase 109: Pure .NET Core Architecture & Python Elimination (completed 2026-09-13)
+- [ ] Phase 110: Database Schema & Vacancy Guardrails for Applicants
+- [ ] Phase 111: Segregated Tenancy & Applicant Register UI
+- [ ] Phase 112: House Settings Modal & Ingestion Badging
+- [ ] Phase 113: End-to-End Test Suite Verification & Milestone Audit
 
 ## Quick Tasks Completed
 
@@ -90,11 +90,14 @@ Equip the digital archive management system with power-user operational tools: o
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-09-13 — Milestone v15.0 started
+Phase: 110 - Database Schema & Vacancy Guardrails for Applicants
+Plan: Not started
+Status: Ready for planning
+Last activity: 2026-09-13 — Phase 109 completed
 
 ## Operator Next Steps
 
-- Milestone v14.0 complete, fully audited, and archived. Ready for next milestone initialization via `/gsd-new-milestone`.
+- Proceed to Phase 110: Database Schema & Vacancy Guardrails for Applicants.
+- Create 110-CONTEXT.md and 110-01-PLAN.md.
+- Implement database schema migrations (`is_resident`, `notes`), update DTOs/models/repository queries, vacancy checks, and document reallocation guardrails.
+- Add xUnit backend tests and verify.

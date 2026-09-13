@@ -7,11 +7,11 @@
 
 ### Clean .NET Core Architecture & Python Purge (ARCH)
 
-- [ ] **ARCH-01**: Completely remove all legacy Python source files (`src/` Python files, `.venv/`, `requirements.txt`, `patch_index.py`, and Python pytest files in `tests/`).
-- [ ] **ARCH-02**: Reorganize ASP.NET Core 8.0 project from `web-net/` into an idiomatic .NET layout: `src/HousingApplication.Web/` (with `Common/`, `Data/`, `Models/`, `wwwroot/`, `Program.cs`, `HousingApplication.Web.csproj`) and create `HousingApplication.sln`.
-- [ ] **ARCH-03**: Consolidate test suites under `tests/`: Move backend tests to `tests/HousingApplication.Tests/` (linking project references to `HousingApplication.Web.csproj`) and keep frontend tests in `tests/frontend/`.
-- [ ] **ARCH-04**: Update all Vitest frontend test imports across `tests/frontend/` to load static assets directly from `src/HousingApplication.Web/wwwroot/js/`, eliminating any path dependencies on legacy `src/api/static/`.
-- [ ] **ARCH-05**: Update `run-mac.sh`, `package.json`, and deployment configs to reference the new project paths with zero Python dependencies, verifying that all 148 backend tests and 277 frontend tests pass 100%.
+- [x] **ARCH-01**: Completely remove all legacy Python source files (`src/` Python files, `.venv/`, `requirements.txt`, `patch_index.py`, and Python pytest files in `tests/`).
+- [x] **ARCH-02**: Reorganize ASP.NET Core 8.0 project from `web-net/` into an idiomatic .NET layout: `src/HousingApplication.Web/` (with `Common/`, `Data/`, `Models/`, `wwwroot/`, `Program.cs`, `HousingApplication.Web.csproj`) and create `HousingApplication.sln`.
+- [x] **ARCH-03**: Consolidate test suites under `tests/`: Move backend tests to `tests/HousingApplication.Tests/` (linking project references to `HousingApplication.Web.csproj`) and keep frontend tests in `tests/frontend/`.
+- [x] **ARCH-04**: Update all Vitest frontend test imports across `tests/frontend/` to load static assets directly from `src/HousingApplication.Web/wwwroot/js/`, eliminating any path dependencies on legacy `src/api/static/`.
+- [x] **ARCH-05**: Update `run-mac.sh`, `package.json`, and deployment configs to reference the new project paths with zero Python dependencies, verifying that all 148 backend tests and 277 frontend tests pass 100%.
 
 ### Database Schema & Vacancy Guardrails (DB & VCN)
 
