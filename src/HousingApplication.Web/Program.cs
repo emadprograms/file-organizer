@@ -884,13 +884,19 @@ app.MapPost("/api/ingest", async (
         {
             var newT = await repo.AddTenantAsync(cleanHouseId, tenantName.Trim(), primaryDate ?? DateTime.Today.ToString("yyyy-MM-dd"));
             resolvedTenantId = newT.Id;
-            resolvedTenant = new TenantDto { Id = newT.Id, Name = newT.Name, StartDate = newT.StartDate, EndDate = newT.EndDate, HouseId = cleanHouseId };
+            resolvedTenant = new TenantDto { Id = newT.Id, Name = newT.Name, StartDate = newT.StartDate, EndDate = newT.EndDate, HouseId = cleanHouseId, IsResident = newT.IsResident, Notes = newT.Notes };
         }
     }
     else
     {
         var tenants = await repo.GetTenantsAsync(cleanHouseId);
-        if (tenants.Count > 0 && tenants[0].Id.HasValue)
+        var firstResident = tenants.FirstOrDefault(t => t.IsResident == 1);
+        if (firstResident != null && firstResident.Id.HasValue)
+        {
+            resolvedTenantId = firstResident.Id.Value;
+            resolvedTenant = firstResident;
+        }
+        else if (tenants.Count > 0 && tenants[0].Id.HasValue)
         {
             resolvedTenantId = tenants[0].Id!.Value;
             resolvedTenant = tenants[0];
@@ -899,7 +905,7 @@ app.MapPost("/api/ingest", async (
         {
             var defT = await repo.AddTenantAsync(cleanHouseId, "Default Tenant", "1970-01-01");
             resolvedTenantId = defT.Id;
-            resolvedTenant = new TenantDto { Id = defT.Id, Name = defT.Name, StartDate = defT.StartDate, EndDate = defT.EndDate, HouseId = cleanHouseId };
+            resolvedTenant = new TenantDto { Id = defT.Id, Name = defT.Name, StartDate = defT.StartDate, EndDate = defT.EndDate, HouseId = cleanHouseId, IsResident = defT.IsResident, Notes = defT.Notes };
         }
     }
 

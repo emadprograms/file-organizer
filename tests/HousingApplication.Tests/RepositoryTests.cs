@@ -1,6 +1,7 @@
 using FileOrganizer.Web.Common;
 using FileOrganizer.Web.Data;
 using FileOrganizer.Web.Models;
+using Dapper;
 using Xunit;
 
 namespace FileOrganizer.Tests;
@@ -713,5 +714,179 @@ public class RepositoryTests : IDisposable
         Assert.All(profile.Tenants, t => Assert.False(t.IsActive));
         // Profile should also list most recent past tenant first
         Assert.Equal("يحيى محمد", profile.Tenants[0].Name);
+    }
+
+    [Fact]
+    public async Task AddTenantAsync_Applicant_SetsIsResidentZeroAndStoresNotes()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaApp", "AA");
+        await _repo.AddHouseAsync("H-App1", "AreaApp");
+
+        // Act
+        var added = await _repo.AddTenantAsync("H-App1", "مقدم طلب تجريبي", "2024-01-01", null, isResident: 0, notes: "Order canceled");
+
+        // Assert
+        Assert.Equal(0, added.IsResident);
+        Assert.Equal("Order canceled", added.Notes);
+
+        var tenants = await _repo.GetTenantsAsync("H-App1");
+        var retrieved = tenants.FirstOrDefault(t => t.Name == "مقدم طلب تجريبي");
+        Assert.NotNull(retrieved);
+        Assert.Equal(0, retrieved.IsResident);
+        Assert.Equal("Order canceled", retrieved.Notes);
+    }
+
+    [Fact]
+    public async Task GetHouseCardsAsync_WithOnlyNonResidingApplicant_RemainsVacantGrey()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaApp", "AA");
+        await _repo.AddHouseAsync("H-App2", "AreaApp");
+        await _repo.AddTenantAsync("H-App2", "Non Residing Applicant", "2024-01-01", null, isResident: 0, notes: "Application pending");
+
+        // Act
+        var houses = await _repo.GetHousesAsync("AreaApp");
+        var card = houses.FirstOrDefault(h => h.Id == "H-App2");
+
+        // Assert
+        Assert.NotNull(card);
+        Assert.Equal("grey", card.TenureColor);
+        Assert.Null(card.CurrentTenant);
+        Assert.Null(card.Subtitle);
+    }
+
+    [Fact]
+    public async Task GetHouseCardsAsync_WithPastResidentAndApplicant_ShowsPastResidentSubtitleAndVacantGrey()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaApp", "AA");
+        await _repo.AddHouseAsync("H-App3", "AreaApp");
+        await _repo.AddTenantAsync("H-App3", "Past Resident", "2018-01-01", "2022-12-31", isResident: 1);
+        await _repo.AddTenantAsync("H-App3", "Applicant 2024", "2024-01-01", null, isResident: 0, notes: "Order canceled");
+
+        // Act
+        var houses = await _repo.GetHousesAsync("AreaApp");
+        var card = houses.FirstOrDefault(h => h.Id == "H-App3");
+
+        // Assert
+        Assert.NotNull(card);
+        Assert.Equal("grey", card.TenureColor);
+        Assert.Null(card.CurrentTenant);
+        Assert.Equal("2018 - 2022", card.Subtitle);
+    }
+
+    [Fact]
+    public async Task GetHouseProfileAsync_SegregatesActiveResidentFromApplicants()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaApp", "AA");
+        await _repo.AddHouseAsync("H-App4", "AreaApp");
+        await _repo.AddTenantAsync("H-App4", "Resident Name", "2020-01-01", null, isResident: 1);
+        await _repo.AddTenantAsync("H-App4", "Applicant Person", "2024-01-01", null, isResident: 0, notes: "Order canceled");
+
+        // Act
+        var profile = await _repo.GetHouseProfileAsync("AreaApp", "H-App4");
+
+        // Assert
+        Assert.NotNull(profile);
+        Assert.Equal("Resident Name", profile.ActiveResident);
+
+        var applicant = profile.Tenants.FirstOrDefault(t => t.Name == "Applicant Person");
+        Assert.NotNull(applicant);
+        Assert.Equal(0, applicant.IsResident);
+        Assert.False(applicant.IsActive);
+        Assert.Equal("Order canceled", applicant.Notes);
+
+        var resident = profile.Tenants.FirstOrDefault(t => t.Name == "Resident Name");
+        Assert.NotNull(resident);
+        Assert.Equal(1, resident.IsResident);
+        Assert.True(resident.IsActive);
+    }
+
+    [Fact]
+    public async Task BulkUpdateTenantsAsync_Reallocation_NeverAssignsDocsToNonResidingApplicant()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaApp", "AA");
+        await _repo.AddHouseAsync("H-App5", "AreaApp");
+        var pastResident = await _repo.AddTenantAsync("H-App5", "Past Resident 2018", "2018-01-01", "2022-12-31", isResident: 1);
+        var applicant = await _repo.AddTenantAsync("H-App5", "Applicant 2024", "2024-01-01", null, isResident: 0, notes: "Pending order");
+
+        // Ingest a document and mark it as is_manual = 0 to allow reallocation
+        var ingest = new IngestRequestDto
+        {
+            AreaId = "AreaApp",
+            HouseId = "H-App5",
+            TenantId = pastResident.Id,
+            Category = "عقود",
+            ArabicTitle = "عقد إيجار قديم",
+            PrimaryDate = "2024-06-01"
+        };
+        var resp = await _repo.AddManualDocumentAsync(ingest);
+        var vaultId = resp.VaultId;
+
+        await using (var conn = await _factory.CreateConnectionAsync())
+        {
+            await conn.ExecuteAsync("UPDATE documents SET is_manual = 0, tenant_id = @ApplicantId WHERE vault_id = @VaultId;",
+                new { ApplicantId = applicant.Id, VaultId = vaultId });
+            await conn.ExecuteAsync("UPDATE pages SET tenant_id = @ApplicantId WHERE vault_id = @VaultId;",
+                new { ApplicantId = applicant.Id, VaultId = vaultId });
+        }
+
+        // Act: Bulk update with reallocate = true
+        var updatedList = new List<TenantDto>
+        {
+            new TenantDto { Id = pastResident.Id, Name = pastResident.Name, StartDate = pastResident.StartDate, EndDate = pastResident.EndDate, HouseId = "H-App5", IsResident = 1 },
+            new TenantDto { Id = applicant.Id, Name = applicant.Name, StartDate = applicant.StartDate, EndDate = applicant.EndDate, HouseId = "H-App5", IsResident = 0, Notes = "Pending order" }
+        };
+
+        var reallocResult = await _repo.BulkUpdateTenantsAsync("H-App5", updatedList, reallocate: true);
+
+        // Assert: Reallocation assigns to past resident, NEVER to applicant
+        Assert.NotNull(vaultId);
+        var doc = await _repo.GetDocumentRawAsync(vaultId);
+        Assert.NotNull(doc);
+        Assert.Equal(pastResident.Id, doc.TenantId);
+        Assert.NotEqual(applicant.Id, doc.TenantId);
+    }
+
+    [Fact]
+    public async Task BulkUpdateTenantsAsync_PreservesApplicantStatusAndNotes()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaApp", "AA");
+        await _repo.AddHouseAsync("H-App6", "AreaApp");
+        var resident = await _repo.AddTenantAsync("H-App6", "Resident Main", "2020-01-01", null, isResident: 1);
+        var applicant = await _repo.AddTenantAsync("H-App6", "Applicant Initial", "2023-01-01", null, isResident: 0, notes: "Original note");
+
+        // Act: Bulk update modifying applicant and adding new applicant
+        var updatedList = new List<TenantDto>
+        {
+            new TenantDto { Id = resident.Id, Name = resident.Name, StartDate = resident.StartDate, EndDate = resident.EndDate, HouseId = "H-App6", IsResident = 1 },
+            new TenantDto { Id = applicant.Id, Name = "Applicant Modified", StartDate = applicant.StartDate, EndDate = applicant.EndDate, HouseId = "H-App6", IsResident = 0, Notes = "Updated custom note" },
+            new TenantDto { Name = "New Applicant Added", StartDate = "2024-02-01", HouseId = "H-App6", IsResident = 0, Notes = "New application note" }
+        };
+
+        await _repo.BulkUpdateTenantsAsync("H-App6", updatedList, reallocate: false);
+
+        // Assert
+        var tenants = await _repo.GetTenantsAsync("H-App6");
+        Assert.Equal(3, tenants.Count);
+
+        var residentDto = tenants.FirstOrDefault(t => t.Id == resident.Id);
+        Assert.NotNull(residentDto);
+        Assert.Equal(1, residentDto.IsResident);
+
+        var modApplicantDto = tenants.FirstOrDefault(t => t.Id == applicant.Id);
+        Assert.NotNull(modApplicantDto);
+        Assert.Equal("Applicant Modified", modApplicantDto.Name);
+        Assert.Equal(0, modApplicantDto.IsResident);
+        Assert.Equal("Updated custom note", modApplicantDto.Notes);
+
+        var newApplicantDto = tenants.FirstOrDefault(t => t.Name == "New Applicant Added");
+        Assert.NotNull(newApplicantDto);
+        Assert.Equal(0, newApplicantDto.IsResident);
+        Assert.Equal("New application note", newApplicantDto.Notes);
     }
 }

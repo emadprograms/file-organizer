@@ -21,7 +21,9 @@ CREATE TABLE IF NOT EXISTS tenants (
     house_id TEXT NOT NULL REFERENCES houses(id),
     name TEXT NOT NULL,
     start_date DATE NOT NULL,
-    end_date DATE
+    end_date DATE,
+    is_resident INTEGER NOT NULL DEFAULT 1,
+    notes TEXT
 );
 
 CREATE TABLE IF NOT EXISTS batches (
@@ -73,6 +75,7 @@ CREATE TABLE IF NOT EXISTS pages (
 
 CREATE INDEX IF NOT EXISTS idx_houses_area ON houses(area_id);
 CREATE INDEX IF NOT EXISTS idx_tenants_house ON tenants(house_id);
+CREATE INDEX IF NOT EXISTS idx_tenants_resident ON tenants(is_resident);
 CREATE INDEX IF NOT EXISTS idx_batches_house ON batches(house_id);
 CREATE INDEX IF NOT EXISTS idx_pages_batch ON pages(batch_id);
 CREATE INDEX IF NOT EXISTS idx_pages_house ON pages(house_id);
@@ -100,6 +103,22 @@ CREATE INDEX IF NOT EXISTS idx_documents_title ON documents(arabic_title);
             alterCmd.ExecuteNonQuery();
         }
         catch (SqliteException) { }
+
+        try
+        {
+            using var alterCmd = connection.CreateCommand();
+            alterCmd.CommandText = "ALTER TABLE tenants ADD COLUMN is_resident INTEGER NOT NULL DEFAULT 1;";
+            alterCmd.ExecuteNonQuery();
+        }
+        catch (SqliteException) { }
+
+        try
+        {
+            using var alterCmd = connection.CreateCommand();
+            alterCmd.CommandText = "ALTER TABLE tenants ADD COLUMN notes TEXT;";
+            alterCmd.ExecuteNonQuery();
+        }
+        catch (SqliteException) { }
     }
 
     public static async Task InitializeSchemaAsync(SqliteConnection connection)
@@ -112,6 +131,22 @@ CREATE INDEX IF NOT EXISTS idx_documents_title ON documents(arabic_title);
         {
             using var alterCmd = connection.CreateCommand();
             alterCmd.CommandText = "ALTER TABLE documents ADD COLUMN is_timeline_visible INTEGER DEFAULT 1;";
+            await alterCmd.ExecuteNonQueryAsync();
+        }
+        catch (SqliteException) { }
+
+        try
+        {
+            using var alterCmd = connection.CreateCommand();
+            alterCmd.CommandText = "ALTER TABLE tenants ADD COLUMN is_resident INTEGER NOT NULL DEFAULT 1;";
+            await alterCmd.ExecuteNonQueryAsync();
+        }
+        catch (SqliteException) { }
+
+        try
+        {
+            using var alterCmd = connection.CreateCommand();
+            alterCmd.CommandText = "ALTER TABLE tenants ADD COLUMN notes TEXT;";
             await alterCmd.ExecuteNonQueryAsync();
         }
         catch (SqliteException) { }

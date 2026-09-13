@@ -7,10 +7,10 @@ last_updated: "2026-09-13T20:43:00.000Z"
 last_activity: 2026-09-13
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 5
-  completed_plans: 1
-  percent: 20
+  completed_plans: 2
+  percent: 40
 ---
 
 # Milestone State
@@ -25,7 +25,7 @@ Equip the digital archive management system with power-user operational tools: o
 ## Target Phases
 
 - [x] Phase 109: Pure .NET Core Architecture & Python Elimination (completed 2026-09-13)
-- [ ] Phase 110: Database Schema & Vacancy Guardrails for Applicants
+- [x] Phase 110: Database Schema & Vacancy Guardrails for Applicants (completed 2026-09-13)
 - [ ] Phase 111: Segregated Tenancy & Applicant Register UI
 - [ ] Phase 112: House Settings Modal & Ingestion Badging
 - [ ] Phase 113: End-to-End Test Suite Verification & Milestone Audit
@@ -90,14 +90,18 @@ Equip the digital archive management system with power-user operational tools: o
 
 ## Current Position
 
-Phase: 110 - Database Schema & Vacancy Guardrails for Applicants
+Phase: 111 - Segregated Tenancy & Applicant Register UI
 Plan: Not started
 Status: Ready for planning
-Last activity: 2026-09-13 — Phase 109 completed
+Last activity: 2026-09-13 — Phase 110 completed
 
 ## Operator Next Steps
 
-- Proceed to Phase 110: Database Schema & Vacancy Guardrails for Applicants.
-- Create 110-CONTEXT.md and 110-01-PLAN.md.
-- Implement database schema migrations (`is_resident`, `notes`), update DTOs/models/repository queries, vacancy checks, and document reallocation guardrails.
-- Add xUnit backend tests and verify.
+- Proceed to Phase 111: Segregated Tenancy & Applicant Register UI.
+- Create 111-CONTEXT.md and 111-01-PLAN.md.
+- Update `house-profile.js` to split the Tenancy Register into two stacked sections:
+  1. "المستأجرون المقيمون" (Resident Tenants: Current + Past)
+  2. "سجل المتقدمين وطلبات التخصيص" (Applicants & Unfulfilled Allocations)
+- Render applicant cards with `📋 متقدم (لم يسكن)`, order/application date, document counts, and optional notes.
+- Wire applicant card click to open their dedicated category folders view (`#/area/{area}/house/{house}/tenant/{house}_{applicantName}`).
+- Add Vitest tests in `tests/frontend/components/` and verify.

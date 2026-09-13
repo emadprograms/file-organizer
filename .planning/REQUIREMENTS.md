@@ -15,10 +15,10 @@
 
 ### Database Schema & Vacancy Guardrails (DB & VCN)
 
-- [ ] **DB-01**: Update SQLite database schema across `DatabaseInitializer.cs` to add `is_resident INTEGER NOT NULL DEFAULT 1` and `notes TEXT` to the `tenants` table with automatic idempotent column migrations for existing databases.
-- [ ] **DB-02**: Update data access models (`Tenant.cs`, `TenantDto`, `HouseTenantProfileDto`) and repository methods to read, write, and serialize `is_resident` and `notes`.
-- [ ] **VCN-01**: Guard house occupancy queries (`CurrentTenant` and `DurationCategory` in `FileOrganizerRepository.cs`) so that only residing tenants (`is_resident = 1`) are considered, ensuring houses with only applicants/vacated tenants remain recognized and styled as `Vacant` (`grey`).
-- [ ] **VCN-02**: Safeguard document auto-reallocation (`BulkUpdateTenantsAsync`) so date-window matching (Priority 2) and default fallback (Priority 3) only assign documents to residing tenants (`is_resident = 1`), preventing general house/utility documents from being misallocated to non-residing applicants.
+- [x] **DB-01**: Update SQLite database schema across `DatabaseInitializer.cs` to add `is_resident INTEGER NOT NULL DEFAULT 1` and `notes TEXT` to the `tenants` table with automatic idempotent column migrations for existing databases.
+- [x] **DB-02**: Update data access models (`Tenant.cs`, `TenantDto`, `HouseTenantProfileDto`) and repository methods to read, write, and serialize `is_resident` and `notes`.
+- [x] **VCN-01**: Guard house occupancy queries (`CurrentTenant` and `DurationCategory` in `FileOrganizerRepository.cs`) so that only residing tenants (`is_resident = 1`) are considered, ensuring houses with only applicants/vacated tenants remain recognized and styled as `Vacant` (`grey`).
+- [x] **VCN-02**: Safeguard document auto-reallocation (`BulkUpdateTenantsAsync`) so date-window matching (Priority 2) and default fallback (Priority 3) only assign documents to residing tenants (`is_resident = 1`), preventing general house/utility documents from being misallocated to non-residing applicants.
 
 ### Segregated Tenancy & Applicant Register UI (REG)
 
@@ -48,15 +48,15 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ARCH-01 | Phase 109 | Pending |
-| ARCH-02 | Phase 109 | Pending |
-| ARCH-03 | Phase 109 | Pending |
-| ARCH-04 | Phase 109 | Pending |
-| ARCH-05 | Phase 109 | Pending |
-| DB-01 | Phase 110 | Pending |
-| DB-02 | Phase 110 | Pending |
-| VCN-01 | Phase 110 | Pending |
-| VCN-02 | Phase 110 | Pending |
+| ARCH-01 | Phase 109 | Complete |
+| ARCH-02 | Phase 109 | Complete |
+| ARCH-03 | Phase 109 | Complete |
+| ARCH-04 | Phase 109 | Complete |
+| ARCH-05 | Phase 109 | Complete |
+| DB-01 | Phase 110 | Complete |
+| DB-02 | Phase 110 | Complete |
+| VCN-01 | Phase 110 | Complete |
+| VCN-02 | Phase 110 | Complete |
 | REG-01 | Phase 111 | Pending |
 | REG-02 | Phase 111 | Pending |
 | REG-03 | Phase 111 | Pending |

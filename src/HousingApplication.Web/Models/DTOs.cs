@@ -78,6 +78,9 @@ public record TreeTenantDto
 
     [JsonPropertyName("duration_category")]
     public string? DurationCategory { get; init; }
+
+    [JsonPropertyName("is_resident")]
+    public int IsResident { get; init; } = 1;
 }
 
 public record HouseCardDto
@@ -147,6 +150,12 @@ public record HouseTenantProfileDto
 
     [JsonPropertyName("is_active")]
     public bool IsActive { get; init; }
+
+    [JsonPropertyName("is_resident")]
+    public int IsResident { get; init; } = 1;
+
+    [JsonPropertyName("notes")]
+    public string? Notes { get; init; }
 
     [JsonPropertyName("duration_str_ar")]
     public string DurationStrAr { get; init; } = string.Empty;
@@ -327,6 +336,9 @@ public record SearchResultDto
 
     [JsonPropertyName("duration_category")]
     public string? DurationCategory { get; init; }
+
+    [JsonPropertyName("is_resident")]
+    public int? IsResident { get; init; }
 }
 
 public record TenantDto
@@ -345,6 +357,12 @@ public record TenantDto
 
     [JsonPropertyName("house_id")]
     public string? HouseId { get; init; }
+
+    [JsonPropertyName("is_resident")]
+    public int IsResident { get; init; } = 1;
+
+    [JsonPropertyName("notes")]
+    public string? Notes { get; init; }
 }
 
 public record DocumentDetailsDto
