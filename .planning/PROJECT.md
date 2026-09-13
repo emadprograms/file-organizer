@@ -151,11 +151,11 @@ A high-performance document management system and web dashboard for housing digi
 - **Replace Tenant Selector with Category Badge in Document Viewer Header (Quick Refinement QCK-23):**
   - Replaced the misplaced `#viewer-tenant-select` and `#viewer-tenant-label` in the document viewer and Live Peek header with a dedicated `#viewer-category-badge` displaying the document's category folder with a crisp folder icon.
   - Enforced multi-source category resolution across Categories view, Timeline view, Live Peek hover, macOS Spacebar Quick Look, and Command Palette (`⌘K`), automatically resolving from arguments, timeline items, active selection, or global tree data.
-  - Deprecated legacy tenant dropdown functions to safe no-op stubs and added unit tests in `tests/frontend/components/doc_viewer.test.js`.
+  - Deprecated legacy tenant dropdown functions to safe no-op stubs and added unit tests in `tests/web/components/doc_viewer.test.js`.
 - **Comprehensive Multi-Stack Test Coverage & Verification:**
   - 85 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
   - 33 Python backend tests (18 in `tests/test_v14_features.py`, 13 in `tests/test_document_management_api.py`, 2 in `tests/test_house_profile_api.py`).
-  - 176 Frontend Vitest tests across 19 files (`npm run test:frontend`).
+  - 176 Frontend Vitest tests across 19 files (`npm run test:web`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/`, `web-net/wwwroot/`, and `dist/win-x64/wwwroot/`.
 
@@ -192,7 +192,7 @@ A high-performance document management system and web dashboard for housing digi
 - Built idempotent migration pipeline (`src/migration/v11_migration.py`) restructuring legacy houses into clean `{house}/batches/` and `{house}/vault/` directories, eliminating `.lnk` shortcuts, legacy JSONs, and directory clutter.
 - Redesigned multi-page scanned PDF ingestion (`src/ingest/v11_ingest.py`) to register batches and slice standalone vault PDFs directly, completely eliminating index shifting and the reconciliation loop.
 - Rebuilt FastAPI backend (`/api/tree`, `/api/houses`, `/api/timeline`, `/api/categories`, `/api/search`) to execute indexed SQL queries directly in <10ms, eliminating SMB filesystem walks and memory caching overhead.
-- Verified 100% feature parity with Playwright E2E UI suite (`tests/frontend/test_v11_e2e_db.py`) covering Tree View, Grid Overview, Tenure Color-Coding (<5y, 5–10y, >10y), Drill-Down, Search, and PDF previews.
+- Verified 100% feature parity with Playwright E2E UI suite (`tests/web/test_v11_e2e_db.py`) covering Tree View, Grid Overview, Tenure Color-Coding (<5y, 5–10y, >10y), Drill-Down, Search, and PDF previews.
 
 </details>
 
@@ -238,7 +238,7 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 - ✓ Completely remove all legacy Python source files, .venv, requirements.txt, and pytest files (ARCH-01) — v15.0
 - ✓ Reorganize ASP.NET Core project into idiomatic `src/HousingApplication.Web/` with `HousingApplication.sln` (ARCH-02) — v15.0
 - ✓ Consolidate test suites under `tests/` with backend in `tests/HousingApplication.Tests/` (ARCH-03) — v15.0
-- ✓ Update all Vitest imports across `tests/frontend/` to load assets from `src/HousingApplication.Web/wwwroot/js/` (ARCH-04) — v15.0
+- ✓ Update all Vitest imports across `tests/web/` to load assets from `src/HousingApplication.Web/wwwroot/js/` (ARCH-04) — v15.0
 - ✓ Update `run-mac.sh` and `package.json` to reference new paths with zero Python dependencies (ARCH-05) — v15.0
 - ✓ SQLite database schema updated with `is_resident INTEGER NOT NULL DEFAULT 1` and `notes TEXT` with auto-migration (DB-01) — v15.0
 - ✓ Data models, DTOs, and repository methods read, write, and serialize `is_resident` and `notes` (DB-02) — v15.0

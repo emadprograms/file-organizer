@@ -35,13 +35,13 @@ To develop `file-organizer` locally, follow these steps:
 | Command | Description |
 |---------|-------------|
 | `pytest` | Runs the full Python backend test suite in the `tests/` directory. |
-| `npm run test:frontend` | Runs the Vitest frontend unit and integration test suite with JSDOM environment. |
+| `npm run test:web` | Runs the Vitest Web UI test suite with JSDOM environment. |
 | `npm run test:e2e` | Runs Playwright end-to-end browser tests. |
 
 ### Frontend Asset Mirroring
 The web interface client scripts are located in `src/api/static/js/`. When updating frontend JavaScript or styling:
 - Any changes to `src/api/static/js/*.js` must be synchronized to `web-net/wwwroot/js/*.js` and `dist/win-x64/wwwroot/js/*.js`.
-- Always verify all frontend tests pass using `npm run test:frontend`.
+- Always verify all frontend tests pass using `npm run test:web`.
 
 
 ## Code Style

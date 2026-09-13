@@ -33,13 +33,13 @@ pytest tests/test_core_config_parsing.py
 The frontend JavaScript unit and integration tests are executed using **Vitest** in a `jsdom` environment:
 
 ```bash
-npm run test:frontend
+npm run test:web
 ```
 
 To run a specific frontend test file:
 
 ```bash
-npx vitest run tests/frontend/components/multi_select_drag_and_drop.test.js
+npx vitest run tests/web/components/multi_select_drag_and_drop.test.js
 ```
 
 
