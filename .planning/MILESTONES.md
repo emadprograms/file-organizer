@@ -1,5 +1,37 @@
 # Milestones History
 
+## v15.0 Decoupled .NET Core Architecture & Non-Residing Applicants Archive (Shipped: 2026-09-13)
+
+**Phases completed:** 5 phases (109-113), 5 plans, 158 .NET xUnit tests (100% passing), 293 Vitest tests across 28 test files (100% passing)
+
+**Key accomplishments:**
+
+- **Pure .NET Core 8.0 Architecture & Complete Python Elimination (Phase 109):**
+  - Completely purged all legacy Python code (`src/` Python files, `.venv/`, `requirements.txt`, `patch_index.py`, and pytest files in `tests/`), establishing zero Python runtime dependencies.
+  - Reorganized project into an idiomatic .NET 8 solution: `src/HousingApplication.Web/` with `HousingApplication.sln` and consolidated backend tests under `tests/HousingApplication.Tests/`.
+  - Re-anchored all 28 frontend Vitest test files to load static assets directly from `src/HousingApplication.Web/wwwroot/js/`.
+  - Streamlined `run-mac.sh` and `package.json` for pure ASP.NET Core operation.
+- **Database Schema & Vacancy Guardrails for Applicants (Phase 110):**
+  - Extended SQLite `tenants` table with `is_resident INTEGER NOT NULL DEFAULT 1` and `notes TEXT` with automated idempotent column migrations in `DatabaseInitializer.cs`.
+  - Updated data models, DTOs, and repository methods to read, write, and serialize `is_resident` and `notes`.
+  - Protected occupancy subqueries and active tenant resolution so only residing tenants (`is_resident = 1`) count; houses with only non-residing applicants/unfulfilled allocations remain styled as `Vacant` (`grey`).
+  - Safeguarded document auto-reallocation (`BulkUpdateTenantsAsync`) so date-window matching and default fallback strictly exclude non-residing applicants, preventing general house/utility documents from being misallocated to applicants.
+- **Segregated Tenancy & Applicant Register UI (Phase 111):**
+  - Segregated House Profile Tenancy Register into two visually distinct sections: **المستأجرون المقيمون** (Resident Tenants) and **سجل المتقدمين وطلبات التخصيص** (Applicants & Unfulfilled Allocations).
+  - Implemented distinctive applicant cards featuring `📋 متقدم (لم يسكن)` badge, application/order date, document count, and notes (e.g. `ألغي التخصيص`, `لم يستلم المفتاح`).
+  - Enabled clicking applicant cards to navigate directly into their dedicated category folders (`03 - أمر تخصيص`, `02 - بيانات شخصية`, etc.) in Folders view.
+- **House Settings Modal & Ingestion Badging (Phase 112):**
+  - House Settings modal (`#tenant-modal`) supports adding/editing applicants via a Resident / Applicant toggle, automatically disabling/hiding "Present" and "End Date" and relabeling "Start Date" to "Application / Order Date".
+  - Ingest Station, Batch Move, and Batch Copy modals clearly badge applicant options in tenant dropdowns (`📋 فلان (متقدم - لم يسكن)`).
+  - Timeline View and Command Palette search results display applicant badges for documents and tenants.
+- **Comprehensive Verification & Milestone Audit (Phase 113):**
+  - 158 backend xUnit tests passing with 0 failures and 0 warnings.
+  - 293 frontend Vitest tests passing across 28 test files with 0 failures.
+  - Completed milestone audit with 17/17 requirements validated.
+
+---
+
+
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-12)
 
 **Phases completed:** 4 phases (105-108) + 42 quick refinements (QCK-01 through QCK-42), 4 plans, comprehensive multi-stack test verification (148 .NET xUnit, 44 Pytest tests, 277 Vitest across 27 files, Playwright E2E)
@@ -43,6 +75,7 @@
     - Normalized Taa Marbuta to Haa: `ة -> ه`
     - Normalized Alif Maqsura to Yaa: `ى -> ي`
     This unlocks direct substring 1000+ match scores whether the user writes with or without Hamza (`انور` vs `أنور`, `احمد` vs `أحمد`, `اقبال` vs `إقبال`), or with `ة` vs `ه` (`فاطمة` vs `فاطمه`).
+
   - Added Arabic search variant generation (`GetArabicSearchVariants` / `get_arabic_search_variants`) in SQLite database searching (`SearchAsync` in ASP.NET Core and FastAPI):
     - Overcame SQLite byte-for-byte matching limitations on non-ASCII characters by dynamically querying spelling variants.
     - Searching `شهاده` (with `ه`) finds all 257 `شهادة` documents (was 0).

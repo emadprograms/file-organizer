@@ -2,20 +2,39 @@
 
 ## What This Is
 
-A high-performance document management system and web dashboard for housing digital archives. It stores scanned documents in an immutable vault with relational SQLite metadata, delivering sub-10ms queries, dual Tree/Grid views, tenure color-coding, multi-tenant chronological timelines, category folder drill-downs, phonetic/fuzzy global search, in-browser PDF viewing, and one-click ZIP/PDF archive exports. Built natively on ASP.NET Core 8.0 and vanilla JS.
+A high-performance document management system and web dashboard for housing digital archives. It stores scanned documents in an immutable vault with relational SQLite metadata, delivering sub-10ms queries, dual Tree/Grid views, tenure color-coding, multi-tenant chronological timelines, category folder drill-downs, phonetic/fuzzy global search, in-browser PDF viewing, and one-click ZIP/PDF archive exports. Built natively on a pure ASP.NET Core 8.0 Minimal API architecture and vanilla JS, with zero Python runtime dependencies.
 
-## Current Milestone: v15.0 Decoupled .NET Core Architecture & Non-Residing Applicants Archive
+## Next Milestone Goals
 
-**Goal:** Completely eliminate Python dependencies, reorganize the codebase into a clean idiomatic .NET solution (`src/` and `tests/`), and implement full support for non-residing applicants and unfulfilled allocations across the database, business logic, and UI.
-
-**Target features:**
-- **Python Purge & Idiomatic .NET Restructuring:** Remove all legacy Python code (`src/` Python, `.venv`, `requirements.txt`), rename `web-net` to standard .NET structure (`src/HousingApplication.Web/` or `src/`), consolidate tests into `tests/`, point Vitest imports to the real web root, and update build scripts.
-- **Database Schema & Vacancy Guardrails:** Add `is_resident` flag and `notes` to `tenants` table; safeguard vacancy queries so applicants never falsely mark a vacant house as occupied; restrict date-based document auto-reallocation to residents only.
-- **Segregated Tenancy & Applicant Register UI:** Split the House Profile register into resident tenants (with tenure duration and active badges) and applicants/unfulfilled allocations (with application dates and document counts); enable clicking applicant cards to open their dedicated category folders.
-- **House Settings Modal & Ingestion Badging:** Update House Settings modal to support adding/editing applicants without requiring false residency dates; badge applicants clearly in Ingest Station and batch move/copy dropdowns.
-- **Comprehensive Test Verification:** 100% passing C# xUnit tests and JavaScript Vitest tests with zero Python runtime dependencies.
+(None currently active — run `/gsd-new-milestone` to plan the next milestone)
 
 ## Past Milestones
+
+<details>
+<summary>v15.0 Decoupled .NET Core Architecture & Non-Residing Applicants Archive (Shipped: 2026-09-13)</summary>
+
+- **Pure .NET 8.0 Minimal API Architecture & Python Elimination (Phase 109):**
+  - Completely purged all Python runtime source files (`src/` Python, `.venv`, `requirements.txt`, `patch_index.py`, pytest files).
+  - Restructured codebase into idiomatic .NET solution layout (`src/HousingApplication.Web/` and `HousingApplication.sln`).
+  - Consolidated backend testing under `tests/HousingApplication.Tests/` and re-anchored Vitest frontend tests to load assets directly from `src/HousingApplication.Web/wwwroot/js/`.
+  - Updated `run-mac.sh` and `package.json` for pure .NET operation with zero Python dependencies.
+- **Database Schema Additions & Vacancy Guardrails (Phase 110):**
+  - Extended SQLite `tenants` table with `is_resident INTEGER NOT NULL DEFAULT 1` and `notes TEXT`, complete with automated idempotent migrations in `DatabaseInitializer.cs`.
+  - Guarded house occupancy queries so that only residing tenants (`is_resident = 1`) count towards occupancy; houses with only non-residing applicants/unfulfilled allocations remain styled as `Vacant` (`grey`).
+  - Guarded document auto-reallocation (`BulkUpdateTenantsAsync`) so date-window matching and default fallback strictly exclude non-residing applicants, preventing general house/utility documents from being misassigned to applicants.
+- **Segregated House Profile UI (Phase 111):**
+  - Segregated the House Profile tenancy register into two visually distinct sections: **المستأجرون المقيمون** (Resident Tenants) and **سجل المتقدمين وطلبات التخصيص** (Applicants & Unfulfilled Allocations).
+  - Implemented distinctive applicant cards with `📋 متقدم (لم يسكن)` badge, application/order date, document count, and notes (e.g. `ألغي التخصيص`, `لم يستلم المفتاح`).
+  - Enabled direct drill-down navigation from applicant cards into their category folders.
+- **House Settings Modal Toggle & Ingestion Badging (Phase 112):**
+  - Added Resident / Applicant toggle in House Settings modal (`#tenant-modal`), automatically hiding/disabling "Present" and "End Date" fields and relabeling "Start Date" to "Application / Order Date".
+  - Badged applicant options across Ingest Station, Batch Move, and Batch Copy modals (`📋 فلان (متقدم - لم يسكن)`).
+  - Displayed purple applicant badges in Timeline view and Command Palette (`⌘K`) search results.
+- **Comprehensive Verification & Milestone Audit (Phase 113):**
+  - 158 backend xUnit tests (100% passing) and 293 frontend Vitest tests across 28 test files (100% passing).
+  - Full milestone audit passed with 17/17 requirements validated.
+
+</details>
 
 <details>
 <summary>v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-12)</summary>
@@ -136,7 +155,7 @@ A high-performance document management system and web dashboard for housing digi
 - **Comprehensive Multi-Stack Test Coverage & Verification:**
   - 85 ASP.NET Core xUnit tests (`web-net/FileOrganizer.Tests/`, including 32 in `ArabicReshaperTests.cs`).
   - 33 Python backend tests (18 in `tests/test_v14_features.py`, 13 in `tests/test_document_management_api.py`, 2 in `tests/test_house_profile_api.py`).
-  - 176 Frontend Vitest tests across 19 files (`npm run test:frontend`, including 6 in `doc_viewer.test.js`, 6 in `house_settings_modal.test.js`, 3 in `timeline_pinned_badge.test.js`, 7 in `add_house.test.js`, 5 in `delete_house.test.js`, 5 in `house_profile.test.js`, 4 in `unified_header.test.js`, 3 in `tab_labels.test.js`, 5 in `export_archive_modal.test.js`, 16 in `batch_operations.test.js`, and 8 in `folder_select_checkbox.test.js`).
+  - 176 Frontend Vitest tests across 19 files (`npm run test:frontend`).
   - 49 Playwright Browser E2E tests.
   - Zero static asset diff between `src/api/static/`, `web-net/wwwroot/`, and `dist/win-x64/wwwroot/`.
 
@@ -216,6 +235,23 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 
 ### Validated
 
+- ✓ Completely remove all legacy Python source files, .venv, requirements.txt, and pytest files (ARCH-01) — v15.0
+- ✓ Reorganize ASP.NET Core project into idiomatic `src/HousingApplication.Web/` with `HousingApplication.sln` (ARCH-02) — v15.0
+- ✓ Consolidate test suites under `tests/` with backend in `tests/HousingApplication.Tests/` (ARCH-03) — v15.0
+- ✓ Update all Vitest imports across `tests/frontend/` to load assets from `src/HousingApplication.Web/wwwroot/js/` (ARCH-04) — v15.0
+- ✓ Update `run-mac.sh` and `package.json` to reference new paths with zero Python dependencies (ARCH-05) — v15.0
+- ✓ SQLite database schema updated with `is_resident INTEGER NOT NULL DEFAULT 1` and `notes TEXT` with auto-migration (DB-01) — v15.0
+- ✓ Data models, DTOs, and repository methods read, write, and serialize `is_resident` and `notes` (DB-02) — v15.0
+- ✓ Occupancy subqueries strictly filter `is_resident = 1`, keeping houses with only applicants vacant (`grey`) (VCN-01) — v15.0
+- ✓ Auto-reallocation ignores non-residing applicants for date-window and default fallback matching (VCN-02) — v15.0
+- ✓ Segregate House Profile Tenancy Register into Resident Tenants and Applicants / Unfulfilled Allocations (REG-01) — v15.0
+- ✓ Distinctive applicant card styling featuring `📋 متقدم (لم يسكن)`, order date, doc counts, and notes (REG-02) — v15.0
+- ✓ Clicking applicant card navigates into dedicated category folders view (REG-03) — v15.0
+- ✓ House Settings modal supports adding/editing applicants via Resident/Applicant toggle with disabled fields (SET-01) — v15.0
+- ✓ Ingest Station, Batch Move, and Batch Copy modals badge applicant options (ING-01) — v15.0
+- ✓ Timeline View and Command Palette search results display applicant badge for documents and tenants (TIM-01) — v15.0
+- ✓ Backend xUnit tests covering `is_resident` migrations, vacancy calculations, and reallocation guardrails (VER-01) — v15.0
+- ✓ Frontend Vitest tests covering segregated register, applicant card rendering, settings modal, and ingest dropdowns (VER-02) — v15.0
 - ✓ Full house archive ZIP export endpoint in FastAPI and ASP.NET Core (EXP-01) — v14.0
 - ✓ UI Export Archive ZIP button on House Profile header with toast feedback (EXP-02) — v14.0
 - ✓ Multi-select checkboxes and floating bottom action bar in category folders (BAT-01) — v14.0
@@ -304,30 +340,42 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 - ✓ Modular restructuring (core, utils, tenant_config, grouping, timeline, routing) — v2.0
 - ✓ Port file-categorizer OCR and Gemini logic to main repository — v3.0
 
+### Active
+
+(None — plan next milestone with /gsd-new-milestone)
+
 ### Out of Scope
 
 - Client-side document mutation / editing (vault PDFs are immutable).
 - Complex multi-master database replication (single SQLite file with WAL mode satisfies all performance requirements).
+- Python runtime fallback (the application is 100% powered by native ASP.NET Core 8.0; dual-backend parity is deprecated).
+- Automatic OCR classification of applicants (handled deterministically via manual ingestion or explicit assignment).
 
 ## Current State
 
+- ✅ Shipped v15.0 Decoupled .NET Core Architecture & Non-Residing Applicants Archive on 2026-09-13.
 - ✅ Shipped v14.0 Power-User Operations & Portfolio Expansion on 2026-09-12.
 - ✅ Shipped v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server on 2026-09-09.
 - ✅ Shipped v12.0 Unified Document Ingestion System on 2026-09-09.
 - ✅ Shipped v11.0 Database Backend & Clean Storage Architecture on 2026-09-09.
-- Robust multi-stack test coverage: 148 ASP.NET Core xUnit tests (100% passing), 44 Python pytest tests across API and feature suites, 277 frontend Vitest tests across 27 test files (100% passing), and 49 Playwright Browser E2E suite.
-- Dual-backend runtime parity: FastAPI and ASP.NET Core 8.0 Minimal APIs running with 100% JSON contract and functional parity, matching schema migrations, and zero static asset diff across `src/api/static/`, `web-net/wwwroot/`, and `dist/win-x64/wwwroot/`.
+- Robust test coverage: 158 ASP.NET Core xUnit tests (100% passing) and 293 frontend Vitest tests across 28 test files (100% passing).
+- Pure single-stack runtime: 100% native ASP.NET Core 8.0 Minimal API backend and static file server with zero Python runtime dependencies.
 
 ## Context
 
 - The codebase has been transitioned from filesystem globbing and JSON state files to a high-performance SQLite relational database (`organizer.db`).
 - Disk structure per house is simplified to `{area}/{house}/batches/` (scans) and `{area}/{house}/vault/` (sliced PDFs).
 - All Windows `.lnk` shortcuts, nested Arabic directory trees, and `state.json`/`report.json` dependencies are replaced by SQLite records and fast SQL queries.
+- Pure ASP.NET Core 8.0 minimal architecture powers both the web API and static dashboard without requiring Python or external runtimes.
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |---|---|---|
+| Pure .NET Core Architecture | Eliminated all Python dependencies, establishing high performance single-stack ASP.NET Core 8.0 Minimal API. | ✓ Completed (Milestone v15.0). |
+| Single-Table Tenant/Applicant Union | Reused `tenants` table with `is_resident INTEGER` rather than creating separate applicant tables, preserving foreign key integrity and folder isolation. | ✓ Completed (Phase 110). |
+| Vacancy & Allocation Guardrails | Houses with only non-residing applicants remain grey / vacant; document auto-reallocation strictly excludes non-residing applicants. | ✓ Completed (Phase 110). |
+| Segregated Tenancy Register UI | Two visually distinct sections in House Profile separating resident tenants from applicants. | ✓ Completed (Phase 111). |
 | Power-User Operations & Portfolio Expansion | Equip property managers with high-utility operations: one-click ZIP export, multi-select bulk operations, UI-based house creation, and global keyboard shortcuts. | ✓ Completed (Milestone v14.0). |
 | Export Options Modal & Chronological PDF Dossier | Single entry point modal (`#export-archive-modal`) offering choice between categorized ZIP archive and merged chronological PDF dossier, with tenancy scope filtering and normalized 2-digit folder prefixes. | ✓ Completed (Phase 105 & QCK-01). |
 | Timeline De-duplication Architecture | Copying documents to multiple category folders for cross-referencing sets `is_timeline_visible = 0`. Timeline queries filter copies so each physical event appears exactly once, avoiding timeline clutter while keeping category views complete. | ✓ Completed (QCK-02). |
@@ -344,4 +392,4 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 | Playwright E2E Verification | Verifies real browser behavior against actual database records, guaranteeing zero regressions across Tree, Grid, Search, and PDF viewing. | ✓ Completed (Phase 96). |
 
 ---
-*Last updated: 2026-09-13 after v15.0 milestone start*
+*Last updated: 2026-09-13 after v15.0 milestone*

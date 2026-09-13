@@ -2,9 +2,11 @@
 gsd_state_version: 1.0
 milestone: v15.0
 milestone_name: Decoupled .NET Core Architecture & Non-Residing Applicants Archive
-status: in_progress
-last_updated: "2026-09-13T20:43:00.000Z"
+current_phase: 0
+status: completed
+last_updated: "2026-09-13T18:24:21.437Z"
 last_activity: 2026-09-13
+last_activity_desc: Milestone v15.0 completed and archived
 progress:
   total_phases: 5
   completed_phases: 5
@@ -16,11 +18,11 @@ progress:
 # Milestone State
 
 **Current Milestone:** v15.0: Decoupled .NET Core Architecture & Non-Residing Applicants Archive
-**Status:** complete
+**Status:** v15.0 milestone complete
 
 ## Context
 
-Equip the digital archive management system with power-user operational tools: one-click house archive ZIP export, interactive export options modal with combined chronological PDF dossier generation (descending sort, running footer with preserved category numbers, Arabic cursive reshaping and BiDi visual reordering), multi-document batch operations (bulk move, bulk delete, and bulk copy with timeline de-duplication architecture), target tenant selection during batch moves and copies, portfolio expansion with UI-based house creation, double-click inline document renaming in Categories and Timeline views, export button relocation to Document Panel header with bottom archive summary removal, an interactive keyboard shortcuts modal (`?`), category-specific folder icons for standard folders (01-13) with empty folder fallback for custom folders (14+), folder select checkbox replacing verbose text button that reveals documents and selects all, and complete parity across both FastAPI and ASP.NET Core 8.0 backends with comprehensive multi-stack test coverage (84 xUnit, 17 v14 pytest, 13 doc management, 143 Vitest across 13 files, and 49 Playwright E2E).
+Milestone v15.0 has successfully completed and archived. The application now runs on a pure ASP.NET Core 8.0 Minimal API architecture with zero Python dependencies, featuring complete database and UI support for non-residing applicants, unfulfilled allocations, segregated tenancy registers, and robust vacancy guardrails. 158 backend xUnit tests and 293 frontend Vitest tests across 28 files pass 100%.
 
 ## Target Phases
 
@@ -88,14 +90,36 @@ Equip the digital archive management system with power-user operational tools: o
 - `260912-past-tenants-vacate-sorting`: Past Tenants Chronological Sorting by Vacate Date (QCK-41). Fixed SQL queries in .NET (`FileOrganizerRepository.cs`) and Python (`routes.py`) to sort past tenants by `end_date DESC, start_date DESC` instead of `start_date DESC`. Ensures tenants who vacated most recently (e.g. `يحيى محمد علي` who vacated in 2024 after a 24-year residency) appear first (#1) instead of older vacating tenants with later start dates (e.g. `حمد` who vacated in 2023). Vacant house subtitles now accurately reflect the last occupancy period (`2000 - 2024`). Verified by unit tests in `RepositoryTests.cs` and `test_api_v11.py`.
 - `260912-header-tenure-legend-vacant`: Header Bar Tenure Legend Vacant Indicator & Full Dark Mode Support (QCK-42). Added the `Vacant` indicator with neutral slate grey dot marker (`bg-slate-400 dark:bg-slate-500`) to `#grid-tenure-legend` in `index.html` across all 3 web roots (`src/api/static/`, `web-net/wwwroot/`, `dist/win-x64/wwwroot/`) alongside `< 5y`, `5–10y`, and `> 10y`, with full dark mode styling. Verified by automated tests in `unified_header.test.js`.
 
+## Deferred Items
+
+Items acknowledged and deferred at milestone close on 2026-09-13:
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug | upload-button-ux-enhancement | legacy / deferred |
+| quick_task | 260909-doc-management-move-copy-rename | legacy / deferred |
+| quick_task | 260909-hi2-document-metadata-inspector-and-notes-mo | legacy / deferred |
+| quick_task | 260909-house-tenancy-register-and-archive-profile | legacy / deferred |
+| quick_task | 260909-spotlight-search-and-modularize-ui | legacy / deferred |
+| quick_task | 260910-arabic-footer-shaping-fix | legacy / deferred |
+| quick_task | 260910-batch-copy-timeline-hidden | legacy / deferred |
+| quick_task | 260910-delete-document-feature | legacy / deferred |
+| quick_task | 260910-double-click-inline-rename | legacy / deferred |
+| quick_task | 260910-export-archive-modal-format-tenant | legacy / deferred |
+| quick_task | 260911-batch-tenant-selection-and-remove-copy-note | legacy / deferred |
+| quick_task | 260911-category-doc-count-circle-and-smaller-doc-date | legacy / deferred |
+| quick_task | 260911-doc-menu-dropdown-and-folder-date | legacy / deferred |
+| quick_task | 260911-nh3-remove-emojis-from-tenant-selection-list | legacy / deferred |
+| quick_task | 260911-relocate-export-button-and-remove-archive-summary | legacy / deferred |
+| quick_task | 260911-streamline-export-modal-and-remove-batch-emojis | legacy / deferred |
+
 ## Current Position
 
-Phase: All Phases Complete (109-113)
-Plan: All Plans Complete (5/5)
-Status: Milestone Complete & Audited
-Last activity: 2026-09-13 — Milestone v15.0 finished
+Phase: Milestone v15.0 complete
+Plan: —
+Status: Awaiting next milestone
+Last activity: 2026-09-13 — Milestone v15.0 completed and archived
 
 ## Operator Next Steps
 
-- Milestone v15.0 complete, fully audited, and verified (158 xUnit tests, 293 Vitest tests passing).
-- Run `/gsd-complete-milestone` to archive milestone artifacts.
+- Start the next milestone with /gsd-new-milestone
