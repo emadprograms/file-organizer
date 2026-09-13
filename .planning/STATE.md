@@ -7,10 +7,10 @@ last_updated: "2026-09-13T20:43:00.000Z"
 last_activity: 2026-09-13
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 5
-  completed_plans: 2
-  percent: 40
+  completed_plans: 3
+  percent: 60
 ---
 
 # Milestone State
@@ -26,7 +26,7 @@ Equip the digital archive management system with power-user operational tools: o
 
 - [x] Phase 109: Pure .NET Core Architecture & Python Elimination (completed 2026-09-13)
 - [x] Phase 110: Database Schema & Vacancy Guardrails for Applicants (completed 2026-09-13)
-- [ ] Phase 111: Segregated Tenancy & Applicant Register UI
+- [x] Phase 111: Segregated Tenancy & Applicant Register UI (completed 2026-09-13)
 - [ ] Phase 112: House Settings Modal & Ingestion Badging
 - [ ] Phase 113: End-to-End Test Suite Verification & Milestone Audit
 
@@ -90,18 +90,16 @@ Equip the digital archive management system with power-user operational tools: o
 
 ## Current Position
 
-Phase: 111 - Segregated Tenancy & Applicant Register UI
+Phase: 112 - House Settings Modal & Ingestion Badging
 Plan: Not started
 Status: Ready for planning
-Last activity: 2026-09-13 — Phase 110 completed
+Last activity: 2026-09-13 — Phase 111 completed
 
 ## Operator Next Steps
 
-- Proceed to Phase 111: Segregated Tenancy & Applicant Register UI.
-- Create 111-CONTEXT.md and 111-01-PLAN.md.
-- Update `house-profile.js` to split the Tenancy Register into two stacked sections:
-  1. "المستأجرون المقيمون" (Resident Tenants: Current + Past)
-  2. "سجل المتقدمين وطلبات التخصيص" (Applicants & Unfulfilled Allocations)
-- Render applicant cards with `📋 متقدم (لم يسكن)`, order/application date, document counts, and optional notes.
-- Wire applicant card click to open their dedicated category folders view (`#/area/{area}/house/{house}/tenant/{house}_{applicantName}`).
-- Add Vitest tests in `tests/frontend/components/` and verify.
+- Proceed to Phase 112: House Settings Modal & Ingestion Badging.
+- Create 112-CONTEXT.md and 112-01-PLAN.md.
+- Update House Settings modal (`#tenant-modal` in `tenant-manager.js` and `index.html`) to support adding/editing applicants via a Resident / Applicant toggle, automatically disabling/hiding "Present" and "End Date" and relabeling "Start Date" to "Application / Order Date".
+- Update Ingest Station (`ingest-station.js`), Batch Move, and Batch Copy modals to clearly group or badge applicant options in tenant dropdowns (`📋 فلان (متقدم - لم يسكن)`).
+- Update Timeline View (`timeline-view.js`) and Command Palette (`search.js`) to display an applicant badge for documents and tenants.
+- Add frontend Vitest tests and verify.

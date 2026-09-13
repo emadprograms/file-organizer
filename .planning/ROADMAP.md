@@ -17,7 +17,7 @@
 
 - [x] Phase 109: Pure .NET Core Architecture & Python Elimination (1/1 plans) — completed 2026-09-13
 - [x] Phase 110: Database Schema & Vacancy Guardrails for Applicants (1/1 plans) — completed 2026-09-13
-- [ ] Phase 111: Segregated Tenancy & Applicant Register UI (0/1 plans)
+- [x] Phase 111: Segregated Tenancy & Applicant Register UI (1/1 plans) — completed 2026-09-13
 - [ ] Phase 112: House Settings Modal & Ingestion Badging (0/1 plans)
 - [ ] Phase 113: End-to-End Test Suite Verification & Milestone Audit (0/1 plans)
 
@@ -123,6 +123,6 @@ See [.planning/milestones/v11.0-ROADMAP.md](milestones/v11.0-ROADMAP.md) for ful
 |---|---|---|---|---|
 | 109. Pure .NET Core Architecture & Python Elimination | v15.0 | 1/1 | Complete | 2026-09-13 |
 | 110. Database Schema & Vacancy Guardrails for Applicants | v15.0 | 1/1 | Complete | 2026-09-13 |
-| 111. Segregated Tenancy & Applicant Register UI | v15.0 | 0/1 | Pending | - |
+| 111. Segregated Tenancy & Applicant Register UI | v15.0 | 1/1 | Complete | 2026-09-13 |
 | 112. House Settings Modal & Ingestion Badging | v15.0 | 0/1 | Pending | - |
 | 113. End-to-End Test Suite Verification & Milestone Audit | v15.0 | 0/1 | Pending | - |

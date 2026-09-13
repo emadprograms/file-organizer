@@ -40,6 +40,8 @@
                         start_date: sDate,
                         end_date: isActive ? null : eDate,
                         is_active: isActive,
+                        is_resident: (kt.is_resident !== undefined) ? kt.is_resident : 1,
+                        notes: kt.notes || null,
                         duration_str_ar: isActive ? `بدء الإيجار ${sDate.substring(0, 4)} (مستمر)` : `فترة الإيجار: ${sDate.substring(0, 4)} – ${eDate.substring(0, 4)}`,
                         document_count: tenantDocCounts[kt.name] || 0,
                         category_count: (tenantCatSets[kt.name] || new Set()).size
@@ -82,7 +84,17 @@
             }
 
             if (statsBadge) {
-                statsBadge.textContent = `${currentHouseProfile.tenants.length} مستأجرين · ${currentHouseProfile.archive.total_documents} وثيقة`;
+                const residents = (currentHouseProfile.tenants || []).filter(t => t.is_resident !== 0 && t.is_resident !== false);
+                const applicants = (currentHouseProfile.tenants || []).filter(t => t.is_resident === 0 || t.is_resident === false);
+                const totalDocs = (currentHouseProfile.archive && currentHouseProfile.archive.total_documents !== undefined)
+                    ? currentHouseProfile.archive.total_documents
+                    : 0;
+
+                if (applicants.length > 0) {
+                    statsBadge.textContent = `${residents.length} مستأجرين · ${applicants.length} طلبات تخصيص · ${totalDocs} وثيقة`;
+                } else {
+                    statsBadge.textContent = `${residents.length} مستأجرين · ${totalDocs} وثيقة`;
+                }
                 statsBadge.classList.remove('hidden');
             }
 
@@ -169,14 +181,34 @@
         container.className = 'space-y-2 py-1';
         container.dir = 'rtl';
 
-        // Tenant Cards
-        const tenantsList = document.createElement('div');
-        tenantsList.className = 'space-y-2';
+        const allTenants = (profile && Array.isArray(profile.tenants)) ? profile.tenants : [];
+        const residents = allTenants.filter(t => t.is_resident !== 0 && t.is_resident !== false);
+        const applicants = allTenants.filter(t => t.is_resident === 0 || t.is_resident === false);
 
-        if (profile.tenants.length === 0) {
-            tenantsList.innerHTML = '<p class="text-xs text-slate-400 p-4 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200">لا يوجد مستأجرون مسجلون لهذا المنزل حالياً.</p>';
+        // Section 1: Resident Tenants (residents-section)
+        const residentsSection = document.createElement('div');
+        residentsSection.className = 'residents-section space-y-2';
+
+        if (applicants.length > 0) {
+            const residentsHeader = document.createElement('div');
+            residentsHeader.className = 'flex items-center justify-between px-1 mb-1.5 residents-header';
+            residentsHeader.innerHTML = `
+                <h3 class="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    <span>المستأجرون المقيمون</span>
+                    <span class="text-[10px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.2 rounded-full">${residents.length}</span>
+                </h3>
+            `;
+            residentsSection.appendChild(residentsHeader);
+        }
+
+        if (residents.length === 0) {
+            const emptyEl = document.createElement('p');
+            emptyEl.className = 'text-xs text-slate-400 p-4 text-center bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-dashed border-slate-200 dark:border-slate-700';
+            emptyEl.textContent = 'لا يوجد مستأجرون مقيمون مسجلون لهذا المنزل حالياً.';
+            residentsSection.appendChild(emptyEl);
         } else {
-            profile.tenants.forEach(t => {
+            residents.forEach(t => {
                 const durCat = getTenantTenureCategory(t);
                 const theme = TENURE_THEMES[durCat] || TENURE_THEMES.short;
 
@@ -222,13 +254,13 @@
                                 <div class="flex items-center gap-2 mt-1 text-[11px] text-slate-500 flex-wrap">
                                     <span class="text-slate-600 font-medium">${cleanDuration}</span>
                                     <span class="text-slate-300">•</span>
-                                    <span class="inline-flex items-center gap-1 text-slate-600" title="${t.document_count} مستند">
+                                    <span class="inline-flex items-center gap-1 text-slate-600" title="${t.document_count || 0} مستند">
                                         <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                        <span class="font-semibold">${t.document_count}</span>
+                                        <span class="font-semibold">${t.document_count || 0}</span>
                                     </span>
-                                    <span class="inline-flex items-center gap-1 text-slate-600" title="${t.category_count} مجلدات">
+                                    <span class="inline-flex items-center gap-1 text-slate-600" title="${t.category_count || 0} مجلدات">
                                         <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-                                        <span class="font-semibold">${t.category_count}</span>
+                                        <span class="font-semibold">${t.category_count || 0}</span>
                                     </span>
                                 </div>
                             </div>
@@ -243,10 +275,86 @@
                     window.location.hash = `#/area/${encodeURIComponent(profile.area_id)}/house/${encodeURIComponent(profile.house_id)}/tenant/${encodeURIComponent(profile.house_id + '_' + t.name)}`;
                 };
 
-                tenantsList.appendChild(card);
+                residentsSection.appendChild(card);
             });
         }
-        container.appendChild(tenantsList);
+        container.appendChild(residentsSection);
+
+        // Section 2: Applicants & Unfulfilled Allocations (applicants-section)
+        if (applicants.length > 0) {
+            const applicantsSection = document.createElement('div');
+            applicantsSection.className = 'applicants-section mt-4 pt-3 border-t border-slate-200/80 dark:border-slate-700/80 space-y-2';
+
+            const applicantsHeader = document.createElement('div');
+            applicantsHeader.className = 'flex items-center justify-between px-1 mb-1.5 applicants-header';
+            applicantsHeader.innerHTML = `
+                <h3 class="text-xs font-bold text-purple-800 dark:text-purple-300 flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                    <span>سجل المتقدمين وطلبات التخصيص</span>
+                    <span class="text-[10px] font-semibold text-purple-700 bg-purple-100 dark:bg-purple-950/60 dark:text-purple-300 px-1.5 py-0.2 rounded-full">${applicants.length}</span>
+                </h3>
+            `;
+            applicantsSection.appendChild(applicantsHeader);
+
+            applicants.forEach(t => {
+                const card = document.createElement('div');
+                card.className = 'applicant-profile-card tenant-profile-card p-3 rounded-xl border border-dashed border-purple-200 dark:border-purple-800/60 bg-purple-50/20 dark:bg-purple-950/20 hover:border-purple-400 hover:bg-purple-50/40 transition-all cursor-pointer group shadow-2xs hover:shadow-sm';
+                card.dataset.tenantName = t.name;
+
+                const appDateStr = t.start_date ? `طلب / تخصيص: ${String(t.start_date).substring(0, 10)}` : 'طلب تخصيص';
+
+                const notesHtml = t.notes ? `
+                    <div class="applicant-notes mt-1.5 text-[11px] text-purple-800 dark:text-purple-300 bg-purple-100/70 dark:bg-purple-900/40 px-2 py-0.5 rounded border border-purple-200/60 dark:border-purple-800/40 inline-flex items-center gap-1">
+                        <svg class="w-3 h-3 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        <span>${t.notes}</span>
+                    </div>
+                ` : '';
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5 min-w-0 flex-1">
+                            <div class="w-8 h-8 rounded-lg bg-purple-100/80 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-2">
+                                    <h4 class="text-xs font-bold text-slate-900 dark:text-slate-100 group-hover:text-purple-600 transition-colors truncate">${t.name}</h4>
+                                    <span class="applicant-badge inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-purple-200 dark:border-purple-800/60 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300" title="متقدم - لم يسكن في المنزل">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                                        📋 متقدم (لم يسكن)
+                                    </span>
+                                </div>
+                                <div class="flex items-center gap-2 mt-1 text-[11px] text-slate-500 flex-wrap">
+                                    <span class="text-slate-600 dark:text-slate-400 font-medium">${appDateStr}</span>
+                                    <span class="text-slate-300 dark:text-slate-600">•</span>
+                                    <span class="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400" title="${t.document_count || 0} مستند">
+                                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                                        <span class="font-semibold">${t.document_count || 0}</span>
+                                    </span>
+                                    <span class="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400" title="${t.category_count || 0} مجلدات">
+                                        <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                                        <span class="font-semibold">${t.category_count || 0}</span>
+                                    </span>
+                                </div>
+                                ${notesHtml}
+                            </div>
+                        </div>
+                        <div class="flex items-center text-slate-300 group-hover:text-purple-600 group-hover:-translate-x-1 transition-all flex-shrink-0">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        </div>
+                    </div>
+                `;
+
+                card.onclick = () => {
+                    window.location.hash = `#/area/${encodeURIComponent(profile.area_id)}/house/${encodeURIComponent(profile.house_id)}/tenant/${encodeURIComponent(profile.house_id + '_' + t.name)}`;
+                };
+
+                applicantsSection.appendChild(card);
+            });
+
+            container.appendChild(applicantsSection);
+        }
+
         docListEl.appendChild(container);
         initExportArchiveHeaderButton();
     }

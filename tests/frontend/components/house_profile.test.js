@@ -261,6 +261,163 @@ describe('House Profile & Header Archive Export', () => {
     expect(singleCards.length).toBe(1);
     expect(singleCards[0].textContent).toContain('Tenant 1');
   });
+
+  describe('Segregated Tenancy & Applicant Register UI (Phase 111)', () => {
+    it('renders segregated sections when both residents and applicants exist', () => {
+      const mockProfile = {
+        area_id: 'Area 1',
+        house_id: 'House 42',
+        tenants: [
+          {
+            name: 'فهد المنصور',
+            is_active: true,
+            is_resident: 1,
+            duration_str_ar: 'بدء الإيجار 2021 (مستمر)',
+            category_count: 3,
+            document_count: 12
+          },
+          {
+            name: 'خالد عبد الله',
+            is_active: false,
+            is_resident: 0,
+            start_date: '2024-03-15',
+            notes: 'ألغي التخصيص لعدم المراجعة',
+            category_count: 2,
+            document_count: 4
+          }
+        ],
+        archive: { total_documents: 16, total_pages: 20, categories: [] }
+      };
+
+      window.renderHouseProfile(mockProfile);
+
+      const docList = document.getElementById('document-list');
+      const applicantsSection = docList.querySelector('.applicants-section');
+      expect(applicantsSection).not.toBeNull();
+      expect(applicantsSection.textContent).toContain('سجل المتقدمين وطلبات التخصيص');
+      expect(applicantsSection.textContent).toContain('📋 متقدم (لم يسكن)');
+      expect(applicantsSection.textContent).toContain('ألغي التخصيص لعدم المراجعة');
+      expect(applicantsSection.textContent).toContain('2024-03-15');
+
+      // Residents section header also displayed when applicants exist
+      const residentsSection = docList.querySelector('.residents-section');
+      expect(residentsSection).not.toBeNull();
+      expect(residentsSection.textContent).toContain('المستأجرون المقيمون');
+      expect(residentsSection.textContent).toContain('فهد المنصور');
+
+      // Clicking applicant card navigates to applicant hash route
+      const applicantCard = applicantsSection.querySelector('.applicant-profile-card');
+      expect(applicantCard).not.toBeNull();
+      window.location.hash = '';
+      applicantCard.click();
+      expect(window.location.hash).toBe(
+        `#/area/${encodeURIComponent('Area 1')}/house/${encodeURIComponent('House 42')}/tenant/${encodeURIComponent('House 42_خالد عبد الله')}`
+      );
+    });
+
+    it('renders empty residents note and applicant section when only applicants exist', () => {
+      const mockProfile = {
+        area_id: 'Area 1',
+        house_id: 'House 42',
+        tenants: [
+          {
+            name: 'سالم الكعبي',
+            is_active: false,
+            is_resident: 0,
+            start_date: '2024-06-01',
+            notes: 'لم يستلم المفتاح',
+            category_count: 1,
+            document_count: 2
+          }
+        ],
+        archive: { total_documents: 2, total_pages: 2, categories: [] }
+      };
+
+      window.renderHouseProfile(mockProfile);
+
+      const docList = document.getElementById('document-list');
+      expect(docList.textContent).toContain('لا يوجد مستأجرون مقيمون مسجلون لهذا المنزل حالياً.');
+      const applicantCards = docList.querySelectorAll('.applicant-profile-card');
+      expect(applicantCards.length).toBe(1);
+      expect(applicantCards[0].textContent).toContain('سالم الكعبي');
+      expect(docList.querySelector('.applicants-section')).not.toBeNull();
+    });
+
+    it('omits applicants section when no applicants exist', () => {
+      const mockProfile = {
+        area_id: 'Area 1',
+        house_id: 'House 42',
+        tenants: [
+          {
+            name: 'مقيم فقط',
+            is_active: true,
+            is_resident: 1,
+            duration_str_ar: 'بدء الإيجار 2022 (مستمر)',
+            category_count: 2,
+            document_count: 5
+          }
+        ],
+        archive: { total_documents: 5, total_pages: 5, categories: [] }
+      };
+
+      window.renderHouseProfile(mockProfile);
+
+      const docList = document.getElementById('document-list');
+      expect(docList.querySelector('.applicants-section')).toBeNull();
+      expect(docList.querySelector('.residents-header')).toBeNull();
+      const residentCards = docList.querySelectorAll('.tenant-profile-card');
+      expect(residentCards.length).toBe(1);
+      expect(residentCards[0].textContent).toContain('مقيم فقط');
+    });
+
+    it('formats statsBadge to include both residents and applicants when applicants exist in loadHouseProfile', async () => {
+      const mockHouseProfile = {
+        area_id: 'Area 1',
+        house_id: 'House 42',
+        tenants: [
+          { name: 'Resident 1', is_resident: 1, is_active: true },
+          { name: 'Applicant 1', is_resident: 0, is_active: false },
+          { name: 'Applicant 2', is_resident: 0, is_active: false }
+        ],
+        archive: { total_documents: 15 }
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockHouseProfile
+      });
+
+      await window.loadHouseProfile('Area 1', 'House 42');
+
+      const statsBadge = document.getElementById('stats-badge');
+      expect(statsBadge.textContent).toBe('1 مستأجرين · 2 طلبات تخصيص · 15 وثيقة');
+      expect(statsBadge.classList.contains('hidden')).toBe(false);
+    });
+
+    it('formats statsBadge with only residents when no applicants exist in loadHouseProfile', async () => {
+      const mockHouseProfile = {
+        area_id: 'Area 1',
+        house_id: 'House 42',
+        tenants: [
+          { name: 'Resident 1', is_resident: 1, is_active: true },
+          { name: 'Resident 2', is_resident: 1, is_active: false }
+        ],
+        archive: { total_documents: 20 }
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockHouseProfile
+      });
+
+      await window.loadHouseProfile('Area 1', 'House 42');
+
+      const statsBadge = document.getElementById('stats-badge');
+      expect(statsBadge.textContent).toBe('2 مستأجرين · 20 وثيقة');
+      expect(statsBadge.classList.contains('hidden')).toBe(false);
+    });
+  });
 });
+
 
 

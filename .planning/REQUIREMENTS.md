@@ -22,9 +22,9 @@
 
 ### Segregated Tenancy & Applicant Register UI (REG)
 
-- [ ] **REG-01**: Update House Profile (`house-profile.js`) to segregate the Tenancy Register into two distinct visual sections: **المستأجرون المقيمون** (Resident Tenants: Current with tenure colors & Past sorted by vacate date) and **سجل المتقدمين وطلبات التخصيص** (Applicants & Unfulfilled Allocations).
-- [ ] **REG-02**: Implement distinctive card styling for applicants featuring an `📋 متقدم (لم يسكن)` badge, application/order date, document count, and optional notes (e.g. `ألغي التخصيص`, `لم يستلم المفتاح`).
-- [ ] **REG-03**: Enable clicking an applicant's card in House Profile to navigate directly to their dedicated category folders (`03 - أمر تخصيص`, `02 - بيانات شخصية`, etc.) in Folders view.
+- [x] **REG-01**: Update House Profile (`house-profile.js`) to segregate the Tenancy Register into two distinct visual sections: **المستأجرون المقيمون** (Resident Tenants: Current with tenure colors & Past sorted by vacate date) and **سجل المتقدمين وطلبات التخصيص** (Applicants & Unfulfilled Allocations).
+- [x] **REG-02**: Implement distinctive card styling for applicants featuring an `📋 متقدم (لم يسكن)` badge, application/order date, document count, and optional notes (e.g. `ألغي التخصيص`, `لم يستلم المفتاح`).
+- [x] **REG-03**: Enable clicking an applicant's card in House Profile to navigate directly to their dedicated category folders (`03 - أمر تخصيص`, `02 - بيانات شخصية`, etc.) in Folders view.
 
 ### House Settings Modal & Ingestion Badging (SET & ING)
 
@@ -57,9 +57,9 @@
 | DB-02 | Phase 110 | Complete |
 | VCN-01 | Phase 110 | Complete |
 | VCN-02 | Phase 110 | Complete |
-| REG-01 | Phase 111 | Pending |
-| REG-02 | Phase 111 | Pending |
-| REG-03 | Phase 111 | Pending |
+| REG-01 | Phase 111 | Complete |
+| REG-02 | Phase 111 | Complete |
+| REG-03 | Phase 111 | Complete |
 | SET-01 | Phase 112 | Pending |
 | ING-01 | Phase 112 | Pending |
 | TIM-01 | Phase 112 | Pending |
