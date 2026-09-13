@@ -4,9 +4,9 @@ milestone: v14.0
 milestone_name: Power-User Operations & Portfolio Expansion
 current_phase: 108 (All Complete)
 status: completed
-last_updated: "2026-09-12T14:32:00.000Z"
-last_activity: 2026-09-12
-last_activity_desc: "Completed Vacated Tenant Document Date Conflict & Tenancy Extension Prompt (QCK-40). 277 Vitest tests across 27 files (100%), 148 xUnit tests, 44 pytest tests passing, zero static asset diff."
+last_updated: "2026-09-13T19:40:00.000Z"
+last_activity: 2026-09-13
+last_activity_desc: "Completed Past Tenants Chronological Sorting (QCK-41) & Header Bar Tenure Legend Vacant Indicator (QCK-42). 277 Vitest tests across 27 files (100%), 148 xUnit tests, 44 pytest tests passing, zero static asset diff."
 progress:
   total_phases: 4
   completed_phases: 4
@@ -89,13 +89,15 @@ Equip the digital archive management system with power-user operational tools: o
 - `260912-jf8`: Vacant House Grey Styling & False Active Tenant Fallback Removal (QCK-38). When a house has no active tenant (all tenants vacated in the past), the backend previously fell back to `activeTenant = hTenants[0]` and calculated duration category as if residing. Removed fallback across ASP.NET Core (`FileOrganizerRepository.cs`), Python FastAPI (`routes.py`), and static exporters (`export_static.py`, `export_web.cjs`), setting `CurrentTenant` and `DurationCategory` to null and `TenureColor` to "grey". Updated Area Grid (`area-grid.js`) to render a grey left border (`border-l-slate-300`), a `Vacant` badge instead of `Unknown`, and removed the `idx === 0` fallback that falsely colored past tenants. Verified by backend xUnit test in `RepositoryTests.cs`, Pytest test in `test_api_v11.py`, 4 frontend tests in `area_grid_card.test.js`, and zero static asset diff.
 - `260912-move-doc-other-tenant`: Instant Cross-Tenant Document Move & Folder Lifecycle (QCK-39). When moving single or multi-selected documents to another tenant within the same house, documents now immediately disappear from the current tenant's folder list without requiring a manual refresh. Implemented `isMovingToOtherTenant(targetTenantVal, targetVaultIds, targetDoc)` and `removeDocFromDom(vaultId, sourceCatName)`: removes document elements from the DOM, decrements folder count badges, cleans up empty folder cards when count reaches 0, renders the empty state message when no folders remain, updates category statistics, and triggers background `refreshCurrentTab` to reconcile server state. Verified by 7 new unit tests in `move_to_other_tenant.test.js`, all 274 Vitest tests across 27 files (100%), 18 backend pytest tests, and zero static asset diff.
 - `260912-vacated-tenant-date-conflict`: Vacated Tenant Document Date Conflict & Tenancy Extension Prompt (QCK-40). When adding a document dated after a tenant's vacate date, backend APIs (.NET and Python FastAPI) throw an explicit HTTP 400 prompt asking if the user wishes to extend the tenant's date or confirm the date mismatch. Frontend displays an interactive `#vacated-tenant-modal` allowing users to extend the tenant's residency period, upload without extending, or cancel. Batch queues pre-validate documents against selected tenants. Verified by unit tests across .NET xUnit (`ApiEndpointTests.cs`), Python Pytest (`test_api_v11.py`), Vitest (`ingest_station.test.js`), with 148 xUnit, 44 pytest, and 277 Vitest tests passing with zero static asset diff.
+- `260912-past-tenants-vacate-sorting`: Past Tenants Chronological Sorting by Vacate Date (QCK-41). Fixed SQL queries in .NET (`FileOrganizerRepository.cs`) and Python (`routes.py`) to sort past tenants by `end_date DESC, start_date DESC` instead of `start_date DESC`. Ensures tenants who vacated most recently (e.g. `يحيى محمد علي` who vacated in 2024 after a 24-year residency) appear first (#1) instead of older vacating tenants with later start dates (e.g. `حمد` who vacated in 2023). Vacant house subtitles now accurately reflect the last occupancy period (`2000 - 2024`). Verified by unit tests in `RepositoryTests.cs` and `test_api_v11.py`.
+- `260912-header-tenure-legend-vacant`: Header Bar Tenure Legend Vacant Indicator & Full Dark Mode Support (QCK-42). Added the `Vacant` indicator with neutral slate grey dot marker (`bg-slate-400 dark:bg-slate-500`) to `#grid-tenure-legend` in `index.html` across all 3 web roots (`src/api/static/`, `web-net/wwwroot/`, `dist/win-x64/wwwroot/`) alongside `< 5y`, `5–10y`, and `> 10y`, with full dark mode styling. Verified by automated tests in `unified_header.test.js`.
 
 ## Current Position
 
 Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
 Plan: Plan 1/1 Complete
 Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-12 — Completed Vacated Tenant Document Date Conflict & Tenancy Extension Prompt (QCK-40). 277 Vitest tests across 27 files (100%), 148 xUnit tests, 44 pytest tests passing, zero static asset diff.
+Last activity: 2026-09-13 — Completed Past Tenants Chronological Sorting (QCK-41) & Header Bar Tenure Legend Vacant Indicator (QCK-42). 277 Vitest tests across 27 files (100%), 148 xUnit tests, 44 pytest tests passing, zero static asset diff.
 
 ## Operator Next Steps
 
