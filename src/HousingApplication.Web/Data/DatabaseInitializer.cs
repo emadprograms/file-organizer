@@ -75,7 +75,6 @@ CREATE TABLE IF NOT EXISTS pages (
 
 CREATE INDEX IF NOT EXISTS idx_houses_area ON houses(area_id);
 CREATE INDEX IF NOT EXISTS idx_tenants_house ON tenants(house_id);
-CREATE INDEX IF NOT EXISTS idx_tenants_resident ON tenants(is_resident);
 CREATE INDEX IF NOT EXISTS idx_batches_house ON batches(house_id);
 CREATE INDEX IF NOT EXISTS idx_pages_batch ON pages(batch_id);
 CREATE INDEX IF NOT EXISTS idx_pages_house ON pages(house_id);
@@ -92,9 +91,13 @@ CREATE INDEX IF NOT EXISTS idx_documents_title ON documents(arabic_title);
 
     public static void InitializeSchema(SqliteConnection connection)
     {
-        using var cmd = connection.CreateCommand();
-        cmd.CommandText = SchemaSql;
-        cmd.ExecuteNonQuery();
+        try
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = SchemaSql;
+            cmd.ExecuteNonQuery();
+        }
+        catch (SqliteException) { }
 
         try
         {
@@ -117,15 +120,27 @@ CREATE INDEX IF NOT EXISTS idx_documents_title ON documents(arabic_title);
             using var alterCmd = connection.CreateCommand();
             alterCmd.CommandText = "ALTER TABLE tenants ADD COLUMN notes TEXT;";
             alterCmd.ExecuteNonQuery();
+        }
+        catch (SqliteException) { }
+
+        try
+        {
+            using var idxCmd = connection.CreateCommand();
+            idxCmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_tenants_resident ON tenants(is_resident);";
+            idxCmd.ExecuteNonQuery();
         }
         catch (SqliteException) { }
     }
 
     public static async Task InitializeSchemaAsync(SqliteConnection connection)
     {
-        using var cmd = connection.CreateCommand();
-        cmd.CommandText = SchemaSql;
-        await cmd.ExecuteNonQueryAsync();
+        try
+        {
+            using var cmd = connection.CreateCommand();
+            cmd.CommandText = SchemaSql;
+            await cmd.ExecuteNonQueryAsync();
+        }
+        catch (SqliteException) { }
 
         try
         {
@@ -148,6 +163,14 @@ CREATE INDEX IF NOT EXISTS idx_documents_title ON documents(arabic_title);
             using var alterCmd = connection.CreateCommand();
             alterCmd.CommandText = "ALTER TABLE tenants ADD COLUMN notes TEXT;";
             await alterCmd.ExecuteNonQueryAsync();
+        }
+        catch (SqliteException) { }
+
+        try
+        {
+            using var idxCmd = connection.CreateCommand();
+            idxCmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_tenants_resident ON tenants(is_resident);";
+            await idxCmd.ExecuteNonQueryAsync();
         }
         catch (SqliteException) { }
     }
