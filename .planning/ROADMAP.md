@@ -2,7 +2,7 @@
 
 ## Milestones
 
-- ✅ **v14.0 Power-User Operations & Portfolio Expansion** — Phases 105-108 (shipped 2026-09-10)
+- ✅ **v14.0 Power-User Operations & Portfolio Expansion** — Phases 105-108 (shipped 2026-09-12)
 - ✅ **v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server** — Phases 101-104 (shipped 2026-09-09)
 - ✅ **v12.0 Unified Document Ingestion System** — Phases 97-100 (shipped 2026-09-09)
 - ✅ **v11.0 Database Backend & Clean Storage Architecture** — Phases 92-96 (shipped 2026-09-09)
@@ -12,40 +12,18 @@
 
 ## Phases
 
-### ✅ v14.0 Power-User Operations & Portfolio Expansion (Phases 105-108) — SHIPPED 2026-09-10
+<details>
+<summary>✅ v14.0 Power-User Operations & Portfolio Expansion (Phases 105-108) — SHIPPED 2026-09-12</summary>
+
+See [.planning/milestones/v14.0-ROADMAP.md](milestones/v14.0-ROADMAP.md) for full phase details.
 
 - [x] Phase 105: House Archive ZIP Export Pipeline (FastAPI, ASP.NET Core & UI Button) (1/1 plans) — completed 2026-09-10
 - [x] Phase 106: Multi-Select Batch Document Operations (Batch Move, Batch Delete & Selection Bar) (1/1 plans) — completed 2026-09-10
 - [x] Phase 107: Portfolio Expansion ("+ Add House" Modal & Backend House Registration) (1/1 plans) — completed 2026-09-10
 - [x] Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (1/1 plans) — completed 2026-09-10
-- [x] Quick Refinement QCK-01: Interactive Export Options Modal (`#export-archive-modal`) & Chronological PDF Dossier Pipeline (`GET .../export-pdf`) with Tenancy Filter & 2-Digit Folder Prefix Normalization — completed 2026-09-10
-- [x] Quick Refinement QCK-02: Multi-Select Batch Copy (`POST .../batch-copy`) & Timeline De-duplication Architecture (`is_timeline_visible = 0`) — completed 2026-09-10
-- [x] Quick Refinement QCK-03: Descending Chronological Sort (Newest First) & Minimalist 3-Column Running Footer (Date, Category with Preserved Number, Page X/Y) — completed 2026-09-10
-- [x] Quick Refinement QCK-04: Arabic Cursive Text Shaping & BiDi Visual Reordering in Exported PDF Running Footer (`arabic-reshaper` + `python-bidi` in Python, pure C# `ArabicReshaper` in .NET) — completed 2026-09-10
-- [x] Quick Refinement QCK-05: Double-Click Inline Document Renaming in Categories and Timeline Views (Keyboard shortcuts Enter/Esc/Blur, Error Handling, Toast Feedback, and Backend Parity) — completed 2026-09-10
-- [x] Quick Refinement QCK-06: Relocate Export Archive Button to Document Panel Header & Remove Bottom Archive Summary Box (0-scroll permanent visibility across Profile, Folders, and Timeline views) — completed 2026-09-11
-- [x] Quick Refinement QCK-07: Streamline Export Modal to Intuitive Visual-First Layout & Remove Batch Button Emojis (`📁`, `📋`, `🗑️` removed, `✕ Deselect` preserved) — completed 2026-09-11
-- [x] Quick Refinement QCK-08: Batch Tenant Selection in Move/Copy Modals & Remove Copy Note (Dropdown defaulting to Same Tenant, dynamic tenant loading, note removal, dual-backend support) — completed 2026-09-11
-- [x] Quick Refinement QCK-09: Document 3-Dots Dropdown Action Menu & Folders Section Document Date Badge (Floating context menu with Rename, Move, Copy, Show in Timeline, Delete; always-visible date badge in folders; timeline navigation with smooth scroll & highlight) — completed 2026-09-11
-- [x] Quick Refinement QCK-10: Category Folder Circular Document Count Badge & Refined Document Date Sizing (Circular count badge on folder headers; text-[9px] tracking-tight date badge on document rows) — completed 2026-09-11
-- [x] Quick Refinement QCK-11: Category-Specific Folder Icons (01-13) & Empty Folder for Custom (14+) (Semantic Heroicons for 01-13; empty folder for 14+) — completed 2026-09-11
-- [x] Quick Refinement QCK-12: Replace Folder "Select All" Text Button with Select Checkbox (`.folder-select-checkbox`) that Reveals Documents and Selects All — completed 2026-09-11
-- [x] Quick Refinement QCK-13: Harmonize Move, Copy, and Delete Action Colors Between Multi-Select Bar and 3-Dots Dropdown Menu (Move: Amber, Copy: Indigo, Delete: Rose, Rename: Blue, Timeline: Emerald) — completed 2026-09-11
-- [x] Quick Refinement QCK-14: Tenure-Based Active Tenant Colors in Tenant Selection & House Overview (Emerald green for <5 yrs, Amber yellow for 5-10 yrs, Rose red for >10 yrs matching house overview cards) — completed 2026-09-11
-- [x] Quick Refinement QCK-15: Remove Redundant Emojis from Tenant Selection List and Folders Tab (Dynamic SVG Iconography) — completed 2026-09-11
-- [x] Quick Refinement QCK-16: Merge Area Overview Headers into Single Top Bar & Remove Redundant Lower Header — completed 2026-09-11
-- [x] Quick Refinement QCK-17: Arabic Tenant Count Badge in Tenancy Register Header (`سجل المستأجرين المتعاقبين`) — completed 2026-09-11
-- [x] Quick Refinement QCK-18: Delete House Feature in Settings Modal Danger Zone (GitHub-Style Type-to-Confirm & Dual-Backend Cascade Deletion) — completed 2026-09-11
-- [x] Quick Refinement QCK-19: Remove Redundant Tenancy Register Sub-Header from Tenant Selection Area (`سجل المستأجرين المتعاقبين` & count badge) — completed 2026-09-11
-- [x] Quick Refinement QCK-20: Add House Grid Card with Dashed Outline and Huge Plus Symbol & Remove Top Navbar Add House Button — completed 2026-09-11
-- [x] Quick Refinement QCK-21: Make Pinned Lock Emoji and Text Smaller in Timeline View — completed 2026-09-11
-- [x] Quick Refinement QCK-22: Clean Up House Settings Modal Layout & Danger Zone (max-w-4xl, Unified Table Container, English-Only Buttons, Ample Present-Delete Spacing, Removed Grey Boilerplate) — completed 2026-09-11
-- [x] Quick Refinement QCK-23: Replace Tenant Selector with Category Badge in Document Viewer Header — completed 2026-09-11
-- [x] Quick Refinement QCK-24: Add Vertical Scrollbar in House Card When More Than 3 Tenancies Exist — completed 2026-09-12
-- [x] Quick Refinement QCK-25: Search Tenant Timeline Color Coding & Cross-Language Phonetic Matching — completed 2026-09-12
-- [x] Quick Refinement QCK-26: Phonetic Consonant Skeleton Isolation & Strict Cross-Language Name Precision — completed 2026-09-12
-- [x] Quick Refinement QCK-27: Decouple Single Document Move/Copy from Multi-Select Batch State — completed 2026-09-12
-- [x] Quick Refinement QCK-28: Preserve Open Category Folders & Scroll Position on Document Move / Drag & Drop — completed 2026-09-12
+- [x] Quick Refinements QCK-01 through QCK-42 — completed 2026-09-12
+
+</details>
 
 <details>
 <summary>✅ v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server (Phases 101-104) — SHIPPED 2026-09-09</summary>
@@ -137,3 +115,38 @@ See [.planning/milestones/v8.0-ROADMAP.md](milestones/v8.0-ROADMAP.md) for full 
 | QCK-05. Double-Click Inline Document Renaming (Categories & Timeline) | v14.0 | 1/1 | Complete | 2026-09-10 |
 | QCK-06. Relocate Export Archive Button to Header & Remove Archive Summary | v14.0 | 1/1 | Complete | 2026-09-11 |
 | QCK-07. Streamline Export Modal & Remove Batch Button Emojis | v14.0 | 1/1 | Complete | 2026-09-11 |
+| QCK-08. Batch Tenant Selection in Move/Copy Modals & Remove Copy Note | v14.0 | 1/1 | Complete | 2026-09-11 |
+| QCK-09. Document 3-Dots Dropdown Action Menu & Folders Date Badge | v14.0 | 1/1 | Complete | 2026-09-11 |
+| QCK-10. Category Folder Circular Count Badge & Refined Date Sizing | v14.0 | 1/1 | Complete | 2026-09-11 |
+| QCK-11. Category-Specific Folder Icons (01-13) & Empty Folder for Custom | v14.0 | 1/1 | Complete | 2026-09-11 |
+| QCK-12. Replace Folder Select All with Reveal & Select Checkbox | v14.0 | 1/1 | Complete | 2026-09-11 |
+| QCK-13. Harmonize Document Action Colors Between 3-Dot Menu and Batch Bar | v14.0 | 1/1 | Complete | 2026-09-11 |
+| QCK-14. Tenure-Based Active Tenant Colors in Tenant Selection & House Overview | v14.0 | 1/1 | Complete | 2026-09-11 |
+| QCK-15. Remove Redundant Emojis from Tenant Selection List and Folders Tab | v14.0 | 1/1 | Complete | 2026-09-11 |
+| QCK-16. Merge Area Overview Headers into Single Top Bar | v14.0 | 1/1 | Complete | 2026-09-11 |
+| QCK-17. Arabic Tenant Count Badge in Tenancy Register Header | v14.0 | 1/1 | Complete | 2026-09-11 |
+| QCK-18. Delete House Feature in Settings Modal Danger Zone | v14.0 | 1/1 | Complete | 2026-09-11 |
+| QCK-19. Remove Redundant Tenancy Register Sub-Header from Tenant Selection Area | v14.0 | 1/1 | Complete | 2026-09-11 |
+| QCK-20. Add House Grid Card with Dashed Outline & Remove Top Navbar Button | v14.0 | 1/1 | Complete | 2026-09-11 |
+| QCK-21. Make Pinned Lock Emoji and Text Smaller in Timeline View | v14.0 | 1/1 | Complete | 2026-09-11 |
+| QCK-22. Clean Up House Settings Modal Layout & Danger Zone | v14.0 | 1/1 | Complete | 2026-09-11 |
+| QCK-23. Replace Tenant Selector with Category Badge in Viewer Header | v14.0 | 1/1 | Complete | 2026-09-11 |
+| QCK-24. Add Vertical Scrollbar in House Card for > 3 Tenancies | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-25. Search Tenant Timeline Color Coding & Cross-Language Phonetic Matching | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-26. Phonetic Consonant Skeleton Isolation & Strict Name Precision | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-27. Decouple Single Document Move/Copy from Multi-Select Batch State | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-28. Preserve Open Category Folders & Scroll Position on Document Move | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-29. Database-Wide Real-World Name Validation & Phonetic Precision | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-30. Arabic Search Optimization & Orthographic Normalization | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-31. Zero-Motion & Zero-State-Shift Document Move & Copy Architecture | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-32. Dynamic Category Folder Lifecycle on Move/Copy | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-33. Comprehensive Dark Mode Support & Theme Toggle | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-34. Touchscreen & Mobile Protection (Touch-Immune Opening, Canvas PDF) | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-35. Touch Press-and-Hold Drag-and-Drop Document Move on Tablets | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-36. Default Move Tenant to Open Folder, 3-Dots Pin Toggle, Show in Categories | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-37. Multi-Select Drag and Drop for Tablets & Desktop Computers | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-38. Vacant House Grey Styling & False Active Tenant Fallback Removal | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-39. Instant Cross-Tenant Document Move & Folder Lifecycle | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-40. Vacated Tenant Document Date Conflict & Tenancy Extension Prompt | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-41. Past Tenants Chronological Sorting by Vacate Date | v14.0 | 1/1 | Complete | 2026-09-12 |
+| QCK-42. Header Bar Tenure Legend Vacant Indicator & Full Dark Mode Support | v14.0 | 1/1 | Complete | 2026-09-12 |

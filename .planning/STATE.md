@@ -2,25 +2,25 @@
 gsd_state_version: 1.0
 milestone: v14.0
 milestone_name: Power-User Operations & Portfolio Expansion
-current_phase: 108 (All Complete)
-status: completed
-last_updated: "2026-09-13T19:40:00.000Z"
+current_phase: 108 (Archived)
+status: archived
+last_updated: "2026-09-13T19:45:00.000Z"
 last_activity: 2026-09-13
-last_activity_desc: "Completed Past Tenants Chronological Sorting (QCK-41) & Header Bar Tenure Legend Vacant Indicator (QCK-42). 277 Vitest tests across 27 files (100%), 148 xUnit tests, 44 pytest tests passing, zero static asset diff."
+last_activity_desc: "Milestone v14.0 completed, audited (24/24 requirements, 0 gaps), and archived. Ready for Milestone v15.0 initialization."
 progress:
   total_phases: 4
   completed_phases: 4
   total_plans: 4
   completed_plans: 4
   percent: 100
-stopped_at: Completed Milestone v14.0
+stopped_at: Archived Milestone v14.0
 ---
 
 # Milestone State
 
-**Current Milestone:** v14.0: Power-User Operations & Portfolio Expansion
-**Current Phase:** 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
-**Status:** completed
+**Current Milestone:** None (v14.0 Archived & Shipped)
+**Next Milestone:** v15.0: Non-Residing Applicants & Unfulfilled Allocations Archive
+**Status:** archived
 
 
 ## Context
@@ -94,13 +94,12 @@ Equip the digital archive management system with power-user operational tools: o
 
 ## Current Position
 
-Phase: Phase 108: Keyboard Shortcuts Helper Modal (`?`) & Comprehensive Milestone Verification / Audit (Completed)
-Plan: Plan 1/1 Complete
-Status: Milestone v14.0 Shipped (Completed)
-Last activity: 2026-09-13 — Completed Past Tenants Chronological Sorting (QCK-41) & Header Bar Tenure Legend Vacant Indicator (QCK-42). 277 Vitest tests across 27 files (100%), 148 xUnit tests, 44 pytest tests passing, zero static asset diff.
+Phase: None (Milestone v14.0 Complete & Archived)
+Status: Milestone v14.0 Shipped (Archived)
+Last activity: 2026-09-13 — Milestone v14.0 completed, audited (24/24 requirements, 0 gaps), and archived. 277 Vitest tests across 27 files (100%), 148 xUnit tests, 44 pytest tests passing, zero static asset diff.
 
 ## Operator Next Steps
 
-- Milestone v14.0 complete, fully audited, and archived. Ready for next milestone initialization.
+- Milestone v14.0 complete, fully audited, and archived. Ready for next milestone initialization via `/gsd-new-milestone`.
 
 

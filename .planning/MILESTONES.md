@@ -2,9 +2,21 @@
 
 ## v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-12)
 
-**Phases completed:** 4 phases (105-108) + 39 quick refinements (QCK-01 through QCK-39), 4 plans, comprehensive multi-stack test verification (147 .NET xUnit, 18 Pytest tests, 274 Vitest across 27 files, Playwright E2E)
+**Phases completed:** 4 phases (105-108) + 42 quick refinements (QCK-01 through QCK-42), 4 plans, comprehensive multi-stack test verification (148 .NET xUnit, 44 Pytest tests, 277 Vitest across 27 files, Playwright E2E)
 
 **Key accomplishments:**
+
+- **Header Bar Tenure Legend Vacant Indicator & Full Dark Mode Support (Quick Refinement QCK-42):**
+  - Added the `Vacant` indicator with neutral slate grey dot marker (`bg-slate-400 dark:bg-slate-500`) to `#grid-tenure-legend` in `index.html` across all 3 web roots (`src/api/static/`, `web-net/wwwroot/`, `dist/win-x64/wwwroot/`) alongside `< 5y`, `5–10y`, and `> 10y`, with full dark mode styling.
+  - Verified by automated tests in `unified_header.test.js`.
+- **Past Tenants Chronological Sorting by Vacate Date (Quick Refinement QCK-41):**
+  - Fixed SQL queries in .NET (`FileOrganizerRepository.cs`) and Python (`routes.py`) to sort past tenants by `end_date DESC, start_date DESC` instead of `start_date DESC`.
+  - Ensures tenants who vacated most recently (e.g. `يحيى محمد علي` who vacated in 2024 after a 24-year residency) appear first (#1) instead of older vacating tenants with later start dates (e.g. `حمد` who vacated in 2023). Vacant house subtitles now accurately reflect the last occupancy period (`2000 - 2024`).
+  - Verified by unit tests in `RepositoryTests.cs` and `test_api_v11.py`.
+- **Vacated Tenant Document Date Conflict & Tenancy Extension Prompt (Quick Refinement QCK-40):**
+  - When adding a document dated after a tenant's vacate date, backend APIs (.NET and Python FastAPI) throw an explicit HTTP 400 prompt asking if the user wishes to extend the tenant's date or confirm the date mismatch.
+  - Frontend displays an interactive `#vacated-tenant-modal` allowing users to extend the tenant's residency period, upload without extending, or cancel. Batch queues pre-validate documents against selected tenants.
+  - Verified by unit tests across .NET xUnit (`ApiEndpointTests.cs`), Python Pytest (`test_api_v11.py`), Vitest (`ingest_station.test.js`), with 148 xUnit, 44 pytest, and 277 Vitest tests passing with zero static asset diff.
 
 - **Instant Cross-Tenant Document Move & Folder Lifecycle (Quick Refinement QCK-39):**
   - Resolved issue where moving single or multi-selected documents to another tenant in the same house left documents visible in the source tenant's folder list until manual refresh.

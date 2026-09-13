@@ -6,12 +6,12 @@ A document management system that processes scanned Arabic PDFs, categorizes the
 
 ## Current Milestone: None (v14.0 Completed & Shipped)
 
-Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped. The system is fully operational with dual-backend parity across FastAPI and ASP.NET Core 8.0, comprehensive multi-stack test coverage (84 xUnit including 32 in `ArabicReshaperTests.cs`, 32 Pytest backend tests, 152 Vitest across 15 files, and 49 Playwright E2E), and power-user operational tooling. Ready for next milestone initialization.
+Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped (Phases 105-108 + 42 quick refinements, 148 xUnit tests, 44 pytest tests, 277 Vitest tests across 27 files, 49 Playwright E2E). Next milestone: Milestone v15.0 ("Non-Residing Applicants & Unfulfilled Allocations Archive").
 
 ## Past Milestones
 
 <details>
-<summary>v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-10)</summary>
+<summary>v14.0 Power-User Operations & Portfolio Expansion (Shipped: 2026-09-12)</summary>
 
 - **One-Click House Archive Export & Chronological Dossier (Phase 105 + Quick Refinements QCK-01, QCK-03, QCK-04):**
   - Categorized ZIP Archive Export (`GET /api/areas/{area}/houses/{house}/export-zip` across FastAPI & ASP.NET Core) streaming collision-free ZIP archives with standard 2-digit folder numbering normalization (`FOLDER_PREFIXES` ensuring proper `01 - `, `05 - `, `06 - ` prefixes).
@@ -224,6 +224,41 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 - ✓ Double-click inline document renaming in Categories and Timeline views with Enter/Esc/blur shortcuts and toast feedback (QCK-05) — v14.0
 - ✓ Relocation of Export button to Document Panel header and removal of redundant bottom archive summary (QCK-06) — v14.0
 - ✓ Streamline export modal to intuitive visual-first layout and remove emojis from batch buttons (QCK-07) — v14.0
+- ✓ Batch tenant selection in Move/Copy modals and target tenant assignment (QCK-08) — v14.0
+- ✓ Document 3-dots dropdown context menu and always-visible folder date badge (QCK-09) — v14.0
+- ✓ Category folder circular document count badge and refined date badge typography (QCK-10) — v14.0
+- ✓ Category-specific outline folder icons (01-13) and empty folder fallback for custom categories (QCK-11) — v14.0
+- ✓ Folder select checkbox revealing documents and selecting all (QCK-12) — v14.0
+- ✓ Harmonized action colors between multi-select bar and 3-dots dropdown menu (QCK-13) — v14.0
+- ✓ Tenure-based active tenant colors in tenant selection and house overview cards (QCK-14) — v14.0
+- ✓ Clean dynamic SVG iconography in tabs and emoji elimination in modals (QCK-15) — v14.0
+- ✓ Area overview controls merged into top navbar removing redundant secondary header (QCK-16) — v14.0
+- ✓ Arabic tenant count pill badge in Tenancy Register header (QCK-17) — v14.0
+- ✓ Delete house feature in settings modal Danger Zone with type-to-confirm validation (QCK-18) — v14.0
+- ✓ Redundant tenancy register sub-header removed from tenant selection container (QCK-19) — v14.0
+- ✓ Modern dashed-outline Add House grid card with prominent central plus icon (QCK-20) — v14.0
+- ✓ Scaled down pinned lock badge with dedicated inline container in Timeline view (QCK-21) — v14.0
+- ✓ Cleaned up House Settings modal layout, single active tenant exclusivity, and Danger Zone (QCK-22) — v14.0
+- ✓ Replaced misplaced tenant selector with category badge in Document Viewer header (QCK-23) — v14.0
+- ✓ Vertical scrollbar in house overview cards when > 3 tenancies exist (QCK-24) — v14.0
+- ✓ Search tenant timeline color coding strictly reflecting active residency (QCK-25) — v14.0
+- ✓ Phonetic consonant skeleton isolation and strict Latin/Arabic name precision (QCK-26) — v14.0
+- ✓ Decoupled single document move/copy from multi-select batch state (QCK-27) — v14.0
+- ✓ Preserved open category folders and scroll position on document move (QCK-28) — v14.0
+- ✓ Database-wide real-world name validation and phonetic precision across 716 production tenants (QCK-29) — v14.0
+- ✓ Arabic search optimization, Tashkeel/Tatweel stripping, and orthographic normalization (QCK-30) — v14.0
+- ✓ Zero-motion and zero-state-shift document move and copy architecture (QCK-31) — v14.0
+- ✓ Dynamic category folder lifecycle on move/copy with automatic DOM insertion/removal (QCK-32) — v14.0
+- ✓ Comprehensive dark mode support with theme toggle, Shift+D, and FOUC prevention (QCK-33) — v14.0
+- ✓ Touchscreen and mobile protection: touch-immune opening, double-click rename suppression, offline canvas PDF (QCK-34) — v14.0
+- ✓ Touch press-and-hold drag-and-drop document move on tablets with haptic feedback (QCK-35) — v14.0
+- ✓ Default move tenant to open folder, 3-dots pin toggle, and Timeline Show in Categories navigation (QCK-36) — v14.0
+- ✓ Multi-select drag and drop for tablets and desktop computers (QCK-37) — v14.0
+- ✓ Vacant house grey styling and false active tenant fallback removal (QCK-38) — v14.0
+- ✓ Instant cross-tenant document move and DOM folder lifecycle (QCK-39) — v14.0
+- ✓ Vacated tenant document date conflict detection and tenancy extension prompt (QCK-40) — v14.0
+- ✓ Past tenants chronological sorting by vacate date (`end_date DESC, start_date DESC`) (QCK-41) — v14.0
+- ✓ Header bar tenure legend Vacant indicator and full dark mode support (QCK-42) — v14.0
 - ✓ Decoupled monorepo structure (`web-net/` for ASP.NET Core, `src/` for Python AI pipeline, shared `organizer.db`) (ARCH-01) — v13.0
 - ✓ ASP.NET Core 8.0 project with Dapper and `Microsoft.Data.Sqlite` in WAL mode (NET-01) — v13.0
 - ✓ Port all read API endpoints with 100% JSON parity (NET-02) — v13.0
@@ -269,12 +304,12 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 
 ## Current State
 
-- ✅ Shipped v14.0 Power-User Operations & Portfolio Expansion on 2026-09-10.
+- ✅ Shipped v14.0 Power-User Operations & Portfolio Expansion on 2026-09-12.
 - ✅ Shipped v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server on 2026-09-09.
 - ✅ Shipped v12.0 Unified Document Ingestion System on 2026-09-09.
 - ✅ Shipped v11.0 Database Backend & Clean Storage Architecture on 2026-09-09.
-- Robust multi-stack test coverage: 84 ASP.NET Core xUnit tests (including 32 in `ArabicReshaperTests.cs`), 15 Python pytest tests in `test_v14_features.py`, 13 in `test_document_management_api.py`, 109 frontend Vitest tests across 10 test files, and 49 Playwright Browser E2E suite.
-- Dual-backend runtime parity: FastAPI and ASP.NET Core 8.0 Minimal APIs running with 100% JSON contract and functional parity, matching schema migrations, and zero static asset diff between `src/api/static/` and `web-net/wwwroot/`.
+- Robust multi-stack test coverage: 148 ASP.NET Core xUnit tests (100% passing), 44 Python pytest tests across API and feature suites, 277 frontend Vitest tests across 27 test files (100% passing), and 49 Playwright Browser E2E suite.
+- Dual-backend runtime parity: FastAPI and ASP.NET Core 8.0 Minimal APIs running with 100% JSON contract and functional parity, matching schema migrations, and zero static asset diff across `src/api/static/`, `web-net/wwwroot/`, and `dist/win-x64/wwwroot/`.
 
 ## Context
 
@@ -302,4 +337,4 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 | Playwright E2E Verification | Verifies real browser behavior against actual database records, guaranteeing zero regressions across Tree, Grid, Search, and PDF viewing. | ✓ Completed (Phase 96). |
 
 ---
-*Last updated: 2026-09-11 for Quick Task QCK-07 completion and Milestone v14.0 refinement*
+*Last updated: 2026-09-13 after v14.0 milestone completion*
