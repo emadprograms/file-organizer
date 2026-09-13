@@ -1,19 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v14.0
-milestone_name: Power-User Operations & Portfolio Expansion
-current_phase: 108 (Archived)
-status: archived
-last_updated: "2026-09-13T19:45:00.000Z"
+milestone: v15.0
+milestone_name: Decoupled .NET Core Architecture & Non-Residing Applicants Archive
+status: planning
+last_updated: "2026-09-13T17:31:12.427Z"
 last_activity: 2026-09-13
-last_activity_desc: "Milestone v14.0 completed, audited (24/24 requirements, 0 gaps), and archived. Ready for Milestone v15.0 initialization."
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 4
-  completed_plans: 4
-  percent: 100
-stopped_at: Archived Milestone v14.0
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Milestone State
@@ -21,7 +18,6 @@ stopped_at: Archived Milestone v14.0
 **Current Milestone:** None (v14.0 Archived & Shipped)
 **Next Milestone:** v15.0: Non-Residing Applicants & Unfulfilled Allocations Archive
 **Status:** archived
-
 
 ## Context
 
@@ -94,12 +90,11 @@ Equip the digital archive management system with power-user operational tools: o
 
 ## Current Position
 
-Phase: None (Milestone v14.0 Complete & Archived)
-Status: Milestone v14.0 Shipped (Archived)
-Last activity: 2026-09-13 — Milestone v14.0 completed, audited (24/24 requirements, 0 gaps), and archived. 277 Vitest tests across 27 files (100%), 148 xUnit tests, 44 pytest tests passing, zero static asset diff.
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-09-13 — Milestone v15.0 started
 
 ## Operator Next Steps
 
 - Milestone v14.0 complete, fully audited, and archived. Ready for next milestone initialization via `/gsd-new-milestone`.
-
-

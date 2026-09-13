@@ -1,12 +1,19 @@
-# File Organizer Refactoring
+# Housing Application
 
 ## What This Is
 
-A document management system that processes scanned Arabic PDFs, categorizes them using LLM vision, groups related pages, and stores them in a high-performance relational SQLite database with a clean two-folder disk structure (`batches/` and `vault/`). The system features a responsive web dashboard with dual Tree/Grid views, tenure color-coding, multi-tenant chronological timelines, category drill-downs, phonetic/fuzzy global search, and in-browser PDF viewing.
+A high-performance document management system and web dashboard for housing digital archives. It stores scanned documents in an immutable vault with relational SQLite metadata, delivering sub-10ms queries, dual Tree/Grid views, tenure color-coding, multi-tenant chronological timelines, category folder drill-downs, phonetic/fuzzy global search, in-browser PDF viewing, and one-click ZIP/PDF archive exports. Built natively on ASP.NET Core 8.0 and vanilla JS.
 
-## Current Milestone: None (v14.0 Completed & Shipped)
+## Current Milestone: v15.0 Decoupled .NET Core Architecture & Non-Residing Applicants Archive
 
-Milestone v14.0 Power-User Operations & Portfolio Expansion has successfully shipped (Phases 105-108 + 42 quick refinements, 148 xUnit tests, 44 pytest tests, 277 Vitest tests across 27 files, 49 Playwright E2E). Next milestone: Milestone v15.0 ("Non-Residing Applicants & Unfulfilled Allocations Archive").
+**Goal:** Completely eliminate Python dependencies, reorganize the codebase into a clean idiomatic .NET solution (`src/` and `tests/`), and implement full support for non-residing applicants and unfulfilled allocations across the database, business logic, and UI.
+
+**Target features:**
+- **Python Purge & Idiomatic .NET Restructuring:** Remove all legacy Python code (`src/` Python, `.venv`, `requirements.txt`), rename `web-net` to standard .NET structure (`src/HousingApplication.Web/` or `src/`), consolidate tests into `tests/`, point Vitest imports to the real web root, and update build scripts.
+- **Database Schema & Vacancy Guardrails:** Add `is_resident` flag and `notes` to `tenants` table; safeguard vacancy queries so applicants never falsely mark a vacant house as occupied; restrict date-based document auto-reallocation to residents only.
+- **Segregated Tenancy & Applicant Register UI:** Split the House Profile register into resident tenants (with tenure duration and active badges) and applicants/unfulfilled allocations (with application dates and document counts); enable clicking applicant cards to open their dedicated category folders.
+- **House Settings Modal & Ingestion Badging:** Update House Settings modal to support adding/editing applicants without requiring false residency dates; badge applicants clearly in Ingest Station and batch move/copy dropdowns.
+- **Comprehensive Test Verification:** 100% passing C# xUnit tests and JavaScript Vitest tests with zero Python runtime dependencies.
 
 ## Past Milestones
 
@@ -337,4 +344,4 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 | Playwright E2E Verification | Verifies real browser behavior against actual database records, guaranteeing zero regressions across Tree, Grid, Search, and PDF viewing. | ✓ Completed (Phase 96). |
 
 ---
-*Last updated: 2026-09-13 after v14.0 milestone completion*
+*Last updated: 2026-09-13 after v15.0 milestone start*
