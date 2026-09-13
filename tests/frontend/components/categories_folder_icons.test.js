@@ -5,7 +5,7 @@ const {
     FOLDER_ICONS,
     EMPTY_FOLDER_SVG,
     renderCategories,
-} = require('../../../src/api/static/js/categories-view.js');
+} = require('../../../src/HousingApplication.Web/wwwroot/js/categories-view.js');
 
 function extractPathD(svgHtml) {
     const match = svgHtml.match(/d="([^"]+)"/);

@@ -253,7 +253,7 @@ describe('PDF Preview & macOS Quick Look — Live Component Tests', () => {
 
   beforeEach(async () => {
     fs = await import('fs');
-    pdfPreviewCode = fs.readFileSync('src/api/static/js/pdf-preview.js', 'utf-8');
+    pdfPreviewCode = fs.readFileSync('src/HousingApplication.Web/wwwroot/js/pdf-preview.js', 'utf-8');
 
     document.body.innerHTML = `
       <div id="pdf-preview-tooltip" style="width:380px;height:520px;opacity:0;">
@@ -473,7 +473,7 @@ describe('PDF Preview & macOS Quick Look — Live Component Tests', () => {
 
   it('autosaves notes on input debounce and immediately flushes on blur without any save button', async () => {
     const fs = await import('fs');
-    const apiCode = fs.readFileSync('src/api/static/js/api.js', 'utf-8');
+    const apiCode = fs.readFileSync('src/HousingApplication.Web/wwwroot/js/api.js', 'utf-8');
     new Function(apiCode)();
 
     const modal = document.getElementById('quick-look-modal');
@@ -512,7 +512,7 @@ describe('PDF Preview & macOS Quick Look — Live Component Tests', () => {
 
   it('auto-expands category folder when category contains a noted document', async () => {
     const fs = await import('fs');
-    const catCode = fs.readFileSync('src/api/static/js/categories-view.js', 'utf-8');
+    const catCode = fs.readFileSync('src/HousingApplication.Web/wwwroot/js/categories-view.js', 'utf-8');
 
     // Scaffold list container
     const listEl = document.createElement('div');
@@ -561,8 +561,8 @@ describe('PDF Preview & macOS Quick Look — Live Component Tests', () => {
 
   it('renders single (i) icon on the left before document title, and none before 3-dots on right', async () => {
     const fs = await import('fs');
-    const catCode = fs.readFileSync('src/api/static/js/categories-view.js', 'utf-8');
-    const timeCode = fs.readFileSync('src/api/static/js/timeline-view.js', 'utf-8');
+    const catCode = fs.readFileSync('src/HousingApplication.Web/wwwroot/js/categories-view.js', 'utf-8');
+    const timeCode = fs.readFileSync('src/HousingApplication.Web/wwwroot/js/timeline-view.js', 'utf-8');
 
     // 1. Check Categories View
     const catListEl = document.createElement('div');
@@ -630,8 +630,8 @@ describe('PDF Preview & macOS Quick Look — Live Component Tests', () => {
 
   it('displays note snippet (first characters) in note badge with full note in title attribute', async () => {
     const fs = await import('fs');
-    const apiCode = fs.readFileSync('src/api/static/js/api.js', 'utf-8');
-    const catCode = fs.readFileSync('src/api/static/js/categories-view.js', 'utf-8');
+    const apiCode = fs.readFileSync('src/HousingApplication.Web/wwwroot/js/api.js', 'utf-8');
+    const catCode = fs.readFileSync('src/HousingApplication.Web/wwwroot/js/categories-view.js', 'utf-8');
     new Function(apiCode)();
 
     const listEl = document.createElement('div');
@@ -669,7 +669,7 @@ describe('PDF Preview & macOS Quick Look — Live Component Tests', () => {
 
   it('populateFolderOptions excludes deleted/empty custom folders (document_count === 0)', async () => {
     const fs = await import('fs');
-    const docMgrCode = fs.readFileSync('src/api/static/js/doc-manager.js', 'utf-8');
+    const docMgrCode = fs.readFileSync('src/HousingApplication.Web/wwwroot/js/doc-manager.js', 'utf-8');
 
     document.body.innerHTML = `
       <select id="doc-modal-folder-select"></select>

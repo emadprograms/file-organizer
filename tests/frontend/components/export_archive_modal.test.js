@@ -100,7 +100,7 @@ describe('Export Archive Options Modal Component', () => {
     window.currentHouse = '500';
 
     const scriptCode = fs.readFileSync(
-      path.resolve(__dirname, '../../../src/api/static/js/house-profile.js'),
+      path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/house-profile.js'),
       'utf8'
     );
     eval(scriptCode);

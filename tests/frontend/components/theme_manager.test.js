@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import path from 'path';
 import fs from 'fs';
 
-const scriptPath = path.resolve(__dirname, '../../../src/api/static/js/theme-manager.js');
+const scriptPath = path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/theme-manager.js');
 const themeManager = require(scriptPath);
 
 describe('Theme Manager Component (Dark Mode Support)', () => {
@@ -164,7 +164,7 @@ describe('Theme Manager Component (Dark Mode Support)', () => {
     });
 
     it('verifies index.html has Tailwind darkMode config and theme toggle button', () => {
-        const htmlPath = path.resolve(__dirname, '../../../web-net/wwwroot/index.html');
+        const htmlPath = path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/index.html');
         const html = fs.readFileSync(htmlPath, 'utf8');
 
         expect(html).toContain("darkMode: 'class'");

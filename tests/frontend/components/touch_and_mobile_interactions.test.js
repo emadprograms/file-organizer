@@ -5,13 +5,13 @@ const {
     handleInlineRename: handleInlineRenameCategories,
     isTouchEvent: isTouchEventCategories,
     isTouchOrMobileDevice: isTouchOrMobileDeviceCategories,
-} = require('../../../src/api/static/js/categories-view.js');
+} = require('../../../src/HousingApplication.Web/wwwroot/js/categories-view.js');
 
 const {
     renderTimeline,
     handleInlineRename: handleInlineRenameTimeline,
     isTouchEvent: isTouchEventTimeline,
-} = require('../../../src/api/static/js/timeline-view.js');
+} = require('../../../src/HousingApplication.Web/wwwroot/js/timeline-view.js');
 
 function setupDOM() {
     document.body.innerHTML = `

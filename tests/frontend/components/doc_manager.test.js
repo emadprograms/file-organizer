@@ -11,7 +11,7 @@ const {
     getResolvedHouse,
     getAreaFromHash,
     getHouseFromHash,
-} = require('../../../src/api/static/js/doc-manager.js');
+} = require('../../../src/HousingApplication.Web/wwwroot/js/doc-manager.js');
 
 function setupDOM() {
     document.body.innerHTML = `

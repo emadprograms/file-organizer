@@ -7,7 +7,7 @@ const {
     showDocInCategories,
     handleToggleDocPin,
     handleDeleteSingleDoc,
-} = require('../../../src/api/static/js/doc-manager.js');
+} = require('../../../src/HousingApplication.Web/wwwroot/js/doc-manager.js');
 
 const {
     renderCategories,
@@ -19,11 +19,11 @@ const {
     handleBatchMoveSubmit,
     handleBatchCopySubmit,
     deselectAllDocs,
-} = require('../../../src/api/static/js/categories-view.js');
+} = require('../../../src/HousingApplication.Web/wwwroot/js/categories-view.js');
 
 const {
     renderTimeline,
-} = require('../../../src/api/static/js/timeline-view.js');
+} = require('../../../src/HousingApplication.Web/wwwroot/js/timeline-view.js');
 
 describe('Document 3-Dots Dropdown Menu & Categories Date Badge', () => {
     let mockDoc;

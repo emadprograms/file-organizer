@@ -3,7 +3,7 @@ import fs from 'fs';
 import path from 'path';
 
 describe('Unified Single Header Bar Component & Area Grid (QCK-16)', () => {
-  const htmlPath = path.resolve(__dirname, '../../../src/api/static/index.html');
+  const htmlPath = path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/index.html');
   const htmlContent = fs.readFileSync(htmlPath, 'utf8');
 
   it('verifies index.html has consolidated single top-navbar and removed secondary header', () => {
@@ -74,13 +74,13 @@ describe('Unified Single Header Bar Component & Area Grid (QCK-16)', () => {
       window.currentTenant = null;
 
       const areaGridCode = fs.readFileSync(
-        path.resolve(__dirname, '../../../src/api/static/js/area-grid.js'),
+        path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/area-grid.js'),
         'utf8'
       );
       eval(areaGridCode);
 
       const routerCode = fs.readFileSync(
-        path.resolve(__dirname, '../../../src/api/static/js/router.js'),
+        path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/router.js'),
         'utf8'
       );
       eval(routerCode);

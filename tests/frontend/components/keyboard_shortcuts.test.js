@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import path from 'path';
 
-const scriptPath = path.resolve(__dirname, '../../../src/api/static/js/keyboard-shortcuts.js');
+const scriptPath = path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/keyboard-shortcuts.js');
 const shortcutsModule = require(scriptPath);
 
 describe('Keyboard Shortcuts Helper Modal Component (Phase 108)', () => {

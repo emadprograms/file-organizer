@@ -4,7 +4,7 @@ import path from 'path';
 
 describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)', () => {
   const htmlContent = fs.readFileSync(
-    path.resolve(__dirname, '../../../src/api/static/index.html'),
+    path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/index.html'),
     'utf8'
   );
 
@@ -58,7 +58,7 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
     ];
 
     const scriptCode = fs.readFileSync(
-      path.resolve(__dirname, '../../../src/api/static/js/doc-viewer.js'),
+      path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'),
       'utf8'
     );
     eval(scriptCode);

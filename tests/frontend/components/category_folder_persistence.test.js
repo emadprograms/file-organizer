@@ -5,7 +5,7 @@ const {
     openCategoryFolder,
     getOpenCategoryFolders,
     resetCategoryOpenState,
-} = require('../../../src/api/static/js/categories-view.js');
+} = require('../../../src/HousingApplication.Web/wwwroot/js/categories-view.js');
 
 function setupDOM() {
     document.body.innerHTML = `
@@ -143,7 +143,7 @@ describe('Category Folder Expansion Persistence', () => {
     });
 
     it('drag and drop move preserves open folders without opening closed target folders and preserves scroll', async () => {
-        const { handleCategoryDrop, handleDocDragStart } = require('../../../src/api/static/js/doc-manager.js');
+        const { handleCategoryDrop, handleDocDragStart } = require('../../../src/HousingApplication.Web/wwwroot/js/doc-manager.js');
         global.showToast = vi.fn();
         global.fetch = vi.fn().mockResolvedValue({
             ok: true,
@@ -218,7 +218,7 @@ describe('Category Folder Expansion Persistence', () => {
         const docListEl = document.getElementById('document-list');
         docListEl.scrollTop = 250;
 
-        const { moveDocInDom } = require('../../../src/api/static/js/categories-view.js');
+        const { moveDocInDom } = require('../../../src/HousingApplication.Web/wwwroot/js/categories-view.js');
         const moved = moveDocInDom('doc001', '01 - بيانات أساسية', '05 - عقود');
 
         expect(moved).toBe(true);
@@ -244,7 +244,7 @@ describe('Category Folder Expansion Persistence', () => {
         expect(targetCard.querySelector('.category-docs').classList.contains('hidden')).toBe(true);
         expect(targetCard.querySelector('.doc-count-badge').textContent).toBe('1');
 
-        const { copyDocInDom } = require('../../../src/api/static/js/categories-view.js');
+        const { copyDocInDom } = require('../../../src/HousingApplication.Web/wwwroot/js/categories-view.js');
         const copied = copyDocInDom({
             vault_id: 'doc005_copy',
             brief_arabic_title: 'نسخة عقد',
@@ -279,7 +279,7 @@ describe('Category Folder Expansion Persistence', () => {
             toggleDocSelection,
             openBatchMoveModal,
             handleBatchMoveSubmit
-        } = require('../../../src/api/static/js/categories-view.js');
+        } = require('../../../src/HousingApplication.Web/wwwroot/js/categories-view.js');
 
         // Setup modal elements in DOM
         const modalHtml = `
@@ -352,7 +352,7 @@ describe('Category Folder Expansion Persistence', () => {
         expect(initialCard).not.toBeNull();
         expect(initialCard.querySelector('.doc-count-badge').textContent).toBe('1');
 
-        const { moveDocInDom } = require('../../../src/api/static/js/categories-view.js');
+        const { moveDocInDom } = require('../../../src/HousingApplication.Web/wwwroot/js/categories-view.js');
         // Move doc003 out to '06 - كهرباء وماء'
         const moved = moveDocInDom('doc003', '05 - عقود', '06 - كهرباء وماء');
         expect(moved).toBe(true);
@@ -374,7 +374,7 @@ describe('Category Folder Expansion Persistence', () => {
         // '03 - فواتير' does not exist initially in DOM
         expect(document.querySelector('.category-folder-card[data-category-name="03 - فواتير"]')).toBeNull();
 
-        const { moveDocInDom } = require('../../../src/api/static/js/categories-view.js');
+        const { moveDocInDom } = require('../../../src/HousingApplication.Web/wwwroot/js/categories-view.js');
         // Move doc001 into new folder '03 - فواتير'
         const moved = moveDocInDom('doc001', '01 - بيانات أساسية', '03 - فواتير');
         expect(moved).toBe(true);
@@ -398,7 +398,7 @@ describe('Category Folder Expansion Persistence', () => {
     it('handles folder disappearing and re-appearing when moving document out and then back in', () => {
         renderCategories();
 
-        const { moveDocInDom } = require('../../../src/api/static/js/categories-view.js');
+        const { moveDocInDom } = require('../../../src/HousingApplication.Web/wwwroot/js/categories-view.js');
 
         // 1. Move doc003 out of '05 - عقود' to '06 - كهرباء وماء' -> '05 - عقود' disappears
         moveDocInDom('doc003', '05 - عقود', '06 - كهرباء وماء');

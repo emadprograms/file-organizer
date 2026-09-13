@@ -22,7 +22,7 @@ describe('House Profile & Header Archive Export', () => {
     window.currentHouse = 'House 100';
 
     const scriptCode = fs.readFileSync(
-      path.resolve(__dirname, '../../../src/api/static/js/house-profile.js'),
+      path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/house-profile.js'),
       'utf8'
     );
     eval(scriptCode);

@@ -355,7 +355,7 @@ function exportStaticWeb(areasRoot, outputDir) {
     fs.writeFileSync(webConfigPath, WEB_CONFIG_TEMPLATE, 'utf8');
     console.log(`[export-web] Created ${webConfigPath}`);
 
-    const sourceHtml = path.resolve(__dirname, '../src/api/static/index.html');
+    const sourceHtml = path.resolve(__dirname, '../src/HousingApplication.Web/wwwroot/index.html');
     if (fs.existsSync(sourceHtml)) {
         fs.copyFileSync(sourceHtml, indexPath);
         console.log(`[export-web] Copied index.html to ${indexPath}`);

@@ -53,7 +53,7 @@ describe('+ Add House Modal Component (Phase 107)', () => {
     window.loadTree = vi.fn().mockResolvedValue(undefined);
 
     const scriptCode = fs.readFileSync(
-      path.resolve(__dirname, '../../../src/api/static/js/area-grid.js'),
+      path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/area-grid.js'),
       'utf8'
     );
     eval(scriptCode);

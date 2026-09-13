@@ -17,7 +17,7 @@ describe('Area Grid House Card Component - Scrollbar for > 3 Tenancies', () => {
     global.window.location = { hash: '' };
 
     const scriptCode = fs.readFileSync(
-      path.resolve(__dirname, '../../../src/api/static/js/area-grid.js'),
+      path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/area-grid.js'),
       'utf8'
     );
     eval(scriptCode);

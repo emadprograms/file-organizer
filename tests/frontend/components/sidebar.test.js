@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
-const sidebarScriptPath = path.resolve(__dirname, '../../../src/api/static/js/sidebar.js');
-const resizerScriptPath = path.resolve(__dirname, '../../../src/api/static/js/resizer.js');
+const sidebarScriptPath = path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/sidebar.js');
+const resizerScriptPath = path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/resizer.js');
 
 describe('Sidebar Collapse and Expand Component', () => {
     let store = {};

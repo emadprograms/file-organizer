@@ -5,7 +5,7 @@ const {
     selectedDocIds,
     toggleDocSelection,
     deselectAllDocs,
-} = require('../../../src/api/static/js/categories-view.js');
+} = require('../../../src/HousingApplication.Web/wwwroot/js/categories-view.js');
 
 const {
     handleDocDragStart,
@@ -16,7 +16,7 @@ const {
     handleTenantTreeDragOver,
     handleTenantTreeDragLeave,
     handleTenantTreeDrop,
-} = require('../../../src/api/static/js/doc-manager.js');
+} = require('../../../src/HousingApplication.Web/wwwroot/js/doc-manager.js');
 
 function setupDOM() {
     document.body.innerHTML = `

@@ -11,7 +11,7 @@ const {
     toggleDocSelection,
     deselectAllDocs,
     resetCategoryOpenState,
-} = require('../../../src/api/static/js/categories-view.js');
+} = require('../../../src/HousingApplication.Web/wwwroot/js/categories-view.js');
 
 function setupDOM() {
     document.body.innerHTML = `

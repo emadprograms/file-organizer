@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const { renderTimeline } = require('../../../src/api/static/js/timeline-view.js');
+const { renderTimeline } = require('../../../src/HousingApplication.Web/wwwroot/js/timeline-view.js');
 
 describe('Timeline View - Smaller Pinned Badge (QCK-21)', () => {
     beforeEach(() => {

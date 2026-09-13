@@ -23,7 +23,7 @@ const {
     initBatchOperations,
     populateBatchTenantSelect,
     openBatchMoveForDoc,
-} = require('../../../src/api/static/js/categories-view.js');
+} = require('../../../src/HousingApplication.Web/wwwroot/js/categories-view.js');
 
 function setupDOM() {
     document.body.innerHTML = `
@@ -619,7 +619,7 @@ describe('Multi-Select Batch Document Operations (Phase 106)', () => {
     it('verifies #batch-copy-modal in index.html no longer contains the amber note element', () => {
         const fs = require('fs');
         const path = require('path');
-        const html = fs.readFileSync(path.resolve(__dirname, '../../../src/api/static/index.html'), 'utf-8');
+        const html = fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/index.html'), 'utf-8');
         expect(html).not.toContain('النسخ يتيح ظهور الوثائق في مجلد إضافي');
         expect(html).not.toContain('ملاحظة: النسخ يتيح ظهور');
     });

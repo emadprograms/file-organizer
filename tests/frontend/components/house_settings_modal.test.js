@@ -4,7 +4,7 @@ import path from 'path';
 
 describe('House Settings Modal Layout & UX (QCK-22)', () => {
   const htmlContent = fs.readFileSync(
-    path.resolve(__dirname, '../../../src/api/static/index.html'),
+    path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/index.html'),
     'utf8'
   );
 
@@ -49,7 +49,7 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
     });
 
     const scriptCode = fs.readFileSync(
-      path.resolve(__dirname, '../../../src/api/static/js/tenant-manager.js'),
+      path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/tenant-manager.js'),
       'utf8'
     );
     eval(scriptCode);

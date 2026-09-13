@@ -42,7 +42,7 @@ describe('Segmented Tabs Emojiless Labels & Dynamic SVG Iconography', () => {
     window.refreshCurrentTab = vi.fn();
 
     const routerCode = fs.readFileSync(
-      path.resolve(__dirname, '../../../src/api/static/js/router.js'),
+      path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/router.js'),
       'utf8'
     );
     eval(routerCode);
@@ -110,7 +110,7 @@ describe('Segmented Tabs Emojiless Labels & Dynamic SVG Iconography', () => {
 
   it('verifies index.html markup includes min-w-0, whitespace-nowrap, and truncate classes to prevent multiline wrapping on compression', () => {
     const html = fs.readFileSync(
-      path.resolve(__dirname, '../../../src/api/static/index.html'),
+      path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/index.html'),
       'utf8'
     );
     // Tab wrapper allows flex shrinking
@@ -131,7 +131,7 @@ describe('Segmented Tabs Emojiless Labels & Dynamic SVG Iconography', () => {
 
   it('verifies styles.css enforces nowrap, min-width 0, and text truncation so text disappears rather than wrapping', () => {
     const css = fs.readFileSync(
-      path.resolve(__dirname, '../../../src/api/static/css/styles.css'),
+      path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/css/styles.css'),
       'utf8'
     );
     expect(css).toContain('#tab-timeline');

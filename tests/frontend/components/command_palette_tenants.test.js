@@ -17,7 +17,7 @@ describe('Command Palette Tenant Search Timeline Color Coding', () => {
     `;
 
     const scriptCode = fs.readFileSync(
-      path.resolve(__dirname, '../../../src/api/static/js/command-palette.js'),
+      path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/command-palette.js'),
       'utf8'
     );
     eval(scriptCode);

@@ -46,7 +46,7 @@ const {
     addFilesToBatch,
     renderBatchQueue,
     populateBatchAreas,
-} = require('../../../src/api/static/js/ingest-station.js');
+} = require('../../../src/HousingApplication.Web/wwwroot/js/ingest-station.js');
 
 function setupDOM() {
     document.body.innerHTML = `
@@ -959,7 +959,7 @@ describe('Ingest Station Component', () => {
 
     describe('Vacated Tenant Date Conflict & Tenancy Extension', () => {
         it('isDocDateAfterVacated correctly compares document date and vacated end date', () => {
-            const { isDocDateAfterVacated } = require('../../../src/api/static/js/ingest-station.js');
+            const { isDocDateAfterVacated } = require('../../../src/HousingApplication.Web/wwwroot/js/ingest-station.js');
             // Document date after vacation year
             expect(isDocDateAfterVacated('2026-09-12', '2024')).toBe(true);
             expect(isDocDateAfterVacated('2026-09-12', '2024-12-31')).toBe(true);
@@ -975,7 +975,7 @@ describe('Ingest Station Component', () => {
         });
 
         it('promptVacatedTenantConflict renders modal and resolves user choice', async () => {
-            const { promptVacatedTenantConflict } = require('../../../src/api/static/js/ingest-station.js');
+            const { promptVacatedTenantConflict } = require('../../../src/HousingApplication.Web/wwwroot/js/ingest-station.js');
             const modal = document.getElementById('vacated-tenant-modal');
             const btnExtend = document.getElementById('btn-vacated-extend');
 
@@ -991,7 +991,7 @@ describe('Ingest Station Component', () => {
         });
 
         it('submitSingleIngest intercepts date conflict and passes extend_tenant_date when user extends', async () => {
-            const { submitSingleIngest, openIngestStation, handleFileSelected } = require('../../../src/api/static/js/ingest-station.js');
+            const { submitSingleIngest, openIngestStation, handleFileSelected } = require('../../../src/HousingApplication.Web/wwwroot/js/ingest-station.js');
 
             window.currentArea = 'Area 1';
             window.currentHouse = '501';

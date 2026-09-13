@@ -70,7 +70,7 @@ describe('Delete House Feature in Settings Modal Danger Zone', () => {
     global.fetch = vi.fn();
 
     const scriptCode = fs.readFileSync(
-      path.resolve(__dirname, '../../../src/api/static/js/tenant-manager.js'),
+      path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/tenant-manager.js'),
       'utf8'
     );
     eval(scriptCode);
