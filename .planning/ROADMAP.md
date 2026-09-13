@@ -2,7 +2,7 @@
 
 ## Milestones
 
-- 🔄 **v15.0 Decoupled .NET Core Architecture & Non-Residing Applicants Archive** — Phases 109-113 (in progress)
+- ✅ **v15.0 Decoupled .NET Core Architecture & Non-Residing Applicants Archive** — Phases 109-113 (completed 2026-09-13)
 - ✅ **v14.0 Power-User Operations & Portfolio Expansion** — Phases 105-108 (shipped 2026-09-12)
 - ✅ **v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server** — Phases 101-104 (shipped 2026-09-09)
 - ✅ **v12.0 Unified Document Ingestion System** — Phases 97-100 (shipped 2026-09-09)
@@ -19,7 +19,7 @@
 - [x] Phase 110: Database Schema & Vacancy Guardrails for Applicants (1/1 plans) — completed 2026-09-13
 - [x] Phase 111: Segregated Tenancy & Applicant Register UI (1/1 plans) — completed 2026-09-13
 - [x] Phase 112: House Settings Modal & Ingestion Badging (1/1 plans) — completed 2026-09-13
-- [ ] Phase 113: End-to-End Test Suite Verification & Milestone Audit (0/1 plans)
+- [x] Phase 113: End-to-End Test Suite Verification & Milestone Audit (1/1 plans) — completed 2026-09-13
 
 ## Phase Details
 
@@ -125,4 +125,4 @@ See [.planning/milestones/v11.0-ROADMAP.md](milestones/v11.0-ROADMAP.md) for ful
 | 110. Database Schema & Vacancy Guardrails for Applicants | v15.0 | 1/1 | Complete | 2026-09-13 |
 | 111. Segregated Tenancy & Applicant Register UI | v15.0 | 1/1 | Complete | 2026-09-13 |
 | 112. House Settings Modal & Ingestion Badging | v15.0 | 1/1 | Complete | 2026-09-13 |
-| 113. End-to-End Test Suite Verification & Milestone Audit | v15.0 | 0/1 | Pending | - |
+| 113. End-to-End Test Suite Verification & Milestone Audit | v15.0 | 1/1 | Complete | 2026-09-13 |

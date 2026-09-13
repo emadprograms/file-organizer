@@ -34,8 +34,8 @@
 
 ### Verification & Automated Testing (VER)
 
-- [ ] **VER-01**: Implement backend xUnit tests covering the `is_resident` schema migration, vacancy calculation with non-residing applicants, and auto-reallocation guardrails.
-- [ ] **VER-02**: Implement frontend Vitest tests covering the segregated Tenancy Register, applicant card rendering, House Settings modal applicant row interactions, and Ingest dropdown options.
+- [x] **VER-01**: Implement backend xUnit tests covering the `is_resident` schema migration, vacancy calculation with non-residing applicants, and auto-reallocation guardrails.
+- [x] **VER-02**: Implement frontend Vitest tests covering the segregated Tenancy Register, applicant card rendering, House Settings modal applicant row interactions, and Ingest dropdown options.
 
 ## Out of Scope
 
@@ -63,8 +63,8 @@
 | SET-01 | Phase 112 | Complete |
 | ING-01 | Phase 112 | Complete |
 | TIM-01 | Phase 112 | Complete |
-| VER-01 | Phase 113 | Pending |
-| VER-02 | Phase 113 | Pending |
+| VER-01 | Phase 113 | Complete |
+| VER-02 | Phase 113 | Complete |
 
 **Coverage:**
 - v15.0 requirements: 17 total

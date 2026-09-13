@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Dapper;
 using FileOrganizer.Web.Data;
 using FileOrganizer.Web.Models;
 using Microsoft.AspNetCore.Hosting;
@@ -1138,6 +1139,179 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
         // 5. Deleting again returns 404
         var secondDeleteRes = await _client.DeleteAsync($"/api/areas/Safra%20C/houses/{houseId}");
         Assert.Equal(HttpStatusCode.NotFound, secondDeleteRes.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetHouseProfile_WithResidentAndApplicant_ReturnsSegregatedProfile()
+    {
+        await _fixture.SeedDataAsync();
+
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+
+        var houseId = $"HouseProf_{Guid.NewGuid():N}";
+        var areaId = "Safra C";
+        await repo.AddHouseAsync(houseId, areaId);
+        var resident = await repo.AddTenantAsync(houseId, "Resident Person", "2020-01-01", null, isResident: 1);
+        var applicant = await repo.AddTenantAsync(houseId, "Applicant Person", "2024-01-01", null, isResident: 0, notes: "Order canceled");
+
+        var response = await _client.GetAsync($"/api/areas/{Uri.EscapeDataString(areaId)}/houses/{houseId}/profile");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var profile = await response.Content.ReadFromJsonAsync<HouseProfileDto>();
+        Assert.NotNull(profile);
+        Assert.Equal(2, profile.Tenants.Count);
+
+        var appTenant = profile.Tenants.FirstOrDefault(t => t.Name == "Applicant Person");
+        Assert.NotNull(appTenant);
+        Assert.Equal(0, appTenant.IsResident);
+        Assert.Equal("Order canceled", appTenant.Notes);
+        Assert.False(appTenant.IsActive);
+
+        var resTenant = profile.Tenants.FirstOrDefault(t => t.Name == "Resident Person");
+        Assert.NotNull(resTenant);
+        Assert.Equal(1, resTenant.IsResident);
+
+        Assert.Equal("Resident Person", profile.ActiveResident);
+    }
+
+    [Fact]
+    public async Task BulkUpdateTenants_WithApplicant_SavesAndDoesNotReallocateDocsToApplicant()
+    {
+        await _fixture.SeedDataAsync();
+
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+        var factory = scope.ServiceProvider.GetRequiredService<ISqliteDbConnectionFactory>();
+
+        var houseId = $"HouseBulk_{Guid.NewGuid():N}";
+        var areaId = "Safra C";
+        await repo.AddHouseAsync(houseId, areaId);
+        var resident = await repo.AddTenantAsync(houseId, "Resident Main", "2020-01-01", null, isResident: 1);
+
+        // Add unallocated document (date: 2021-05-01) with is_manual = 0
+        var ingest = await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = areaId,
+            HouseId = houseId,
+            TenantId = resident.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "وثيقة غير مخصصة",
+            PrimaryDate = "2021-05-01",
+            PageCount = 1,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        await using (var conn = await factory.CreateConnectionAsync())
+        {
+            await conn.ExecuteAsync("UPDATE documents SET is_manual = 0 WHERE vault_id = @VaultId;", new { VaultId = ingest.VaultId });
+        }
+
+        var updatePayload = new TenantBulkUpdateRequestDto
+        {
+            Tenants = new List<TenantDto>
+            {
+                new TenantDto
+                {
+                    Id = resident.Id,
+                    Name = resident.Name,
+                    StartDate = resident.StartDate,
+                    EndDate = resident.EndDate,
+                    HouseId = houseId,
+                    IsResident = 1
+                },
+                new TenantDto
+                {
+                    Name = "Applicant New",
+                    StartDate = "2021-01-01",
+                    HouseId = houseId,
+                    IsResident = 0,
+                    Notes = "Allocation pending"
+                }
+            },
+            Reallocate = true
+        };
+
+        var response = await _client.PostAsJsonAsync($"/api/areas/{Uri.EscapeDataString(areaId)}/houses/{houseId}/tenants", updatePayload);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        // Verify document is reallocated to resident, NOT to applicant
+        var docAfter = await repo.GetDocumentRawAsync(ingest.VaultId!);
+        Assert.NotNull(docAfter);
+        Assert.Equal(resident.Id, docAfter.TenantId);
+
+        var tenantsInDb = await repo.GetTenantsAsync(houseId);
+        var savedApplicant = tenantsInDb.FirstOrDefault(t => t.Name == "Applicant New");
+        Assert.NotNull(savedApplicant);
+        Assert.NotEqual(savedApplicant.Id, docAfter.TenantId);
+
+        // Verify applicant is saved in database with is_resident == 0 and notes
+        Assert.Equal(0, savedApplicant.IsResident);
+        Assert.Equal("Allocation pending", savedApplicant.Notes);
+    }
+
+    [Fact]
+    public async Task GetTimeline_ReturnsApplicantStatus()
+    {
+        await _fixture.SeedDataAsync();
+
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+
+        var houseId = $"HouseTl_{Guid.NewGuid():N}";
+        var areaId = "Safra C";
+        await repo.AddHouseAsync(houseId, areaId);
+        var applicant = await repo.AddTenantAsync(houseId, "Applicant Timeline", "2023-01-01", null, isResident: 0, notes: "Order pending");
+
+        var doc = await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = areaId,
+            HouseId = houseId,
+            TenantId = applicant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "طلب تخصيص للمتقدم",
+            PrimaryDate = "2023-03-01",
+            PageCount = 1,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        var response = await _client.GetAsync($"/api/areas/{Uri.EscapeDataString(areaId)}/houses/{houseId}/timeline");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var timeline = await response.Content.ReadFromJsonAsync<List<TimelineItemDto>>();
+        Assert.NotNull(timeline);
+
+        var applicantDoc = timeline.FirstOrDefault(t => t.VaultId == doc.VaultId);
+        Assert.NotNull(applicantDoc);
+        Assert.Equal(0, applicantDoc.IsResident);
+    }
+
+    [Fact]
+    public async Task Search_ReturnsApplicantBadgeAndNotCurrent()
+    {
+        await _fixture.SeedDataAsync();
+
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+
+        var houseId = $"HouseSearch_{Guid.NewGuid():N}";
+        var areaId = "Safra C";
+        await repo.AddHouseAsync(houseId, areaId);
+        var applicantName = $"ApplicantSearch_{Guid.NewGuid():N}";
+        var applicant = await repo.AddTenantAsync(houseId, applicantName, "2024-01-01", null, isResident: 0, notes: "Allocation pending");
+
+        var response = await _client.GetAsync($"/api/search?q={Uri.EscapeDataString(applicantName)}");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var results = await response.Content.ReadFromJsonAsync<List<SearchResultDto>>();
+        Assert.NotNull(results);
+
+        var resultItem = results.FirstOrDefault(r => r.Type == "tenant" && r.Title == applicantName);
+        Assert.NotNull(resultItem);
+        Assert.Equal("tenant", resultItem.Type);
+        Assert.Equal(0, resultItem.IsResident);
+        Assert.False(resultItem.IsCurrent);
+        Assert.Null(resultItem.DurationCategory);
     }
 }
 
