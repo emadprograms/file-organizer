@@ -65,7 +65,8 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                 WHERE is_timeline_visible = 1 AND primary_date IS NOT NULL AND primary_date != ''
                 GROUP BY tenant_id
             ) d ON t.id = d.tenant_id
-            ORDER BY (CASE WHEN t.end_date IS NULL OR t.end_date = '' OR LOWER(t.end_date) = 'present' OR t.end_date >= DATE('now') THEN 1 ELSE 0 END) DESC, 
+            ORDER BY t.is_resident DESC,
+                     (CASE WHEN t.end_date IS NULL OR t.end_date = '' OR LOWER(t.end_date) = 'present' OR t.end_date >= DATE('now') THEN 1 ELSE 0 END) DESC, 
                      t.end_date DESC, StartDate DESC, t.id DESC;")).ToList();
 
         var docCounts = (await conn.QueryAsync<(string HouseId, string? Category, int DocCount)>(@"
@@ -282,7 +283,8 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                 WHERE is_timeline_visible = 1 AND primary_date IS NOT NULL AND primary_date != ''
                 GROUP BY tenant_id
             ) d ON t.id = d.tenant_id
-            ORDER BY (CASE WHEN t.end_date IS NULL OR t.end_date = '' OR LOWER(t.end_date) = 'present' OR t.end_date >= DATE('now') THEN 1 ELSE 0 END) DESC, 
+            ORDER BY t.is_resident DESC,
+                     (CASE WHEN t.end_date IS NULL OR t.end_date = '' OR LOWER(t.end_date) = 'present' OR t.end_date >= DATE('now') THEN 1 ELSE 0 END) DESC, 
                      t.end_date DESC, StartDate DESC, t.id DESC;")).ToList();
 
         var docCounts = (await conn.QueryAsync<(string HouseId, string? Category, int DocCount)>(@"
@@ -506,9 +508,10 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             });
         }
 
-        // Active first, then by end date descending (most recently vacated first), then start date descending
+        // Residents first, then active first, then by end date descending (most recently vacated first), then start date descending
         tenantProfiles.Sort((a, b) =>
         {
+            if (a.IsResident != b.IsResident) return b.IsResident.CompareTo(a.IsResident);
             if (a.IsActive != b.IsActive) return b.IsActive.CompareTo(a.IsActive);
             var endCmp = string.Compare(b.EndDate, a.EndDate, StringComparison.Ordinal);
             if (endCmp != 0) return endCmp;
@@ -870,7 +873,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             }
         }
 
-        foreach (var item in scoredTenants.OrderByDescending(x => x.Score))
+        foreach (var item in scoredTenants.OrderByDescending(x => x.Score).ThenByDescending(x => x.Dto.IsResident))
         {
             results.Add(item.Dto);
         }

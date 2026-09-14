@@ -1388,7 +1388,12 @@
             const seen = new Set();
             fetchedTenants = [];
             if (Array.isArray(tenants)) {
-                tenants.forEach(t => {
+                const sortedTenants = [...tenants].sort((a, b) => {
+                    const aRes = (a && a.is_resident !== 0 && a.is_resident !== false) ? 1 : 0;
+                    const bRes = (b && b.is_resident !== 0 && b.is_resident !== false) ? 1 : 0;
+                    return bRes - aRes;
+                });
+                sortedTenants.forEach(t => {
                     const normName = (t.name || '').trim().toLowerCase();
                     if (t.id != null && seen.has(`id:${t.id}`)) return;
                     if (normName && seen.has(`name:${normName}`)) return;
@@ -1427,8 +1432,14 @@
             const seen = new Set();
             fallbackChildren = [];
             if (houseNode && Array.isArray(houseNode.children)) {
-                fallbackChildren = houseNode.children;
-                houseNode.children.forEach(tNode => {
+                const tenantNodes = houseNode.children.filter(c => !c.type || c.type === 'tenant');
+                const sortedNodes = [...tenantNodes].sort((a, b) => {
+                    const aRes = (a && a.is_resident !== 0 && a.is_resident !== false) ? 1 : 0;
+                    const bRes = (b && b.is_resident !== 0 && b.is_resident !== false) ? 1 : 0;
+                    return bRes - aRes;
+                });
+                fallbackChildren = sortedNodes;
+                sortedNodes.forEach(tNode => {
                     const normName = (tNode.name || '').trim().toLowerCase();
                     if (normName && seen.has(`name:${normName}`)) return;
                     if (normName) seen.add(`name:${normName}`);

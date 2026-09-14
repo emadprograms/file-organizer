@@ -125,7 +125,12 @@
             if (!tenants || tenants.length === 0) {
                 addTenantRow();
             } else {
-                tenants.forEach(t => addTenantRow(t));
+                const sortedTenants = [...tenants].sort((a, b) => {
+                    const aRes = (a && a.is_resident !== 0 && a.is_resident !== false) ? 1 : 0;
+                    const bRes = (b && b.is_resident !== 0 && b.is_resident !== false) ? 1 : 0;
+                    return bRes - aRes;
+                });
+                sortedTenants.forEach(t => addTenantRow(t));
             }
             updateRowNumbers();
         } catch (err) {

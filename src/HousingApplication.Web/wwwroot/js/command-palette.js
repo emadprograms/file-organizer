@@ -238,7 +238,11 @@
 
         const commands = results.filter(r => r.type === 'command');
         const houses = results.filter(r => r.type === 'house');
-        const tenants = results.filter(r => r.type === 'tenant');
+        const tenants = results.filter(r => r.type === 'tenant').sort((a, b) => {
+            const aRes = (a.is_resident !== 0 && a.isResident !== 0 && a.is_resident !== false) ? 1 : 0;
+            const bRes = (b.is_resident !== 0 && b.isResident !== 0 && b.is_resident !== false) ? 1 : 0;
+            return bRes - aRes;
+        });
         const documents = results.filter(r => r.type === 'document');
 
         searchResults.innerHTML = '';

@@ -101,8 +101,9 @@
             card.className += ` ${borderClass}`;
 
             const allTenants = (house.children || []).filter(c => c.type === 'tenant');
-            const residents = allTenants.filter(t => t.is_resident !== 0);
-            const applicants = allTenants.filter(t => t.is_resident === 0);
+            const residents = allTenants.filter(t => t.is_resident !== 0 && t.is_resident !== false);
+            const applicants = allTenants.filter(t => t.is_resident === 0 || t.is_resident === false);
+            const orderedTenants = [...residents, ...applicants];
             const totalDocs = house.total_documents || 0;
 
             let countBadgeText = '0 Tenants';
@@ -115,7 +116,7 @@
             }
 
             let tenantsHtml = '';
-            if (allTenants.length === 0) {
+            if (orderedTenants.length === 0) {
                 tenantsHtml = `
                     <div class="py-2.5 px-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
                         <p class="text-[11px] text-slate-400 italic">No tenants recorded</p>
@@ -124,7 +125,7 @@
             } else {
                 tenantsHtml = `
                     <div class="space-y-1.5">
-                        ${allTenants.map((t, idx) => {
+                        ${orderedTenants.map((t, idx) => {
                             let cardBg;
                             let nameClass;
                             let tenantIcon;
@@ -185,7 +186,7 @@
                 `;
             }
 
-            const scrollClass = allTenants.length > 3 ? 'max-h-[118px] overflow-y-auto pr-1' : '';
+            const scrollClass = orderedTenants.length > 3 ? 'max-h-[118px] overflow-y-auto pr-1' : '';
 
             card.innerHTML = `
                 <div>

@@ -378,6 +378,77 @@ describe('Area Grid House Card Component - Scrollbar for > 3 Tenancies', () => {
     expect(card.querySelector('.tenure-text').textContent.trim()).toBe('2024 - Present');
     expect(card.querySelector('.tenure-badge').textContent.trim()).toBe('< 5 Yrs');
   });
+
+  it('ensures applicants NEVER appear before resident tenants even if listed first in house.children', () => {
+    const areaNode = {
+      name: 'Safra C',
+      children: [
+        {
+          id: '777',
+          name: '777 - Mixed House',
+          duration_category: 'short',
+          current_tenant: 'Current Resident',
+          total_documents: 4,
+          children: [
+            {
+              type: 'tenant',
+              name: 'Applicant First',
+              subtitle: 'Applicant',
+              is_resident: 0
+            },
+            {
+              type: 'tenant',
+              name: 'Past Resident',
+              subtitle: '2020 - 2022',
+              is_resident: 1
+            },
+            {
+              type: 'tenant',
+              name: 'Current Resident',
+              subtitle: '2022 - Present',
+              is_resident: 1,
+              is_active: true
+            },
+            {
+              type: 'tenant',
+              name: 'Another Applicant',
+              subtitle: 'Applicant',
+              is_resident: 0
+            }
+          ]
+        }
+      ]
+    };
+
+    window.renderAreaGrid(areaNode);
+
+    const card = document.querySelector('.house-card[data-house-id="777"]');
+    expect(card).not.toBeNull();
+
+    const tenantNames = Array.from(card.querySelectorAll('.tenant-name')).map(el => el.textContent.trim());
+    expect(tenantNames).toEqual([
+      'Past Resident',
+      'Current Resident',
+      'Applicant First',
+      'Another Applicant'
+    ]);
+
+    // Verify all resident rows appear before any applicant rows in DOM
+    const renderedCards = Array.from(card.querySelectorAll('.tenants-overview-section > div > div'));
+    const residentIndices = [];
+    const applicantIndices = [];
+    renderedCards.forEach((row, idx) => {
+      if (row.innerHTML.includes('Applicant • متقدم')) {
+        applicantIndices.push(idx);
+      } else {
+        residentIndices.push(idx);
+      }
+    });
+
+    expect(residentIndices.length).toBe(2);
+    expect(applicantIndices.length).toBe(2);
+    expect(Math.max(...residentIndices)).toBeLessThan(Math.min(...applicantIndices));
+  });
 });
 
 

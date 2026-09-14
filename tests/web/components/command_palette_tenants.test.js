@@ -225,4 +225,33 @@ describe('Command Palette Tenant Search Timeline Color Coding', () => {
     expect(badge.className).toContain('bg-purple-50');
     expect(badge.className).toContain('border-purple-300');
   });
+
+  it('ensures resident tenants always appear before applicants in search results', () => {
+    const results = [
+      {
+        id: 'applicant_1',
+        type: 'tenant',
+        title: 'Applicant Alpha',
+        subtitle: 'House 100 • Safra C',
+        url: '/#/area/Safra C/house/100',
+        is_resident: 0
+      },
+      {
+        id: 'resident_1',
+        type: 'tenant',
+        title: 'Resident Beta',
+        subtitle: 'House 100 • Safra C',
+        url: '/#/area/Safra C/house/100',
+        is_resident: 1,
+        is_current: true
+      }
+    ];
+
+    window.renderSearchResults(results);
+
+    const tenantItems = document.querySelectorAll('.command-palette-result-item');
+    expect(tenantItems.length).toBe(2);
+    expect(tenantItems[0].textContent).toContain('Resident Beta');
+    expect(tenantItems[1].textContent).toContain('Applicant Alpha');
+  });
 });

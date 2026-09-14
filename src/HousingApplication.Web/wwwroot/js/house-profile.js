@@ -47,7 +47,12 @@
                         category_count: (tenantCatSets[kt.name] || new Set()).size
                     };
                 });
-                tenants.sort((a, b) => (a.is_active === b.is_active ? 0 : a.is_active ? -1 : 1));
+                tenants.sort((a, b) => {
+                    const aRes = (a.is_resident !== 0 && a.is_resident !== false) ? 1 : 0;
+                    const bRes = (b.is_resident !== 0 && b.is_resident !== false) ? 1 : 0;
+                    if (aRes !== bRes) return bRes - aRes;
+                    return (a.is_active === b.is_active ? 0 : a.is_active ? -1 : 1);
+                });
 
                 const validDates = [];
                 const catCounts = {};

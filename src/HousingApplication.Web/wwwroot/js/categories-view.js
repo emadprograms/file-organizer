@@ -566,9 +566,15 @@
 
         if (!tenantsList || tenantsList.length === 0) return;
 
+        const sortedTenantsList = [...tenantsList].sort((a, b) => {
+            const aIsRes = (a && a.is_resident !== 0 && a.is_resident !== false) ? 1 : 0;
+            const bIsRes = (b && b.is_resident !== 0 && b.is_resident !== false) ? 1 : 0;
+            return bIsRes - aIsRes;
+        });
+
         let matchedOption = null;
 
-        tenantsList.forEach((t) => {
+        sortedTenantsList.forEach((t) => {
             if (!t || (!t.name && t.id == null)) return;
             const opt = document.createElement('option');
             opt.value = t.id != null ? String(t.id) : '';

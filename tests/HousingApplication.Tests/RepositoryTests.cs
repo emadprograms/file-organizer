@@ -1325,5 +1325,62 @@ public class RepositoryTests : IDisposable
         Assert.Equal($"{recentYear} - Present", tenantNode.Subtitle);
         Assert.Equal($"{recentYear}-08-01", tenantNode.StartDate);
     }
+
+    [Fact]
+    public async Task Applicants_NeverAppearBeforeResidentTenants_InTree_And_HouseProfile()
+    {
+        // Arrange: House 618 in Area618 with an applicant who applied recently (2025-01-01, end_date null),
+        // a past resident (2015-01-01 to 2020-01-01), and a current resident (2020-01-01 to null).
+        await _repo.AddAreaAsync("Area618", "A618");
+        await _repo.AddHouseAsync("618", "Area618");
+
+        // Insert applicant FIRST into database
+        var applicant = await _repo.AddTenantAsync("618", "Applicant Person", "2025-01-01", null, isResident: 0);
+        // Insert past resident
+        var pastTenant = await _repo.AddTenantAsync("618", "Past Resident", "2015-01-01", "2020-01-01", isResident: 1);
+        // Insert current resident
+        var currentTenant = await _repo.AddTenantAsync("618", "Current Resident", "2020-01-01", null, isResident: 1);
+
+        // Act 1: GetTreeAsync
+        var tree = await _repo.GetTreeAsync();
+        var houseNode = tree.FirstOrDefault(a => a.Name == "Area618")?.Children?.FirstOrDefault(h => h.Id == "618");
+        Assert.NotNull(houseNode);
+        Assert.NotNull(houseNode.Children);
+        var treeTenants = houseNode.Children.Where(c => c.Type == "tenant").ToList();
+        Assert.Equal(3, treeTenants.Count);
+        Assert.Equal("Current Resident", treeTenants[0].Name);
+        Assert.Equal(1, treeTenants[0].IsResident);
+        Assert.Equal("Past Resident", treeTenants[1].Name);
+        Assert.Equal(1, treeTenants[1].IsResident);
+        Assert.Equal("Applicant Person", treeTenants[2].Name);
+        Assert.Equal(0, treeTenants[2].IsResident);
+
+        // Act 2: GetHousesAsync
+        var houses = await _repo.GetHousesAsync("Area618");
+        var houseCard = houses.FirstOrDefault(h => h.Id == "618");
+        Assert.NotNull(houseCard);
+        Assert.Equal("Current Resident", houseCard.CurrentTenant);
+
+        // Act 3: GetHouseProfileAsync
+        var profile = await _repo.GetHouseProfileAsync("Area618", "618");
+        Assert.NotNull(profile);
+        Assert.Equal(3, profile.Tenants.Count);
+        Assert.Equal("Current Resident", profile.Tenants[0].Name);
+        Assert.Equal(1, profile.Tenants[0].IsResident);
+        Assert.Equal("Past Resident", profile.Tenants[1].Name);
+        Assert.Equal(1, profile.Tenants[1].IsResident);
+        Assert.Equal("Applicant Person", profile.Tenants[2].Name);
+        Assert.Equal(0, profile.Tenants[2].IsResident);
+
+        // Act 4: GetTenantsAsync
+        var tenantsList = await _repo.GetTenantsAsync("618");
+        Assert.Equal(3, tenantsList.Count);
+        Assert.Equal("Current Resident", tenantsList[0].Name);
+        Assert.Equal(1, tenantsList[0].IsResident);
+        Assert.Equal("Past Resident", tenantsList[1].Name);
+        Assert.Equal(1, tenantsList[1].IsResident);
+        Assert.Equal("Applicant Person", tenantsList[2].Name);
+        Assert.Equal(0, tenantsList[2].IsResident);
+    }
 }
 
