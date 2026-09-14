@@ -400,7 +400,8 @@ html.dark .bg-rose-100,
 html.dark .bg-rose-100\/80 {
     background-color: rgba(244, 63, 94, 0.18) !important;
 }
-html.dark .border-rose-200 {
+html.dark .border-rose-200,
+html.dark .border-rose-200\/80 {
     border-color: rgba(244, 63, 94, 0.28) !important;
 }
 html.dark .border-rose-300 {
@@ -561,14 +562,46 @@ html.dark .hover\:border-purple-400:hover {
 /* ── Cards & Surfaces ───────────────────────────────────────────────── */
 html.dark .house-card {
     background-color: #111827;
-    border-color: #1e293b;
+    border-top-color: #1e293b;
+    border-right-color: #1e293b;
+    border-bottom-color: #1e293b;
     box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
 }
 
 html.dark .house-card:hover {
-    border-color: #3b82f6;
+    border-top-color: #3b82f6;
+    border-right-color: #3b82f6;
+    border-bottom-color: #3b82f6;
     background-color: #141f36;
     box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(59, 130, 246, 0.25);
+}
+
+/* Tenure duration indicator left borders for house cards in dark mode (<5y emerald, 5-10y amber, >10y rose, vacant slate) */
+html.dark .house-card.border-l-emerald-500,
+html.dark .house-card.border-l-emerald-500:hover,
+html.dark .border-l-emerald-500 {
+    border-left-color: #10b981 !important;
+}
+
+html.dark .house-card.border-l-amber-500,
+html.dark .house-card.border-l-amber-500:hover,
+html.dark .border-l-amber-500 {
+    border-left-color: #f59e0b !important;
+}
+
+html.dark .house-card.border-l-rose-500,
+html.dark .house-card.border-l-rose-500:hover,
+html.dark .border-l-rose-500 {
+    border-left-color: #f43f5e !important;
+}
+
+html.dark .house-card.border-l-slate-300,
+html.dark .house-card.border-l-slate-300:hover,
+html.dark .house-card.dark\:border-l-slate-600,
+html.dark .house-card.dark\:border-l-slate-600:hover,
+html.dark .border-l-slate-300,
+html.dark .dark\:border-l-slate-600 {
+    border-left-color: #475569 !important;
 }
 
 html.dark .tenant-profile-card {

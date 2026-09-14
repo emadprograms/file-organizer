@@ -237,4 +237,44 @@ describe('Dark Mode & Tablet Overhaul - Design System & Styling Architecture', (
       expect(htmlContent).toContain('id="document-list-panel" class="bg-white dark:bg-slate-900');
     });
   });
+
+  describe('11. House Card Duration Indicator Left Border Preservation in Dark Mode', () => {
+    it('does NOT set shorthand border-color on html.dark .house-card or html.dark .house-card:hover so single-side duration borders are never clobbered', () => {
+      const cardRuleMatch = cssContent.match(/html\.dark\s+\.house-card\s*\{([^}]*)\}/);
+      expect(cardRuleMatch).not.toBeNull();
+      const cardBlock = cardRuleMatch ? cardRuleMatch[1] : '';
+      expect(cardBlock).not.toMatch(/(^|;|\s)border-color:/);
+      expect(cardBlock).toContain('border-top-color: #1e293b;');
+      expect(cardBlock).toContain('border-right-color: #1e293b;');
+      expect(cardBlock).toContain('border-bottom-color: #1e293b;');
+
+      const hoverRuleMatch = cssContent.match(/html\.dark\s+\.house-card:hover\s*\{([^}]*)\}/);
+      expect(hoverRuleMatch).not.toBeNull();
+      const hoverBlock = hoverRuleMatch ? hoverRuleMatch[1] : '';
+      expect(hoverBlock).not.toMatch(/(^|;|\s)border-color:/);
+      expect(hoverBlock).toContain('border-top-color: #3b82f6;');
+      expect(hoverBlock).toContain('border-right-color: #3b82f6;');
+      expect(hoverBlock).toContain('border-bottom-color: #3b82f6;');
+    });
+
+    it('asserts house cards retain emerald duration indicator border (#10b981) for < 5y in dark mode at rest and on hover', () => {
+      expect(cssContent).toMatch(/html\.dark\s+\.house-card\.border-l-emerald-500,\s*html\.dark\s+\.house-card\.border-l-emerald-500:hover,\s*html\.dark\s+\.border-l-emerald-500\s*\{[^}]*border-left-color:\s*#10b981\s*!important/);
+    });
+
+    it('asserts house cards retain amber duration indicator border (#f59e0b) for 5-10y in dark mode at rest and on hover', () => {
+      expect(cssContent).toMatch(/html\.dark\s+\.house-card\.border-l-amber-500,\s*html\.dark\s+\.house-card\.border-l-amber-500:hover,\s*html\.dark\s+\.border-l-amber-500\s*\{[^}]*border-left-color:\s*#f59e0b\s*!important/);
+    });
+
+    it('asserts house cards retain rose duration indicator border (#f43f5e) for > 10y in dark mode at rest and on hover', () => {
+      expect(cssContent).toMatch(/html\.dark\s+\.house-card\.border-l-rose-500,\s*html\.dark\s+\.house-card\.border-l-rose-500:hover,\s*html\.dark\s+\.border-l-rose-500\s*\{[^}]*border-left-color:\s*#f43f5e\s*!important/);
+    });
+
+    it('asserts house cards retain slate indicator border (#475569) for vacant houses in dark mode at rest and on hover', () => {
+      expect(cssContent).toMatch(/html\.dark\s+\.house-card\.border-l-slate-300,\s*html\.dark\s+\.house-card\.border-l-slate-300:hover,\s*html\.dark\s+\.house-card\.dark\\:border-l-slate-600,\s*html\.dark\s+\.house-card\.dark\\:border-l-slate-600:hover,\s*html\.dark\s+\.border-l-slate-300,\s*html\.dark\s+\.dark\\:border-l-slate-600\s*\{[^}]*border-left-color:\s*#475569\s*!important/);
+    });
+
+    it('styles border-rose-200/80 in dark mode for long duration tenant list items inside cards', () => {
+      expect(cssContent).toMatch(/html\.dark\s+\.border-rose-200,\s*html\.dark\s+\.border-rose-200\\\/80\s*\{[^}]*border-color:\s*rgba\(244,\s*63,\s*94,\s*0\.28\)\s*!important/);
+    });
+  });
 });
