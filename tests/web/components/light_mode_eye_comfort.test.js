@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
-describe('Light Mode Eye Comfort & Anti-Glare Calibration', () => {
+describe('Light Mode Eye Comfort & Card Border Preservation', () => {
   const srcCssPath = path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/css/styles.css');
   const distCssPath = path.resolve(__dirname, '../../../dist/win-x64/wwwroot/css/styles.css');
   const cssContent = fs.readFileSync(srcCssPath, 'utf8');
@@ -11,12 +11,12 @@ describe('Light Mode Eye Comfort & Anti-Glare Calibration', () => {
   describe('1. Calibrated Light Mode Surface Tokens in :root', () => {
     it('defines anti-glare, softened surface and delicate border tokens in :root', () => {
       expect(cssContent).toContain(':root');
-      expect(cssContent).toMatch(/--surface-canvas:\s*#f6f8fa;/);
-      expect(cssContent).toMatch(/--surface-panel:\s*#ffffff;/);
-      expect(cssContent).toMatch(/--surface-card:\s*#ffffff;/);
+      expect(cssContent).toMatch(/--surface-canvas:\s*#edf0f4;/);
+      expect(cssContent).toMatch(/--surface-panel:\s*#f7f9fb;/);
+      expect(cssContent).toMatch(/--surface-card:\s*#f7f9fb;/);
       expect(cssContent).toMatch(/--surface-elevated:\s*#ffffff;/);
-      expect(cssContent).toMatch(/--surface-hover:\s*#f1f5f9;/);
-      expect(cssContent).toMatch(/--border-subtle:\s*#f1f5f9;/);
+      expect(cssContent).toMatch(/--surface-hover:\s*#edf2f7;/);
+      expect(cssContent).toMatch(/--border-subtle:\s*#edf0f4;/);
       expect(cssContent).toMatch(/--border-default:\s*#e2e8f0;/);
       expect(cssContent).toMatch(/--border-emphasis:\s*#cbd5e1;/);
       expect(cssContent).toMatch(/--text-primary:\s*#0f172a;/);
@@ -26,10 +26,10 @@ describe('Light Mode Eye Comfort & Anti-Glare Calibration', () => {
   });
 
   describe('2. Scoped html:not(.dark) Surface Calibration Rules', () => {
-    it('softens light mode body and content panels to calm neutral canvas (#f6f8fa) to eliminate glare', () => {
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+body\s*\{[^}]*background-color:\s*#f6f8fa;/);
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+#area-grid-panel,\s*html:not\(\.dark\)\s+#database-inspector-panel,\s*html:not\(\.dark\)\s+#welcome-panel\s*\{[^}]*background-color:\s*#f6f8fa;/);
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+#document-viewer-panel\s*\{[^}]*background-color:\s*#f1f5f9;/);
+    it('softens light mode body and content panels to calm neutral canvas (#edf0f4) to eliminate glare', () => {
+      expect(cssContent).toMatch(/html:not\(\.dark\)\s+body\s*\{[^}]*background-color:\s*#edf0f4;/);
+      expect(cssContent).toMatch(/html:not\(\.dark\)\s+#area-grid-panel,\s*html:not\(\.dark\)\s+#database-inspector-panel,\s*html:not\(\.dark\)\s+#welcome-panel\s*\{[^}]*background-color:\s*#edf0f4;/);
+      expect(cssContent).toMatch(/html:not\(\.dark\)\s+#document-viewer-panel\s*\{[^}]*background-color:\s*#edf0f4;/);
     });
 
     it('preserves clean utility classes for buttons and badges without dark grey overrides', () => {
@@ -37,9 +37,9 @@ describe('Light Mode Eye Comfort & Anti-Glare Calibration', () => {
       expect(cssContent).not.toMatch(/html:not\(\.dark\)\s+\.bg-slate-100\s*\{[^}]*background-color:\s*#e4e8ef;/);
     });
 
-    it('applies calibrated backgrounds and delicate borders to navigation and document list panels', () => {
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+#top-navbar\s*\{[^}]*background-color:\s*rgba\(255,\s*255,\s*255,\s*0\.92\);[^}]*border-color:\s*#e2e8f0;/);
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+#document-list-panel\s*\{[^}]*background-color:\s*#ffffff;[^}]*border-color:\s*#e2e8f0;/);
+    it('applies calibrated soft-white background (#f7f9fb) and delicate borders to navbar and document list panels', () => {
+      expect(cssContent).toMatch(/html:not\(\.dark\)\s+#top-navbar\s*\{[^}]*background-color:\s*rgba\(247,\s*249,\s*251,\s*0\.94\);[^}]*border-color:\s*#e2e8f0;/);
+      expect(cssContent).toMatch(/html:not\(\.dark\)\s+#document-list-panel\s*\{[^}]*background-color:\s*#f7f9fb;[^}]*border-color:\s*#e2e8f0;/);
     });
 
     it('ensures input fields and text controls retain clean white backgrounds and delicate borders', () => {
@@ -50,12 +50,6 @@ describe('Light Mode Eye Comfort & Anti-Glare Calibration', () => {
       expect(cssContent).toMatch(/html:not\(\.dark\)\s+#tab-categories\.bg-white,\s*html:not\(\.dark\)\s+#tab-timeline\.bg-white\s*\{[^}]*background-color:\s*#ffffff\s*!important;/);
     });
 
-    it('styles house cards and category folder cards with clean white surface, delicate borders, and NO dark box-shadow rings', () => {
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+\.house-card,\s*html:not\(\.dark\)\s+\.category-folder-card\s*\{[^}]*background-color:\s*#ffffff;/);
-      expect(cssContent).not.toContain('0 0 0 1px rgba(226, 232, 240, 0.8)');
-      expect(cssContent).toContain('box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);');
-    });
-
     it('provides vibrant and delicate selection highlight for document rows and text selection', () => {
       expect(cssContent).toContain('.doc-row-selected {');
       expect(cssContent).toMatch(/\.doc-row-selected\s*\{[^}]*background-color:\s*#eff6ff\s*!important;/);
@@ -64,7 +58,32 @@ describe('Light Mode Eye Comfort & Anti-Glare Calibration', () => {
     });
   });
 
-  describe('3. Dark Mode Protection (Dark Rules Intact & Unaffected)', () => {
+  describe('3. House Card Colored Indicator Border Preservation', () => {
+    it('sets soft white background (#f7f9fb) on cards for glare reduction without stark pure white or dull grey', () => {
+      expect(cssContent).toMatch(/html:not\(\.dark\)\s+\.house-card,\s*html:not\(\.dark\)\s+\.category-folder-card\s*\{[^}]*background-color:\s*#f7f9fb;/);
+    });
+
+    it('STRICTLY DOES NOT set border-color on html:not(.dark) .house-card or .category-folder-card so tenure stripes are preserved', () => {
+      // Find the rule blocks for light mode house-card and category-folder-card
+      const cardRuleMatch = cssContent.match(/html:not\(\.dark\)\s+\.house-card,\s*html:not\(\.dark\)\s+\.category-folder-card\s*\{([^}]*)\}/);
+      expect(cardRuleMatch).not.toBeNull();
+      const cardBlock = cardRuleMatch ? cardRuleMatch[1] : '';
+      expect(cardBlock).not.toContain('border-color');
+
+      const hoverRuleMatch = cssContent.match(/html:not\(\.dark\)\s+\.house-card:hover,\s*html:not\(\.dark\)\s+\.category-folder-card:hover\s*\{([^}]*)\}/);
+      expect(hoverRuleMatch).not.toBeNull();
+      const hoverBlock = hoverRuleMatch ? hoverRuleMatch[1] : '';
+      expect(hoverBlock).not.toContain('border-color');
+    });
+
+    it('ensures no dark box-shadow rings are present on cards in light mode', () => {
+      expect(cssContent).not.toContain('0 0 0 1px rgba(226, 232, 240, 0.8)');
+      expect(cssContent).toContain('box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);');
+      expect(cssContent).toContain('box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);');
+    });
+  });
+
+  describe('4. Dark Mode Protection (Dark Rules Intact & Unaffected)', () => {
     it('verifies html.dark tokens remain untouched', () => {
       expect(cssContent).toContain('html.dark {');
       expect(cssContent).toContain('--surface-canvas: #080c14');
@@ -86,7 +105,7 @@ describe('Light Mode Eye Comfort & Anti-Glare Calibration', () => {
     });
   });
 
-  describe('4. Parity Between Source and Dist Stylesheets', () => {
+  describe('5. Parity Between Source and Dist Stylesheets', () => {
     it('ensures dist/win-x64/wwwroot/css/styles.css is an exact 100% mirror of src/HousingApplication.Web/wwwroot/css/styles.css', () => {
       expect(distCssContent).toBe(cssContent);
     });

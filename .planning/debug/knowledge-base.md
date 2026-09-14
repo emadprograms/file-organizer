@@ -19,3 +19,11 @@ Resolved debug sessions. Used by `gsd-debugger` to surface known-pattern hypothe
 - **Fix:** Adopted the Apple macOS / GitHub light theme model: unified neutral anti-glare canvas (#f6f8fa), clean elevated white surfaces (#ffffff) with soft natural drop shadows and no dark box-shadow rings, restored delicate borders (#e2e8f0, #f1f5f9), removed global utility overrides on .bg-slate-50/.bg-slate-100 to keep buttons and badges crisp, and upgraded .doc-row-selected to vibrant light blue (#eff6ff / #93c5fd) with native-style ::selection.
 - **Files changed:** src/HousingApplication.Web/wwwroot/css/styles.css, dist/win-x64/wwwroot/css/styles.css, tests/web/components/light_mode_eye_comfort.test.js
 ---
+
+## restore-card-colored-borders — Restore card tenure-colored borders and genuinely soften light mode whiteness
+- **Date:** 2026-09-14
+- **Error patterns:** colored borders removed, card borders missing, tenure stripe disappeared, white still quite white
+- **Root cause:** `border-color: #e2e8f0;` in `styles.css` is a 4-side shorthand that overrode Tailwind's `border-l-[5px] border-l-emerald-500` (and amber/rose/slate), wiping out the colored tenure stripe on house cards and tenant cards. Concurrently, setting `background-color: #ffffff;` explicitly on cards kept them at 100% blinding white.
+- **Fix:** Removed `border-color` from `.house-card` and `.category-folder-card` completely so Tailwind's colored left stripes render cleanly with high contrast. Set background canvas to `#edf0f4` (~93% luminance) and elevated card surfaces to `#f7f9fb` (~97.5% luminance) to genuinely eliminate 255/255/255 glare for eye comfort.
+- **Files changed:** src/HousingApplication.Web/wwwroot/css/styles.css, dist/win-x64/wwwroot/css/styles.css, tests/web/components/light_mode_eye_comfort.test.js
+---
