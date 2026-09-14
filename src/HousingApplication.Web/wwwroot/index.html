@@ -604,6 +604,12 @@
                     <input id="doc-modal-arabic-title" type="text" dir="rtl" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white" placeholder="اسم المستند..." />
                 </div>
 
+                <!-- Document Date -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Document Date</label>
+                    <input id="doc-modal-date" type="date" class="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none bg-slate-50 focus:bg-white" />
+                </div>
+
                 <!-- Target Folder (Category) -->
                 <div>
                     <div class="flex items-center justify-between mb-1">
@@ -645,6 +651,48 @@
                 <button id="doc-modal-cancel" type="button" onclick="if(typeof window.closeDocModal==='function')window.closeDocModal();" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-2xs">Cancel</button>
                 <button id="doc-modal-submit" type="button" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2 shadow-sm shadow-blue-500/25">
                     <span id="doc-modal-submit-text">💾 Apply Changes</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Document Date Modal -->
+    <div id="change-doc-date-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4" tabindex="-1" role="dialog" aria-labelledby="change-doc-date-title" aria-modal="true">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full flex flex-col overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 text-purple-600 flex items-center justify-center shadow-2xs">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 tracking-tight" id="change-doc-date-title">Change Document Date</h3>
+                        <p class="text-xs text-slate-500 truncate max-w-[260px]" id="change-doc-date-subtitle">Update document date</p>
+                    </div>
+                </div>
+                <button id="change-doc-date-close" type="button" onclick="if(typeof window.closeChangeDocDateModal==='function')window.closeChangeDocDateModal();" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer" aria-label="Close modal">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-4">
+                <div>
+                    <label for="change-doc-date-input" class="block text-xs font-bold text-slate-700 mb-1.5">Document Date (التاريخ)</label>
+                    <input id="change-doc-date-input" type="date" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:outline-none bg-slate-50 focus:bg-white" />
+                    <p class="text-[11px] text-slate-400 mt-1">Updates document timeline ordering and residency allocation.</p>
+                </div>
+
+                <div id="change-doc-date-status" class="py-1 text-xs font-medium hidden"></div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/70 flex justify-end gap-3">
+                <button id="btn-change-date-cancel" type="button" onclick="if(typeof window.closeChangeDocDateModal==='function')window.closeChangeDocDateModal();" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer">Cancel</button>
+                <button id="btn-change-date-save" type="button" onclick="if(typeof window.saveChangeDocDate==='function')window.saveChangeDocDate();" class="px-4 py-2 text-xs font-bold text-white bg-purple-600 rounded-xl hover:bg-purple-700 transition-all flex items-center gap-2 shadow-sm shadow-purple-500/25 cursor-pointer">
+                    <span id="btn-change-date-save-text">Save Date</span>
                 </button>
             </div>
         </div>

@@ -467,12 +467,13 @@ public class RepositoryTests : IDisposable
             PageCount = 2
         });
 
-        // Act: Update title, category, tenant, and notes
+        // Act: Update title, category, tenant, primary date, and notes
         var updateResult = await _repo.UpdateDocumentAsync(
             ingest.VaultId!,
             arabicTitle: "عنوان معدل جديد",
             category: "06 - كهرباء وماء",
             tenantId: t2.Id,
+            primaryDate: "2023-05-15",
             notes: "تم التعديل بواسطة النظام"
         );
 
@@ -482,6 +483,7 @@ public class RepositoryTests : IDisposable
         Assert.Equal("06 - كهرباء وماء", updateResult.Category);
         Assert.Equal(t2.Id, updateResult.TenantId);
         Assert.Equal("مستأجر 2", updateResult.TenantName);
+        Assert.Equal("2023-05-15", updateResult.PrimaryDate);
 
         // Assert pages also synced
         var pages = await _repo.GetPagesByVaultIdAsync(ingest.VaultId!);
@@ -489,6 +491,7 @@ public class RepositoryTests : IDisposable
         {
             Assert.Equal(t2.Id, p.TenantId);
             Assert.Equal("06 - كهرباء وماء", p.FineCategory);
+            Assert.Equal("2023-05-15", p.ResolvedDate);
         });
     }
 
@@ -972,6 +975,110 @@ public class RepositoryTests : IDisposable
         Assert.NotNull(newApplicantDto);
         Assert.Equal(0, newApplicantDto.IsResident);
         Assert.Equal("New application note", newApplicantDto.Notes);
+    }
+
+    [Fact]
+    public async Task BulkUpdateTenantsAsync_WhenRemovingTenantWithDocuments_ReassignsDocumentsAndDeletesTenant()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaDel", "AD");
+        await _repo.AddHouseAsync("H-Del1", "AreaDel");
+        var t1 = await _repo.AddTenantAsync("H-Del1", "Tenant Surviving", "2020-01-01", null, isResident: 1);
+        var t2 = await _repo.AddTenantAsync("H-Del1", "Tenant To Remove", "2022-01-01", "2023-01-01", isResident: 1);
+
+        var ingest = new IngestRequestDto
+        {
+            AreaId = "AreaDel",
+            HouseId = "H-Del1",
+            TenantId = t2.Id,
+            Category = "عقود",
+            ArabicTitle = "عقد مستأجر محذوف",
+            PrimaryDate = "2022-05-01"
+        };
+        var resp = await _repo.AddManualDocumentAsync(ingest);
+        var vaultId = resp.VaultId;
+
+        // Act: remove t2 from the payload
+        var updatedList = new List<TenantDto>
+        {
+            new TenantDto { Id = t1.Id, Name = t1.Name, StartDate = t1.StartDate, EndDate = t1.EndDate, HouseId = "H-Del1", IsResident = 1 }
+        };
+
+        var result = await _repo.BulkUpdateTenantsAsync("H-Del1", updatedList, reallocate: true);
+
+        // Assert: t2 was deleted, doc was reallocated to t1 without FK violation!
+        var tenants = await _repo.GetTenantsAsync("H-Del1");
+        Assert.Single(tenants);
+        Assert.Equal(t1.Id, tenants[0].Id);
+
+        var doc = await _repo.GetDocumentRawAsync(vaultId);
+        Assert.NotNull(doc);
+        Assert.Equal(t1.Id, doc.TenantId);
+    }
+
+    [Fact]
+    public async Task BulkUpdateTenantsAsync_WhenRemovingTenantWithDocuments_WithoutReallocate_StillReassignsDocumentsAndDeletesTenant()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaDel2", "AD2");
+        await _repo.AddHouseAsync("H-Del2", "AreaDel2");
+        var t1 = await _repo.AddTenantAsync("H-Del2", "Tenant Surviving", "2020-01-01", null, isResident: 1);
+        var t2 = await _repo.AddTenantAsync("H-Del2", "Tenant To Remove", "2022-01-01", "2023-01-01", isResident: 1);
+
+        var ingest = new IngestRequestDto
+        {
+            AreaId = "AreaDel2",
+            HouseId = "H-Del2",
+            TenantId = t2.Id,
+            Category = "عقود",
+            ArabicTitle = "عقد مستأجر محذوف",
+            PrimaryDate = "2022-05-01"
+        };
+        var resp = await _repo.AddManualDocumentAsync(ingest);
+        var vaultId = resp.VaultId;
+
+        // Act: remove t2 without reallocation
+        var updatedList = new List<TenantDto>
+        {
+            new TenantDto { Id = t1.Id, Name = t1.Name, StartDate = t1.StartDate, EndDate = t1.EndDate, HouseId = "H-Del2", IsResident = 1 }
+        };
+
+        var result = await _repo.BulkUpdateTenantsAsync("H-Del2", updatedList, reallocate: false);
+
+        // Assert: t2 was deleted, doc was moved to t1 fallback without FK violation!
+        var tenants = await _repo.GetTenantsAsync("H-Del2");
+        Assert.Single(tenants);
+        Assert.Equal(t1.Id, tenants[0].Id);
+
+        var doc = await _repo.GetDocumentRawAsync(vaultId!);
+        Assert.NotNull(doc);
+        Assert.Equal(t1.Id, doc.TenantId);
+    }
+
+    [Fact]
+    public async Task BulkUpdateTenantsAsync_WhenAddingApplicantWithNullStartDate_SucceedsWithoutConstraintError()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaNullStart", "ANS");
+        await _repo.AddHouseAsync("H-614Test", "AreaNullStart");
+        var resident = await _repo.AddTenantAsync("H-614Test", "Existing Resident", "2002-03-11", null, isResident: 1);
+
+        // Act: Add a new applicant with StartDate = null
+        var updatedList = new List<TenantDto>
+        {
+            new TenantDto { Id = resident.Id, Name = resident.Name, StartDate = resident.StartDate, EndDate = resident.EndDate, HouseId = "H-614Test", IsResident = 1 },
+            new TenantDto { Name = "New Applicant No Date", StartDate = null, EndDate = null, HouseId = "H-614Test", IsResident = 0 }
+        };
+
+        var result = await _repo.BulkUpdateTenantsAsync("H-614Test", updatedList, reallocate: false);
+
+        // Assert: Both resident and applicant are saved
+        var tenants = await _repo.GetTenantsAsync("H-614Test");
+        Assert.Equal(2, tenants.Count);
+        var applicant = tenants.FirstOrDefault(t => t.Name == "New Applicant No Date");
+        Assert.NotNull(applicant);
+        Assert.Equal(0, applicant.IsResident);
+        Assert.Null(applicant.StartDate);
     }
 
     [Fact]

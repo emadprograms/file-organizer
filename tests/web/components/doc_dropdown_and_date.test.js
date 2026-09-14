@@ -3,6 +3,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 const {
     openDocDropdownMenu,
     closeDocDropdownMenu,
+    openChangeDocDateModal,
+    closeChangeDocDateModal,
+    saveChangeDocDate,
     showDocInTimeline,
     showDocInCategories,
     handleToggleDocPin,
@@ -58,6 +61,15 @@ describe('Document 3-Dots Dropdown Menu & Categories Date Badge', () => {
                 <span id="batch-copy-spinner" class="hidden"></span>
             </div>
             <div id="doc-action-modal" class="hidden"></div>
+            <div id="change-doc-date-modal" class="hidden">
+                <span id="change-doc-date-title"></span>
+                <span id="change-doc-date-subtitle"></span>
+                <input id="change-doc-date-input" type="date" />
+                <div id="change-doc-date-status" class="hidden"></div>
+                <button id="change-doc-date-close"></button>
+                <button id="btn-change-date-cancel"></button>
+                <button id="btn-change-date-save"><span id="btn-change-date-save-text">Save Date</span></button>
+            </div>
         `;
 
         global.currentArea = 'Safra C';
@@ -89,6 +101,9 @@ describe('Document 3-Dots Dropdown Menu & Categories Date Badge', () => {
 
     afterEach(() => {
         closeDocDropdownMenu();
+        if (typeof closeChangeDocDateModal === 'function') {
+            closeChangeDocDateModal();
+        }
         vi.restoreAllMocks();
         delete global.currentArea;
         delete global.currentHouse;
@@ -101,7 +116,7 @@ describe('Document 3-Dots Dropdown Menu & Categories Date Badge', () => {
     });
 
     describe('Floating Dropdown Action Menu (openDocDropdownMenu)', () => {
-        it('renders floating dropdown menu with 5 actions and proper styling', () => {
+        it('renders floating dropdown menu with 7 actions and proper styling', () => {
             const btn = document.createElement('button');
             btn.className = 'doc-menu-btn';
             document.body.appendChild(btn);
@@ -112,8 +127,9 @@ describe('Document 3-Dots Dropdown Menu & Categories Date Badge', () => {
             expect(menu).not.toBeNull();
             expect(menu.getAttribute('role')).toBe('menu');
 
-            // 6 action buttons
+            // 7 action buttons
             const renameItem = menu.querySelector('.doc-menu-item-rename');
+            const dateItem = menu.querySelector('.doc-menu-item-date');
             const moveItem = menu.querySelector('.doc-menu-item-move');
             const copyItem = menu.querySelector('.doc-menu-item-copy');
             const pinItem = menu.querySelector('.doc-menu-item-pin');
@@ -122,6 +138,8 @@ describe('Document 3-Dots Dropdown Menu & Categories Date Badge', () => {
 
             expect(renameItem).not.toBeNull();
             expect(renameItem.textContent).toContain('Rename Document');
+            expect(dateItem).not.toBeNull();
+            expect(dateItem.textContent).toContain('Change Date');
             expect(moveItem).not.toBeNull();
             expect(moveItem.textContent).toContain('Move Document');
             expect(copyItem).not.toBeNull();
@@ -211,6 +229,20 @@ describe('Document 3-Dots Dropdown Menu & Categories Date Badge', () => {
             menu.querySelector('.doc-menu-item-copy').click();
 
             expect(window.openBatchCopyForDoc).toHaveBeenCalledWith(mockDoc);
+            expect(document.querySelector('.doc-dropdown-menu')).toBeNull();
+        });
+
+        it('invokes openChangeDocDateModal when Change Date is clicked', () => {
+            const btn = document.createElement('button');
+            document.body.appendChild(btn);
+
+            window.openChangeDocDateModal = vi.fn();
+
+            openDocDropdownMenu(null, mockDoc, '01 - عقود وإيجارات', btn);
+            const menu = document.querySelector('.doc-dropdown-menu');
+            menu.querySelector('.doc-menu-item-date').click();
+
+            expect(window.openChangeDocDateModal).toHaveBeenCalledWith(mockDoc);
             expect(document.querySelector('.doc-dropdown-menu')).toBeNull();
         });
 
@@ -624,6 +656,92 @@ describe('Document 3-Dots Dropdown Menu & Categories Date Badge', () => {
                 'تم نسخ الوثيقة بنجاح',
                 'success'
             );
+        });
+    });
+
+    describe('Change Document Date Modal (openChangeDocDateModal & saveChangeDocDate)', () => {
+        it('pre-fills the modal with current document date and title', () => {
+            openChangeDocDateModal(mockDoc);
+
+            const modal = document.getElementById('change-doc-date-modal');
+            const input = document.getElementById('change-doc-date-input');
+            const subtitle = document.getElementById('change-doc-date-subtitle');
+
+            expect(modal.classList.contains('hidden')).toBe(false);
+            expect(input.value).toBe('2025-06-15');
+            expect(subtitle.textContent).toBe(mockDoc.brief_arabic_title);
+        });
+
+        it('pre-fills empty date if document has no date', () => {
+            const noDateDoc = { ...mockDoc, date: null, primary_date: null, dates: [] };
+            openChangeDocDateModal(noDateDoc);
+
+            const input = document.getElementById('change-doc-date-input');
+            expect(input.value).toBe('');
+        });
+
+        it('sends PATCH request with primary_date and is_manual: 1 on save and updates DOM badge', async () => {
+            const card = document.createElement('div');
+            card.setAttribute('data-vault-id', mockDoc.vault_id);
+            const badge = document.createElement('span');
+            badge.className = 'doc-date-badge';
+            badge.textContent = '2025-06-15';
+            card.appendChild(badge);
+            document.body.appendChild(card);
+
+            openChangeDocDateModal(mockDoc);
+            const input = document.getElementById('change-doc-date-input');
+            input.value = '2025-11-20';
+
+            await saveChangeDocDate();
+
+            expect(global.fetch).toHaveBeenCalledWith(
+                '/api/areas/Safra%20C/houses/514/documents/doc_abc_123',
+                expect.objectContaining({
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        primary_date: '2025-11-20',
+                        is_manual: 1
+                    })
+                })
+            );
+
+            expect(mockDoc.primary_date).toBe('2025-11-20');
+            expect(mockDoc.date).toBe('2025-11-20');
+            expect(mockDoc.is_manual).toBe(1);
+            expect(badge.textContent).toBe('2025-11-20');
+
+            const modal = document.getElementById('change-doc-date-modal');
+            expect(modal.classList.contains('hidden')).toBe(true);
+            expect(global.showToast).toHaveBeenCalledWith('Document date updated successfully', 'success');
+            expect(global.refreshCurrentTab).toHaveBeenCalledWith('Safra C', '514');
+        });
+
+        it('closes the modal when Cancel button is clicked', () => {
+            openChangeDocDateModal(mockDoc);
+            const modal = document.getElementById('change-doc-date-modal');
+            expect(modal.classList.contains('hidden')).toBe(false);
+
+            document.getElementById('btn-change-date-cancel').click();
+            expect(modal.classList.contains('hidden')).toBe(true);
+        });
+
+        it('displays error in status element when save fails', async () => {
+            global.fetch = vi.fn().mockResolvedValue({
+                ok: false,
+                json: async () => ({ detail: 'Database error while updating date' })
+            });
+
+            openChangeDocDateModal(mockDoc);
+            await saveChangeDocDate();
+
+            const status = document.getElementById('change-doc-date-status');
+            expect(status.classList.contains('hidden')).toBe(false);
+            expect(status.textContent).toContain('Database error while updating date');
+
+            const modal = document.getElementById('change-doc-date-modal');
+            expect(modal.classList.contains('hidden')).toBe(false);
         });
     });
 });

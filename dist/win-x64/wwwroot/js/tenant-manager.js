@@ -337,8 +337,15 @@
             });
 
             if (!res.ok) {
-                const errData = await res.json();
-                throw new Error(errData.detail || 'Failed to save tenants.');
+                let errorMsg = 'Failed to save tenants.';
+                try {
+                    const errData = await res.json();
+                    errorMsg = errData.detail || errData.message || errorMsg;
+                } catch {
+                    const rawText = await res.text();
+                    errorMsg = rawText || `Server error (${res.status})`;
+                }
+                throw new Error(errorMsg);
             }
 
             const data = await res.json();

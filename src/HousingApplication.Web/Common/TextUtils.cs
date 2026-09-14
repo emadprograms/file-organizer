@@ -12,7 +12,7 @@ public static class TextUtils
         ['د'] = "d", ['ذ'] = "z", ['ر'] = "r", ['ز'] = "z", ['س'] = "s", ['ش'] = "s",
         ['ص'] = "s", ['ض'] = "d", ['ط'] = "t", ['ظ'] = "z", ['ع'] = "", ['غ'] = "g",
         ['ف'] = "f", ['ق'] = "k", ['ك'] = "k", ['ل'] = "l", ['م'] = "m", ['ن'] = "n",
-        ['ه'] = "h", ['ة'] = "h", ['W'] = "w", ['و'] = "", ['ي'] = "", ['ئ'] = "", ['ؤ'] = "w", ['ء'] = ""
+        ['ه'] = "h", ['ة'] = "", ['W'] = "w", ['و'] = "", ['ي'] = "", ['ئ'] = "", ['ؤ'] = "w", ['ء'] = ""
     };
 
     public static string CleanArticle(string? word)
@@ -23,10 +23,15 @@ public static class TextUtils
         var w = word.Trim().ToLowerInvariant();
         if (w.StartsWith("al-") || w.StartsWith("al "))
             return w[3..].Trim();
-        if (w.StartsWith("al") && w.Length > 4)
+        if (w.StartsWith("al") && w.Length >= 4 && w != "alam")
             return w[2..].Trim();
         if (w.StartsWith("ال") && w.Length > 3)
             return w[2..].Trim();
+        if (w == "abdul" || w == "abdel" || w == "abdur" || w == "abdus" || w == "abd")
+            return "abd";
+        if (w.StartsWith("abdul-") || w.StartsWith("abdel-") || w.StartsWith("abdur-") || w.StartsWith("abdus-") ||
+            w.StartsWith("abdul ") || w.StartsWith("abdel ") || w.StartsWith("abdur ") || w.StartsWith("abdus "))
+            return "abd " + w[6..].Trim();
         return w;
     }
 
@@ -48,11 +53,16 @@ public static class TextUtils
         lower = Regex.Replace(lower, @"(^|[\s\-])ع[وؤ]", "$1W");
         // 5. Names on pattern Anwar/Munawwar ([اآإأ]نو, منو, أرو) -> consonant W
         lower = Regex.Replace(lower, @"(^|[\s\-])([اآإأ]ن|[اآإأ]ر|من)[وؤ]", "$1$2W");
+        // 6. Waw before Taa Marbuta or Haa (مروة, لولوة, ثروة, حلوة) -> consonant W
+        lower = Regex.Replace(lower, @"[وؤ](?=[ةه])", "W");
+        // 7. Names on pattern Marwa/Tharwa (مر, ثر, سر, فد, نش) followed by Waw -> consonant W
+        lower = Regex.Replace(lower, @"(^|[\s\-])(مر|ثر|سر|فد|نش)[وؤ]", "$1$2W");
 
         // In English: diphthong ow/aw before consonant or end of token -> vowel (e.g. showkat -> shokat)
         lower = Regex.Replace(lower, @"([oa])w(?=[^aeiouy\s]|$)", "$1");
 
         // Replace English digraphs prior to Arabic mapping to prevent Arabic س + ح (Seen + Haa) from collapsing as English "sh"
+        lower = lower.Replace("ch", "s");
         lower = lower.Replace("v", "w");
         lower = lower.Replace("th", "s");
         lower = lower.Replace("kh", "k").Replace("gh", "g").Replace("sh", "s");
@@ -75,6 +85,7 @@ public static class TextUtils
 
         var res = sb.ToString();
         res = Regex.Replace(res, "[aeiouy]", "");
+        res = Regex.Replace(res, @"l(?=[rsztdn])", "");
         res = Regex.Replace(res, @"(.)\1+", "$1");
         return res.Trim();
     }
@@ -118,11 +129,22 @@ public static class TextUtils
             variants.Add(Regex.Replace(clean, @"(^|[\s\-])ا", "$1إ"));
         }
 
-        // 2. Taa Marbuta <-> Haa
+        // 2. Taa Marbuta <-> Haa <-> Alif
         if (clean.EndsWith('ة'))
+        {
             variants.Add(clean[..^1] + "ه");
+            variants.Add(clean[..^1] + "ا");
+        }
         else if (clean.EndsWith('ه'))
+        {
             variants.Add(clean[..^1] + "ة");
+            variants.Add(clean[..^1] + "ا");
+        }
+        else if (clean.EndsWith('ا'))
+        {
+            variants.Add(clean[..^1] + "ة");
+            variants.Add(clean[..^1] + "ه");
+        }
 
         // 3. Alif Maqsura <-> Yaa
         if (clean.EndsWith('ى'))
@@ -158,6 +180,26 @@ public static class TextUtils
         if (qWords.Length == 0 || tWords.Length == 0)
             return 0;
 
+        int multiWordScore = 0;
+        if (qWords.Length > 1)
+        {
+            var qFullClean = CleanArticle(string.Join(" ", qWords));
+            var tFullClean = CleanArticle(string.Join(" ", tWords));
+            var qFullNorm = PhoneticNormalize(qFullClean).Replace(" ", "");
+            var tFullNorm = PhoneticNormalize(tFullClean).Replace(" ", "");
+
+            if (!string.IsNullOrEmpty(qFullNorm) && qFullNorm.Length >= 3)
+            {
+                if (tFullNorm.Contains(qFullNorm) ||
+                    (qFullNorm.Contains('w') && tFullNorm.Contains(qFullNorm.Replace("w", "f"))) ||
+                    (qFullNorm.Contains('f') && tFullNorm.Contains(qFullNorm.Replace("f", "w"))) ||
+                    (qFullNorm.Contains('z') && tFullNorm.Contains(qFullNorm.Replace("z", "d"))))
+                {
+                    multiWordScore = 800 + (qFullNorm.Length * 10);
+                }
+            }
+        }
+
         int matchedWords = 0;
         int totalScore = 0;
 
@@ -166,7 +208,7 @@ public static class TextUtils
             var qw = qWords[qi];
             var qwClean = CleanArticle(qw);
             var qwNorm = PhoneticNormalize(qwClean);
-            var qwLatin = NormalizeTranslit(qwClean);
+            var qwLatin = NormalizeTranslit(ToLatin(qwClean));
             var qwNormAr = NormalizeArabic(qwClean);
             int bestWordScore = 0;
 
@@ -206,36 +248,62 @@ public static class TextUtils
 
                     if (!string.IsNullOrEmpty(qwNorm) && !string.IsNullOrEmpty(twNorm))
                     {
-                        bool isPhoneticMatch = (qwNorm == twNorm) ||
-                            (qwNorm.Contains('z') && qwNorm.Replace("z", "d") == twNorm);
+                        bool isTerminalSzMatch = (qwNorm.EndsWith('s') && twNorm.EndsWith('z') && qwNorm[..^1] == twNorm[..^1]) ||
+                                                 (qwNorm.EndsWith('z') && twNorm.EndsWith('s') && qwNorm[..^1] == twNorm[..^1]);
+                        bool isTerminalGkMatch = (qwNorm.EndsWith('g') && twNorm.EndsWith('k') && qwNorm[..^1] == twNorm[..^1]) ||
+                                                 (qwNorm.EndsWith('k') && twNorm.EndsWith('g') && qwNorm[..^1] == twNorm[..^1]);
 
-                        if (isPhoneticMatch)
+                        bool isPhoneticMatch = (qwNorm == twNorm) ||
+                            (qwNorm.Contains('z') && qwNorm.Replace("z", "d") == twNorm) ||
+                            (qwNorm.Contains('w') && qwNorm.Replace("w", "f") == twNorm) ||
+                            (qwNorm.Contains('f') && qwNorm.Replace("f", "w") == twNorm) ||
+                            (qwNorm.TrimEnd('h') == twNorm.TrimEnd('h')) ||
+                            isTerminalSzMatch ||
+                            isTerminalGkMatch;
+
+                        bool isTranslitMatch = !string.IsNullOrEmpty(qwLatin) && !string.IsNullOrEmpty(twLatin) && (qwLatin == twLatin);
+
+                        // Guard against 1-letter phonetic collisions (e.g. Isa vs Aisha, Eid vs Dua)
+                        if (qwNorm.Length <= 1 && twNorm.Length <= 1 && !isTranslitMatch)
+                        {
+                            if (string.IsNullOrEmpty(qwLatin) || string.IsNullOrEmpty(twLatin) || (qwLatin[0] != twLatin[0] && Similarity(qwLatin, twLatin) < 0.65))
+                            {
+                                isPhoneticMatch = false;
+                            }
+                        }
+
+                        if (isPhoneticMatch || isTranslitMatch)
                         {
                             int s = 400;
                             if (ti == 0 && qi == 0) s += 50;
-                            if (!string.IsNullOrEmpty(qwLatin) && !string.IsNullOrEmpty(twLatin))
+                            if (isTranslitMatch)
                             {
-                                if (qwLatin == twLatin)
-                                    s += 100;
-                                else if (qwLatin[0] == twLatin[0])
-                                    s += 30;
+                                s += 100;
+                            }
+                            else if (!string.IsNullOrEmpty(qwLatin) && !string.IsNullOrEmpty(twLatin) && qwLatin[0] == twLatin[0])
+                            {
+                                s += 30;
                             }
                             bestWordScore = Math.Max(bestWordScore, s);
                         }
-                        else if (qwNorm.Length >= 3 && twNorm.StartsWith(qwNorm))
+                        else if ((qwNorm.Length >= 3 || qwNorm == "bd") && (twNorm.StartsWith(qwNorm) || twNorm.EndsWith(qwNorm)))
                         {
                             bestWordScore = Math.Max(bestWordScore, 200);
                         }
                     }
                 }
 
-                // Compound token pair check (e.g. "abdullah" matching "عبد" + "الله")
+                // Compound token pair check (e.g. "abdullah" matching "عبد" + "الله" or "abdulrahman" matching "عبد" + "الرحمن")
                 if (ti + 1 < tWords.Length)
                 {
-                    var twPair = twClean + " " + CleanArticle(tWords[ti + 1]);
-                    var twPairNorm = PhoneticNormalize(twPair).Replace(" ", "");
-                    bool isCompoundMatch = (qwNorm == twPairNorm) ||
-                        (!string.IsNullOrEmpty(qwNorm) && qwNorm.Contains('z') && qwNorm.Replace("z", "d") == twPairNorm);
+                    var twPair1 = twClean + tWords[ti + 1];
+                    var twPair2 = twClean + " " + CleanArticle(tWords[ti + 1]);
+                    var twPairNorm1 = PhoneticNormalize(twPair1).Replace(" ", "");
+                    var twPairNorm2 = PhoneticNormalize(twPair2).Replace(" ", "");
+
+                    bool isCompoundMatch = (qwNorm == twPairNorm1 || qwNorm == twPairNorm2) ||
+                        (!string.IsNullOrEmpty(qwNorm) && qwNorm.Contains('z') && (qwNorm.Replace("z", "d") == twPairNorm1 || qwNorm.Replace("z", "d") == twPairNorm2)) ||
+                        (!string.IsNullOrEmpty(qwNorm) && qwNorm.Contains('w') && (qwNorm.Replace("w", "f") == twPairNorm1 || qwNorm.Replace("w", "f") == twPairNorm2));
 
                     if (!string.IsNullOrEmpty(qwNorm) && qwNorm.Length >= 4 && isCompoundMatch)
                     {
@@ -254,9 +322,9 @@ public static class TextUtils
         }
 
         if (matchedWords == qWords.Length)
-            return totalScore;
+            return Math.Max(totalScore, multiWordScore);
 
-        return 0;
+        return multiWordScore;
     }
 
     private static readonly Dictionary<char, string> ArabicTranslitMap = new()
@@ -266,7 +334,7 @@ public static class TextUtils
         ['د'] = "d", ['ذ'] = "dh", ['ر'] = "r", ['ز'] = "z", ['س'] = "s", ['ش'] = "sh",
         ['ص'] = "s", ['ض'] = "d", ['ط'] = "t", ['ظ'] = "dh", ['ع'] = "a", ['غ'] = "gh",
         ['ف'] = "f", ['ق'] = "q", ['ك'] = "k", ['ل'] = "l", ['م'] = "m", ['ن'] = "n",
-        ['ه'] = "h", ['ة'] = "h", ['و'] = "w", ['ي'] = "y", ['ئ'] = "y", ['ؤ'] = "w", ['ء'] = ""
+        ['ه'] = "h", ['ة'] = "a", ['و'] = "w", ['ي'] = "y", ['ئ'] = "y", ['ؤ'] = "w", ['ء'] = ""
     };
 
     public static string ToLatin(string? text)
@@ -288,10 +356,12 @@ public static class TextUtils
     {
         if (string.IsNullOrWhiteSpace(text)) return string.Empty;
         var w = text.ToLowerInvariant();
+        w = Regex.Replace(w, "([ae])h$", "a");
         w = Regex.Replace(w, "ee|ea|ey|ie|i", "y");
-        w = Regex.Replace(w, "oo|ou|u", "w");
+        w = Regex.Replace(w, "oo|ou|u|o", "w");
         w = Regex.Replace(w, "aa", "a");
         w = w.Replace("v", "w");
+        w = Regex.Replace(w, @"(.)\1+", "$1");
         return w;
     }
 

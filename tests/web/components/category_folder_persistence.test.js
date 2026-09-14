@@ -416,6 +416,56 @@ describe('Category Folder Expansion Persistence', () => {
         const names = allCards.map(c => c.getAttribute('data-category-name'));
         expect(names).toEqual(['01 - بيانات أساسية', '05 - عقود', '06 - كهرباء وماء']);
     });
+
+    it('moving a document in DOM marks it is_manual=1 and adds the lock icon in DOM', () => {
+        renderCategories();
+
+        const docEl = document.querySelector('[data-vault-id="doc001"]');
+        expect(docEl).not.toBeNull();
+        expect(docEl.querySelector('span[title*="Manually assigned"]')).toBeNull();
+        expect(docEl.textContent).not.toContain('🔒');
+
+        const { moveDocInDom } = require('../../../src/HousingApplication.Web/wwwroot/js/categories-view.js');
+        const moved = moveDocInDom('doc001', '01 - بيانات أساسية', '05 - عقود');
+        expect(moved).toBe(true);
+
+        const movedDocEl = document.querySelector('[data-vault-id="doc001"]');
+        expect(movedDocEl).not.toBeNull();
+        const lockIcon = movedDocEl.querySelector('span[title*="Manually assigned"]');
+        expect(lockIcon).not.toBeNull();
+        expect(lockIcon.textContent).toBe('🔒');
+        expect(movedDocEl._docData.is_manual).toBe(1);
+
+        // Also verify in-memory currentCategories
+        const cat5 = global.currentCategories.find(c => c.name === '05 - عقود');
+        const docObj = cat5.documents.find(d => d.vault_id === 'doc001');
+        expect(docObj.is_manual).toBe(1);
+    });
+
+    it('moving a document into a new folder marks it is_manual=1 and renders the lock icon in DOM', () => {
+        renderCategories();
+
+        const docEl = document.querySelector('[data-vault-id="doc001"]');
+        expect(docEl).not.toBeNull();
+        expect(docEl.querySelector('span[title*="Manually assigned"]')).toBeNull();
+
+        const { moveDocInDom } = require('../../../src/HousingApplication.Web/wwwroot/js/categories-view.js');
+        const moved = moveDocInDom('doc001', '01 - بيانات أساسية', '03 - فواتير');
+        expect(moved).toBe(true);
+
+        const newFolderCard = document.querySelector('.category-folder-card[data-category-name="03 - فواتير"]');
+        expect(newFolderCard).not.toBeNull();
+        const movedDocEl = newFolderCard.querySelector('[data-vault-id="doc001"]');
+        expect(movedDocEl).not.toBeNull();
+        const lockIcon = movedDocEl.querySelector('span[title*="Manually assigned"]');
+        expect(lockIcon).not.toBeNull();
+        expect(lockIcon.textContent).toBe('🔒');
+        expect(movedDocEl._docData.is_manual).toBe(1);
+
+        const cat3 = global.currentCategories.find(c => c.name === '03 - فواتير');
+        const docObj = cat3.documents.find(d => d.vault_id === 'doc001');
+        expect(docObj.is_manual).toBe(1);
+    });
 });
 
 

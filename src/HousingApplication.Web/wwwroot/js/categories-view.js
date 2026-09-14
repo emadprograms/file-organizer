@@ -1757,7 +1757,7 @@
 
         const title = getCleanDocTitle(doc, catName);
         const isManual = Boolean(doc.is_manual);
-        const lockIcon = isManual ? '<span title="Manually assigned - protected from auto-reallocation" class="text-[10px] text-amber-600 flex-shrink-0">🔒</span>' : '';
+        const lockIcon = isManual ? '<span title="Manually assigned - protected from auto-reallocation" class="doc-lock-icon text-[10px] text-amber-600 flex-shrink-0">🔒</span>' : '';
         const isChecked = selectedDocIds.has(doc.vault_id);
         const rawDate = doc.date || (doc.dates && doc.dates[0]) || doc.primary_date || '';
         const docDate = (rawDate && rawDate !== 'NONE' && rawDate !== 'null') ? rawDate : 'No Date';
@@ -2257,6 +2257,15 @@
             openCategoryNames.add(targetCatName);
             const docData = docEl._docData || movedDoc || { vault_id: vaultId, category: targetCatName };
             docData.category = targetCatName;
+            docData.is_manual = 1;
+            if (movedDoc) {
+                movedDoc.category = targetCatName;
+                movedDoc.is_manual = 1;
+            }
+            if (docEl._docData) {
+                docEl._docData.category = targetCatName;
+                docEl._docData.is_manual = 1;
+            }
             const newCatObj = {
                 name: targetCatName,
                 document_count: 1,
@@ -2289,7 +2298,25 @@
         // Update doc data & dragstart handler
         const docObj = docEl._docData || movedDoc || { vault_id: vaultId, category: resolvedTargetName };
         docObj.category = resolvedTargetName;
+        docObj.is_manual = 1;
         docEl._docData = docObj;
+        if (movedDoc) {
+            movedDoc.category = resolvedTargetName;
+            movedDoc.is_manual = 1;
+        }
+
+        // Ensure lock icon is present in the DOM for docEl
+        if (!docEl.querySelector('.doc-lock-icon') && !docEl.querySelector('span[title*="Manually assigned"]')) {
+            const titleEl = docEl.querySelector('.doc-title-text');
+            if (titleEl) {
+                const lockSpan = document.createElement('span');
+                lockSpan.className = 'doc-lock-icon text-[10px] text-amber-600 flex-shrink-0';
+                lockSpan.title = 'Manually assigned - protected from auto-reallocation';
+                lockSpan.textContent = '🔒';
+                titleEl.insertAdjacentElement('afterend', lockSpan);
+            }
+        }
+
         if (typeof window !== 'undefined' && typeof window.handleDocDragStart === 'function') {
             docEl.ondragstart = (e) => window.handleDocDragStart(e, docObj, resolvedTargetName);
         }
@@ -2306,6 +2333,7 @@
 
         if (movedDoc) {
             movedDoc.category = resolvedTargetName;
+            movedDoc.is_manual = 1;
             let targetCatObj = cats.find(c => c.name === resolvedTargetName);
             if (!targetCatObj) {
                 targetCatObj = cats.find(c => c.name.endsWith(resolvedTargetName) || resolvedTargetName.endsWith(c.name));

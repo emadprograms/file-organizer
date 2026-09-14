@@ -130,6 +130,8 @@ CREATE INDEX IF NOT EXISTS idx_documents_title ON documents(arabic_title);
             idxCmd.ExecuteNonQuery();
         }
         catch (SqliteException) { }
+
+        EnsureTenantStartDateNullable(connection);
     }
 
     public static async Task InitializeSchemaAsync(SqliteConnection connection)
@@ -171,6 +173,100 @@ CREATE INDEX IF NOT EXISTS idx_documents_title ON documents(arabic_title);
             using var idxCmd = connection.CreateCommand();
             idxCmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_tenants_resident ON tenants(is_resident);";
             await idxCmd.ExecuteNonQueryAsync();
+        }
+        catch (SqliteException) { }
+
+        await EnsureTenantStartDateNullableAsync(connection);
+    }
+
+    private static void EnsureTenantStartDateNullable(SqliteConnection connection)
+    {
+        try
+        {
+            var isNotNull = false;
+            using (var chkCmd = connection.CreateCommand())
+            {
+                chkCmd.CommandText = "PRAGMA table_info(tenants);";
+                using var reader = chkCmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    if (reader.GetString(1) == "start_date" && reader.GetInt32(3) == 1)
+                    {
+                        isNotNull = true;
+                        break;
+                    }
+                }
+            }
+
+            if (isNotNull)
+            {
+                using var migCmd = connection.CreateCommand();
+                migCmd.CommandText = @"
+                    PRAGMA foreign_keys = OFF;
+                    CREATE TABLE IF NOT EXISTS tenants_nullable_mig (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        house_id TEXT NOT NULL REFERENCES houses(id),
+                        name TEXT NOT NULL,
+                        start_date DATE,
+                        end_date DATE,
+                        is_resident INTEGER NOT NULL DEFAULT 1,
+                        notes TEXT
+                    );
+                    INSERT INTO tenants_nullable_mig (id, house_id, name, start_date, end_date, is_resident, notes)
+                    SELECT id, house_id, name, start_date, end_date, is_resident, notes FROM tenants;
+                    DROP TABLE tenants;
+                    ALTER TABLE tenants_nullable_mig RENAME TO tenants;
+                    CREATE INDEX IF NOT EXISTS idx_tenants_house ON tenants(house_id);
+                    CREATE INDEX IF NOT EXISTS idx_tenants_resident ON tenants(is_resident);
+                    PRAGMA foreign_keys = ON;";
+                migCmd.ExecuteNonQuery();
+            }
+        }
+        catch (SqliteException) { }
+    }
+
+    private static async Task EnsureTenantStartDateNullableAsync(SqliteConnection connection)
+    {
+        try
+        {
+            var isNotNull = false;
+            using (var chkCmd = connection.CreateCommand())
+            {
+                chkCmd.CommandText = "PRAGMA table_info(tenants);";
+                using var reader = await chkCmd.ExecuteReaderAsync();
+                while (await reader.ReadAsync())
+                {
+                    if (reader.GetString(1) == "start_date" && reader.GetInt32(3) == 1)
+                    {
+                        isNotNull = true;
+                        break;
+                    }
+                }
+            }
+
+            if (isNotNull)
+            {
+                using var migCmd = connection.CreateCommand();
+                migCmd.CommandText = @"
+                    PRAGMA foreign_keys = OFF;
+                    CREATE TABLE IF NOT EXISTS tenants_nullable_mig (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        house_id TEXT NOT NULL REFERENCES houses(id),
+                        name TEXT NOT NULL,
+                        start_date DATE,
+                        end_date DATE,
+                        is_resident INTEGER NOT NULL DEFAULT 1,
+                        notes TEXT
+                    );
+                    INSERT INTO tenants_nullable_mig (id, house_id, name, start_date, end_date, is_resident, notes)
+                    SELECT id, house_id, name, start_date, end_date, is_resident, notes FROM tenants;
+                    DROP TABLE tenants;
+                    ALTER TABLE tenants_nullable_mig RENAME TO tenants;
+                    CREATE INDEX IF NOT EXISTS idx_tenants_house ON tenants(house_id);
+                    CREATE INDEX IF NOT EXISTS idx_tenants_resident ON tenants(is_resident);
+                    PRAGMA foreign_keys = ON;";
+                await migCmd.ExecuteNonQueryAsync();
+            }
         }
         catch (SqliteException) { }
     }

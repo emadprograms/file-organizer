@@ -23,6 +23,19 @@
     let btnModeMove = null;
     let btnModeCopy = null;
 
+    let docModalDate = null;
+    let changeDocDateModal = null;
+    let changeDocDateInput = null;
+    let changeDocDateTitle = null;
+    let changeDocDateSubtitle = null;
+    let changeDocDateStatus = null;
+    let btnChangeDateCancel = null;
+    let btnChangeDateClose = null;
+    let btnChangeDateSave = null;
+    let btnChangeDateSaveText = null;
+    let activeDateModalDoc = null;
+    let activeDateModalOriginalDoc = null;
+
     const STANDARD_FOLDERS = [
         "01 - بيانات أساسية",
         "02 - بيانات شخصية",
@@ -43,6 +56,7 @@
         docActionModal = document.getElementById('doc-action-modal');
         docModalTitle = document.getElementById('doc-modal-title');
         docModalArabicTitle = document.getElementById('doc-modal-arabic-title');
+        docModalDate = document.getElementById('doc-modal-date');
         docModalFolderSelect = document.getElementById('doc-modal-folder-select');
         docCustomFolderContainer = document.getElementById('doc-custom-folder-container');
         docCustomFolderInput = document.getElementById('doc-custom-folder-input');
@@ -58,6 +72,16 @@
         btnModeMove = document.getElementById('btn-mode-move');
         btnModeCopy = document.getElementById('btn-mode-copy');
 
+        changeDocDateModal = document.getElementById('change-doc-date-modal');
+        changeDocDateInput = document.getElementById('change-doc-date-input');
+        changeDocDateTitle = document.getElementById('change-doc-date-title');
+        changeDocDateSubtitle = document.getElementById('change-doc-date-subtitle');
+        changeDocDateStatus = document.getElementById('change-doc-date-status');
+        btnChangeDateCancel = document.getElementById('btn-change-date-cancel');
+        btnChangeDateClose = document.getElementById('change-doc-date-close');
+        btnChangeDateSave = document.getElementById('btn-change-date-save');
+        btnChangeDateSaveText = document.getElementById('btn-change-date-save-text');
+
         if (docModalClose) docModalClose.onclick = closeDocModal;
         if (docModalCancel) docModalCancel.onclick = closeDocModal;
         if (docModalSubmit) docModalSubmit.onclick = saveDocModal;
@@ -65,6 +89,10 @@
         if (btnDocDelete) btnDocDelete.onclick = (e) => handleDeleteDoc(e);
         if (btnModeMove) btnModeMove.onclick = () => setDocModalMode('move');
         if (btnModeCopy) btnModeCopy.onclick = () => setDocModalMode('copy');
+
+        if (btnChangeDateClose) btnChangeDateClose.onclick = closeChangeDocDateModal;
+        if (btnChangeDateCancel) btnChangeDateCancel.onclick = closeChangeDocDateModal;
+        if (btnChangeDateSave) btnChangeDateSave.onclick = saveChangeDocDate;
     }
 
     function getAreaFromHash() {
@@ -425,6 +453,15 @@
         if (!docActionModal) return;
         docModalTitle.textContent = doc.brief_arabic_title || doc.filename || 'Manage Document';
         docModalArabicTitle.value = doc.brief_arabic_title || '';
+        if (docModalDate) {
+            const rawDate = doc.date || doc.primary_date || (Array.isArray(doc.dates) && doc.dates[0]) || '';
+            let isoDate = '';
+            if (rawDate) {
+                const match = String(rawDate).trim().match(/^\d{4}-\d{2}-\d{2}/);
+                isoDate = match ? match[0] : String(rawDate).trim();
+            }
+            docModalDate.value = isoDate;
+        }
         docCustomFolderInput.value = '';
         docCustomFolderContainer.classList.add('hidden');
         docModalStatus.classList.add('hidden');
@@ -569,6 +606,7 @@
 
             const newTitle = docModalArabicTitle.value.trim();
             const newTenantId = parseInt(docModalTenantSelect.value);
+            const newDate = docModalDate ? docModalDate.value.trim() : undefined;
 
             if (activeDocModalMode === 'copy') {
                 const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(activeDocModalDoc.vault_id)}/copy`, {
@@ -602,6 +640,7 @@
                         arabic_title: newTitle,
                         category: chosenCategory,
                         tenant_id: newTenantId,
+                        primary_date: newDate !== undefined ? newDate : undefined,
                         is_manual: 1
                     })
                 });
@@ -874,6 +913,10 @@
                 <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                 <span>Rename Document</span>
             </button>
+            <button type="button" class="doc-menu-item-date w-full px-3.5 py-2 text-left flex items-center gap-2.5 font-medium text-slate-700 hover:bg-purple-50 hover:text-purple-700 transition-colors cursor-pointer" title="Change document date">
+                <svg class="w-3.5 h-3.5 text-purple-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span>Change Date</span>
+            </button>
             <button type="button" class="doc-menu-item-move w-full px-3.5 py-2 text-left flex items-center gap-2.5 font-medium text-slate-700 hover:bg-amber-50 hover:text-amber-700 transition-colors cursor-pointer">
                 <svg class="w-3.5 h-3.5 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 13l3-3m0 0l-3-3m3 3H9"/></svg>
                 <span>Move Document</span>
@@ -909,6 +952,19 @@
                     } else if (typeof window.handleInlineRenameTimeline === 'function') {
                         window.handleInlineRenameTimeline(null, doc, titleEl, area, house);
                     }
+                }
+            };
+        }
+
+        const btnDate = menu.querySelector('.doc-menu-item-date');
+        if (btnDate) {
+            btnDate.onclick = (ev) => {
+                ev.stopPropagation();
+                closeDocDropdownMenu();
+                if (typeof window !== 'undefined' && typeof window.openChangeDocDateModal === 'function') {
+                    window.openChangeDocDateModal(doc);
+                } else if (typeof openChangeDocDateModal === 'function') {
+                    openChangeDocDateModal(doc);
                 }
             };
         }
@@ -983,8 +1039,8 @@
         let left = rect.right - menuWidth;
         if (left < 10) left = 10;
         const windowHeight = (typeof window !== 'undefined' && window.innerHeight) ? window.innerHeight : 800;
-        if (top + 220 > windowHeight) {
-            top = Math.max(10, rect.top - 220);
+        if (top + 260 > windowHeight) {
+            top = Math.max(10, rect.top - 260);
         }
         menu.style.top = `${top}px`;
         menu.style.left = `${left}px`;
@@ -1266,11 +1322,229 @@
         }
     }
 
+    function ensureDateModalElements() {
+        if (!changeDocDateModal || (typeof document !== 'undefined' && document.body && !document.body.contains(changeDocDateModal))) {
+            changeDocDateModal = document.getElementById('change-doc-date-modal');
+            changeDocDateInput = document.getElementById('change-doc-date-input');
+            changeDocDateTitle = document.getElementById('change-doc-date-title');
+            changeDocDateSubtitle = document.getElementById('change-doc-date-subtitle');
+            changeDocDateStatus = document.getElementById('change-doc-date-status');
+            btnChangeDateCancel = document.getElementById('btn-change-date-cancel');
+            btnChangeDateClose = document.getElementById('change-doc-date-close');
+            btnChangeDateSave = document.getElementById('btn-change-date-save');
+            btnChangeDateSaveText = document.getElementById('btn-change-date-save-text');
+        }
+
+        if (!changeDocDateModal && typeof document !== 'undefined' && document.body) {
+            const container = document.createElement('div');
+            container.id = 'change-doc-date-modal';
+            container.className = 'fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4';
+            container.innerHTML = `
+                <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full flex flex-col overflow-hidden">
+                    <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/70">
+                        <div>
+                            <h3 class="text-base font-bold text-slate-900 tracking-tight" id="change-doc-date-title">Change Document Date</h3>
+                            <p class="text-xs text-slate-500 truncate max-w-[260px]" id="change-doc-date-subtitle">Update document date</p>
+                        </div>
+                        <button id="change-doc-date-close" type="button" class="text-slate-400 hover:text-slate-600 p-1 rounded-lg">✕</button>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div>
+                            <label for="change-doc-date-input" class="block text-xs font-bold text-slate-700 mb-1.5">Document Date (التاريخ)</label>
+                            <input id="change-doc-date-input" type="date" class="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl" />
+                        </div>
+                        <div id="change-doc-date-status" class="py-1 text-xs font-medium hidden"></div>
+                    </div>
+                    <div class="px-6 py-4 border-t border-slate-100 bg-slate-50/70 flex justify-end gap-3">
+                        <button id="btn-change-date-cancel" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl">Cancel</button>
+                        <button id="btn-change-date-save" type="button" class="px-4 py-2 text-xs font-bold text-white bg-purple-600 rounded-xl"><span id="btn-change-date-save-text">Save Date</span></button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(container);
+            changeDocDateModal = container;
+            changeDocDateInput = container.querySelector('#change-doc-date-input');
+            changeDocDateTitle = container.querySelector('#change-doc-date-title');
+            changeDocDateSubtitle = container.querySelector('#change-doc-date-subtitle');
+            changeDocDateStatus = container.querySelector('#change-doc-date-status');
+            btnChangeDateCancel = container.querySelector('#btn-change-date-cancel');
+            btnChangeDateClose = container.querySelector('#change-doc-date-close');
+            btnChangeDateSave = container.querySelector('#btn-change-date-save');
+            btnChangeDateSaveText = container.querySelector('#btn-change-date-save-text');
+        }
+
+        if (btnChangeDateClose) btnChangeDateClose.onclick = closeChangeDocDateModal;
+        if (btnChangeDateCancel) btnChangeDateCancel.onclick = closeChangeDocDateModal;
+        if (btnChangeDateSave) btnChangeDateSave.onclick = saveChangeDocDate;
+    }
+
+    function openChangeDocDateModal(doc) {
+        if (!doc) return;
+        activeDateModalOriginalDoc = doc;
+        activeDateModalDoc = {
+            ...doc,
+            area_id: getResolvedArea(doc),
+            house_id: getResolvedHouse(doc),
+        };
+        try {
+            doc.area_id = activeDateModalDoc.area_id;
+            doc.house_id = activeDateModalDoc.house_id;
+        } catch (_) {}
+
+        ensureDateModalElements();
+
+        if (changeDocDateSubtitle) {
+            changeDocDateSubtitle.textContent = doc.brief_arabic_title || doc.filename || 'Document';
+        }
+
+        if (changeDocDateStatus) {
+            changeDocDateStatus.classList.add('hidden');
+            changeDocDateStatus.textContent = '';
+        }
+
+        if (changeDocDateInput) {
+            const rawDate = doc.date || doc.primary_date || (Array.isArray(doc.dates) && doc.dates[0]) || '';
+            let isoDate = '';
+            if (rawDate) {
+                const trimmed = String(rawDate).trim();
+                const match = trimmed.match(/^\d{4}-\d{2}-\d{2}/);
+                isoDate = match ? match[0] : trimmed;
+            }
+            changeDocDateInput.value = isoDate;
+            changeDocDateInput.onkeydown = (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    saveChangeDocDate();
+                }
+            };
+        }
+
+        if (btnChangeDateSave) btnChangeDateSave.disabled = false;
+        if (btnChangeDateSaveText) btnChangeDateSaveText.textContent = 'Save Date';
+
+        if (changeDocDateModal) {
+            changeDocDateModal.classList.remove('hidden');
+            changeDocDateModal.classList.add('flex');
+            changeDocDateModal.style.display = 'flex';
+        }
+
+        if (changeDocDateInput) {
+            setTimeout(() => {
+                try { changeDocDateInput.focus(); } catch (_) {}
+            }, 50);
+        }
+    }
+
+    function closeChangeDocDateModal() {
+        ensureDateModalElements();
+        if (changeDocDateModal) {
+            changeDocDateModal.classList.add('hidden');
+            changeDocDateModal.classList.remove('flex');
+            changeDocDateModal.style.display = 'none';
+        }
+        activeDateModalDoc = null;
+        activeDateModalOriginalDoc = null;
+    }
+
+    async function saveChangeDocDate() {
+        if (!activeDateModalDoc || !activeDateModalDoc.vault_id) return;
+        ensureDateModalElements();
+
+        const newDate = changeDocDateInput ? changeDocDateInput.value.trim() : '';
+
+        if (btnChangeDateSave) btnChangeDateSave.disabled = true;
+        if (btnChangeDateSaveText) btnChangeDateSaveText.textContent = 'Saving...';
+
+        const area = getResolvedArea(activeDateModalDoc);
+        const house = getResolvedHouse(activeDateModalDoc);
+        const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+
+        try {
+            const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(activeDateModalDoc.vault_id)}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    primary_date: newDate,
+                    is_manual: 1
+                })
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || errData.error || errData.message || 'Failed to update document date');
+            }
+
+            // Update in-memory references
+            activeDateModalDoc.primary_date = newDate;
+            activeDateModalDoc.date = newDate;
+            activeDateModalDoc.dates = newDate ? [newDate] : [];
+            activeDateModalDoc.is_manual = 1;
+
+            if (activeDateModalOriginalDoc) {
+                activeDateModalOriginalDoc.primary_date = newDate;
+                activeDateModalOriginalDoc.date = newDate;
+                activeDateModalOriginalDoc.dates = newDate ? [newDate] : [];
+                activeDateModalOriginalDoc.is_manual = 1;
+            }
+
+            if (activeDocDropdown && activeDocDropdown.doc && activeDocDropdown.doc.vault_id === activeDateModalDoc.vault_id) {
+                activeDocDropdown.doc.primary_date = newDate;
+                activeDocDropdown.doc.date = newDate;
+                activeDocDropdown.doc.dates = newDate ? [newDate] : [];
+                activeDocDropdown.doc.is_manual = 1;
+            }
+
+            // Update DOM date badge in Categories View and Timeline View
+            const docCards = document.querySelectorAll(`div[data-vault-id="${activeDateModalDoc.vault_id}"]`);
+            docCards.forEach(card => {
+                const dateBadge = card.querySelector('.doc-date-badge');
+                if (dateBadge) {
+                    dateBadge.textContent = newDate || 'No Date';
+                }
+                const timelineDateSpan = card.querySelector('.font-mono span');
+                if (timelineDateSpan) {
+                    timelineDateSpan.textContent = newDate || 'No Date';
+                }
+            });
+
+            if (toast) {
+                toast('Document date updated successfully', 'success');
+            }
+
+            closeChangeDocDateModal();
+
+            try {
+                if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                    await window.refreshCurrentTab(area, house);
+                } else if (typeof refreshCurrentTab === 'function') {
+                    await refreshCurrentTab(area, house);
+                }
+            } catch (refErr) {
+                console.warn('Refresh after date change warning:', refErr);
+            }
+        } catch (err) {
+            console.error('Failed to save document date:', err);
+            if (changeDocDateStatus) {
+                changeDocDateStatus.textContent = err.message || 'Error updating date';
+                changeDocDateStatus.className = 'py-1 text-xs font-medium text-rose-600';
+                changeDocDateStatus.classList.remove('hidden');
+            }
+            if (toast) {
+                toast(err.message || 'Error updating date', 'error');
+            }
+            if (btnChangeDateSave) btnChangeDateSave.disabled = false;
+            if (btnChangeDateSaveText) btnChangeDateSaveText.textContent = 'Save Date';
+        }
+    }
+
     // Expose globals
     window.openDocModal = openDocModal;
     window.closeDocModal = closeDocModal;
     window.openDocDropdownMenu = openDocDropdownMenu;
     window.closeDocDropdownMenu = closeDocDropdownMenu;
+    window.openChangeDocDateModal = openChangeDocDateModal;
+    window.closeChangeDocDateModal = closeChangeDocDateModal;
+    window.saveChangeDocDate = saveChangeDocDate;
     window.showDocInTimeline = showDocInTimeline;
     window.showDocInCategories = showDocInCategories;
     window.handleToggleDocPin = handleToggleDocPin;
@@ -1300,6 +1574,9 @@
             closeDocModal,
             openDocDropdownMenu,
             closeDocDropdownMenu,
+            openChangeDocDateModal,
+            closeChangeDocDateModal,
+            saveChangeDocDate,
             showDocInTimeline,
             showDocInCategories,
             handleToggleDocPin,

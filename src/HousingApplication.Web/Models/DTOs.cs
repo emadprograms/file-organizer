@@ -81,6 +81,12 @@ public record TreeTenantDto
 
     [JsonPropertyName("is_resident")]
     public int IsResident { get; init; } = 1;
+
+    [JsonPropertyName("start_date")]
+    public string? StartDate { get; init; }
+
+    [JsonPropertyName("end_date")]
+    public string? EndDate { get; init; }
 }
 
 public record HouseCardDto
@@ -528,6 +534,9 @@ public record DocumentActionResponseDto
 
     [JsonPropertyName("tenant_name")]
     public string? TenantName { get; init; }
+
+    [JsonPropertyName("primary_date")]
+    public string? PrimaryDate { get; init; }
 
     [JsonPropertyName("is_manual")]
     public int IsManual { get; init; } = 1;

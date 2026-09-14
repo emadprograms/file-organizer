@@ -494,8 +494,15 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/tenants", async (
     TenantBulkUpdateRequestDto payload,
     IFileOrganizerRepository repo) =>
 {
-    var result = await repo.BulkUpdateTenantsAsync(houseId, payload.Tenants, payload.Reallocate);
-    return Results.Ok(result);
+    try
+    {
+        var result = await repo.BulkUpdateTenantsAsync(houseId, payload.Tenants, payload.Reallocate);
+        return Results.Ok(result);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
 });
 
 app.MapPost("/api/areas/{areaId}/houses/{houseId}/reallocate", async (
@@ -503,8 +510,15 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/reallocate", async (
     string houseId,
     IFileOrganizerRepository repo) =>
 {
-    var result = await repo.BulkUpdateTenantsAsync(houseId, Array.Empty<TenantDto>(), reallocate: true);
-    return Results.Ok(result);
+    try
+    {
+        var result = await repo.BulkUpdateTenantsAsync(houseId, Array.Empty<TenantDto>(), reallocate: true);
+        return Results.Ok(result);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
 });
 
 // ---------------------------------------------------------------------------

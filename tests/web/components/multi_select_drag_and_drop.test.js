@@ -254,6 +254,10 @@ describe('Multi-Select Drag and Drop for Tabs (Tablets) & Computers (Desktop)', 
             const docInTarget2 = targetCard.querySelector('[data-vault-id="doc002"]');
             expect(docInTarget1).not.toBeNull();
             expect(docInTarget2).not.toBeNull();
+            expect(docInTarget1.querySelector('span[title*="Manually assigned"]')).not.toBeNull();
+            expect(docInTarget1.querySelector('span[title*="Manually assigned"]').textContent).toBe('🔒');
+            expect(docInTarget2.querySelector('span[title*="Manually assigned"]')).not.toBeNull();
+            expect(docInTarget2.querySelector('span[title*="Manually assigned"]').textContent).toBe('🔒');
         });
 
         it('dragging an unselected doc while others are selected drags only that single doc', async () => {
