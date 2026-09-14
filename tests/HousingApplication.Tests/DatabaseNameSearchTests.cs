@@ -18,16 +18,60 @@ public class DatabaseNameSearchTests
 
     static DatabaseNameSearchTests()
     {
-        const string jsonPath = "/tmp/all_715_tenants.json";
-        if (File.Exists(jsonPath))
+        string[] candidatePaths = new[]
         {
-            var json = File.ReadAllText(jsonPath);
+            Path.Combine(AppContext.BaseDirectory, "TestData", "all_715_tenants.json"),
+            Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "TestData", "all_715_tenants.json"),
+            Path.Combine(Directory.GetCurrentDirectory(), "tests", "HousingApplication.Tests", "TestData", "all_715_tenants.json"),
+            Path.Combine(Directory.GetCurrentDirectory(), "TestData", "all_715_tenants.json"),
+            "/tmp/all_715_tenants.json"
+        };
+
+        string? foundPath = candidatePaths.FirstOrDefault(File.Exists);
+        if (foundPath != null)
+        {
+            var json = File.ReadAllText(foundPath);
             AllTenants = JsonSerializer.Deserialize<List<TenantRecord>>(json) ?? new();
         }
         else
         {
             AllTenants = new();
         }
+    }
+
+    public static IEnumerable<object[]> GetAllTenantsData()
+    {
+        return AllTenants.Select(t => new object[] { t.id, t.name, t.house_id });
+    }
+
+    [Theory]
+    [MemberData(nameof(GetAllTenantsData))]
+    public void EverySingleTenant_InDatabase_MatchesSuccessfully(int id, string name, string houseId)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return;
+
+        // 1. Exact Arabic Match
+        int exactScore = TextUtils.ScoreTenantMatch(name, name, houseId);
+        Assert.True(exactScore >= 1000, $"Tenant ID {id} '{name}' (House {houseId}) failed exact match: {exactScore}");
+
+        // 2. Normalized Arabic Match
+        string normalized = TextUtils.NormalizeArabic(name);
+        int normScore = TextUtils.ScoreTenantMatch(normalized, name, houseId);
+        Assert.True(normScore >= 1000, $"Tenant ID {id} '{name}' (House {houseId}) failed normalized match '{normalized}': {normScore}");
+
+        // 3. First Name Match
+        var tokens = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (tokens.Length > 0)
+        {
+            string first = tokens[0];
+            int firstScore = TextUtils.ScoreTenantMatch(first, name, houseId);
+            Assert.True(firstScore >= 500, $"Tenant ID {id} '{name}' (House {houseId}) failed first name match '{first}': {firstScore}");
+        }
+
+        // 4. Latin Transliteration Match
+        string latin = TextUtils.ToLatin(name);
+        int latinScore = TextUtils.ScoreTenantMatch(latin, name, houseId);
+        Assert.True(latinScore >= 400, $"Tenant ID {id} '{name}' (House {houseId}) failed Latin transliteration match '{latin}': {latinScore}");
     }
 
     [Fact]
