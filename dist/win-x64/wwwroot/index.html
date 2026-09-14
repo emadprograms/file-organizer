@@ -109,6 +109,8 @@
                         <select id="grid-house-sort-select" class="bg-transparent text-xs font-semibold text-slate-700 dark:text-slate-200 focus:outline-none cursor-pointer pr-1" aria-label="Sort houses by / ترتيب المنازل">
                             <option value="number">House Number</option>
                             <option value="longest_stay">Longest Stay</option>
+                            <option value="integrity_worst">Compliance: Missing First</option>
+                            <option value="integrity_best">Compliance: Complete First</option>
                         </select>
                     </div>
 
@@ -157,6 +159,22 @@
             <main class="flex-1 overflow-hidden flex relative">
                 <!-- Area Grid Panel (for Grid Overview Mode) -->
                 <div id="area-grid-panel" class="flex-1 p-6 bg-slate-50 dark:bg-slate-950 overflow-y-auto hidden flex-col">
+                    <!-- Area Grid Filter & Integrity Bar -->
+                    <div id="grid-integrity-toolbar" class="mb-4 flex flex-wrap items-center justify-between gap-3 bg-white dark:bg-slate-900 px-4 py-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs flex-shrink-0">
+                        <div class="flex items-center gap-2.5 flex-wrap">
+                            <span class="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5 select-none">
+                                <svg class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                                <span>Filter:</span>
+                            </span>
+                            <div id="grid-integrity-pills" class="flex flex-wrap items-center gap-1.5">
+                                <!-- Dynamic filter pills: All, Incomplete, Complete, Vacant -->
+                            </div>
+                        </div>
+                        <div id="grid-integrity-summary" class="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-2 flex-shrink-0">
+                            <!-- Overall area compliance stat badge -->
+                        </div>
+                    </div>
+
                     <!-- House Cards Grid -->
                     <div id="area-grid-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8">
                         <!-- Dynamic house cards rendered here -->

@@ -1,6 +1,103 @@
 // ── Area Houses Grid Component ────────────────────────────────────────────
 (function() {
     let currentAreaNode = null;
+    let currentIntegrityFilter = 'all';
+
+    const MANDATORY_INTEGRITY_CATEGORIES = [
+        { id: '02', key: 'بيانات شخصية', prefix: '02 - بيانات شخصية', label: 'بيانات شخصية', labelEn: 'Personal Details' },
+        { id: '03', key: 'أمر تخصيص', prefix: '03 - أمر تخصيص', label: 'أمر تخصيص', labelEn: 'Allotment Order' },
+        { id: '04', key: 'محضر تسليم مفتاح', prefix: '04 - محضر تسليم مفتاح', label: 'محضر تسليم مفتاح', labelEn: 'Key Handover' },
+        { id: '05', key: 'عقود', prefix: '05 - عقود', label: 'عقود', labelEn: 'Contracts' },
+        { id: '07', key: 'استقطاع إيجار', prefix: '07 - استقطاع إيجار', label: 'استقطاع إيجار', labelEn: 'Rent Deduction' }
+    ];
+
+    function computeHouseIntegrity(house) {
+        if (!house) {
+            return {
+                isOccupied: false,
+                isVacant: true,
+                totalRequired: 5,
+                presentCount: 0,
+                missingCount: 0,
+                missingCategories: [],
+                presentCategories: [],
+                isComplete: false,
+                status: 'vacant',
+                label: 'Vacant'
+            };
+        }
+
+        const occupied = isHouseOccupied(house);
+        if (!occupied) {
+            return {
+                isOccupied: false,
+                isVacant: true,
+                totalRequired: 5,
+                presentCount: 0,
+                missingCount: 0,
+                missingCategories: [],
+                presentCategories: [],
+                isComplete: false,
+                status: 'vacant',
+                label: 'Vacant'
+            };
+        }
+
+        const catCounts = house.category_counts || house.categoryCounts || {};
+        const presentCategories = [];
+        const missingCategories = [];
+
+        MANDATORY_INTEGRITY_CATEGORIES.forEach(cat => {
+            let isPresent = false;
+            if ((catCounts[cat.key] || 0) > 0 || (catCounts[cat.prefix] || 0) > 0 || (catCounts[cat.id] || 0) > 0) {
+                isPresent = true;
+            } else {
+                for (const [k, count] of Object.entries(catCounts)) {
+                    if (count > 0) {
+                        const cleanK = k.replace(/^\d+\s*-\s*/, '').trim();
+                        if (cleanK === cat.key || cleanK === cat.label) {
+                            isPresent = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (isPresent) {
+                presentCategories.push(cat);
+            } else {
+                missingCategories.push(cat);
+            }
+        });
+
+        const presentCount = presentCategories.length;
+        const missingCount = missingCategories.length;
+        const isComplete = (missingCount === 0);
+
+        return {
+            isOccupied: true,
+            isVacant: false,
+            totalRequired: 5,
+            presentCount,
+            missingCount,
+            missingCategories,
+            presentCategories,
+            isComplete,
+            status: isComplete ? 'complete' : 'incomplete',
+            label: `${presentCount}/5`
+        };
+    }
+
+    function getIntegrityFilter() {
+        return currentIntegrityFilter;
+    }
+
+    function setIntegrityFilter(filter) {
+        currentIntegrityFilter = filter || 'all';
+        if (currentAreaNode) {
+            renderAreaGrid(currentAreaNode);
+        }
+    }
 
     function parseYearOrDate(val, isEnd = false) {
         if (!val) return isEnd ? new Date() : null;
@@ -289,6 +386,122 @@
         return compareHouseNumbers(a, b);
     }
 
+    function compareHouseIntegrityWorst(a, b) {
+        const occA = isHouseOccupied(a);
+        const occB = isHouseOccupied(b);
+
+        // 1. Occupied before vacant
+        if (occA && !occB) return -1;
+        if (!occA && occB) return 1;
+
+        // 2. Both occupied
+        if (occA && occB) {
+            const intA = computeHouseIntegrity(a);
+            const intB = computeHouseIntegrity(b);
+
+            // Incomplete houses first
+            if (!intA.isComplete && intB.isComplete) return -1;
+            if (intA.isComplete && !intB.isComplete) return 1;
+
+            // Both incomplete: fewest present documents first (0/5 before 4/5)
+            if (!intA.isComplete && !intB.isComplete) {
+                if (intA.presentCount !== intB.presentCount) {
+                    return intA.presentCount - intB.presentCount;
+                }
+            }
+
+            // Both complete or same present count: tie-break by house number
+            return compareHouseNumbers(a, b);
+        }
+
+        // 3. Both vacant: sort by house number
+        return compareHouseNumbers(a, b);
+    }
+
+    function compareHouseIntegrityBest(a, b) {
+        const occA = isHouseOccupied(a);
+        const occB = isHouseOccupied(b);
+
+        // 1. Occupied before vacant
+        if (occA && !occB) return -1;
+        if (!occA && occB) return 1;
+
+        // 2. Both occupied
+        if (occA && occB) {
+            const intA = computeHouseIntegrity(a);
+            const intB = computeHouseIntegrity(b);
+
+            // Complete houses first
+            if (intA.isComplete && !intB.isComplete) return -1;
+            if (!intA.isComplete && intB.isComplete) return 1;
+
+            // Both incomplete: most present documents first (4/5 before 1/5)
+            if (!intA.isComplete && !intB.isComplete) {
+                if (intB.presentCount !== intA.presentCount) {
+                    return intB.presentCount - intA.presentCount;
+                }
+            }
+
+            // Tie-break by house number
+            return compareHouseNumbers(a, b);
+        }
+
+        // 3. Both vacant
+        return compareHouseNumbers(a, b);
+    }
+
+    function renderIntegrityFilterPills(totalCount, incompleteCount, completeCount, vacantCount) {
+        const container = document.getElementById('grid-integrity-pills');
+        const summary = document.getElementById('grid-integrity-summary');
+        if (!container) return;
+
+        const filters = [
+            { id: 'all', label: 'All Houses', count: totalCount, activeClass: 'bg-blue-600 text-white shadow-xs', icon: '' },
+            { id: 'incomplete', label: '⚠️ Incomplete', count: incompleteCount, activeClass: 'bg-amber-600 text-white shadow-xs', icon: '' },
+            { id: 'complete', label: '✓ Complete', count: completeCount, activeClass: 'bg-emerald-600 text-white shadow-xs', icon: '' },
+            { id: 'vacant', label: 'Vacant', count: vacantCount, activeClass: 'bg-slate-700 text-white shadow-xs', icon: '' }
+        ];
+
+        container.innerHTML = filters.map(f => {
+            const isActive = (currentIntegrityFilter === f.id);
+            const btnClass = isActive
+                ? `${f.activeClass} font-bold ring-1 ring-black/10 dark:ring-white/20`
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 font-medium';
+
+            return `
+                <button type="button" class="grid-filter-pill px-2.5 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1.5 select-none ${btnClass}" data-filter="${f.id}">
+                    <span>${f.label}</span>
+                    <span class="text-[10px] px-1.5 py-0.2 rounded-full ${isActive ? 'bg-white/25 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'} font-bold">${f.count}</span>
+                </button>
+            `;
+        }).join('');
+
+        container.querySelectorAll('.grid-filter-pill').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                setIntegrityFilter(btn.dataset.filter);
+            });
+        });
+
+        if (summary) {
+            if (incompleteCount > 0) {
+                summary.innerHTML = `
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
+                        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                        <span>${incompleteCount} ${incompleteCount === 1 ? 'house requires' : 'houses require'} documents</span>
+                    </span>
+                `;
+            } else {
+                summary.innerHTML = `
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                        <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        <span>All occupied houses 100% compliant</span>
+                    </span>
+                `;
+            }
+        }
+    }
+
     function formatLatestTenantStay(house) {
         if (!house) return 'Vacant';
         const occupied = isHouseOccupied(house);
@@ -339,7 +552,7 @@
         try {
             if (typeof localStorage !== 'undefined') {
                 const val = localStorage.getItem('house_sort_by');
-                if (val === 'longest_stay' || val === 'number') {
+                if (['longest_stay', 'number', 'integrity_worst', 'integrity_best'].includes(val)) {
                     return val;
                 }
             }
@@ -444,15 +657,54 @@
 
         if (gridAreaTitle) gridAreaTitle.textContent = areaNode.name;
         const rawHouses = areaNode.children || [];
-        const houses = [...rawHouses];
+
+        // 1. Calculate integrity counts across all houses in the area
+        let incompleteCount = 0;
+        let completeCount = 0;
+        let vacantCount = 0;
+
+        rawHouses.forEach(h => {
+            const intg = computeHouseIntegrity(h);
+            if (intg.isVacant) {
+                vacantCount++;
+            } else if (intg.isComplete) {
+                completeCount++;
+            } else {
+                incompleteCount++;
+            }
+        });
+
+        renderIntegrityFilterPills(rawHouses.length, incompleteCount, completeCount, vacantCount);
+
+        // 2. Filter houses by currentIntegrityFilter
+        let filteredHouses = rawHouses;
+        if (currentIntegrityFilter === 'incomplete') {
+            filteredHouses = rawHouses.filter(h => {
+                const intg = computeHouseIntegrity(h);
+                return intg.isOccupied && !intg.isComplete;
+            });
+        } else if (currentIntegrityFilter === 'complete') {
+            filteredHouses = rawHouses.filter(h => {
+                const intg = computeHouseIntegrity(h);
+                return intg.isOccupied && intg.isComplete;
+            });
+        } else if (currentIntegrityFilter === 'vacant') {
+            filteredHouses = rawHouses.filter(h => !isHouseOccupied(h));
+        }
+
+        const houses = [...filteredHouses];
         if (sortBy === 'longest_stay') {
             houses.sort(compareHouseLongestStay);
+        } else if (sortBy === 'integrity_worst') {
+            houses.sort(compareHouseIntegrityWorst);
+        } else if (sortBy === 'integrity_best') {
+            houses.sort(compareHouseIntegrityBest);
         } else {
             houses.sort(compareHouseNumbers);
         }
 
         if (gridAreaStats) {
-            gridAreaStats.textContent = `${houses.length} Houses`;
+            gridAreaStats.textContent = `${rawHouses.length} Houses`;
             gridAreaStats.classList.remove('hidden');
         }
         if (gridTenureLegend) {
@@ -461,6 +713,44 @@
         }
         if (!houseCardsContainer) return;
         houseCardsContainer.innerHTML = '';
+
+        if (rawHouses.length > 0 && houses.length === 0) {
+            let emptyTitle = 'No houses found';
+            let emptyMsg = 'No houses match the current filter in this area.';
+            let emptyIcon = '🔍';
+
+            if (currentIntegrityFilter === 'incomplete') {
+                emptyTitle = 'All Houses Compliant!';
+                emptyMsg = 'Every occupied house in this area has all 5 mandatory documents in place.';
+                emptyIcon = '🎉';
+            } else if (currentIntegrityFilter === 'complete') {
+                emptyTitle = 'No Fully Complete Houses';
+                emptyMsg = 'No occupied houses currently have all 5 mandatory documents.';
+                emptyIcon = '⚠️';
+            } else if (currentIntegrityFilter === 'vacant') {
+                emptyTitle = 'No Vacant Houses';
+                emptyMsg = 'All houses in this area are currently occupied or recorded with active tenants.';
+                emptyIcon = '🏠';
+            }
+
+            const filterNotice = document.createElement('div');
+            filterNotice.className = 'col-span-full py-12 text-center bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 shadow-2xs';
+            filterNotice.innerHTML = `
+                <div class="w-12 h-12 mx-auto rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center text-2xl mb-3">
+                    ${emptyIcon}
+                </div>
+                <h4 class="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">${emptyTitle}</h4>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mb-4 max-w-sm mx-auto">${emptyMsg}</p>
+                <button type="button" class="btn-reset-grid-filter px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-2xs transition-all cursor-pointer">
+                    Show All Houses (${rawHouses.length})
+                </button>
+            `;
+            const resetBtn = filterNotice.querySelector('.btn-reset-grid-filter');
+            if (resetBtn) {
+                resetBtn.onclick = () => setIntegrityFilter('all');
+            }
+            houseCardsContainer.appendChild(filterNotice);
+        }
 
         houses.forEach(house => {
             const card = document.createElement('div');
@@ -610,6 +900,43 @@
                 `;
             }
 
+            const integrity = computeHouseIntegrity(house);
+            let integrityBadgeHtml = '';
+            let missingDocsStripHtml = '';
+
+            if (integrity.isVacant) {
+                integrityBadgeHtml = `
+                    <span class="integrity-badge text-[10px] font-semibold px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 select-none" title="منزل شاغر">
+                        شاغر
+                    </span>
+                `;
+            } else if (integrity.isComplete) {
+                integrityBadgeHtml = `
+                    <span class="integrity-badge inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border border-emerald-300 dark:border-emerald-800/80 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 shadow-2xs" title="الملف مكتمل: 5/5 وثائق إلزامية متوفرة">
+                        <svg class="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                        <span>5/5</span>
+                    </span>
+                `;
+            } else {
+                const missingListStr = integrity.missingCategories.map(c => c.label).join('، ');
+                integrityBadgeHtml = `
+                    <span class="integrity-badge inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-md border border-amber-300 dark:border-amber-800/80 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 shadow-2xs" title="وثائق ناقصة: ${missingListStr}">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                        <span>${integrity.presentCount}/5</span>
+                    </span>
+                `;
+
+                missingDocsStripHtml = `
+                    <div class="missing-docs-strip mt-2 px-2.5 py-1.5 rounded-lg bg-amber-50/70 dark:bg-amber-950/30 border border-dashed border-amber-300 dark:border-amber-800/60 flex items-center justify-between text-[11px] gap-2">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span class="text-amber-600 dark:text-amber-400 font-bold flex-shrink-0">⚠️ ناقص:</span>
+                            <span class="text-amber-900 dark:text-amber-200 truncate font-medium text-[10.5px]" title="${missingListStr}">${missingListStr}</span>
+                        </div>
+                        <span class="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 rounded flex-shrink-0">${integrity.missingCount} متبقي</span>
+                    </div>
+                `;
+            }
+
             card.innerHTML = `
                 <div>
                     <div class="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-slate-100 dark:border-slate-800">
@@ -621,12 +948,17 @@
                                 ${countBadgeText}
                             </span>
                         </div>
-                        <span class="tenure-badge text-[10px] px-2 py-0.5 rounded border flex-shrink-0 ${badgeClass}">${badgeLabel}</span>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            ${integrityBadgeHtml}
+                            <span class="tenure-badge text-[10px] px-2 py-0.5 rounded border flex-shrink-0 ${badgeClass}">${badgeLabel}</span>
+                        </div>
                     </div>
 
                     <div class="tenants-overview-section ${scrollClass}">
                         ${tenantsHtml}
                     </div>
+
+                    ${missingDocsStripHtml}
                 </div>
 
                 ${footerHtml}
@@ -973,6 +1305,13 @@
     window.formatLatestTenantStay = formatLatestTenantStay;
     window.getHouseSortPreference = getHouseSortPreference;
     window.initHouseSortControl = initHouseSortControl;
+    window.MANDATORY_INTEGRITY_CATEGORIES = MANDATORY_INTEGRITY_CATEGORIES;
+    window.computeHouseIntegrity = computeHouseIntegrity;
+    window.compareHouseIntegrityWorst = compareHouseIntegrityWorst;
+    window.compareHouseIntegrityBest = compareHouseIntegrityBest;
+    window.getIntegrityFilter = getIntegrityFilter;
+    window.setIntegrityFilter = setIntegrityFilter;
+    window.renderIntegrityFilterPills = renderIntegrityFilterPills;
 
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = {
@@ -996,6 +1335,13 @@
             formatLatestTenantStay,
             getHouseSortPreference,
             initHouseSortControl,
+            MANDATORY_INTEGRITY_CATEGORIES,
+            computeHouseIntegrity,
+            compareHouseIntegrityWorst,
+            compareHouseIntegrityBest,
+            getIntegrityFilter,
+            setIntegrityFilter,
+            renderIntegrityFilterPills,
         };
     }
 })();

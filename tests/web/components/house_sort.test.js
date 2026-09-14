@@ -82,7 +82,9 @@ describe('Top Header Bar House Sorting Component (House Number & Longest Tenant 
             const options = Array.from(select.querySelectorAll('option')).map(o => ({ value: o.value, text: o.textContent.trim() }));
             expect(options).toEqual([
                 { value: 'number', text: 'House Number' },
-                { value: 'longest_stay', text: 'Longest Stay' }
+                { value: 'longest_stay', text: 'Longest Stay' },
+                { value: 'integrity_worst', text: 'Compliance: Missing First' },
+                { value: 'integrity_best', text: 'Compliance: Complete First' }
             ]);
         });
 

@@ -1140,4 +1140,32 @@ button, a, input, select, textarea, .cursor-pointer,
     background-color: #3b82f6 !important;
 }
 
+/* ── Tenant Compliance Card & Integrity Controls ───────────────────────── */
+.tenant-compliance-card {
+    transition: all 0.2s ease-in-out;
+}
+.compliance-item {
+    transition: all 0.15s ease-in-out;
+}
+.compliance-item:hover {
+    transform: translateY(-1px);
+}
+.btn-compliance-upload:hover {
+    box-shadow: 0 2px 6px -1px rgba(245, 158, 11, 0.4);
+}
+.grid-filter-pill {
+    transition: all 0.15s ease-in-out;
+}
+.missing-docs-strip {
+    transition: all 0.15s ease-in-out;
+}
+
+html.dark .tenant-compliance-card {
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255, 255, 255, 0.03);
+}
+html.dark .compliance-item {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
+
 

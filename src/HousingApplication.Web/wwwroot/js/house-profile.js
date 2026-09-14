@@ -44,7 +44,8 @@
                         notes: kt.notes || null,
                         duration_str_ar: isActive ? `بدء الإيجار ${sDate.substring(0, 4)} (مستمر)` : `فترة الإيجار: ${sDate.substring(0, 4)} – ${eDate.substring(0, 4)}`,
                         document_count: tenantDocCounts[kt.name] || 0,
-                        category_count: (tenantCatSets[kt.name] || new Set()).size
+                        category_count: (tenantCatSets[kt.name] || new Set()).size,
+                        categories: Array.from(tenantCatSets[kt.name] || [])
                     };
                 });
                 tenants.sort((a, b) => {
@@ -176,6 +177,92 @@
         window.TENURE_THEMES = TENURE_THEMES;
     }
 
+    const MANDATORY_INTEGRITY_CATEGORIES = [
+        { id: '02', key: 'بيانات شخصية', prefix: '02 - بيانات شخصية', label: 'بيانات شخصية', labelEn: 'Personal Details' },
+        { id: '03', key: 'أمر تخصيص', prefix: '03 - أمر تخصيص', label: 'أمر تخصيص', labelEn: 'Allotment Order' },
+        { id: '04', key: 'محضر تسليم مفتاح', prefix: '04 - محضر تسليم مفتاح', label: 'محضر تسليم مفتاح', labelEn: 'Key Handover' },
+        { id: '05', key: 'عقود', prefix: '05 - عقود', label: 'عقود', labelEn: 'Contracts' },
+        { id: '07', key: 'استقطاع إيجار', prefix: '07 - استقطاع إيجار', label: 'استقطاع إيجار', labelEn: 'Rent Deduction' }
+    ];
+
+    function computeTenantCompliance(profile, activeTenant) {
+        if (!profile || !activeTenant) {
+            return {
+                isOccupied: false,
+                isVacant: true,
+                totalRequired: 5,
+                presentCount: 0,
+                missingCount: 0,
+                missingCategories: [],
+                presentCategories: [],
+                isComplete: false,
+                items: MANDATORY_INTEGRITY_CATEGORIES.map(cat => ({
+                    ...cat,
+                    exists: false,
+                    documentCount: 0
+                }))
+            };
+        }
+
+        const tenantCats = (activeTenant.categories && Array.isArray(activeTenant.categories)) ? activeTenant.categories : [];
+        const archiveCats = (profile.archive && Array.isArray(profile.archive.categories)) ? profile.archive.categories : [];
+
+        const presentCategories = [];
+        const missingCategories = [];
+
+        const items = MANDATORY_INTEGRITY_CATEGORIES.map(cat => {
+            let exists = false;
+            let docCount = 0;
+
+            for (const c of tenantCats) {
+                const clean = String(c).replace(/^\d+\s*-\s*/, '').trim();
+                if (clean === cat.key || clean === cat.label || String(c).includes(cat.prefix) || String(c).startsWith(cat.id)) {
+                    exists = true;
+                    break;
+                }
+            }
+
+            for (const archItem of archiveCats) {
+                const cStr = String(archItem.category || '');
+                const clean = cStr.replace(/^\d+\s*-\s*/, '').trim();
+                if (clean === cat.key || clean === cat.label || cStr.includes(cat.prefix) || cStr.startsWith(cat.id)) {
+                    exists = true;
+                    docCount = Math.max(docCount, archItem.document_count || 1);
+                }
+            }
+
+            const itemData = {
+                ...cat,
+                exists,
+                documentCount: exists ? Math.max(docCount, 1) : 0
+            };
+
+            if (exists) {
+                presentCategories.push(itemData);
+            } else {
+                missingCategories.push(itemData);
+            }
+
+            return itemData;
+        });
+
+        const presentCount = presentCategories.length;
+        const missingCount = missingCategories.length;
+        const isComplete = (missingCount === 0);
+
+        return {
+            isOccupied: true,
+            isVacant: false,
+            totalRequired: 5,
+            presentCount,
+            missingCount,
+            missingCategories,
+            presentCategories,
+            isComplete,
+            items
+        };
+    }
+
     function renderHouseProfile(profile) {
         currentHouseProfile = profile;
         const docListEl = document.getElementById('document-list');
@@ -189,6 +276,139 @@
         const allTenants = (profile && Array.isArray(profile.tenants)) ? profile.tenants : [];
         const residents = allTenants.filter(t => t.is_resident !== 0 && t.is_resident !== false);
         const applicants = allTenants.filter(t => t.is_resident === 0 || t.is_resident === false);
+
+        // Section 0: Tenant File Compliance Checklist (Idea C)
+        const activeTenant = residents.find(t => t.is_active) || (residents.length > 0 ? residents[0] : null);
+        const compliance = computeTenantCompliance(profile, activeTenant);
+        const complianceSection = document.createElement('div');
+
+        if (!activeTenant) {
+            complianceSection.className = 'tenant-compliance-card mb-3.5 p-3.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50';
+            complianceSection.innerHTML = `
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-8 h-8 rounded-lg bg-slate-200/80 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center text-sm flex-shrink-0">📋</span>
+                        <div>
+                            <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200">فحص اكتمال ملف الساكن</h4>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">المنزل شاغر حالياً — لا يوجد ساكن حالي لإجراء فحص الوثائق الإلزامية.</p>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 flex-shrink-0">شاغر</span>
+                </div>
+            `;
+        } else {
+            const isComplete = compliance.isComplete;
+            const cardBorder = isComplete 
+                ? 'border-emerald-200/90 dark:border-emerald-900/60 bg-emerald-50/30 dark:bg-emerald-950/20' 
+                : 'border-amber-200/90 dark:border-amber-900/60 bg-amber-50/30 dark:bg-amber-950/20';
+            const headerBorder = isComplete 
+                ? 'border-emerald-100 dark:border-emerald-900/40' 
+                : 'border-amber-100 dark:border-amber-900/40';
+            const badgeClass = isComplete
+                ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800';
+
+            complianceSection.className = `tenant-compliance-card mb-3.5 p-3.5 rounded-xl border ${cardBorder} shadow-2xs`;
+
+            const itemsHtml = compliance.items.map(cat => {
+                if (cat.exists) {
+                    return `
+                        <div class="compliance-item p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-800/50 bg-white dark:bg-emerald-950/30 flex flex-col justify-between cursor-pointer hover:border-emerald-400 hover:shadow-2xs transition-all group"
+                             data-category-prefix="${cat.prefix}"
+                             title="متوفر في الأرشيف (${cat.documentCount} وثيقة) - انقر لعرض المجلد">
+                            <div class="flex items-center justify-between gap-1 mb-1">
+                                <span class="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 font-mono">${cat.id}</span>
+                                <span class="w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center text-[10px] font-bold">✓</span>
+                            </div>
+                            <div class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate mb-1" title="${cat.label}">${cat.label}</div>
+                            <div class="flex items-center justify-between text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                                <span>متوفر (${cat.documentCount})</span>
+                                <svg class="w-3 h-3 text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="compliance-item p-2.5 rounded-xl border border-amber-200/90 dark:border-amber-800/60 bg-white dark:bg-amber-950/30 flex flex-col justify-between transition-all">
+                            <div class="flex items-center justify-between gap-1 mb-1">
+                                <span class="text-[10px] font-bold text-amber-700 dark:text-amber-400 font-mono">${cat.id}</span>
+                                <span class="w-4 h-4 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center text-[10px] font-bold">⚠️</span>
+                            </div>
+                            <div class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate mb-1.5" title="${cat.label}">${cat.label}</div>
+                            <button type="button" class="btn-compliance-upload w-full py-1 px-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold text-[10.5px] flex items-center justify-center gap-1 shadow-2xs cursor-pointer transition-all hover:scale-[1.02]"
+                                    data-cat-prefix="${cat.prefix}"
+                                    data-cat-name="${cat.key}"
+                                    title="رفع ${cat.label} للساكن ${activeTenant.name}">
+                                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                                <span>+ رفع</span>
+                            </button>
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            complianceSection.innerHTML = `
+                <div class="flex items-center justify-between gap-3 mb-2.5 pb-2 border-b ${headerBorder}">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-7 h-7 rounded-lg ${isComplete ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'} flex items-center justify-center flex-shrink-0 text-sm">
+                            🛡️
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <h4 class="text-xs font-bold text-slate-900 dark:text-slate-100">فحص اكتمال ملف الساكن</h4>
+                                <span class="text-[10px] text-slate-300 dark:text-slate-600">•</span>
+                                <span class="text-xs font-bold text-blue-600 dark:text-blue-400 truncate">${activeTenant.name}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                                ${isComplete ? 'جميع الوثائق الإلزامية الخمس مكتملة ومتوفرة في الأرشيف.' : `يوجد ${compliance.missingCount} وثائق إلزامية مفقودة لهذا الساكن يجب استكمالها.`}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <span class="compliance-score-badge text-xs font-bold px-2.5 py-1 rounded-lg border ${badgeClass}">
+                            ${isComplete ? 'مكتمل 5/5 ✓' : `${compliance.presentCount}/5 ناقص ⚠️`}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                    ${itemsHtml}
+                </div>
+            `;
+
+            complianceSection.querySelectorAll('.btn-compliance-upload').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    const catPrefix = btn.dataset.catPrefix;
+                    if (typeof window.openIngestStationWithPreset === 'function') {
+                        window.openIngestStationWithPreset({
+                            area: profile.area_id,
+                            house: profile.house_id,
+                            tenant: activeTenant.name,
+                            category: catPrefix
+                        });
+                    } else if (typeof window.openIngestStation === 'function') {
+                        window.openIngestStation(null, {
+                            area: profile.area_id,
+                            house: profile.house_id,
+                            tenant: activeTenant.name,
+                            category: catPrefix
+                        });
+                    }
+                });
+            });
+
+            complianceSection.querySelectorAll('.compliance-item[data-category-prefix]').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    if (e.target.closest('.btn-compliance-upload')) return;
+                    const tenantParam = `${profile.house_id}_${activeTenant.name}`;
+                    window.location.hash = `#/area/${encodeURIComponent(profile.area_id)}/house/${encodeURIComponent(profile.house_id)}/tenant/${encodeURIComponent(tenantParam)}`;
+                });
+            });
+        }
+
+        container.appendChild(complianceSection);
 
         // Section 1: Resident Tenants (residents-section)
         const residentsSection = document.createElement('div');
@@ -572,9 +792,27 @@
 
     window.loadHouseProfile = loadHouseProfile;
     window.renderHouseProfile = renderHouseProfile;
+    window.computeTenantCompliance = computeTenantCompliance;
+    window.MANDATORY_INTEGRITY_CATEGORIES = MANDATORY_INTEGRITY_CATEGORIES;
     window.openExportArchiveModal = openExportArchiveModal;
     window.closeExportArchiveModal = closeExportArchiveModal;
     window.setExportFormat = setExportFormat;
     window.initExportArchiveModal = initExportArchiveModal;
     window.initExportArchiveHeaderButton = initExportArchiveHeaderButton;
+
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = {
+            loadHouseProfile,
+            renderHouseProfile,
+            computeTenantCompliance,
+            MANDATORY_INTEGRITY_CATEGORIES,
+            getTenantTenureCategory,
+            TENURE_THEMES,
+            openExportArchiveModal,
+            closeExportArchiveModal,
+            setExportFormat,
+            initExportArchiveModal,
+            initExportArchiveHeaderButton,
+        };
+    }
 })();

@@ -504,7 +504,8 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                 DurationStrAr = durStr,
                 DurationCategory = durCat,
                 DocumentCount = tenantDocCounts.GetValueOrDefault(t.Id, 0),
-                CategoryCount = tenantCatSets.TryGetValue(t.Id, out var set) ? set.Count : 0
+                CategoryCount = tenantCatSets.TryGetValue(t.Id, out var set) ? set.Count : 0,
+                Categories = tenantCatSets.TryGetValue(t.Id, out var catSet) ? catSet.ToList() : new List<string>()
             });
         }
 

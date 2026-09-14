@@ -174,6 +174,9 @@ public record HouseTenantProfileDto
 
     [JsonPropertyName("category_count")]
     public int CategoryCount { get; init; }
+
+    [JsonPropertyName("categories")]
+    public List<string> Categories { get; init; } = new();
 }
 
 public record CategoryBreakdownItemDto

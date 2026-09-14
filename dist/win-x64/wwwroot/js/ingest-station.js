@@ -1565,10 +1565,41 @@
         }
     }
 
-    function openIngestStation(initialFiles = null) {
+    function openIngestStation(initialFiles = null, preset = null) {
         if (!ingestModal) return;
+
+        // Support passing preset as first argument: openIngestStation({ area, house, ... })
+        if (initialFiles && !Array.isArray(initialFiles) && !(typeof File !== 'undefined' && initialFiles instanceof File) && !(typeof FileList !== 'undefined' && initialFiles instanceof FileList) && (initialFiles.area || initialFiles.house || initialFiles.tenant || initialFiles.category)) {
+            preset = initialFiles;
+            initialFiles = null;
+        }
+
         ingestModal.classList.remove('hidden');
         resetStatusMsg();
+
+        if (preset) {
+            switchTab('single');
+            if (preset.area && areaSelect) {
+                areaSelect.value = preset.area;
+                populateHouses(preset.area, preset.house || null);
+            }
+            if (preset.house && houseSelect) {
+                houseSelect.value = preset.house;
+                populateTenants(preset.area || (areaSelect ? areaSelect.value : ''), preset.house, preset.tenant || null);
+            }
+            if (preset.category && categorySelect) {
+                const target = String(preset.category).trim();
+                const catOpt = Array.from(categorySelect.options).find(o => 
+                    o.value === target || 
+                    o.textContent.includes(target) || 
+                    target.includes(o.value) ||
+                    o.value.replace(/^\d+\s*-\s*/, '') === target.replace(/^\d+\s*-\s*/, '')
+                );
+                if (catOpt) {
+                    categorySelect.value = catOpt.value;
+                }
+            }
+        }
 
         if (initialFiles) {
             const filesArray = Array.isArray(initialFiles) 
@@ -1586,9 +1617,13 @@
                     handleFileSelected(filesArray[0]);
                 }
             }
-        } else {
+        } else if (!preset) {
             switchTab(activeTab);
         }
+    }
+
+    function openIngestStationWithPreset(preset) {
+        openIngestStation(null, preset);
     }
 
     function closeIngestStation() {
@@ -2129,6 +2164,7 @@
     // Expose globals
     window.initIngestStation = initIngestStation;
     window.openIngestStation = openIngestStation;
+    window.openIngestStationWithPreset = openIngestStationWithPreset;
     window.closeIngestStation = closeIngestStation;
     window.switchTab = switchTab;
     window.getActiveTab = () => activeTab;
@@ -2182,6 +2218,7 @@
         module.exports = {
             initIngestStation,
             openIngestStation,
+            openIngestStationWithPreset,
             closeIngestStation,
             switchTab,
             getActiveTab: () => activeTab,
