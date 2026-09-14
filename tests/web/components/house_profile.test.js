@@ -294,14 +294,14 @@ describe('House Profile & Header Archive Export', () => {
       const docList = document.getElementById('document-list');
       const applicantsSection = docList.querySelector('.applicants-section');
       expect(applicantsSection).not.toBeNull();
-      expect(applicantsSection.textContent).toContain('سجل المتقدمين وطلبات التخصيص');
+      expect(applicantsSection.textContent).toContain('المتقدمون');
       expect(applicantsSection.querySelector('.applicant-notes')).toBeNull();
       expect(applicantsSection.textContent).toContain('2024-03-15');
 
       // Residents section header also displayed when applicants exist
       const residentsSection = docList.querySelector('.residents-section');
       expect(residentsSection).not.toBeNull();
-      expect(residentsSection.textContent).toContain('المستأجرون المقيمون');
+      expect(residentsSection.textContent).toContain('المستأجرون');
       expect(residentsSection.textContent).toContain('فهد المنصور');
 
       // Clicking applicant card navigates to applicant hash route
@@ -335,7 +335,7 @@ describe('House Profile & Header Archive Export', () => {
       window.renderHouseProfile(mockProfile);
 
       const docList = document.getElementById('document-list');
-      expect(docList.textContent).toContain('لا يوجد مستأجرون مقيمون مسجلون لهذا المنزل حالياً.');
+      expect(docList.textContent).toContain('لا يوجد مستأجرون مسجلون لهذا المنزل حالياً.');
       const applicantCards = docList.querySelectorAll('.applicant-profile-card');
       expect(applicantCards.length).toBe(1);
       expect(applicantCards[0].textContent).toContain('سالم الكعبي');

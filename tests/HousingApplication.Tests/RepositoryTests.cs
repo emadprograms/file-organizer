@@ -889,4 +889,82 @@ public class RepositoryTests : IDisposable
         Assert.Equal(0, newApplicantDto.IsResident);
         Assert.Equal("New application note", newApplicantDto.Notes);
     }
+
+    [Fact]
+    public async Task GetTenantsAsync_AnchorsStartDate_ToEarliestDocumentDate()
+    {
+        // Arrange: Tenant created with initial date 2022-01-01
+        await _repo.AddAreaAsync("AreaAnchor", "ANC");
+        await _repo.AddHouseAsync("H-Anchor1", "AreaAnchor");
+        var tenant = await _repo.AddTenantAsync("H-Anchor1", "Tenant Anchored", "2022-01-01", null, isResident: 1);
+
+        // Add document with earlier date 2019-06-15
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "AreaAnchor",
+            HouseId = "H-Anchor1",
+            TenantId = tenant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد قديم",
+            PrimaryDate = "2019-06-15",
+            VaultId = Guid.NewGuid().ToString("N"),
+            PageCount = 1
+        });
+
+        // Act
+        var tenants = await _repo.GetTenantsAsync("H-Anchor1");
+        var profile = await _repo.GetHouseProfileAsync("AreaAnchor", "H-Anchor1");
+
+        // Assert: StartDate is anchored to the earliest document date 2019-06-15
+        var tDto = tenants.FirstOrDefault(t => t.Id == tenant.Id);
+        Assert.NotNull(tDto);
+        Assert.Equal("2019-06-15", tDto.StartDate);
+
+        Assert.NotNull(profile);
+        var pDto = profile.Tenants.FirstOrDefault(t => t.Name == "Tenant Anchored");
+        Assert.NotNull(pDto);
+        Assert.Equal("2019-06-15", pDto.StartDate);
+    }
+
+    [Fact]
+    public async Task AddTenantAsync_BrandNewTenantWithZeroDocuments_AllowsNullStartDate_AndSnapsOnFirstUpload()
+    {
+        // Arrange: Brand new tenant with zero documents created with null startDate
+        await _repo.AddAreaAsync("AreaZeroDoc", "AZD");
+        await _repo.AddHouseAsync("H-Zero1", "AreaZeroDoc");
+        var newTenant = await _repo.AddTenantAsync("H-Zero1", "New Tenant Zero", startDate: null, isResident: 1);
+
+        // Act 1: Fetch before any documents uploaded
+        var tenantsBefore = await _repo.GetTenantsAsync("H-Zero1");
+        var tBefore = tenantsBefore.FirstOrDefault(t => t.Id == newTenant.Id);
+        Assert.NotNull(tBefore);
+        Assert.Null(tBefore.StartDate);
+
+        // Act 2: Upload first document with date 2024-05-10
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "AreaZeroDoc",
+            HouseId = "H-Zero1",
+            TenantId = newTenant.Id,
+            Category = "01 - كتب رسمية",
+            ArabicTitle = "أول كتاب",
+            PrimaryDate = "2024-05-10",
+            VaultId = Guid.NewGuid().ToString("N"),
+            PageCount = 1
+        });
+
+        // Act 3: Fetch after first upload
+        var tenantsAfter = await _repo.GetTenantsAsync("H-Zero1");
+        var profileAfter = await _repo.GetHouseProfileAsync("AreaZeroDoc", "H-Zero1");
+
+        // Assert: StartDate automatically snaps to the first document date 2024-05-10
+        var tAfter = tenantsAfter.FirstOrDefault(t => t.Id == newTenant.Id);
+        Assert.NotNull(tAfter);
+        Assert.Equal("2024-05-10", tAfter.StartDate);
+
+        Assert.NotNull(profileAfter);
+        var pAfter = profileAfter.Tenants.FirstOrDefault(t => t.Name == "New Tenant Zero");
+        Assert.NotNull(pAfter);
+        Assert.Equal("2024-05-10", pAfter.StartDate);
+    }
 }

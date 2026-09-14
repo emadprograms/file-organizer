@@ -882,7 +882,7 @@ app.MapPost("/api/ingest", async (
         }
         else
         {
-            var newT = await repo.AddTenantAsync(cleanHouseId, tenantName.Trim(), primaryDate ?? DateTime.Today.ToString("yyyy-MM-dd"));
+            var newT = await repo.AddTenantAsync(cleanHouseId, tenantName.Trim(), primaryDate);
             resolvedTenantId = newT.Id;
             resolvedTenant = new TenantDto { Id = newT.Id, Name = newT.Name, StartDate = newT.StartDate, EndDate = newT.EndDate, HouseId = cleanHouseId, IsResident = newT.IsResident, Notes = newT.Notes };
         }
@@ -903,7 +903,7 @@ app.MapPost("/api/ingest", async (
         }
         else
         {
-            var defT = await repo.AddTenantAsync(cleanHouseId, "Default Tenant", "1970-01-01");
+            var defT = await repo.AddTenantAsync(cleanHouseId, "Default Tenant", primaryDate);
             resolvedTenantId = defT.Id;
             resolvedTenant = new TenantDto { Id = defT.Id, Name = defT.Name, StartDate = defT.StartDate, EndDate = defT.EndDate, HouseId = cleanHouseId, IsResident = defT.IsResident, Notes = defT.Notes };
         }
@@ -942,6 +942,16 @@ app.MapPost("/api/ingest", async (
                 }
                 await repo.UpdateTenantDatesAsync(resolvedTenantId, null, targetEnd);
             }
+        }
+    }
+
+    if (resolvedTenant != null && !string.IsNullOrWhiteSpace(primaryDate))
+    {
+        if (string.IsNullOrWhiteSpace(resolvedTenant.StartDate) || 
+            resolvedTenant.StartDate == "1970-01-01" || 
+            string.Compare(primaryDate, resolvedTenant.StartDate, StringComparison.Ordinal) < 0)
+        {
+            await repo.UpdateTenantDatesAsync(resolvedTenantId, primaryDate, null);
         }
     }
 

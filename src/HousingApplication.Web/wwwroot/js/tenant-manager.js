@@ -169,8 +169,8 @@
                 </select>
             </div>
             <div class="sm:col-span-2">
-                <input type="date" value="${startVal}" title="${isApplicant ? 'Application / Order Date • تاريخ الطلب/التخصيص' : 'Start Date • تاريخ البدء'}"
-                       class="tenant-start-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium" required />
+                <input type="date" value="${startVal}" title="${isApplicant ? 'Application / Order Date • تاريخ الطلب/التخصيص' : 'Start Date • تاريخ البدء'}" placeholder="Auto (on first upload)"
+                       class="tenant-start-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium" />
             </div>
             <div class="sm:col-span-2">
                 <input type="date" value="${isApplicant || isPresent ? '' : endVal}" ${isApplicant || isPresent ? 'disabled' : ''} title="${isApplicant ? 'N/A (لم يسكن)' : 'End Date • تاريخ الانتهاء'}"
@@ -294,15 +294,11 @@
                 showTenantStatus('All tenants must have a name', true);
                 return;
             }
-            if (!start) {
-                showTenantStatus(`Please provide a start date for ${name}`, true);
-                return;
-            }
 
             tenantsPayload.push({
                 id: r.dataset.id ? parseInt(r.dataset.id) : null,
                 name: name,
-                start_date: start,
+                start_date: start || null,
                 end_date: isResident === 0 ? null : end,
                 house_id: currentHouse,
                 is_resident: isResident,

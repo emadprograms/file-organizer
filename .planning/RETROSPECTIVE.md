@@ -131,6 +131,34 @@
 
 ---
 
+---
+
+## Milestone: v16.1 — Document-Anchored Tenancy Dates & Minimalist Register
+
+**Shipped:** 2026-09-14
+**Phases:** 1 (Phase 115) | **Plans:** 1 | **Tests:** 161 xUnit tests, 293 Vitest tests across 28 test files (100% passing)
+
+### What Was Built
+- Document-Anchored Start Date Architecture: Tenant and applicant start dates are automatically resolved in SQL and repository layers via `LEFT JOIN` on the earliest visible document date (`MIN(primary_date)`), making the document archive the single source of truth for start dates.
+- Zero-Document Edge Case: Brand-new tenants and applicants can be created without mandatory start dates. Start date is stored as null and displayed as `Auto (on first upload)` in House Settings until the first document is uploaded, upon which it automatically snaps to the document's date.
+- User-Decided End Dates: Administrative control over tenancy duration remains strictly with the user (`Present` checkbox vs. explicit vacate/closing date), preventing false timeline re-calculations.
+- Streamlined Minimalist Register: Cleaned up the House Profile tenant register into a clean two-tier layout:
+  - Resident tenants at top with clean title: `المستأجرون` (Tenants).
+  - Exactly 1 subtle divider line separating residents from applicants.
+  - Applicants at bottom with clean title: `المتقدمون` (Applicants).
+  - Stripped all wordy boilerplate and confusing subtitle phrases.
+
+### What Worked
+- Anchoring start dates to the earliest document eliminated the "two competing versions of reality" (what the user typed vs what was stamped on the scanned document), completely resolving timeline conflict issues.
+- Handling the zero-document edge case by allowing nullable `start_date` prevents users from having to invent placeholder dates when registering new people before scanning their paperwork.
+- The minimalist register with a single divider line and single-word headers (`المستأجرون`, `المتقدمون`) is dramatically cleaner and more intuitive than the previous multi-badge headers.
+
+### Key Lessons
+- Let the digital paperwork speak for itself: archival metadata that can be derived directly from physical documents should be auto-anchored rather than manually keyed.
+- Minimalist UI design with clear spatial separation (divider line) is more effective than verbose badge subtitles.
+
+---
+
 ## Cross-Milestone Trends
 
 | Milestone | Architecture | Backend | Frontend Tests | Backend Tests | Python Dependency |
@@ -140,3 +168,4 @@
 | v14.0 | Dual-Backend Parity | Python + ASP.NET Core | 277 Vitest (27 files) | 148 xUnit, 44 Pytest | Yes |
 | v15.0 | Pure .NET Core Single-Stack | ASP.NET Core 8.0 Minimal API | 293 Vitest (28 files) | 158 xUnit | None (0%) |
 | v16.0 | Pure .NET Core Single-Stack | ASP.NET Core 8.0 Minimal API | 293 Vitest (28 files) | 159 xUnit | None (0%) |
+| v16.1 | Pure .NET Core Single-Stack | ASP.NET Core 8.0 Minimal API | 293 Vitest (28 files) | 161 xUnit | None (0%) |

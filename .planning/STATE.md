@@ -1,12 +1,12 @@
 ---
 gsd_state_version: 1.0
-milestone: v16.0
-milestone_name: Settings Streamlining & Applicant Alignment
-current_phase: 114
+milestone: v16.1
+milestone_name: Document-Anchored Tenancy Dates & Minimalist Register
+current_phase: 115
 status: archived
-last_updated: "2026-09-13T22:32:00.000Z"
-last_activity: 2026-09-13
-last_activity_desc: Shipped Milestone v16.0 Settings Streamlining & Applicant Alignment
+last_updated: "2026-09-14T05:27:00.000Z"
+last_activity: 2026-09-14
+last_activity_desc: Shipped Milestone v16.1 Document-Anchored Tenancy Dates & Minimalist Register
 progress:
   total_phases: 1
   completed_phases: 1
@@ -17,17 +17,17 @@ progress:
 
 # Milestone State
 
-**Current Milestone:** v16.0: Settings Streamlining & Applicant Alignment (Archived)
-**Current Phase:** 114: Settings Modal Simplification & Applicant Clean-Up
+**Current Milestone:** v16.1: Document-Anchored Tenancy Dates & Minimalist Register (Archived)
+**Current Phase:** 115: Document-Anchored Tenancy Dates & Minimalist Register
 **Status:** archived
 
 ## Context
 
-Milestone v16.0 successfully streamlined the House Settings modal by eliminating redundant notes inputs, rebalancing the tenant management table to a clean 12-column grid, ensuring seamless Resident vs. Applicant toggling, removing notes display badges from applicant cards in the House Profile, and ensuring non-residing applicants are exempt from vacated tenant conflict prompts. All 6 requirements satisfied and verified across 159 .NET tests and 293 web tests. Ready for next milestone.
+Milestone v16.1 successfully implemented the document-anchored start date architecture (`MIN(primary_date)`), zero-document edge case handling ("Auto on first upload" with first-upload snapping), user-decided end dates, and a streamlined minimalist House Profile register (`المستأجرون`, single divider, `المتقدمون`). All 8 requirements verified with 100% pass across 161 .NET tests and 293 web tests. Ready for next milestone.
 
 ## Target Phases
 
-- [x] Phase 114: Settings Modal Simplification & Applicant Clean-Up
+- [x] Phase 115: Document-Anchored Tenancy Dates & Minimalist Register
 
 ## Quick Tasks Completed
 

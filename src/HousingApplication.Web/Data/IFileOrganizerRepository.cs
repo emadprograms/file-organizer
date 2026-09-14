@@ -47,7 +47,7 @@ public interface IFileOrganizerRepository
     // Helpers for database seeding and testing
     Task<Area> AddAreaAsync(string areaId, string? code = null);
     Task<House> AddHouseAsync(string houseId, string areaId);
-    Task<Tenant> AddTenantAsync(string houseId, string name, string startDate, string? endDate = null, int isResident = 1, string? notes = null);
+    Task<Tenant> AddTenantAsync(string houseId, string name, string? startDate = null, string? endDate = null, int isResident = 1, string? notes = null);
     Task<Document?> GetDocumentRawAsync(string vaultId);
     Task<IReadOnlyList<Page>> GetPagesByVaultIdAsync(string vaultId);
     Task EnsureSchemaAsync();

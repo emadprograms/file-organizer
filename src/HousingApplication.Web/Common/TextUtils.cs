@@ -336,7 +336,7 @@ public static class TextUtils
         return houseId.Trim();
     }
 
-    public static (int Years, string DurationStrAr) FormatArabicDuration(string startDateStr, string? endDateStr)
+    public static (int Years, string DurationStrAr) FormatArabicDuration(string? startDateStr, string? endDateStr)
     {
         if (string.IsNullOrWhiteSpace(startDateStr) || startDateStr.Length < 4)
             return (0, string.Empty);

@@ -1,5 +1,30 @@
 # Milestones History
 
+## v16.1 Document-Anchored Tenancy Dates & Minimalist Register (Shipped: 2026-09-14)
+
+**Phases completed:** 1 phase (115), 1 plan, 161 .NET xUnit tests (100% passing), 293 Vitest tests across 28 test files (100% passing)
+
+**Key accomplishments:**
+
+- **Document-Anchored Start Dates (Phase 115):**
+  - Tenant and applicant start dates are automatically anchored to their earliest document date in the archive (`MIN(primary_date)`), eliminating manual start date guessing and timeline date conflicts.
+  - Zero-document edge case handled: brand new tenants/applicants allow null/empty start date upon creation, displaying "Auto (on first upload)" until their first document is uploaded, upon which start date snaps automatically.
+- **User-Decided End Date & Tenancy Status (Phase 115):**
+  - Retained user control over `end_date` and the `Present` checkbox in the House Settings modal.
+  - Vacated date conflict checks continue to protect against accidental post-vacate filing for residents without restricting ongoing files.
+- **Streamlined Minimalist House Profile Register (Phase 115):**
+  - Re-architected the House Profile tenancy register into a clean two-tier layout:
+    - Resident tenants at top with simple title: `المستأجرون` (Tenants).
+    - Exactly 1 subtle divider line separating residents from applicants.
+    - Applicants at bottom with simple title: `المتقدمون` (Applicants).
+    - Completely stripped wordy boilerplate and confusing subtitle phrases.
+- **Comprehensive Testing & Parity (Phase 115):**
+  - Added unit tests in `RepositoryTests.cs` verifying start date anchoring to earliest document and null start date snapping on first upload.
+  - Updated Vitest specifications across `applicant_workflow.test.js` and `house_profile.test.js`.
+  - 161/161 .NET xUnit tests and 293/293 web tests passing cleanly (454 total).
+
+---
+
 ## v16.0 Settings Streamlining & Applicant Alignment (Shipped: 2026-09-13)
 
 **Phases completed:** 1 phase (114), 1 plan, 159 .NET xUnit tests (100% passing), 293 Vitest tests across 28 test files (100% passing)

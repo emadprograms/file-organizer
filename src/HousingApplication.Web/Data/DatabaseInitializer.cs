@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS tenants (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     house_id TEXT NOT NULL REFERENCES houses(id),
     name TEXT NOT NULL,
-    start_date DATE NOT NULL,
+    start_date DATE,
     end_date DATE,
     is_resident INTEGER NOT NULL DEFAULT 1,
     notes TEXT

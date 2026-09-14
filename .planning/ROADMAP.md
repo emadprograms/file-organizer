@@ -2,6 +2,7 @@
 
 ## Milestones
 
+- ✅ **v16.1 Document-Anchored Tenancy Dates & Minimalist Register** — Phase 115 (shipped 2026-09-14)
 - ✅ **v16.0 Settings Streamlining & Applicant Alignment** — Phase 114 (shipped 2026-09-13)
 - ✅ **v15.0 Decoupled .NET Core Architecture & Non-Residing Applicants Archive** — Phases 109-113 (shipped 2026-09-13)
 - ✅ **v14.0 Power-User Operations & Portfolio Expansion** — Phases 105-108 (shipped 2026-09-12)
@@ -13,6 +14,15 @@
 - ✅ **v8.0 Web-Based File Viewer** — Phases 81-83 (shipped 2026-09-02)
 
 ## Phases
+
+<details>
+<summary>✅ v16.1 Document-Anchored Tenancy Dates & Minimalist Register (Phase 115) — SHIPPED 2026-09-14</summary>
+
+See [.planning/milestones/v16.1-ROADMAP.md](milestones/v16.1-ROADMAP.md) for full phase details.
+
+- [x] Phase 115: Document-Anchored Tenancy Dates & Minimalist Register (1/1 plans) — completed 2026-09-14
+
+</details>
 
 <details>
 <summary>✅ v16.0 Settings Streamlining & Applicant Alignment (Phase 114) — SHIPPED 2026-09-13</summary>
@@ -96,3 +106,4 @@ See [.planning/milestones/v11.0-ROADMAP.md](milestones/v11.0-ROADMAP.md) for ful
 | 112. House Settings Modal & Ingestion Badging | v15.0 | 1/1 | Complete | 2026-09-13 |
 | 113. End-to-End Test Suite Verification & Milestone Audit | v15.0 | 1/1 | Complete | 2026-09-13 |
 | 114. Settings Modal Simplification & Applicant Clean-Up | v16.0 | 1/1 | Complete | 2026-09-13 |
+| 115. Document-Anchored Tenancy Dates & Minimalist Register | v16.1 | 1/1 | Complete | 2026-09-14 |

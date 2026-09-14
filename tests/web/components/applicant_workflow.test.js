@@ -94,12 +94,12 @@ describe('Applicant Integrated Workflows Suite (Phase 113)', () => {
     // Segregated sections
     const residentsSection = docList.querySelector('.residents-section');
     expect(residentsSection).not.toBeNull();
-    expect(residentsSection.textContent).toContain('المستأجرون المقيمون');
+    expect(residentsSection.textContent).toContain('المستأجرون');
     expect(residentsSection.textContent).toContain('فهد المنصور');
 
     const applicantsSection = docList.querySelector('.applicants-section');
     expect(applicantsSection).not.toBeNull();
-    expect(applicantsSection.textContent).toContain('سجل المتقدمين وطلبات التخصيص');
+    expect(applicantsSection.textContent).toContain('المتقدمون');
 
     // Distinctive applicant styling
     const applicantCard = applicantsSection.querySelector('.applicant-profile-card');

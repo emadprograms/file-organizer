@@ -143,7 +143,7 @@ public record HouseTenantProfileDto
     public string Name { get; init; } = string.Empty;
 
     [JsonPropertyName("start_date")]
-    public string StartDate { get; init; } = string.Empty;
+    public string? StartDate { get; init; }
 
     [JsonPropertyName("end_date")]
     public string? EndDate { get; init; }
@@ -353,7 +353,7 @@ public record TenantDto
     public string Name { get; init; } = string.Empty;
 
     [JsonPropertyName("start_date")]
-    public string StartDate { get; init; } = string.Empty;
+    public string? StartDate { get; init; }
 
     [JsonPropertyName("end_date")]
     public string? EndDate { get; init; }

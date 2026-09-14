@@ -140,7 +140,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                 if (activeTenant != null)
                 {
                     activeTenantName = activeTenant.Name;
-                    var mYear = Regex.Match(activeTenant.StartDate, @"(\d{4})");
+                    var mYear = Regex.Match(activeTenant.StartDate ?? "", @"(\d{4})");
                     if (mYear.Success)
                     {
                         var startYear = int.Parse(mYear.Groups[1].Value);
@@ -161,7 +161,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                     if (residentTenants.Count > 0)
                     {
                         var latest = residentTenants[0];
-                        var sStr = latest.StartDate.Length >= 4 ? latest.StartDate[..4] : "";
+                        var sStr = (!string.IsNullOrEmpty(latest.StartDate) && latest.StartDate.Length >= 4) ? latest.StartDate[..4] : "";
                         var eStr = (!string.IsNullOrEmpty(latest.EndDate) && latest.EndDate.Length >= 4) ? latest.EndDate[..4] : "";
                         if (!string.IsNullOrEmpty(sStr) && !string.IsNullOrEmpty(eStr) && sStr != eStr)
                             houseSubtitle = $"{sStr} - {eStr}";
@@ -315,7 +315,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             if (activeTenant != null)
             {
                 activeTenantName = activeTenant.Name;
-                var mYear = Regex.Match(activeTenant.StartDate, @"(\d{4})");
+                var mYear = Regex.Match(activeTenant.StartDate ?? "", @"(\d{4})");
                 if (mYear.Success)
                 {
                     var startYear = int.Parse(mYear.Groups[1].Value);
@@ -348,7 +348,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                 if (residentTenants.Count > 0)
                 {
                     var latest = residentTenants[0];
-                    var sStr = latest.StartDate.Length >= 4 ? latest.StartDate[..4] : "";
+                    var sStr = (!string.IsNullOrEmpty(latest.StartDate) && latest.StartDate.Length >= 4) ? latest.StartDate[..4] : "";
                     var eStr = (!string.IsNullOrEmpty(latest.EndDate) && latest.EndDate.Length >= 4) ? latest.EndDate[..4] : "";
                     if (!string.IsNullOrEmpty(sStr) && !string.IsNullOrEmpty(eStr) && sStr != eStr)
                         subtitle = $"{sStr} - {eStr}";
@@ -397,10 +397,23 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         var dbHouseId = houseRow.Id;
 
         var tenants = (await conn.QueryAsync<Tenant>(@"
-            SELECT id, house_id AS HouseId, name, start_date AS StartDate, end_date AS EndDate, is_resident AS IsResident, notes AS Notes 
-            FROM tenants 
-            WHERE house_id = @DbHouseId
-            ORDER BY start_date ASC, id ASC;",
+            SELECT t.id, t.house_id AS HouseId, t.name, 
+                   CASE 
+                       WHEN d.min_date IS NOT NULL AND d.min_date != '' 
+                            AND (t.start_date IS NULL OR t.start_date = '' OR t.start_date = '1970-01-01' OR t.start_date > d.min_date)
+                       THEN d.min_date 
+                       ELSE t.start_date 
+                   END AS StartDate,
+                   t.end_date AS EndDate, t.is_resident AS IsResident, t.notes AS Notes 
+            FROM tenants t
+            LEFT JOIN (
+                SELECT tenant_id, MIN(primary_date) AS min_date
+                FROM documents
+                WHERE is_timeline_visible = 1 AND primary_date IS NOT NULL AND primary_date != ''
+                GROUP BY tenant_id
+            ) d ON t.id = d.tenant_id
+            WHERE t.house_id = @DbHouseId
+            ORDER BY StartDate ASC, t.id ASC;",
             new { DbHouseId = dbHouseId })).ToList();
 
         var docs = (await conn.QueryAsync<Document>(@"
@@ -450,7 +463,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             }
 
             var (years, durStr) = TextUtils.FormatArabicDuration(t.StartDate, t.EndDate);
-            var durCat = years < 5 ? "short" : (years <= 10 ? "medium" : "long");
+            var durCat = string.IsNullOrWhiteSpace(durStr) ? null : (years < 5 ? "short" : (years <= 10 ? "medium" : "long"));
 
             tenantProfiles.Add(new HouseTenantProfileDto
             {
@@ -656,12 +669,25 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         var cleanHouseId = TextUtils.ExtractHouseNumber(houseId);
 
         const string sql = @"
-            SELECT id AS Id, name AS Name, start_date AS StartDate, end_date AS EndDate, house_id AS HouseId, is_resident AS IsResident, notes AS Notes
-            FROM tenants
-            WHERE house_id = @HouseId OR house_id = @CleanHouseId
-            ORDER BY is_resident DESC,
-                     (CASE WHEN end_date IS NULL OR end_date = '' OR LOWER(end_date) = 'present' OR end_date >= DATE('now') THEN 1 ELSE 0 END) DESC, 
-                     end_date DESC, start_date DESC, id DESC;";
+            SELECT t.id AS Id, t.name AS Name, 
+                   CASE 
+                       WHEN d.min_date IS NOT NULL AND d.min_date != '' 
+                            AND (t.start_date IS NULL OR t.start_date = '' OR t.start_date = '1970-01-01' OR t.start_date > d.min_date)
+                       THEN d.min_date 
+                       ELSE t.start_date 
+                   END AS StartDate, 
+                   t.end_date AS EndDate, t.house_id AS HouseId, t.is_resident AS IsResident, t.notes AS Notes
+            FROM tenants t
+            LEFT JOIN (
+                SELECT tenant_id, MIN(primary_date) AS min_date
+                FROM documents
+                WHERE is_timeline_visible = 1 AND primary_date IS NOT NULL AND primary_date != ''
+                GROUP BY tenant_id
+            ) d ON t.id = d.tenant_id
+            WHERE t.house_id = @HouseId OR t.house_id = @CleanHouseId
+            ORDER BY t.is_resident DESC,
+                     (CASE WHEN t.end_date IS NULL OR t.end_date = '' OR LOWER(t.end_date) = 'present' OR t.end_date >= DATE('now') THEN 1 ELSE 0 END) DESC, 
+                     t.end_date DESC, StartDate DESC, t.id DESC;";
 
         var rows = (await conn.QueryAsync<TenantDto>(sql, new { HouseId = houseId, CleanHouseId = cleanHouseId })).ToList();
 
@@ -753,7 +779,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             JOIN houses h ON t.house_id = h.id
             ORDER BY t.start_date DESC;";
 
-        var tenantRows = await conn.QueryAsync<(int Id, string Name, string StartDate, string? EndDate, string HouseId, string AreaId, int IsResident, string? Notes)>(sqlTenants);
+        var tenantRows = await conn.QueryAsync<(int Id, string Name, string? StartDate, string? EndDate, string HouseId, string AreaId, int IsResident, string? Notes)>(sqlTenants);
         var qPhonetic = TextUtils.PhoneticNormalize(q);
 
         var scoredTenants = new List<(int Score, SearchResultDto Dto)>();
@@ -763,7 +789,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             int score = TextUtils.ScoreTenantMatch(q, t.Name, t.HouseId);
             if (score > 0)
             {
-                var sYr = t.StartDate.Length >= 4 ? t.StartDate[..4] : "";
+                var sYr = (!string.IsNullOrEmpty(t.StartDate) && t.StartDate.Length >= 4) ? t.StartDate[..4] : "";
                 var isPresent = string.IsNullOrEmpty(t.EndDate) || t.EndDate.ToLowerInvariant() == "present";
                 if (t.IsResident == 0)
                 {
@@ -1459,14 +1485,14 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         return new House { Id = houseId, AreaId = areaId };
     }
 
-    public async Task<Tenant> AddTenantAsync(string houseId, string name, string startDate, string? endDate = null, int isResident = 1, string? notes = null)
+    public async Task<Tenant> AddTenantAsync(string houseId, string name, string? startDate = null, string? endDate = null, int isResident = 1, string? notes = null)
     {
         await using var conn = await _connectionFactory.CreateConnectionAsync();
         var id = await conn.ExecuteScalarAsync<int>(@"
             INSERT INTO tenants (house_id, name, start_date, end_date, is_resident, notes) 
             VALUES (@HouseId, @Name, @StartDate, @EndDate, @IsResident, @Notes);
             SELECT last_insert_rowid();",
-            new { HouseId = houseId, Name = name, StartDate = startDate, EndDate = endDate, IsResident = isResident, Notes = notes });
+            new { HouseId = houseId, Name = name, StartDate = (object?)startDate ?? DBNull.Value, EndDate = (object?)endDate ?? DBNull.Value, IsResident = isResident, Notes = notes });
 
         return new Tenant
         {
@@ -1889,7 +1915,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             // 2. Insert or update tenants
             foreach (var t in tenants)
             {
-                var sDate = !string.IsNullOrWhiteSpace(t.StartDate) ? (t.StartDate.Length >= 10 ? t.StartDate[..10] : t.StartDate) : "1970-01-01";
+                var sDate = !string.IsNullOrWhiteSpace(t.StartDate) ? (t.StartDate.Length >= 10 ? t.StartDate[..10] : t.StartDate) : null;
                 string? eDate = null;
                 if (!string.IsNullOrWhiteSpace(t.EndDate) && !t.EndDate.Equals("none", StringComparison.OrdinalIgnoreCase) && !t.EndDate.Equals("null", StringComparison.OrdinalIgnoreCase) && !t.EndDate.Equals("present", StringComparison.OrdinalIgnoreCase))
                 {
@@ -1900,13 +1926,13 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                 {
                     await conn.ExecuteAsync(
                         "UPDATE tenants SET name = @Name, start_date = @StartDate, end_date = @EndDate, is_resident = @IsResident, notes = @Notes WHERE id = @Id;",
-                        new { Name = t.Name.Trim(), StartDate = sDate, EndDate = eDate, IsResident = t.IsResident, Notes = t.Notes, Id = t.Id.Value }, tx);
+                        new { Name = t.Name.Trim(), StartDate = (object?)sDate ?? DBNull.Value, EndDate = (object?)eDate ?? DBNull.Value, IsResident = t.IsResident, Notes = t.Notes, Id = t.Id.Value }, tx);
                 }
                 else
                 {
                     await conn.ExecuteAsync(
                         "INSERT INTO tenants (house_id, name, start_date, end_date, is_resident, notes) VALUES (@HouseId, @Name, @StartDate, @EndDate, @IsResident, @Notes);",
-                        new { HouseId = cleanHouseId, Name = t.Name.Trim(), StartDate = sDate, EndDate = eDate, IsResident = t.IsResident, Notes = t.Notes }, tx);
+                        new { HouseId = cleanHouseId, Name = t.Name.Trim(), StartDate = (object?)sDate ?? DBNull.Value, EndDate = (object?)eDate ?? DBNull.Value, IsResident = t.IsResident, Notes = t.Notes }, tx);
                 }
             }
         }
@@ -1932,6 +1958,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
 
                 var targetTenant = residentTenants.FirstOrDefault(ut =>
                 {
+                    if (string.IsNullOrWhiteSpace(ut.StartDate)) return false;
                     var start = ut.StartDate.Length >= 10 ? ut.StartDate[..10] : ut.StartDate;
                     if (string.Compare(docDate, start, StringComparison.Ordinal) < 0) return false;
                     if (string.IsNullOrEmpty(ut.EndDate) || ut.EndDate.Equals("present", StringComparison.OrdinalIgnoreCase)) return true;
@@ -2075,11 +2102,17 @@ public class FileOrganizerRepository : IFileOrganizerRepository
     {
         await using var conn = await _connectionFactory.CreateConnectionAsync();
         using var cmd = conn.CreateCommand();
-        if (startDate != null)
+        if (startDate != null && endDate != null)
         {
             cmd.CommandText = "UPDATE tenants SET start_date = @StartDate, end_date = @EndDate WHERE id = @Id;";
             cmd.Parameters.AddWithValue("@StartDate", startDate);
-            cmd.Parameters.AddWithValue("@EndDate", (object?)endDate ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@EndDate", endDate);
+            cmd.Parameters.AddWithValue("@Id", tenantId);
+        }
+        else if (startDate != null)
+        {
+            cmd.CommandText = "UPDATE tenants SET start_date = @StartDate WHERE id = @Id;";
+            cmd.Parameters.AddWithValue("@StartDate", startDate);
             cmd.Parameters.AddWithValue("@Id", tenantId);
         }
         else
