@@ -8,6 +8,7 @@
         if (!str || str.toLowerCase() === 'present' || str === 'الآن' || str === 'none' || str === 'null') {
             return new Date();
         }
+        // Check ISO format YYYY-MM-DD or YYYY-MM
         const iso = str.match(/^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?/);
         if (iso) {
             const y = parseInt(iso[1], 10);
@@ -15,6 +16,15 @@
             const d = iso[3] ? parseInt(iso[3], 10) : (isEnd ? 28 : 1);
             return new Date(y, m, d);
         }
+        // Check DD-MM-YYYY or DD/MM/YYYY
+        const dmy = str.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+        if (dmy) {
+            const d = parseInt(dmy[1], 10);
+            const m = parseInt(dmy[2], 10) - 1;
+            const y = parseInt(dmy[3], 10);
+            return new Date(y, m, d);
+        }
+        // Fallback: any 4-digit year
         const match = str.match(/(\d{4})/);
         if (match) {
             const y = parseInt(match[1], 10);
@@ -23,84 +33,225 @@
         return null;
     }
 
-    function getTenantStayDays(tenant) {
-        if (!tenant) return 0;
-        // Exclude applicants (only resident tenants count towards tenure)
-        if (tenant.is_resident === 0 || tenant.is_resident === false) {
-            return 0;
-        }
+    function isTenantActive(t) {
+        if (!t) return false;
+        // Applicants are never resident tenants
+        if (t.is_resident === 0 || t.is_resident === false) return false;
 
-        if (tenant.start_date) {
-            const sDate = parseYearOrDate(tenant.start_date, false);
+        // If explicitly assigned duration_category by backend, it is an active resident
+        if (t.duration_category) return true;
+
+        // Check end_date
+        if (!t.end_date) return true;
+        const eStr = String(t.end_date).trim().toLowerCase();
+        if (eStr === 'present' || eStr === 'الآن' || eStr === 'none' || eStr === 'null' || eStr === '') return true;
+
+        // Check subtitle for 'Present' or 'الآن'
+        if (t.subtitle && /(?:Present|الآن)/i.test(t.subtitle)) return true;
+
+        // If end_date is a date string, compare to today's date YYYY-MM-DD
+        const todayStr = new Date().toISOString().slice(0, 10);
+        if (eStr >= todayStr) return true;
+
+        return false;
+    }
+
+    function getActiveTenantStayDays(t) {
+        if (!t) return 0;
+        const now = new Date();
+
+        if (t.start_date) {
+            const sDate = parseYearOrDate(t.start_date, false);
             if (sDate) {
-                const eDate = parseYearOrDate(tenant.end_date, true) || new Date();
-                const diffMs = eDate.getTime() - sDate.getTime();
+                const diffMs = now.getTime() - sDate.getTime();
                 if (diffMs > 0) {
                     return diffMs / (1000 * 60 * 60 * 24);
                 }
             }
         }
 
-        if (tenant.subtitle) {
-            const yMatch = tenant.subtitle.match(/\((\d+)\s*y\)/i);
+        if (t.subtitle) {
+            const yMatch = t.subtitle.match(/\((\d+)\s*(?:y|سنة|عام)\)/i);
             if (yMatch) {
                 return parseInt(yMatch[1], 10) * 365.25;
             }
-            const rangeMatch = tenant.subtitle.match(/(\d{4})\s*[-–]\s*(\d{4}|Present|الآن)/i);
+            const rangeMatch = t.subtitle.match(/(\d{4})\s*[-–]\s*(?:Present|الآن)/i);
             if (rangeMatch) {
                 const sY = parseInt(rangeMatch[1], 10);
-                const eY = (rangeMatch[2] === 'Present' || rangeMatch[2] === 'الآن') ? new Date().getFullYear() : parseInt(rangeMatch[2], 10);
+                const sDate = new Date(sY, 0, 1);
+                return Math.max(0, (now.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24));
+            }
+            const anyYear = t.subtitle.match(/(\d{4})/);
+            if (anyYear) {
+                const sY = parseInt(anyYear[1], 10);
+                const sDate = new Date(sY, 0, 1);
+                return Math.max(0, (now.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24));
+            }
+        }
+
+        if (t.duration_category === 'long') return 11 * 365.25;
+        if (t.duration_category === 'medium') return 7 * 365.25;
+        if (t.duration_category === 'short') return 2 * 365.25;
+
+        return 1;
+    }
+
+    function getPastTenantStayDays(tenant) {
+        if (!tenant) return 0;
+        if (tenant.is_resident === 0 || tenant.is_resident === false) return 0;
+
+        if (tenant.start_date && tenant.end_date) {
+            const sDate = parseYearOrDate(tenant.start_date, false);
+            const eDate = parseYearOrDate(tenant.end_date, true);
+            if (sDate && eDate) {
+                const diffMs = eDate.getTime() - sDate.getTime();
+                if (diffMs > 0) return diffMs / (1000 * 60 * 60 * 24);
+            }
+        }
+
+        if (tenant.subtitle) {
+            const rangeMatch = tenant.subtitle.match(/(\d{4})\s*[-–]\s*(\d{4})/);
+            if (rangeMatch) {
+                const sY = parseInt(rangeMatch[1], 10);
+                const eY = parseInt(rangeMatch[2], 10);
                 return Math.max(0, eY - sY) * 365.25;
             }
         }
 
-        if (tenant.duration_category === 'long') return 11 * 365.25;
-        if (tenant.duration_category === 'medium') return 7 * 365.25;
-        if (tenant.duration_category === 'short') return 2 * 365.25;
-
         return 0;
     }
 
-    function getHouseMaxStayDays(house) {
+    function getTenantStayDays(tenant) {
+        if (!tenant) return 0;
+        if (tenant.is_resident === 0 || tenant.is_resident === false) return 0;
+        if (isTenantActive(tenant)) {
+            return getActiveTenantStayDays(tenant);
+        }
+        return getPastTenantStayDays(tenant);
+    }
+
+    function getHouseActiveStayDays(house) {
         if (!house) return 0;
-        let maxDays = 0;
+
+        let maxActiveDays = 0;
+        let hasActive = false;
 
         const tenants = (house.children || []).filter(c => c.type === 'tenant' || c.name);
+
         for (const t of tenants) {
-            const days = getTenantStayDays(t);
-            if (days > maxDays) {
-                maxDays = days;
+            const isNamedCurrent = Boolean(house.current_tenant && t.name === house.current_tenant);
+            if (isNamedCurrent || isTenantActive(t)) {
+                hasActive = true;
+                const days = getActiveTenantStayDays(t);
+                if (days > maxActiveDays) {
+                    maxActiveDays = days;
+                }
             }
         }
 
         if (house.subtitle) {
-            const yMatch = house.subtitle.match(/\((\d+)\s*y\)/i);
+            const now = new Date();
+            const yMatch = house.subtitle.match(/\((\d+)\s*(?:y|سنة|عام)\)/i);
             if (yMatch) {
+                hasActive = true;
                 const days = parseInt(yMatch[1], 10) * 365.25;
-                if (days > maxDays) maxDays = days;
+                if (days > maxActiveDays) maxActiveDays = days;
             } else {
-                const rangeMatch = house.subtitle.match(/(\d{4})\s*[-–]\s*(\d{4}|Present|الآن)/i);
-                if (rangeMatch) {
-                    const sY = parseInt(rangeMatch[1], 10);
-                    const eY = (rangeMatch[2] === 'Present' || rangeMatch[2] === 'الآن') ? new Date().getFullYear() : parseInt(rangeMatch[2], 10);
-                    const days = Math.max(0, eY - sY) * 365.25;
-                    if (days > maxDays) maxDays = days;
+                const sinceMatch = house.subtitle.match(/(?:Since|من|بدء الإيجار)\s*(\d{4})/i);
+                if (sinceMatch) {
+                    hasActive = true;
+                    const sY = parseInt(sinceMatch[1], 10);
+                    const sDate = new Date(sY, 0, 1);
+                    const days = Math.max(0, (now.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24));
+                    if (days > maxActiveDays) maxActiveDays = days;
+                } else {
+                    const rangeMatch = house.subtitle.match(/(\d{4})\s*[-–]\s*(?:Present|الآن)/i);
+                    if (rangeMatch) {
+                        hasActive = true;
+                        const sY = parseInt(rangeMatch[1], 10);
+                        const sDate = new Date(sY, 0, 1);
+                        const days = Math.max(0, (now.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24));
+                        if (days > maxActiveDays) maxActiveDays = days;
+                    }
                 }
             }
         }
 
         if (typeof house.tenure_duration_years === 'number' && house.tenure_duration_years > 0) {
+            hasActive = true;
             const days = house.tenure_duration_years * 365.25;
-            if (days > maxDays) maxDays = days;
+            if (days > maxActiveDays) maxActiveDays = days;
         }
 
-        if (maxDays === 0) {
-            if (house.duration_category === 'long') maxDays = 11 * 365.25;
-            else if (house.duration_category === 'medium') maxDays = 7 * 365.25;
-            else if (house.duration_category === 'short') maxDays = 2 * 365.25;
+        if (house.current_tenant && house.current_tenant.trim()) {
+            hasActive = true;
         }
 
-        return maxDays;
+        if (maxActiveDays === 0 && (hasActive || house.duration_category)) {
+            if (house.duration_category === 'long') maxActiveDays = 11 * 365.25;
+            else if (house.duration_category === 'medium') maxActiveDays = 7 * 365.25;
+            else if (house.duration_category === 'short') maxActiveDays = 2 * 365.25;
+            else if (hasActive) maxActiveDays = 1;
+        }
+
+        return maxActiveDays;
+    }
+
+    function isHouseOccupied(house) {
+        if (!house) return false;
+        if (house.current_tenant && house.current_tenant.trim()) return true;
+        if (house.duration_category) return true;
+        if (getHouseActiveStayDays(house) > 0) return true;
+        const tenants = (house.children || []).filter(c => c.type === 'tenant' || c.name);
+        return tenants.some(t => isTenantActive(t));
+    }
+
+    function getHousePastMaxStayDays(house) {
+        if (!house || !house.children) return 0;
+        let maxPast = 0;
+        const tenants = house.children.filter(c => c.type === 'tenant' || c.name);
+        for (const t of tenants) {
+            if (t.is_resident === 0 || t.is_resident === false) continue;
+            if (isTenantActive(t)) continue;
+
+            let stay = 0;
+            if (t.start_date && t.end_date) {
+                const sDate = parseYearOrDate(t.start_date, false);
+                const eDate = parseYearOrDate(t.end_date, true);
+                if (sDate && eDate) {
+                    const diffMs = eDate.getTime() - sDate.getTime();
+                    if (diffMs > 0) stay = diffMs / (1000 * 60 * 60 * 24);
+                }
+            } else if (t.subtitle) {
+                const rangeMatch = t.subtitle.match(/(\d{4})\s*[-–]\s*(\d{4})/);
+                if (rangeMatch) {
+                    const sY = parseInt(rangeMatch[1], 10);
+                    const eY = parseInt(rangeMatch[2], 10);
+                    stay = Math.max(0, eY - sY) * 365.25;
+                }
+            }
+            if (stay > maxPast) maxPast = stay;
+        }
+
+        if (house.subtitle) {
+            const rangeMatch = house.subtitle.match(/(\d{4})\s*[-–]\s*(\d{4})/);
+            if (rangeMatch) {
+                const sY = parseInt(rangeMatch[1], 10);
+                const eY = parseInt(rangeMatch[2], 10);
+                const stay = Math.max(0, eY - sY) * 365.25;
+                if (stay > maxPast) maxPast = stay;
+            }
+        }
+
+        return maxPast;
+    }
+
+    function getHouseMaxStayDays(house) {
+        if (!house) return 0;
+        if (isHouseOccupied(house)) {
+            return getHouseActiveStayDays(house);
+        }
+        return 0;
     }
 
     function compareHouseNumbers(a, b) {
@@ -110,11 +261,31 @@
     }
 
     function compareHouseLongestStay(a, b) {
-        const stayA = getHouseMaxStayDays(a);
-        const stayB = getHouseMaxStayDays(b);
-        if (stayB !== stayA) {
-            return stayB - stayA; // Descending: longest stay first
+        const occA = isHouseOccupied(a);
+        const occB = isHouseOccupied(b);
+
+        // 1. Occupied houses always sort before vacant houses
+        if (occA && !occB) return -1;
+        if (!occA && occB) return 1;
+
+        // 2. Both occupied: sort by active tenant stay descending
+        if (occA && occB) {
+            const stayA = getHouseMaxStayDays(a);
+            const stayB = getHouseMaxStayDays(b);
+            if (Math.abs(stayB - stayA) >= 0.5) {
+                return stayB - stayA; // Descending: longest stay first
+            }
+            return compareHouseNumbers(a, b);
         }
+
+        // 3. Both vacant: sort by longest past tenant stay descending
+        const pastA = getHousePastMaxStayDays(a);
+        const pastB = getHousePastMaxStayDays(b);
+        if (Math.abs(pastB - pastA) >= 0.5) {
+            return pastB - pastA;
+        }
+
+        // 4. Tie-break by house number
         return compareHouseNumbers(a, b);
     }
 
@@ -718,6 +889,12 @@
     window.compareHouseNumbers = compareHouseNumbers;
     window.compareHouseLongestStay = compareHouseLongestStay;
     window.getHouseMaxStayDays = getHouseMaxStayDays;
+    window.getHouseActiveStayDays = getHouseActiveStayDays;
+    window.getHousePastMaxStayDays = getHousePastMaxStayDays;
+    window.isHouseOccupied = isHouseOccupied;
+    window.isTenantActive = isTenantActive;
+    window.getActiveTenantStayDays = getActiveTenantStayDays;
+    window.getPastTenantStayDays = getPastTenantStayDays;
     window.getHouseSortPreference = getHouseSortPreference;
     window.initHouseSortControl = initHouseSortControl;
 
@@ -734,6 +911,12 @@
             compareHouseNumbers,
             compareHouseLongestStay,
             getHouseMaxStayDays,
+            getHouseActiveStayDays,
+            getHousePastMaxStayDays,
+            isHouseOccupied,
+            isTenantActive,
+            getActiveTenantStayDays,
+            getPastTenantStayDays,
             getHouseSortPreference,
             initHouseSortControl,
         };

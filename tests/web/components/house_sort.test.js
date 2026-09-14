@@ -179,6 +179,119 @@ describe('Top Header Bar House Sorting Component (House Number & Longest Tenant 
 
             expect(list.map(h => h.name)).toEqual(['10', '20', '1', '2', '5']);
         });
+
+        it('prioritizes current active resident tenure over past tenants (active tenure contract)', () => {
+            // House with short active tenant (2024 ~ 2y) but long past tenant (1980-2010 ~ 30y)
+            const houseRecentWithLongPast = {
+                id: 'H1',
+                name: 'H1',
+                current_tenant: 'Current Bob',
+                duration_category: 'short',
+                subtitle: 'Since 2024 (2y)',
+                children: [
+                    { type: 'tenant', is_resident: 1, name: 'Old Charlie', start_date: '1980-01-01', end_date: '2010-01-01', subtitle: '1980 - 2010' },
+                    { type: 'tenant', is_resident: 1, name: 'Current Bob', start_date: '2024-01-01', end_date: 'Present', subtitle: '2024 - Present', duration_category: 'short' }
+                ]
+            };
+
+            // House with long active tenant (2008 ~ 18y) and no past tenants
+            const houseLongResident = {
+                id: 'H2',
+                name: 'H2',
+                current_tenant: 'Long Alice',
+                duration_category: 'long',
+                subtitle: 'Since 2008 (18y)',
+                children: [
+                    { type: 'tenant', is_resident: 1, name: 'Long Alice', start_date: '2008-01-01', end_date: 'Present', subtitle: '2008 - Present', duration_category: 'long' }
+                ]
+            };
+
+            // Active stay for H1 must be ~2 years, NOT 30 years
+            const stayH1 = areaGrid.getHouseMaxStayDays(houseRecentWithLongPast);
+            const stayH2 = areaGrid.getHouseMaxStayDays(houseLongResident);
+
+            expect(stayH2).toBeGreaterThan(stayH1);
+
+            // Sorting by longest stay must place H2 (18y) BEFORE H1 (2y)
+            const list = [houseRecentWithLongPast, houseLongResident];
+            list.sort(areaGrid.compareHouseLongestStay);
+            expect(list.map(h => h.id)).toEqual(['H2', 'H1']);
+        });
+
+        it('always places vacant houses after occupied houses regardless of past history', () => {
+            // Vacant house with 35-year past tenant
+            const vacantHouseOld = {
+                id: 'HV-Old',
+                name: 'HV-Old',
+                current_tenant: null,
+                duration_category: null,
+                subtitle: '1970 - 2005',
+                children: [
+                    { type: 'tenant', is_resident: 1, name: 'Past Legend', start_date: '1970-01-01', end_date: '2005-01-01', subtitle: '1970 - 2005' }
+                ]
+            };
+
+            // Occupied house with brand new resident (6 months)
+            const occupiedHouseNew = {
+                id: 'H-New',
+                name: 'H-New',
+                current_tenant: 'Fresh Resident',
+                duration_category: 'short',
+                subtitle: 'Since 2025',
+                children: [
+                    { type: 'tenant', is_resident: 1, name: 'Fresh Resident', start_date: '2025-09-01', end_date: 'Present', subtitle: '2025 - Present', duration_category: 'short' }
+                ]
+            };
+
+            // Completely empty vacant house
+            const vacantHouseZero = {
+                id: 'HV-Empty',
+                name: 'HV-Empty',
+                current_tenant: null,
+                duration_category: null,
+                children: []
+            };
+
+            const list = [vacantHouseOld, vacantHouseZero, occupiedHouseNew];
+            list.sort(areaGrid.compareHouseLongestStay);
+
+            // Occupied house must be first, then vacant with history, then vacant with zero
+            expect(list.map(h => h.id)).toEqual(['H-New', 'HV-Old', 'HV-Empty']);
+        });
+
+        it('resolves stay correctly from house.subtitle and duration_category when children lack start_date', () => {
+            const houseFromSubtitle = {
+                id: 'H-Sub',
+                name: 'H-Sub',
+                current_tenant: 'John Doe',
+                duration_category: 'long',
+                subtitle: 'Since 1990 (36y)',
+                children: [
+                    { type: 'tenant', is_resident: 1, name: 'John Doe', subtitle: '1990 - Present', duration_category: 'long' }
+                ]
+            };
+
+            const stay = areaGrid.getHouseMaxStayDays(houseFromSubtitle);
+            // 36 years * 365.25 is ~13,149 days
+            expect(stay).toBeGreaterThan(30 * 365);
+        });
+
+        it('handles Arabic tenure text and DD/MM/YYYY date formatting correctly', () => {
+            const houseArabic = {
+                id: 'H-Ar',
+                name: 'H-Ar',
+                current_tenant: 'مستأجر عربي',
+                subtitle: 'بدء الإيجار 2012 (مستمر)',
+                children: [
+                    { type: 'tenant', is_resident: 1, name: 'مستأجر عربي', start_date: '15/06/2012', end_date: 'الآن', subtitle: '2012 - الآن' }
+                ]
+            };
+
+            expect(areaGrid.isHouseOccupied(houseArabic)).toBe(true);
+            const stay = areaGrid.getHouseMaxStayDays(houseArabic);
+            // From 2012 to current year is at least 13 years (~4,700+ days)
+            expect(stay).toBeGreaterThan(12 * 365);
+        });
     });
 
     describe('Area Grid Integration and User Interaction', () => {
