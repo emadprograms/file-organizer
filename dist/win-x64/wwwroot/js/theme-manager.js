@@ -67,8 +67,27 @@
         }
     }
 
-    function applyTheme(theme, persist = true) {
+    let transitionTimeout = null;
+
+    function enableThemeTransition() {
+        if (typeof document === 'undefined' || !document.documentElement) return;
+        const root = document.documentElement;
+        root.classList.add('theme-transitioning');
+        if (transitionTimeout) {
+            clearTimeout(transitionTimeout);
+        }
+        transitionTimeout = setTimeout(() => {
+            root.classList.remove('theme-transitioning');
+            transitionTimeout = null;
+        }, 350);
+    }
+
+    function applyTheme(theme, persist = true, animate = false) {
         const targetTheme = theme === 'dark' ? 'dark' : 'light';
+
+        if (animate) {
+            enableThemeTransition();
+        }
 
         if (typeof document !== 'undefined' && document.documentElement) {
             if (targetTheme === 'dark') {
@@ -101,14 +120,14 @@
         return targetTheme;
     }
 
-    function setTheme(theme) {
-        return applyTheme(theme, true);
+    function setTheme(theme, animate = true) {
+        return applyTheme(theme, true, animate);
     }
 
-    function toggleTheme() {
+    function toggleTheme(animate = true) {
         const current = getTheme();
         const next = current === 'dark' ? 'light' : 'dark';
-        return setTheme(next);
+        return setTheme(next, animate);
     }
 
     function handleKeyDown(e) {
@@ -171,6 +190,7 @@
         toggleTheme,
         initTheme,
         updateToggleButton,
+        enableThemeTransition,
     };
 
     if (typeof window !== 'undefined') {
@@ -179,6 +199,7 @@
         window.setTheme = setTheme;
         window.toggleTheme = toggleTheme;
         window.initTheme = initTheme;
+        window.enableThemeTransition = enableThemeTransition;
     }
 
     if (typeof module !== 'undefined' && module.exports) {

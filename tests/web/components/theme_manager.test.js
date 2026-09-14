@@ -171,4 +171,62 @@ describe('Theme Manager Component (Dark Mode Support)', () => {
         expect(html).toContain('id="btn-theme-toggle"');
         expect(html).toContain('js/theme-manager.js');
     });
+
+    describe('Luxury Synchronized Theme Transition', () => {
+        const cssPath = path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/css/styles.css');
+        const cssContent = fs.readFileSync(cssPath, 'utf8');
+
+        it('does NOT add theme-transitioning class on initial page load (initTheme) to prevent load flash', () => {
+            themeManager.initTheme();
+            expect(document.documentElement.classList.contains('theme-transitioning')).toBe(false);
+        });
+
+        it('adds theme-transitioning class on toggleTheme() and automatically cleans it up after timeout', () => {
+            vi.useFakeTimers();
+            try {
+                themeManager.initTheme();
+                expect(document.documentElement.classList.contains('theme-transitioning')).toBe(false);
+
+                themeManager.toggleTheme();
+                expect(document.documentElement.classList.contains('theme-transitioning')).toBe(true);
+
+                vi.advanceTimersByTime(350);
+                expect(document.documentElement.classList.contains('theme-transitioning')).toBe(false);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('enables animation when switching themes via setTheme(theme, true) and allows instant switch with false', () => {
+            vi.useFakeTimers();
+            try {
+                themeManager.initTheme();
+
+                themeManager.setTheme('dark', true);
+                expect(document.documentElement.classList.contains('theme-transitioning')).toBe(true);
+
+                vi.advanceTimersByTime(350);
+                expect(document.documentElement.classList.contains('theme-transitioning')).toBe(false);
+
+                themeManager.setTheme('light', false);
+                expect(document.documentElement.classList.contains('theme-transitioning')).toBe(false);
+            } finally {
+                vi.useRealTimers();
+            }
+        });
+
+        it('verifies styles.css defines synchronized luxury transition tokens and zero delay', () => {
+            expect(cssContent).toContain('html.theme-transitioning');
+            expect(cssContent).toMatch(/html\.theme-transitioning,\s*html\.theme-transitioning \*/);
+            expect(cssContent).toContain('background-color 300ms cubic-bezier(0.4, 0, 0.2, 1)');
+            expect(cssContent).toContain('border-color 300ms cubic-bezier(0.4, 0, 0.2, 1)');
+            expect(cssContent).toContain('color 300ms cubic-bezier(0.4, 0, 0.2, 1)');
+            expect(cssContent).toContain('box-shadow 300ms cubic-bezier(0.4, 0, 0.2, 1)');
+            expect(cssContent).toContain('transition-delay: 0ms !important;');
+        });
+
+        it('verifies styles.css disables theme transition when prefers-reduced-motion: reduce is active', () => {
+            expect(cssContent).toMatch(/@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{[^}]*html\.theme-transitioning[^}]*transition:\s*none\s*!important/);
+        });
+    });
 });
