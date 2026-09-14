@@ -46,6 +46,7 @@
                     brief_arabic_title: g.brief_arabic_title || '',
                     category: g.folder_path || g.category || '',
                     is_manual: g.is_manual || 0,
+                    is_resident: g.is_resident != null ? g.is_resident : (g.isResident != null ? g.isResident : 1),
                     notes: g.notes || ''
                 }));
                 currentTimeline.sort((a, b) => {
@@ -304,6 +305,10 @@
             const noteBadgeHtml = hasNotes 
                 ? `<span class="doc-note-badge text-[10px] bg-amber-100 text-amber-800 border border-amber-300/70 px-1.5 py-0.5 rounded flex items-center gap-1 font-semibold flex-shrink-0" title="${escapeHtml(doc.notes)}">📝 ${escapeHtml(snippet)}</span>` 
                 : '';
+            const isApplicant = doc.is_resident === 0 || doc.is_resident === false;
+            const tenantBadgeHtml = isApplicant
+                ? `<span class="bg-purple-50 text-purple-700 px-2 py-0.5 rounded-md font-medium text-[10px] border border-purple-200 truncate max-w-[140px] flex items-center gap-1" title="متقدم (لم يسكن)"><span class="w-1.5 h-1.5 rounded-full bg-purple-500"></span>${escapeHtml(doc.primary_tenant || 'No Tenant')}</span>`
+                : `<span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-medium text-[10px] border border-slate-200 truncate max-w-[140px]">${escapeHtml(doc.primary_tenant || 'No Tenant')}</span>`;
             
             card.innerHTML = `
                 <div class="flex justify-between items-start gap-2">
@@ -326,7 +331,7 @@
                         <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
                         <span>${escapeHtml(date)}</span>
                     </span>
-                    <span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md font-medium text-[10px] border border-slate-200 truncate max-w-[140px]">${escapeHtml(doc.primary_tenant || 'No Tenant')}</span>
+                    ${tenantBadgeHtml}
                 </div>
             `;
             
