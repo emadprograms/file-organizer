@@ -120,6 +120,11 @@ html:not(.dark) #document-viewer-panel {
     background-color: #edf0f4;
 }
 
+/* Document empty state placeholder with calm light grey background */
+html:not(.dark) #document-empty-state {
+    background-color: #edf0f4;
+}
+
 /* Top navigation bar: crisp translucent surface with delicate divider */
 html:not(.dark) #top-navbar {
     background-color: rgba(247, 249, 251, 0.94);
@@ -266,6 +271,10 @@ html.dark #document-list-panel {
 html.dark #area-grid-panel,
 html.dark #database-inspector-panel,
 html.dark #document-viewer-panel {
+    background-color: #080c14;
+}
+
+html.dark #document-empty-state {
     background-color: #080c14;
 }
 

@@ -293,6 +293,29 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Document Empty State Placeholder (Shown when viewing a house before selecting a document) -->
+                <div id="document-empty-state" class="flex-1 p-4 sm:p-6 flex items-center justify-center hidden overflow-hidden">
+                    <div class="text-center max-w-md p-6 sm:p-8 rounded-2xl border border-dashed border-slate-300/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/40 backdrop-blur-xs shadow-2xs">
+                        <div class="w-16 h-16 rounded-2xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/40 flex items-center justify-center mx-auto mb-4 shadow-xs">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                        </div>
+                        <h3 class="text-base font-bold text-slate-800 dark:text-slate-100 tracking-tight">Select a Document to View</h3>
+                        <p class="text-xs font-arabic text-slate-600 dark:text-slate-300 font-medium mt-1">اختر مستنداً للمعاينة</p>
+                        <p class="mt-2.5 text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                            Click any PDF file from the list to preview it here.
+                        </p>
+                        <p class="text-[11px] font-arabic text-slate-400 dark:text-slate-500 mt-1 leading-normal">
+                            انقر على أي ملف من القائمة لعرضه وتصفحه في هذه المساحة مباشرة.
+                        </p>
+                        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-200/60 dark:bg-slate-800/80 border border-slate-300/60 dark:border-slate-700/60 text-[11px] text-slate-600 dark:text-slate-400 font-medium mt-4">
+                            <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span>Click any document to open inline preview</span>
+                        </div>
+                    </div>
+                </div>
                 
                 <!-- Welcome Placeholder -->
                 <div id="welcome-panel" class="flex-1 flex items-center justify-center">

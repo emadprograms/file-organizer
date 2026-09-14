@@ -136,40 +136,59 @@
 
     function addTenantRow(t = null) {
         const row = document.createElement('div');
-        row.className = 'tenant-row flex flex-col sm:grid sm:grid-cols-12 items-stretch sm:items-center gap-4 px-4 py-2 hover:bg-slate-50/60 transition-colors';
+        row.className = 'tenant-row sm:grid sm:grid-cols-12 items-center gap-2 sm:gap-3 px-4 py-2 hover:bg-slate-50/60 transition-colors';
         if (t && t.id) row.dataset.id = t.id;
 
         const nameVal = t ? (t.name || '') : '';
         const startVal = t ? (t.start_date || '') : '';
         const endVal = t ? (t.end_date || '') : '';
+        const isApplicant = Boolean(t && (t.is_resident === 0 || t.is_resident === false));
 
         // Only one tenant can be present at a time
         const alreadyHasPresent = tenantModalRows ? tenantModalRows.querySelector('.tenant-present-check:checked') : null;
         let isPresent = false;
-        if (t) {
-            const rawPresent = !endVal || endVal === 'present' || String(endVal).toLowerCase() === 'none';
-            isPresent = rawPresent && !alreadyHasPresent;
-        } else {
-            isPresent = !alreadyHasPresent;
+        if (!isApplicant) {
+            if (t) {
+                const rawPresent = !endVal || endVal === 'present' || String(endVal).toLowerCase() === 'none';
+                isPresent = rawPresent && !alreadyHasPresent;
+            } else {
+                isPresent = !alreadyHasPresent;
+            }
         }
 
+        const residentStartTitle = 'Start date is always selected as the first document and is auto if there is no document • تاريخ البدء يُحدّد دائماً من تاريخ أول وثيقة، ويكون تلقائياً عند عدم وجود وثائق';
+        const applicantStartTitle = 'Application / Order Date • تاريخ الطلب/التخصيص';
+        const residentEndTitle = 'End date is decided by the user • تاريخ الانتهاء يحدده المستخدم';
+        const applicantEndTitle = 'N/A (لم يسكن)';
+
+        const startInputHtml = (startVal && String(startVal).trim())
+            ? `<input type="text" readonly value="${String(startVal).substring(0, 10)}" title="${isApplicant ? applicantStartTitle : residentStartTitle}" class="tenant-start-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-mono font-medium cursor-default" />`
+            : `<input type="text" readonly value="تلقائي (عند أول رفع)" title="${isApplicant ? applicantStartTitle : residentStartTitle}" class="tenant-start-input w-full px-2 py-1.5 text-xs rounded-lg border border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 font-medium cursor-default" />`;
+
+        const endInputTitle = isApplicant ? applicantEndTitle : residentEndTitle;
+
         row.innerHTML = `
-            <div class="sm:col-span-4 flex items-center gap-2">
+            <div class="sm:col-span-3 flex items-center gap-2">
                 <span class="tenant-row-number w-5 h-5 rounded-full bg-slate-100 text-slate-500 font-bold text-[10px] flex items-center justify-center flex-shrink-0">1</span>
                 <input type="text" value="${nameVal.replace(/"/g, '&quot;')}" placeholder="Tenant Name" 
-                       class="tenant-name-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium" required />
+                       class="tenant-name-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium" required />
+            </div>
+            <div class="sm:col-span-2">
+                <select class="tenant-type-select w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium" title="Tenant Type • نوع المستأجر">
+                    <option value="resident"${!isApplicant ? ' selected' : ''}>🏠 Resident • مقيم</option>
+                    <option value="applicant"${isApplicant ? ' selected' : ''}>📋 Applicant • متقدم</option>
+                </select>
             </div>
             <div class="sm:col-span-3">
-                <input type="date" value="${startVal}" title="Start Date"
-                       class="tenant-start-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium" required />
+                ${startInputHtml}
             </div>
-            <div class="sm:col-span-3">
-                <input type="date" value="${isPresent ? '' : endVal}" ${isPresent ? 'disabled' : ''} title="End Date"
-                       class="tenant-end-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 font-medium ${isPresent ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white'}" />
+            <div class="sm:col-span-2">
+                <input type="date" value="${isApplicant || isPresent ? '' : endVal}" ${isApplicant || isPresent ? 'disabled' : ''} title="${endInputTitle}"
+                       class="tenant-end-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 font-medium ${isApplicant || isPresent ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white'}" />
             </div>
             <div class="sm:col-span-1 flex items-center justify-between sm:justify-center">
                 <span class="text-xs font-semibold text-slate-600 sm:hidden">Present:</span>
-                <input type="checkbox" class="tenant-present-check w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer" ${isPresent ? 'checked' : ''} title="Present (Currently residing)" />
+                <input type="checkbox" class="tenant-present-check w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 ${isApplicant ? 'cursor-not-allowed opacity-30' : 'cursor-pointer'}" ${isApplicant ? 'disabled' : (isPresent ? 'checked' : '')} title="Present (Currently residing)" />
             </div>
             <div class="sm:col-span-1 flex items-center justify-end sm:justify-center">
                 <button type="button" class="btn-remove-row text-slate-400 hover:text-rose-600 p-1.5 rounded-lg hover:bg-rose-50 transition-colors cursor-pointer" title="Delete Tenant">
@@ -178,8 +197,44 @@
             </div>
         `;
 
-        const presentCheck = row.querySelector('.tenant-present-check');
+        const typeSelect = row.querySelector('.tenant-type-select');
+        const startInput = row.querySelector('.tenant-start-input');
         const endInput = row.querySelector('.tenant-end-input');
+        const presentCheck = row.querySelector('.tenant-present-check');
+
+        typeSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'applicant') {
+                presentCheck.checked = false;
+                presentCheck.disabled = true;
+                presentCheck.classList.add('opacity-30', 'cursor-not-allowed');
+                presentCheck.classList.remove('cursor-pointer');
+
+                endInput.value = '';
+                endInput.disabled = true;
+                endInput.className = "tenant-end-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed";
+                endInput.title = applicantEndTitle;
+
+                startInput.title = applicantStartTitle;
+            } else {
+                presentCheck.disabled = false;
+                presentCheck.classList.remove('opacity-30', 'cursor-not-allowed');
+                presentCheck.classList.add('cursor-pointer');
+
+                startInput.title = residentStartTitle;
+
+                if (presentCheck.checked) {
+                    endInput.value = '';
+                    endInput.disabled = true;
+                    endInput.className = "tenant-end-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed";
+                    endInput.title = residentEndTitle;
+                } else {
+                    endInput.disabled = false;
+                    endInput.className = "tenant-end-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium";
+                    endInput.title = residentEndTitle;
+                }
+            }
+        });
+
         presentCheck.addEventListener('change', (e) => {
             if (e.target.checked) {
                 // Enforce single active tenant: uncheck all other rows
@@ -188,21 +243,27 @@
                     if (otherRow !== row) {
                         const otherCheck = otherRow.querySelector('.tenant-present-check');
                         const otherEnd = otherRow.querySelector('.tenant-end-input');
+                        const otherType = otherRow.querySelector('.tenant-type-select')?.value;
                         if (otherCheck && otherCheck.checked) {
                             otherCheck.checked = false;
                         }
-                        if (otherEnd && otherEnd.disabled) {
+                        if (otherEnd && otherEnd.disabled && otherType !== 'applicant') {
                             otherEnd.disabled = false;
-                            otherEnd.className = "tenant-end-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium";
+                            otherEnd.className = "tenant-end-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium";
+                            otherEnd.title = residentEndTitle;
                         }
                     }
                 });
                 endInput.value = '';
                 endInput.disabled = true;
-                endInput.className = "tenant-end-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed";
+                endInput.className = "tenant-end-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed";
+                endInput.title = residentEndTitle;
             } else {
-                endInput.disabled = false;
-                endInput.className = "tenant-end-input w-full px-2.5 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium";
+                if (typeSelect.value !== 'applicant') {
+                    endInput.disabled = false;
+                    endInput.className = "tenant-end-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium";
+                    endInput.title = residentEndTitle;
+                }
             }
         });
 
@@ -236,25 +297,28 @@
 
         for (const r of rows) {
             const name = r.querySelector('.tenant-name-input').value.trim();
-            const start = r.querySelector('.tenant-start-input').value;
+            let start = r.querySelector('.tenant-start-input')?.value.trim();
+            if (!start || start.includes('تلقائي') || start.toLowerCase().includes('auto')) {
+                start = null;
+            }
             const isPresent = r.querySelector('.tenant-present-check').checked;
-            const end = isPresent ? null : (r.querySelector('.tenant-end-input').value || null);
+            const typeVal = r.querySelector('.tenant-type-select')?.value || 'resident';
+            const isResident = typeVal === 'applicant' ? 0 : 1;
+            const end = (isResident === 0 || isPresent) ? null : (r.querySelector('.tenant-end-input').value || null);
 
             if (!name) {
                 showTenantStatus('All tenants must have a name', true);
-                return;
-            }
-            if (!start) {
-                showTenantStatus(`Please provide a start date for ${name}`, true);
                 return;
             }
 
             tenantsPayload.push({
                 id: r.dataset.id ? parseInt(r.dataset.id) : null,
                 name: name,
-                start_date: start,
-                end_date: end,
-                house_id: currentHouse
+                start_date: start || null,
+                end_date: isResident === 0 ? null : end,
+                house_id: currentHouse,
+                is_resident: isResident,
+                notes: null
             });
         }
 
@@ -392,6 +456,7 @@
             // Route / switch back to Area Grid view
             const areaGridPanel = document.getElementById('area-grid-panel');
             const docViewerPanel = document.getElementById('document-viewer-panel');
+            const documentEmptyState = document.getElementById('document-empty-state');
             const docList = document.getElementById('document-list');
             const backToGridBtn = document.getElementById('back-to-grid-btn');
             const tabBackToTenants = document.getElementById('tab-back-to-tenants');
@@ -403,6 +468,10 @@
                 areaGridPanel.classList.add('flex');
             }
             if (docViewerPanel) docViewerPanel.classList.add('hidden');
+            if (documentEmptyState) {
+                documentEmptyState.classList.add('hidden');
+                documentEmptyState.classList.remove('flex');
+            }
             if (docList) docList.innerHTML = '';
             if (backToGridBtn) backToGridBtn.classList.add('hidden');
             if (tabBackToTenants) tabBackToTenants.classList.add('hidden');

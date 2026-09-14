@@ -173,5 +173,105 @@ describe('Area Grid House Card Component - Scrollbar for > 3 Tenancies', () => {
     expect(tenantIcon).not.toBeNull();
     expect(tenantItem.querySelector('span[title="Residing Tenant"]')).toBeNull();
   });
+
+  it('differentiates resident tenants and applicants in header count and cards (e.g. 4 tenants and 1 applicant)', () => {
+    const areaNode = {
+      name: 'Safra C',
+      children: [
+        {
+          id: '104',
+          name: '104 - Mixed House',
+          duration_category: 'medium',
+          total_documents: 8,
+          children: [
+            { type: 'tenant', name: 'Tenant 1', is_resident: 1, subtitle: '2018 - 2020' },
+            { type: 'tenant', name: 'Tenant 2', is_resident: 1, subtitle: '2020 - 2022' },
+            { type: 'tenant', name: 'Tenant 3', is_resident: 1, subtitle: '2022 - 2024' },
+            { type: 'tenant', name: 'Tenant 4', is_resident: 1, subtitle: '2024 - Present' },
+            { type: 'tenant', name: 'Applicant 1', is_resident: 0, subtitle: '2025' }
+          ]
+        }
+      ]
+    };
+
+    window.renderAreaGrid(areaNode);
+
+    const card = document.querySelector('.house-card[data-house-id="104"]');
+    expect(card).not.toBeNull();
+
+    const countBadge = card.querySelector('.tenants-count');
+    expect(countBadge).not.toBeNull();
+    expect(countBadge.textContent.trim()).toBe('4 Tenants • 1 Applicant');
+
+    const applicantIcon = card.querySelector('span[title="Applicant • متقدم"]');
+    expect(applicantIcon).not.toBeNull();
+    expect(applicantIcon.classList.contains('text-purple-700')).toBe(true);
+
+    const applicantItem = applicantIcon.closest('.tenant-overview-item');
+    expect(applicantItem).not.toBeNull();
+    expect(applicantItem.classList.contains('border-purple-200/60')).toBe(true);
+    expect(applicantItem.classList.contains('bg-purple-50/30')).toBe(true);
+
+    // Verify it is NOT labeled as Past Tenant
+    const pastTenantIcon = applicantItem.querySelector('span[title="Past Tenant"]');
+    expect(pastTenantIcon).toBeNull();
+    expect(applicantItem.textContent).not.toContain('Past Tenant');
+
+    // Verify tenure text for applicant has متقدم
+    const tenureText = applicantItem.querySelector('.tenure-text');
+    expect(tenureText).not.toBeNull();
+    expect(tenureText.textContent.trim()).toBe('2025 • متقدم');
+  });
+
+  it('formats header count correctly for single tenant and single applicant, applicant-only, and zero counts', () => {
+    const areaNode = {
+      name: 'Safra C',
+      children: [
+        {
+          id: '201',
+          name: '201 - One of Each',
+          duration_category: 'short',
+          children: [
+            { type: 'tenant', name: 'Res 1', is_resident: 1, subtitle: '2024' },
+            { type: 'tenant', name: 'App 1', is_resident: 0, subtitle: '' }
+          ]
+        },
+        {
+          id: '202',
+          name: '202 - Applicant Only',
+          duration_category: 'short',
+          children: [
+            { type: 'tenant', name: 'App 1', is_resident: 0 },
+            { type: 'tenant', name: 'App 2', is_resident: 0 }
+          ]
+        },
+        {
+          id: '203',
+          name: '203 - Single Applicant Only',
+          duration_category: 'short',
+          children: [
+            { type: 'tenant', name: 'App 1', is_resident: 0 }
+          ]
+        },
+        {
+          id: '204',
+          name: '204 - Zero Tenants',
+          duration_category: 'short',
+          children: []
+        }
+      ]
+    };
+
+    window.renderAreaGrid(areaNode);
+
+    expect(document.querySelector('.house-card[data-house-id="201"] .tenants-count').textContent.trim())
+      .toBe('1 Tenant • 1 Applicant');
+    expect(document.querySelector('.house-card[data-house-id="202"] .tenants-count').textContent.trim())
+      .toBe('2 Applicants');
+    expect(document.querySelector('.house-card[data-house-id="203"] .tenants-count').textContent.trim())
+      .toBe('1 Applicant');
+    expect(document.querySelector('.house-card[data-house-id="204"] .tenants-count').textContent.trim())
+      .toBe('0 Tenants');
+  });
 });
 

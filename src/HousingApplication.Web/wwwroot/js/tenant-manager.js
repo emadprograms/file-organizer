@@ -456,6 +456,7 @@
             // Route / switch back to Area Grid view
             const areaGridPanel = document.getElementById('area-grid-panel');
             const docViewerPanel = document.getElementById('document-viewer-panel');
+            const documentEmptyState = document.getElementById('document-empty-state');
             const docList = document.getElementById('document-list');
             const backToGridBtn = document.getElementById('back-to-grid-btn');
             const tabBackToTenants = document.getElementById('tab-back-to-tenants');
@@ -467,6 +468,10 @@
                 areaGridPanel.classList.add('flex');
             }
             if (docViewerPanel) docViewerPanel.classList.add('hidden');
+            if (documentEmptyState) {
+                documentEmptyState.classList.add('hidden');
+                documentEmptyState.classList.remove('flex');
+            }
             if (docList) docList.innerHTML = '';
             if (backToGridBtn) backToGridBtn.classList.add('hidden');
             if (tabBackToTenants) tabBackToTenants.classList.add('hidden');

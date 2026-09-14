@@ -396,6 +396,7 @@
 
         const docViewerPanel = document.getElementById('document-viewer-panel');
         const welcomePanel = document.getElementById('welcome-panel');
+        const documentEmptyState = document.getElementById('document-empty-state');
         const resizer2 = document.getElementById('resizer-2');
         const viewerTitle = document.getElementById('viewer-title');
         const viewerPeekBadge = document.getElementById('viewer-peek-badge');
@@ -404,6 +405,10 @@
 
         if (!docViewerPanel) return;
         if (welcomePanel) welcomePanel.classList.add('hidden');
+        if (documentEmptyState) {
+            documentEmptyState.classList.add('hidden');
+            documentEmptyState.classList.remove('flex');
+        }
         if (resizer2) resizer2.classList.remove('hidden');
 
         docViewerPanel.classList.remove('hidden');
@@ -436,6 +441,7 @@
 
         const docViewerPanel = document.getElementById('document-viewer-panel');
         const welcomePanel = document.getElementById('welcome-panel');
+        const documentEmptyState = document.getElementById('document-empty-state');
         const resizer2 = document.getElementById('resizer-2');
         const viewerTitle = document.getElementById('viewer-title');
         const viewerPeekBadge = document.getElementById('viewer-peek-badge');
@@ -444,6 +450,10 @@
 
         if (!docViewerPanel) return;
         if (welcomePanel) welcomePanel.classList.add('hidden');
+        if (documentEmptyState) {
+            documentEmptyState.classList.add('hidden');
+            documentEmptyState.classList.remove('flex');
+        }
         if (resizer2) resizer2.classList.remove('hidden');
 
         docViewerPanel.classList.remove('hidden');
@@ -472,6 +482,7 @@
     function closeDocument() {
         const docViewerPanel = document.getElementById('document-viewer-panel');
         const welcomePanel = document.getElementById('welcome-panel');
+        const documentEmptyState = document.getElementById('document-empty-state');
         const pdfFrame = document.getElementById('pdf-frame');
         const catBadge = document.getElementById('viewer-category-badge');
         const catVal = document.getElementById('viewer-category-val');
@@ -490,7 +501,20 @@
             if (collapseIcon) collapseIcon.classList.add('hidden');
         }
 
-        if (welcomePanel) welcomePanel.classList.remove('hidden');
+        const activeHouse = (typeof currentHouse !== 'undefined' && currentHouse) || (typeof window !== 'undefined' && window.currentHouse);
+        if (activeHouse) {
+            if (welcomePanel) welcomePanel.classList.add('hidden');
+            if (documentEmptyState) {
+                documentEmptyState.classList.remove('hidden');
+                documentEmptyState.classList.add('flex');
+            }
+        } else {
+            if (welcomePanel) welcomePanel.classList.remove('hidden');
+            if (documentEmptyState) {
+                documentEmptyState.classList.add('hidden');
+                documentEmptyState.classList.remove('flex');
+            }
+        }
         if (catBadge) {
             catBadge.classList.add('hidden');
             catBadge.classList.remove('flex');

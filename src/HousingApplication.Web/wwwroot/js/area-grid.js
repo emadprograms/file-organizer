@@ -23,6 +23,7 @@
         });
 
         const welcomePanel = document.getElementById('welcome-panel');
+        const documentEmptyState = document.getElementById('document-empty-state');
         const docListPanel = document.getElementById('document-list-panel');
         const docViewerPanel = document.getElementById('document-viewer-panel');
         const resizer2 = document.getElementById('resizer-2');
@@ -38,6 +39,10 @@
         const houseCardsContainer = document.getElementById('area-grid-container') || document.getElementById('house-cards-container');
 
         if (welcomePanel) welcomePanel.classList.add('hidden');
+        if (documentEmptyState) {
+            documentEmptyState.classList.add('hidden');
+            documentEmptyState.classList.remove('flex');
+        }
         if (docListPanel) {
             docListPanel.classList.add('hidden');
             docListPanel.classList.remove('flex');
@@ -95,11 +100,22 @@
             }
             card.className += ` ${borderClass}`;
 
-            const tenants = (house.children || []).filter(c => c.type === 'tenant');
+            const allTenants = (house.children || []).filter(c => c.type === 'tenant');
+            const residents = allTenants.filter(t => t.is_resident !== 0);
+            const applicants = allTenants.filter(t => t.is_resident === 0);
             const totalDocs = house.total_documents || 0;
 
+            let countBadgeText = '0 Tenants';
+            if (residents.length > 0 && applicants.length > 0) {
+                countBadgeText = `${residents.length} ${residents.length === 1 ? 'Tenant' : 'Tenants'} • ${applicants.length} ${applicants.length === 1 ? 'Applicant' : 'Applicants'}`;
+            } else if (residents.length > 0) {
+                countBadgeText = `${residents.length} ${residents.length === 1 ? 'Tenant' : 'Tenants'}`;
+            } else if (applicants.length > 0) {
+                countBadgeText = `${applicants.length} ${applicants.length === 1 ? 'Applicant' : 'Applicants'}`;
+            }
+
             let tenantsHtml = '';
-            if (tenants.length === 0) {
+            if (allTenants.length === 0) {
                 tenantsHtml = `
                     <div class="py-2.5 px-3 bg-slate-50 rounded-lg border border-slate-100 text-center">
                         <p class="text-[11px] text-slate-400 italic">No tenants recorded</p>
@@ -108,35 +124,50 @@
             } else {
                 tenantsHtml = `
                     <div class="space-y-1.5">
-                        ${tenants.map((t, idx) => {
-                            const isCurrent = Boolean(
-                                (house.current_tenant && t.name === house.current_tenant) 
-                                || (t.is_active === true)
-                                || (t.subtitle && (t.subtitle.includes('Present') || t.subtitle.includes('الآن')))
-                            );
+                        ${allTenants.map((t, idx) => {
+                            let cardBg;
+                            let nameClass;
+                            let tenantIcon;
+                            let tenureText;
 
-                            let currentCardBg = 'bg-emerald-50/70 border-emerald-200/80';
-                            let currentIconBg = 'bg-emerald-100 text-emerald-700';
-                            const durCat = t.duration_category || house.duration_category || 'short';
-                            if (durCat === 'medium') {
-                                currentCardBg = 'bg-amber-50/70 border-amber-200/80';
-                                currentIconBg = 'bg-amber-100 text-amber-700';
-                            } else if (durCat === 'long') {
-                                currentCardBg = 'bg-rose-50/70 border-rose-200/80';
-                                currentIconBg = 'bg-rose-100 text-rose-700';
+                            if (t.is_resident === 0) {
+                                cardBg = 'bg-purple-50/30 border-purple-200/60 dark:bg-purple-950/20 dark:border-purple-800/40';
+                                nameClass = 'font-medium text-purple-900 dark:text-purple-200';
+                                tenantIcon = `<span class="w-5 h-5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 flex items-center justify-center flex-shrink-0" title="Applicant • متقدم">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                                </span>`;
+                                tenureText = t.subtitle ? `${t.subtitle} • متقدم` : 'Applicant • متقدم';
+                            } else {
+                                const isCurrent = Boolean(
+                                    (house.current_tenant && t.name === house.current_tenant) 
+                                    || (t.is_active === true)
+                                    || (t.subtitle && (t.subtitle.includes('Present') || t.subtitle.includes('الآن')))
+                                );
+
+                                let currentCardBg = 'bg-emerald-50/70 border-emerald-200/80';
+                                let currentIconBg = 'bg-emerald-100 text-emerald-700';
+                                const durCat = t.duration_category || house.duration_category || 'short';
+                                if (durCat === 'medium') {
+                                    currentCardBg = 'bg-amber-50/70 border-amber-200/80';
+                                    currentIconBg = 'bg-amber-100 text-amber-700';
+                                } else if (durCat === 'long') {
+                                    currentCardBg = 'bg-rose-50/70 border-rose-200/80';
+                                    currentIconBg = 'bg-rose-100 text-rose-700';
+                                }
+
+                                cardBg = isCurrent 
+                                    ? currentCardBg 
+                                    : 'bg-slate-50 border-slate-200/60';
+                                nameClass = isCurrent ? 'font-bold text-slate-900' : 'font-medium text-slate-700';
+                                tenantIcon = isCurrent
+                                    ? `<span class="w-5 h-5 rounded-md ${currentIconBg} flex items-center justify-center flex-shrink-0" title="Residing Tenant">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                                       </span>`
+                                    : `<span class="w-5 h-5 rounded-md bg-slate-200/80 text-slate-500 flex items-center justify-center flex-shrink-0" title="Past Tenant">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                       </span>`;
+                                tenureText = t.subtitle || '';
                             }
-
-                            const cardBg = isCurrent 
-                                ? currentCardBg 
-                                : 'bg-slate-50 border-slate-200/60';
-                            const nameClass = isCurrent ? 'font-bold text-slate-900' : 'font-medium text-slate-700';
-                            const tenantIcon = isCurrent
-                                ? `<span class="w-5 h-5 rounded-md ${currentIconBg} flex items-center justify-center flex-shrink-0" title="Residing Tenant">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                                   </span>`
-                                : `<span class="w-5 h-5 rounded-md bg-slate-200/80 text-slate-500 flex items-center justify-center flex-shrink-0" title="Past Tenant">
-                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                   </span>`;
                             
                             return `
                                 <div class="tenant-overview-item flex items-center justify-between text-xs p-1.5 rounded-lg border ${cardBg}">
@@ -144,8 +175,8 @@
                                         ${tenantIcon}
                                         <span class="tenant-name ${nameClass} truncate text-xs" title="${t.name}">${t.name}</span>
                                     </div>
-                                    <span class="tenure-text text-[10px] font-mono text-slate-500 ml-2 flex-shrink-0" title="${t.subtitle || ''}">
-                                        ${t.subtitle || ''}
+                                    <span class="tenure-text text-[10px] font-mono text-slate-500 ml-2 flex-shrink-0" title="${tenureText}">
+                                        ${tenureText}
                                     </span>
                                 </div>
                             `;
@@ -154,7 +185,7 @@
                 `;
             }
 
-            const scrollClass = tenants.length > 3 ? 'max-h-[118px] overflow-y-auto pr-1' : '';
+            const scrollClass = allTenants.length > 3 ? 'max-h-[118px] overflow-y-auto pr-1' : '';
 
             card.innerHTML = `
                 <div>
@@ -164,7 +195,7 @@
                                 🏠 ${house.name}
                             </h3>
                             <span class="tenants-count text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200 flex-shrink-0">
-                                ${tenants.length} ${tenants.length === 1 ? 'Tenant' : 'Tenants'}
+                                ${countBadgeText}
                             </span>
                         </div>
                         <span class="tenure-badge text-[10px] px-2 py-0.5 rounded border flex-shrink-0 ${badgeClass}">${badgeLabel}</span>
@@ -185,7 +216,7 @@
                 </div>
             `;
 
-            if (tenants.length > 3) {
+            if (allTenants.length > 3) {
                 const tenantsSection = card.querySelector('.tenants-overview-section');
                 if (tenantsSection) {
                     tenantsSection.addEventListener('click', (e) => {

@@ -6,6 +6,7 @@
 
         const sidebarSectionTitle = document.getElementById('sidebar-section-title');
         const welcomePanel = document.getElementById('welcome-panel');
+        const documentEmptyState = document.getElementById('document-empty-state');
         const docListPanel = document.getElementById('document-list-panel');
         const docViewerPanel = document.getElementById('document-viewer-panel');
         const resizer2 = document.getElementById('resizer-2');
@@ -15,6 +16,11 @@
         const databaseInspectorPanel = document.getElementById('database-inspector-panel');
         const currentHouseTitle = document.getElementById('current-house-title');
         const statsBadge = document.getElementById('stats-badge');
+
+        if (documentEmptyState) {
+            documentEmptyState.classList.add('hidden');
+            documentEmptyState.classList.remove('flex');
+        }
 
         if (currentViewMode === 'db') {
             if (sidebarSectionTitle) sidebarSectionTitle.textContent = "Database";
@@ -248,6 +254,11 @@
         }
 
         if (welcomePanel) welcomePanel.classList.add('hidden');
+        const documentEmptyState = document.getElementById('document-empty-state');
+        if (documentEmptyState) {
+            documentEmptyState.classList.remove('hidden');
+            documentEmptyState.classList.add('flex');
+        }
         if (docListPanel) {
             docListPanel.classList.remove('hidden');
             docListPanel.classList.add('flex');
