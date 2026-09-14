@@ -85,3 +85,35 @@ The web client provides a unified interface across both Desktop PC and Tablet de
      - All dimming styles and touch avatars are cleaned up reliably in `finally` handlers.
 - **Asset Mirroring**: Web assets are strictly mirrored across three locations: `src/api/static/js/`, `web-net/wwwroot/js/`, and `dist/win-x64/wwwroot/js/`.
 
+### Dark Mode Design System & Tablet Responsive Architecture
+The application features a dedicated, semantic dark mode design system engineered specifically for high-DPI displays (such as iPad Liquid Retina and OLED screens) and desktop environments:
+
+1. **Multi-Tier Surface Elevation Hierarchy**:
+   - **Level 0 (Canvas Base)**: `#080c14` (deep midnight navy-slate).
+   - **Level 1 (Sidebars & Navbars)**: `#0b0f19` / `rgba(12, 16, 28, 0.88)` with `backdrop-filter: blur(12px)` and crisp border `#172033`.
+   - **Level 2 (Cards & Panels)**: `#111827` surface with `#1e293b` borders and subtle rim lighting (`box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04)`).
+   - **Level 3 (Elevated Modals & Popovers)**: `#111827` surface with `1px solid rgba(255, 255, 255, 0.1)`, 3D drop shadow (`box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85)`), and backdrop blur (`rgba(2, 6, 17, 0.8)` with `backdrop-filter: blur(8px)`).
+
+2. **Harmonized Status Badges & Semantic Tenure Themes**:
+   - Replaced naive pastel overrides with dark-tinted badge pills and vibrant indicators:
+     - **Emerald (< 5y / Active / Success)**: Text `#34d399`, background `rgba(16, 185, 129, 0.1)`, border `rgba(16, 185, 129, 0.28)`.
+     - **Amber (5–10y / Medium / Pinned / Sticky Notes)**: Text `#fbbf24`, background `rgba(245, 158, 11, 0.1)`, border `rgba(245, 158, 11, 0.28)`.
+     - **Rose (> 10y / Long / Vacated / Danger)**: Text `#fb7185`, background `rgba(244, 63, 94, 0.1)`, border `rgba(244, 63, 94, 0.28)`.
+     - **Purple (Applicants)**: Text `#c084fc`, background `rgba(168, 85, 247, 0.1)`, border `rgba(168, 85, 247, 0.28)`.
+     - **Blue (Counts / Folders / Stats)**: Text `#60a5fa`, background `rgba(59, 130, 246, 0.12)`, border `rgba(59, 130, 246, 0.3)`.
+     - **Slate (Neutral Dates / Counts)**: Text `#94a3b8`, background `#172033`, border `#27354f`.
+
+3. **Segmented Tab Control & Interactive States**:
+   - The segmented tabs track (`Folders` / `Timeline`) sits on a dark capsule base (`#0c101d`).
+   - Active tab elevates with surface `#1e293b`, glowing blue label `#60a5fa`, and inset border lighting.
+   - Hover states across buttons, list items, and cards use refined dark tints (`#17223b`, `rgba(59, 130, 246, 0.18)`), eliminating bright or pastel flashes on mouseover/touch.
+
+4. **Database Inspector & PDF Canvas Optimization**:
+   - Database tables use alternating zebra rows (`#111827` / `#0c111e`), refined cell borders (`#172033`), dark headers (`#0b0f19`), and soft blue hover rows.
+   - The inline PDF canvas sits against an eye-friendly `#080c14` backdrop with softened dark bezel wrappers (`box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.7)`), preventing harsh glare during reading sessions.
+
+5. **Tablet & Touchscreen Responsive Architecture (768px – 1024px)**:
+   - Dedicated tablet media queries dynamically adapt top navbar action triggers so search and shortcut buttons scale fluidly without clipping.
+   - Area overview cards automatically arrange in a balanced 2-column grid on tablets with enhanced card rim lighting.
+   - Interactive elements feature subtle touch compression feedback (`transform: scale(0.985)`) and hardware-accelerated momentum scrolling (`overscroll-behavior-y: contain`).
+

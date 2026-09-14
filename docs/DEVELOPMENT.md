@@ -38,10 +38,11 @@ To develop `file-organizer` locally, follow these steps:
 | `npm run test:web` | Runs the Vitest Web UI test suite with JSDOM environment. |
 | `npm run test:e2e` | Runs Playwright end-to-end browser tests. |
 
-### Frontend Asset Mirroring
-The web interface client scripts are located in `src/api/static/js/`. When updating frontend JavaScript or styling:
-- Any changes to `src/api/static/js/*.js` must be synchronized to `web-net/wwwroot/js/*.js` and `dist/win-x64/wwwroot/js/*.js`.
-- Always verify all frontend tests pass using `npm run test:web`.
+### Frontend Asset Mirroring & Dark Mode System
+The web interface client scripts and styles are located in `src/HousingApplication.Web/wwwroot/`:
+- Any styling changes must adhere to the semantic dark mode palette in `src/HousingApplication.Web/wwwroot/css/styles.css` (surface elevation, non-blinding tinted status badges, and tablet responsive breakpoints).
+- When modifying UI components or styling, verify tablet viewport responsiveness (768px – 1024px) and touch feedback.
+- Run frontend unit and regression tests with `npm test` or `npm run test:web`.
 
 
 ## Code Style
