@@ -828,10 +828,8 @@ public class RepositoryTests : IDisposable
 
         await using (var conn = await _factory.CreateConnectionAsync())
         {
-            await conn.ExecuteAsync("UPDATE documents SET is_manual = 0, tenant_id = @ApplicantId WHERE vault_id = @VaultId;",
-                new { ApplicantId = applicant.Id, VaultId = vaultId });
-            await conn.ExecuteAsync("UPDATE pages SET tenant_id = @ApplicantId WHERE vault_id = @VaultId;",
-                new { ApplicantId = applicant.Id, VaultId = vaultId });
+            await conn.ExecuteAsync("UPDATE documents SET is_manual = 0 WHERE vault_id = @VaultId;",
+                new { VaultId = vaultId });
         }
 
         // Act: Bulk update with reallocate = true
@@ -849,6 +847,92 @@ public class RepositoryTests : IDisposable
         Assert.NotNull(doc);
         Assert.Equal(pastResident.Id, doc.TenantId);
         Assert.NotEqual(applicant.Id, doc.TenantId);
+    }
+
+    [Fact]
+    public async Task BulkUpdateTenantsAsync_NeverReallocatesOrTouches_ApplicantDocuments()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaAppProt", "AAP");
+        await _repo.AddHouseAsync("H-AppProt1", "AreaAppProt");
+        var resident = await _repo.AddTenantAsync("H-AppProt1", "Resident Main", "2020-01-01", null, isResident: 1);
+        var applicant = await _repo.AddTenantAsync("H-AppProt1", "Applicant Person", "2023-01-01", null, isResident: 0);
+
+        // Adds a document belonging to the Applicant with primary date 2021-05-15 (which falls squarely in the Resident's tenure)
+        var ingest = new IngestRequestDto
+        {
+            AreaId = "AreaAppProt",
+            HouseId = "H-AppProt1",
+            TenantId = applicant.Id,
+            Category = "عقود",
+            ArabicTitle = "وثيقة مقدم طلب",
+            PrimaryDate = "2021-05-15"
+        };
+        var resp = await _repo.AddManualDocumentAsync(ingest);
+        var vaultId = resp.VaultId;
+
+        // Mark as is_manual = 0 so that it would normally be subject to reallocation
+        await using (var conn = await _factory.CreateConnectionAsync())
+        {
+            await conn.ExecuteAsync("UPDATE documents SET is_manual = 0 WHERE vault_id = @VaultId;",
+                new { VaultId = vaultId });
+        }
+
+        // Act: Bulk update with reallocate = true
+        var updatedList = new List<TenantDto>
+        {
+            new TenantDto { Id = resident.Id, Name = resident.Name, StartDate = resident.StartDate, EndDate = resident.EndDate, HouseId = "H-AppProt1", IsResident = 1 },
+            new TenantDto { Id = applicant.Id, Name = applicant.Name, StartDate = applicant.StartDate, EndDate = applicant.EndDate, HouseId = "H-AppProt1", IsResident = 0 }
+        };
+
+        await _repo.BulkUpdateTenantsAsync("H-AppProt1", updatedList, reallocate: true);
+
+        // Assert: Document's TenantId remains the Applicant's ID, and was NOT moved to the Resident
+        Assert.NotNull(vaultId);
+        var doc = await _repo.GetDocumentRawAsync(vaultId);
+        Assert.NotNull(doc);
+        Assert.Equal(applicant.Id, doc.TenantId);
+        Assert.NotEqual(resident.Id, doc.TenantId);
+    }
+
+    [Fact]
+    public async Task BulkUpdateTenantsAsync_WithOnlyApplicants_DoesNotReallocate()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaOnlyApp", "AOA");
+        await _repo.AddHouseAsync("H-OnlyApp1", "AreaOnlyApp");
+        var applicant = await _repo.AddTenantAsync("H-OnlyApp1", "Sole Applicant", "2023-01-01", null, isResident: 0);
+
+        var ingest = new IngestRequestDto
+        {
+            AreaId = "AreaOnlyApp",
+            HouseId = "H-OnlyApp1",
+            TenantId = applicant.Id,
+            Category = "عقود",
+            ArabicTitle = "وثيقة",
+            PrimaryDate = "2023-05-15"
+        };
+        var resp = await _repo.AddManualDocumentAsync(ingest);
+        var vaultId = resp.VaultId;
+
+        await using (var conn = await _factory.CreateConnectionAsync())
+        {
+            await conn.ExecuteAsync("UPDATE documents SET is_manual = 0 WHERE vault_id = @VaultId;",
+                new { VaultId = vaultId });
+        }
+
+        var updatedList = new List<TenantDto>
+        {
+            new TenantDto { Id = applicant.Id, Name = applicant.Name, StartDate = applicant.StartDate, EndDate = applicant.EndDate, HouseId = "H-OnlyApp1", IsResident = 0 }
+        };
+
+        var result = await _repo.BulkUpdateTenantsAsync("H-OnlyApp1", updatedList, reallocate: true);
+
+        Assert.Equal(0, result.ReallocatedCount);
+        Assert.NotNull(vaultId);
+        var doc = await _repo.GetDocumentRawAsync(vaultId);
+        Assert.NotNull(doc);
+        Assert.Equal(applicant.Id, doc.TenantId);
     }
 
     [Fact]

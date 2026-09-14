@@ -1944,33 +1944,46 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                 new { HouseId = houseId, CleanHouseId = cleanHouseId }, tx)).ToList();
 
             var residentTenants = updatedTenants.Where(ut => ut.IsResident == 1).ToList();
+            var applicantIds = updatedTenants.Where(ut => ut.IsResident == 0).Select(ut => ut.Id).ToHashSet();
 
-            var docs = (await conn.QueryAsync<Document>(
-                "SELECT vault_id AS VaultId, tenant_id AS TenantId, primary_date AS PrimaryDate, is_manual AS IsManual FROM documents WHERE (house_id = @HouseId OR house_id = @CleanHouseId) AND (is_manual IS NULL OR is_manual = 0);",
-                new { HouseId = houseId, CleanHouseId = cleanHouseId }, tx)).ToList();
-
-            foreach (var doc in docs)
+            if (residentTenants.Count > 0)
             {
-                if (string.IsNullOrEmpty(doc.PrimaryDate)) continue;
-                var docDate = doc.PrimaryDate.Length >= 10 ? doc.PrimaryDate[..10] : doc.PrimaryDate;
+                var docs = (await conn.QueryAsync<Document>(
+                    @"SELECT vault_id AS VaultId, tenant_id AS TenantId, primary_date AS PrimaryDate, is_manual AS IsManual 
+FROM documents 
+WHERE (house_id = @HouseId OR house_id = @CleanHouseId) 
+  AND (is_manual IS NULL OR is_manual = 0)
+  AND tenant_id NOT IN (SELECT id FROM tenants WHERE is_resident = 0);",
+                    new { HouseId = houseId, CleanHouseId = cleanHouseId }, tx)).ToList();
 
-                var targetTenant = residentTenants.FirstOrDefault(ut =>
+                foreach (var doc in docs)
                 {
-                    if (string.IsNullOrWhiteSpace(ut.StartDate)) return false;
-                    var start = ut.StartDate.Length >= 10 ? ut.StartDate[..10] : ut.StartDate;
-                    if (string.Compare(docDate, start, StringComparison.Ordinal) < 0) return false;
-                    if (string.IsNullOrEmpty(ut.EndDate) || ut.EndDate.Equals("present", StringComparison.OrdinalIgnoreCase)) return true;
-                    var end = ut.EndDate.Length >= 10 ? ut.EndDate[..10] : ut.EndDate;
-                    return string.Compare(docDate, end, StringComparison.Ordinal) <= 0;
-                }) ?? residentTenants.FirstOrDefault();
+                    if (applicantIds.Contains(doc.TenantId))
+                    {
+                        continue; // Never touch applicant documents under any circumstance
+                    }
 
-                if (targetTenant != null && targetTenant.Id != doc.TenantId)
-                {
-                    await conn.ExecuteAsync("UPDATE documents SET tenant_id = @TenantId WHERE vault_id = @VaultId;",
-                        new { TenantId = targetTenant.Id, VaultId = doc.VaultId }, tx);
-                    await conn.ExecuteAsync("UPDATE pages SET tenant_id = @TenantId WHERE vault_id = @VaultId;",
-                        new { TenantId = targetTenant.Id, VaultId = doc.VaultId }, tx);
-                    reallocatedCount++;
+                    if (string.IsNullOrEmpty(doc.PrimaryDate)) continue;
+                    var docDate = doc.PrimaryDate.Length >= 10 ? doc.PrimaryDate[..10] : doc.PrimaryDate;
+
+                    var targetTenant = residentTenants.FirstOrDefault(ut =>
+                    {
+                        if (string.IsNullOrWhiteSpace(ut.StartDate)) return false;
+                        var start = ut.StartDate.Length >= 10 ? ut.StartDate[..10] : ut.StartDate;
+                        if (string.Compare(docDate, start, StringComparison.Ordinal) < 0) return false;
+                        if (string.IsNullOrEmpty(ut.EndDate) || ut.EndDate.Equals("present", StringComparison.OrdinalIgnoreCase)) return true;
+                        var end = ut.EndDate.Length >= 10 ? ut.EndDate[..10] : ut.EndDate;
+                        return string.Compare(docDate, end, StringComparison.Ordinal) <= 0;
+                    }) ?? residentTenants.FirstOrDefault();
+
+                    if (targetTenant != null && targetTenant.Id != doc.TenantId)
+                    {
+                        await conn.ExecuteAsync("UPDATE documents SET tenant_id = @TenantId WHERE vault_id = @VaultId;",
+                            new { TenantId = targetTenant.Id, VaultId = doc.VaultId }, tx);
+                        await conn.ExecuteAsync("UPDATE pages SET tenant_id = @TenantId WHERE vault_id = @VaultId;",
+                            new { TenantId = targetTenant.Id, VaultId = doc.VaultId }, tx);
+                        reallocatedCount++;
+                    }
                 }
             }
         }
