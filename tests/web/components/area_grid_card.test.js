@@ -273,5 +273,111 @@ describe('Area Grid House Card Component - Scrollbar for > 3 Tenancies', () => {
     expect(document.querySelector('.house-card[data-house-id="204"] .tenants-count').textContent.trim())
       .toBe('0 Tenants');
   });
+
+  it('accurately reflects document-anchored start date and updated duration category when document date is changed (e.g. house 616)', () => {
+    // Initial state: House 616 with document from 1990 (>10 yrs, red)
+    const initialAreaNode = {
+      name: 'Safra C',
+      children: [
+        {
+          id: '616',
+          name: '616 - Historical House',
+          duration_category: 'long',
+          current_tenant: 'سعيد القحطاني',
+          total_documents: 10,
+          children: [
+            {
+              type: 'tenant',
+              name: 'سعيد القحطاني',
+              subtitle: '1990 - Present',
+              duration_category: 'long',
+              is_resident: 1
+            }
+          ]
+        }
+      ]
+    };
+
+    window.renderAreaGrid(initialAreaNode);
+
+    const cardInitial = document.querySelector('.house-card[data-house-id="616"]');
+    expect(cardInitial).not.toBeNull();
+    expect(cardInitial.classList.contains('border-l-rose-500')).toBe(true);
+    expect(cardInitial.querySelector('.tenure-badge').textContent.trim()).toBe('> 10 Yrs');
+    expect(cardInitial.querySelector('.tenure-text').textContent.trim()).toBe('1990 - Present');
+
+    // After updating the starting document date to 2024 (<5 yrs, green)
+    const updatedAreaNode = {
+      name: 'Safra C',
+      children: [
+        {
+          id: '616',
+          name: '616 - Historical House',
+          duration_category: 'short',
+          current_tenant: 'سعيد القحطاني',
+          total_documents: 10,
+          children: [
+            {
+              type: 'tenant',
+              name: 'سعيد القحطاني',
+              subtitle: '2024 - Present',
+              duration_category: 'short',
+              is_resident: 1
+            }
+          ]
+        }
+      ]
+    };
+
+    window.renderAreaGrid(updatedAreaNode);
+
+    const cardUpdated = document.querySelector('.house-card[data-house-id="616"]');
+    expect(cardUpdated).not.toBeNull();
+    expect(cardUpdated.classList.contains('border-l-emerald-500')).toBe(true);
+    expect(cardUpdated.classList.contains('border-l-rose-500')).toBe(false);
+    expect(cardUpdated.querySelector('.tenure-badge').textContent.trim()).toBe('< 5 Yrs');
+    expect(cardUpdated.querySelector('.tenure-text').textContent.trim()).toBe('2024 - Present');
+  });
+
+  it('loadAreaGrid fetches fresh tree data and re-renders house cards with updated start date', async () => {
+    const updatedTree = [
+      {
+        id: 'area_Safra C',
+        name: 'Safra C',
+        children: [
+          {
+            id: '616',
+            name: '616',
+            duration_category: 'short',
+            current_tenant: 'سعيد القحطاني',
+            total_documents: 5,
+            children: [
+              {
+                type: 'tenant',
+                name: 'سعيد القحطاني',
+                subtitle: '2024 - Present',
+                duration_category: 'short',
+                is_resident: 1
+              }
+            ]
+          }
+        ]
+      }
+    ];
+
+    global.loadTree = vi.fn().mockImplementation(async () => {
+      global.globalTreeData = updatedTree;
+      window.globalTreeData = updatedTree;
+    });
+
+    await window.loadAreaGrid('Safra C');
+
+    expect(global.loadTree).toHaveBeenCalled();
+    const card = document.querySelector('.house-card[data-house-id="616"]');
+    expect(card).not.toBeNull();
+    expect(card.querySelector('.tenure-text').textContent.trim()).toBe('2024 - Present');
+    expect(card.querySelector('.tenure-badge').textContent.trim()).toBe('< 5 Yrs');
+  });
 });
+
 

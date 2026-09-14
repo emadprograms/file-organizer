@@ -424,6 +424,11 @@
             if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
                 await window.refreshCurrentTab(area, house);
             }
+            if (typeof window !== 'undefined' && typeof window.loadTree === 'function') {
+                await window.loadTree();
+            } else if (typeof loadTree === 'function') {
+                await loadTree();
+            }
         } catch (err) {
             console.error(err);
             showToast(err.message, 'error');
@@ -678,6 +683,11 @@
                             await refreshCurrentTab(area, house);
                         }
                     }
+                }
+                if (typeof window !== 'undefined' && typeof window.loadTree === 'function') {
+                    await window.loadTree();
+                } else if (typeof loadTree === 'function') {
+                    await loadTree();
                 }
             }
         } catch (err) {
@@ -1518,6 +1528,11 @@
                     await window.refreshCurrentTab(area, house);
                 } else if (typeof refreshCurrentTab === 'function') {
                     await refreshCurrentTab(area, house);
+                }
+                if (typeof window !== 'undefined' && typeof window.loadTree === 'function') {
+                    await window.loadTree();
+                } else if (typeof loadTree === 'function') {
+                    await loadTree();
                 }
             } catch (refErr) {
                 console.warn('Refresh after date change warning:', refErr);

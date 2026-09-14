@@ -796,12 +796,23 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             });
         }
 
-        // 2. Tenants matching q
         const string sqlTenants = @"
-            SELECT t.id AS Id, t.name AS Name, t.start_date AS StartDate, t.end_date AS EndDate, t.house_id AS HouseId, h.area_id AS AreaId, t.is_resident AS IsResident, t.notes AS Notes
+            SELECT t.id AS Id, t.name AS Name, 
+                   CASE 
+                       WHEN d.min_date IS NOT NULL AND d.min_date != '' 
+                       THEN d.min_date 
+                       ELSE t.start_date 
+                   END AS StartDate, 
+                   t.end_date AS EndDate, t.house_id AS HouseId, h.area_id AS AreaId, t.is_resident AS IsResident, t.notes AS Notes
             FROM tenants t
             JOIN houses h ON t.house_id = h.id
-            ORDER BY t.start_date DESC;";
+            LEFT JOIN (
+                SELECT tenant_id, MIN(primary_date) AS min_date
+                FROM documents
+                WHERE is_timeline_visible = 1 AND primary_date IS NOT NULL AND primary_date != ''
+                GROUP BY tenant_id
+            ) d ON t.id = d.tenant_id
+            ORDER BY StartDate DESC;";
 
         var tenantRows = await conn.QueryAsync<(int Id, string Name, string? StartDate, string? EndDate, string HouseId, string AreaId, int IsResident, string? Notes)>(sqlTenants);
         var qPhonetic = TextUtils.PhoneticNormalize(q);
@@ -1238,6 +1249,37 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         {
             await conn.ExecuteAsync("UPDATE pages SET resolved_date = @PrimaryDate WHERE vault_id = @VaultId;",
                 new { PrimaryDate = primaryDate, VaultId = vaultId }, tx);
+        }
+
+        // Keep tenant start_date synced to earliest document date
+        if (primaryDate != null || tenantId.HasValue)
+        {
+            var targetTenantId = tenantId ?? existing.TenantId;
+            if (targetTenantId > 0)
+            {
+                var minDate = await conn.QueryFirstOrDefaultAsync<string>(
+                    "SELECT MIN(primary_date) FROM documents WHERE tenant_id = @TenantId AND is_timeline_visible = 1 AND primary_date IS NOT NULL AND primary_date != '';",
+                    new { TenantId = targetTenantId }, tx);
+                if (!string.IsNullOrWhiteSpace(minDate))
+                {
+                    await conn.ExecuteAsync(
+                        "UPDATE tenants SET start_date = @MinDate WHERE id = @TenantId;",
+                        new { MinDate = minDate, TenantId = targetTenantId }, tx);
+                }
+            }
+
+            if (tenantId.HasValue && tenantId.Value != existing.TenantId && existing.TenantId > 0)
+            {
+                var prevMinDate = await conn.QueryFirstOrDefaultAsync<string>(
+                    "SELECT MIN(primary_date) FROM documents WHERE tenant_id = @TenantId AND is_timeline_visible = 1 AND primary_date IS NOT NULL AND primary_date != '';",
+                    new { TenantId = existing.TenantId }, tx);
+                if (!string.IsNullOrWhiteSpace(prevMinDate))
+                {
+                    await conn.ExecuteAsync(
+                        "UPDATE tenants SET start_date = @MinDate WHERE id = @TenantId;",
+                        new { MinDate = prevMinDate, TenantId = existing.TenantId }, tx);
+                }
+            }
         }
 
         // Fetch updated tenant name
@@ -1679,11 +1721,28 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         await using var conn = await _connectionFactory.CreateConnectionAsync();
         await using var tx = await conn.BeginTransactionAsync();
 
+        var docTenantId = await conn.QueryFirstOrDefaultAsync<int>(
+            "SELECT tenant_id FROM documents WHERE vault_id = @VaultId;",
+            new { VaultId = vaultId }, tx);
+
         const string deletePagesSql = "DELETE FROM pages WHERE vault_id = @VaultId;";
         await conn.ExecuteAsync(deletePagesSql, new { VaultId = vaultId }, tx);
 
         const string deleteDocSql = "DELETE FROM documents WHERE vault_id = @VaultId;";
         var rows = await conn.ExecuteAsync(deleteDocSql, new { VaultId = vaultId }, tx);
+
+        if (docTenantId > 0)
+        {
+            var minDate = await conn.QueryFirstOrDefaultAsync<string>(
+                "SELECT MIN(primary_date) FROM documents WHERE tenant_id = @TenantId AND is_timeline_visible = 1 AND primary_date IS NOT NULL AND primary_date != '';",
+                new { TenantId = docTenantId }, tx);
+            if (!string.IsNullOrWhiteSpace(minDate))
+            {
+                await conn.ExecuteAsync(
+                    "UPDATE tenants SET start_date = @MinDate WHERE id = @TenantId;",
+                    new { MinDate = minDate, TenantId = docTenantId }, tx);
+            }
+        }
 
         await tx.CommitAsync();
 
@@ -1706,6 +1765,10 @@ public class FileOrganizerRepository : IFileOrganizerRepository
 
         await using var conn = await _connectionFactory.CreateConnectionAsync();
         await using var tx = await conn.BeginTransactionAsync();
+
+        var affectedTenantIds = (await conn.QueryAsync<int>(
+            "SELECT DISTINCT tenant_id FROM documents WHERE vault_id IN @VaultIds;",
+            new { VaultIds = vaultIds }, tx)).Where(id => id > 0).ToList();
 
         foreach (var vaultId in vaultIds)
         {
@@ -1741,6 +1804,19 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             if (rows > 0)
             {
                 deletedIds.Add(vaultId);
+            }
+        }
+
+        foreach (var tid in affectedTenantIds)
+        {
+            var minDate = await conn.QueryFirstOrDefaultAsync<string>(
+                "SELECT MIN(primary_date) FROM documents WHERE tenant_id = @TenantId AND is_timeline_visible = 1 AND primary_date IS NOT NULL AND primary_date != '';",
+                new { TenantId = tid }, tx);
+            if (!string.IsNullOrWhiteSpace(minDate))
+            {
+                await conn.ExecuteAsync(
+                    "UPDATE tenants SET start_date = @MinDate WHERE id = @TenantId;",
+                    new { MinDate = minDate, TenantId = tid }, tx);
             }
         }
 

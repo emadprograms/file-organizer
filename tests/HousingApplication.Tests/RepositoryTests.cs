@@ -1194,4 +1194,136 @@ public class RepositoryTests : IDisposable
         Assert.NotNull(pDto);
         Assert.Equal("2018-05-20", pDto.StartDate);
     }
+
+    [Fact]
+    public async Task GetTreeAsync_And_GetHousesAsync_AccuratelyReflectDocumentAnchoredStartDate_WhenDocumentDateIsUpdated()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("Area616", "A616");
+        await _repo.AddHouseAsync("616", "Area616");
+        var tenant = await _repo.AddTenantAsync("616", "House 616 Tenant", "1990-01-01", null, isResident: 1);
+
+        var docReq = new IngestRequestDto
+        {
+            AreaId = "Area616",
+            HouseId = "616",
+            TenantId = tenant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد إيجار قديم 1990",
+            PrimaryDate = "1990-01-01",
+            VaultId = Guid.NewGuid().ToString("N"),
+            PageCount = 1
+        };
+        var addedDoc = await _repo.AddManualDocumentAsync(docReq);
+
+        // Before update: tree and houses reflect 1990
+        var treeBefore = await _repo.GetTreeAsync();
+        var houseBefore = treeBefore.FirstOrDefault(a => a.Name == "Area616")?.Children?.FirstOrDefault(h => h.Id == "616");
+        Assert.NotNull(houseBefore);
+        Assert.Equal("long", houseBefore.DurationCategory);
+        Assert.Contains("Since 1990", houseBefore.Subtitle);
+        var tenantBefore = houseBefore.Children?.FirstOrDefault(t => t.Name == "House 616 Tenant");
+        Assert.NotNull(tenantBefore);
+        Assert.Equal("1990 - Present", tenantBefore.Subtitle);
+        Assert.Equal("long", tenantBefore.DurationCategory);
+
+        // Act: Update document date to 2 years ago (short tenure < 5y)
+        var currentYear = DateTime.Now.Year;
+        var newStartYear = currentYear - 2;
+        var newDateStr = $"{newStartYear}-06-15";
+
+        await _repo.UpdateDocumentAsync(addedDoc.VaultId, primaryDate: newDateStr);
+
+        // Assert: GetTreeAsync, GetHousesAsync, GetHouseProfileAsync, and GetTenantsAsync ALL reflect newDateStr
+        var treeAfter = await _repo.GetTreeAsync();
+        var houseAfter = treeAfter.FirstOrDefault(a => a.Name == "Area616")?.Children?.FirstOrDefault(h => h.Id == "616");
+        Assert.NotNull(houseAfter);
+        Assert.Equal("short", houseAfter.DurationCategory);
+        Assert.Equal($"Since {newStartYear} (2y)", houseAfter.Subtitle);
+        var tenantAfter = houseAfter.Children?.FirstOrDefault(t => t.Name == "House 616 Tenant");
+        Assert.NotNull(tenantAfter);
+        Assert.Equal($"{newStartYear} - Present", tenantAfter.Subtitle);
+        Assert.Equal("short", tenantAfter.DurationCategory);
+        Assert.Equal(newDateStr, tenantAfter.StartDate);
+
+        // GetHousesAsync check
+        var houses = await _repo.GetHousesAsync("Area616");
+        var houseCard = houses.FirstOrDefault(h => h.Id == "616");
+        Assert.NotNull(houseCard);
+        Assert.Equal("short", houseCard.DurationCategory);
+        Assert.Equal(2, houseCard.TenureDurationYears);
+        Assert.Equal($"Since {newStartYear} (2y)", houseCard.Subtitle);
+
+        // GetHouseProfileAsync check (tenant selection UI)
+        var profile = await _repo.GetHouseProfileAsync("Area616", "616");
+        Assert.NotNull(profile);
+        var profileTenant = profile.Tenants.FirstOrDefault(t => t.Name == "House 616 Tenant");
+        Assert.NotNull(profileTenant);
+        Assert.Equal(newDateStr, profileTenant.StartDate);
+        Assert.Equal("short", profileTenant.DurationCategory);
+
+        // GetTenantsAsync check
+        var tenantsList = await _repo.GetTenantsAsync("616");
+        var tDto = tenantsList.FirstOrDefault(t => t.Name == "House 616 Tenant");
+        Assert.NotNull(tDto);
+        Assert.Equal(newDateStr, tDto.StartDate);
+    }
+
+    [Fact]
+    public async Task DeleteDocumentAsync_UpdatesTreeAndHouseCardDocumentAnchoredStartDate()
+    {
+        // Arrange: House 617 with two documents: 2010 and 2022
+        await _repo.AddAreaAsync("Area617", "A617");
+        await _repo.AddHouseAsync("617", "Area617");
+        var tenant = await _repo.AddTenantAsync("617", "Multi Doc Tenant", "1995-01-01", null, isResident: 1);
+
+        var doc1 = await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Area617",
+            HouseId = "617",
+            TenantId = tenant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد قديم 2010",
+            PrimaryDate = "2010-01-01",
+            VaultId = Guid.NewGuid().ToString("N"),
+            PageCount = 1
+        });
+
+        var currentYear = DateTime.Now.Year;
+        var recentYear = currentYear - 1;
+        var doc2 = await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Area617",
+            HouseId = "617",
+            TenantId = tenant.Id,
+            Category = "01 - بيانات أساسية",
+            ArabicTitle = "وثيقة حديثة",
+            PrimaryDate = $"{recentYear}-08-01",
+            VaultId = Guid.NewGuid().ToString("N"),
+            PageCount = 1
+        });
+
+        // Initially anchors to 2010
+        var tree1 = await _repo.GetTreeAsync();
+        var h1 = tree1.FirstOrDefault(a => a.Name == "Area617")?.Children?.FirstOrDefault(h => h.Id == "617");
+        Assert.NotNull(h1);
+        Assert.Contains("Since 2010", h1.Subtitle);
+
+        // Act: Delete 2010 document
+        var delOk = await _repo.DeleteDocumentAsync("Area617", "617", doc1.VaultId);
+        Assert.True(delOk);
+
+        // Assert: Next earliest document (recentYear) now anchors the house card and tree
+        var tree2 = await _repo.GetTreeAsync();
+        var h2 = tree2.FirstOrDefault(a => a.Name == "Area617")?.Children?.FirstOrDefault(h => h.Id == "617");
+        Assert.NotNull(h2);
+        Assert.Equal("short", h2.DurationCategory);
+        Assert.Contains($"Since {recentYear}", h2.Subtitle);
+
+        var tenantNode = h2.Children?.FirstOrDefault(t => t.Name == "Multi Doc Tenant");
+        Assert.NotNull(tenantNode);
+        Assert.Equal($"{recentYear} - Present", tenantNode.Subtitle);
+        Assert.Equal($"{recentYear}-08-01", tenantNode.StartDate);
+    }
 }
+

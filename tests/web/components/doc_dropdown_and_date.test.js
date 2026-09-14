@@ -716,6 +716,7 @@ describe('Document 3-Dots Dropdown Menu & Categories Date Badge', () => {
             expect(modal.classList.contains('hidden')).toBe(true);
             expect(global.showToast).toHaveBeenCalledWith('Document date updated successfully', 'success');
             expect(global.refreshCurrentTab).toHaveBeenCalledWith('Safra C', '514');
+            expect(global.loadTree).toHaveBeenCalled();
         });
 
         it('closes the modal when Cancel button is clicked', () => {

@@ -129,9 +129,12 @@
         }
 
         if (areaId && !houseId) {
-            const areaNode = globalTreeData.find(a => a.name === areaId);
+            const areaNode = globalTreeData ? globalTreeData.find(a => a.name === areaId) : null;
             if (areaNode && typeof window.selectAreaGrid === 'function') {
                 window.selectAreaGrid(areaNode);
+            }
+            if (typeof window.loadAreaGrid === 'function') {
+                window.loadAreaGrid(areaId);
             }
             return;
         }
