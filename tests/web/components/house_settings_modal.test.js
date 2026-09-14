@@ -245,7 +245,7 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
     expect(presentCheck.disabled).toBe(false);
     expect(presentCheck.classList.contains('opacity-30')).toBe(false);
     expect(endInput.disabled).toBe(false);
-    expect(startInput.title).toBe('Start Date • تاريخ البدء');
+    expect(startInput.title).toBe('Start date is always selected as the first document and is auto if there is no document • تاريخ البدء يُحدّد دائماً من تاريخ أول وثيقة، ويكون تلقائياً عند عدم وجود وثائق');
   });
 
   it('includes is_resident: 0 in payload when saving an applicant row', async () => {
@@ -293,9 +293,12 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
     );
   });
 
-  it('renders First Document • أول ظهور table column header in tenant modal in index.html', () => {
-    expect(htmlContent).toContain('First Document • أول ظهور');
-    expect(htmlContent).not.toContain('Start Date • تاريخ البدء');
+  it('renders Start Date • تاريخ البدء table column header with question mark and explanation in index.html', () => {
+    expect(htmlContent).toContain('Start Date • تاريخ البدء');
+    expect(htmlContent).toContain('?');
+    expect(htmlContent).toContain('Start date is always selected as the first document and is auto if there is no document');
+    expect(htmlContent).toContain('تاريخ البدء يُحدّد دائماً من أول وثيقة، ويكون تلقائياً عند عدم وجود وثائق');
+    expect(htmlContent).not.toContain('First Document • أول ظهور');
   });
 
   it('renders readonly auto input for new tenant row and sends null start_date on save', async () => {

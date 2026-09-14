@@ -156,9 +156,12 @@
             }
         }
 
+        const residentStartTitle = 'Start date is always selected as the first document and is auto if there is no document • تاريخ البدء يُحدّد دائماً من تاريخ أول وثيقة، ويكون تلقائياً عند عدم وجود وثائق';
+        const applicantStartTitle = 'Application / Order Date • تاريخ الطلب/التخصيص';
+
         const startInputHtml = (startVal && String(startVal).trim())
-            ? `<input type="text" readonly value="${String(startVal).substring(0, 10)}" title="${isApplicant ? 'Application / Order Date • تاريخ الطلب/التخصيص' : 'Start Date • تاريخ البدء'}" class="tenant-start-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-mono font-medium cursor-default" />`
-            : `<input type="text" readonly value="تلقائي (عند أول رفع)" title="${isApplicant ? 'Application / Order Date • تاريخ الطلب/التخصيص' : 'Start Date • تاريخ البدء'}" class="tenant-start-input w-full px-2 py-1.5 text-xs rounded-lg border border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 font-medium cursor-default" />`;
+            ? `<input type="text" readonly value="${String(startVal).substring(0, 10)}" title="${isApplicant ? applicantStartTitle : residentStartTitle}" class="tenant-start-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-mono font-medium cursor-default" />`
+            : `<input type="text" readonly value="تلقائي (عند أول رفع)" title="${isApplicant ? applicantStartTitle : residentStartTitle}" class="tenant-start-input w-full px-2 py-1.5 text-xs rounded-lg border border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 font-medium cursor-default" />`;
 
         row.innerHTML = `
             <div class="sm:col-span-4 flex items-center gap-2">
@@ -207,13 +210,13 @@
                 endInput.className = "tenant-end-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 bg-slate-100 text-slate-400 font-medium cursor-not-allowed";
                 endInput.title = 'N/A (لم يسكن)';
 
-                startInput.title = 'Application / Order Date • تاريخ الطلب/التخصيص';
+                startInput.title = applicantStartTitle;
             } else {
                 presentCheck.disabled = false;
                 presentCheck.classList.remove('opacity-30', 'cursor-not-allowed');
                 presentCheck.classList.add('cursor-pointer');
 
-                startInput.title = 'Start Date • تاريخ البدء';
+                startInput.title = residentStartTitle;
 
                 if (presentCheck.checked) {
                     endInput.value = '';
