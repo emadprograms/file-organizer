@@ -305,7 +305,7 @@
                 card.className = 'applicant-profile-card tenant-profile-card p-3 rounded-xl border border-dashed border-purple-200 dark:border-purple-800/60 bg-purple-50/20 dark:bg-purple-950/20 hover:border-purple-400 hover:bg-purple-50/40 transition-all cursor-pointer group shadow-2xs hover:shadow-sm';
                 card.dataset.tenantName = t.name;
 
-                const appDateStr = t.start_date ? `طلب / تخصيص: ${String(t.start_date).substring(0, 10)}` : 'طلب تخصيص';
+                const appDateStr = t.start_date ? 'أول وثيقة: ' + String(t.start_date).substring(0, 10) : 'بانتظار أول وثيقة (تلقائي)';
 
                 card.innerHTML = `
                     <div class="flex items-center justify-between gap-3">

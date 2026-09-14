@@ -179,7 +179,7 @@ public class RepositoryTests : IDisposable
 
         var pastItem = profile.Tenants.First(t => t.Id == tPast.Id);
         Assert.False(pastItem.IsActive);
-        Assert.Contains("فترة الإيجار: 2015", pastItem.DurationStrAr);
+        Assert.Contains("فترة الإيجار: 2017", pastItem.DurationStrAr);
 
         Assert.Equal(2, profile.Archive.TotalDocuments);
         Assert.Equal(4, profile.Archive.TotalPages);
@@ -966,5 +966,41 @@ public class RepositoryTests : IDisposable
         var pAfter = profileAfter.Tenants.FirstOrDefault(t => t.Name == "New Tenant Zero");
         Assert.NotNull(pAfter);
         Assert.Equal("2024-05-10", pAfter.StartDate);
+    }
+
+    [Fact]
+    public async Task GetTenantsAsync_AnchorsStartDate_ToEarliestDocumentDate_EvenWhenManualDateIsOlder()
+    {
+        // Arrange: Existing tenant has an older manual start date 2015-01-01
+        await _repo.AddAreaAsync("AreaOlderManual", "AOM");
+        await _repo.AddHouseAsync("H-Older1", "AreaOlderManual");
+        var tenant = await _repo.AddTenantAsync("H-Older1", "Older Tenant", "2015-01-01", null, isResident: 1);
+
+        // Add document with later date 2018-05-20 (earliest document for this tenant)
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "AreaOlderManual",
+            HouseId = "H-Older1",
+            TenantId = tenant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد إيجار 2018",
+            PrimaryDate = "2018-05-20",
+            VaultId = Guid.NewGuid().ToString("N"),
+            PageCount = 1
+        });
+
+        // Act
+        var tenants = await _repo.GetTenantsAsync("H-Older1");
+        var profile = await _repo.GetHouseProfileAsync("AreaOlderManual", "H-Older1");
+
+        // Assert: Both GetTenantsAsync and GetHouseProfileAsync return 2018-05-20, unconditionally anchoring to earliest document
+        var tDto = tenants.FirstOrDefault(t => t.Id == tenant.Id);
+        Assert.NotNull(tDto);
+        Assert.Equal("2018-05-20", tDto.StartDate);
+
+        Assert.NotNull(profile);
+        var pDto = profile.Tenants.FirstOrDefault(t => t.Name == "Older Tenant");
+        Assert.NotNull(pDto);
+        Assert.Equal("2018-05-20", pDto.StartDate);
     }
 }

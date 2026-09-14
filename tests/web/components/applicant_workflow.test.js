@@ -81,6 +81,14 @@ describe('Applicant Integrated Workflows Suite (Phase 113)', () => {
           notes: 'ألغي التخصيص لعدم المراجعة',
           category_count: 2,
           document_count: 4
+        },
+        {
+          name: 'سالم جديد',
+          is_active: false,
+          is_resident: 0,
+          start_date: null,
+          category_count: 0,
+          document_count: 0
         }
       ],
       archive: { total_documents: 16, total_pages: 20, categories: [] }
@@ -102,8 +110,9 @@ describe('Applicant Integrated Workflows Suite (Phase 113)', () => {
     expect(applicantsSection.textContent).toContain('المتقدمون');
 
     // Distinctive applicant styling
-    const applicantCard = applicantsSection.querySelector('.applicant-profile-card');
-    expect(applicantCard).not.toBeNull();
+    const applicantCards = applicantsSection.querySelectorAll('.applicant-profile-card');
+    expect(applicantCards.length).toBe(2);
+    const applicantCard = applicantCards[0];
     expect(applicantCard.className).toContain('border-dashed');
     expect(applicantCard.className).toContain('border-purple-200');
     expect(applicantCard.className).toContain('bg-purple-50/20');
@@ -113,8 +122,11 @@ describe('Applicant Integrated Workflows Suite (Phase 113)', () => {
     expect(badge).not.toBeNull();
     expect(badge.textContent).toContain('📋 متقدم (لم يسكن)');
 
-    // Application date
-    expect(applicantCard.textContent).toContain('طلب / تخصيص: 2024-03-15');
+    // Application date / First document appearance
+    expect(applicantCard.textContent).toContain('أول وثيقة: 2024-03-15');
+
+    // Applicant with no documents renders waiting message
+    expect(applicantCards[1].textContent).toContain('بانتظار أول وثيقة (تلقائي)');
 
     // Document count
     expect(applicantCard.textContent).toContain('4');

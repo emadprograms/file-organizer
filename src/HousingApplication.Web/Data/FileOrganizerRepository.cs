@@ -400,7 +400,6 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             SELECT t.id, t.house_id AS HouseId, t.name, 
                    CASE 
                        WHEN d.min_date IS NOT NULL AND d.min_date != '' 
-                            AND (t.start_date IS NULL OR t.start_date = '' OR t.start_date = '1970-01-01' OR t.start_date > d.min_date)
                        THEN d.min_date 
                        ELSE t.start_date 
                    END AS StartDate,
@@ -672,7 +671,6 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             SELECT t.id AS Id, t.name AS Name, 
                    CASE 
                        WHEN d.min_date IS NOT NULL AND d.min_date != '' 
-                            AND (t.start_date IS NULL OR t.start_date = '' OR t.start_date = '1970-01-01' OR t.start_date > d.min_date)
                        THEN d.min_date 
                        ELSE t.start_date 
                    END AS StartDate, 

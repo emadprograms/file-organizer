@@ -292,4 +292,56 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
       })
     );
   });
+
+  it('renders First Document • أول ظهور table column header in tenant modal in index.html', () => {
+    expect(htmlContent).toContain('First Document • أول ظهور');
+    expect(htmlContent).not.toContain('Start Date • تاريخ البدء');
+  });
+
+  it('renders readonly auto input for new tenant row and sends null start_date on save', async () => {
+    const addBtn = document.getElementById('btn-add-tenant-row');
+    const rowsContainer = document.getElementById('tenant-modal-rows');
+
+    addBtn.click();
+    const row = rowsContainer.querySelector('.tenant-row');
+    const startInput = row.querySelector('.tenant-start-input');
+
+    expect(startInput.readOnly).toBe(true);
+    expect(startInput.value).toBe('تلقائي (عند أول رفع)');
+    expect(startInput.className).toContain('border-dashed');
+
+    row.querySelector('.tenant-name-input').value = 'Auto Date Tenant';
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ status: 'success', reallocated_count: 0, tenants_count: 1 })
+    });
+
+    const saveBtn = document.getElementById('tenant-modal-save');
+    saveBtn.click();
+
+    await new Promise(r => setTimeout(r, 10));
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/areas/Safra%20C/houses/500/tenants',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenants: [
+            {
+              id: null,
+              name: 'Auto Date Tenant',
+              start_date: null,
+              end_date: null,
+              house_id: '500',
+              is_resident: 1,
+              notes: null
+            }
+          ],
+          reallocate: true
+        })
+      })
+    );
+  });
 });
