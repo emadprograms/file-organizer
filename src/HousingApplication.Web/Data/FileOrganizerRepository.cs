@@ -751,6 +751,10 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         var queryParams = new DynamicParameters();
         queryParams.Add("DocLimit", Math.Max(limit, 50));
 
+        var coreHouseNumber = TextUtils.ExtractHouseNumber(query);
+        queryParams.Add("ExactHouse", coreHouseNumber.ToLowerInvariant());
+        queryParams.Add("PrefixHouse", $"{coreHouseNumber.ToLowerInvariant()}%");
+
         for (int i = 0; i < variants.Count; i++)
         {
             var p = $"@LikeQ{i}";
@@ -768,6 +772,12 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             )");
         }
 
+        if (!string.IsNullOrWhiteSpace(coreHouseNumber))
+        {
+            queryParams.Add("CoreHouseLike", $"%{coreHouseNumber.ToLowerInvariant()}%");
+            houseClauses.Add("LOWER(h.id) LIKE @CoreHouseLike");
+        }
+
         // 1. Houses matching q
         var sqlHouses = $@"
             SELECT h.id AS Id, h.area_id AS AreaId,
@@ -775,7 +785,14 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                    (SELECT name FROM tenants WHERE house_id = h.id AND is_resident = 1 AND (end_date IS NULL OR end_date = '' OR LOWER(end_date) = 'present') ORDER BY start_date DESC LIMIT 1) AS CurrentTenant
             FROM houses h
             WHERE {string.Join(" OR ", houseClauses)}
-            ORDER BY h.id;";
+            ORDER BY 
+                CASE 
+                    WHEN @ExactHouse != '' AND LOWER(h.id) = @ExactHouse THEN 0
+                    WHEN @PrefixHouse != '%' AND LOWER(h.id) LIKE @PrefixHouse THEN 1
+                    ELSE 2
+                END,
+                LENGTH(h.id),
+                h.id;";
 
         var houseRows = await conn.QueryAsync<(string Id, string AreaId, int DocCount, string? CurrentTenant)>(sqlHouses, queryParams);
         foreach (var hr in houseRows)
@@ -1410,7 +1427,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         string? startDate = null,
         string? areasRoot = null)
     {
-        var cleanHouseId = houseId?.Trim() ?? string.Empty;
+        var cleanHouseId = TextUtils.NormalizeArabicDigits(houseId?.Trim() ?? string.Empty);
         var cleanAreaId = areaId?.Trim() ?? string.Empty;
 
         if (string.IsNullOrWhiteSpace(cleanHouseId))

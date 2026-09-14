@@ -254,4 +254,15 @@ describe('Command Palette Tenant Search Timeline Color Coding', () => {
     expect(tenantItems[0].textContent).toContain('Resident Beta');
     expect(tenantItems[1].textContent).toContain('Applicant Alpha');
   });
+
+  it('supports Arabic numerals in search guidance and placeholder', () => {
+    const input = document.getElementById('search-input');
+    input.setAttribute('placeholder', 'Search houses (e.g. 500 or ٥٠٠), tenants, or documents...');
+    expect(input.getAttribute('placeholder')).toContain('٥٠٠');
+
+    input.value = '';
+    input.dispatchEvent(new Event('input'));
+    const emptyState = document.getElementById('search-results');
+    expect(emptyState.textContent).toContain('٥٠٠');
+  });
 });

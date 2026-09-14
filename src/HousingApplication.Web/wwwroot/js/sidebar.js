@@ -1,35 +1,43 @@
 // ── Sidebar & Area Tree Component ─────────────────────────────────────────
 (function() {
+    let activeLoadPromise = null;
+
     async function loadTree() {
+        if (activeLoadPromise) return activeLoadPromise;
         isTreeLoading = true;
         renderSidebar();
-        try {
-            let res = null;
+        activeLoadPromise = (async () => {
             try {
-                res = await fetch(API_TREE);
-                if (!res.ok) throw new Error();
-            } catch (e) {
-                res = await fetch('./tree.json');
-                if (res && res.ok) {
-                    isStaticMode = true;
+                let res = null;
+                try {
+                    res = await fetch(API_TREE);
+                    if (!res.ok) throw new Error();
+                } catch (e) {
+                    res = await fetch('./tree.json');
+                    if (res && res.ok) {
+                        isStaticMode = true;
+                    }
                 }
+                if (!res || !res.ok) throw new Error('Failed to load tree');
+                const treeData = await res.json();
+                globalTreeData = treeData;
+                isTreeLoading = false;
+                
+                renderSidebar();
+                if (typeof window.handleHashChange === 'function') {
+                    window.handleHashChange();
+                }
+            } catch (err) {
+                isTreeLoading = false;
+                const houseListEl = document.getElementById('house-list');
+                if (houseListEl) {
+                    houseListEl.innerHTML = '<div class="p-2 text-rose-500 text-xs">Error loading data. <button onclick="window.loadTree()" class="ml-1 underline text-blue-500 hover:text-blue-700">Retry</button></div>';
+                }
+            } finally {
+                activeLoadPromise = null;
             }
-            if (!res || !res.ok) throw new Error('Failed to load tree');
-            const treeData = await res.json();
-            globalTreeData = treeData;
-            isTreeLoading = false;
-            
-            renderSidebar();
-            if (typeof window.handleHashChange === 'function') {
-                window.handleHashChange();
-            }
-        } catch (err) {
-            isTreeLoading = false;
-            const houseListEl = document.getElementById('house-list');
-            if (houseListEl) {
-                houseListEl.innerHTML = '<div class="p-2 text-rose-500 text-xs">Error loading data. <button onclick="window.loadTree()" class="ml-1 underline text-blue-500 hover:text-blue-700">Retry</button></div>';
-            }
-        }
+        })();
+        return activeLoadPromise;
     }
 
     function renderSidebar() {

@@ -110,47 +110,230 @@ public static class TextUtils
         return s;
     }
 
+    private static readonly Dictionary<char, char> ArabicLetterSuffixMap = new()
+    {
+        ['أ'] = 'A', ['ا'] = 'A', ['إ'] = 'A', ['آ'] = 'A',
+        ['ب'] = 'B',
+        ['ج'] = 'C',
+        ['د'] = 'D',
+        ['ه'] = 'E', ['ة'] = 'E',
+        ['و'] = 'F',
+        ['ز'] = 'G'
+    };
+
+    private static readonly Dictionary<char, char> EnglishLetterSuffixMap = new()
+    {
+        ['a'] = 'أ', ['A'] = 'أ',
+        ['b'] = 'ب', ['B'] = 'ب',
+        ['c'] = 'ج', ['C'] = 'ج',
+        ['d'] = 'د', ['D'] = 'د',
+        ['e'] = 'ه', ['E'] = 'ه',
+        ['f'] = 'و', ['F'] = 'و',
+        ['g'] = 'ز', ['G'] = 'ز'
+    };
+
+    public static string NormalizeArabicDigits(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        var sb = new StringBuilder(text.Length);
+        foreach (var ch in text)
+        {
+            switch (ch)
+            {
+                case '٠': case '۰': sb.Append('0'); break;
+                case '١': case '۱': sb.Append('1'); break;
+                case '٢': case '۲': sb.Append('2'); break;
+                case '٣': case '۳': sb.Append('3'); break;
+                case '٤': case '۴': sb.Append('4'); break;
+                case '٥': case '۵': sb.Append('5'); break;
+                case '٦': case '۶': sb.Append('6'); break;
+                case '٧': case '۷': sb.Append('7'); break;
+                case '٨': case '۸': sb.Append('8'); break;
+                case '٩': case '۹': sb.Append('9'); break;
+                default: sb.Append(ch); break;
+            }
+        }
+        return sb.ToString();
+    }
+
+    public static string ToArabicDigits(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return string.Empty;
+
+        var sb = new StringBuilder(text.Length);
+        foreach (var ch in text)
+        {
+            if (ch >= '0' && ch <= '9')
+            {
+                sb.Append((char)('٠' + (ch - '0')));
+            }
+            else
+            {
+                sb.Append(ch);
+            }
+        }
+        return sb.ToString();
+    }
+
+    public static bool HasDigits(string? text)
+    {
+        if (string.IsNullOrEmpty(text)) return false;
+        foreach (var ch in text)
+        {
+            if ((ch >= '0' && ch <= '9') || (ch >= '٠' && ch <= '٩') || (ch >= '۰' && ch <= '۹'))
+                return true;
+        }
+        return false;
+    }
+
+    public static string ExtractHouseNumber(string? query)
+    {
+        if (string.IsNullOrWhiteSpace(query))
+            return string.Empty;
+
+        var clean = StripArabicDiacritics(query).Trim();
+        if (clean.Contains(" - "))
+        {
+            clean = clean.Split(" - ")[0].Trim();
+        }
+
+        if (!HasDigits(clean))
+            return clean;
+
+        var normalized = NormalizeArabicDigits(clean);
+
+        // Strip prefix: بيت, منزل, دار, شقة, عمارة, فيلا, وحدة, رقم, مبنى, سكن, house, flat, unit, villa, building, apt, apartment, no., h., #
+        var prefixMatch = Regex.Match(normalized, @"^(?:بيت|منزل|دار|شقة|عمارة|فيلا|وحدة|رقم|مبنى|سكن|house|flat|unit|villa|building|apt|apartment|no\.?|h\.?|#)\s+(.+)$", RegexOptions.IgnoreCase);
+        if (prefixMatch.Success)
+        {
+            normalized = prefixMatch.Groups[1].Value.Trim();
+        }
+
+        // Map letter suffix e.g. "552أ" or "552 أ" -> "552A"
+        var suffixMatch = Regex.Match(normalized, @"^(\d+)\s*([أإآابجدوهز])$");
+        if (suffixMatch.Success)
+        {
+            var num = suffixMatch.Groups[1].Value;
+            var arLetter = suffixMatch.Groups[2].Value[0];
+            if (ArabicLetterSuffixMap.TryGetValue(arLetter, out var enLetter))
+            {
+                return $"{num}{enLetter}";
+            }
+        }
+
+        // Remove space between digits and English letter: "552 a" -> "552A"
+        var enSuffixMatch = Regex.Match(normalized, @"^(\d+)\s*([a-zA-Z])$");
+        if (enSuffixMatch.Success)
+        {
+            return $"{enSuffixMatch.Groups[1].Value}{char.ToUpperInvariant(enSuffixMatch.Groups[2].Value[0])}";
+        }
+
+        return normalized;
+    }
+
     public static List<string> GetArabicSearchVariants(string? query)
     {
         if (string.IsNullOrWhiteSpace(query))
             return new List<string>();
 
-        var clean = StripArabicDiacritics(query).Trim().ToLowerInvariant();
+        var rawClean = StripArabicDiacritics(query).Trim();
+        var clean = rawClean.ToLowerInvariant();
         var variants = new HashSet<string> { clean };
 
-        // 1. Alef with Hamza <-> bare Alef
-        if (clean.IndexOfAny(new[] { 'أ', 'إ', 'آ', 'ٱ' }) >= 0)
+        // 1. Digits conversion: Arabic-Indic <-> ASCII Latin
+        var latinDigits = NormalizeArabicDigits(clean);
+        if (!string.IsNullOrEmpty(latinDigits) && latinDigits != clean)
         {
-            variants.Add(Regex.Replace(clean, "[أإآٱ]", "ا"));
-        }
-        else if (clean.Contains('ا'))
-        {
-            variants.Add(Regex.Replace(clean, @"(^|[\s\-])ا", "$1أ"));
-            variants.Add(Regex.Replace(clean, @"(^|[\s\-])ا", "$1إ"));
+            variants.Add(latinDigits);
         }
 
-        // 2. Taa Marbuta <-> Haa <-> Alif
-        if (clean.EndsWith('ة'))
+        var arabicDigits = ToArabicDigits(clean);
+        if (!string.IsNullOrEmpty(arabicDigits) && arabicDigits != clean)
         {
-            variants.Add(clean[..^1] + "ه");
-            variants.Add(clean[..^1] + "ا");
-        }
-        else if (clean.EndsWith('ه'))
-        {
-            variants.Add(clean[..^1] + "ة");
-            variants.Add(clean[..^1] + "ا");
-        }
-        else if (clean.EndsWith('ا'))
-        {
-            variants.Add(clean[..^1] + "ة");
-            variants.Add(clean[..^1] + "ه");
+            variants.Add(arabicDigits);
         }
 
-        // 3. Alif Maqsura <-> Yaa
-        if (clean.EndsWith('ى'))
-            variants.Add(clean[..^1] + "ي");
-        else if (clean.EndsWith('ي'))
-            variants.Add(clean[..^1] + "ى");
+        // 2. House prefix extraction: e.g. "بيت 500", "منزل ٥٠٠", "house 500"
+        var houseNum = ExtractHouseNumber(rawClean);
+        if (!string.IsNullOrEmpty(houseNum))
+        {
+            var houseNumLow = houseNum.ToLowerInvariant();
+            variants.Add(houseNumLow);
+            variants.Add(houseNum);
+            var houseNumArDigits = ToArabicDigits(houseNumLow);
+            if (!string.IsNullOrEmpty(houseNumArDigits))
+                variants.Add(houseNumArDigits);
+
+            // Also check Arabic letter suffix for extracted house number (e.g. 552A -> 552أ)
+            var enSuffixMatch = Regex.Match(houseNum, @"^(\d+)([a-zA-Z])$");
+            if (enSuffixMatch.Success)
+            {
+                var num = enSuffixMatch.Groups[1].Value;
+                var enLetter = char.ToLowerInvariant(enSuffixMatch.Groups[2].Value[0]);
+                if (EnglishLetterSuffixMap.TryGetValue(enLetter, out var arLetter))
+                {
+                    variants.Add($"{num}{arLetter}");
+                    variants.Add($"{ToArabicDigits(num)}{arLetter}");
+                }
+            }
+        }
+
+        // 3. Suffix variations on raw variants
+        foreach (var v in variants.ToList())
+        {
+            var matchSuffix = Regex.Match(v, @"^(\d+)\s*([أإآابجدوهز])$");
+            if (matchSuffix.Success)
+            {
+                var num = matchSuffix.Groups[1].Value;
+                var arLetter = matchSuffix.Groups[2].Value[0];
+                if (ArabicLetterSuffixMap.TryGetValue(arLetter, out var enLetter))
+                {
+                    variants.Add($"{num}{char.ToLowerInvariant(enLetter)}");
+                    variants.Add($"{num}{char.ToUpperInvariant(enLetter)}");
+                }
+            }
+        }
+
+        // 4. Standard Arabic letter variations (Alif Hamza, Taa Marbuta, Alif Maqsura)
+        foreach (var v in variants.ToList())
+        {
+            // Alef with Hamza <-> bare Alef
+            if (v.IndexOfAny(new[] { 'أ', 'إ', 'آ', 'ٱ' }) >= 0)
+            {
+                variants.Add(Regex.Replace(v, "[أإآٱ]", "ا"));
+            }
+            else if (v.Contains('ا'))
+            {
+                variants.Add(Regex.Replace(v, @"(^|[\s\-])ا", "$1أ"));
+                variants.Add(Regex.Replace(v, @"(^|[\s\-])ا", "$1إ"));
+            }
+
+            // Taa Marbuta <-> Haa <-> Alif
+            if (v.EndsWith('ة'))
+            {
+                variants.Add(v[..^1] + "ه");
+                variants.Add(v[..^1] + "ا");
+            }
+            else if (v.EndsWith('ه'))
+            {
+                variants.Add(v[..^1] + "ة");
+                variants.Add(v[..^1] + "ا");
+            }
+            else if (v.EndsWith('ا'))
+            {
+                variants.Add(v[..^1] + "ة");
+                variants.Add(v[..^1] + "ه");
+            }
+
+            // Alif Maqsura <-> Yaa
+            if (v.EndsWith('ى'))
+                variants.Add(v[..^1] + "ي");
+            else if (v.EndsWith('ي'))
+                variants.Add(v[..^1] + "ى");
+        }
 
         return variants.Where(v => !string.IsNullOrWhiteSpace(v)).Distinct().ToList();
     }
@@ -165,6 +348,25 @@ public static class TextUtils
         var qLow = qClean.Trim().ToLowerInvariant();
         var tLow = tClean.Trim().ToLowerInvariant();
         var hLow = houseId.Trim().ToLowerInvariant();
+
+        var qNormDigits = NormalizeArabicDigits(qLow);
+        var qHouseCore = ExtractHouseNumber(qLow).ToLowerInvariant();
+
+        // Check if query is targeting house number (e.g. "500", "٥٠٠", "بيت ٥٠٠", "house 500")
+        if (!string.IsNullOrEmpty(qHouseCore))
+        {
+            if (hLow == qHouseCore)
+                return 950;
+            if (hLow.StartsWith(qHouseCore))
+                return 920;
+            if (hLow.Contains(qHouseCore))
+                return 900;
+        }
+
+        if (hLow.Equals(qLow, StringComparison.OrdinalIgnoreCase) || (!string.IsNullOrEmpty(qNormDigits) && hLow.Equals(qNormDigits, StringComparison.OrdinalIgnoreCase)))
+            return 950;
+        if (hLow.Contains(qLow) || (!string.IsNullOrEmpty(qNormDigits) && hLow.Contains(qNormDigits)))
+            return 900;
 
         var qNormAr = NormalizeArabic(qLow);
         var tNormAr = NormalizeArabic(tLow);
@@ -391,19 +593,6 @@ public static class TextUtils
 
         int maxLen = Math.Max(n, m);
         return 1.0 - ((double)d[n, m] / maxLen);
-    }
-
-    public static string ExtractHouseNumber(string houseId)
-    {
-        if (string.IsNullOrWhiteSpace(houseId))
-            return string.Empty;
-
-        if (houseId.Contains(" - "))
-        {
-            return houseId.Split(" - ")[0].Trim();
-        }
-
-        return houseId.Trim();
     }
 
     public static (int Years, string DurationStrAr) FormatArabicDuration(string? startDateStr, string? endDateStr)

@@ -31,9 +31,6 @@
                     } else {
                         window.location.hash = `#/area/${encodeURIComponent(currentArea)}`;
                     }
-                    if (typeof window.loadAreaGrid === 'function') {
-                        window.loadAreaGrid(currentArea);
-                    }
                 } else if (globalTreeData && globalTreeData.length > 0 && typeof window.selectAreaGrid === 'function') {
                     window.selectAreaGrid(globalTreeData[0]);
                 }

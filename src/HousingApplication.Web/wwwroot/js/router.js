@@ -133,9 +133,6 @@
             if (areaNode && typeof window.selectAreaGrid === 'function') {
                 window.selectAreaGrid(areaNode);
             }
-            if (typeof window.loadAreaGrid === 'function') {
-                window.loadAreaGrid(areaId);
-            }
             return;
         }
 

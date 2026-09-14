@@ -217,7 +217,7 @@
                 </div>
             `;
 
-            if (allTenants.length > 3) {
+            if (orderedTenants.length > 3) {
                 const tenantsSection = card.querySelector('.tenants-overview-section');
                 if (tenantsSection) {
                     tenantsSection.addEventListener('click', (e) => {
