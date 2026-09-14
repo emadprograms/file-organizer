@@ -576,23 +576,23 @@ html.dark .house-card:hover {
     box-shadow: 0 8px 20px -4px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(59, 130, 246, 0.25);
 }
 
-/* Tenure duration indicator left borders for house cards in dark mode (<5y emerald, 5-10y amber, >10y rose, vacant slate) */
+/* Tenure duration indicator left borders for house cards in dark mode (<5y emerald, 5-10y amber, >10y rose, vacant slate) - subdued, darker tones */
 html.dark .house-card.border-l-emerald-500,
 html.dark .house-card.border-l-emerald-500:hover,
 html.dark .border-l-emerald-500 {
-    border-left-color: #10b981 !important;
+    border-left-color: #047857 !important;
 }
 
 html.dark .house-card.border-l-amber-500,
 html.dark .house-card.border-l-amber-500:hover,
 html.dark .border-l-amber-500 {
-    border-left-color: #f59e0b !important;
+    border-left-color: #b45309 !important;
 }
 
 html.dark .house-card.border-l-rose-500,
 html.dark .house-card.border-l-rose-500:hover,
 html.dark .border-l-rose-500 {
-    border-left-color: #f43f5e !important;
+    border-left-color: #b91c1c !important;
 }
 
 html.dark .house-card.border-l-slate-300,

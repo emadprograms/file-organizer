@@ -88,23 +88,23 @@ describe('House Card Duration Indicator Colors in Dark Mode', () => {
     expect(cardVacant.className).toContain('dark:border-l-slate-600');
   });
 
-  it('preserves emerald left border color (#10b981) for short tenure cards in styles.css', () => {
+  it('preserves emerald left border color (#047857) for short tenure cards in styles.css', () => {
     // Matches explicit emerald rule at rest and on hover with !important
     const emeraldMatch = cssContent.match(/html\.dark\s+\.house-card\.border-l-emerald-500[^{]*\{([^}]*)\}/);
     expect(emeraldMatch).not.toBeNull();
-    expect(emeraldMatch[1]).toContain('border-left-color: #10b981 !important;');
+    expect(emeraldMatch[1]).toContain('border-left-color: #047857 !important;');
   });
 
-  it('preserves amber left border color (#f59e0b) for medium tenure cards in styles.css', () => {
+  it('preserves amber left border color (#b45309) for medium tenure cards in styles.css', () => {
     const amberMatch = cssContent.match(/html\.dark\s+\.house-card\.border-l-amber-500[^{]*\{([^}]*)\}/);
     expect(amberMatch).not.toBeNull();
-    expect(amberMatch[1]).toContain('border-left-color: #f59e0b !important;');
+    expect(amberMatch[1]).toContain('border-left-color: #b45309 !important;');
   });
 
-  it('preserves rose left border color (#f43f5e) for long tenure cards in styles.css', () => {
+  it('preserves rose/red left border color (#b91c1c) for long tenure cards in styles.css', () => {
     const roseMatch = cssContent.match(/html\.dark\s+\.house-card\.border-l-rose-500[^{]*\{([^}]*)\}/);
     expect(roseMatch).not.toBeNull();
-    expect(roseMatch[1]).toContain('border-left-color: #f43f5e !important;');
+    expect(roseMatch[1]).toContain('border-left-color: #b91c1c !important;');
   });
 
   it('preserves slate left border color (#475569) for vacant cards in styles.css', () => {
