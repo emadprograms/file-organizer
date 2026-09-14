@@ -156,10 +156,10 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                     if (mYear.Success)
                     {
                         var startYear = int.Parse(mYear.Groups[1].Value);
-                        var duration = currentYear - startYear;
+                        var duration = Math.Max(currentYear - startYear, 0);
                         if (duration < 5)
                             houseDurationCat = "short";
-                        else if (duration < 10)
+                        else if (duration <= 10)
                             houseDurationCat = "medium";
                         else
                             houseDurationCat = "long";
@@ -198,8 +198,8 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                     {
                         if (isActive)
                         {
-                            var dur = currentYear - sY.Value;
-                            tDurCat = dur < 5 ? "short" : (dur < 10 ? "medium" : "long");
+                            var dur = Math.Max(currentYear - sY.Value, 0);
+                            tDurCat = dur < 5 ? "short" : (dur <= 10 ? "medium" : "long");
                             tSub = $"{sY.Value} - Present";
                         }
                         else if (eY.HasValue && eY.Value != sY.Value)
@@ -219,7 +219,9 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                         Subtitle = tSub,
                         DurationCategory = tDurCat,
                         Type = "tenant",
-                        IsResident = t.IsResident
+                        IsResident = t.IsResident,
+                        StartDate = t.StartDate,
+                        EndDate = t.EndDate
                     });
                 }
 
@@ -266,10 +268,22 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             return Array.Empty<HouseCardDto>();
 
         var tenants = (await conn.QueryAsync<Tenant>(@"
-            SELECT id, house_id AS HouseId, name, start_date AS StartDate, end_date AS EndDate, is_resident AS IsResident, notes AS Notes 
-            FROM tenants 
-            ORDER BY (CASE WHEN end_date IS NULL OR end_date = '' OR LOWER(end_date) = 'present' OR end_date >= DATE('now') THEN 1 ELSE 0 END) DESC, 
-                     end_date DESC, start_date DESC, id DESC;")).ToList();
+            SELECT t.id, t.house_id AS HouseId, t.name, 
+                   CASE 
+                       WHEN d.min_date IS NOT NULL AND d.min_date != '' 
+                       THEN d.min_date 
+                       ELSE t.start_date 
+                   END AS StartDate,
+                   t.end_date AS EndDate, t.is_resident AS IsResident, t.notes AS Notes 
+            FROM tenants t
+            LEFT JOIN (
+                SELECT tenant_id, MIN(primary_date) AS min_date
+                FROM documents
+                WHERE is_timeline_visible = 1 AND primary_date IS NOT NULL AND primary_date != ''
+                GROUP BY tenant_id
+            ) d ON t.id = d.tenant_id
+            ORDER BY (CASE WHEN t.end_date IS NULL OR t.end_date = '' OR LOWER(t.end_date) = 'present' OR t.end_date >= DATE('now') THEN 1 ELSE 0 END) DESC, 
+                     t.end_date DESC, StartDate DESC, t.id DESC;")).ToList();
 
         var docCounts = (await conn.QueryAsync<(string HouseId, string? Category, int DocCount)>(@"
             SELECT house_id AS HouseId, category AS Category, COUNT(*) AS DocCount 
@@ -339,7 +353,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                         durationCategory = "short";
                         tenureColor = "green";
                     }
-                    else if (duration < 10)
+                    else if (duration <= 10)
                     {
                         durationCategory = "medium";
                         tenureColor = "yellow";
