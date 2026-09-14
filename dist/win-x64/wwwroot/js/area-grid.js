@@ -1,5 +1,153 @@
 // ── Area Houses Grid Component ────────────────────────────────────────────
 (function() {
+    let currentAreaNode = null;
+
+    function parseYearOrDate(val, isEnd = false) {
+        if (!val) return isEnd ? new Date() : null;
+        const str = String(val).trim();
+        if (!str || str.toLowerCase() === 'present' || str === 'الآن' || str === 'none' || str === 'null') {
+            return new Date();
+        }
+        const iso = str.match(/^(\d{4})(?:-(\d{1,2})(?:-(\d{1,2}))?)?/);
+        if (iso) {
+            const y = parseInt(iso[1], 10);
+            const m = iso[2] ? parseInt(iso[2], 10) - 1 : (isEnd ? 11 : 0);
+            const d = iso[3] ? parseInt(iso[3], 10) : (isEnd ? 28 : 1);
+            return new Date(y, m, d);
+        }
+        const match = str.match(/(\d{4})/);
+        if (match) {
+            const y = parseInt(match[1], 10);
+            return new Date(y, isEnd ? 11 : 0, isEnd ? 28 : 1);
+        }
+        return null;
+    }
+
+    function getTenantStayDays(tenant) {
+        if (!tenant) return 0;
+        // Exclude applicants (only resident tenants count towards tenure)
+        if (tenant.is_resident === 0 || tenant.is_resident === false) {
+            return 0;
+        }
+
+        if (tenant.start_date) {
+            const sDate = parseYearOrDate(tenant.start_date, false);
+            if (sDate) {
+                const eDate = parseYearOrDate(tenant.end_date, true) || new Date();
+                const diffMs = eDate.getTime() - sDate.getTime();
+                if (diffMs > 0) {
+                    return diffMs / (1000 * 60 * 60 * 24);
+                }
+            }
+        }
+
+        if (tenant.subtitle) {
+            const yMatch = tenant.subtitle.match(/\((\d+)\s*y\)/i);
+            if (yMatch) {
+                return parseInt(yMatch[1], 10) * 365.25;
+            }
+            const rangeMatch = tenant.subtitle.match(/(\d{4})\s*[-–]\s*(\d{4}|Present|الآن)/i);
+            if (rangeMatch) {
+                const sY = parseInt(rangeMatch[1], 10);
+                const eY = (rangeMatch[2] === 'Present' || rangeMatch[2] === 'الآن') ? new Date().getFullYear() : parseInt(rangeMatch[2], 10);
+                return Math.max(0, eY - sY) * 365.25;
+            }
+        }
+
+        if (tenant.duration_category === 'long') return 11 * 365.25;
+        if (tenant.duration_category === 'medium') return 7 * 365.25;
+        if (tenant.duration_category === 'short') return 2 * 365.25;
+
+        return 0;
+    }
+
+    function getHouseMaxStayDays(house) {
+        if (!house) return 0;
+        let maxDays = 0;
+
+        const tenants = (house.children || []).filter(c => c.type === 'tenant' || c.name);
+        for (const t of tenants) {
+            const days = getTenantStayDays(t);
+            if (days > maxDays) {
+                maxDays = days;
+            }
+        }
+
+        if (house.subtitle) {
+            const yMatch = house.subtitle.match(/\((\d+)\s*y\)/i);
+            if (yMatch) {
+                const days = parseInt(yMatch[1], 10) * 365.25;
+                if (days > maxDays) maxDays = days;
+            } else {
+                const rangeMatch = house.subtitle.match(/(\d{4})\s*[-–]\s*(\d{4}|Present|الآن)/i);
+                if (rangeMatch) {
+                    const sY = parseInt(rangeMatch[1], 10);
+                    const eY = (rangeMatch[2] === 'Present' || rangeMatch[2] === 'الآن') ? new Date().getFullYear() : parseInt(rangeMatch[2], 10);
+                    const days = Math.max(0, eY - sY) * 365.25;
+                    if (days > maxDays) maxDays = days;
+                }
+            }
+        }
+
+        if (typeof house.tenure_duration_years === 'number' && house.tenure_duration_years > 0) {
+            const days = house.tenure_duration_years * 365.25;
+            if (days > maxDays) maxDays = days;
+        }
+
+        if (maxDays === 0) {
+            if (house.duration_category === 'long') maxDays = 11 * 365.25;
+            else if (house.duration_category === 'medium') maxDays = 7 * 365.25;
+            else if (house.duration_category === 'short') maxDays = 2 * 365.25;
+        }
+
+        return maxDays;
+    }
+
+    function compareHouseNumbers(a, b) {
+        const nameA = String(a && (a.name || a.id) || '');
+        const nameB = String(b && (b.name || b.id) || '');
+        return nameA.localeCompare(nameB, undefined, { numeric: true, sensitivity: 'base' });
+    }
+
+    function compareHouseLongestStay(a, b) {
+        const stayA = getHouseMaxStayDays(a);
+        const stayB = getHouseMaxStayDays(b);
+        if (stayB !== stayA) {
+            return stayB - stayA; // Descending: longest stay first
+        }
+        return compareHouseNumbers(a, b);
+    }
+
+    function getHouseSortPreference() {
+        try {
+            if (typeof localStorage !== 'undefined') {
+                const val = localStorage.getItem('house_sort_by');
+                if (val === 'longest_stay' || val === 'number') {
+                    return val;
+                }
+            }
+        } catch (_) {}
+        return 'number';
+    }
+
+    function initHouseSortControl() {
+        if (typeof document === 'undefined') return;
+        const select = document.getElementById('grid-house-sort-select');
+        if (!select) return;
+        select.value = getHouseSortPreference();
+        select.onchange = (e) => {
+            const val = e.target.value;
+            try {
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.setItem('house_sort_by', val);
+                }
+            } catch (_) {}
+            if (currentAreaNode) {
+                renderAreaGrid(currentAreaNode);
+            }
+        };
+    }
+
     function selectAreaGrid(areaNode) {
         currentArea = areaNode.name;
         currentHouse = null;
@@ -35,6 +183,8 @@
         const gridAreaTitle = document.getElementById('grid-area-title');
         const gridAreaStats = document.getElementById('grid-area-stats');
         const gridTenureLegend = document.getElementById('grid-tenure-legend');
+        const gridHouseSortContainer = document.getElementById('grid-house-sort-container');
+        const gridHouseSortSelect = document.getElementById('grid-house-sort-select');
         const openAddHouseBtn = document.getElementById('open-add-house-modal-btn');
         const houseCardsContainer = document.getElementById('area-grid-container') || document.getElementById('house-cards-container');
 
@@ -63,8 +213,27 @@
         if (currentHouseTitle) currentHouseTitle.textContent = `${areaNode.name} — Houses Overview`;
         if (statsBadge) statsBadge.classList.add('hidden');
 
+        currentAreaNode = areaNode;
+        initHouseSortControl();
+
+        if (gridHouseSortContainer) {
+            gridHouseSortContainer.classList.remove('hidden');
+            gridHouseSortContainer.classList.add('flex');
+        }
+        const sortBy = getHouseSortPreference();
+        if (gridHouseSortSelect) {
+            gridHouseSortSelect.value = sortBy;
+        }
+
         if (gridAreaTitle) gridAreaTitle.textContent = areaNode.name;
-        const houses = areaNode.children || [];
+        const rawHouses = areaNode.children || [];
+        const houses = [...rawHouses];
+        if (sortBy === 'longest_stay') {
+            houses.sort(compareHouseLongestStay);
+        } else {
+            houses.sort(compareHouseNumbers);
+        }
+
         if (gridAreaStats) {
             gridAreaStats.textContent = `${houses.length} Houses`;
             gridAreaStats.classList.remove('hidden');
@@ -305,11 +474,16 @@
         }
         const gridAreaStats = document.getElementById('grid-area-stats');
         const gridTenureLegend = document.getElementById('grid-tenure-legend');
+        const gridHouseSortContainer = document.getElementById('grid-house-sort-container');
         const openAddHouseBtn = document.getElementById('open-add-house-modal-btn');
         if (gridAreaStats) gridAreaStats.classList.add('hidden');
         if (gridTenureLegend) {
             gridTenureLegend.classList.add('hidden');
             gridTenureLegend.classList.remove('flex');
+        }
+        if (gridHouseSortContainer) {
+            gridHouseSortContainer.classList.add('hidden');
+            gridHouseSortContainer.classList.remove('flex');
         }
         if (openAddHouseBtn) {
             openAddHouseBtn.classList.add('hidden');
@@ -522,10 +696,14 @@
     }
 
     if (typeof document !== 'undefined') {
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initAddHouseModal);
-        } else {
+        const initAll = () => {
             initAddHouseModal();
+            initHouseSortControl();
+        };
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initAll);
+        } else {
+            initAll();
         }
     }
 
@@ -537,6 +715,11 @@
     window.handleAddHouseSubmit = handleAddHouseSubmit;
     window.initAddHouseModal = initAddHouseModal;
     window.loadAreaGrid = loadAreaGrid;
+    window.compareHouseNumbers = compareHouseNumbers;
+    window.compareHouseLongestStay = compareHouseLongestStay;
+    window.getHouseMaxStayDays = getHouseMaxStayDays;
+    window.getHouseSortPreference = getHouseSortPreference;
+    window.initHouseSortControl = initHouseSortControl;
 
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = {
@@ -548,6 +731,11 @@
             handleAddHouseSubmit,
             initAddHouseModal,
             loadAreaGrid,
+            compareHouseNumbers,
+            compareHouseLongestStay,
+            getHouseMaxStayDays,
+            getHouseSortPreference,
+            initHouseSortControl,
         };
     }
 })();

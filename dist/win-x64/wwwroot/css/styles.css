@@ -864,6 +864,27 @@ html.dark kbd {
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5) !important;
 }
 
+/* ── Top Navbar House Sort Control ─────────────────────────────────── */
+#grid-house-sort-select {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+}
+
+html.dark #grid-house-sort-select {
+    border: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background-color: transparent !important;
+    color: #e2e8f0 !important;
+}
+
+html.dark #grid-house-sort-select option {
+    background-color: #0f172a;
+    color: #f1f5f9;
+}
+
 /* ── Floating Menus & Dropdowns ─────────────────────────────────────── */
 html.dark .doc-dropdown-menu {
     background-color: #131c2e !important;

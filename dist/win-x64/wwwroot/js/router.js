@@ -43,11 +43,16 @@
             }
             const gridAreaStats = document.getElementById('grid-area-stats');
             const gridTenureLegend = document.getElementById('grid-tenure-legend');
+            const gridHouseSortContainer = document.getElementById('grid-house-sort-container');
             const openAddHouseBtn = document.getElementById('open-add-house-modal-btn');
             if (gridAreaStats) gridAreaStats.classList.add('hidden');
             if (gridTenureLegend) {
                 gridTenureLegend.classList.add('hidden');
                 gridTenureLegend.classList.remove('flex');
+            }
+            if (gridHouseSortContainer) {
+                gridHouseSortContainer.classList.add('hidden');
+                gridHouseSortContainer.classList.remove('flex');
             }
             if (openAddHouseBtn) {
                 openAddHouseBtn.classList.add('hidden');
@@ -222,11 +227,16 @@
         }
         const gridAreaStats = document.getElementById('grid-area-stats');
         const gridTenureLegend = document.getElementById('grid-tenure-legend');
+        const gridHouseSortContainer = document.getElementById('grid-house-sort-container');
         const openAddHouseBtn = document.getElementById('open-add-house-modal-btn');
         if (gridAreaStats) gridAreaStats.classList.add('hidden');
         if (gridTenureLegend) {
             gridTenureLegend.classList.add('hidden');
             gridTenureLegend.classList.remove('flex');
+        }
+        if (gridHouseSortContainer) {
+            gridHouseSortContainer.classList.add('hidden');
+            gridHouseSortContainer.classList.remove('flex');
         }
         if (openAddHouseBtn) {
             openAddHouseBtn.classList.add('hidden');
