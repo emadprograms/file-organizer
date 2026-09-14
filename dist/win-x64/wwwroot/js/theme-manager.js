@@ -67,28 +67,32 @@
         }
     }
 
-    let transitionTimeout = null;
+    let activeTransition = null;
+    let disableTransitionsTimeout = null;
+
+    function cleanupDisableTransitions() {
+        if (typeof document !== 'undefined' && document.documentElement) {
+            document.documentElement.classList.remove('disable-transitions');
+        }
+        if (disableTransitionsTimeout) {
+            clearTimeout(disableTransitionsTimeout);
+            disableTransitionsTimeout = null;
+        }
+    }
 
     function enableThemeTransition() {
         if (typeof document === 'undefined' || !document.documentElement) return;
         const root = document.documentElement;
-        root.classList.add('theme-transitioning');
-        if (transitionTimeout) {
-            clearTimeout(transitionTimeout);
+        root.classList.add('disable-transitions');
+        if (disableTransitionsTimeout) {
+            clearTimeout(disableTransitionsTimeout);
         }
-        transitionTimeout = setTimeout(() => {
-            root.classList.remove('theme-transitioning');
-            transitionTimeout = null;
-        }, 350);
+        disableTransitionsTimeout = setTimeout(() => {
+            cleanupDisableTransitions();
+        }, 300);
     }
 
-    function applyTheme(theme, persist = true, animate = false) {
-        const targetTheme = theme === 'dark' ? 'dark' : 'light';
-
-        if (animate) {
-            enableThemeTransition();
-        }
-
+    function applyThemeDOM(targetTheme) {
         if (typeof document !== 'undefined' && document.documentElement) {
             if (targetTheme === 'dark') {
                 document.documentElement.classList.add('dark');
@@ -97,21 +101,76 @@
             }
         }
 
-        if (persist) {
-            try {
-                if (typeof localStorage !== 'undefined') {
-                    localStorage.setItem(STORAGE_KEY, targetTheme);
-                }
-            } catch (e) {
-                // ignore
-            }
-        }
-
         updateToggleButton(targetTheme);
 
         if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
             try {
                 window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: targetTheme } }));
+            } catch (e) {
+                // ignore
+            }
+        }
+    }
+
+    function applyTheme(theme, persist = true, animate = false) {
+        const targetTheme = theme === 'dark' ? 'dark' : 'light';
+
+        const prefersReducedMotion = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const canUseViewTransition = animate && !prefersReducedMotion && typeof document !== 'undefined' && typeof document.startViewTransition === 'function';
+
+        if (canUseViewTransition) {
+            if (typeof document !== 'undefined' && document.documentElement) {
+                document.documentElement.classList.add('disable-transitions');
+            }
+            try {
+                const transition = document.startViewTransition(() => {
+                    applyThemeDOM(targetTheme);
+                });
+                activeTransition = transition;
+                if (transition && transition.finished && typeof transition.finished.finally === 'function') {
+                    transition.finished.finally(() => {
+                        if (activeTransition === transition) {
+                            cleanupDisableTransitions();
+                            activeTransition = null;
+                        }
+                    });
+                } else {
+                    if (disableTransitionsTimeout) clearTimeout(disableTransitionsTimeout);
+                    disableTransitionsTimeout = setTimeout(() => {
+                        cleanupDisableTransitions();
+                        activeTransition = null;
+                    }, 300);
+                }
+            } catch (e) {
+                cleanupDisableTransitions();
+                applyThemeDOM(targetTheme);
+            }
+        } else if (animate && !prefersReducedMotion && typeof document !== 'undefined' && document.documentElement) {
+            // Instant-sync fallback: disable transitions so all elements flip synchronously without lag
+            document.documentElement.classList.add('disable-transitions');
+            applyThemeDOM(targetTheme);
+            if (typeof window !== 'undefined') {
+                try {
+                    window.getComputedStyle(document.documentElement).opacity;
+                } catch (e) {}
+                if (disableTransitionsTimeout) clearTimeout(disableTransitionsTimeout);
+                disableTransitionsTimeout = setTimeout(() => {
+                    cleanupDisableTransitions();
+                }, 50);
+            } else {
+                cleanupDisableTransitions();
+            }
+        } else {
+            // Initial load or reduced motion: instantaneous update
+            cleanupDisableTransitions();
+            applyThemeDOM(targetTheme);
+        }
+
+        if (persist) {
+            try {
+                if (typeof localStorage !== 'undefined') {
+                    localStorage.setItem(STORAGE_KEY, targetTheme);
+                }
             } catch (e) {
                 // ignore
             }
@@ -191,6 +250,7 @@
         initTheme,
         updateToggleButton,
         enableThemeTransition,
+        cleanupDisableTransitions,
     };
 
     if (typeof window !== 'undefined') {
@@ -200,6 +260,7 @@
         window.toggleTheme = toggleTheme;
         window.initTheme = initTheme;
         window.enableThemeTransition = enableThemeTransition;
+        window.cleanupDisableTransitions = cleanupDisableTransitions;
     }
 
     if (typeof module !== 'undefined' && module.exports) {
