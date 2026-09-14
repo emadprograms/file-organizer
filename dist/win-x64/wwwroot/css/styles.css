@@ -1112,4 +1112,32 @@ button, a, input, select, textarea, .cursor-pointer,
     flex-shrink: 0 !important;
 }
 
+/* ── Draggable Resizers: Touch Targets & Tablet Accessibility ────────────── */
+#resizer-1,
+#resizer-2 {
+    touch-action: none;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Expanded invisible touch hit target for tablets / touchscreens */
+#resizer-1::before,
+#resizer-2::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -10px;
+    right: -10px;
+    z-index: 25;
+}
+
+#resizer-1.is-resizing,
+#resizer-2.is-resizing,
+#resizer-1:active,
+#resizer-2:active {
+    background-color: #3b82f6 !important;
+}
+
 
