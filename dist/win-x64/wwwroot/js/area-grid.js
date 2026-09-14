@@ -289,6 +289,52 @@
         return compareHouseNumbers(a, b);
     }
 
+    function formatLatestTenantStay(house) {
+        if (!house) return 'Vacant';
+        const occupied = isHouseOccupied(house);
+
+        if (occupied) {
+            const days = getHouseActiveStayDays(house);
+            let startYear = null;
+            if (house.subtitle) {
+                const sMatch = house.subtitle.match(/(?:Since|من|بدء الإيجار)\s*(\d{4})/i) || house.subtitle.match(/(\d{4})/);
+                if (sMatch) startYear = sMatch[1];
+            }
+            if (!startYear) {
+                const activeT = (house.children || []).find(t => (house.current_tenant && t.name === house.current_tenant) || isTenantActive(t));
+                if (activeT && activeT.start_date) {
+                    const m = String(activeT.start_date).match(/(\d{4})/);
+                    if (m) startYear = m[1];
+                }
+            }
+
+            if (days >= 365.25) {
+                const years = Math.floor(days / 365.25);
+                const remDays = days % 365.25;
+                const months = Math.floor(remDays / 30.4375);
+                let durationStr = `${years} ${years === 1 ? 'Year' : 'Years'}`;
+                if (years < 5 && months > 0) {
+                    durationStr = `${years} ${years === 1 ? 'Year' : 'Years'}, ${months} ${months === 1 ? 'Mo' : 'Mos'}`;
+                }
+                return startYear ? `${durationStr} (Since ${startYear})` : durationStr;
+            } else if (days > 0) {
+                const months = Math.max(1, Math.round(days / 30.4375));
+                const durationStr = `${months} ${months === 1 ? 'Month' : 'Months'}`;
+                return startYear ? `${durationStr} (Since ${startYear})` : durationStr;
+            } else {
+                return startYear ? `Recent (Since ${startYear})` : 'Recent Resident';
+            }
+        }
+
+        // Vacant house: check past tenant stay if any
+        const pastDays = getHousePastMaxStayDays(house);
+        if (pastDays >= 365.25) {
+            const pastYears = Math.floor(pastDays / 365.25);
+            return `Vacant (Past: ${pastYears}y)`;
+        }
+        return 'Vacant';
+    }
+
     function getHouseSortPreference() {
         try {
             if (typeof localStorage !== 'undefined') {
@@ -528,14 +574,50 @@
 
             const scrollClass = orderedTenants.length > 3 ? 'max-h-[118px] overflow-y-auto pr-1' : '';
 
+            let footerHtml = '';
+            if (sortBy === 'longest_stay') {
+                const stayFormatted = formatLatestTenantStay(house);
+                let stayBadgeClass = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700';
+                if (house.duration_category === 'long') {
+                    stayBadgeClass = 'bg-rose-50/80 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200/80 dark:border-rose-900/50';
+                } else if (house.duration_category === 'medium') {
+                    stayBadgeClass = 'bg-amber-50/80 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200/80 dark:border-amber-900/50';
+                } else if (house.duration_category === 'short') {
+                    stayBadgeClass = 'bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-900/50';
+                }
+
+                footerHtml = `
+                    <div class="card-footer mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                        <span class="text-slate-400 text-[11px] font-medium flex items-center gap-1">
+                            <svg class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span>Latest Stay</span>
+                        </span>
+                        <span class="stay-duration-badge font-bold ${stayBadgeClass} px-2 py-0.5 rounded-md text-[11px] border truncate max-w-[180px]" title="${stayFormatted}">
+                            ${stayFormatted}
+                        </span>
+                    </div>
+                `;
+            } else {
+                footerHtml = `
+                    <div class="card-footer mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                        <span class="text-slate-400 text-[11px] font-medium flex items-center gap-1">
+                            <span>Total Archive</span>
+                        </span>
+                        <span class="doc-count font-bold text-slate-700 dark:text-slate-300 bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-md text-[11px] border border-blue-100 dark:border-blue-900/50">
+                            ${totalDocs} Docs
+                        </span>
+                    </div>
+                `;
+            }
+
             card.innerHTML = `
                 <div>
-                    <div class="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-slate-100">
+                    <div class="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-slate-100 dark:border-slate-800">
                         <div class="flex items-center gap-2 min-w-0">
-                            <h3 class="font-bold text-slate-900 text-sm group-hover:text-blue-600 transition-colors truncate" title="${house.name}">
+                            <h3 class="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-blue-600 transition-colors truncate" title="${house.name}">
                                 🏠 ${house.name}
                             </h3>
-                            <span class="tenants-count text-[10px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200 flex-shrink-0">
+                            <span class="tenants-count text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 flex-shrink-0">
                                 ${countBadgeText}
                             </span>
                         </div>
@@ -547,14 +629,7 @@
                     </div>
                 </div>
 
-                <div class="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <span class="text-slate-400 text-[11px] font-medium flex items-center gap-1">
-                        <span>Total Archive</span>
-                    </span>
-                    <span class="doc-count font-bold text-slate-700 bg-blue-50/80 text-blue-700 px-2 py-0.5 rounded-md text-[11px] border border-blue-100">
-                        ${totalDocs} Docs
-                    </span>
-                </div>
+                ${footerHtml}
             `;
 
             if (orderedTenants.length > 3) {
@@ -895,6 +970,7 @@
     window.isTenantActive = isTenantActive;
     window.getActiveTenantStayDays = getActiveTenantStayDays;
     window.getPastTenantStayDays = getPastTenantStayDays;
+    window.formatLatestTenantStay = formatLatestTenantStay;
     window.getHouseSortPreference = getHouseSortPreference;
     window.initHouseSortControl = initHouseSortControl;
 
@@ -917,6 +993,7 @@
             isTenantActive,
             getActiveTenantStayDays,
             getPastTenantStayDays,
+            formatLatestTenantStay,
             getHouseSortPreference,
             initHouseSortControl,
         };

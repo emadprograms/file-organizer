@@ -409,5 +409,55 @@ describe('Top Header Bar House Sorting Component (House Number & Longest Tenant 
 
             expect(sortContainer.classList.contains('hidden')).toBe(true);
         });
+
+        it('shows Total Archive at card bottom when sorted by House Number, and Latest Stay when sorted by Longest Stay', () => {
+            // Default sort: 'number'
+            areaGrid.renderAreaGrid(testAreaNode);
+
+            const container = document.getElementById('area-grid-container');
+            const card10 = container.querySelector('[data-house-id="10"]');
+            expect(card10).not.toBeNull();
+
+            // Under 'number' sort: footer contains 'Total Archive' and doc count
+            expect(card10.textContent).toContain('Total Archive');
+            expect(card10.querySelector('.doc-count')).not.toBeNull();
+            expect(card10.querySelector('.stay-duration-badge')).toBeNull();
+
+            // Switch to 'longest_stay'
+            const sortSelect = document.getElementById('grid-house-sort-select');
+            sortSelect.value = 'longest_stay';
+            sortSelect.dispatchEvent(new Event('change'));
+
+            const card10Longest = container.querySelector('[data-house-id="10"]');
+            // Under 'longest_stay' sort: footer does NOT show 'Total Archive'
+            expect(card10Longest.textContent).not.toContain('Total Archive');
+            expect(card10Longest.querySelector('.doc-count')).toBeNull();
+
+            // Footer displays how long the latest tenant has stayed
+            const stayBadge = card10Longest.querySelector('.stay-duration-badge');
+            expect(stayBadge).not.toBeNull();
+            expect(stayBadge.textContent).toMatch(/\d+\s*Years.*1995/);
+
+            // Check vacant house footer
+            const card1Vacant = container.querySelector('[data-house-id="1"]');
+            expect(card1Vacant.textContent).not.toContain('Total Archive');
+            const vacantStayBadge = card1Vacant.querySelector('.stay-duration-badge');
+            expect(vacantStayBadge).not.toBeNull();
+            expect(vacantStayBadge.textContent).toContain('Vacant');
+        });
+
+        it('formats latest tenant stay with accurate years and start year', () => {
+            const hOccupied = {
+                id: '500',
+                name: '500',
+                current_tenant: 'Ali',
+                subtitle: 'Since 1990 (36y)',
+                children: [
+                    { type: 'tenant', is_resident: 1, name: 'Ali', start_date: '1990-01-01', end_date: 'Present' }
+                ]
+            };
+            const formatted = areaGrid.formatLatestTenantStay(hOccupied);
+            expect(formatted).toMatch(/\d+\s*Years.*Since 1990/);
+        });
     });
 });
