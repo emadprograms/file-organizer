@@ -17,9 +17,10 @@ date: 2026-09-14
 Addressed user feedback where entering any house (`#/house/...`) left the right two-thirds of the screen completely empty and plain white without explanation:
 - Added `#document-empty-state` placeholder container in `index.html` (both `src` and `dist`) that renders whenever a house is selected before a document is opened.
 - Styled `#document-empty-state` with eye-comfort light grey canvas (`#edf0f4` in light mode) and deep dark canvas (`#080c14` in dark mode) to eliminate blinding white space.
-- Formatted clear bilingual guidance text and iconography:
-  - English: "Select a Document to View" — "Click any PDF file from the list to preview it here."
-  - Arabic: "اختر مستنداً للمعاينة" — "انقر على أي ملف من القائمة لعرضه وتصفحه في هذه المساحة مباشرة."
+- Formatted clean, non-wordy minimalist bilingual guidance under an understated muted icon:
+  - English: "Select a document to preview"
+  - Arabic: "اختر مستنداً للمعاينة"
+  - Avoided wordy paragraphs, heavy dashed boxes, and redundant explanatory sentences in line with the application's clean design principles.
 - Integrated reactive view management across `router.js`, `doc-viewer.js`, `area-grid.js`, and `tenant-manager.js`:
   - `selectHouse`: hides welcome panel, shows document empty state.
   - `openDocument` & `peekDocument`: hides empty state, displays document viewer.

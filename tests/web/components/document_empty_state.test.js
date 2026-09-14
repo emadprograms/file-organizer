@@ -14,13 +14,15 @@ describe('Document Empty State Component & View State Transitions', () => {
   const distCss = fs.readFileSync(distCssPath, 'utf8');
 
   describe('1. Markup & Bilingual Copy Verification', () => {
-    it('verifies index.html in src and dist defines #document-empty-state with bilingual guidance', () => {
+    it('verifies index.html in src and dist defines #document-empty-state with concise bilingual guidance', () => {
       [srcHtml, distHtml].forEach(html => {
         expect(html).toContain('id="document-empty-state"');
-        expect(html).toContain('Select a Document to View');
+        expect(html).toContain('Select a document to preview');
         expect(html).toContain('اختر مستنداً للمعاينة');
-        expect(html).toContain('Click any PDF file from the list to preview it here.');
-        expect(html).toContain('انقر على أي ملف من القائمة لعرضه وتصفحه في هذه المساحة مباشرة');
+        // Ensure wordy paragraphs and repetitive pill buttons are eliminated
+        expect(html).not.toContain('Click any PDF file from the list to preview it here.');
+        expect(html).not.toContain('انقر على أي ملف من القائمة لعرضه وتصفحه في هذه المساحة مباشرة');
+        expect(html).not.toContain('Click any document to open inline preview');
       });
     });
   });
@@ -60,7 +62,7 @@ describe('Document Empty State Component & View State Transitions', () => {
         <div id="resizer-2" class="hidden"></div>
         <div id="welcome-panel"></div>
         <div id="document-empty-state" class="hidden">
-          <h3>Select a Document to View</h3>
+          <p>Select a document to preview</p>
         </div>
         <div id="document-viewer-panel" class="hidden">
           <div id="viewer-title"></div>
