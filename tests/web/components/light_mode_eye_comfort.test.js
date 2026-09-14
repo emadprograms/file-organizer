@@ -9,16 +9,16 @@ describe('Light Mode Eye Comfort & Anti-Glare Calibration', () => {
   const distCssContent = fs.readFileSync(distCssPath, 'utf8');
 
   describe('1. Calibrated Light Mode Surface Tokens in :root', () => {
-    it('defines anti-glare, softened surface and border tokens in :root', () => {
+    it('defines anti-glare, softened surface and delicate border tokens in :root', () => {
       expect(cssContent).toContain(':root');
-      expect(cssContent).toMatch(/--surface-canvas:\s*#edf0f5;/);
-      expect(cssContent).toMatch(/--surface-panel:\s*#f6f8fb;/);
-      expect(cssContent).toMatch(/--surface-card:\s*#f9fafb;/);
+      expect(cssContent).toMatch(/--surface-canvas:\s*#f6f8fa;/);
+      expect(cssContent).toMatch(/--surface-panel:\s*#ffffff;/);
+      expect(cssContent).toMatch(/--surface-card:\s*#ffffff;/);
       expect(cssContent).toMatch(/--surface-elevated:\s*#ffffff;/);
-      expect(cssContent).toMatch(/--surface-hover:\s*#eef2f6;/);
-      expect(cssContent).toMatch(/--border-subtle:\s*#e2e8f0;/);
-      expect(cssContent).toMatch(/--border-default:\s*#cbd5e1;/);
-      expect(cssContent).toMatch(/--border-emphasis:\s*#94a3b8;/);
+      expect(cssContent).toMatch(/--surface-hover:\s*#f1f5f9;/);
+      expect(cssContent).toMatch(/--border-subtle:\s*#f1f5f9;/);
+      expect(cssContent).toMatch(/--border-default:\s*#e2e8f0;/);
+      expect(cssContent).toMatch(/--border-emphasis:\s*#cbd5e1;/);
       expect(cssContent).toMatch(/--text-primary:\s*#0f172a;/);
       expect(cssContent).toMatch(/--text-secondary:\s*#334155;/);
       expect(cssContent).toMatch(/--text-muted:\s*#64748b;/);
@@ -26,37 +26,41 @@ describe('Light Mode Eye Comfort & Anti-Glare Calibration', () => {
   });
 
   describe('2. Scoped html:not(.dark) Surface Calibration Rules', () => {
-    it('softens light mode body and utility slate surfaces to eliminate blinding glare', () => {
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+body\s*\{[^}]*background-color:\s*#edf0f5;/);
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+\.bg-slate-50\s*\{[^}]*background-color:\s*#edf0f5;/);
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+\.bg-slate-100\s*\{[^}]*background-color:\s*#e4e8ef;/);
+    it('softens light mode body and content panels to calm neutral canvas (#f6f8fa) to eliminate glare', () => {
+      expect(cssContent).toMatch(/html:not\(\.dark\)\s+body\s*\{[^}]*background-color:\s*#f6f8fa;/);
+      expect(cssContent).toMatch(/html:not\(\.dark\)\s+#area-grid-panel,\s*html:not\(\.dark\)\s+#database-inspector-panel,\s*html:not\(\.dark\)\s+#welcome-panel\s*\{[^}]*background-color:\s*#f6f8fa;/);
+      expect(cssContent).toMatch(/html:not\(\.dark\)\s+#document-viewer-panel\s*\{[^}]*background-color:\s*#f1f5f9;/);
     });
 
-    it('softens pure white backgrounds and white opacity variants in light mode', () => {
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+\.bg-white\s*\{[^}]*background-color:\s*#f8fafc;/);
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+\.bg-white\\\/90\s*\{[^}]*background-color:\s*rgba\(248,\s*250,\s*252,\s*0\.92\);/);
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+\.bg-white\\\/95\s*\{[^}]*background-color:\s*rgba\(248,\s*250,\s*252,\s*0\.96\);/);
+    it('preserves clean utility classes for buttons and badges without dark grey overrides', () => {
+      expect(cssContent).not.toMatch(/html:not\(\.dark\)\s+\.bg-slate-50\s*\{[^}]*background-color:\s*#edf0f5;/);
+      expect(cssContent).not.toMatch(/html:not\(\.dark\)\s+\.bg-slate-100\s*\{[^}]*background-color:\s*#e4e8ef;/);
     });
 
-    it('applies calibrated backgrounds and borders to main navigation and content panels', () => {
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+#top-navbar\s*\{[^}]*background-color:\s*rgba\(248,\s*250,\s*252,\s*0\.92\);[^}]*border-color:\s*#e2e8f0;/);
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+#document-list-panel\s*\{[^}]*background-color:\s*#f5f7fa;[^}]*border-color:\s*#e2e8f0;/);
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+#area-grid-panel,\s*html:not\(\.dark\)\s+#database-inspector-panel\s*\{[^}]*background-color:\s*#edf0f5;/);
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+#document-viewer-panel\s*\{[^}]*background-color:\s*#e8ecf2;/);
+    it('applies calibrated backgrounds and delicate borders to navigation and document list panels', () => {
+      expect(cssContent).toMatch(/html:not\(\.dark\)\s+#top-navbar\s*\{[^}]*background-color:\s*rgba\(255,\s*255,\s*255,\s*0\.92\);[^}]*border-color:\s*#e2e8f0;/);
+      expect(cssContent).toMatch(/html:not\(\.dark\)\s+#document-list-panel\s*\{[^}]*background-color:\s*#ffffff;[^}]*border-color:\s*#e2e8f0;/);
     });
 
-    it('ensures input fields and text controls retain crisp white backgrounds for legibility', () => {
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+input:not\(\[type="checkbox"\]\):not\(\[type="radio"\]\),\s*html:not\(\.dark\)\s+select,\s*html:not\(\.dark\)\s+textarea\s*\{[^}]*background-color:\s*#ffffff;/);
+    it('ensures input fields and text controls retain clean white backgrounds and delicate borders', () => {
+      expect(cssContent).toMatch(/html:not\(\.dark\)\s+input:not\(\[type="checkbox"\]\):not\(\[type="radio"\]\),\s*html:not\(\.dark\)\s+select,\s*html:not\(\.dark\)\s+textarea\s*\{[^}]*background-color:\s*#ffffff;[^}]*border-color:\s*#e2e8f0;/);
     });
 
-    it('applies crisp white contrast override with !important for active segmented tabs', () => {
+    it('applies clean white background with subtle shadow for active segmented tabs', () => {
       expect(cssContent).toMatch(/html:not\(\.dark\)\s+#tab-categories\.bg-white,\s*html:not\(\.dark\)\s+#tab-timeline\.bg-white\s*\{[^}]*background-color:\s*#ffffff\s*!important;/);
     });
 
-    it('styles house cards and category folder cards with soft off-white surface and refined shadows', () => {
-      expect(cssContent).toMatch(/html:not\(\.dark\)\s+\.house-card,\s*html:not\(\.dark\)\s+\.category-folder-card\s*\{[^}]*background-color:\s*#fbfcfd;/);
-      expect(cssContent).toContain('box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04), 0 0 0 1px rgba(226, 232, 240, 0.8);');
-      expect(cssContent).toContain('box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);');
+    it('styles house cards and category folder cards with clean white surface, delicate borders, and NO dark box-shadow rings', () => {
+      expect(cssContent).toMatch(/html:not\(\.dark\)\s+\.house-card,\s*html:not\(\.dark\)\s+\.category-folder-card\s*\{[^}]*background-color:\s*#ffffff;/);
+      expect(cssContent).not.toContain('0 0 0 1px rgba(226, 232, 240, 0.8)');
+      expect(cssContent).toContain('box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);');
+    });
+
+    it('provides vibrant and delicate selection highlight for document rows and text selection', () => {
+      expect(cssContent).toContain('.doc-row-selected {');
+      expect(cssContent).toMatch(/\.doc-row-selected\s*\{[^}]*background-color:\s*#eff6ff\s*!important;/);
+      expect(cssContent).toMatch(/\.doc-row-selected\s*\{[^}]*border-color:\s*#93c5fd\s*!important;/);
+      expect(cssContent).toContain('::selection {');
     });
   });
 

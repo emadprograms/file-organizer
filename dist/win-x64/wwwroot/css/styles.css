@@ -46,11 +46,21 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
     display: none !important;
 }
 
-/* Selected document card / row highlight */
+/* Selected document card / row highlight (Vibrant & Delicate macOS / GitHub style) */
 .doc-row-selected {
-    background-color: #f0f7ff !important;
+    background-color: #eff6ff !important;
     border-color: #93c5fd !important;
-    box-shadow: inset 0 0 0 1.5px #3b82f6 !important;
+    box-shadow: inset 0 0 0 1.5px #3b82f6, 0 1px 2px 0 rgba(59, 130, 246, 0.08) !important;
+}
+
+/* Crisp text selection */
+::selection {
+    background-color: #bfdbfe;
+    color: #1e3a8a;
+}
+html.dark ::selection {
+    background-color: #1d4ed8;
+    color: #ffffff;
 }
 
 /* Quick Look modal backdrop */
@@ -80,70 +90,84 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
 }
 
 :root {
-    --surface-canvas: #edf0f5;
-    --surface-panel: #f6f8fb;
-    --surface-card: #f9fafb;
+    --surface-canvas: #f6f8fa;
+    --surface-panel: #ffffff;
+    --surface-card: #ffffff;
     --surface-elevated: #ffffff;
-    --surface-hover: #eef2f6;
-    --border-subtle: #e2e8f0;
-    --border-default: #cbd5e1;
-    --border-emphasis: #94a3b8;
+    --surface-hover: #f1f5f9;
+    --border-subtle: #f1f5f9;
+    --border-default: #e2e8f0;
+    --border-emphasis: #cbd5e1;
     --text-primary: #0f172a;
     --text-secondary: #334155;
     --text-muted: #64748b;
 }
 
-/* ── Light Mode Surface Calibration & Eye Comfort ─────────────────── */
+/* ── Light Mode Surface Calibration & Eye Comfort (Apple macOS / GitHub Model) ── */
 html:not(.dark) body {
-    background-color: #edf0f5;
+    background-color: #f6f8fa;
 }
-html:not(.dark) .bg-slate-50 {
-    background-color: #edf0f5;
-}
-html:not(.dark) .bg-slate-100 {
-    background-color: #e4e8ef;
-}
-html:not(.dark) .bg-white {
-    background-color: #f8fafc;
-}
-html:not(.dark) .bg-white\/90 {
-    background-color: rgba(248, 250, 252, 0.92);
-}
-html:not(.dark) .bg-white\/95 {
-    background-color: rgba(248, 250, 252, 0.96);
-}
-html:not(.dark) #top-navbar {
-    background-color: rgba(248, 250, 252, 0.92);
-    border-color: #e2e8f0;
-}
-html:not(.dark) #document-list-panel {
-    background-color: #f5f7fa;
-    border-color: #e2e8f0;
-}
+
+/* Calm neutral canvas for content panels */
 html:not(.dark) #area-grid-panel,
-html:not(.dark) #database-inspector-panel {
-    background-color: #edf0f5;
+html:not(.dark) #database-inspector-panel,
+html:not(.dark) #welcome-panel {
+    background-color: #f6f8fa;
 }
+
+/* Document viewer panel with subtle neutral contrast for document viewing */
 html:not(.dark) #document-viewer-panel {
-    background-color: #e8ecf2;
+    background-color: #f1f5f9;
 }
+
+/* Top navigation bar: crisp translucent surface with delicate divider */
+html:not(.dark) #top-navbar {
+    background-color: rgba(255, 255, 255, 0.92);
+    border-color: #e2e8f0;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Document list panel: clean elevated surface with delicate right border */
+html:not(.dark) #document-list-panel {
+    background-color: #ffffff;
+    border-color: #e2e8f0;
+}
+
+/* Form inputs & controls: clean white background with delicate border */
 html:not(.dark) input:not([type="checkbox"]):not([type="radio"]),
 html:not(.dark) select,
 html:not(.dark) textarea {
     background-color: #ffffff;
+    border-color: #e2e8f0;
 }
+
+html:not(.dark) input:not([type="checkbox"]):not([type="radio"]):focus,
+html:not(.dark) select:focus,
+html:not(.dark) textarea:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+/* Segmented tabs: clean white active tab with subtle depth */
 html:not(.dark) #tab-categories.bg-white,
 html:not(.dark) #tab-timeline.bg-white {
     background-color: #ffffff !important;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.06);
 }
+
+/* Cards: clean elevated white surface with delicate border and soft shadow (NO dark rings) */
 html:not(.dark) .house-card,
 html:not(.dark) .category-folder-card {
-    background-color: #fbfcfd;
-    box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04), 0 0 0 1px rgba(226, 232, 240, 0.8);
+    background-color: #ffffff;
+    border-color: #e2e8f0;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
 }
+
 html:not(.dark) .house-card:hover,
 html:not(.dark) .category-folder-card:hover {
-    box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.04);
 }
 
 /* ── Dark Mode Design System & Semantic Color Palette ───────────────── */
