@@ -107,6 +107,14 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
     // Check presence of structured column classes
     expect(rows[0].classList.contains('sm:grid')).toBe(true);
     expect(rows[0].classList.contains('sm:grid-cols-12')).toBe(true);
+
+    // Verify 12-column distribution matching table header
+    expect(rows[0].children[0].className).toContain('sm:col-span-3'); // Name
+    expect(rows[0].children[1].className).toContain('sm:col-span-2'); // Type
+    expect(rows[0].children[2].className).toContain('sm:col-span-3'); // Start Date
+    expect(rows[0].children[3].className).toContain('sm:col-span-2'); // End Date
+    expect(rows[0].children[4].className).toContain('sm:col-span-1'); // Present
+    expect(rows[0].children[5].className).toContain('sm:col-span-1'); // Delete
   });
 
   it('re-indexes row numbers sequentially when a row is removed', () => {
@@ -299,6 +307,46 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
     expect(htmlContent).toContain('Start date is always selected as the first document and is auto if there is no document');
     expect(htmlContent).toContain('تاريخ البدء يُحدّد دائماً من أول وثيقة، ويكون تلقائياً عند عدم وجود وثائق');
     expect(htmlContent).not.toContain('First Document • أول ظهور');
+  });
+
+  it('renders End Date • تاريخ الانتهاء table column header with question mark, tooltip explanation, and whitespace-nowrap in index.html', () => {
+    expect(htmlContent).toContain('End Date • تاريخ الانتهاء');
+    expect(htmlContent).toContain('End date is decided by the user. If currently residing, check Present');
+    expect(htmlContent).toContain('تاريخ الانتهاء يحدده المستخدم. إذا كان يسكن حالياً، حدد (حالي)');
+    expect(htmlContent).toContain('title="End date is decided by the user. If currently residing, check Present • تاريخ الانتهاء يحدده المستخدم. إذا كان يسكن حالياً، حدد (حالي)"');
+
+    // Both Start Date and End Date headers contain whitespace-nowrap
+    expect(htmlContent).toMatch(/sm:col-span-3 flex items-center gap-1 whitespace-nowrap[\s\S]*?Start Date • تاريخ البدء/);
+    expect(htmlContent).toMatch(/sm:col-span-2 flex items-center gap-1 whitespace-nowrap[\s\S]*?End Date • تاريخ الانتهاء/);
+
+    // Modal container has expanded width
+    expect(htmlContent).toContain('max-w-5xl xl:max-w-6xl');
+  });
+
+  it('sets appropriate End Date input tooltips when resident is not present vs applicant', () => {
+    const addBtn = document.getElementById('btn-add-tenant-row');
+    const rowsContainer = document.getElementById('tenant-modal-rows');
+
+    addBtn.click();
+    const row = rowsContainer.querySelector('.tenant-row');
+    const presentCheck = row.querySelector('.tenant-present-check');
+    const endInput = row.querySelector('.tenant-end-input');
+    const typeSelect = row.querySelector('.tenant-type-select');
+
+    // Uncheck present -> resident not present
+    presentCheck.checked = false;
+    presentCheck.dispatchEvent(new Event('change'));
+    expect(endInput.title).toBe('End date is decided by the user • تاريخ الانتهاء يحدده المستخدم');
+
+    // Switch to applicant
+    typeSelect.value = 'applicant';
+    typeSelect.dispatchEvent(new Event('change'));
+    expect(endInput.title).toBe('N/A (لم يسكن)');
+
+    // Switch back to resident and not present
+    typeSelect.value = 'resident';
+    typeSelect.dispatchEvent(new Event('change'));
+    expect(endInput.title).toBe('End date is decided by the user • تاريخ الانتهاء يحدده المستخدم');
   });
 
   it('renders readonly auto input for new tenant row and sends null start_date on save', async () => {
