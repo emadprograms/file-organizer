@@ -6,7 +6,7 @@ current_phase: 115
 status: archived
 last_updated: "2026-09-15T13:15:00.000Z"
 last_activity: 2026-09-15
-last_activity_desc: Resolved tablet document list bottom scrolling and safe area clearance (QCK-50)
+last_activity_desc: Interactive document page editor, page separation, reordering, and deletion on computer and tablet (QCK-51)
 progress:
   total_phases: 1
   completed_phases: 1
@@ -96,6 +96,7 @@ Milestone v16.1 successfully implemented the document-anchored start date archit
 - `260915-h3k`: Fix Double Plus on Tenant Compliance Missing-Docs Upload Button (`house-profile.js`). Removed redundant literal `+` character from the button text (`<span>رفع</span>`), preserving the SVG plus icon so the button displays cleanly as a single plus icon with action label (`+ رفع`). Verified by unit tests in `tenant_file_integrity.test.js`.
 - `260915-fdt`: Optimize PDF Document Loading Performance Over Internet Connections (QCK-49). Added aggressive HTTP caching (`Cache-Control: public, max-age=31536000, immutable`) for `/lib/` vendor libraries (`pdfjs` and 2MB worker) and ASP.NET Core response compression (`builder.Services.AddResponseCompression()`, `app.UseResponseCompression()`). Enabled caching headers (`Cache-Control: private, max-age=604800, stale-while-revalidate=86400`, `Last-Modified`, and `ETag`) with HTTP 304 conditional GET support on PDF streaming endpoints. Enhanced `doc-viewer.js` Tab mode to reuse the existing `PDFViewerApplication` instance via `PDFViewerApplication.open({ url: pdfUrl })` instead of destroying and re-navigating the iframe. Verified by 926 .NET unit tests and 436 Vitest tests with 100% asset parity.
 - `260915-tablet-scroll-bottom-docs`: Tablet Document List Bottom Scrolling & Safe Area Clearance (QCK-50). Resolved bug where tablet/touchscreen users could not scroll to the bottom of tenant documents to view the last document. Fixed nested scroll container conflict by converting `#document-list-panel` to `overflow-hidden flex flex-col` (pinning segmented tabs at the top) and giving `#document-list` `flex-1 min-h-0 overflow-y-auto`. Added generous bottom clearance (`pb-28 sm:pb-32` and `padding-bottom: max(8rem, env(safe-area-inset-bottom, 3rem))`) to prevent clipping by tablet browser bars, OS gesture navigations, or the floating `#batch-action-bar`. Added `100dvh` dynamic viewport height support to prevent `100vh` overflow behind mobile toolbars. Verified by 18 touch/mobile unit tests, 438 Vitest tests, and 926 .NET unit tests with 100% asset parity.
+- `260915-edit-and-split-document-pages`: Interactive Document Page Editor, Page Separation, Reordering & Deletion on Computer and Tablet (QCK-51). Enables visual page inspection, 1-tap delete, page reordering, and page separation/extraction into new documents across desktop and tablet touchscreen devices. Guarantees 100% database integrity across `documents`, `pages`, and `batches` tables with inherited batch provenance, collision-free sequencing, and physical PDF rewriting via `PdfSharpCore`. Verified by 7 new .NET backend tests in `RepositoryTests.cs` and `ApiEndpointTests.cs` (933/933 .NET tests passing) and 6 new Vitest frontend component tests in `doc_page_editor.test.js` (444/444 web tests passing across 37 files) with 100% asset parity.
 
 ## Deferred Items
 

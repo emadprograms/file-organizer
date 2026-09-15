@@ -80,6 +80,20 @@
             };
         }
 
+        const quickLookEditPages = document.getElementById('quick-look-edit-pages');
+        if (quickLookEditPages) {
+            quickLookEditPages.onclick = () => {
+                if (quickLookCurrentDoc) {
+                    const { vaultId, title, doc } = quickLookCurrentDoc;
+                    const docCategory = doc ? (doc.category || doc.folder || doc.subfolder) : null;
+                    closeQuickLook();
+                    if (typeof window.openPageEditor === 'function') {
+                        window.openPageEditor(doc || { vault_id: vaultId, title, category: docCategory }, docCategory);
+                    }
+                }
+            };
+        }
+
         if (notesInput) {
             notesInput.oninput = () => {
                 clearTimeout(notesAutosaveTimer);

@@ -1353,6 +1353,131 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
         Assert.False(resultItem.IsCurrent);
         Assert.Null(resultItem.DurationCategory);
     }
+
+    [Fact]
+    public async Task ExtractPages_ApiEndpoint_ReturnsSuccessAndSplitsDocument()
+    {
+        await _fixture.SeedDataAsync();
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+
+        var houseId = $"HouseExtApi_{Guid.NewGuid():N}";
+        var areaId = "Safra C";
+        await repo.AddHouseAsync(houseId, areaId);
+        var tenant = await repo.AddTenantAsync(houseId, "Tenant For Extract Api", "2024-01-01");
+
+        var vaultId = Guid.NewGuid().ToString("N");
+        await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = areaId,
+            HouseId = houseId,
+            TenantId = tenant.Id,
+            Category = "10 - صيانة",
+            ArabicTitle = "صيانة مع محضر",
+            VaultId = vaultId,
+            PageCount = 3,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        var req = new ExtractPagesRequestDto
+        {
+            PageNumbers = new List<int> { 3 },
+            TargetCategory = "04 - محضر تسليم مفتاح",
+            TargetTenantId = tenant.Id,
+            TargetTitle = "محضر مفتاح مستخرج",
+            DeleteFromSource = true
+        };
+
+        var response = await _client.PostAsJsonAsync($"/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/extract-pages", req);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<ExtractPagesResponseDto>();
+        Assert.NotNull(body);
+        Assert.Equal("success", body.Status);
+        Assert.Equal(2, body.SourceRemainingPages);
+        Assert.Equal(1, body.NewPageCount);
+        Assert.Equal("04 - محضر تسليم مفتاح", body.NewCategory);
+    }
+
+    [Fact]
+    public async Task DeletePages_ApiEndpoint_ReturnsSuccess()
+    {
+        await _fixture.SeedDataAsync();
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+
+        var houseId = $"HouseDelApi_{Guid.NewGuid():N}";
+        var areaId = "Safra C";
+        await repo.AddHouseAsync(houseId, areaId);
+        var tenant = await repo.AddTenantAsync(houseId, "Tenant For Delete Api", "2024-01-01");
+
+        var vaultId = Guid.NewGuid().ToString("N");
+        await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = areaId,
+            HouseId = houseId,
+            TenantId = tenant.Id,
+            Category = "06 - كهرباء وماء",
+            ArabicTitle = "فاتورة للحذف",
+            VaultId = vaultId,
+            PageCount = 2,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        var req = new DeletePagesRequestDto
+        {
+            PageNumbers = new List<int> { 2 }
+        };
+
+        var response = await _client.PostAsJsonAsync($"/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/delete-pages", req);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<DeletePagesResponseDto>();
+        Assert.NotNull(body);
+        Assert.Equal("success", body.Status);
+        Assert.Equal(1, body.RemainingPages);
+        Assert.False(body.DocumentDeleted);
+    }
+
+    [Fact]
+    public async Task ReorderPages_ApiEndpoint_ReturnsSuccess()
+    {
+        await _fixture.SeedDataAsync();
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+
+        var houseId = $"HouseOrdApi_{Guid.NewGuid():N}";
+        var areaId = "Safra C";
+        await repo.AddHouseAsync(houseId, areaId);
+        var tenant = await repo.AddTenantAsync(houseId, "Tenant For Reorder Api", "2024-01-01");
+
+        var vaultId = Guid.NewGuid().ToString("N");
+        await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = areaId,
+            HouseId = houseId,
+            TenantId = tenant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد للترتيب",
+            VaultId = vaultId,
+            PageCount = 2,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        var req = new ReorderPagesRequestDto
+        {
+            PageOrder = new List<int> { 2, 1 }
+        };
+
+        var response = await _client.PostAsJsonAsync($"/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/reorder-pages", req);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<ReorderPagesResponseDto>();
+        Assert.NotNull(body);
+        Assert.Equal("success", body.Status);
+        Assert.Equal(new List<int> { 2, 1 }, body.PageOrder);
+    }
 }
+
 
 

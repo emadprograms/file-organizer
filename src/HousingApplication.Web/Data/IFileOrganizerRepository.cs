@@ -43,6 +43,9 @@ public interface IFileOrganizerRepository
     Task<CreateHouseResponseDto> CreateHouseAsync(string areaId, string houseId, string? initialTenantName = null, string? startDate = null, string? areasRoot = null);
     Task<bool> DeleteHouseAsync(string areaId, string houseId, string? areasRoot = null);
     Task<bool> UpdateTenantDatesAsync(int tenantId, string? startDate, string? endDate);
+    Task<ExtractPagesResponseDto> ExtractPagesAsync(string areaId, string houseId, string vaultId, ExtractPagesRequestDto request, string? areasRoot = null);
+    Task<DeletePagesResponseDto> DeletePagesAsync(string areaId, string houseId, string vaultId, DeletePagesRequestDto request, string? areasRoot = null);
+    Task<ReorderPagesResponseDto> ReorderPagesAsync(string areaId, string houseId, string vaultId, ReorderPagesRequestDto request, string? areasRoot = null);
 
     // Helpers for database seeding and testing
     Task<Area> AddAreaAsync(string areaId, string? code = null);

@@ -93,6 +93,18 @@
         if (btnChangeDateClose) btnChangeDateClose.onclick = closeChangeDocDateModal;
         if (btnChangeDateCancel) btnChangeDateCancel.onclick = closeChangeDocDateModal;
         if (btnChangeDateSave) btnChangeDateSave.onclick = saveChangeDocDate;
+
+        const btnDocEditPages = document.getElementById('btn-doc-edit-pages');
+        if (btnDocEditPages) {
+            btnDocEditPages.onclick = () => {
+                if (activeDocModalDoc && typeof window.openPageEditor === 'function') {
+                    const docToEdit = { ...activeDocModalDoc };
+                    const catToEdit = activeDocModalCategory;
+                    closeDocModal();
+                    window.openPageEditor(docToEdit, catToEdit);
+                }
+            };
+        }
     }
 
     function getAreaFromHash() {
@@ -935,6 +947,10 @@
                 <svg class="w-3.5 h-3.5 text-indigo-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
                 <span>Copy Document</span>
             </button>
+            <button type="button" class="doc-menu-item-edit-pages w-full px-3.5 py-2 text-left flex items-center gap-2.5 font-medium text-amber-700 hover:bg-amber-50 transition-colors cursor-pointer" title="Edit, split, reorder, or delete pages in this document • تعديل وفصل الصفحات">
+                <svg class="w-3.5 h-3.5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879a3 3 0 11-4.242-4.242L10.758 10M12 12L9.121 9.121m0 0a3 3 0 10-4.242 4.242L7.758 16"/></svg>
+                <span>✂️ Edit &amp; Split Pages</span>
+            </button>
             ${pinActionHtml}
             ${navActionHtml}
             <hr class="my-1 border-slate-100" />
@@ -943,6 +959,17 @@
                 <span>Delete Document</span>
             </button>
         `;
+
+        const btnEditPages = menu.querySelector('.doc-menu-item-edit-pages');
+        if (btnEditPages) {
+            btnEditPages.onclick = (ev) => {
+                ev.stopPropagation();
+                closeDocDropdownMenu();
+                if (typeof window !== 'undefined' && typeof window.openPageEditor === 'function') {
+                    window.openPageEditor(doc, currentCategory);
+                }
+            };
+        }
 
         const btnRename = menu.querySelector('.doc-menu-item-rename');
         if (btnRename) {

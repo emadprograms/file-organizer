@@ -826,6 +826,102 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/batch-copy", async (
 });
 
 // ---------------------------------------------------------------------------
+// Document Page Manipulation API (Extract, Delete, Reorder)
+// ---------------------------------------------------------------------------
+app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/extract-pages", async (
+    string areaId,
+    string houseId,
+    string vaultId,
+    ExtractPagesRequestDto dto,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    if (dto.PageNumbers == null || dto.PageNumbers.Count == 0)
+        return Results.BadRequest(new { error = "page_numbers must not be empty." });
+
+    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    try
+    {
+        var result = await repo.ExtractPagesAsync(areaId, houseId, vaultId, dto, areasRoot);
+        return Results.Ok(result);
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+});
+
+app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/delete-pages", async (
+    string areaId,
+    string houseId,
+    string vaultId,
+    DeletePagesRequestDto dto,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    if (dto.PageNumbers == null || dto.PageNumbers.Count == 0)
+        return Results.BadRequest(new { error = "page_numbers must not be empty." });
+
+    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    try
+    {
+        var result = await repo.DeletePagesAsync(areaId, houseId, vaultId, dto, areasRoot);
+        return Results.Ok(result);
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+});
+
+app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/reorder-pages", async (
+    string areaId,
+    string houseId,
+    string vaultId,
+    ReorderPagesRequestDto dto,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    if (dto.PageOrder == null || dto.PageOrder.Count == 0)
+        return Results.BadRequest(new { error = "page_order must not be empty." });
+
+    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    try
+    {
+        var result = await repo.ReorderPagesAsync(areaId, houseId, vaultId, dto, areasRoot);
+        return Results.Ok(result);
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+});
+
+// ---------------------------------------------------------------------------
 // Ingest API
 // ---------------------------------------------------------------------------
 app.MapPost("/api/ingest/preview-ai", async (

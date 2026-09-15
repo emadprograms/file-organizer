@@ -356,6 +356,25 @@
             };
         }
 
+        const editPagesBtn = document.getElementById('viewer-edit-pages-btn');
+        if (editPagesBtn && !editPagesBtn._hasViewerListener) {
+            editPagesBtn._hasViewerListener = true;
+            editPagesBtn.onclick = (e) => {
+                e.preventDefault();
+                if (currentPinnedDoc && typeof window.openPageEditor === 'function') {
+                    const area = (typeof currentArea !== 'undefined' ? currentArea : window.currentArea);
+                    const house = (typeof currentHouse !== 'undefined' ? currentHouse : window.currentHouse);
+                    window.openPageEditor({
+                        vault_id: currentPinnedDoc.vaultId,
+                        title: currentPinnedDoc.title,
+                        category: currentPinnedDoc.category,
+                        area_id: area,
+                        house_id: house
+                    }, currentPinnedDoc.category);
+                }
+            };
+        }
+
         const modeToggleBtn = document.getElementById('viewer-mode-toggle');
         if (modeToggleBtn && !modeToggleBtn._hasViewerListener) {
             modeToggleBtn._hasViewerListener = true;

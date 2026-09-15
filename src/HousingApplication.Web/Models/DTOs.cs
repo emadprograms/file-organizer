@@ -788,3 +788,103 @@ public record CreateHouseResponseDto
     public string Message { get; init; } = string.Empty;
 }
 
+public record ExtractPagesRequestDto
+{
+    [JsonPropertyName("page_numbers")]
+    public List<int> PageNumbers { get; init; } = new();
+
+    [JsonPropertyName("target_category")]
+    public string TargetCategory { get; init; } = string.Empty;
+
+    [JsonPropertyName("target_tenant_id")]
+    public int? TargetTenantId { get; init; }
+
+    [JsonPropertyName("target_title")]
+    public string? TargetTitle { get; init; }
+
+    [JsonPropertyName("target_date")]
+    public string? TargetDate { get; init; }
+
+    [JsonPropertyName("target_notes")]
+    public string? TargetNotes { get; init; }
+
+    [JsonPropertyName("delete_from_source")]
+    public bool DeleteFromSource { get; init; } = true;
+}
+
+public record ExtractPagesResponseDto
+{
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = "success";
+
+    [JsonPropertyName("source_vault_id")]
+    public string SourceVaultId { get; init; } = string.Empty;
+
+    [JsonPropertyName("source_remaining_pages")]
+    public int SourceRemainingPages { get; init; }
+
+    [JsonPropertyName("source_deleted")]
+    public bool SourceDeleted { get; init; }
+
+    [JsonPropertyName("new_vault_id")]
+    public string NewVaultId { get; init; } = string.Empty;
+
+    [JsonPropertyName("new_category")]
+    public string NewCategory { get; init; } = string.Empty;
+
+    [JsonPropertyName("new_tenant_id")]
+    public int NewTenantId { get; init; }
+
+    [JsonPropertyName("new_tenant_name")]
+    public string? NewTenantName { get; init; }
+
+    [JsonPropertyName("new_title")]
+    public string? NewTitle { get; init; }
+
+    [JsonPropertyName("new_page_count")]
+    public int NewPageCount { get; init; }
+}
+
+public record DeletePagesRequestDto
+{
+    [JsonPropertyName("page_numbers")]
+    public List<int> PageNumbers { get; init; } = new();
+}
+
+public record DeletePagesResponseDto
+{
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = "success";
+
+    [JsonPropertyName("vault_id")]
+    public string VaultId { get; init; } = string.Empty;
+
+    [JsonPropertyName("remaining_pages")]
+    public int RemainingPages { get; init; }
+
+    [JsonPropertyName("document_deleted")]
+    public bool DocumentDeleted { get; init; }
+}
+
+public record ReorderPagesRequestDto
+{
+    [JsonPropertyName("page_order")]
+    public List<int> PageOrder { get; init; } = new();
+}
+
+public record ReorderPagesResponseDto
+{
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = "success";
+
+    [JsonPropertyName("vault_id")]
+    public string VaultId { get; init; } = string.Empty;
+
+    [JsonPropertyName("page_count")]
+    public int PageCount { get; init; }
+
+    [JsonPropertyName("page_order")]
+    public List<int> PageOrder { get; init; } = new();
+}
+
+

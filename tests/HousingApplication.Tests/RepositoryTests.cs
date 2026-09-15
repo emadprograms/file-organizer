@@ -1450,5 +1450,198 @@ public class RepositoryTests : IDisposable
         Assert.NotNull(houseCard.ActiveTenantCategoryCounts);
         Assert.Equal(1, houseCard.ActiveTenantCategoryCounts["عقود"]); // 1 contract for active tenant
     }
+
+    [Fact]
+    public async Task ExtractPagesAsync_SeparatesPagesIntoNewDocument_UpdatesRemainingPages_AndPreservesBatchLineage()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaExtract", "EXT");
+        await _repo.AddHouseAsync("H-EXT", "AreaExtract");
+        var tenant = await _repo.AddTenantAsync("H-EXT", "Extract Tenant", "2024-01-01");
+
+        var sourceVaultId = Guid.NewGuid().ToString("N");
+        var doc = await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "AreaExtract",
+            HouseId = "H-EXT",
+            TenantId = tenant.Id,
+            Category = "10 - صيانة",
+            ArabicTitle = "خطاب صيانة مجمع",
+            PrimaryDate = "2024-05-15",
+            VaultId = sourceVaultId,
+            PageCount = 4
+        });
+
+        // Act: Extract page 4 to "04 - محضر تسليم مفتاح"
+        var extractReq = new ExtractPagesRequestDto
+        {
+            PageNumbers = new List<int> { 4 },
+            TargetCategory = "04 - محضر تسليم مفتاح",
+            TargetTenantId = tenant.Id,
+            TargetTitle = "محضر تسليم مفتاح منفصل",
+            TargetDate = "2024-05-15",
+            DeleteFromSource = true
+        };
+
+        var res = await _repo.ExtractPagesAsync("AreaExtract", "H-EXT", sourceVaultId, extractReq);
+
+        // Assert
+        Assert.Equal("success", res.Status);
+        Assert.Equal(sourceVaultId, res.SourceVaultId);
+        Assert.Equal(3, res.SourceRemainingPages);
+        Assert.False(res.SourceDeleted);
+        Assert.Equal(1, res.NewPageCount);
+        Assert.Equal("04 - محضر تسليم مفتاح", res.NewCategory);
+        Assert.Equal("محضر تسليم مفتاح منفصل", res.NewTitle);
+
+        // Verify source document in DB
+        var sourceDoc = await _repo.GetDocumentRawAsync(sourceVaultId);
+        Assert.NotNull(sourceDoc);
+        Assert.Equal(3, sourceDoc.PageCount);
+        Assert.Equal("10 - صيانة", sourceDoc.Category);
+
+        // Verify new document in DB
+        var newDoc = await _repo.GetDocumentRawAsync(res.NewVaultId);
+        Assert.NotNull(newDoc);
+        Assert.Equal(1, newDoc.PageCount);
+        Assert.Equal("04 - محضر تسليم مفتاح", newDoc.Category);
+        Assert.Equal(sourceDoc.BatchId, newDoc.BatchId); // Batch lineage preserved!
+
+        // Verify pages table
+        var sourcePages = await _repo.GetPagesByVaultIdAsync(sourceVaultId);
+        Assert.Equal(3, sourcePages.Count);
+        Assert.Equal(1, sourcePages[0].PageNumber);
+        Assert.Equal(2, sourcePages[1].PageNumber);
+        Assert.Equal(3, sourcePages[2].PageNumber);
+
+        var newPages = await _repo.GetPagesByVaultIdAsync(res.NewVaultId);
+        Assert.Single(newPages);
+        Assert.Equal(4, newPages[0].PageNumber);
+        Assert.Equal("04 - محضر تسليم مفتاح", newPages[0].Category);
+    }
+
+    [Fact]
+    public async Task ExtractPagesAsync_AllPagesExtracted_DeletesSourceDocument()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaExtractAll", "EXA");
+        await _repo.AddHouseAsync("H-EXA", "AreaExtractAll");
+        var tenant = await _repo.AddTenantAsync("H-EXA", "Extract All Tenant", "2024-01-01");
+
+        var sourceVaultId = Guid.NewGuid().ToString("N");
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "AreaExtractAll",
+            HouseId = "H-EXA",
+            TenantId = tenant.Id,
+            Category = "10 - صيانة",
+            ArabicTitle = "وثيقة كاملة للنقل",
+            VaultId = sourceVaultId,
+            PageCount = 2
+        });
+
+        // Act: Extract both pages 1 & 2
+        var extractReq = new ExtractPagesRequestDto
+        {
+            PageNumbers = new List<int> { 1, 2 },
+            TargetCategory = "07 - استقطاع إيجار",
+            DeleteFromSource = true
+        };
+
+        var res = await _repo.ExtractPagesAsync("AreaExtractAll", "H-EXA", sourceVaultId, extractReq);
+
+        // Assert
+        Assert.True(res.SourceDeleted);
+        Assert.Equal(0, res.SourceRemainingPages);
+        Assert.Equal(2, res.NewPageCount);
+
+        var sourceDoc = await _repo.GetDocumentRawAsync(sourceVaultId);
+        Assert.Null(sourceDoc); // Deleted cleanly
+
+        var newDoc = await _repo.GetDocumentRawAsync(res.NewVaultId);
+        Assert.NotNull(newDoc);
+        Assert.Equal(2, newDoc.PageCount);
+        Assert.Equal("07 - استقطاع إيجار", newDoc.Category);
+    }
+
+    [Fact]
+    public async Task DeletePagesAsync_RemovesPage_UpdatesPageCountAndBatchCount()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaDelPage", "DEL");
+        await _repo.AddHouseAsync("H-DEL", "AreaDelPage");
+        var tenant = await _repo.AddTenantAsync("H-DEL", "Delete Page Tenant", "2024-01-01");
+
+        var sourceVaultId = Guid.NewGuid().ToString("N");
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "AreaDelPage",
+            HouseId = "H-DEL",
+            TenantId = tenant.Id,
+            Category = "06 - كهرباء وماء",
+            ArabicTitle = "فاتورة مع صفحة بيضاء",
+            VaultId = sourceVaultId,
+            PageCount = 3
+        });
+
+        // Act: Delete page 2 (e.g. blank page)
+        var delReq = new DeletePagesRequestDto
+        {
+            PageNumbers = new List<int> { 2 }
+        };
+
+        var res = await _repo.DeletePagesAsync("AreaDelPage", "H-DEL", sourceVaultId, delReq);
+
+        // Assert
+        Assert.Equal("success", res.Status);
+        Assert.Equal(2, res.RemainingPages);
+        Assert.False(res.DocumentDeleted);
+
+        var doc = await _repo.GetDocumentRawAsync(sourceVaultId);
+        Assert.NotNull(doc);
+        Assert.Equal(2, doc.PageCount);
+
+        var pages = await _repo.GetPagesByVaultIdAsync(sourceVaultId);
+        Assert.Equal(2, pages.Count);
+        Assert.Equal(1, pages[0].PageNumber);
+        Assert.Equal(3, pages[1].PageNumber);
+    }
+
+    [Fact]
+    public async Task ReorderPagesAsync_UpdatesPageSequence()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaReorder", "ORD");
+        await _repo.AddHouseAsync("H-ORD", "AreaReorder");
+        var tenant = await _repo.AddTenantAsync("H-ORD", "Reorder Tenant", "2024-01-01");
+
+        var sourceVaultId = Guid.NewGuid().ToString("N");
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "AreaReorder",
+            HouseId = "H-ORD",
+            TenantId = tenant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد غير مرتب",
+            VaultId = sourceVaultId,
+            PageCount = 3
+        });
+
+        // Act: Reorder pages to [3, 1, 2]
+        var reorderReq = new ReorderPagesRequestDto
+        {
+            PageOrder = new List<int> { 3, 1, 2 }
+        };
+
+        var res = await _repo.ReorderPagesAsync("AreaReorder", "H-ORD", sourceVaultId, reorderReq);
+
+        // Assert
+        Assert.Equal("success", res.Status);
+        Assert.Equal(new List<int> { 3, 1, 2 }, res.PageOrder);
+
+        var pages = await _repo.GetPagesByVaultIdAsync(sourceVaultId);
+        Assert.Equal(3, pages.Count);
+    }
 }
+
 
