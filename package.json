@@ -11,7 +11,9 @@
     "test": "vitest run",
     "test:web": "vitest run",
     "test:e2e": "vitest run",
-    "start:net": "./run-mac.sh"
+    "start:net": "./run-mac.sh",
+    "start:win": "powershell -ExecutionPolicy Bypass -File ./run-windows.ps1",
+    "start:mac": "./run-mac.sh"
   },
   "repository": {
     "type": "git",

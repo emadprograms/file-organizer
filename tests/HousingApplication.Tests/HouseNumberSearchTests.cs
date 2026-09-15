@@ -11,10 +11,21 @@ public class HouseNumberSearchTests
 
     public HouseNumberSearchTests()
     {
+        var candidatePaths = new[]
+        {
+            Environment.GetEnvironmentVariable("ORGANIZER_DB_PATH"),
+            @"D:\areas_v11\organizer.db",
+            "/tmp/file_organizer_local.db",
+            Path.Combine(Path.GetTempPath(), "file_organizer_local.db"),
+            Path.Combine(Directory.GetCurrentDirectory(), "organizer.db")
+        };
+        var dbPath = candidatePaths.FirstOrDefault(p => !string.IsNullOrEmpty(p) && File.Exists(p))
+                     ?? Path.Combine(Path.GetTempPath(), "file_organizer_local.db");
+
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["ORGANIZER_DB_PATH"] = "/tmp/file_organizer_local.db"
+                ["ORGANIZER_DB_PATH"] = dbPath
             })
             .Build();
 
