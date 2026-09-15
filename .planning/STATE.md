@@ -4,9 +4,9 @@ milestone: v16.1
 milestone_name: Document-Anchored Tenancy Dates & Minimalist Register
 current_phase: 115
 status: archived
-last_updated: "2026-09-15T08:25:00.000Z"
+last_updated: "2026-09-15T13:15:00.000Z"
 last_activity: 2026-09-15
-last_activity_desc: Optimize PDF document loading performance over internet connections (QCK-49)
+last_activity_desc: Resolved tablet document list bottom scrolling and safe area clearance (QCK-50)
 progress:
   total_phases: 1
   completed_phases: 1
@@ -95,6 +95,7 @@ Milestone v16.1 successfully implemented the document-anchored start date archit
 - `260915-f5b`: Anchor House Card Missing-Docs Warning to Fixed Bottom Slot Above Footer Bar (QCK-48). Anchored `.missing-docs-strip` in the House Card (`area-grid.js`) inside a dedicated `.card-bottom-zone` pinned to the bottom of the card directly above `.card-footer`, completely decoupled from `.tenants-overview-section`. Guaranteed consistent visual slotting across all house cards regardless of tenant count (empty when compliant/vacant, warning present when documents missing). Verified by 435 Vitest tests and 926 .NET unit tests with 100% asset parity.
 - `260915-h3k`: Fix Double Plus on Tenant Compliance Missing-Docs Upload Button (`house-profile.js`). Removed redundant literal `+` character from the button text (`<span>رفع</span>`), preserving the SVG plus icon so the button displays cleanly as a single plus icon with action label (`+ رفع`). Verified by unit tests in `tenant_file_integrity.test.js`.
 - `260915-fdt`: Optimize PDF Document Loading Performance Over Internet Connections (QCK-49). Added aggressive HTTP caching (`Cache-Control: public, max-age=31536000, immutable`) for `/lib/` vendor libraries (`pdfjs` and 2MB worker) and ASP.NET Core response compression (`builder.Services.AddResponseCompression()`, `app.UseResponseCompression()`). Enabled caching headers (`Cache-Control: private, max-age=604800, stale-while-revalidate=86400`, `Last-Modified`, and `ETag`) with HTTP 304 conditional GET support on PDF streaming endpoints. Enhanced `doc-viewer.js` Tab mode to reuse the existing `PDFViewerApplication` instance via `PDFViewerApplication.open({ url: pdfUrl })` instead of destroying and re-navigating the iframe. Verified by 926 .NET unit tests and 436 Vitest tests with 100% asset parity.
+- `260915-tablet-scroll-bottom-docs`: Tablet Document List Bottom Scrolling & Safe Area Clearance (QCK-50). Resolved bug where tablet/touchscreen users could not scroll to the bottom of tenant documents to view the last document. Fixed nested scroll container conflict by converting `#document-list-panel` to `overflow-hidden flex flex-col` (pinning segmented tabs at the top) and giving `#document-list` `flex-1 min-h-0 overflow-y-auto`. Added generous bottom clearance (`pb-28 sm:pb-32` and `padding-bottom: max(8rem, env(safe-area-inset-bottom, 3rem))`) to prevent clipping by tablet browser bars, OS gesture navigations, or the floating `#batch-action-bar`. Added `100dvh` dynamic viewport height support to prevent `100vh` overflow behind mobile toolbars. Verified by 18 touch/mobile unit tests, 438 Vitest tests, and 926 .NET unit tests with 100% asset parity.
 
 ## Deferred Items
 

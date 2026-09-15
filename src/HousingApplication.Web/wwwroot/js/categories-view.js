@@ -1622,7 +1622,7 @@
 
         // Auto-scroll near container edges
         if (typeof document !== 'undefined') {
-            const scrollEl = document.getElementById('document-list-panel') || document.getElementById('document-list');
+            const scrollEl = document.getElementById('document-list') || document.getElementById('document-list-panel');
             if (scrollEl && scrollEl.getBoundingClientRect) {
                 const rect = scrollEl.getBoundingClientRect();
                 const edgeThreshold = 60;

@@ -76,7 +76,7 @@
         <div id="resizer-1" class="w-1 cursor-col-resize hover:bg-blue-500 bg-slate-800/50 hover:w-1.5 z-10 transition-all flex-shrink-0"></div>
 
         <!-- Main Workspace -->
-        <div class="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 h-screen overflow-hidden">
+        <div class="flex-1 flex flex-col bg-slate-50 dark:bg-slate-950 h-screen h-[100dvh] overflow-hidden">
             
             <!-- Top Navbar: Breadcrumb Title, Search Trigger -->
             <header id="top-navbar" class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md px-5 py-3 border-b border-slate-200 dark:border-slate-800 shadow-2xs flex items-center justify-between z-20 flex-shrink-0 gap-4">
@@ -233,7 +233,7 @@
                 </div>
 
                 <!-- Left panel: Documents List -->
-                <div id="document-list-panel" class="bg-white dark:bg-slate-900 overflow-y-auto hidden flex-col flex-shrink-0 border-r border-slate-200 dark:border-slate-800" style="width: 33%; min-width: 260px; max-width: 60vw;">
+                <div id="document-list-panel" class="bg-white dark:bg-slate-900 overflow-hidden hidden flex-col flex-shrink-0 border-r border-slate-200 dark:border-slate-800" style="width: 33%; min-width: 260px; max-width: 60vw;">
                     <!-- Segmented Tabs -->
                     <div class="p-2 border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/70 flex items-center justify-between gap-2 flex-shrink-0">
                         <!-- Back to Tenants (shown only when viewing a tenant's documents) -->
@@ -261,7 +261,7 @@
                         </button>
                     </div>
                     
-                    <div id="document-list" class="p-3 space-y-2 overflow-y-auto"></div>
+                    <div id="document-list" class="p-3 pb-28 sm:pb-32 space-y-2 flex-1 min-h-0 overflow-y-auto"></div>
                 </div>
                 
                 <!-- Resizer 2 -->

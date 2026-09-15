@@ -436,5 +436,28 @@ describe('Touchscreen & Mobile Interactions Protection (Android Tablet Support)'
             }
         });
     });
+
+    describe('Tablet Bottom Document Scrolling & Safe Area Clearance', () => {
+        it('verifies index.html document-list-panel has overflow-hidden and document-list has flex-1 min-h-0 overflow-y-auto pb-28', () => {
+            const fs = require('fs');
+            const path = require('path');
+            const html = fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/index.html'), 'utf8');
+
+            expect(html).toContain('id="document-list-panel" class="bg-white dark:bg-slate-900 overflow-hidden hidden flex-col flex-shrink-0');
+            expect(html).toContain('id="document-list" class="p-3 pb-28 sm:pb-32 space-y-2 flex-1 min-h-0 overflow-y-auto"');
+            expect(html).toContain('h-screen h-[100dvh] overflow-hidden');
+        });
+
+        it('verifies styles.css enforces dynamic viewport height (100dvh) and tablet bottom clearances for document-list', () => {
+            const fs = require('fs');
+            const path = require('path');
+            const css = fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/css/styles.css'), 'utf8');
+
+            expect(css).toContain('height: 100dvh');
+            expect(css).toContain('#document-list-panel {\n    overflow: hidden !important;\n}');
+            expect(css).toMatch(/#document-list\s*\{[^}]*padding-bottom:\s*max\(7rem,\s*env\(safe-area-inset-bottom/);
+            expect(css).toContain('padding-bottom: max(8rem, env(safe-area-inset-bottom, 3rem)) !important;');
+        });
+    });
 });
 
