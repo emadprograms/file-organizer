@@ -4,9 +4,9 @@ milestone: v16.1
 milestone_name: Document-Anchored Tenancy Dates & Minimalist Register
 current_phase: 115
 status: archived
-last_updated: "2026-09-15T07:55:00.000Z"
+last_updated: "2026-09-15T08:25:00.000Z"
 last_activity: 2026-09-15
-last_activity_desc: Completed quick task 260915-f5b Anchor House Card Missing-Docs Warning to Fixed Bottom Slot Above Footer Bar
+last_activity_desc: Fix double plus on tenant compliance missing-docs upload button (house-profile.js)
 progress:
   total_phases: 1
   completed_phases: 1
@@ -93,6 +93,7 @@ Milestone v16.1 successfully implemented the document-anchored start date archit
 - `260915-c2u`: Relocate House Card Missing-Docs Warning to Card Footer & Make House Profile Compliance Checklist Collapsible (Option A + Option 1). Relocated missing-docs warning from card body between tenants and footer into the card footer row (`.missing-docs-strip`) alongside stay/archive metrics, freeing 100% of card body for clean tenant browsing without vertical displacement. Replaced large fixed 5-box compliance checklist in House Profile with a sleek ~36px collapsible accordion header (`.btn-toggle-compliance` with `localStorage` persistence), displaying tenant compliance status and toggle to expand upload/audit grid on demand. 435 Vitest tests and 925 .NET xUnit tests passing with zero failures.
 - `260915-d4p`: Isolate Active Tenant Compliance Document Counts (House 500 Fix) & Refine Card/Profile Dividers. Fixed House 500 compliance count bug where historical archive documents across past tenants inflated the active tenant's document count (active tenant Fawaz showed 3 contracts when he only had 1; past tenant Abdullah had 2). Added `CategoryCounts` to `HouseTenantProfileDto` and `ActiveTenantCategoryCounts` to `TreeHouseDto` / `HouseCardDto`. Refactored `house-profile.js` (`computeTenantCompliance`) to check category documents strictly from active tenant data without archive leakage. Reverted card footer pill in `area-grid.js` to restore clean layout; placed warning strip with tenants separated by a dedicated divider (`.card-warning-divider`). Refined Tenant UI (`house-profile.js`) to be open by default with compact item cards, removed verbose subtitle paragraphs, and inserted `.tenant-section-divider` separating it from the residents list. Verified by 926 .NET tests and 435 Vitest tests.
 - `260915-f5b`: Anchor House Card Missing-Docs Warning to Fixed Bottom Slot Above Footer Bar (QCK-48). Anchored `.missing-docs-strip` in the House Card (`area-grid.js`) inside a dedicated `.card-bottom-zone` pinned to the bottom of the card directly above `.card-footer`, completely decoupled from `.tenants-overview-section`. Guaranteed consistent visual slotting across all house cards regardless of tenant count (empty when compliant/vacant, warning present when documents missing). Verified by 435 Vitest tests and 926 .NET unit tests with 100% asset parity.
+- `260915-h3k`: Fix Double Plus on Tenant Compliance Missing-Docs Upload Button (`house-profile.js`). Removed redundant literal `+` character from the button text (`<span>رفع</span>`), preserving the SVG plus icon so the button displays cleanly as a single plus icon with action label (`+ رفع`). Verified by unit tests in `tenant_file_integrity.test.js`.
 
 ## Deferred Items
 

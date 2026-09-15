@@ -704,6 +704,12 @@ describe('Tenant File Integrity & Compliance Check (Idea B + Idea C)', () => {
 
             const catPrefixes = Array.from(uploadButtons).map(b => b.dataset.catPrefix);
             expect(catPrefixes).toEqual(['05 - عقود', '07 - استقطاع إيجار']);
+
+            // Button has clean single SVG plus icon and text 'رفع' without duplicate text '+'
+            uploadButtons.forEach(btn => {
+                expect(btn.textContent.trim()).toBe('رفع');
+                expect(btn.querySelector('svg')).not.toBeNull();
+            });
         });
 
         it('clicking upload button invokes openIngestStationWithPreset with exact parameters', () => {
