@@ -34,6 +34,12 @@ builder.Services.AddCors(options =>
 builder.Services.AddSingleton<ISqliteDbConnectionFactory, SqliteDbConnectionFactory>();
 builder.Services.AddScoped<IFileOrganizerRepository, FileOrganizerRepository>();
 
+// Configure response compression for fast asset and API delivery over internet
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
+
 var app = builder.Build();
 
 // Ensure DB schema is initialized
@@ -51,8 +57,9 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseCors();
+app.UseResponseCompression();
 
-// Static file serving from wwwroot/ with strict no-cache headers to prevent stale UI assets
+// Static file serving from wwwroot/
 var staticContentTypeProvider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
 staticContentTypeProvider.Mappings[".properties"] = "text/plain";
 staticContentTypeProvider.Mappings[".bcmap"] = "application/octet-stream";
@@ -65,9 +72,20 @@ app.UseStaticFiles(new StaticFileOptions
     ContentTypeProvider = staticContentTypeProvider,
     OnPrepareResponse = ctx =>
     {
-        ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
-        ctx.Context.Response.Headers.Append("Pragma", "no-cache");
-        ctx.Context.Response.Headers.Append("Expires", "0");
+        var path = ctx.Context.Request.Path.Value ?? "";
+        if (path.StartsWith("/lib/", StringComparison.OrdinalIgnoreCase))
+        {
+            // Vendor assets (PDF.js worker, viewer, fonts, cmaps) are heavy static dependencies (~4.5MB).
+            // Cache them aggressively in the browser so they are downloaded only once.
+            ctx.Context.Response.Headers.Append("Cache-Control", "public, max-age=31536000, immutable");
+        }
+        else
+        {
+            // Application scripts & styles revalidate to ensure fresh UI code on updates
+            ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+            ctx.Context.Response.Headers.Append("Pragma", "no-cache");
+            ctx.Context.Response.Headers.Append("Expires", "0");
+        }
     }
 });
 
@@ -536,7 +554,7 @@ app.MapGet("/api/search", async (string? q, int? limit, IFileOrganizerRepository
 // ---------------------------------------------------------------------------
 // PDF Streaming API
 // ---------------------------------------------------------------------------
-app.MapGet("/api/pdf/{vaultId}", async (string vaultId, IFileOrganizerRepository repo, IConfiguration config) =>
+app.MapGet("/api/pdf/{vaultId}", async (HttpContext httpContext, string vaultId, IFileOrganizerRepository repo, IConfiguration config) =>
 {
     var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
     var doc = await repo.GetDocumentDetailsAsync(vaultId, areasRoot);
@@ -561,10 +579,16 @@ app.MapGet("/api/pdf/{vaultId}", async (string vaultId, IFileOrganizerRepository
     if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
         return Results.NotFound(new { error = "Resource not found.", solution = "Verify the endpoint URL and the resource ID." });
 
-    return Results.File(filePath, "application/pdf", enableRangeProcessing: true);
+    var fileInfo = new FileInfo(filePath);
+    var lastModified = fileInfo.LastWriteTimeUtc;
+    var etag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{fileInfo.Length}_{lastModified.Ticks}\"");
+    httpContext.Response.Headers.Append("Cache-Control", "private, max-age=604800, stale-while-revalidate=86400");
+
+    return Results.File(filePath, "application/pdf", lastModified: lastModified, entityTag: etag, enableRangeProcessing: true);
 });
 
 app.MapGet("/api/areas/{areaId}/houses/{houseId}/pdf/{vaultId}", async (
+    HttpContext httpContext,
     string areaId,
     string houseId,
     string vaultId,
@@ -618,7 +642,12 @@ app.MapGet("/api/areas/{areaId}/houses/{houseId}/pdf/{vaultId}", async (
     if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
         return Results.NotFound(new { error = "Resource not found.", solution = "Verify the endpoint URL and the resource ID." });
 
-    return Results.File(filePath, "application/pdf", enableRangeProcessing: true);
+    var fileInfo = new FileInfo(filePath);
+    var lastModified = fileInfo.LastWriteTimeUtc;
+    var etag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{fileInfo.Length}_{lastModified.Ticks}\"");
+    httpContext.Response.Headers.Append("Cache-Control", "private, max-age=604800, stale-while-revalidate=86400");
+
+    return Results.File(filePath, "application/pdf", lastModified: lastModified, entityTag: etag, enableRangeProcessing: true);
 });
 
 // ---------------------------------------------------------------------------

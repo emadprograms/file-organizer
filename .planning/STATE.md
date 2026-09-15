@@ -6,7 +6,7 @@ current_phase: 115
 status: archived
 last_updated: "2026-09-15T08:25:00.000Z"
 last_activity: 2026-09-15
-last_activity_desc: Fix double plus on tenant compliance missing-docs upload button (house-profile.js)
+last_activity_desc: Optimize PDF document loading performance over internet connections (QCK-49)
 progress:
   total_phases: 1
   completed_phases: 1
@@ -94,6 +94,7 @@ Milestone v16.1 successfully implemented the document-anchored start date archit
 - `260915-d4p`: Isolate Active Tenant Compliance Document Counts (House 500 Fix) & Refine Card/Profile Dividers. Fixed House 500 compliance count bug where historical archive documents across past tenants inflated the active tenant's document count (active tenant Fawaz showed 3 contracts when he only had 1; past tenant Abdullah had 2). Added `CategoryCounts` to `HouseTenantProfileDto` and `ActiveTenantCategoryCounts` to `TreeHouseDto` / `HouseCardDto`. Refactored `house-profile.js` (`computeTenantCompliance`) to check category documents strictly from active tenant data without archive leakage. Reverted card footer pill in `area-grid.js` to restore clean layout; placed warning strip with tenants separated by a dedicated divider (`.card-warning-divider`). Refined Tenant UI (`house-profile.js`) to be open by default with compact item cards, removed verbose subtitle paragraphs, and inserted `.tenant-section-divider` separating it from the residents list. Verified by 926 .NET tests and 435 Vitest tests.
 - `260915-f5b`: Anchor House Card Missing-Docs Warning to Fixed Bottom Slot Above Footer Bar (QCK-48). Anchored `.missing-docs-strip` in the House Card (`area-grid.js`) inside a dedicated `.card-bottom-zone` pinned to the bottom of the card directly above `.card-footer`, completely decoupled from `.tenants-overview-section`. Guaranteed consistent visual slotting across all house cards regardless of tenant count (empty when compliant/vacant, warning present when documents missing). Verified by 435 Vitest tests and 926 .NET unit tests with 100% asset parity.
 - `260915-h3k`: Fix Double Plus on Tenant Compliance Missing-Docs Upload Button (`house-profile.js`). Removed redundant literal `+` character from the button text (`<span>رفع</span>`), preserving the SVG plus icon so the button displays cleanly as a single plus icon with action label (`+ رفع`). Verified by unit tests in `tenant_file_integrity.test.js`.
+- `260915-fdt`: Optimize PDF Document Loading Performance Over Internet Connections (QCK-49). Added aggressive HTTP caching (`Cache-Control: public, max-age=31536000, immutable`) for `/lib/` vendor libraries (`pdfjs` and 2MB worker) and ASP.NET Core response compression (`builder.Services.AddResponseCompression()`, `app.UseResponseCompression()`). Enabled caching headers (`Cache-Control: private, max-age=604800, stale-while-revalidate=86400`, `Last-Modified`, and `ETag`) with HTTP 304 conditional GET support on PDF streaming endpoints. Enhanced `doc-viewer.js` Tab mode to reuse the existing `PDFViewerApplication` instance via `PDFViewerApplication.open({ url: pdfUrl })` instead of destroying and re-navigating the iframe. Verified by 926 .NET unit tests and 436 Vitest tests with 100% asset parity.
 
 ## Deferred Items
 

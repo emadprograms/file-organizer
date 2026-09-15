@@ -341,5 +341,34 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
 
       toggleBtn.remove();
     });
+
+    it('reuses existing PDFViewerApplication instance in Tab mode without resetting iframe src', () => {
+      localStorage.setItem('pdf_viewer_mode', 'tab');
+      const pdfFrame = document.getElementById('pdf-frame');
+
+      let openedUrl = null;
+      const mockOpen = vi.fn(({ url }) => { openedUrl = url; });
+      Object.defineProperty(pdfFrame, 'contentWindow', {
+        value: {
+          PDFViewerApplication: {
+            initialized: true,
+            open: mockOpen
+          }
+        },
+        configurable: true,
+        writable: true
+      });
+
+      pdfFrame.src = '/lib/pdfjs/web/viewer.html?file=initial.pdf';
+
+      window.openDocument('doc_second', 'فاتورة كهرباء', '06 - كهرباء وماء');
+
+      // Frame src should NOT be changed because instance was reused
+      expect(pdfFrame.src).toContain('/lib/pdfjs/web/viewer.html?file=initial.pdf');
+      expect(mockOpen).toHaveBeenCalledWith({
+        url: '/api/areas/default/houses/default/pdf/doc_second'
+      });
+      expect(openedUrl).toBe('/api/areas/default/houses/default/pdf/doc_second');
+    });
   });
 });

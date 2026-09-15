@@ -231,3 +231,13 @@ netsh advfirewall firewall add rule name="File Organizer HTTPS (Port 443)" dir=i
 ### Logs
 - For Standalone/Service: Logs stream to console and Windows Event Log (`Application` source).
 - For IIS In-Process: Check `C:\inetpub\wwwroot\FileOrganizer\logs\stdout_*.log` (enable `stdoutLogEnabled="true"` in `web.config`).
+
+---
+
+## 9. Remote Access & Internet Optimization
+
+When hosting `FileOrganizer.Web` for remote or WAN access across the internet (or on tablets/iPads over mobile broadband):
+- **Response Compression**: Native Brotli/Gzip response compression is enabled in the ASP.NET Core pipeline (`AddResponseCompression`), compressing API responses and static assets automatically.
+- **Vendor Library Caching**: Heavy third-party assets in `/lib/` (specifically the Mozilla PDF.js viewer suite, worker thread, and fonts ~4.5 MB) are served with long-term immutable caching (`Cache-Control: public, max-age=31536000, immutable`) so clients download them only once.
+- **Vault PDF Caching & Conditional GET**: Document endpoints (`/api/pdf/{vaultId}`) return `Cache-Control: private, max-age=604800, stale-while-revalidate=86400`, `Last-Modified`, and `ETag`. The browser caches documents locally and validates subsequent visits with `304 Not Modified` without re-transferring file payloads.
+- **Tab Mode Instance Reuse**: The web viewer reuses active `PDFViewerApplication` instances without re-navigating or reloading the iframe, eliminating Web Worker teardowns and JavaScript compilation delays between document views.

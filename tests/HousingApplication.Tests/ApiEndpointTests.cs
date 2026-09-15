@@ -1124,12 +1124,23 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
         Assert.DoesNotContain(copy1Id, tlDocIds);
         Assert.DoesNotContain(copy2Id, tlDocIds);
 
-        // Verify PDF can be fetched via /api/pdf/{vaultId}
+        // Verify PDF can be fetched via /api/pdf/{vaultId} with caching headers
         var pdf1Response = await _client.GetAsync($"/api/pdf/{copy1Id}");
         Assert.Equal(HttpStatusCode.OK, pdf1Response.StatusCode);
         var pdf1Bytes = await pdf1Response.Content.ReadAsByteArrayAsync();
         Assert.NotEmpty(pdf1Bytes);
         Assert.StartsWith("%PDF", System.Text.Encoding.ASCII.GetString(pdf1Bytes[..4]));
+
+        // Verify Cache-Control and ETag headers
+        Assert.NotNull(pdf1Response.Headers.CacheControl);
+        Assert.True(pdf1Response.Headers.CacheControl.Private);
+        Assert.NotNull(pdf1Response.Headers.ETag);
+
+        // Verify conditional GET with If-None-Match returns 304 Not Modified
+        var req304 = new HttpRequestMessage(HttpMethod.Get, $"/api/pdf/{copy1Id}");
+        req304.Headers.IfNoneMatch.Add(pdf1Response.Headers.ETag);
+        var res304 = await _client.SendAsync(req304);
+        Assert.Equal(HttpStatusCode.NotModified, res304.StatusCode);
     }
 
     [Fact]

@@ -88,6 +88,29 @@
         return pdfUrl + '#view=FitH';
     }
 
+    function loadPdfIntoFrame(pdfFrame, pdfUrl) {
+        if (!pdfFrame) return;
+        const targetSrc = resolveViewerSrc(pdfUrl);
+
+        let reusedViewer = false;
+        if (shouldUseOfficialViewer()) {
+            try {
+                const frameWin = pdfFrame.contentWindow;
+                if (frameWin && frameWin.PDFViewerApplication && frameWin.PDFViewerApplication.initialized && typeof frameWin.PDFViewerApplication.open === 'function') {
+                    frameWin.PDFViewerApplication.open({ url: pdfUrl });
+                    reusedViewer = true;
+                }
+            } catch (e) {
+                reusedViewer = false;
+            }
+        }
+
+        if (!reusedViewer && pdfFrame.src !== targetSrc) {
+            pdfFrame.src = targetSrc;
+        }
+        pdfFrame.classList.remove('hidden');
+    }
+
     function updateViewerCategory(vaultId, explicitCategory) {
         const catBadge = document.getElementById('viewer-category-badge');
         const catVal = document.getElementById('viewer-category-val');
@@ -421,13 +444,7 @@
         currentPinnedDoc = { vaultId, title: cleanTitle, category };
 
         const pdfUrl = resolvePdfUrl(vaultId);
-        const targetSrc = resolveViewerSrc(pdfUrl);
-        if (pdfFrame && pdfFrame.src !== targetSrc) {
-            pdfFrame.src = targetSrc;
-        }
-        if (pdfFrame) {
-            pdfFrame.classList.remove('hidden');
-        }
+        loadPdfIntoFrame(pdfFrame, pdfUrl);
         if (viewerDownload) {
             viewerDownload.href = pdfUrl;
             viewerDownload.setAttribute('download', `${cleanTitle}.pdf`);
@@ -464,13 +481,7 @@
         if (viewerPeekBadge) viewerPeekBadge.classList.remove('hidden');
 
         const pdfUrl = resolvePdfUrl(vaultId);
-        const targetSrc = resolveViewerSrc(pdfUrl);
-        if (pdfFrame && pdfFrame.src !== targetSrc) {
-            pdfFrame.src = targetSrc;
-        }
-        if (pdfFrame) {
-            pdfFrame.classList.remove('hidden');
-        }
+        loadPdfIntoFrame(pdfFrame, pdfUrl);
         if (viewerDownload) {
             viewerDownload.href = pdfUrl;
             viewerDownload.setAttribute('download', `${cleanTitle}.pdf`);
