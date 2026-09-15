@@ -305,4 +305,196 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
     const body = JSON.parse(deleteCall.options.body);
     expect(body.page_numbers).toEqual([1]);
   });
+
+  it('executes single page 1-tap delete from card button with confirmation', async () => {
+    const mockDoc = {
+      vault_id: 'doc_card_del',
+      brief_arabic_title: 'وثيقة حذف بطاقة',
+      category: '10 - صيانة',
+      page_count: 3
+    };
+
+    let deleteCall = null;
+    global.fetch = vi.fn((url, options) => {
+      if (url.includes('/delete-pages')) {
+        deleteCall = { url, options };
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            message: 'Deleted successfully',
+            remaining_pages: 2,
+            document_deleted: false
+          })
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+
+    vi.stubGlobal('confirm', vi.fn(() => true));
+
+    await window.openPageEditor(mockDoc);
+
+    const cards = document.querySelectorAll('.page-editor-card');
+    const btnCardDel = cards[1].querySelector('.btn-card-delete');
+    expect(btnCardDel).not.toBeNull();
+
+    await btnCardDel.onclick(new Event('click'));
+
+    expect(window.confirm).toHaveBeenCalled();
+    expect(deleteCall).not.toBeNull();
+    const body = JSON.parse(deleteCall.options.body);
+    expect(body.page_numbers).toEqual([2]);
+  });
+
+  it('cancels single page deletion when user dismisses confirm prompt', async () => {
+    const mockDoc = {
+      vault_id: 'doc_card_cancel',
+      brief_arabic_title: 'وثيقة إلغاء الحذف',
+      category: '10 - صيانة',
+      page_count: 3
+    };
+
+    let fetchCalled = false;
+    global.fetch = vi.fn(() => {
+      fetchCalled = true;
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    vi.stubGlobal('confirm', vi.fn(() => false)); // User cancels
+
+    await window.openPageEditor(mockDoc);
+
+    const cards = document.querySelectorAll('.page-editor-card');
+    const btnCardDel = cards[0].querySelector('.btn-card-delete');
+    await btnCardDel.onclick(new Event('click'));
+
+    expect(window.confirm).toHaveBeenCalled();
+    expect(fetchCalled).toBe(false);
+  });
+
+  it('shifts page order using card move-left and move-right buttons and calls reorder API', async () => {
+    const mockDoc = {
+      vault_id: 'doc_reorder_test',
+      brief_arabic_title: 'وثيقة إعادة ترتيب',
+      category: '05 - عقود',
+      area_id: 'Safra C',
+      house_id: '101',
+      page_count: 3
+    };
+
+    let reorderCall = null;
+    global.fetch = vi.fn((url, options) => {
+      if (url.includes('/reorder-pages')) {
+        reorderCall = { url, options };
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ status: 'success', page_order: [2, 1, 3] })
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+
+    await window.openPageEditor(mockDoc);
+
+    let cards = document.querySelectorAll('.page-editor-card');
+    // First card: move-left is disabled, move-right is enabled
+    const btnFirstMoveLeft = cards[0].querySelector('.btn-move-left');
+    const btnFirstMoveRight = cards[0].querySelector('.btn-move-right');
+    expect(btnFirstMoveLeft.disabled).toBe(true);
+    expect(btnFirstMoveRight.disabled).toBe(false);
+
+    // Click move-right on first page (Page 1 shifts to pos 2, Page 2 shifts to pos 1)
+    await btnFirstMoveRight.onclick(new Event('click'));
+
+    expect(reorderCall).not.toBeNull();
+    expect(reorderCall.url).toContain('/documents/doc_reorder_test/reorder-pages');
+    const body = JSON.parse(reorderCall.options.body);
+    expect(body.page_order).toEqual([2, 1, 3]);
+  });
+
+  it('closes page editor via Close button and Escape key', async () => {
+    const mockDoc = {
+      vault_id: 'doc_close_test',
+      brief_arabic_title: 'وثيقة الإغلاق',
+      category: '10 - صيانة',
+      page_count: 2
+    };
+
+    await window.openPageEditor(mockDoc);
+    const modal = document.getElementById('doc-page-editor-modal');
+    expect(modal.classList.contains('hidden')).toBe(false);
+
+    // Close via close button
+    const closeBtn = document.getElementById('page-editor-close-btn');
+    closeBtn.click();
+    expect(modal.classList.contains('hidden')).toBe(true);
+
+    // Re-open and close via Escape key
+    await window.openPageEditor(mockDoc);
+    expect(modal.classList.contains('hidden')).toBe(false);
+
+    const escEvent = new KeyboardEvent('keydown', { key: 'Escape' });
+    document.dispatchEvent(escEvent);
+    expect(modal.classList.contains('hidden')).toBe(true);
+  });
+
+  it('closes extract submodal via Cancel button and Escape key without closing main editor', async () => {
+    const mockDoc = {
+      vault_id: 'doc_submodal_esc',
+      brief_arabic_title: 'وثيقة فرعية',
+      category: '10 - صيانة',
+      page_count: 2
+    };
+
+    await window.openPageEditor(mockDoc);
+    const cards = document.querySelectorAll('.page-editor-card');
+    cards[0].click();
+
+    // Open submodal
+    const btnExtract = document.getElementById('btn-editor-extract-selected');
+    await btnExtract.onclick();
+
+    const submodal = document.getElementById('extract-pages-submodal');
+    const mainModal = document.getElementById('doc-page-editor-modal');
+    expect(submodal.classList.contains('hidden')).toBe(false);
+    expect(mainModal.classList.contains('hidden')).toBe(false);
+
+    // Press Escape -> only submodal closes!
+    const escEvent = new KeyboardEvent('keydown', { key: 'Escape' });
+    document.dispatchEvent(escEvent);
+    expect(submodal.classList.contains('hidden')).toBe(true);
+    expect(mainModal.classList.contains('hidden')).toBe(false);
+  });
+
+  it('handles API errors gracefully during extraction and deletion', async () => {
+    const mockDoc = {
+      vault_id: 'doc_err_test',
+      brief_arabic_title: 'وثيقة اختبار الأخطاء',
+      category: '10 - صيانة',
+      page_count: 2
+    };
+
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      json: async () => ({ detail: 'Database error occurred' })
+    });
+
+    vi.stubGlobal('confirm', vi.fn(() => true));
+
+    await window.openPageEditor(mockDoc);
+    const cards = document.querySelectorAll('.page-editor-card');
+    cards[0].click();
+
+    // Delete fails gracefully
+    const deleteBtn = document.getElementById('btn-editor-delete-selected');
+    await deleteBtn.onclick();
+    expect(global.showToast).toHaveBeenCalledWith('Database error occurred', 'error');
+
+    // Extract fails gracefully
+    await document.getElementById('btn-editor-extract-selected').onclick();
+    const confirmExtract = document.getElementById('btn-extract-confirm');
+    await confirmExtract.onclick();
+    expect(global.showToast).toHaveBeenCalledWith('Database error occurred', 'error');
+  });
 });
+

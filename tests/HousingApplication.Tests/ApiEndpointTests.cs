@@ -1477,6 +1477,79 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
         Assert.Equal("success", body.Status);
         Assert.Equal(new List<int> { 2, 1 }, body.PageOrder);
     }
+
+    [Fact]
+    public async Task ExtractPages_ApiEndpoint_EmptyPageNumbers_ReturnsBadRequest()
+    {
+        var req = new ExtractPagesRequestDto
+        {
+            PageNumbers = new List<int>()
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/areas/Area1/houses/House1/documents/vault_fake/extract-pages", req);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ExtractPages_ApiEndpoint_NonExistentVaultId_ReturnsNotFound()
+    {
+        var req = new ExtractPagesRequestDto
+        {
+            PageNumbers = new List<int> { 1 },
+            TargetCategory = "04 - محضر تسليم مفتاح"
+        };
+
+        var response = await _client.PostAsJsonAsync($"/api/areas/Area1/houses/House1/documents/vault_missing_{Guid.NewGuid():N}/extract-pages", req);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeletePages_ApiEndpoint_EmptyPageNumbers_ReturnsBadRequest()
+    {
+        var req = new DeletePagesRequestDto
+        {
+            PageNumbers = new List<int>()
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/areas/Area1/houses/House1/documents/vault_fake/delete-pages", req);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task DeletePages_ApiEndpoint_NonExistentVaultId_ReturnsNotFound()
+    {
+        var req = new DeletePagesRequestDto
+        {
+            PageNumbers = new List<int> { 1 }
+        };
+
+        var response = await _client.PostAsJsonAsync($"/api/areas/Area1/houses/House1/documents/vault_missing_{Guid.NewGuid():N}/delete-pages", req);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ReorderPages_ApiEndpoint_EmptyPageOrder_ReturnsBadRequest()
+    {
+        var req = new ReorderPagesRequestDto
+        {
+            PageOrder = new List<int>()
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/areas/Area1/houses/House1/documents/vault_fake/reorder-pages", req);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ReorderPages_ApiEndpoint_NonExistentVaultId_ReturnsNotFound()
+    {
+        var req = new ReorderPagesRequestDto
+        {
+            PageOrder = new List<int> { 1, 2 }
+        };
+
+        var response = await _client.PostAsJsonAsync($"/api/areas/Area1/houses/House1/documents/vault_missing_{Guid.NewGuid():N}/reorder-pages", req);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
 }
 
 

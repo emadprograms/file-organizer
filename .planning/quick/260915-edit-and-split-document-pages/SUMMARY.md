@@ -95,14 +95,26 @@ Previously, multi-page PDF documents containing bundled distinct forms (e.g. a 4
      - `ExtractPages_ApiEndpoint_ReturnsSuccess`: verified HTTP 200 and response payload.
      - `DeletePages_ApiEndpoint_ReturnsSuccess`: verified HTTP 200 and remaining pages count.
      - `ReorderPages_ApiEndpoint_ReturnsSuccess`: verified HTTP 200.
-   - **Result:** **933/933 .NET tests passed** (0 failed, 0 skipped).
+     - `DeletePagesAsync_AllPagesDeleted_DeletesDocumentAndUnlinksFromDatabase`: verified full document deletion and database unlinking.
+     - `ExtractPagesAsync_TargetTenantDifferentFromSource_ReassignsTenantCleanly`: verified cross-tenant extraction.
+     - `ExtractPagesAsync_CustomCategoryAndDate_SetsExplicitValues`: verified custom folder naming and explicit date setting with `is_manual = 1`.
+     - `DeletePagesAsync_DecrementsBatchPageCountInBatchesTable`: verified exact parity decrement in SQLite `batches` table.
+     - `ExtractPagesAsync_NonExistentVaultId_ThrowsKeyNotFoundException` & `DeletePagesAsync_NonExistentVaultId_ThrowsKeyNotFoundException`
+     - Endpoint validation tests: 400 Bad Request on empty payloads and 404 Not Found on invalid vault IDs across all 3 endpoints.
+   - **Result:** **945/945 .NET tests passed** (0 failed, 0 skipped).
 
 2. **Frontend Vitest Component Tests (`npm test`)**:
-   - `tests/web/components/doc_page_editor.test.js`:
+   - `tests/web/components/doc_page_editor.test.js` (12 tests):
      - Verified `index.html` contains all modal containers and trigger buttons.
      - Verified `openPageEditor` renders page cards with 1-tap delete, move buttons, and checkbox pills.
      - Verified page selection, Select All, Deselect All, and button disabled/enabled states.
      - Verified extract submodal category dropdown, custom category toggle, tenant pre-fill, and date pre-fill.
      - Verified extract API execution with correct JSON payload and new document opening.
      - Verified delete API execution with confirmation prompt.
-   - **Result:** **444/444 Vitest tests passed across 37 test files** (0 failed).
+     - Verified 1-tap single-page deletion from card button with confirmation prompt.
+     - Verified cancellation of single-page deletion when user dismisses confirm prompt.
+     - Verified card move-left `◀` and move-right `▶` button page reordering calling `/reorder-pages`.
+     - Verified modal closure via Close button and Escape key.
+     - Verified extract submodal cancellation via Cancel button and Escape key without closing main editor.
+     - Verified API network/server error handling with graceful status toasts.
+   - **Result:** **450/450 Vitest tests passed across 37 test files** (0 failed).
