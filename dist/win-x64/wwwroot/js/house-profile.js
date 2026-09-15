@@ -347,10 +347,14 @@
                 }
             }).join('');
 
+            const isExpanded = typeof localStorage !== 'undefined' && localStorage.getItem('tenant_compliance_expanded') === 'true';
+
+            complianceSection.className = `tenant-compliance-card mb-2.5 p-2.5 rounded-xl border ${cardBorder} shadow-2xs`;
+
             complianceSection.innerHTML = `
-                <div class="flex items-center justify-between gap-3 mb-2.5 pb-2 border-b ${headerBorder}">
-                    <div class="flex items-center gap-2.5 min-w-0">
-                        <div class="w-7 h-7 rounded-lg ${isComplete ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'} flex items-center justify-center flex-shrink-0 text-sm">
+                <div class="compliance-header-toggle flex items-center justify-between gap-3 cursor-pointer select-none">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <div class="w-6 h-6 rounded-lg ${isComplete ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'} flex items-center justify-center flex-shrink-0 text-xs">
                             🛡️
                         </div>
                         <div class="min-w-0">
@@ -359,22 +363,46 @@
                                 <span class="text-[10px] text-slate-300 dark:text-slate-600">•</span>
                                 <span class="text-xs font-bold text-blue-600 dark:text-blue-400 truncate">${activeTenant.name}</span>
                             </div>
-                            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            <p class="compliance-subtitle text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5 ${isExpanded ? '' : 'hidden'}">
                                 ${isComplete ? 'جميع الوثائق الإلزامية الخمس مكتملة ومتوفرة في الأرشيف.' : `يوجد ${compliance.missingCount} وثائق إلزامية مفقودة لهذا الساكن يجب استكمالها.`}
                             </p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-1.5 flex-shrink-0">
-                        <span class="compliance-score-badge text-xs font-bold px-2.5 py-1 rounded-lg border ${badgeClass}">
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        <span class="compliance-score-badge text-[11px] font-bold px-2 py-0.5 rounded-lg border ${badgeClass}">
                             ${isComplete ? 'مكتمل 5/5 ✓' : `${compliance.presentCount}/5 ناقص ⚠️`}
                         </span>
+                        <button type="button" class="btn-toggle-compliance text-[10.5px] font-semibold px-2 py-0.5 rounded-md text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-slate-100 border border-slate-200 dark:border-slate-700 hover:bg-white/80 dark:hover:bg-slate-800 flex items-center gap-1 transition-all">
+                            <span class="toggle-text">${isExpanded ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}</span>
+                            <svg class="w-3.5 h-3.5 transform transition-transform ${isExpanded ? 'rotate-180' : ''} toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
-                    ${itemsHtml}
+                <div class="compliance-body-container ${isExpanded ? '' : 'hidden'} mt-2.5 pt-2 border-t ${headerBorder}">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                        ${itemsHtml}
+                    </div>
                 </div>
             `;
+
+            const headerToggle = complianceSection.querySelector('.compliance-header-toggle');
+            const bodyContainer = complianceSection.querySelector('.compliance-body-container');
+            const subtitle = complianceSection.querySelector('.compliance-subtitle');
+            const toggleText = complianceSection.querySelector('.toggle-text');
+            const toggleIcon = complianceSection.querySelector('.toggle-icon');
+
+            if (headerToggle && bodyContainer) {
+                headerToggle.addEventListener('click', (e) => {
+                    const nowHidden = bodyContainer.classList.toggle('hidden');
+                    if (subtitle) subtitle.classList.toggle('hidden', nowHidden);
+                    if (toggleText) toggleText.textContent = nowHidden ? 'عرض التفاصيل' : 'إخفاء التفاصيل';
+                    if (toggleIcon) toggleIcon.classList.toggle('rotate-180', !nowHidden);
+                    if (typeof localStorage !== 'undefined') {
+                        localStorage.setItem('tenant_compliance_expanded', (!nowHidden).toString());
+                    }
+                });
+            }
 
             complianceSection.querySelectorAll('.btn-compliance-upload').forEach(btn => {
                 btn.addEventListener('click', (e) => {

@@ -4,9 +4,9 @@ milestone: v16.1
 milestone_name: Document-Anchored Tenancy Dates & Minimalist Register
 current_phase: 115
 status: archived
-last_updated: "2026-09-14T13:52:00.000Z"
-last_activity: 2026-09-14
-last_activity_desc: Completed quick task 260914-n1h Tenant file integrity and compliance check system (Idea B + Idea C hybrid)
+last_updated: "2026-09-15T07:00:00.000Z"
+last_activity: 2026-09-15
+last_activity_desc: Completed quick task 260915-c2u Relocate house card missing-docs warning to footer and make tenant compliance checklist collapsible (Option A + Option 1)
 progress:
   total_phases: 1
   completed_phases: 1
@@ -90,6 +90,7 @@ Milestone v16.1 successfully implemented the document-anchored start date archit
 - `260914-hze`: Ensure Applicants Never Appear Before Resident Tenants (QCK-45). Ensured applicants (`is_resident === 0` / `is_resident === false`) never appear before resident tenants anywhere in the application. Added `t.is_resident DESC` to `GetTreeAsync` and `GetTreeAreaAsync` `ORDER BY` in `FileOrganizerRepository.cs`, updated `GetHouseProfileAsync` `tenantProfiles.Sort()` to evaluate `IsResident` before `IsActive` and dates, and added `ThenByDescending(x => x.Dto.IsResident)` to `SearchGlobalAsync`. Updated frontend `area-grid.js` to compose `orderedTenants = [...residents, ...applicants]` before DOM mapping and scroll container calculation. Guaranteed residency sorting in `categories-view.js` `renderTenantOptions`, `ingest-station.js` fetched tenants and fallback children, `tenant-manager.js` Manage Tenants dialog, `command-palette.js` tenant search results, and `house-profile.js` static fallback mode. Verified by 185 .NET xUnit tests, 360 Vitest frontend tests across 31 files, and exact 1:1 byte parity between `src/` and `dist/`.
 - `260914-kzv`: In Top Header Bar, Add Sort Houses By (House Number or Longest Tenant Stay). Added `#grid-house-sort-container` with dropdown `#grid-house-sort-select` in `#top-navbar` adjacent to tenure legend. Natural numeric sorting for house numbers and resident-tenant duration calculation for longest stay with house number tie-breaker, reactive in-place re-rendering, `localStorage` persistence, and 100% byte parity between `src/` and `dist/`. Verified by 12 new unit tests in `house_sort.test.js`, 397 passing Vitest tests, and 925 .NET xUnit tests.
 - `260914-n1h`: Tenant File Integrity & Compliance Check System (Idea B + Idea C Hybrid). Added compliance checking for the 5 mandatory documents (Personal Details, Allotment Order, Key Handover, Contracts, Rent Deduction) across Area Grid and House Profile views. Area Grid features `#grid-integrity-toolbar` with live filter pills (`All`, `⚠️ Incomplete`, `✓ Complete`, `Vacant`), compliance sorting (`Compliance: Missing First` / `Compliance: Complete First`), house card status badges (`✓ 5/5` / `⚠️ X/5` / `شاغر`), and missing documents strip. House Profile features interactive `.tenant-compliance-card` for active residing tenant with green checkmark pills (click to navigate to category folder) and amber missing pills with `+ رفع` buttons triggering `openIngestStationWithPreset` pre-filled with Area, House, Tenant, and Category. Verified by 25 new unit tests in `tenant_file_integrity.test.js`, all 435 Vitest tests passing across 36 files, 925 .NET xUnit tests, and 100% byte parity between `src/` and `dist/`.
+- `260915-c2u`: Relocate House Card Missing-Docs Warning to Card Footer & Make House Profile Compliance Checklist Collapsible (Option A + Option 1). Relocated missing-docs warning from card body between tenants and footer into the card footer row (`.missing-docs-strip`) alongside stay/archive metrics, freeing 100% of card body for clean tenant browsing without vertical displacement. Replaced large fixed 5-box compliance checklist in House Profile with a sleek ~36px collapsible accordion header (`.btn-toggle-compliance` with `localStorage` persistence), displaying tenant compliance status and toggle to expand upload/audit grid on demand. 435 Vitest tests and 925 .NET xUnit tests passing with zero failures.
 
 ## Deferred Items
 

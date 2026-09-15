@@ -862,47 +862,9 @@
                 `;
             }
 
-            const scrollClass = orderedTenants.length > 3 ? 'max-h-[118px] overflow-y-auto pr-1' : '';
-
-            let footerHtml = '';
-            if (sortBy === 'longest_stay') {
-                const stayFormatted = formatLatestTenantStay(house);
-                let stayBadgeClass = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700';
-                if (house.duration_category === 'long') {
-                    stayBadgeClass = 'bg-rose-50/80 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200/80 dark:border-rose-900/50';
-                } else if (house.duration_category === 'medium') {
-                    stayBadgeClass = 'bg-amber-50/80 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200/80 dark:border-amber-900/50';
-                } else if (house.duration_category === 'short') {
-                    stayBadgeClass = 'bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-900/50';
-                }
-
-                footerHtml = `
-                    <div class="card-footer mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-                        <span class="text-slate-400 text-[11px] font-medium flex items-center gap-1">
-                            <svg class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            <span>Latest Stay</span>
-                        </span>
-                        <span class="stay-duration-badge font-bold ${stayBadgeClass} px-2 py-0.5 rounded-md text-[11px] border truncate max-w-[180px]" title="${stayFormatted}">
-                            ${stayFormatted}
-                        </span>
-                    </div>
-                `;
-            } else {
-                footerHtml = `
-                    <div class="card-footer mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-                        <span class="text-slate-400 text-[11px] font-medium flex items-center gap-1">
-                            <span>Total Archive</span>
-                        </span>
-                        <span class="doc-count font-bold text-slate-700 dark:text-slate-300 bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-md text-[11px] border border-blue-100 dark:border-blue-900/50">
-                            ${totalDocs} Docs
-                        </span>
-                    </div>
-                `;
-            }
-
             const integrity = computeHouseIntegrity(house);
             let integrityBadgeHtml = '';
-            let missingDocsStripHtml = '';
+            let missingFooterPillHtml = '';
 
             if (integrity.isVacant) {
                 integrityBadgeHtml = `
@@ -926,13 +888,55 @@
                     </span>
                 `;
 
-                missingDocsStripHtml = `
-                    <div class="missing-docs-strip mt-2 px-2.5 py-1.5 rounded-lg bg-amber-50/70 dark:bg-amber-950/30 border border-dashed border-amber-300 dark:border-amber-800/60 flex items-center justify-between text-[11px] gap-2">
-                        <div class="flex items-center gap-1.5 min-w-0">
-                            <span class="text-amber-600 dark:text-amber-400 font-bold flex-shrink-0">⚠️ ناقص:</span>
-                            <span class="text-amber-900 dark:text-amber-200 truncate font-medium text-[10.5px]" title="${missingListStr}">${missingListStr}</span>
+                missingFooterPillHtml = `
+                    <span class="missing-docs-strip inline-flex items-center gap-1 text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-amber-50/90 dark:bg-amber-950/50 border border-amber-300/80 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 flex-shrink-0" title="ناقص: ${missingListStr}">
+                        <span class="text-amber-600 dark:text-amber-400 font-bold">⚠️ ناقص:</span>
+                        <span class="truncate max-w-[120px] font-medium text-[10px]">${missingListStr}</span>
+                        <span class="font-bold text-[9.5px] bg-amber-200/80 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 px-1 rounded">${integrity.missingCount}</span>
+                    </span>
+                `;
+            }
+
+            const scrollClass = orderedTenants.length > 3 ? 'max-h-[118px] overflow-y-auto pr-1' : '';
+
+            let footerHtml = '';
+            if (sortBy === 'longest_stay') {
+                const stayFormatted = formatLatestTenantStay(house);
+                let stayBadgeClass = 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700';
+                if (house.duration_category === 'long') {
+                    stayBadgeClass = 'bg-rose-50/80 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-200/80 dark:border-rose-900/50';
+                } else if (house.duration_category === 'medium') {
+                    stayBadgeClass = 'bg-amber-50/80 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200/80 dark:border-amber-900/50';
+                } else if (house.duration_category === 'short') {
+                    stayBadgeClass = 'bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-900/50';
+                }
+
+                footerHtml = `
+                    <div class="card-footer mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs gap-1.5">
+                        <span class="text-slate-400 text-[11px] font-medium flex items-center gap-1 min-w-0">
+                            <svg class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span class="truncate">Latest Stay</span>
+                        </span>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            ${missingFooterPillHtml}
+                            <span class="stay-duration-badge font-bold ${stayBadgeClass} px-2 py-0.5 rounded-md text-[11px] border truncate max-w-[140px]" title="${stayFormatted}">
+                                ${stayFormatted}
+                            </span>
                         </div>
-                        <span class="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/60 px-1.5 py-0.5 rounded flex-shrink-0">${integrity.missingCount} متبقي</span>
+                    </div>
+                `;
+            } else {
+                footerHtml = `
+                    <div class="card-footer mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs gap-1.5">
+                        <span class="text-slate-400 text-[11px] font-medium flex items-center gap-1 min-w-0">
+                            <span>Total Archive</span>
+                        </span>
+                        <div class="flex items-center gap-1.5 flex-shrink-0">
+                            ${missingFooterPillHtml}
+                            <span class="doc-count font-bold text-slate-700 dark:text-slate-300 bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-md text-[11px] border border-blue-100 dark:border-blue-900/50">
+                                ${totalDocs} Docs
+                            </span>
+                        </div>
                     </div>
                 `;
             }
@@ -957,8 +961,6 @@
                     <div class="tenants-overview-section ${scrollClass}">
                         ${tenantsHtml}
                     </div>
-
-                    ${missingDocsStripHtml}
                 </div>
 
                 ${footerHtml}
