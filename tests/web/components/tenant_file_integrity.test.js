@@ -524,6 +524,10 @@ describe('Tenant File Integrity & Compliance Check (Idea B + Idea C)', () => {
             expect(missingStrip.textContent).toContain('عقود');
             expect(missingStrip.textContent).toContain('استقطاع إيجار');
 
+            // Warning is separated by a dedicated divider above it and NOT in the card footer
+            expect(card20.querySelector('.card-warning-divider')).not.toBeNull();
+            expect(card20.querySelector('.card-footer .missing-docs-strip')).toBeNull();
+
             // Vacant card (30): has neutral badge with شاغر and no strip
             const card30 = container.querySelector('[data-house-id="30"]');
             const badge30 = card30.querySelector('.integrity-badge');
@@ -561,46 +565,69 @@ describe('Tenant File Integrity & Compliance Check (Idea B + Idea C)', () => {
     });
 
     describe('5. House Profile Compliance Checklist Computation (computeTenantCompliance)', () => {
-        it('calculates compliance accurately from activeTenant.categories and archive.categories', () => {
-            const mockProfile = {
+        it('calculates compliance accurately strictly from activeTenant without leaking past tenant archive counts (House 500 scenario)', () => {
+            // House 500: Active tenant Fawaz has 1 contract. Past tenant Abdullah had 2 contracts.
+            // Archive has 3 contracts total. The compliance checklist must show 1 contract, NOT 3!
+            const mockHouse500Profile = {
                 area_id: 'Safra',
-                house_id: '101',
+                house_id: '500',
                 tenants: [
                     {
-                        name: 'Tenant 1',
+                        name: 'فواز خليل الطارش',
                         is_active: true,
                         is_resident: 1,
-                        categories: ['02 - بيانات شخصية', 'أمر تخصيص']
+                        categories: ['02 - بيانات شخصية', '03 - أمر تخصيص', '04 - محضر تسليم مفتاح', '05 - عقود'],
+                        category_counts: {
+                            'بيانات شخصية': 1,
+                            'أمر تخصيص': 1,
+                            'محضر تسليم مفتاح': 1,
+                            'عقود': 1 // Exactly 1 contract for active resident
+                        }
+                    },
+                    {
+                        name: 'عبد الله حميدة رضا فرج',
+                        is_active: false,
+                        is_resident: 1,
+                        categories: ['عقود', '07 - استقطاع إيجار'],
+                        category_counts: {
+                            'عقود': 2,
+                            'استقطاع إيجار': 4
+                        }
                     }
                 ],
                 archive: {
                     categories: [
-                        { category: '04 - محضر تسليم مفتاح', document_count: 2 },
-                        { category: 'عقود', document_count: 5 }
+                        { category: '02 - بيانات شخصية', document_count: 1 },
+                        { category: '03 - أمر تخصيص', document_count: 1 },
+                        { category: '04 - محضر تسليم مفتاح', document_count: 1 },
+                        { category: '05 - عقود', document_count: 3 }, // 1 (Fawaz) + 2 (Abdullah) = 3
+                        { category: '07 - استقطاع إيجار', document_count: 4 } // Only Abdullah had it
                     ]
                 }
             };
 
-            const tenant = mockProfile.tenants[0];
-            const comp = houseProfile.computeTenantCompliance(mockProfile, tenant);
+            const tenant = mockHouse500Profile.tenants[0];
+            const comp = houseProfile.computeTenantCompliance(mockHouse500Profile, tenant);
 
             expect(comp.isOccupied).toBe(true);
             expect(comp.isVacant).toBe(false);
             expect(comp.totalRequired).toBe(5);
             expect(comp.presentCount).toBe(4); // 02, 03, 04, 05
-            expect(comp.missingCount).toBe(1); // 07 is missing
+            expect(comp.missingCount).toBe(1); // 07 is missing for Fawaz (even though Abdullah had 4 in archive!)
             expect(comp.isComplete).toBe(false);
 
             expect(comp.missingCategories).toHaveLength(1);
             expect(comp.missingCategories[0].id).toBe('07');
 
-            const item04 = comp.items.find(i => i.id === '04');
-            expect(item04.exists).toBe(true);
-            expect(item04.documentCount).toBe(2);
-
+            // Crucial House 500 assertion: Fawaz has 1 contract, NOT 3!
             const item05 = comp.items.find(i => i.id === '05');
             expect(item05.exists).toBe(true);
-            expect(item05.documentCount).toBe(5);
+            expect(item05.documentCount).toBe(1);
+
+            // Rent deduction: past tenant had it in archive, but Fawaz doesn't have it
+            const item07 = comp.items.find(i => i.id === '07');
+            expect(item07.exists).toBe(false);
+            expect(item07.documentCount).toBe(0);
         });
 
         it('returns vacant structure when no active resident tenant is provided', () => {
@@ -654,6 +681,16 @@ describe('Tenant File Integrity & Compliance Check (Idea B + Idea C)', () => {
             expect(card.textContent).toContain('فحص اكتمال ملف الساكن');
             expect(card.textContent).toContain('Ali Hassan');
             expect(card.textContent).toContain('3/5 ناقص ⚠️');
+
+            // Open by default: compliance body is visible and not hidden
+            const bodyContainer = card.querySelector('.compliance-body-container');
+            expect(bodyContainer).not.toBeNull();
+            expect(bodyContainer.classList.contains('hidden')).toBe(false);
+
+            // Divider cleanly separates compliance card from the residents section
+            const divider = document.querySelector('.tenant-section-divider');
+            expect(divider).not.toBeNull();
+            expect(card.nextElementSibling).toBe(divider);
 
             // 3 present items, 2 missing items
             const presentItems = card.querySelectorAll('.compliance-item[data-category-prefix]');

@@ -43,7 +43,7 @@
             };
         }
 
-        const catCounts = house.category_counts || house.categoryCounts || {};
+        const catCounts = house.active_tenant_category_counts || house.activeTenantCategoryCounts || house.category_counts || house.categoryCounts || {};
         const presentCategories = [];
         const missingCategories = [];
 
@@ -864,7 +864,7 @@
 
             const integrity = computeHouseIntegrity(house);
             let integrityBadgeHtml = '';
-            let missingFooterPillHtml = '';
+            let missingWarningHtml = '';
 
             if (integrity.isVacant) {
                 integrityBadgeHtml = `
@@ -888,12 +888,16 @@
                     </span>
                 `;
 
-                missingFooterPillHtml = `
-                    <span class="missing-docs-strip inline-flex items-center gap-1 text-[10.5px] font-medium px-2 py-0.5 rounded-md bg-amber-50/90 dark:bg-amber-950/50 border border-amber-300/80 dark:border-amber-800/60 text-amber-800 dark:text-amber-300 flex-shrink-0" title="ناقص: ${missingListStr}">
-                        <span class="text-amber-600 dark:text-amber-400 font-bold">⚠️ ناقص:</span>
-                        <span class="truncate max-w-[120px] font-medium text-[10px]">${missingListStr}</span>
-                        <span class="font-bold text-[9.5px] bg-amber-200/80 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 px-1 rounded">${integrity.missingCount}</span>
-                    </span>
+                missingWarningHtml = `
+                    <div class="card-warning-divider border-t border-slate-100 dark:border-slate-800/80 pt-2 mt-2">
+                        <div class="missing-docs-strip flex items-center justify-between text-[10.5px] px-2 py-1 rounded bg-amber-50/90 dark:bg-amber-950/50 border border-amber-200/80 dark:border-amber-900/60 text-amber-800 dark:text-amber-300" title="وثائق ناقصة: ${missingListStr}">
+                            <div class="flex items-center gap-1.5 min-w-0">
+                                <span class="text-amber-600 dark:text-amber-400 font-bold flex-shrink-0">⚠️ ناقص:</span>
+                                <span class="truncate font-medium text-[10px]">${missingListStr}</span>
+                            </div>
+                            <span class="font-bold text-[9.5px] bg-amber-200/80 dark:bg-amber-900/80 text-amber-900 dark:text-amber-200 px-1 rounded flex-shrink-0 mr-1">${integrity.missingCount}</span>
+                        </div>
+                    </div>
                 `;
             }
 
@@ -917,12 +921,9 @@
                             <svg class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <span class="truncate">Latest Stay</span>
                         </span>
-                        <div class="flex items-center gap-1.5 flex-shrink-0">
-                            ${missingFooterPillHtml}
-                            <span class="stay-duration-badge font-bold ${stayBadgeClass} px-2 py-0.5 rounded-md text-[11px] border truncate max-w-[140px]" title="${stayFormatted}">
-                                ${stayFormatted}
-                            </span>
-                        </div>
+                        <span class="stay-duration-badge font-bold ${stayBadgeClass} px-2 py-0.5 rounded-md text-[11px] border truncate max-w-[140px]" title="${stayFormatted}">
+                            ${stayFormatted}
+                        </span>
                     </div>
                 `;
             } else {
@@ -931,12 +932,9 @@
                         <span class="text-slate-400 text-[11px] font-medium flex items-center gap-1 min-w-0">
                             <span>Total Archive</span>
                         </span>
-                        <div class="flex items-center gap-1.5 flex-shrink-0">
-                            ${missingFooterPillHtml}
-                            <span class="doc-count font-bold text-slate-700 dark:text-slate-300 bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-md text-[11px] border border-blue-100 dark:border-blue-900/50">
-                                ${totalDocs} Docs
-                            </span>
-                        </div>
+                        <span class="doc-count font-bold text-slate-700 dark:text-slate-300 bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 px-2 py-0.5 rounded-md text-[11px] border border-blue-100 dark:border-blue-900/50">
+                            ${totalDocs} Docs
+                        </span>
                     </div>
                 `;
             }
@@ -961,6 +959,7 @@
                     <div class="tenants-overview-section ${scrollClass}">
                         ${tenantsHtml}
                     </div>
+                    ${missingWarningHtml}
                 </div>
 
                 ${footerHtml}

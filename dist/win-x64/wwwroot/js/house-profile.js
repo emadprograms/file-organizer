@@ -205,7 +205,7 @@
         }
 
         const tenantCats = (activeTenant.categories && Array.isArray(activeTenant.categories)) ? activeTenant.categories : [];
-        const archiveCats = (profile.archive && Array.isArray(profile.archive.categories)) ? profile.archive.categories : [];
+        const catCounts = activeTenant.category_counts || activeTenant.categoryCounts || {};
 
         const presentCategories = [];
         const missingCategories = [];
@@ -214,20 +214,40 @@
             let exists = false;
             let docCount = 0;
 
-            for (const c of tenantCats) {
-                const clean = String(c).replace(/^\d+\s*-\s*/, '').trim();
-                if (clean === cat.key || clean === cat.label || String(c).includes(cat.prefix) || String(c).startsWith(cat.id)) {
+            // Check in activeTenant.category_counts first
+            if (catCounts && typeof catCounts === 'object' && Object.keys(catCounts).length > 0) {
+                if ((catCounts[cat.key] || 0) > 0) {
                     exists = true;
-                    break;
+                    docCount = catCounts[cat.key];
+                } else if ((catCounts[cat.prefix] || 0) > 0) {
+                    exists = true;
+                    docCount = catCounts[cat.prefix];
+                } else if ((catCounts[cat.id] || 0) > 0) {
+                    exists = true;
+                    docCount = catCounts[cat.id];
+                } else {
+                    for (const [k, count] of Object.entries(catCounts)) {
+                        if (count > 0) {
+                            const cleanK = k.replace(/^\d+\s*-\s*/, '').trim();
+                            if (cleanK === cat.key || cleanK === cat.label || k.includes(cat.prefix) || k.startsWith(cat.id)) {
+                                exists = true;
+                                docCount = count;
+                                break;
+                            }
+                        }
+                    }
                 }
             }
 
-            for (const archItem of archiveCats) {
-                const cStr = String(archItem.category || '');
-                const clean = cStr.replace(/^\d+\s*-\s*/, '').trim();
-                if (clean === cat.key || clean === cat.label || cStr.includes(cat.prefix) || cStr.startsWith(cat.id)) {
-                    exists = true;
-                    docCount = Math.max(docCount, archItem.document_count || 1);
+            // Fallback to activeTenant.categories
+            if (!exists && tenantCats.length > 0) {
+                for (const c of tenantCats) {
+                    const clean = String(c).replace(/^\d+\s*-\s*/, '').trim();
+                    if (clean === cat.key || clean === cat.label || String(c).includes(cat.prefix) || String(c).startsWith(cat.id)) {
+                        exists = true;
+                        docCount = 1;
+                        break;
+                    }
                 }
             }
 
@@ -283,14 +303,14 @@
         const complianceSection = document.createElement('div');
 
         if (!activeTenant) {
-            complianceSection.className = 'tenant-compliance-card mb-3.5 p-3.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50';
+            complianceSection.className = 'tenant-compliance-card mb-2.5 p-2.5 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/50';
             complianceSection.innerHTML = `
-                <div class="flex items-center justify-between gap-3">
-                    <div class="flex items-center gap-2.5">
-                        <span class="w-8 h-8 rounded-lg bg-slate-200/80 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center text-sm flex-shrink-0">📋</span>
+                <div class="flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-lg bg-slate-200/80 dark:bg-slate-800 text-slate-500 dark:text-slate-400 flex items-center justify-center text-xs flex-shrink-0">📋</span>
                         <div>
                             <h4 class="text-xs font-bold text-slate-800 dark:text-slate-200">فحص اكتمال ملف الساكن</h4>
-                            <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">المنزل شاغر حالياً — لا يوجد ساكن حالي لإجراء فحص الوثائق الإلزامية.</p>
+                            <p class="text-[10.5px] text-slate-500 dark:text-slate-400">المنزل شاغر حالياً — لا يوجد ساكن حالي لإجراء فحص الوثائق الإلزامية.</p>
                         </div>
                     </div>
                     <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 flex-shrink-0">شاغر</span>
@@ -308,34 +328,32 @@
                 ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
                 : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800';
 
-            complianceSection.className = `tenant-compliance-card mb-3.5 p-3.5 rounded-xl border ${cardBorder} shadow-2xs`;
-
             const itemsHtml = compliance.items.map(cat => {
                 if (cat.exists) {
                     return `
-                        <div class="compliance-item p-2.5 rounded-xl border border-emerald-200/80 dark:border-emerald-800/50 bg-white dark:bg-emerald-950/30 flex flex-col justify-between cursor-pointer hover:border-emerald-400 hover:shadow-2xs transition-all group"
+                        <div class="compliance-item p-1.5 px-2 rounded-lg border border-emerald-200/80 dark:border-emerald-800/50 bg-white dark:bg-emerald-950/30 flex flex-col justify-between cursor-pointer hover:border-emerald-400 hover:shadow-2xs transition-all group"
                              data-category-prefix="${cat.prefix}"
-                             title="متوفر في الأرشيف (${cat.documentCount} وثيقة) - انقر لعرض المجلد">
-                            <div class="flex items-center justify-between gap-1 mb-1">
-                                <span class="text-[10px] font-bold text-emerald-700 dark:text-emerald-400 font-mono">${cat.id}</span>
-                                <span class="w-4 h-4 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center text-[10px] font-bold">✓</span>
+                             title="متوفر (${cat.documentCount} وثيقة) - انقر لعرض المجلد">
+                            <div class="flex items-center justify-between gap-1 mb-0.5">
+                                <span class="text-[9.5px] font-bold text-emerald-700 dark:text-emerald-400 font-mono">${cat.id}</span>
+                                <span class="w-3.5 h-3.5 rounded-full bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center text-[9px] font-bold">✓</span>
                             </div>
-                            <div class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate mb-1" title="${cat.label}">${cat.label}</div>
-                            <div class="flex items-center justify-between text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                            <div class="text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate mb-1" title="${cat.label}">${cat.label}</div>
+                            <div class="flex items-center justify-between text-[9.5px] text-emerald-600 dark:text-emerald-400 font-medium">
                                 <span>متوفر (${cat.documentCount})</span>
-                                <svg class="w-3 h-3 text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                <svg class="w-2.5 h-2.5 text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                             </div>
                         </div>
                     `;
                 } else {
                     return `
-                        <div class="compliance-item p-2.5 rounded-xl border border-amber-200/90 dark:border-amber-800/60 bg-white dark:bg-amber-950/30 flex flex-col justify-between transition-all">
-                            <div class="flex items-center justify-between gap-1 mb-1">
-                                <span class="text-[10px] font-bold text-amber-700 dark:text-amber-400 font-mono">${cat.id}</span>
-                                <span class="w-4 h-4 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center text-[10px] font-bold">⚠️</span>
+                        <div class="compliance-item p-1.5 px-2 rounded-lg border border-amber-200/90 dark:border-amber-800/60 bg-white dark:bg-amber-950/30 flex flex-col justify-between transition-all">
+                            <div class="flex items-center justify-between gap-1 mb-0.5">
+                                <span class="text-[9.5px] font-bold text-amber-700 dark:text-amber-400 font-mono">${cat.id}</span>
+                                <span class="w-3.5 h-3.5 rounded-full bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300 flex items-center justify-center text-[9px] font-bold">⚠️</span>
                             </div>
-                            <div class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate mb-1.5" title="${cat.label}">${cat.label}</div>
-                            <button type="button" class="btn-compliance-upload w-full py-1 px-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold text-[10.5px] flex items-center justify-center gap-1 shadow-2xs cursor-pointer transition-all hover:scale-[1.02]"
+                            <div class="text-[11px] font-bold text-slate-800 dark:text-slate-100 truncate mb-1" title="${cat.label}">${cat.label}</div>
+                            <button type="button" class="btn-compliance-upload w-full py-0.5 px-1.5 rounded-md bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white font-bold text-[10px] flex items-center justify-center gap-1 shadow-2xs cursor-pointer transition-all hover:scale-[1.02]"
                                     data-cat-prefix="${cat.prefix}"
                                     data-cat-name="${cat.key}"
                                     title="رفع ${cat.label} للساكن ${activeTenant.name}">
@@ -347,40 +365,33 @@
                 }
             }).join('');
 
-            const isExpanded = typeof localStorage !== 'undefined' && localStorage.getItem('tenant_compliance_expanded') === 'true';
+            const isExpanded = typeof localStorage !== 'undefined' ? localStorage.getItem('tenant_compliance_expanded') !== 'false' : true;
 
             complianceSection.className = `tenant-compliance-card mb-2.5 p-2.5 rounded-xl border ${cardBorder} shadow-2xs`;
 
             complianceSection.innerHTML = `
-                <div class="compliance-header-toggle flex items-center justify-between gap-3 cursor-pointer select-none">
+                <div class="compliance-header-toggle flex items-center justify-between gap-2 cursor-pointer select-none">
                     <div class="flex items-center gap-2 min-w-0">
-                        <div class="w-6 h-6 rounded-lg ${isComplete ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300' : 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300'} flex items-center justify-center flex-shrink-0 text-xs">
-                            🛡️
-                        </div>
-                        <div class="min-w-0">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                <h4 class="text-xs font-bold text-slate-900 dark:text-slate-100">فحص اكتمال ملف الساكن</h4>
-                                <span class="text-[10px] text-slate-300 dark:text-slate-600">•</span>
-                                <span class="text-xs font-bold text-blue-600 dark:text-blue-400 truncate">${activeTenant.name}</span>
-                            </div>
-                            <p class="compliance-subtitle text-[10.5px] text-slate-500 dark:text-slate-400 mt-0.5 ${isExpanded ? '' : 'hidden'}">
-                                ${isComplete ? 'جميع الوثائق الإلزامية الخمس مكتملة ومتوفرة في الأرشيف.' : `يوجد ${compliance.missingCount} وثائق إلزامية مفقودة لهذا الساكن يجب استكمالها.`}
-                            </p>
+                        <span class="text-sm">🛡️</span>
+                        <div class="flex items-center gap-1.5 min-w-0 truncate">
+                            <h4 class="text-xs font-bold text-slate-900 dark:text-slate-100">فحص اكتمال ملف الساكن</h4>
+                            <span class="text-[10px] text-slate-300 dark:text-slate-600">•</span>
+                            <span class="text-xs font-semibold text-blue-600 dark:text-blue-400 truncate">${activeTenant.name}</span>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
-                        <span class="compliance-score-badge text-[11px] font-bold px-2 py-0.5 rounded-lg border ${badgeClass}">
+                    <div class="flex items-center gap-1.5 flex-shrink-0">
+                        <span class="compliance-score-badge text-[10.5px] font-bold px-2 py-0.5 rounded-md border ${badgeClass}">
                             ${isComplete ? 'مكتمل 5/5 ✓' : `${compliance.presentCount}/5 ناقص ⚠️`}
                         </span>
-                        <button type="button" class="btn-toggle-compliance text-[10.5px] font-semibold px-2 py-0.5 rounded-md text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-slate-100 border border-slate-200 dark:border-slate-700 hover:bg-white/80 dark:hover:bg-slate-800 flex items-center gap-1 transition-all">
-                            <span class="toggle-text">${isExpanded ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}</span>
-                            <svg class="w-3.5 h-3.5 transform transition-transform ${isExpanded ? 'rotate-180' : ''} toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        <button type="button" class="btn-toggle-compliance text-[10px] font-medium px-1.5 py-0.5 rounded text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 border border-slate-200 dark:border-slate-700 flex items-center gap-0.5 transition-all">
+                            <span class="toggle-text">${isExpanded ? 'إخفاء' : 'عرض'}</span>
+                            <svg class="w-3 h-3 transform transition-transform ${isExpanded ? 'rotate-180' : ''} toggle-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                         </button>
                     </div>
                 </div>
 
-                <div class="compliance-body-container ${isExpanded ? '' : 'hidden'} mt-2.5 pt-2 border-t ${headerBorder}">
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                <div class="compliance-body-container ${isExpanded ? '' : 'hidden'} mt-2 pt-2 border-t ${headerBorder}">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-1.5">
                         ${itemsHtml}
                     </div>
                 </div>
@@ -388,15 +399,13 @@
 
             const headerToggle = complianceSection.querySelector('.compliance-header-toggle');
             const bodyContainer = complianceSection.querySelector('.compliance-body-container');
-            const subtitle = complianceSection.querySelector('.compliance-subtitle');
             const toggleText = complianceSection.querySelector('.toggle-text');
             const toggleIcon = complianceSection.querySelector('.toggle-icon');
 
             if (headerToggle && bodyContainer) {
                 headerToggle.addEventListener('click', (e) => {
                     const nowHidden = bodyContainer.classList.toggle('hidden');
-                    if (subtitle) subtitle.classList.toggle('hidden', nowHidden);
-                    if (toggleText) toggleText.textContent = nowHidden ? 'عرض التفاصيل' : 'إخفاء التفاصيل';
+                    if (toggleText) toggleText.textContent = nowHidden ? 'عرض' : 'إخفاء';
                     if (toggleIcon) toggleIcon.classList.toggle('rotate-180', !nowHidden);
                     if (typeof localStorage !== 'undefined') {
                         localStorage.setItem('tenant_compliance_expanded', (!nowHidden).toString());
@@ -437,6 +446,10 @@
         }
 
         container.appendChild(complianceSection);
+
+        const tenantSectionDivider = document.createElement('div');
+        tenantSectionDivider.className = 'tenant-section-divider border-b border-slate-200 dark:border-slate-800 my-2.5';
+        container.appendChild(tenantSectionDivider);
 
         // Section 1: Resident Tenants (residents-section)
         const residentsSection = document.createElement('div');

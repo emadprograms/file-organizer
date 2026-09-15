@@ -1382,5 +1382,73 @@ public class RepositoryTests : IDisposable
         Assert.Equal("Applicant Person", tenantsList[2].Name);
         Assert.Equal(0, tenantsList[2].IsResident);
     }
+
+    [Fact]
+    public async Task GetHouseProfileAsync_PopulatesTenantLevelCategoryCounts_IsolatedPerTenant()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("Area500", "A500");
+        await _repo.AddHouseAsync("500", "Area500");
+
+        var tActive = await _repo.AddTenantAsync("500", "Active Tenant Fawaz", "2022-01-01", null, 1);
+        var tPast = await _repo.AddTenantAsync("500", "Past Tenant Abdullah", "2018-01-01", "2021-12-31", 1);
+
+        // Active tenant has 1 contract doc
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Area500",
+            HouseId = "500",
+            TenantId = tActive.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد إيجار جديد",
+            PrimaryDate = "2022-01-01",
+            PageCount = 2
+        });
+
+        // Past tenant has 2 contract docs
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Area500",
+            HouseId = "500",
+            TenantId = tPast.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد إيجار قديم 1",
+            PrimaryDate = "2018-01-01",
+            PageCount = 1
+        });
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "Area500",
+            HouseId = "500",
+            TenantId = tPast.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد إيجار قديم 2",
+            PrimaryDate = "2019-01-01",
+            PageCount = 1
+        });
+
+        // Act
+        var profile = await _repo.GetHouseProfileAsync("Area500", "500");
+        var houses = await _repo.GetHousesAsync("Area500");
+        var houseCard = houses.FirstOrDefault(h => h.Id == "500");
+
+        // Assert
+        Assert.NotNull(profile);
+        Assert.Equal(2, profile.Tenants.Count);
+
+        var activeProfile = profile.Tenants.First(t => t.Id == tActive.Id);
+        Assert.Equal(1, activeProfile.CategoryCounts["عقود"]); // Strictly 1, NOT 3!
+
+        var pastProfile = profile.Tenants.First(t => t.Id == tPast.Id);
+        Assert.Equal(2, pastProfile.CategoryCounts["عقود"]); // Strictly 2
+
+        // Archive aggregates all docs
+        Assert.Equal(3, profile.Archive.TotalDocuments);
+
+        // HouseCard has ActiveTenantCategoryCounts isolated to active tenant
+        Assert.NotNull(houseCard);
+        Assert.NotNull(houseCard.ActiveTenantCategoryCounts);
+        Assert.Equal(1, houseCard.ActiveTenantCategoryCounts["عقود"]); // 1 contract for active tenant
+    }
 }
 

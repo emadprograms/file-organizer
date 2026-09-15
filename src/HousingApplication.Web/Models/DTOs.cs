@@ -58,6 +58,9 @@ public record TreeHouseDto
     [JsonPropertyName("category_counts")]
     public Dictionary<string, int>? CategoryCounts { get; init; }
 
+    [JsonPropertyName("active_tenant_category_counts")]
+    public Dictionary<string, int>? ActiveTenantCategoryCounts { get; init; }
+
     [JsonPropertyName("children")]
     public List<TreeTenantDto>? Children { get; init; }
 }
@@ -120,6 +123,9 @@ public record HouseCardDto
 
     [JsonPropertyName("category_counts")]
     public Dictionary<string, int>? CategoryCounts { get; init; }
+
+    [JsonPropertyName("active_tenant_category_counts")]
+    public Dictionary<string, int>? ActiveTenantCategoryCounts { get; init; }
 }
 
 public record HouseProfileDto
@@ -177,6 +183,9 @@ public record HouseTenantProfileDto
 
     [JsonPropertyName("categories")]
     public List<string> Categories { get; init; } = new();
+
+    [JsonPropertyName("category_counts")]
+    public Dictionary<string, int> CategoryCounts { get; init; } = new();
 }
 
 public record CategoryBreakdownItemDto

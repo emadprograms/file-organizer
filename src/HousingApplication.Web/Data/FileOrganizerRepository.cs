@@ -69,10 +69,10 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                      (CASE WHEN t.end_date IS NULL OR t.end_date = '' OR LOWER(t.end_date) = 'present' OR t.end_date >= DATE('now') THEN 1 ELSE 0 END) DESC, 
                      t.end_date DESC, StartDate DESC, t.id DESC;")).ToList();
 
-        var docCounts = (await conn.QueryAsync<(string HouseId, string? Category, int DocCount)>(@"
-            SELECT house_id AS HouseId, category AS Category, COUNT(*) AS DocCount 
+        var docCounts = (await conn.QueryAsync<(string HouseId, int TenantId, string? Category, int DocCount)>(@"
+            SELECT house_id AS HouseId, tenant_id AS TenantId, category AS Category, COUNT(*) AS DocCount 
             FROM documents 
-            GROUP BY house_id, category;")).ToList();
+            GROUP BY house_id, tenant_id, category;")).ToList();
 
         var timelineDocs = includeTimeline
             ? (await conn.QueryAsync<(string VaultId, string HouseId, string? PrimaryDate, string? ArabicTitle, string? Category)>(@"
@@ -85,6 +85,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
         var tenantsByHouse = tenants.GroupBy(t => t.HouseId).ToDictionary(g => g.Key, g => g.ToList());
 
         var catCountsByHouse = new Dictionary<string, Dictionary<string, int>>();
+        var catCountsByTenant = new Dictionary<int, Dictionary<string, int>>();
         var totalDocsByHouse = new Dictionary<string, int>();
 
         foreach (var dc in docCounts)
@@ -99,6 +100,16 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                     catCountsByHouse[dc.HouseId] = catDict;
                 }
                 catDict[cleanCat] = catDict.GetValueOrDefault(cleanCat) + dc.DocCount;
+
+                if (dc.TenantId > 0)
+                {
+                    if (!catCountsByTenant.TryGetValue(dc.TenantId, out var tCatDict))
+                    {
+                        tCatDict = new Dictionary<string, int>();
+                        catCountsByTenant[dc.TenantId] = tCatDict;
+                    }
+                    tCatDict[cleanCat] = tCatDict.GetValueOrDefault(cleanCat) + dc.DocCount;
+                }
             }
         }
 
@@ -228,6 +239,9 @@ public class FileOrganizerRepository : IFileOrganizerRepository
 
                 var hCatCounts = catCountsByHouse.GetValueOrDefault(house.Id, new Dictionary<string, int>());
                 var hTotalDocs = totalDocsByHouse.GetValueOrDefault(house.Id, 0);
+                var activeTenantCatCounts = (activeTenant != null && catCountsByTenant.TryGetValue(activeTenant.Id, out var atCounts))
+                    ? atCounts
+                    : null;
 
                 houseNodes.Add(new TreeHouseDto
                 {
@@ -239,6 +253,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                     CurrentTenant = activeTenantName,
                     TotalDocuments = hTotalDocs,
                     CategoryCounts = hCatCounts,
+                    ActiveTenantCategoryCounts = activeTenantCatCounts,
                     Children = tenantNodes
                 });
             }
@@ -287,13 +302,14 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                      (CASE WHEN t.end_date IS NULL OR t.end_date = '' OR LOWER(t.end_date) = 'present' OR t.end_date >= DATE('now') THEN 1 ELSE 0 END) DESC, 
                      t.end_date DESC, StartDate DESC, t.id DESC;")).ToList();
 
-        var docCounts = (await conn.QueryAsync<(string HouseId, string? Category, int DocCount)>(@"
-            SELECT house_id AS HouseId, category AS Category, COUNT(*) AS DocCount 
+        var docCounts = (await conn.QueryAsync<(string HouseId, int TenantId, string? Category, int DocCount)>(@"
+            SELECT house_id AS HouseId, tenant_id AS TenantId, category AS Category, COUNT(*) AS DocCount 
             FROM documents 
-            GROUP BY house_id, category;")).ToList();
+            GROUP BY house_id, tenant_id, category;")).ToList();
 
         var tenantsByHouse = tenants.GroupBy(t => t.HouseId).ToDictionary(g => g.Key, g => g.ToList());
         var catCountsByHouse = new Dictionary<string, Dictionary<string, int>>();
+        var catCountsByTenant = new Dictionary<int, Dictionary<string, int>>();
         var totalDocsByHouse = new Dictionary<string, int>();
 
         foreach (var dc in docCounts)
@@ -308,6 +324,16 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                     catCountsByHouse[dc.HouseId] = catDict;
                 }
                 catDict[cleanCat] = catDict.GetValueOrDefault(cleanCat) + dc.DocCount;
+
+                if (dc.TenantId > 0)
+                {
+                    if (!catCountsByTenant.TryGetValue(dc.TenantId, out var tCatDict))
+                    {
+                        tCatDict = new Dictionary<string, int>();
+                        catCountsByTenant[dc.TenantId] = tCatDict;
+                    }
+                    tCatDict[cleanCat] = tCatDict.GetValueOrDefault(cleanCat) + dc.DocCount;
+                }
             }
         }
 
@@ -389,6 +415,10 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                 }
             }
 
+            var activeTenantCatCounts = (activeTenant != null && catCountsByTenant.TryGetValue(activeTenant.Id, out var atCounts))
+                ? atCounts
+                : null;
+
             result.Add(new HouseCardDto
             {
                 Id = h.Id,
@@ -400,7 +430,8 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                 TenureColor = tenureColor,
                 Subtitle = subtitle,
                 TotalDocuments = totalDocsByHouse.GetValueOrDefault(h.Id, 0),
-                CategoryCounts = catCountsByHouse.GetValueOrDefault(h.Id, new Dictionary<string, int>())
+                CategoryCounts = catCountsByHouse.GetValueOrDefault(h.Id, new Dictionary<string, int>()),
+                ActiveTenantCategoryCounts = activeTenantCatCounts
             });
         }
 
@@ -459,6 +490,7 @@ public class FileOrganizerRepository : IFileOrganizerRepository
 
         var tenantDocCounts = new Dictionary<int, int>();
         var tenantCatSets = new Dictionary<int, HashSet<string>>();
+        var tenantCatCounts = new Dictionary<int, Dictionary<string, int>>();
 
         foreach (var d in docs)
         {
@@ -468,9 +500,16 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                 cSet = new HashSet<string>();
                 tenantCatSets[d.TenantId] = cSet;
             }
+            if (!tenantCatCounts.TryGetValue(d.TenantId, out var cMap))
+            {
+                cMap = new Dictionary<string, int>();
+                tenantCatCounts[d.TenantId] = cMap;
+            }
             if (!string.IsNullOrEmpty(d.Category))
             {
                 cSet.Add(d.Category);
+                var cleanCat = Constants.CleanCategoryName(d.Category);
+                cMap[cleanCat] = cMap.GetValueOrDefault(cleanCat) + 1;
             }
         }
 
@@ -505,7 +544,8 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                 DurationCategory = durCat,
                 DocumentCount = tenantDocCounts.GetValueOrDefault(t.Id, 0),
                 CategoryCount = tenantCatSets.TryGetValue(t.Id, out var set) ? set.Count : 0,
-                Categories = tenantCatSets.TryGetValue(t.Id, out var catSet) ? catSet.ToList() : new List<string>()
+                Categories = tenantCatSets.TryGetValue(t.Id, out var catSet) ? catSet.ToList() : new List<string>(),
+                CategoryCounts = tenantCatCounts.TryGetValue(t.Id, out var catMap) ? catMap : new Dictionary<string, int>()
             });
         }
 
