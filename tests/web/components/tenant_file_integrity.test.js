@@ -524,9 +524,12 @@ describe('Tenant File Integrity & Compliance Check (Idea B + Idea C)', () => {
             expect(missingStrip.textContent).toContain('عقود');
             expect(missingStrip.textContent).toContain('استقطاع إيجار');
 
-            // Warning is separated by a dedicated divider above it and NOT in the card footer
+            // Warning is anchored in the fixed card-bottom-zone right above card footer, NOT under tenant list
             expect(card20.querySelector('.card-warning-divider')).not.toBeNull();
             expect(card20.querySelector('.card-footer .missing-docs-strip')).toBeNull();
+            expect(card20.querySelector('.card-bottom-zone .missing-docs-strip')).not.toBeNull();
+            expect(card20.querySelector('.card-main-content .missing-docs-strip')).toBeNull();
+            expect(card20.querySelector('.tenants-overview-section .missing-docs-strip')).toBeNull();
 
             // Vacant card (30): has neutral badge with شاغر and no strip
             const card30 = container.querySelector('[data-house-id="30"]');

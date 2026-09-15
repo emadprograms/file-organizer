@@ -889,7 +889,7 @@
                 `;
 
                 missingWarningHtml = `
-                    <div class="card-warning-divider border-t border-slate-100 dark:border-slate-800/80 pt-2 mt-2">
+                    <div class="card-warning-divider mb-2">
                         <div class="missing-docs-strip flex items-center justify-between text-[10.5px] px-2 py-1 rounded bg-amber-50/90 dark:bg-amber-950/50 border border-amber-200/80 dark:border-amber-900/60 text-amber-800 dark:text-amber-300" title="وثائق ناقصة: ${missingListStr}">
                             <div class="flex items-center gap-1.5 min-w-0">
                                 <span class="text-amber-600 dark:text-amber-400 font-bold flex-shrink-0">⚠️ ناقص:</span>
@@ -916,7 +916,7 @@
                 }
 
                 footerHtml = `
-                    <div class="card-footer mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs gap-1.5">
+                    <div class="card-footer pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs gap-1.5">
                         <span class="text-slate-400 text-[11px] font-medium flex items-center gap-1 min-w-0">
                             <svg class="w-3.5 h-3.5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                             <span class="truncate">Latest Stay</span>
@@ -928,7 +928,7 @@
                 `;
             } else {
                 footerHtml = `
-                    <div class="card-footer mt-3 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs gap-1.5">
+                    <div class="card-footer pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs gap-1.5">
                         <span class="text-slate-400 text-[11px] font-medium flex items-center gap-1 min-w-0">
                             <span>Total Archive</span>
                         </span>
@@ -940,8 +940,8 @@
             }
 
             card.innerHTML = `
-                <div>
-                    <div class="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-slate-100 dark:border-slate-800">
+                <div class="card-main-content flex-1 min-h-0 flex flex-col">
+                    <div class="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
                         <div class="flex items-center gap-2 min-w-0">
                             <h3 class="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-blue-600 transition-colors truncate" title="${house.name}">
                                 🏠 ${house.name}
@@ -959,10 +959,12 @@
                     <div class="tenants-overview-section ${scrollClass}">
                         ${tenantsHtml}
                     </div>
-                    ${missingWarningHtml}
                 </div>
 
-                ${footerHtml}
+                <div class="card-bottom-zone mt-auto pt-2 flex flex-col flex-shrink-0">
+                    ${missingWarningHtml}
+                    ${footerHtml}
+                </div>
             `;
 
             if (orderedTenants.length > 3) {
