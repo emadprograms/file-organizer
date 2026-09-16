@@ -375,4 +375,177 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       expect(openedUrl).toBe('/api/areas/default/houses/default/pdf/doc_second');
     });
   });
+
+  describe('Offline English Translation Overlay Feature', () => {
+    it('verifies index.html contains viewer-translate-btn and document-translation-overlay', () => {
+      expect(htmlContent).toContain('id="viewer-translate-btn"');
+      expect(htmlContent).toContain('id="viewer-translate-label"');
+      expect(htmlContent).toContain('id="document-translation-overlay"');
+    });
+
+    it('getEnglishCategory translates standard categories accurately with icons', () => {
+      expect(window.getEnglishCategory('05 - عقود').en).toBe('Lease & Tenancy Contract');
+      expect(window.getEnglishCategory('05 - عقود').icon).toBe('📜');
+      expect(window.getEnglishCategory('06 - كهرباء وماء').en).toBe('Electricity & Water (EWA) Utility Bill');
+      expect(window.getEnglishCategory('03 - أمر تخصيص').en).toBe('Housing Allocation Order');
+      expect(window.getEnglishCategory('04 - محضر تسليم مفتاح').en).toBe('Key Handover Minutes');
+      expect(window.getEnglishCategory('07 - استقطاع إيجار').en).toBe('Rent Deduction Notice');
+      expect(window.getEnglishCategory('09 - إشعارات').en).toBe('Official Notices & Eviction Warnings');
+      expect(window.getEnglishCategory('10 - صيانة').en).toBe('Maintenance & Repair Request');
+      expect(window.getEnglishCategory(null).en).toBe('Official Housing Document');
+    });
+
+    it('translateArabicText translates military ranks, administrative entities, and phrases', () => {
+      expect(window.translateArabicText('محضر اجتماع لجنة دراسة الخدمات الإسكانية'))
+        .toContain('Minutes of Meeting Housing Services Committee');
+
+      expect(window.translateArabicText('مكتب وكيل وزارة الداخلية'))
+        .toBe('Office of the Undersecretary of the Ministry of Interior');
+
+      expect(window.translateArabicText('العقيد / مدير إدارة المحاكم العسكرية'))
+        .toContain('Colonel / Director Directorate of Military Courts');
+
+      expect(window.translateArabicText('إشعار بإخلاء الوحدة السكنية'))
+        .toBe('Housing Unit Eviction Notice');
+
+      expect(window.translateArabicText('عقد إيجار موثق'))
+        .toBe('Notarized Tenancy Contract');
+
+      // Preserves existing English
+      expect(window.translateArabicText('A formal confidential letter from the Ministry'))
+        .toBe('A formal confidential letter from the Ministry');
+
+      // Converts Eastern Arabic numerals
+      expect(window.translateArabicText('٢٠٢٥/١٢/٢٤'))
+        .toBe('2025/12/24');
+    });
+
+    it('toggles translation mode, saves preference in localStorage, and updates button state', () => {
+      localStorage.removeItem('doc_viewer_translate');
+      const btn = document.getElementById('viewer-translate-btn');
+      const label = document.getElementById('viewer-translate-label');
+
+      expect(window.isDocumentTranslationActive()).toBe(false);
+      expect(btn.getAttribute('aria-pressed')).toBe('false');
+
+      // Toggle ON
+      window.toggleDocumentTranslation();
+      expect(window.isDocumentTranslationActive()).toBe(true);
+      expect(localStorage.getItem('doc_viewer_translate')).toBe('true');
+      expect(btn.getAttribute('aria-pressed')).toBe('true');
+      expect(label.textContent).toBe('English (Active)');
+
+      // Toggle OFF
+      window.toggleDocumentTranslation();
+      expect(window.isDocumentTranslationActive()).toBe(false);
+      expect(localStorage.getItem('doc_viewer_translate')).toBe('false');
+      expect(btn.getAttribute('aria-pressed')).toBe('false');
+      expect(label.textContent).toBe('English');
+    });
+
+    it('renders translated page cards over document canvas when translation is enabled', async () => {
+      const mockMeta = {
+        vault_id: 'doc_contract_99',
+        house_id: '101',
+        category: '05 - عقود',
+        primary_date: '2025-12-24',
+        tenant_name: 'أحمد عبدالله',
+        pages: [
+          {
+            page_number: 1,
+            subject: 'عقد إيجار مسكن',
+            sender: 'إدارة الإمداد والتموين',
+            receiver: 'أحمد عبدالله',
+            content_explanation: 'Formal residential lease agreement for house 101 in Safra area, establishing monthly tenancy terms.',
+            raw_date: '2025/12/24'
+          },
+          {
+            page_number: 2,
+            subject: 'محضر تسليم مفتاح',
+            sender: 'فرع إسكان الشرطة',
+            receiver: 'أحمد عبدالله',
+            content_explanation: 'وثيقة رسمية صادرة من إدارة الإمداد والتموين تؤكد محضر تسليم مفتاح المسكن.',
+            raw_date: '2025/12/24'
+          }
+        ]
+      };
+
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => mockMeta
+      });
+
+      // Enable translation
+      localStorage.setItem('doc_viewer_translate', 'true');
+      eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
+
+      window.openDocument('doc_contract_99', 'عقد إيجار', '05 - عقود');
+
+      // Wait for async translation rendering
+      await window.renderDocumentTranslation();
+
+      const overlay = document.getElementById('document-translation-overlay');
+      expect(overlay.classList.contains('hidden')).toBe(false);
+
+      const cards = overlay.querySelectorAll('.translation-page-sheet');
+      expect(cards.length).toBe(2);
+
+      // Page 1 Card Assertions
+      const card1 = cards[0];
+      expect(card1.getAttribute('data-page-number')).toBe('1');
+      expect(card1.textContent).toContain('Lease & Tenancy Contract');
+      expect(card1.textContent).toContain('Page 1 of 2');
+      expect(card1.textContent).toContain('Formal residential lease agreement for house 101');
+      expect(card1.textContent).toContain('Directorate of Supply and Catering');
+
+      // Page 2 Card Assertions (Arabic content explanation is translated)
+      const card2 = cards[1];
+      expect(card2.getAttribute('data-page-number')).toBe('2');
+      expect(card2.textContent).toContain('Official document issued by');
+      expect(card2.textContent).toContain('Key Handover Minutes');
+
+      // Peek Scan Button interaction
+      const peekBtn = card1.querySelector('.btn-peek-scan');
+      expect(peekBtn).not.toBeNull();
+      peekBtn.click();
+      expect(card1.classList.contains('peeking')).toBe(true);
+      peekBtn.click();
+      expect(card1.classList.contains('peeking')).toBe(false);
+    });
+
+    it('renders informative fallback translation card when document has no individual pages in database', async () => {
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          vault_id: 'doc_empty_pages',
+          house_id: '202',
+          category: '03 - أمر تخصيص',
+          primary_date: '2025-05-10',
+          tenant_name: 'خالد السعيد',
+          pages: []
+        })
+      });
+
+      localStorage.setItem('doc_viewer_translate', 'true');
+      eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
+
+      window.openDocument('doc_empty_pages', 'أمر تخصيص', '03 - أمر تخصيص');
+      await window.renderDocumentTranslation();
+
+      const overlay = document.getElementById('document-translation-overlay');
+      expect(overlay.classList.contains('hidden')).toBe(false);
+      expect(overlay.textContent).toContain('Housing Allocation Order');
+      expect(overlay.textContent).toContain('Individual OCR page transcriptions are not indexed');
+    });
+
+    it('closeDocument dismisses and clears the translation overlay', async () => {
+      localStorage.setItem('doc_viewer_translate', 'true');
+      window.openDocument('doc_test_close', 'مستند إغلاق', '05 - عقود');
+      const overlay = document.getElementById('document-translation-overlay');
+
+      window.closeDocument();
+      expect(overlay.classList.contains('hidden')).toBe(true);
+      expect(overlay.innerHTML).toBe('');
+    });
+  });
 });

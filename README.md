@@ -76,6 +76,13 @@ The modern web application (`http://localhost:5000`) offers a responsive, high-p
 
 - **Collapsible Sidebar**: Effortlessly collapse or expand the left areas navigation sidebar using the collapse button (`<<`) in the sidebar header or the sidebar toggle button in the top navigation bar.
 - **Persistent Layout**: Custom sidebar width and collapsed/expanded state are automatically persisted in `localStorage` across reloads.
+- **Offline English Document Translation Overlay**:
+  - Instant, one-tap English translation overlay for scanned documents positioned directly over the document canvas.
+  - **100% Offline**: Requires zero cloud APIs or external internet connectivity; relies on indexed database intelligence and comprehensive administrative Arabic translation rules.
+  - English translations display formal document categories, page numbers, dates, routing headers (`FROM` / `TO`), subjects, and paragraph-structured content explanations.
+  - **Peek Scan**: Hold or click `👁️ Peek Scan` to temporarily reveal original stamps, signatures, and seals underneath the translation sheet without losing your place.
+  - Collapsible original Arabic transcript accordion for forensic verification.
+  - User preference (`localStorage`) persists translation state seamlessly across documents and session reloads.
 - **Keyboard Shortcuts**:
   - `⌘B` / `Ctrl+B`: Toggle navigation sidebar collapse/expand.
   - `⌘K` / `Ctrl+K`: Open Global Spotlight Search.
