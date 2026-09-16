@@ -30,6 +30,7 @@
     let activePdfDoc = null;
     let selectedPageNumbers = new Set();
     let currentPageOrder = []; // Array of page numbers 1..N
+    let isReordering = false;
 
     const STANDARD_FOLDERS = [
         "01 - بيانات أساسية",
@@ -48,32 +49,49 @@
     ];
 
     function getResolvedArea(doc) {
-        if (doc && doc.area_id) return doc.area_id;
-        if (typeof currentArea !== 'undefined' && currentArea) return currentArea;
-        if (typeof window !== 'undefined' && window.currentArea) return window.currentArea;
+        if (doc && doc.area_id && doc.area_id !== 'default') return doc.area_id;
+        if (typeof currentArea !== 'undefined' && currentArea && currentArea !== 'default') return currentArea;
+        if (typeof window !== 'undefined' && window.currentArea && window.currentArea !== 'default') return window.currentArea;
         if (typeof window !== 'undefined' && window.location && window.location.hash) {
             const match = window.location.hash.match(/#\/area\/([^/]+)/);
             if (match) return decodeURIComponent(match[1]).replace(/^area_/, '');
         }
-        return 'default';
+        return (doc && doc.area_id) || 'default';
     }
 
     function getResolvedHouse(doc) {
-        if (doc && doc.house_id) return doc.house_id;
-        if (typeof currentHouse !== 'undefined' && currentHouse) return currentHouse;
-        if (typeof window !== 'undefined' && window.currentHouse) return window.currentHouse;
+        if (doc && doc.house_id && doc.house_id !== 'default') return doc.house_id;
+        if (typeof currentHouse !== 'undefined' && currentHouse && currentHouse !== 'default') return currentHouse;
+        if (typeof window !== 'undefined' && window.currentHouse && window.currentHouse !== 'default') return window.currentHouse;
         if (typeof window !== 'undefined' && window.location && window.location.hash) {
             const match = window.location.hash.match(/house\/([^/]+)/);
             if (match) return decodeURIComponent(match[1]);
         }
-        return 'default';
+        return (doc && doc.house_id) || 'default';
     }
 
-    function resolvePdfUrl(area, house, vaultId) {
-        if (typeof getPdfUrl === 'function') {
-            return getPdfUrl(area, house, vaultId);
+    function resolvePdfUrl(area, house, vaultId, cacheBust = null) {
+        let url;
+        if (typeof getPdfUrl === 'function' && area && area !== 'default' && house && house !== 'default') {
+            url = getPdfUrl(area, house, vaultId);
+        } else if (area && area !== 'default' && house && house !== 'default') {
+            url = `/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/pdf/${encodeURIComponent(vaultId)}`;
+        } else {
+            url = `/api/pdf/${encodeURIComponent(vaultId)}`;
         }
-        return `/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/pdf/${encodeURIComponent(vaultId)}`;
+        if (cacheBust) {
+            url += (url.includes('?') ? '&' : '?') + 't=' + cacheBust;
+        }
+        return url;
+    }
+
+    function getApiUrl(path) {
+        if (typeof window !== 'undefined' && window.location && window.location.origin && window.location.origin !== 'null' && window.location.origin !== 'file://') {
+            try {
+                return new URL(path, window.location.origin).toString();
+            } catch (e) {}
+        }
+        return path;
     }
 
     function initPageEditor() {
@@ -146,8 +164,12 @@
         initPageEditor();
         if (!editorModal) return;
 
+        const vaultId = doc.vault_id || doc.id || doc.vaultId;
+        if (!vaultId) return;
+
         activeEditorDoc = {
             ...doc,
+            vault_id: vaultId,
             area_id: getResolvedArea(doc),
             house_id: getResolvedHouse(doc),
             category: doc.category || fallbackCategory || ''
@@ -157,11 +179,13 @@
         currentPageOrder = [];
         activePdfDoc = null;
 
-        const effectiveTitle = activeEditorDoc.brief_arabic_title || activeEditorDoc.arabic_title || activeEditorDoc.filename || 'Document';
+        const effectiveTitle = activeEditorDoc.brief_arabic_title || activeEditorDoc.arabic_title || activeEditorDoc.filename || activeEditorDoc.title || 'Document';
         if (editorTitle) editorTitle.textContent = effectiveTitle;
+        
+        const initialTenant = activeEditorDoc.tenant || activeEditorDoc.tenant_name || activeEditorDoc.primary_tenant || '';
         if (editorSubtitle) {
             const cat = activeEditorDoc.category || 'عام';
-            const ten = activeEditorDoc.tenant || activeEditorDoc.primary_tenant || activeEditorDoc.tenant_name || 'No Tenant';
+            const ten = initialTenant ? initialTenant : 'جاري التحميل...';
             editorSubtitle.textContent = `${cat} • ${ten}`;
         }
 
@@ -174,9 +198,59 @@
         editorModal.classList.remove('hidden');
         editorModal.style.display = 'flex';
 
+        // Asynchronously fetch authoritative metadata directly from SQLite
+        const metadataPromise = (async () => {
+            try {
+                let meta = null;
+                const mRes = await fetch(getApiUrl(`/api/documents/${encodeURIComponent(vaultId)}/metadata`));
+                if (mRes.ok) {
+                    meta = await mRes.json();
+                } else {
+                    const fallbackArea = activeEditorDoc.area_id || 'default';
+                    const fallbackHouse = activeEditorDoc.house_id || 'default';
+                    const altRes = await fetch(getApiUrl(`/api/areas/${encodeURIComponent(fallbackArea)}/houses/${encodeURIComponent(fallbackHouse)}/documents/${encodeURIComponent(vaultId)}/metadata`));
+                    if (altRes.ok) meta = await altRes.json();
+                }
+                if (meta && activeEditorDoc && (activeEditorDoc.vault_id === vaultId)) {
+                    const resolvedTenantId = meta.tenantId || meta.tenant_id;
+                    const resolvedTenantName = meta.tenantName || meta.tenant_name;
+                    const resolvedAreaId = meta.areaId || meta.area_id;
+                    const resolvedHouseId = meta.houseId || meta.house_id;
+                    const resolvedCategory = meta.category;
+                    const resolvedArabicTitle = meta.arabicTitle || meta.arabic_title;
+                    const resolvedPrimaryDate = meta.primaryDate || meta.primary_date;
+                    const resolvedPageCount = typeof meta.pageCount === 'number' ? meta.pageCount : (typeof meta.page_count === 'number' ? meta.page_count : 0);
+
+                    if (resolvedTenantId) activeEditorDoc.tenant_id = resolvedTenantId;
+                    if (resolvedTenantName) activeEditorDoc.tenant_name = resolvedTenantName;
+                    if (resolvedAreaId && resolvedAreaId !== 'default') activeEditorDoc.area_id = resolvedAreaId;
+                    if (resolvedHouseId && resolvedHouseId !== 'default') activeEditorDoc.house_id = resolvedHouseId;
+                    if (resolvedCategory) activeEditorDoc.category = resolvedCategory;
+                    if (resolvedArabicTitle) activeEditorDoc.brief_arabic_title = resolvedArabicTitle;
+                    if (resolvedPrimaryDate) activeEditorDoc.primary_date = resolvedPrimaryDate;
+                    if (resolvedPageCount > 0) activeEditorDoc.page_count = resolvedPageCount;
+
+                    if (editorTitle && resolvedArabicTitle) {
+                        editorTitle.textContent = resolvedArabicTitle;
+                    }
+                    if (editorSubtitle) {
+                        const displayTenant = resolvedTenantName ? resolvedTenantName : 'كامل المنزل (عام)';
+                        editorSubtitle.textContent = `${activeEditorDoc.category || 'عام'} • ${displayTenant}`;
+                    }
+                }
+            } catch (mErr) {
+                console.warn('Document metadata fetch warning:', mErr);
+            } finally {
+                if (editorSubtitle && (!activeEditorDoc.tenant_name && !initialTenant)) {
+                    editorSubtitle.textContent = `${activeEditorDoc.category || 'عام'} • كامل المنزل (عام)`;
+                }
+            }
+        })();
+
+        await metadataPromise;
+
         const area = activeEditorDoc.area_id;
         const house = activeEditorDoc.house_id;
-        const vaultId = activeEditorDoc.vault_id || activeEditorDoc.id;
 
         try {
             const pdfUrl = resolvePdfUrl(area, house, vaultId);
@@ -206,6 +280,8 @@
         } finally {
             if (editorLoading) editorLoading.classList.add('hidden');
         }
+
+        await metadataPromise;
     }
 
     function closePageEditor() {
@@ -429,34 +505,70 @@
     }
 
     async function shiftPageOrder(currentIndex, direction) {
+        if (isReordering) return;
         const targetIndex = currentIndex + direction;
         if (targetIndex < 0 || targetIndex >= currentPageOrder.length) return;
 
-        // Swap
-        const temp = currentPageOrder[currentIndex];
-        currentPageOrder[currentIndex] = currentPageOrder[targetIndex];
-        currentPageOrder[targetIndex] = temp;
+        isReordering = true;
+        try {
+            // Swap
+            const temp = currentPageOrder[currentIndex];
+            currentPageOrder[currentIndex] = currentPageOrder[targetIndex];
+            currentPageOrder[targetIndex] = temp;
 
-        if (activePdfDoc) {
-            await renderThumbnails();
-        } else {
-            renderFallbackCards();
-        }
-
-        // Automatically persist reordering to backend
-        if (activeEditorDoc) {
-            const area = activeEditorDoc.area_id;
-            const house = activeEditorDoc.house_id;
-            const vaultId = activeEditorDoc.vault_id || activeEditorDoc.id;
-            try {
-                await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(vaultId)}/reorder-pages`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ page_order: currentPageOrder })
-                });
-            } catch (err) {
-                console.warn('Reorder pages API warning:', err);
+            if (activePdfDoc) {
+                await renderThumbnails();
+            } else {
+                renderFallbackCards();
             }
+
+            // Automatically persist reordering to backend
+            if (activeEditorDoc) {
+                const area = activeEditorDoc.area_id;
+                const house = activeEditorDoc.house_id;
+                const vaultId = activeEditorDoc.vault_id || activeEditorDoc.id;
+                try {
+                    const res = await fetch(getApiUrl(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(vaultId)}/reorder-pages`), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ page_order: currentPageOrder })
+                    });
+                    if (res.ok) {
+                        // The PDF on disk is now physically rewritten into the new order.
+                        // Reset currentPageOrder to 1..N so future shifts are relative to the new file.
+                        currentPageOrder = Array.from({ length: currentPageOrder.length }, (_, idx) => idx + 1);
+
+                        // Reload activePdfDoc with cache-busting
+                        const cacheBust = Date.now();
+                        const pdfUrl = resolvePdfUrl(area, house, vaultId, cacheBust);
+                        if (typeof pdfjsLib !== 'undefined') {
+                            try {
+                                const loadingTask = pdfjsLib.getDocument({ url: pdfUrl });
+                                activePdfDoc = await loadingTask.promise;
+                                await renderThumbnails();
+                            } catch (loadErr) {
+                                console.warn('Could not reload activePdfDoc after reorder:', loadErr);
+                            }
+                        }
+
+                        // Notify document viewer panel to reload the PDF with cache-busting
+                        if (typeof window !== 'undefined' && typeof window.reloadCurrentDocument === 'function') {
+                            window.reloadCurrentDocument(true);
+                        }
+                    } else {
+                        // Revert local swap on failure
+                        const reverted = currentPageOrder[currentIndex];
+                        currentPageOrder[currentIndex] = currentPageOrder[targetIndex];
+                        currentPageOrder[targetIndex] = reverted;
+                        if (activePdfDoc) await renderThumbnails();
+                        else renderFallbackCards();
+                    }
+                } catch (err) {
+                    console.warn('Reorder pages API warning:', err);
+                }
+            }
+        } finally {
+            isReordering = false;
         }
     }
 
@@ -487,7 +599,7 @@
         if (editorLoading) editorLoading.classList.remove('hidden');
 
         try {
-            const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(vaultId)}/delete-pages`, {
+            const res = await fetch(getApiUrl(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(vaultId)}/delete-pages`), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ page_numbers: pagesToDelete })
@@ -574,20 +686,32 @@
         // Populate Tenants
         if (extractTenantSelect) {
             extractTenantSelect.innerHTML = '';
+
+            const generalOpt = document.createElement('option');
+            generalOpt.value = '';
+            generalOpt.textContent = 'كامل المنزل (عام) • General House Document';
+            extractTenantSelect.appendChild(generalOpt);
+
+            const area = activeEditorDoc.area_id;
             const house = activeEditorDoc.house_id;
             try {
-                const tRes = await fetch(`/api/areas/${encodeURIComponent(activeEditorDoc.area_id)}/houses/${encodeURIComponent(house)}/tenants`);
+                const tRes = await fetch(getApiUrl(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/tenants`));
                 if (tRes.ok) {
                     const tenants = await tRes.json();
+                    let tenantMatched = false;
                     tenants.forEach(t => {
                         const opt = document.createElement('option');
                         opt.value = t.id;
                         opt.textContent = t.is_resident === 1 ? `${t.name} (ساكن)` : `${t.name} (متقدم)`;
                         if (t.id === activeEditorDoc.tenant_id) {
                             opt.selected = true;
+                            tenantMatched = true;
                         }
                         extractTenantSelect.appendChild(opt);
                     });
+                    if (!tenantMatched && !activeEditorDoc.tenant_id) {
+                        generalOpt.selected = true;
+                    }
                 }
             } catch (_) {}
         }
@@ -627,7 +751,8 @@
             return;
         }
 
-        const targetTenantId = extractTenantSelect && extractTenantSelect.value ? parseInt(extractTenantSelect.value, 10) : activeEditorDoc.tenant_id;
+        const targetTenantVal = extractTenantSelect ? extractTenantSelect.value : '';
+        const targetTenantId = targetTenantVal ? parseInt(targetTenantVal, 10) : (activeEditorDoc.tenant_id || null);
         const targetTitle = extractTitleInput ? extractTitleInput.value.trim() : targetCat;
         const targetDate = extractDateInput ? extractDateInput.value.trim() : '';
         const targetNotes = extractNotesInput ? extractNotesInput.value.trim() : '';
@@ -641,7 +766,7 @@
         if (btnExtractConfirmText) btnExtractConfirmText.textContent = 'Extracting...';
 
         try {
-            const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(vaultId)}/extract-pages`, {
+            const res = await fetch(getApiUrl(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(vaultId)}/extract-pages`), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

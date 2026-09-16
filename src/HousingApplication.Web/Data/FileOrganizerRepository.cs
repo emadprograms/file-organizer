@@ -2346,16 +2346,26 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
         await using var conn = await _connectionFactory.CreateConnectionAsync();
         await using var tx = await conn.BeginTransactionAsync();
 
-        var src = await conn.QueryFirstOrDefaultAsync<Document>(@"
-            SELECT vault_id AS VaultId, house_id AS HouseId, tenant_id AS TenantId, batch_id AS BatchId,
-                   primary_date AS PrimaryDate, arabic_title AS ArabicTitle, category AS Category,
-                   page_count AS PageCount, is_manual AS IsManual, notes AS Notes
-            FROM documents 
-            WHERE vault_id = @VaultId;",
+        var src = await conn.QueryFirstOrDefaultAsync<(
+            string VaultId, string HouseId, int TenantId, int BatchId,
+            string? PrimaryDate, string? ArabicTitle, string? Category,
+            int PageCount, int IsManual, string? Notes, string? AreaId
+        )>(@"
+            SELECT d.vault_id AS VaultId, d.house_id AS HouseId, d.tenant_id AS TenantId, d.batch_id AS BatchId,
+                   d.primary_date AS PrimaryDate, d.arabic_title AS ArabicTitle, d.category AS Category,
+                   d.page_count AS PageCount, d.is_manual AS IsManual, d.notes AS Notes,
+                   h.area_id AS AreaId
+            FROM documents d
+            LEFT JOIN houses h ON d.house_id = h.id
+            WHERE d.vault_id = @VaultId;",
             new { VaultId = vaultId }, tx);
 
-        if (src == null)
+        if (string.IsNullOrEmpty(src.VaultId))
             throw new KeyNotFoundException($"Document with vault ID '{vaultId}' not found.");
+
+        var realHouseId = !string.IsNullOrWhiteSpace(src.HouseId) ? src.HouseId : cleanHouseId;
+        var realCleanHouseId = TextUtils.ExtractHouseNumber(realHouseId);
+        var realAreaId = !string.IsNullOrWhiteSpace(src.AreaId) ? src.AreaId : areaId;
 
         var totalPages = src.PageCount > 0 ? src.PageCount : 1;
         var pagesToExtract = request.PageNumbers.Distinct().Where(p => p >= 1 && p <= totalPages).OrderBy(p => p).ToList();
@@ -2367,7 +2377,38 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
         var targetCategory = !string.IsNullOrWhiteSpace(request.TargetCategory)
             ? Constants.FormatCategoryWithPrefix(request.TargetCategory)
             : src.Category ?? "13 - رسائل متنوعة";
-        var targetTenantId = request.TargetTenantId ?? src.TenantId;
+        var targetTenantId = (request.TargetTenantId.HasValue && request.TargetTenantId.Value > 0)
+            ? request.TargetTenantId.Value
+            : (src.TenantId > 0 ? src.TenantId : 0);
+
+        if (targetTenantId <= 0)
+        {
+            var resident = await conn.QueryFirstOrDefaultAsync<int?>(
+                "SELECT id FROM tenants WHERE (house_id = @HouseId OR house_id = @CleanHouseId) AND is_resident = 1 LIMIT 1;",
+                new { HouseId = realHouseId, CleanHouseId = realCleanHouseId }, tx);
+            if (resident.HasValue && resident.Value > 0)
+            {
+                targetTenantId = resident.Value;
+            }
+            else
+            {
+                var anyTenant = await conn.QueryFirstOrDefaultAsync<int?>(
+                    "SELECT id FROM tenants WHERE house_id = @HouseId OR house_id = @CleanHouseId LIMIT 1;",
+                    new { HouseId = realHouseId, CleanHouseId = realCleanHouseId }, tx);
+                if (anyTenant.HasValue && anyTenant.Value > 0)
+                {
+                    targetTenantId = anyTenant.Value;
+                }
+                else
+                {
+                    targetTenantId = await conn.QuerySingleAsync<int>(@"
+                        INSERT INTO tenants (name, house_id, is_resident)
+                        VALUES (@Name, @HouseId, 0);
+                        SELECT last_insert_rowid();",
+                        new { Name = "غير محدد", HouseId = realCleanHouseId }, tx);
+                }
+            }
+        }
         var targetTitle = !string.IsNullOrWhiteSpace(request.TargetTitle)
             ? request.TargetTitle.Trim()
             : targetCategory;
@@ -2378,6 +2419,14 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
         // Physical PDF slicing
         var possiblePaths = new[]
         {
+            Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, "vault", $"{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault", $"{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, ".source_files", "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, ".source_files", "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, ".source_files", "vault", $"{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, ".source_files", "vault", $"{vaultId}.pdf"),
             Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"doc_{vaultId}.pdf"),
             Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"doc_{vaultId}.pdf"),
             Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"{vaultId}.pdf"),
@@ -2389,7 +2438,7 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
         {
             try
             {
-                var vaultDir = Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault");
+                var vaultDir = Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault");
                 Directory.CreateDirectory(vaultDir);
                 var newVaultFile = Path.Combine(vaultDir, $"doc_{newVaultId}.pdf");
 
@@ -2453,7 +2502,7 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
         await conn.ExecuteAsync(insertSql, new
         {
             VaultId = newVaultId,
-            HouseId = cleanHouseId,
+            HouseId = realHouseId,
             TenantId = targetTenantId,
             BatchId = src.BatchId,
             PrimaryDate = targetDate,
@@ -2485,9 +2534,9 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
                 var p = existingPages[pNum - 1];
                 await conn.ExecuteAsync(@"
                     UPDATE pages 
-                    SET vault_id = @NewVaultId, category = @TargetCategory, tenant_id = @TargetTenantId
+                    SET vault_id = @NewVaultId, category = @TargetCategory, tenant_id = @TargetTenantId, house_id = @HouseId
                     WHERE id = @PageId;",
-                    new { NewVaultId = newVaultId, TargetCategory = targetCategory, TargetTenantId = targetTenantId, PageId = p.Id }, tx);
+                    new { NewVaultId = newVaultId, TargetCategory = targetCategory, TargetTenantId = targetTenantId, HouseId = realHouseId, PageId = p.Id }, tx);
             }
         }
 
@@ -2546,16 +2595,26 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
         await using var conn = await _connectionFactory.CreateConnectionAsync();
         await using var tx = await conn.BeginTransactionAsync();
 
-        var src = await conn.QueryFirstOrDefaultAsync<Document>(@"
-            SELECT vault_id AS VaultId, house_id AS HouseId, tenant_id AS TenantId, batch_id AS BatchId,
-                   primary_date AS PrimaryDate, arabic_title AS ArabicTitle, category AS Category,
-                   page_count AS PageCount, is_manual AS IsManual, notes AS Notes
-            FROM documents 
-            WHERE vault_id = @VaultId;",
+        var src = await conn.QueryFirstOrDefaultAsync<(
+            string VaultId, string HouseId, int TenantId, int BatchId,
+            string? PrimaryDate, string? ArabicTitle, string? Category,
+            int PageCount, int IsManual, string? Notes, string? AreaId
+        )>(@"
+            SELECT d.vault_id AS VaultId, d.house_id AS HouseId, d.tenant_id AS TenantId, d.batch_id AS BatchId,
+                   d.primary_date AS PrimaryDate, d.arabic_title AS ArabicTitle, d.category AS Category,
+                   d.page_count AS PageCount, d.is_manual AS IsManual, d.notes AS Notes,
+                   h.area_id AS AreaId
+            FROM documents d
+            LEFT JOIN houses h ON d.house_id = h.id
+            WHERE d.vault_id = @VaultId;",
             new { VaultId = vaultId }, tx);
 
-        if (src == null)
+        if (string.IsNullOrEmpty(src.VaultId))
             throw new KeyNotFoundException($"Document with vault ID '{vaultId}' not found.");
+
+        var realHouseId = !string.IsNullOrWhiteSpace(src.HouseId) ? src.HouseId : cleanHouseId;
+        var realCleanHouseId = TextUtils.ExtractHouseNumber(realHouseId);
+        var realAreaId = !string.IsNullOrWhiteSpace(src.AreaId) ? src.AreaId : areaId;
 
         var totalPages = src.PageCount > 0 ? src.PageCount : 1;
         var pagesToDelete = request.PageNumbers.Distinct().Where(p => p >= 1 && p <= totalPages).OrderBy(p => p).ToList();
@@ -2566,6 +2625,14 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
 
         var possiblePaths = new[]
         {
+            Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, "vault", $"{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault", $"{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, ".source_files", "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, ".source_files", "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, ".source_files", "vault", $"{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, ".source_files", "vault", $"{vaultId}.pdf"),
             Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"doc_{vaultId}.pdf"),
             Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"doc_{vaultId}.pdf"),
             Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"{vaultId}.pdf"),
@@ -2669,16 +2736,26 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
         await using var conn = await _connectionFactory.CreateConnectionAsync();
         await using var tx = await conn.BeginTransactionAsync();
 
-        var src = await conn.QueryFirstOrDefaultAsync<Document>(@"
-            SELECT vault_id AS VaultId, house_id AS HouseId, tenant_id AS TenantId, batch_id AS BatchId,
-                   primary_date AS PrimaryDate, arabic_title AS ArabicTitle, category AS Category,
-                   page_count AS PageCount, is_manual AS IsManual, notes AS Notes
-            FROM documents 
-            WHERE vault_id = @VaultId;",
+        var src = await conn.QueryFirstOrDefaultAsync<(
+            string VaultId, string HouseId, int TenantId, int BatchId,
+            string? PrimaryDate, string? ArabicTitle, string? Category,
+            int PageCount, int IsManual, string? Notes, string? AreaId
+        )>(@"
+            SELECT d.vault_id AS VaultId, d.house_id AS HouseId, d.tenant_id AS TenantId, d.batch_id AS BatchId,
+                   d.primary_date AS PrimaryDate, d.arabic_title AS ArabicTitle, d.category AS Category,
+                   d.page_count AS PageCount, d.is_manual AS IsManual, d.notes AS Notes,
+                   h.area_id AS AreaId
+            FROM documents d
+            LEFT JOIN houses h ON d.house_id = h.id
+            WHERE d.vault_id = @VaultId;",
             new { VaultId = vaultId }, tx);
 
-        if (src == null)
+        if (string.IsNullOrEmpty(src.VaultId))
             throw new KeyNotFoundException($"Document with vault ID '{vaultId}' not found.");
+
+        var realHouseId = !string.IsNullOrWhiteSpace(src.HouseId) ? src.HouseId : cleanHouseId;
+        var realCleanHouseId = TextUtils.ExtractHouseNumber(realHouseId);
+        var realAreaId = !string.IsNullOrWhiteSpace(src.AreaId) ? src.AreaId : areaId;
 
         var totalPages = src.PageCount > 0 ? src.PageCount : 1;
         if (request.PageOrder.Count != totalPages || request.PageOrder.Distinct().Count() != totalPages || request.PageOrder.Any(p => p < 1 || p > totalPages))
@@ -2686,6 +2763,14 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
 
         var possiblePaths = new[]
         {
+            Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, "vault", $"{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault", $"{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, ".source_files", "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, ".source_files", "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, ".source_files", "vault", $"{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, ".source_files", "vault", $"{vaultId}.pdf"),
             Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"doc_{vaultId}.pdf"),
             Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"doc_{vaultId}.pdf"),
             Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"{vaultId}.pdf"),
@@ -2751,7 +2836,6 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
         {
             Status = "success",
             VaultId = vaultId,
-            PageCount = totalPages,
             PageOrder = request.PageOrder
         };
     }

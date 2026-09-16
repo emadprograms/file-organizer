@@ -354,9 +354,11 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
       page_count: 3
     };
 
-    let fetchCalled = false;
-    global.fetch = vi.fn(() => {
-      fetchCalled = true;
+    let deleteFetchCalled = false;
+    global.fetch = vi.fn((url) => {
+      if (typeof url === 'string' && url.includes('/delete-pages')) {
+        deleteFetchCalled = true;
+      }
       return Promise.resolve({ ok: true, json: async () => ({}) });
     });
 
@@ -369,7 +371,7 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
     await btnCardDel.onclick(new Event('click'));
 
     expect(window.confirm).toHaveBeenCalled();
-    expect(fetchCalled).toBe(false);
+    expect(deleteFetchCalled).toBe(false);
   });
 
   it('shifts page order using card move-left and move-right buttons and calls reorder API', async () => {
@@ -496,5 +498,151 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
     await confirmExtract.onclick();
     expect(global.showToast).toHaveBeenCalledWith('Database error occurred', 'error');
   });
+
+  it('displays real tenant name from SQLite metadata endpoint in the header subtitle', async () => {
+    const mockDoc = {
+      vault_id: 'doc_with_real_tenant',
+      brief_arabic_title: 'عقد إيجار موثق',
+      category: '05 - عقود',
+      page_count: 2
+    };
+
+    global.fetch = vi.fn((url) => {
+      if (typeof url === 'string' && url.includes('/metadata')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            vaultId: 'doc_with_real_tenant',
+            tenantName: 'عبدالله السالم',
+            tenantId: 42,
+            category: '05 - عقود',
+            arabicTitle: 'عقد إيجار موثق'
+          })
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+
+    await window.openPageEditor(mockDoc);
+
+    const subtitle = document.getElementById('page-editor-subtitle');
+    expect(subtitle.textContent).toBe('05 - عقود • عبدالله السالم');
+    expect(subtitle.textContent).not.toContain('No Tenant');
+  });
+
+  it('displays Arabic "كامل المنزل (عام)" in subtitle when document has no assigned tenant and never displays "No Tenant"', async () => {
+    const mockDoc = {
+      vault_id: 'doc_unassigned_tenant',
+      brief_arabic_title: 'فاتورة عامة',
+      category: '06 - كهرباء وماء',
+      page_count: 1
+    };
+
+    global.fetch = vi.fn((url) => {
+      if (typeof url === 'string' && url.includes('/metadata')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            vaultId: 'doc_unassigned_tenant',
+            tenantName: null,
+            tenantId: 0,
+            category: '06 - كهرباء وماء',
+            arabicTitle: 'فاتورة عامة'
+          })
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+
+    await window.openPageEditor(mockDoc);
+
+    const subtitle = document.getElementById('page-editor-subtitle');
+    expect(subtitle.textContent).toBe('06 - كهرباء وماء • كامل المنزل (عام)');
+    expect(subtitle.textContent).not.toContain('No Tenant');
+  });
+
+  it('populates general house document option and pre-selects resident tenant in extract modal', async () => {
+    const mockDoc = {
+      vault_id: 'doc_extract_tenant_choice',
+      brief_arabic_title: 'خطاب مجمع',
+      category: '10 - صيانة',
+      page_count: 2,
+      tenant_id: 10
+    };
+
+    global.fetch = vi.fn((url) => {
+      if (typeof url === 'string' && url.includes('/tenants')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [
+            { id: 10, name: 'سلطان الدوسري', is_resident: 1 },
+            { id: 20, name: 'خالد الحربي', is_resident: 0 }
+          ]
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ tenantId: 10, tenantName: 'سلطان الدوسري' })
+      });
+    });
+
+    await window.openPageEditor(mockDoc);
+    const cards = document.querySelectorAll('.page-editor-card');
+    cards[0].click();
+
+    await document.getElementById('btn-editor-extract-selected').onclick();
+
+    const tenantSelect = document.getElementById('extract-target-tenant');
+    expect(tenantSelect.options.length).toBe(3); // General + 2 tenants
+    expect(tenantSelect.options[0].textContent).toContain('كامل المنزل (عام)');
+    expect(tenantSelect.value).toBe('10'); // Pre-selected
+  });
+
+  it('reorders pages, resets currentPageOrder to prevent desync, and triggers viewer reload', async () => {
+    const mockDoc = {
+      vault_id: 'doc_reorder_desync_check',
+      brief_arabic_title: 'وثيقة اختبار التزامن',
+      category: '05 - عقود',
+      area_id: 'Safra C',
+      house_id: '101',
+      page_count: 3
+    };
+
+    const reorderCalls = [];
+    global.fetch = vi.fn((url, options) => {
+      if (typeof url === 'string' && url.includes('/reorder-pages')) {
+        reorderCalls.push(JSON.parse(options.body));
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ status: 'success', page_order: JSON.parse(options.body).page_order })
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+
+    window.reloadCurrentDocument = vi.fn();
+
+    await window.openPageEditor(mockDoc);
+
+    const cards = document.querySelectorAll('.page-editor-card');
+    const firstMoveRight = cards[0].querySelector('.btn-move-right');
+
+    // First click: moves page 1 to pos 2 -> order [2, 1, 3]
+    await firstMoveRight.onclick(new Event('click'));
+
+    expect(reorderCalls.length).toBe(1);
+    expect(reorderCalls[0].page_order).toEqual([2, 1, 3]);
+    expect(window.reloadCurrentDocument).toHaveBeenCalledWith(true);
+
+    // Second click: because currentPageOrder was reset to [1, 2, 3] relative to the newly saved file,
+    // moving pos 2 right will swap pos 2 and pos 3 -> order [1, 3, 2]
+    const updatedCards = document.querySelectorAll('.page-editor-card');
+    const secondMoveRight = updatedCards[1].querySelector('.btn-move-right');
+    await secondMoveRight.onclick(new Event('click'));
+
+    expect(reorderCalls.length).toBe(2);
+    expect(reorderCalls[1].page_order).toEqual([1, 3, 2]);
+  });
 });
+
 

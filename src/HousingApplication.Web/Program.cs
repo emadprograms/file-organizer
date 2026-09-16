@@ -681,6 +681,18 @@ app.MapGet("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/metadata", 
     return Results.Ok(doc);
 });
 
+app.MapGet("/api/documents/{vaultId}/metadata", async (
+    string vaultId,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var doc = await repo.GetDocumentDetailsAsync(vaultId, areasRoot);
+    if (doc == null)
+        return Results.NotFound(new { error = "Document not found." });
+    return Results.Ok(doc);
+});
+
 app.MapPatch("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}", async (
     string areaId,
     string houseId,

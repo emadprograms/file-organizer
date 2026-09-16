@@ -1851,6 +1851,126 @@ public class RepositoryTests : IDisposable
         await Assert.ThrowsAsync<KeyNotFoundException>(() =>
             _repo.DeletePagesAsync("NonExistentArea", "NonExistentHouse", "non_existent_vault_id", delReq));
     }
+
+    [Fact]
+    public async Task ExtractPagesAsync_WithDefaultAreaAndHouseInUrl_ResolvesRealAreaAndHouseFromDatabase()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("RealArea", "RA");
+        await _repo.AddHouseAsync("H-Real", "RealArea");
+        var tenant = await _repo.AddTenantAsync("H-Real", "Tenant Real", "2024-01-01");
+
+        var sourceVaultId = Guid.NewGuid().ToString("N");
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "RealArea",
+            HouseId = "H-Real",
+            TenantId = tenant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد أصلي",
+            VaultId = sourceVaultId,
+            PageCount = 3
+        });
+
+        // Act: Pass "default" for areaId and houseId in the method call
+        var extractReq = new ExtractPagesRequestDto
+        {
+            PageNumbers = new List<int> { 2 },
+            TargetCategory = "04 - محضر تسليم مفتاح",
+            TargetTitle = "محضر مفصول",
+            DeleteFromSource = true
+        };
+
+        var res = await _repo.ExtractPagesAsync("default", "default", sourceVaultId, extractReq);
+
+        // Assert
+        Assert.Equal("success", res.Status);
+        var newDoc = await _repo.GetDocumentRawAsync(res.NewVaultId);
+        Assert.NotNull(newDoc);
+        Assert.Equal("H-Real", newDoc.HouseId);
+        Assert.Equal(tenant.Id, newDoc.TenantId);
+        Assert.Equal("04 - محضر تسليم مفتاح", newDoc.Category);
+        Assert.Equal(1, newDoc.PageCount);
+
+        var remainingSourceDoc = await _repo.GetDocumentRawAsync(sourceVaultId);
+        Assert.NotNull(remainingSourceDoc);
+        Assert.Equal("H-Real", remainingSourceDoc.HouseId);
+        Assert.Equal(2, remainingSourceDoc.PageCount);
+    }
+
+    [Fact]
+    public async Task ReorderPagesAsync_WithDefaultAreaAndHouseInUrl_ResolvesRealAreaAndHouseFromDatabase()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("RealArea2", "RA2");
+        await _repo.AddHouseAsync("H-Real2", "RealArea2");
+        var tenant = await _repo.AddTenantAsync("H-Real2", "Tenant Real 2", "2024-01-01");
+
+        var sourceVaultId = Guid.NewGuid().ToString("N");
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "RealArea2",
+            HouseId = "H-Real2",
+            TenantId = tenant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد ترتيب",
+            VaultId = sourceVaultId,
+            PageCount = 2
+        });
+
+        var reorderReq = new ReorderPagesRequestDto
+        {
+            PageOrder = new List<int> { 2, 1 }
+        };
+
+        var res = await _repo.ReorderPagesAsync("default", "default", sourceVaultId, reorderReq);
+
+        Assert.Equal("success", res.Status);
+        Assert.Equal(new List<int> { 2, 1 }, res.PageOrder);
+
+        var doc = await _repo.GetDocumentRawAsync(sourceVaultId);
+        Assert.NotNull(doc);
+        Assert.Equal(1, doc.IsManual);
+    }
+
+    [Fact]
+    public async Task ExtractPagesAsync_WithTargetTenantZeroOrNull_SafelyResolvesTenantWithoutForeignConstraintViolation()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaSafeTenant", "AST");
+        await _repo.AddHouseAsync("H-AST", "AreaSafeTenant");
+        var tenant = await _repo.AddTenantAsync("H-AST", "Resident Tenant", "2024-01-01");
+
+        var sourceVaultId = Guid.NewGuid().ToString("N");
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "AreaSafeTenant",
+            HouseId = "H-AST",
+            TenantId = tenant.Id,
+            Category = "10 - صيانة",
+            ArabicTitle = "صيانة عامة",
+            VaultId = sourceVaultId,
+            PageCount = 2
+        });
+
+        // Act: Extract with TargetTenantId = 0 (representing "كامل المنزل (عام)")
+        var extractReq = new ExtractPagesRequestDto
+        {
+            PageNumbers = new List<int> { 1 },
+            TargetCategory = "13 - رسائل متنوعة",
+            TargetTenantId = 0,
+            DeleteFromSource = true
+        };
+
+        var res = await _repo.ExtractPagesAsync("AreaSafeTenant", "H-AST", sourceVaultId, extractReq);
+
+        Assert.Equal("success", res.Status);
+        var newDoc = await _repo.GetDocumentRawAsync(res.NewVaultId);
+        Assert.NotNull(newDoc);
+        Assert.True(newDoc.TenantId > 0);
+        Assert.Equal("H-AST", newDoc.HouseId);
+    }
 }
+
 
 

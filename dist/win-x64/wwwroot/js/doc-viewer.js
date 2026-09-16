@@ -369,7 +369,10 @@
                         title: currentPinnedDoc.title,
                         category: currentPinnedDoc.category,
                         area_id: area,
-                        house_id: house
+                        house_id: house,
+                        tenant: currentPinnedDoc.tenant || currentPinnedDoc.tenant_name || '',
+                        tenant_name: currentPinnedDoc.tenant_name || currentPinnedDoc.tenant || '',
+                        tenant_id: currentPinnedDoc.tenant_id || null
                     }, currentPinnedDoc.category);
                 }
             };
@@ -458,9 +461,31 @@
 
         const cleanTitle = getCleanDocTitle(title, category);
         if (viewerTitle) viewerTitle.textContent = cleanTitle;
-        if (viewerPeekBadge) viewerPeekBadge.classList.add('hidden');
+        let tenantName = '';
+        let tenantId = null;
+        if (typeof currentTimeline !== 'undefined' && Array.isArray(currentTimeline)) {
+            const item = currentTimeline.find(d => d && (d.vault_id === vaultId || d.id === vaultId));
+            if (item) {
+                tenantName = item.tenant || item.tenant_name || item.primary_tenant || '';
+                tenantId = item.tenant_id || item.tenantId || null;
+            }
+        }
+        if (!tenantName && typeof window.getSelectedDoc === 'function') {
+            const sel = window.getSelectedDoc();
+            if (sel && (sel.vaultId === vaultId || sel.doc?.vault_id === vaultId)) {
+                tenantName = sel.doc?.tenant || sel.doc?.tenant_name || '';
+                tenantId = sel.doc?.tenant_id || null;
+            }
+        }
 
-        currentPinnedDoc = { vaultId, title: cleanTitle, category };
+        currentPinnedDoc = {
+            vaultId,
+            title: cleanTitle,
+            category,
+            tenant: tenantName,
+            tenant_name: tenantName,
+            tenant_id: tenantId
+        };
 
         const pdfUrl = resolvePdfUrl(vaultId);
         loadPdfIntoFrame(pdfFrame, pdfUrl);
@@ -552,6 +577,18 @@
         if (catVal) catVal.textContent = '';
     }
 
+    function reloadCurrentDocument(forceCacheBust = false) {
+        if (!currentPinnedDoc || !currentPinnedDoc.vaultId) return;
+        const vaultId = currentPinnedDoc.vaultId;
+        const pdfFrame = document.getElementById('pdf-frame');
+        let pdfUrl = resolvePdfUrl(vaultId);
+        if (forceCacheBust) {
+            const sep = pdfUrl.includes('?') ? '&' : '?';
+            pdfUrl = `${pdfUrl}${sep}t=${Date.now()}`;
+        }
+        loadPdfIntoFrame(pdfFrame, pdfUrl);
+    }
+
     if (typeof document !== 'undefined') {
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initViewerControls);
@@ -563,6 +600,7 @@
     window.openDocument = openDocument;
     window.peekDocument = peekDocument;
     window.closeDocument = closeDocument;
+    window.reloadCurrentDocument = reloadCurrentDocument;
     window.getPinnedDoc = () => currentPinnedDoc;
     window.updateViewerCategory = updateViewerCategory;
     window.getCleanDocTitle = getCleanDocTitle;

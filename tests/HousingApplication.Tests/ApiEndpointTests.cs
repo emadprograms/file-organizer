@@ -1550,7 +1550,50 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
         var response = await _client.PostAsJsonAsync($"/api/areas/Area1/houses/House1/documents/vault_missing_{Guid.NewGuid():N}/reorder-pages", req);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
+
+    [Fact]
+    public async Task GetDocumentMetadata_DirectVaultEndpoint_ReturnsMetadataWithTenantAndAreaInfo()
+    {
+        var response = await _client.GetAsync("/api/documents/seedvault001/metadata");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var doc = await response.Content.ReadFromJsonAsync<DocumentDetailsDto>();
+        Assert.NotNull(doc);
+        Assert.Equal("seedvault001", doc.VaultId);
+        Assert.Equal("Safra C", doc.AreaId);
+        Assert.Equal("500", doc.HouseId);
+        Assert.Equal("فاطمة أحمد", doc.TenantName);
+        Assert.False(string.IsNullOrEmpty(doc.Category));
+    }
+
+    [Fact]
+    public async Task GetDocumentMetadata_NonExistentVaultId_ReturnsNotFound()
+    {
+        var response = await _client.GetAsync($"/api/documents/missing_{Guid.NewGuid():N}/metadata");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task ExtractPages_ApiEndpoint_WithDefaultAreaAndHouseInUrl_SucceedsByResolvingRealHouseFromDatabase()
+    {
+        var req = new ExtractPagesRequestDto
+        {
+            PageNumbers = new List<int> { 1 },
+            TargetCategory = "04 - محضر تسليم مفتاح",
+            TargetTitle = "محضر مفصول من الافتراضي",
+            DeleteFromSource = false
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/areas/default/houses/default/documents/seedvault001/extract-pages", req);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var result = await response.Content.ReadFromJsonAsync<ExtractPagesResponseDto>();
+        Assert.NotNull(result);
+        Assert.Equal("success", result.Status);
+        Assert.False(string.IsNullOrEmpty(result.NewVaultId));
+    }
 }
+
 
 
 
