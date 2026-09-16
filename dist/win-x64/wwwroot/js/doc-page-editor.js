@@ -651,8 +651,24 @@
     }
 
     async function openExtractSubmodal() {
-        if (!activeEditorDoc || selectedPageNumbers.size === 0) return;
+        if (!activeEditorDoc) return;
+        if (selectedPageNumbers.size === 0) {
+            const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+            if (toast) toast('Please select at least one page to separate • يرجى تحديد صفحة واحدة على الأقل', 'info');
+            else alert('Please select at least one page to separate • يرجى تحديد صفحة واحدة على الأقل');
+            return;
+        }
+
+        if (!extractModal) {
+            extractModal = document.getElementById('extract-pages-submodal');
+        }
         if (!extractModal) return;
+
+        // 1. Immediately display on top of everything
+        extractModal.style.zIndex = '9999';
+        extractModal.classList.remove('hidden');
+        extractModal.style.display = 'flex';
+        if (editorModal) editorModal.classList.add('opacity-40');
 
         const count = selectedPageNumbers.size;
         const submodalCountBadge = document.getElementById('extract-pages-count-badge');
@@ -671,7 +687,6 @@
             });
 
             // Default suggestion based on common forms:
-            // If extracting, default to Key Handover (04) or Rent Deduction (07)
             extractCategorySelect.value = "04 - محضر تسليم مفتاح";
 
             const customOpt = document.createElement('option');
@@ -683,40 +698,7 @@
         if (extractCustomCatContainer) extractCustomCatContainer.classList.add('hidden');
         if (extractCustomCatInput) extractCustomCatInput.value = '';
 
-        // Populate Tenants
-        if (extractTenantSelect) {
-            extractTenantSelect.innerHTML = '';
-
-            const generalOpt = document.createElement('option');
-            generalOpt.value = '';
-            generalOpt.textContent = 'كامل المنزل (عام) • General House Document';
-            extractTenantSelect.appendChild(generalOpt);
-
-            const area = activeEditorDoc.area_id;
-            const house = activeEditorDoc.house_id;
-            try {
-                const tRes = await fetch(getApiUrl(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/tenants`));
-                if (tRes.ok) {
-                    const tenants = await tRes.json();
-                    let tenantMatched = false;
-                    tenants.forEach(t => {
-                        const opt = document.createElement('option');
-                        opt.value = t.id;
-                        opt.textContent = t.is_resident === 1 ? `${t.name} (ساكن)` : `${t.name} (متقدم)`;
-                        if (t.id === activeEditorDoc.tenant_id) {
-                            opt.selected = true;
-                            tenantMatched = true;
-                        }
-                        extractTenantSelect.appendChild(opt);
-                    });
-                    if (!tenantMatched && !activeEditorDoc.tenant_id) {
-                        generalOpt.selected = true;
-                    }
-                }
-            } catch (_) {}
-        }
-
-        // Pre-fill Title & Date
+        // Pre-fill Title & Date immediately
         if (extractTitleInput) {
             extractTitleInput.value = extractCategorySelect ? extractCategorySelect.value : 'مستند مستخرج';
         }
@@ -729,14 +711,63 @@
             extractNotesInput.value = `Separated from ${activeEditorDoc.brief_arabic_title || activeEditorDoc.filename || 'document'}`;
         }
 
-        extractModal.classList.remove('hidden');
-        extractModal.style.display = 'flex';
+        // Populate Tenants immediately with general option and resident tenant
+        if (extractTenantSelect) {
+            extractTenantSelect.innerHTML = '';
+
+            const generalOpt = document.createElement('option');
+            generalOpt.value = '';
+            generalOpt.textContent = 'كامل المنزل (عام) • General House Document';
+            extractTenantSelect.appendChild(generalOpt);
+
+            if (activeEditorDoc.tenant_name && activeEditorDoc.tenant_id) {
+                const initOpt = document.createElement('option');
+                initOpt.value = activeEditorDoc.tenant_id;
+                initOpt.textContent = `${activeEditorDoc.tenant_name} (ساكن)`;
+                initOpt.selected = true;
+                extractTenantSelect.appendChild(initOpt);
+            }
+
+            const area = activeEditorDoc.area_id;
+            const house = activeEditorDoc.house_id;
+            if (area && house && area !== 'default' && house !== 'default') {
+                try {
+                    const tRes = await fetch(getApiUrl(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/tenants`));
+                    if (tRes.ok) {
+                        const tenants = await tRes.json();
+                        if (Array.isArray(tenants) && tenants.length > 0) {
+                            extractTenantSelect.innerHTML = '';
+                            extractTenantSelect.appendChild(generalOpt);
+                            let tenantMatched = false;
+                            tenants.forEach(t => {
+                                const opt = document.createElement('option');
+                                opt.value = t.id;
+                                opt.textContent = t.is_resident === 1 ? `${t.name} (ساكن)` : `${t.name} (متقدم)`;
+                                if (t.id === activeEditorDoc.tenant_id) {
+                                    opt.selected = true;
+                                    tenantMatched = true;
+                                }
+                                extractTenantSelect.appendChild(opt);
+                            });
+                            if (!tenantMatched && !activeEditorDoc.tenant_id) {
+                                generalOpt.selected = true;
+                            }
+                        }
+                    }
+                } catch (_) {}
+            }
+        }
     }
 
     function closeExtractSubmodal() {
-        if (!extractModal) return;
-        extractModal.classList.add('hidden');
-        extractModal.style.display = 'none';
+        if (!extractModal) {
+            extractModal = document.getElementById('extract-pages-submodal');
+        }
+        if (extractModal) {
+            extractModal.classList.add('hidden');
+            extractModal.style.display = 'none';
+        }
+        if (editorModal) editorModal.classList.remove('opacity-40');
     }
 
     async function executeExtractPages() {
@@ -757,8 +788,8 @@
         const targetDate = extractDateInput ? extractDateInput.value.trim() : '';
         const targetNotes = extractNotesInput ? extractNotesInput.value.trim() : '';
 
-        const area = activeEditorDoc.area_id;
-        const house = activeEditorDoc.house_id;
+        const area = activeEditorDoc.area_id || 'default';
+        const house = activeEditorDoc.house_id || 'default';
         const vaultId = activeEditorDoc.vault_id || activeEditorDoc.id;
         const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
 
@@ -766,19 +797,34 @@
         if (btnExtractConfirmText) btnExtractConfirmText.textContent = 'Extracting...';
 
         try {
-            const res = await fetch(getApiUrl(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(vaultId)}/extract-pages`), {
+            const reqBody = JSON.stringify({
+                page_numbers: Array.from(selectedPageNumbers),
+                target_category: targetCat,
+                target_tenant_id: targetTenantId,
+                target_title: targetTitle,
+                target_date: targetDate,
+                target_notes: targetNotes,
+                delete_from_source: true
+            });
+
+            // Primary call to area/house route
+            let res = await fetch(getApiUrl(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(vaultId)}/extract-pages`), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    page_numbers: Array.from(selectedPageNumbers),
-                    target_category: targetCat,
-                    target_tenant_id: targetTenantId,
-                    target_title: targetTitle,
-                    target_date: targetDate,
-                    target_notes: targetNotes,
-                    delete_from_source: true
-                })
+                body: reqBody
             });
+
+            // Fallback to universal endpoint if area/house route failed
+            if (!res.ok) {
+                const altRes = await fetch(getApiUrl(`/api/documents/${encodeURIComponent(vaultId)}/extract-pages`), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: reqBody
+                });
+                if (altRes.ok) {
+                    res = altRes;
+                }
+            }
 
             if (!res.ok) {
                 const errData = await res.json().catch(() => ({}));
@@ -804,9 +850,11 @@
                 await window.loadTree();
             }
 
-            // Open the new document in viewer
+            // Open the new document in viewer or reload current
             if (data.new_vault_id && typeof window !== 'undefined' && typeof window.openDocument === 'function') {
                 window.openDocument(data.new_vault_id, data.new_title || targetCat, data.new_category);
+            } else if (typeof window !== 'undefined' && typeof window.reloadCurrentDocument === 'function') {
+                window.reloadCurrentDocument(true);
             }
         } catch (err) {
             console.error('Extract pages error:', err);

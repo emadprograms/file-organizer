@@ -933,6 +933,93 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/reorder-pa
     }
 });
 
+app.MapPost("/api/documents/{vaultId}/extract-pages", async (
+    string vaultId,
+    ExtractPagesRequestDto dto,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    if (dto.PageNumbers == null || dto.PageNumbers.Count == 0)
+        return Results.BadRequest(new { error = "page_numbers must not be empty." });
+
+    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    try
+    {
+        var result = await repo.ExtractPagesAsync("default", "default", vaultId, dto, areasRoot);
+        return Results.Ok(result);
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+});
+
+app.MapPost("/api/documents/{vaultId}/delete-pages", async (
+    string vaultId,
+    DeletePagesRequestDto dto,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    if (dto.PageNumbers == null || dto.PageNumbers.Count == 0)
+        return Results.BadRequest(new { error = "page_numbers must not be empty." });
+
+    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    try
+    {
+        var result = await repo.DeletePagesAsync("default", "default", vaultId, dto, areasRoot);
+        return Results.Ok(result);
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+});
+
+app.MapPost("/api/documents/{vaultId}/reorder-pages", async (
+    string vaultId,
+    ReorderPagesRequestDto dto,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    if (dto.PageOrder == null || dto.PageOrder.Count == 0)
+        return Results.BadRequest(new { error = "page_order must not be empty." });
+
+    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    try
+    {
+        var result = await repo.ReorderPagesAsync("default", "default", vaultId, dto, areasRoot);
+        return Results.Ok(result);
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+});
+
 // ---------------------------------------------------------------------------
 // Ingest API
 // ---------------------------------------------------------------------------
