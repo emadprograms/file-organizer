@@ -28,12 +28,14 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Robo
     scroll-behavior: smooth;
 }
 .pdf-page-wrapper {
+    flex-shrink: 0 !important;
     transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
 }
 .pdf-page-canvas {
     max-width: 100%;
     height: auto !important;
+    flex-shrink: 0 !important;
 }
 
 /* Modern scrollbar */

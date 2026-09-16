@@ -30,17 +30,56 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
             <span id="viewer-category-val"></span>
           </div>
           <button id="viewer-translate-btn"><span id="viewer-translate-label">English</span></button>
+          <button id="viewer-mode-toggle"><span id="viewer-mode-label">Computer</span><svg id="viewer-mode-icon"></svg></button>
           <a id="viewer-download" href="#">Open</a>
         </div>
         <div class="viewport">
           <iframe id="pdf-frame" src="about:blank"></iframe>
+          <div id="pdf-canvas-container" class="hidden"></div>
           <div id="document-translation-overlay" class="hidden"></div>
         </div>
       </div>
     `;
 
+    global.Tesseract = {
+      createWorker: vi.fn().mockResolvedValue({
+        recognize: vi.fn().mockImplementation(async (canvas) => ({
+          data: {
+            lines: [
+              {
+                text: 'مكتب وكيل وزارة الداخلية',
+                bbox: { x0: 100, y0: 40, x1: 500, y1: 75 },
+                words: []
+              },
+              {
+                text: 'أمر تخصيص مسكن',
+                bbox: { x0: 150, y0: 90, x1: 450, y1: 125 },
+                words: []
+              }
+            ]
+          }
+        })),
+        terminate: vi.fn().mockResolvedValue()
+      })
+    };
+
+    global.pdfjsLib = {
+      GlobalWorkerOptions: {},
+      getDocument: vi.fn().mockReturnValue({
+        promise: Promise.resolve({
+          numPages: 1,
+          getPage: vi.fn().mockResolvedValue({
+            getViewport: vi.fn().mockReturnValue({ width: 600, height: 800, scale: 1.0 }),
+            render: vi.fn().mockReturnValue({ promise: Promise.resolve() }),
+            getTextContent: vi.fn().mockResolvedValue({ items: [] })
+          })
+        })
+      })
+    };
+
     global.currentArea = 'Safra C';
     global.currentHouse = '101';
+    global.getPdfUrl = (area, house, vaultId) => `/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/pdf/${encodeURIComponent(vaultId)}`;
     global.currentTimeline = [
       { vault_id: 'doc_1', title: 'عقد إيجار 101', category: '05 - عقود' }
     ];
@@ -311,10 +350,7 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
     });
 
     it('toggles viewer mode between Computer and Tab and updates UI and localStorage', () => {
-      const toggleBtn = document.createElement('button');
-      toggleBtn.id = 'viewer-mode-toggle';
-      toggleBtn.innerHTML = '<svg id="viewer-mode-icon"></svg><span id="viewer-mode-label"></span>';
-      document.body.appendChild(toggleBtn);
+      const toggleBtn = document.getElementById('viewer-mode-toggle');
 
       localStorage.removeItem('pdf_viewer_mode');
       window.initViewerControls();
@@ -370,9 +406,9 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       // Frame src should NOT be changed because instance was reused
       expect(pdfFrame.src).toContain('/lib/pdfjs/web/viewer.html?file=initial.pdf');
       expect(mockOpen).toHaveBeenCalledWith({
-        url: '/api/areas/default/houses/default/pdf/doc_second'
+        url: window.resolvePdfUrl('doc_second')
       });
-      expect(openedUrl).toBe('/api/areas/default/houses/default/pdf/doc_second');
+      expect(openedUrl).toBe(window.resolvePdfUrl('doc_second'));
     });
   });
 
@@ -443,38 +479,7 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       expect(label.textContent).toBe('English');
     });
 
-    it('renders translated page cards over document canvas when translation is enabled', async () => {
-      const mockMeta = {
-        vault_id: 'doc_contract_99',
-        house_id: '101',
-        category: '05 - عقود',
-        primary_date: '2025-12-24',
-        tenant_name: 'أحمد عبدالله',
-        pages: [
-          {
-            page_number: 1,
-            subject: 'عقد إيجار مسكن',
-            sender: 'إدارة الإمداد والتموين',
-            receiver: 'أحمد عبدالله',
-            content_explanation: 'Formal residential lease agreement for house 101 in Safra area, establishing monthly tenancy terms.',
-            raw_date: '2025/12/24'
-          },
-          {
-            page_number: 2,
-            subject: 'محضر تسليم مفتاح',
-            sender: 'فرع إسكان الشرطة',
-            receiver: 'أحمد عبدالله',
-            content_explanation: 'وثيقة رسمية صادرة من إدارة الإمداد والتموين تؤكد محضر تسليم مفتاح المسكن.',
-            raw_date: '2025/12/24'
-          }
-        ]
-      };
-
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => mockMeta
-      });
-
+    it('renders in-place Google Translate style overlay directly over document canvas with bounding boxes', async () => {
       // Enable translation
       localStorage.setItem('doc_viewer_translate', 'true');
       eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
@@ -484,68 +489,236 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       // Wait for async translation rendering
       await window.renderDocumentTranslation();
 
-      const overlay = document.getElementById('document-translation-overlay');
-      expect(overlay.classList.contains('hidden')).toBe(false);
+      const canvasContainer = document.getElementById('pdf-canvas-container');
+      const pdfFrame = document.getElementById('pdf-frame');
+      expect(canvasContainer.classList.contains('hidden')).toBe(false);
+      expect(pdfFrame.classList.contains('hidden')).toBe(true);
 
-      const cards = overlay.querySelectorAll('.translation-page-sheet');
-      expect(cards.length).toBe(2);
+      const pageWrapper = canvasContainer.querySelector('.pdf-page-wrapper');
+      expect(pageWrapper).not.toBeNull();
 
-      // Page 1 Card Assertions
-      const card1 = cards[0];
-      expect(card1.getAttribute('data-page-number')).toBe('1');
-      expect(card1.textContent).toContain('Lease & Tenancy Contract');
-      expect(card1.textContent).toContain('Page 1 of 2');
-      expect(card1.textContent).toContain('Formal residential lease agreement for house 101');
-      expect(card1.textContent).toContain('Directorate of Supply and Catering');
+      const translationLayer = pageWrapper.querySelector('.pdf-translation-layer');
+      expect(translationLayer).not.toBeNull();
 
-      // Page 2 Card Assertions (Arabic content explanation is translated)
-      const card2 = cards[1];
-      expect(card2.getAttribute('data-page-number')).toBe('2');
-      expect(card2.textContent).toContain('Official document issued by');
-      expect(card2.textContent).toContain('Key Handover Minutes');
+      const boxes = translationLayer.querySelectorAll('.in-place-translated-box');
+      expect(boxes.length).toBeGreaterThanOrEqual(2);
 
-      // Peek Scan Button interaction
-      const peekBtn = card1.querySelector('.btn-peek-scan');
+      // Box 1: Ministry of Interior
+      const box1 = boxes[0];
+      expect(box1.textContent).toBe('Office of the Undersecretary of the Ministry of Interior');
+      expect(box1.getAttribute('data-original-text')).toBe('مكتب وكيل وزارة الداخلية');
+      expect(box1.getAttribute('title')).toContain('مكتب وكيل وزارة الداخلية');
+      expect(box1.style.backgroundColor).toBe('rgb(255, 255, 255)');
+      expect(box1.style.position).toBe('absolute');
+
+      // Box 2: Housing Allocation Order
+      const box2 = boxes[1];
+      expect(box2.textContent).toBe('Housing Allocation Order');
+      expect(box2.getAttribute('data-original-text')).toBe('أمر تخصيص مسكن');
+
+      // Box hover peek behavior
+      box1.dispatchEvent(new Event('mouseenter'));
+      expect(box1.style.opacity).toBe('0.12');
+      box1.dispatchEvent(new Event('mouseleave'));
+      expect(box1.style.opacity).toBe('1');
+
+      // Page Peek Original button interaction
+      const peekBtn = translationLayer.querySelector('.btn-peek-scan');
       expect(peekBtn).not.toBeNull();
       peekBtn.click();
-      expect(card1.classList.contains('peeking')).toBe(true);
+      expect(box1.style.opacity).toBe('0');
+      expect(box2.style.opacity).toBe('0');
       peekBtn.click();
-      expect(card1.classList.contains('peeking')).toBe(false);
+      expect(box1.style.opacity).toBe('1');
+      expect(box2.style.opacity).toBe('1');
     });
 
-    it('renders informative fallback translation card when document has no individual pages in database', async () => {
+    it('translates newly uploaded documents without database AI metadata using offline OCR', async () => {
+      // Simulate new upload with no database metadata
       global.fetch = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          vault_id: 'doc_empty_pages',
-          house_id: '202',
-          category: '03 - أمر تخصيص',
-          primary_date: '2025-05-10',
-          tenant_name: 'خالد السعيد',
-          pages: []
-        })
+        ok: false,
+        status: 404
       });
 
       localStorage.setItem('doc_viewer_translate', 'true');
       eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
 
-      window.openDocument('doc_empty_pages', 'أمر تخصيص', '03 - أمر تخصيص');
+      window.openDocument('doc_new_upload_without_ai', 'ملف جديد ممسوح ضوئيا', '13 - رسائل متنوعة');
       await window.renderDocumentTranslation();
 
-      const overlay = document.getElementById('document-translation-overlay');
-      expect(overlay.classList.contains('hidden')).toBe(false);
-      expect(overlay.textContent).toContain('Housing Allocation Order');
-      expect(overlay.textContent).toContain('Individual OCR page transcriptions are not indexed');
+      const canvasContainer = document.getElementById('pdf-canvas-container');
+      const pageWrapper = canvasContainer.querySelector('.pdf-page-wrapper');
+      const translationLayer = pageWrapper.querySelector('.pdf-translation-layer');
+      expect(translationLayer).not.toBeNull();
+
+      const boxes = translationLayer.querySelectorAll('.in-place-translated-box');
+      expect(boxes.length).toBeGreaterThanOrEqual(1);
+      expect(boxes[0].textContent).toContain('Office of the Undersecretary');
     });
 
-    it('closeDocument dismisses and clears the translation overlay', async () => {
+    it('closeDocument dismisses and clears translation layers', async () => {
       localStorage.setItem('doc_viewer_translate', 'true');
+      eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
       window.openDocument('doc_test_close', 'مستند إغلاق', '05 - عقود');
-      const overlay = document.getElementById('document-translation-overlay');
+      await window.renderDocumentTranslation();
+
+      const canvasContainer = document.getElementById('pdf-canvas-container');
+      expect(canvasContainer.querySelectorAll('.pdf-translation-layer').length).toBeGreaterThan(0);
 
       window.closeDocument();
-      expect(overlay.classList.contains('hidden')).toBe(true);
-      expect(overlay.innerHTML).toBe('');
+      expect(canvasContainer.querySelectorAll('.pdf-translation-layer').length).toBe(0);
+    });
+  });
+
+  describe('Tab Mode & Multi-Page Document Regression Suite', () => {
+    it('in Tab mode, openDocument renders official viewer.html and keeps pdf-canvas-container hidden', () => {
+      localStorage.setItem('pdf_viewer_mode', 'tab');
+      localStorage.setItem('doc_viewer_translate', 'false');
+      eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
+
+      expect(window.shouldUseOfficialViewer()).toBe(true);
+
+      window.openDocument('doc_tab_test', 'عقد إيجار رسمي', '05 - عقود');
+
+      const pdfFrame = document.getElementById('pdf-frame');
+      const canvasContainer = document.getElementById('pdf-canvas-container');
+
+      expect(canvasContainer.classList.contains('hidden')).toBe(true);
+      expect(pdfFrame.classList.contains('hidden')).toBe(false);
+      expect(pdfFrame.src).toContain('/lib/pdfjs/web/viewer.html?file=');
+      expect(pdfFrame.src).toContain(encodeURIComponent('/api/areas/Safra%20C/houses/101/pdf/doc_tab_test'));
+    });
+
+    it('in Tab mode, toggling translation ON and then OFF cleanly restores pdfFrame and viewer.html', async () => {
+      localStorage.setItem('pdf_viewer_mode', 'tab');
+      localStorage.setItem('doc_viewer_translate', 'false');
+      eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
+
+      window.openDocument('doc_tab_toggle', 'عقد إيجار رسمي', '05 - عقود');
+
+      const pdfFrame = document.getElementById('pdf-frame');
+      const canvasContainer = document.getElementById('pdf-canvas-container');
+      expect(canvasContainer.classList.contains('hidden')).toBe(true);
+      expect(pdfFrame.classList.contains('hidden')).toBe(false);
+
+      // Toggle translation ON
+      window.toggleDocumentTranslation();
+      expect(window.isDocumentTranslationActive()).toBe(true);
+      await window.renderDocumentTranslation();
+
+      expect(pdfFrame.classList.contains('hidden')).toBe(true);
+      expect(canvasContainer.classList.contains('hidden')).toBe(false);
+
+      // Toggle translation OFF
+      window.toggleDocumentTranslation();
+      expect(window.isDocumentTranslationActive()).toBe(false);
+
+      // REGRESSION ASSERTION: Tab mode must restore pdfFrame and hide canvasContainer
+      expect(canvasContainer.classList.contains('hidden')).toBe(true);
+      expect(pdfFrame.classList.contains('hidden')).toBe(false);
+      expect(pdfFrame.src).toContain('/lib/pdfjs/web/viewer.html');
+    });
+
+    it('renders multi-page documents without compressing or squashing pages into one viewport', async () => {
+      // Mock 3-page PDF
+      global.pdfjsLib = {
+        GlobalWorkerOptions: {},
+        getDocument: vi.fn().mockReturnValue({
+          promise: Promise.resolve({
+            numPages: 3,
+            getPage: vi.fn().mockImplementation((pageNum) => Promise.resolve({
+              getViewport: vi.fn().mockReturnValue({ width: 800, height: 1100, scale: 1.0 }),
+              render: vi.fn().mockReturnValue({ promise: Promise.resolve() }),
+              getTextContent: vi.fn().mockResolvedValue({ items: [] })
+            }))
+          })
+        })
+      };
+
+      localStorage.setItem('doc_viewer_translate', 'true');
+      eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
+
+      window.openDocument('doc_multipage', 'عقد متعدد الصفحات', '05 - عقود');
+      await window.renderDocumentTranslation();
+
+      const canvasContainer = document.getElementById('pdf-canvas-container');
+      const pageWrappers = canvasContainer.querySelectorAll('.pdf-page-wrapper');
+      expect(pageWrappers.length).toBe(3);
+
+      pageWrappers.forEach((wrapper) => {
+        // Must have flex-shrink: 0 to prevent CSS flexbox from compressing all pages into one screen
+        expect(wrapper.classList.contains('flex-shrink-0')).toBe(true);
+        expect(wrapper.style.flexShrink).toBe('0');
+        // Must have explicit minHeight and height
+        expect(parseInt(wrapper.style.minHeight, 10)).toBeGreaterThanOrEqual(1100);
+        expect(parseInt(wrapper.style.height, 10)).toBeGreaterThanOrEqual(1100);
+
+        const canvas = wrapper.querySelector('canvas.pdf-page-canvas');
+        expect(canvas).not.toBeNull();
+        expect(canvas.classList.contains('flex-shrink-0')).toBe(true);
+        expect(canvas.style.flexShrink).toBe('0');
+        expect(parseInt(canvas.style.minHeight, 10)).toBeGreaterThanOrEqual(1100);
+      });
+    });
+
+    it('clicking viewer-mode-toggle switches between Tab mode and Computer mode seamlessly', () => {
+      localStorage.setItem('pdf_viewer_mode', 'tab');
+      eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
+
+      window.openDocument('doc_mode_switch', 'عقد للتبديل', '05 - عقود');
+      const modeBtn = document.getElementById('viewer-mode-toggle');
+      const modeLabel = document.getElementById('viewer-mode-label');
+      const pdfFrame = document.getElementById('pdf-frame');
+      const canvasContainer = document.getElementById('pdf-canvas-container');
+
+      expect(modeLabel.textContent).toBe('Tab');
+      expect(pdfFrame.src).toContain('/lib/pdfjs/web/viewer.html');
+      expect(canvasContainer.classList.contains('hidden')).toBe(true);
+
+      // Switch to Computer mode
+      modeBtn.click();
+      expect(localStorage.getItem('pdf_viewer_mode')).toBe('computer');
+      expect(modeLabel.textContent).toBe('Computer');
+      expect(pdfFrame.src).toContain('/api/areas/Safra%20C/houses/101/pdf/doc_mode_switch#view=FitH');
+      expect(pdfFrame.classList.contains('hidden')).toBe(false);
+      expect(canvasContainer.classList.contains('hidden')).toBe(true);
+
+      // Switch back to Tab mode
+      modeBtn.click();
+      expect(localStorage.getItem('pdf_viewer_mode')).toBe('tab');
+      expect(modeLabel.textContent).toBe('Tab');
+      expect(pdfFrame.src).toContain('/lib/pdfjs/web/viewer.html');
+      expect(pdfFrame.classList.contains('hidden')).toBe(false);
+      expect(canvasContainer.classList.contains('hidden')).toBe(true);
+    });
+
+    it('switching viewer mode while translation is active deactivates translation and displays iframe viewer', async () => {
+      localStorage.setItem('pdf_viewer_mode', 'computer');
+      localStorage.setItem('doc_viewer_translate', 'true');
+      eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
+
+      window.openDocument('doc_trans_switch', 'مستند نشط', '05 - عقود');
+      await window.renderDocumentTranslation();
+
+      const pdfFrame = document.getElementById('pdf-frame');
+      const canvasContainer = document.getElementById('pdf-canvas-container');
+      const modeBtn = document.getElementById('viewer-mode-toggle');
+
+      expect(window.isDocumentTranslationActive()).toBe(true);
+      expect(pdfFrame.classList.contains('hidden')).toBe(true);
+      expect(canvasContainer.classList.contains('hidden')).toBe(false);
+
+      // User toggles to Tab mode
+      modeBtn.click();
+
+      // Translation must be deactivated
+      expect(window.isDocumentTranslationActive()).toBe(false);
+      expect(localStorage.getItem('doc_viewer_translate')).toBe('false');
+
+      // Tab mode viewer must be shown
+      expect(canvasContainer.classList.contains('hidden')).toBe(true);
+      expect(pdfFrame.classList.contains('hidden')).toBe(false);
+      expect(pdfFrame.src).toContain('/lib/pdfjs/web/viewer.html');
     });
   });
 });

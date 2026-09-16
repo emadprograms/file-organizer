@@ -20,7 +20,8 @@ dist/win-x64/
 └── wwwroot/                     # Static frontend web dashboard
     ├── index.html               # Main dashboard UI
     ├── css/styles.css           # Styling and responsive design
-    └── js/                      # Modular JavaScript application
+    ├── js/                      # Modular JavaScript application
+    └── lib/                     # Offline client-side vendors (PDF.js & Tesseract.js WASM + models)
 ```
 
 ### System Requirements
