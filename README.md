@@ -79,6 +79,10 @@ The modern web application (`http://localhost:5000`) offers a responsive, high-p
 - **Google Translate Style In-Place Document Translation Overlay**:
   - True Google Translate style visual text replacement mapped directly onto the document canvas at exact bounding box coordinates.
   - Solid background-matched boxes cover original Arabic text with translated English text, preserving stamps, tables, seals, and visual page layout.
+  - **Natural Translation Engine**: Built-in comprehensive bilingual dictionary (500+ words, 150+ administrative phrases) translating legal contracts, eviction notices, utility bills, and correspondence into real, natural English words.
+  - **Reversed Stream Detection**: Automatically identifies and un-reverses visual-order RTL text streams common in Middle Eastern PDF generators (e.g. `ةيلخادلا ةرازو` & `راجيإ دقع`).
+  - **Spelling & Diacritic Normalization**: Normalizes diacritics/tashkeel, tatweel, and letter variations (`ة`/`ه`, `[إأآٱ]`/`ا`) with Unicode NFKC normalization supporting Arabic Presentation Forms (`\uFB50-\uFEFC`).
+  - **Zero Text Clipping & Auto-Expansion**: Google Translate-style auto-fitting overlay boxes with `minWidth` to fully obscure original Arabic and `maxWidth` with word-break to ensure English translations are never clipped.
   - **100% Offline Client-Side OCR**: Bundles local WebAssembly `Tesseract.js` v5 and fast LSTM Arabic/English trained models (`wwwroot/lib/tesseract/`) requiring zero cloud APIs and zero internet connectivity.
   - **Universal Support**: Works seamlessly on both indexed archive files and newly uploaded scans without prior AI processing or database entries.
   - **Interactive Peek Scan**: Hovering or clicking any translated box temporarily dims it to reveal the original scan underneath. A dedicated "Peek Original" page button toggles the entire scan view.

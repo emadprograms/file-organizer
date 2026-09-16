@@ -939,5 +939,140 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       peekBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
       expect(box.style.opacity).toBe('1');
     });
+
+    it('translates official administrative sentences into real English words without phonetic transliteration', () => {
+      // Common document sentence 1: Kindly report to Ministry building to collect the cheque
+      const s1 = window.translateArabicText('يرجى الحضور إلى مبنى الوزارة لاستلام الشيك');
+      expect(s1).toContain('Kindly');
+      expect(s1).toContain('Building');
+      expect(s1).toContain('Ministry');
+      expect(s1).toContain('Receipt');
+      expect(s1).toContain('Cheque');
+      // Must NOT contain phonetic transliteration
+      expect(s1).not.toContain('Yrja');
+      expect(s1).not.toContain('Alhdhwr');
+      expect(s1).not.toContain('Alwzarh');
+      expect(s1).not.toContain('Lastlam');
+      expect(s1).not.toContain('Alshyk');
+
+      // Common document sentence 2: Eviction notice for aforementioned residence
+      const s2 = window.translateArabicText('إشعار بضرورة إخلاء المسكن المذكور أعلاه');
+      expect(s2).toContain('Notice');
+      expect(s2).toContain('Eviction');
+      expect(s2).toContain('Residence');
+      expect(s2.toLowerCase()).toContain('mentioned');
+      expect(s2.toLowerCase()).toContain('above');
+      expect(s2).not.toContain('Bdhrwrh');
+      expect(s2).not.toContain('Alka\'n');
+      expect(s2).not.toContain('Almdhkor');
+
+      // Common document sentence 3: Regular payment of monthly rent without delay
+      const s3 = window.translateArabicText('تم دفع كامل الأجرة الشهرية بانتظام دون تأخير');
+      expect(s3).toContain('Paid');
+      expect(s3.toLowerCase()).toContain('full');
+      expect(s3).toContain('Rent');
+      expect(s3).toContain('Regularly');
+      expect(s3.toLowerCase()).toContain('without');
+      expect(s3).toContain('Delay');
+    });
+
+    it('handles spelling variants (ة vs ه, إ/أ/آ vs ا) and diacritics seamlessly', () => {
+      // Full tashkeel / harakat diacritics
+      const diacriticMinistry = window.translateArabicText('وِزَارَةُ الدَّاخِلِيَّةِ');
+      expect(diacriticMinistry).toBe('Ministry of Interior');
+
+      // Haa instead of Taa Marbuta
+      const haaMinistry = window.translateArabicText('وزاره الداخليه');
+      expect(haaMinistry).toBe('Ministry of Interior');
+
+      // Alef variations in contract and declaration
+      const contract1 = window.translateArabicText('عقد إيجار موثق');
+      const contract2 = window.translateArabicText('عقد ايجار موثق');
+      expect(contract1).toBe('Notarized Tenancy Contract');
+      expect(contract2).toBe('Notarized Tenancy Contract');
+
+      const dec1 = window.translateArabicText('إقرار وتعهد');
+      const dec2 = window.translateArabicText('اقرار وتعهد');
+      expect(dec1).toBe('Declaration and Undertaking');
+      expect(dec2).toBe('Declaration and Undertaking');
+
+      const maint1 = window.translateArabicText('طلب صيانة وإصلاح');
+      const maint2 = window.translateArabicText('طلب صيانه واصلاح');
+      expect(maint1).toBe('Maintenance & Repair Request');
+      expect(maint2).toBe('Maintenance & Repair Request');
+    });
+
+    it('detects and un-reverses visual Arabic PDF text streams into correct English translations', () => {
+      // Ministry of Interior encoded backwards in PDF visual stream: ةيلخادلا ةرازو
+      const revMinistry = window.translateArabicText('ةيلخادلا ةرازو');
+      expect(revMinistry).toBe('Ministry of Interior');
+
+      // Tenancy contract encoded backwards in PDF: راجيإ دقع
+      const revContract = window.translateArabicText('راجيإ دقع');
+      expect(revContract).toBe('Lease & Tenancy Contract');
+
+      // Electricity utility bill encoded backwards: ءابرهك
+      const revElectricity = window.translateArabicText('ءابرهك');
+      expect(revElectricity).toBe('Electricity');
+
+      // Direct helper unit tests
+      expect(window.detectAndUnreverseArabic('ةيلخادلا ةرازو')).toBe('وزارة الداخلية');
+      expect(window.detectAndUnreverseArabic('راجيإ دقع')).toBe('عقد إيجار');
+      expect(window.unreverseWordIfApplicable('ةرازو')).toBe('وزارة');
+      expect(window.unreverseWordIfApplicable('دقع')).toBe('عقد');
+    });
+
+    it('correctly unpacks and translates Unicode Arabic Presentation Forms', () => {
+      // Presentation form glyphs unpacked via NFKC:
+      // \uFE8D = Alef, \uFEF2 = Yaa, \uFE9F = Jeem, \uFE8E = Alef, \uFEAD = Raa -> ايجار
+      const textWithPresForms = '\u0639\u0642\u062F \uFE8D\uFEF2\uFE9F\uFE8E\uFEAD';
+      const translated = window.translateArabicText(textWithPresForms);
+      expect(translated).toBe('Lease & Tenancy Contract');
+    });
+
+    it('renders Google Translate style overlay with minWidth and auto-expansion to prevent text clipping', async () => {
+      window.closeDocument();
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'pdf-page-wrapper relative';
+      const canvas = document.createElement('canvas');
+      canvas.className = 'pdf-page-canvas';
+      canvas.width = 600;
+      canvas.height = 800;
+      canvas.style.width = '600px';
+      canvas.style.height = '800px';
+      wrapper.appendChild(canvas);
+
+      await window.renderPageTranslationLayer(wrapper, 1, 'doc_style_test');
+      const layer = wrapper.querySelector('.pdf-translation-layer');
+      const boxes = layer.querySelectorAll('.in-place-translated-box');
+      expect(boxes.length).toBeGreaterThanOrEqual(1);
+
+      const firstBox = boxes[0];
+      // Expect minWidth to cover original Arabic text width
+      expect(firstBox.style.minWidth).toBeDefined();
+      expect(firstBox.style.minWidth).not.toBe('');
+      // Expect maxWidth to allow expansion up to canvas margins
+      expect(firstBox.style.maxWidth).toBeDefined();
+      expect(firstBox.style.height).toBe('auto');
+      expect(firstBox.style.wordBreak).toBe('break-word');
+      expect(firstBox.textContent).toBe('Office of the Undersecretary of the Ministry of Interior');
+    });
+
+    it('decomposes complex morphological particles and attached prepositions into natural English', () => {
+      // Attached preposition لل (for the)
+      const w1 = window.translateArabicWord('للوزارة');
+      expect(w1.toLowerCase()).toContain('for the ministry');
+
+      // Attached conjunction and preposition وبال (and in the)
+      const w2 = window.translateArabicWord('وبالمسكن');
+      expect(w2.toLowerCase()).toContain('and');
+      expect(w2.toLowerCase()).toContain('residence');
+
+      // Attached future particle سي (will)
+      const w3 = window.translateArabicWord('سيدفع');
+      expect(w3.toLowerCase()).toContain('will');
+      expect(w3.toLowerCase()).toContain('pay');
+    });
   });
 });

@@ -24,6 +24,7 @@
         '13 - رسائل متنوعة': { en: 'Official Correspondence & Letters', icon: '✉️' }
     };
 
+    // ── Document Phrases & Entities Dictionary (Longest first, boundary-aware) ──
     const ARABIC_PHRASES = [
         // ── Government & Authorities ──
         { ar: 'مكتب وزير الداخلية', en: 'Office of the Minister of Interior' },
@@ -36,6 +37,7 @@
         { ar: 'الوكيل المساعد للشؤون المالية', en: 'Assistant Undersecretary for Financial Affairs' },
         { ar: 'وكيل وزارة الداخلية', en: 'Undersecretary of the Ministry of Interior' },
         { ar: 'وزارة الإسكان والتخطيط العمراني', en: 'Ministry of Housing and Urban Planning' },
+        { ar: 'وزارة شؤون البلديات والزراعة', en: 'Ministry of Municipalities Affairs and Agriculture' },
         { ar: 'وزارة العدل والشئون الإسلامية والأوقاف', en: 'Ministry of Justice & Islamic Affairs' },
         { ar: 'وزارة العدل والشؤون الإسلامية والأوقاف', en: 'Ministry of Justice & Islamic Affairs' },
         { ar: 'وزارة المالية والاقتصاد الوطني', en: 'Ministry of Finance & National Economy' },
@@ -46,15 +48,30 @@
         { ar: 'إدارة الإمداد والتموين', en: 'Directorate of Supply and Catering' },
         { ar: 'إدارة الإمداد والتنوين', en: 'Directorate of Supply and Catering' },
         { ar: 'إدارة المحاكم العسكرية', en: 'Directorate of Military Courts' },
+        { ar: 'إدارة الخدمات الإسكانية', en: 'Housing Services Directorate' },
+        { ar: 'إدارة صيانة الوحدات السكنية', en: 'Housing Units Maintenance Directorate' },
+        { ar: 'إدارة الممتلكات والإنشاءات', en: 'Properties and Construction Directorate' },
+        { ar: 'إدارة الشؤون القانونية', en: 'Legal Affairs Directorate' },
+        { ar: 'إدارة الشئون القانونية', en: 'Legal Affairs Directorate' },
+        { ar: 'إدارة الموارد البشرية', en: 'Human Resources Directorate' },
+        { ar: 'إدارة الموارد المالية', en: 'Financial Resources Directorate' },
+        { ar: 'إدارة التوثيق', en: 'Notarization Directorate' },
         { ar: 'هيئة الكهرباء والماء', en: 'Electricity & Water Authority (EWA)' },
         { ar: 'فرع إسكان الشرطة', en: 'Police Housing Branch' },
         { ar: 'فرع القضايا العامة', en: 'General Cases Branch' },
+        { ar: 'شعبة الإسكان', en: 'Housing Division' },
+        { ar: 'قسم التخصيص', en: 'Allocation Section' },
+        { ar: 'قسم الصيانة', en: 'Maintenance Section' },
+        { ar: 'قسم التحصيل', en: 'Collection Section' },
+        { ar: 'قسم الحسابات', en: 'Accounts Section' },
         { ar: 'رئاسة الأمن العام', en: 'Public Security Headquarters' },
         { ar: 'قوة دفاع البحرين', en: 'Bahrain Defence Force' },
         { ar: 'الحرس الوطني', en: 'National Guard' },
         { ar: 'جهاز الأمن الوطني', en: 'National Security Agency' },
         { ar: 'الديوان الملكي', en: 'Royal Court' },
         { ar: 'ديوان ولي العهد', en: 'Crown Prince Court' },
+        { ar: 'ديوان الرقابة المالية والإدارية', en: 'National Audit Office' },
+        { ar: 'ديوان الخدمة المدنية', en: 'Civil Service Bureau' },
         { ar: 'شئون الجمارك', en: 'Customs Affairs' },
         { ar: 'شؤون الجمارك', en: 'Customs Affairs' },
         { ar: 'وزارة الداخلية', en: 'Ministry of Interior' },
@@ -75,6 +92,17 @@
         { ar: 'إشعارات إخلاء', en: 'Eviction Notices' },
         { ar: 'إشعار إخلاء', en: 'Eviction Notice' },
         { ar: 'إنذار بإخلاء', en: 'Eviction Warning Notice' },
+        { ar: 'إنذار نهائي بالإخلاء', en: 'Final Eviction Warning' },
+        { ar: 'إنذار نهائي', en: 'Final Warning' },
+        { ar: 'إشعار نهائي', en: 'Final Notice' },
+        { ar: 'إشعار بالسداد', en: 'Payment Notice' },
+        { ar: 'إشعار بالمراجعة', en: 'Notice to Report / Review' },
+        { ar: 'إشعار بقطع الخدمة', en: 'Service Disconnection Notice' },
+        { ar: 'قطع التيار الكهربائي', en: 'Electricity Disconnection' },
+        { ar: 'إعادة التيار الكهربائي', en: 'Electricity Reconnection' },
+        { ar: 'براءة ذمة مالية', en: 'Financial Clearance Certificate' },
+        { ar: 'شهادة براءة ذمة', en: 'Clearance Certificate' },
+        { ar: 'براءة ذمة', en: 'Clearance Certificate' },
         { ar: 'إقرار إخلاء وحدة سكنية', en: 'Housing Unit Evacuation Undertaking' },
         { ar: 'إقرار إخلاء مسكن', en: 'Housing Evacuation Undertaking' },
         { ar: 'إقرار إخلاء', en: 'Evacuation Undertaking' },
@@ -117,6 +145,8 @@
         { ar: 'نظام الانتفاع', en: 'Occupancy Regulations' },
         { ar: 'محضر تسليم مفتاح', en: 'Key Handover Minutes' },
         { ar: 'محضر تسليم المفاتيح', en: 'Keys Handover Minutes' },
+        { ar: 'محضر استلام مفتاح', en: 'Key Handover Confirmation' },
+        { ar: 'محضر استلام المفاتيح', en: 'Key Handover Confirmation' },
         { ar: 'محضر تسليم مسكن', en: 'House Handover Record' },
         { ar: 'محضر تسليم', en: 'Handover Minutes' },
         { ar: 'محضر استلام مسكن', en: 'House Handover Confirmation' },
@@ -133,7 +163,9 @@
         { ar: 'عقد إيجار موثق', en: 'Notarized Tenancy Contract' },
         { ar: 'عقد إيجار سكني', en: 'Residential Tenancy Agreement' },
         { ar: 'عقد إيجار', en: 'Lease & Tenancy Contract' },
+        { ar: 'عقد ايجار', en: 'Lease & Tenancy Contract' },
         { ar: 'اتفاقية إيجار', en: 'Tenancy Agreement' },
+        { ar: 'اتفاقية ايجار', en: 'Tenancy Agreement' },
         { ar: 'ملحق عقد', en: 'Contract Addendum' },
         { ar: 'فاتورة كهرباء وماء', en: 'Electricity & Water Utility Bill' },
         { ar: 'فاتورة كهرباء', en: 'Electricity Bill' },
@@ -156,6 +188,11 @@
         { ar: 'جواز السفر', en: 'Passport' },
 
         // ── Legal & Contract Terms ──
+        { ar: 'اتفق الطرفان على ما يلي', en: 'Both parties agreed to the following' },
+        { ar: 'تم الاتفاق بين الطرفين', en: 'Agreement was reached between both parties' },
+        { ar: 'أقر أنا الموقع أدناه', en: 'I, the undersigned, hereby declare' },
+        { ar: 'أقر الموقع أدناه', en: 'The undersigned hereby declares' },
+        { ar: 'الموقع أدناه', en: 'The Undersigned' },
         { ar: 'والطرف الأول (المؤجر)', en: 'and the First Party (Lessor)' },
         { ar: 'والطرف الثاني (المستأجر)', en: 'and the Second Party (Tenant)' },
         { ar: 'والطرف الأول', en: 'and the First Party' },
@@ -166,11 +203,15 @@
         { ar: 'الطرف الثاني (المستأجر)', en: 'Second Party (Tenant)' },
         { ar: 'الطرف الأول', en: 'First Party' },
         { ar: 'الطرف الثاني', en: 'Second Party' },
+        { ar: 'الطرفان', en: 'Both Parties' },
         { ar: 'المستأجر', en: 'Tenant' },
         { ar: 'المؤجر', en: 'Lessor / Landlord' },
         { ar: 'قيمة الإيجار الشهري', en: 'Monthly Rental Value' },
+        { ar: 'قيمة الإيجار', en: 'Rental Value' },
         { ar: 'مبلغ الإيجار', en: 'Rent Amount' },
         { ar: 'الإيجار الشهري', en: 'Monthly Rent' },
+        { ar: 'الأجرة الشهرية', en: 'Monthly Rent Fee' },
+        { ar: 'قيمة الأجرة', en: 'Rent Fee Value' },
         { ar: 'مدة العقد', en: 'Contract Duration' },
         { ar: 'تاريخ بدء العقد', en: 'Contract Start Date' },
         { ar: 'تاريخ انتهاء العقد', en: 'Contract End Date' },
@@ -178,6 +219,7 @@
         { ar: 'تاريخ التحرير', en: 'Date of Execution' },
         { ar: 'يلتزم المستأجر', en: 'The Tenant undertakes' },
         { ar: 'يلتزم المؤجر', en: 'The Lessor undertakes' },
+        { ar: 'يتعهد المستأجر', en: 'The Tenant pledges' },
         { ar: 'شروط العقد', en: 'Contract Terms & Conditions' },
         { ar: 'الشروط والأحكام', en: 'Terms and Conditions' },
         { ar: 'بنود العقد', en: 'Contract Clauses' },
@@ -203,10 +245,13 @@
         { ar: 'رقم العداد', en: 'Meter No.' },
         { ar: 'قراءة العداد', en: 'Meter Reading' },
         { ar: 'المبلغ المستحق', en: 'Amount Due' },
+        { ar: 'المبلغ الإجمالي', en: 'Total Amount' },
+        { ar: 'المجموع الكلي', en: 'Grand Total' },
         { ar: 'الرصيد السابق', en: 'Previous Balance' },
         { ar: 'الرصيد الحالي', en: 'Current Balance' },
         { ar: 'تاريخ الاستحقاق', en: 'Due Date' },
         { ar: 'تم السداد', en: 'Paid' },
+        { ar: 'تم دفع', en: 'Paid' },
         { ar: 'غير مدفوع', en: 'Unpaid' },
         { ar: 'إنهاء العقد', en: 'Contract Termination' },
         { ar: 'فسخ العقد', en: 'Contract Rescission' },
@@ -219,8 +264,11 @@
         { ar: 'ختم رسمي', en: 'Official Stamp' },
         { ar: 'كاتب العدل', en: 'Notary Public' },
         { ar: 'مكتب التوثيق', en: 'Notarization Office' },
+        { ar: 'حظر التأجير من الباطن', en: 'Subletting Prohibition' },
+        { ar: 'التأجير من الباطن', en: 'Subletting' },
+        { ar: 'التنازل للغير', en: 'Assignment to Third Party' },
 
-        // ── Correspondence & Classifications ──
+        // ── Correspondence & Instructions ──
         { ar: 'سري للغاية وعاجل جداً', en: 'Top Secret and Most Urgent' },
         { ar: 'سري للغاية وعاجل', en: 'Top Secret and Urgent' },
         { ar: 'سري وعاجل', en: 'Confidential and Urgent' },
@@ -242,13 +290,81 @@
         { ar: 'هذا المستند عبارة عن', en: 'This document is' },
         { ar: 'نرفق لسعادتكم', en: 'Enclosed for Your Excellency' },
         { ar: 'نرفع لسعادتكم', en: 'We submit to Your Excellency' },
+        { ar: 'يرجى الحضور إلى', en: 'Kindly report to' },
+        { ar: 'يرجى الحضور الى', en: 'Kindly report to' },
+        { ar: 'يرجى الحضور', en: 'Kindly report / attend' },
+        { ar: 'يرجى مراجعة', en: 'Kindly visit / contact' },
+        { ar: 'يرجى مراجعتنا', en: 'Kindly visit our office' },
+        { ar: 'يرجى تسليم', en: 'Kindly hand over' },
+        { ar: 'يرجى إخلاء', en: 'Kindly vacate' },
+        { ar: 'يرجى اخلاء', en: 'Kindly vacate' },
+        { ar: 'يرجى سداد', en: 'Kindly settle / pay' },
+        { ar: 'يرجى دفع', en: 'Kindly pay' },
+        { ar: 'يرجى العلم بأن', en: 'Kindly note that' },
         { ar: 'يرجى التكرم بالعلم', en: 'Kindly be informed' },
         { ar: 'يرجى التكرم بالموافقة', en: 'Kindly approve' },
         { ar: 'يرجى التكرم باتخاذ اللازم', en: 'Kindly take necessary action' },
+        { ar: 'نحيطكم علماً بأن', en: 'We hereby inform you that' },
+        { ar: 'نود إفادتكم بأن', en: 'We would like to inform you that' },
+        { ar: 'نود إفادتكم', en: 'We would like to inform you' },
+        { ar: 'للتفضل بالعلم واتخاذ ما يلزم', en: 'For your kind information and necessary action' },
+        { ar: 'للتفضل بالعلم', en: 'For your kind information' },
+        { ar: 'لاتخاذ ما يلزم', en: 'To take necessary action' },
+        { ar: 'لاتخاذ اللازم', en: 'To take necessary action' },
+        { ar: 'اتخاذ الإجراءات القانونية', en: 'take legal procedures' },
+        { ar: 'سيتم اتخاذ الإجراءات القانونية', en: 'legal action will be taken' },
+        { ar: 'الإجراءات القانونية اللازمة', en: 'necessary legal procedures' },
+        { ar: 'الإجراءات القانونية', en: 'legal procedures' },
+        { ar: 'اتخاذ اللازم', en: 'take necessary action' },
         { ar: 'بالإشارة إلى الموضوع أعلاه', en: 'With reference to the above subject' },
         { ar: 'بالإشارة إلى الموضوع', en: 'With reference to the subject' },
         { ar: 'بالإشارة إلى كتابكم', en: 'With reference to your letter' },
         { ar: 'بالإشارة إلى خطابكم', en: 'With reference to your letter' },
+        { ar: 'إشارة إلى الموضوع أعلاه', en: 'With reference to the above subject' },
+        { ar: 'إشارة إلى الموضوع', en: 'With reference to the subject' },
+        { ar: 'إشارة إلى خطابكم', en: 'With reference to your letter' },
+        { ar: 'إشارة إلى كتابكم', en: 'With reference to your letter' },
+        { ar: 'استناداً إلى', en: 'Pursuant to' },
+        { ar: 'بناءً على طلبكم', en: 'Upon your request' },
+        { ar: 'بناءً على ما تقدم', en: 'Based on the foregoing' },
+        { ar: 'بناءً على', en: 'Based on / Pursuant to' },
+        { ar: 'بناء عليه', en: 'Accordingly' },
+        { ar: 'وعليه يرجى', en: 'Accordingly, kindly' },
+        { ar: 'وعليه', en: 'Accordingly' },
+        { ar: 'وفي حال عدم', en: 'And in the event of failure to' },
+        { ar: 'في حال عدم', en: 'In the event of failure to' },
+        { ar: 'دون قيد أو شرط', en: 'unconditionally' },
+        { ar: 'دون أي تأخير', en: 'without any delay' },
+        { ar: 'بدون أي تأخير', en: 'without any delay' },
+        { ar: 'في موعد أقصاه', en: 'no later than' },
+        { ar: 'خلال مدة أقصاها', en: 'within a maximum period of' },
+        { ar: 'خلال أسبوعين', en: 'within two weeks' },
+        { ar: 'خلال أسبوع', en: 'within a week' },
+        { ar: 'خلال شهر', en: 'within a month' },
+        { ar: 'أيام عمل', en: 'working days' },
+        { ar: 'يوم عمل', en: 'working day' },
+        { ar: 'المذكور أعلاه', en: 'mentioned above' },
+        { ar: 'المذكورة أعلاه', en: 'mentioned above' },
+        { ar: 'المذكورين أعلاه', en: 'mentioned above' },
+        { ar: 'المذكور أدناه', en: 'mentioned below' },
+        { ar: 'المذكورة أدناه', en: 'mentioned below' },
+        { ar: 'المبين أعلاه', en: 'indicated above' },
+        { ar: 'المبين أدناه', en: 'indicated below' },
+        { ar: 'الموضح أعلاه', en: 'shown above' },
+        { ar: 'الموضح أدناه', en: 'shown below' },
+        { ar: 'المشار إليه أعلاه', en: 'referred to above' },
+        { ar: 'المشار إليه', en: 'referred to' },
+        { ar: 'السالف ذكره', en: 'aforementioned' },
+        { ar: 'الكائن في', en: 'located in' },
+        { ar: 'الكائنة في', en: 'located in' },
+        { ar: 'المرفق طيه', en: 'enclosed herewith' },
+        { ar: 'مرفق طيه', en: 'enclosed herewith' },
+        { ar: 'طي هذا الكتاب', en: 'enclosed with this letter' },
+        { ar: 'شيك مصرفي', en: 'Bank Cheque' },
+        { ar: 'تحويل بنكي', en: 'Bank Transfer' },
+        { ar: 'تحويل مصرفي', en: 'Bank Transfer' },
+        { ar: 'حساب بنكي', en: 'Bank Account' },
+        { ar: 'حساب مصرفي', en: 'Bank Account' },
         { ar: 'الموضوع يتضمن', en: 'The subject entails' },
         { ar: 'الموضوع:', en: 'Subject:' },
         { ar: 'الموضوع', en: 'Subject' },
@@ -384,9 +500,8 @@
         { ar: 'شهرياً', en: 'Monthly' },
         { ar: 'سنوياً', en: 'Annually' }
     ];
-    ARABIC_PHRASES.sort((a, b) => b.ar.length - a.ar.length);
 
-    // ── Word-Level Vocabulary Dictionary ──
+    // ── Word-Level Vocabulary Dictionary (500+ Words) ──
     const ARABIC_WORDS = {
         // Days & Months
         'الاحد': 'Sunday', 'الأحد': 'Sunday', 'الاثنين': 'Monday', 'الإثنين': 'Monday',
@@ -398,67 +513,136 @@
         'سبتمبر': 'September', 'اكتوبر': 'October', 'أكتوبر': 'October', 'نوفمبر': 'November', 'ديسمبر': 'December',
         'شهر': 'Month', 'شهري': 'Monthly', 'شهور': 'Months', 'اشهر': 'Months', 'أشهر': 'Months',
         'سنة': 'Year', 'سنوي': 'Annual', 'سنوات': 'Years', 'عام': 'Year', 'اعوام': 'Years', 'أعوام': 'Years',
+
         // Housing & Property
         'بيت': 'House', 'بيوت': 'Houses', 'منزل': 'Home', 'منازل': 'Homes', 'دار': 'Residence',
-        'مسكن': 'Residence', 'مساكن': 'Residences', 'سكن': 'Housing', 'سكني': 'Residential',
-        'شقة': 'Flat', 'شقق': 'Apartments', 'مبنى': 'Building', 'مباني': 'Buildings', 'عمارة': 'Building',
-        'وحدة': 'Unit', 'وحدات': 'Units', 'عقار': 'Property', 'عقارات': 'Properties',
-        'غرفة': 'Room', 'غرف': 'Rooms', 'صالة': 'Hall', 'مطبخ': 'Kitchen', 'حمام': 'Bathroom',
-        'كراج': 'Garage', 'موقف': 'Parking', 'حديقة': 'Garden', 'سطح': 'Roof', 'درج': 'Stairs', 'مدخل': 'Entrance',
+        'مسكن': 'Residence', 'مساكن': 'Residences', 'المسكن': 'Residence', 'سكن': 'Housing', 'سكني': 'Residential', 'سكنية': 'Residential',
+        'شقة': 'Flat', 'شقق': 'Apartments', 'مبنى': 'Building', 'مباني': 'Buildings', 'المبنى': 'Building', 'عمارة': 'Building',
+        'وحدة': 'Unit', 'وحدات': 'Units', 'الوحدة': 'Unit', 'عقار': 'Property', 'عقارات': 'Properties', 'العقار': 'Property',
+        'قسيمة': 'Plot', 'قسائم': 'Plots', 'ارض': 'Land', 'أرض': 'Land', 'اراضي': 'Lands', 'أراضي': 'Lands',
+        'غرفة': 'Room', 'غرف': 'Rooms', 'صالة': 'Hall', 'مطبخ': 'Kitchen', 'حمام': 'Bathroom', 'دورات': 'Bathrooms',
+        'كراج': 'Garage', 'موقف': 'Parking', 'مواقف': 'Parking lots', 'حديقة': 'Garden', 'سطح': 'Roof', 'سقف': 'Ceiling',
+        'درج': 'Stairs', 'مدخل': 'Entrance', 'مخرج': 'Exit', 'باب': 'Door', 'ابواب': 'Doors', 'أبواب': 'Doors',
+        'نافذة': 'Window', 'نوافذ': 'Windows', 'مفتاح': 'Key', 'مفاتيح': 'Keys', 'المفتاح': 'Key', 'المفاتيح': 'Keys',
+        'قفل': 'Lock', 'اقفال': 'Locks', 'أقفال': 'Locks', 'جدار': 'Wall', 'جدران': 'Walls', 'سور': 'Fence / Wall',
+        'ارضية': 'Floor', 'أرضية': 'Floor', 'ارضيات': 'Floors', 'أرضيات': 'Floors', 'بلاط': 'Tiles', 'صبغ': 'Paint', 'اصباغ': 'Paints', 'أصباغ': 'Paints',
+
         // Contract & Law
-        'عقد': 'Contract', 'عقود': 'Contracts', 'اتفاق': 'Agreement', 'اتفاقية': 'Agreement',
-        'طرف': 'Party', 'اطراف': 'Parties', 'أطراف': 'Parties', 'مؤجر': 'Lessor', 'مستأجر': 'Tenant',
-        'ايجار': 'Rent', 'إيجار': 'Rent', 'اجرة': 'Rent Fee', 'أجرة': 'Rent Fee',
-        'بدل': 'Allowance', 'تأمين': 'Security Deposit', 'استقطاع': 'Deduction', 'استقطاعات': 'Deductions',
-        'قيمة': 'Value', 'مبلغ': 'Amount', 'مبالغ': 'Amounts', 'رصيد': 'Balance', 'حساب': 'Account',
-        'شرط': 'Condition', 'شروط': 'Terms', 'بند': 'Clause', 'بنود': 'Clauses', 'مادة': 'Article', 'مواد': 'Articles',
-        'قانون': 'Law', 'نظام': 'Regulation', 'لائحة': 'Bylaw', 'قرار': 'Decision', 'اوامر': 'Orders', 'أوامر': 'Orders',
-        'التزام': 'Obligation', 'التزامات': 'Obligations', 'تعهد': 'Undertaking', 'تعهدات': 'Undertakings',
-        'اخلاء': 'Eviction', 'إخلاء': 'Eviction', 'تسليم': 'Handover', 'استلام': 'Receipt',
-        'صيانة': 'Maintenance', 'اصلاح': 'Repair', 'إصلاح': 'Repair', 'ترميم': 'Renovation',
-        'تخصيص': 'Allocation', 'انتفاع': 'Occupancy', 'مستفيد': 'Beneficiary', 'مستفيدين': 'Beneficiaries',
-        'فسخ': 'Termination', 'انهاء': 'Termination', 'إنهاء': 'Termination', 'تجديد': 'Renewal', 'تمديد': 'Extension',
-        'سريان': 'Validity', 'انتهاء': 'Expiry', 'مهلة': 'Grace Period', 'فترة': 'Period', 'مدة': 'Duration',
-        'غرامة': 'Penalty Fee', 'تاخير': 'Delay', 'تأخير': 'Delay', 'مخالفة': 'Violation', 'مخالفات': 'Violations',
-        'ضرر': 'Damage', 'اضرار': 'Damages', 'أضرار': 'Damages', 'مسؤولية': 'Responsibility',
-        // Official Document & Process
-        'وثيقة': 'Document', 'وثائق': 'Documents', 'مستند': 'Document', 'مستندات': 'Documents',
-        'خطاب': 'Letter', 'كتاب': 'Official Letter', 'رسالة': 'Letter', 'اشعار': 'Notice', 'إشعار': 'Notice',
-        'انذار': 'Warning', 'إنذار': 'Warning', 'اخطار': 'Notification', 'إخطار': 'Notification',
-        'محضر': 'Minutes / Record', 'تقرير': 'Report', 'كشف': 'Statement', 'بيان': 'Declaration',
-        'استمارة': 'Form', 'طلب': 'Application', 'طلبات': 'Applications',
-        'شهادة': 'Certificate', 'رخصة': 'Permit', 'بطاقة': 'Card', 'هوية': 'Identity', 'جواز': 'Passport',
-        'رقم': 'No.', 'ارقام': 'Numbers', 'أرقام': 'Numbers', 'قيد': 'Registration', 'ملف': 'File',
-        'صادر': 'Outgoing', 'وارد': 'Incoming', 'تاريخ': 'Date', 'تواريخ': 'Dates',
-        'توقيع': 'Signature', 'توقيعات': 'Signatures', 'ختم': 'Stamp', 'اختام': 'Stamps', 'أختام': 'Stamps',
-        'اعتماد': 'Approval', 'موافقة': 'Approval', 'رفض': 'Rejection', 'مرفق': 'Attachment', 'مرفقات': 'Attachments',
-        'نسخة': 'Copy', 'صورة': 'Copy', 'اصل': 'Original', 'أصل': 'Original',
+        'عقد': 'Contract', 'العقد': 'Contract', 'عقود': 'Contracts', 'اتفاق': 'Agreement', 'اتفاقية': 'Agreement',
+        'طرف': 'Party', 'الطرف': 'Party', 'اطراف': 'Parties', 'أطراف': 'Parties', 'طرفان': 'Both Parties', 'الطرفان': 'Both Parties',
+        'مؤجر': 'Lessor', 'المؤجر': 'Lessor', 'مستأجر': 'Tenant', 'المستأجر': 'Tenant', 'مستأجرين': 'Tenants',
+        'ايجار': 'Rent', 'إيجار': 'Rent', 'الإيجار': 'Rent', 'الايجار': 'Rent', 'اجرة': 'Rent Fee', 'أجرة': 'Rent Fee', 'الأجرة': 'Rent Fee',
+        'بدل': 'Allowance', 'البدل': 'Allowance', 'تأمين': 'Security Deposit', 'تامين': 'Security Deposit', 'التأمين': 'Security Deposit',
+        'استقطاع': 'Deduction', 'استقطاعات': 'Deductions', 'الاستقطاع': 'Deduction',
+        'قيمة': 'Value', 'القيمة': 'Value', 'مبلغ': 'Amount', 'المبلغ': 'Amount', 'مبالغ': 'Amounts', 'رصيد': 'Balance', 'الرصيد': 'Balance', 'حساب': 'Account', 'الحساب': 'Account',
+        'شرط': 'Condition', 'الشرط': 'Condition', 'شروط': 'Terms', 'الشروط': 'Terms', 'بند': 'Clause', 'البند': 'Clause', 'بنود': 'Clauses', 'البنود': 'Clauses',
+        'مادة': 'Article', 'المادة': 'Article', 'مواد': 'Articles', 'المواد': 'Articles', 'فقرة': 'Paragraph',
+        'قانون': 'Law', 'القانون': 'Law', 'قوانين': 'Laws', 'نظام': 'Regulation', 'النظام': 'Regulation', 'أنظمة': 'Regulations', 'انظمة': 'Regulations',
+        'لائحة': 'Bylaw', 'اللائحة': 'Bylaw', 'لوائح': 'Bylaws', 'قرار': 'Decision', 'القرار': 'Decision', 'قرارات': 'Decisions',
+        'اوامر': 'Orders', 'أوامر': 'Orders', 'امر': 'Order', 'أمر': 'Order', 'الأمر': 'Order',
+        'التزام': 'Obligation', 'التزامات': 'Obligations', 'تعهد': 'Undertaking', 'تعهدات': 'Undertakings', 'التعهد': 'Undertaking',
+        'اخلاء': 'Eviction', 'إخلاء': 'Eviction', 'الإخلاء': 'Eviction', 'تسليم': 'Handover', 'التسليم': 'Handover', 'استلام': 'Receipt', 'الاستلام': 'Receipt',
+        'صيانة': 'Maintenance', 'الصيانة': 'Maintenance', 'اصلاح': 'Repair', 'إصلاح': 'Repair', 'الإصلاح': 'Repair', 'ترميم': 'Renovation', 'الترميم': 'Renovation',
+        'تخصيص': 'Allocation', 'التخصيص': 'Allocation', 'انتفاع': 'Occupancy', 'الانتفاع': 'Occupancy',
+        'مستفيد': 'Beneficiary', 'المستفيد': 'Beneficiary', 'مستفيدين': 'Beneficiaries', 'المستفيدين': 'Beneficiaries',
+        'فسخ': 'Termination', 'انهاء': 'Termination', 'إنهاء': 'Termination', 'الإنهاء': 'Termination',
+        'تجديد': 'Renewal', 'التجديد': 'Renewal', 'تمديد': 'Extension', 'التمديد': 'Extension',
+        'سريان': 'Validity', 'صلاحية': 'Validity', 'انتهاء': 'Expiry', 'الانتهاء': 'Expiry',
+        'مهلة': 'Grace Period', 'فترة': 'Period', 'الفترة': 'Period', 'مدة': 'Duration', 'المدة': 'Duration',
+        'غرامة': 'Penalty Fee', 'الغرامة': 'Penalty Fee', 'تاخير': 'Delay', 'تأخير': 'Delay', 'التأخير': 'Delay',
+        'مخالفة': 'Violation', 'المخالفة': 'Violation', 'مخالفات': 'Violations', 'المخالفات': 'Violations',
+        'ضرر': 'Damage', 'الضرر': 'Damage', 'اضرار': 'Damages', 'أضرار': 'Damages', 'تلف': 'Damage',
+        'مسؤولية': 'Responsibility', 'المسؤولية': 'Responsibility', 'مسئولية': 'Responsibility',
+        'حظر': 'Prohibition', 'منع': 'Prohibition', 'سماح': 'Permission', 'تصريح': 'Permit', 'تنازل': 'Waiver',
+        'طرد': 'Eviction', 'حجز': 'Seizure', 'استرداد': 'Refund / Recovery', 'تعويض': 'Compensation',
+
+        // Official Documents & Correspondence
+        'وثيقة': 'Document', 'الوثيقة': 'Document', 'وثائق': 'Documents', 'مستند': 'Document', 'المستند': 'Document', 'مستندات': 'Documents', 'المستندات': 'Documents',
+        'خطاب': 'Letter', 'الخطاب': 'Letter', 'كتاب': 'Official Letter', 'الكتاب': 'Official Letter', 'رسالة': 'Letter',
+        'اشعار': 'Notice', 'إشعار': 'Notice', 'الإشعار': 'Notice', 'اشعارات': 'Notices', 'إشعارات': 'Notices',
+        'انذار': 'Warning', 'إنذار': 'Warning', 'الإنذار': 'Warning', 'انذارات': 'Warnings', 'إنذارات': 'Warnings',
+        'اخطار': 'Notification', 'إخطار': 'Notification', 'تنبيه': 'Alert / Warning',
+        'محضر': 'Minutes / Record', 'المحضر': 'Record', 'محاضر': 'Records', 'تقرير': 'Report', 'التقرير': 'Report', 'تقارير': 'Reports',
+        'كشف': 'Statement', 'الكشف': 'Statement', 'بيان': 'Declaration / Statement', 'البيان': 'Statement', 'بيانات': 'Data / Information', 'البيانات': 'Data',
+        'استمارة': 'Form', 'الاستمارة': 'Form', 'نموذج': 'Form', 'النموذج': 'Form', 'نماذج': 'Forms',
+        'طلب': 'Application', 'الطلب': 'Application', 'طلبات': 'Applications', 'الطلبات': 'Applications',
+        'شهادة': 'Certificate', 'الشهادة': 'Certificate', 'شهادات': 'Certificates', 'رخصة': 'Permit', 'الرخصة': 'Permit',
+        'بطاقة': 'Card', 'البطاقة': 'Card', 'هوية': 'Identity', 'الهوية': 'Identity', 'جواز': 'Passport', 'الجواز': 'Passport',
+        'رقم': 'No.', 'الرقم': 'No.', 'ارقام': 'Numbers', 'أرقام': 'Numbers', 'الأرقام': 'Numbers',
+        'قيد': 'Registration', 'القيد': 'Registration', 'ملف': 'File', 'الملف': 'File', 'ملفات': 'Files',
+        'صادر': 'Outgoing', 'الصادر': 'Outgoing', 'وارد': 'Incoming', 'الوارد': 'Incoming',
+        'تاريخ': 'Date', 'التاريخ': 'Date', 'تواريخ': 'Dates', 'مرجع': 'Reference', 'المرجع': 'Reference',
+        'توقيع': 'Signature', 'التوقيع': 'Signature', 'توقيعات': 'Signatures', 'ختم': 'Stamp', 'الختم': 'Stamp', 'اختام': 'Stamps', 'أختام': 'Stamps',
+        'بصمة': 'Fingerprint', 'البصمة': 'Fingerprint', 'اعتماد': 'Approval', 'الاعتماد': 'Approval',
+        'موافقة': 'Approval', 'الموافقة': 'Approval', 'رفض': 'Rejection', 'قبول': 'Acceptance',
+        'مرفق': 'Attachment', 'المرفق': 'Attachment', 'مرفقات': 'Attachments', 'المرفقات': 'Attachments',
+        'مرفقة': 'Attached', 'المرفقة': 'Attached', 'نسخة': 'Copy', 'النسخة': 'Copy', 'صورة': 'Copy', 'الصورة': 'Copy',
+        'اصل': 'Original', 'أصل': 'Original', 'الأصل': 'Original',
+        'حضور': 'Appearance / Attendance', 'الحضور': 'Attendance / Reporting',
+        'مراجعة': 'Visit / Review', 'المراجعة': 'Visit / Review',
+        'ضرورة': 'Urgency / Necessity', 'ضروري': 'Necessary', 'نهائي': 'Final', 'نهائية': 'Final', 'نهائيا': 'Finally', 'نهائياً': 'Finally',
+        'كائن': 'Located', 'الكائن': 'Located', 'كائنة': 'Located', 'الكائنة': 'Located',
+        'مذكور': 'Mentioned', 'المذكور': 'Mentioned', 'مذكورة': 'Mentioned', 'المذكورة': 'Mentioned', 'مذكورين': 'Mentioned', 'المذكورين': 'Mentioned',
+        'اعلاه': 'Above', 'أعلاه': 'Above', 'ادناه': 'Below', 'أدناه': 'Below', 'سالف': 'Aforementioned', 'السالف': 'Aforementioned',
+        'مبين': 'Indicated', 'المبين': 'Indicated', 'موضح': 'Shown', 'الموضح': 'Shown', 'مشار': 'Referred', 'المشار': 'Referred',
+        'اجراء': 'Procedure', 'إجراء': 'Procedure', 'الإجراء': 'Procedure', 'اجراءات': 'Procedures', 'إجراءات': 'Procedures', 'الإجراءات': 'Procedures',
+        'لازم': 'Necessary', 'اللازم': 'Necessary', 'لازمة': 'Necessary', 'اللازمة': 'Necessary',
+        'طي': 'Enclosed', 'طيه': 'Herewith',
+        'انتظام': 'Regularity', 'بانتظام': 'Regularly',
+
         // Government & Civil
-        'مملكة': 'Kingdom', 'دولة': 'State', 'حكومة': 'Government', 'وزارة': 'Ministry', 'وزارات': 'Ministries',
-        'ادارة': 'Directorate', 'إدارة': 'Directorate', 'فرع': 'Branch', 'فروع': 'Branches', 'قسم': 'Section',
-        'لجنة': 'Committee', 'لجان': 'Committees', 'هيئة': 'Authority', 'مجلس': 'Council', 'ديوان': 'Court / Bureau',
-        'محكمة': 'Court', 'قضاء': 'Judiciary', 'نيابة': 'Prosecution', 'شرطة': 'Police', 'امن': 'Security', 'أمن': 'Security',
-        'دفاع': 'Defence', 'حرس': 'Guard', 'جيش': 'Army', 'عسكري': 'Military', 'مدني': 'Civilian',
-        'موظف': 'Employee', 'موظفين': 'Employees', 'ضابط': 'Officer', 'ضباط': 'Officers', 'رتبة': 'Rank', 'رتب': 'Ranks',
-        'رئيس': 'Head', 'مدير': 'Director', 'وكيل': 'Undersecretary', 'وزير': 'Minister', 'مقرر': 'Rapporteur',
-        'باحث': 'Researcher', 'مستشار': 'Advisor', 'مهندس': 'Engineer', 'اخصائي': 'Specialist', 'أخصائي': 'Specialist',
+        'مملكة': 'Kingdom', 'المملكة': 'Kingdom', 'دولة': 'State', 'الدولة': 'State', 'حكومة': 'Government', 'الحكومة': 'Government',
+        'وزارة': 'Ministry', 'الوزارة': 'Ministry', 'وزارات': 'Ministries',
+        'ادارة': 'Directorate', 'إدارة': 'Directorate', 'الإدارة': 'Directorate', 'الادارة': 'Directorate',
+        'فرع': 'Branch', 'الفرع': 'Branch', 'فروع': 'Branches', 'قسم': 'Section', 'القسم': 'Section', 'اقسام': 'Sections', 'أقسام': 'Sections',
+        'شعبة': 'Division', 'الشعبة': 'Division', 'لجنة': 'Committee', 'اللجنة': 'Committee', 'لجان': 'Committees',
+        'هيئة': 'Authority', 'الهيئة': 'Authority', 'مجلس': 'Council', 'المجلس': 'Council',
+        'ديوان': 'Court / Bureau', 'الديوان': 'Bureau', 'محكمة': 'Court', 'المحكمة': 'Court',
+        'قضاء': 'Judiciary', 'القضاء': 'Judiciary', 'نيابة': 'Prosecution', 'النيابة': 'Prosecution',
+        'شرطة': 'Police', 'الشرطة': 'Police', 'امن': 'Security', 'أمن': 'Security', 'الأمن': 'Security',
+        'دفاع': 'Defence', 'الدفاع': 'Defence', 'حرس': 'Guard', 'الحرس': 'Guard', 'جيش': 'Army', 'الجيش': 'Army',
+        'عسكري': 'Military', 'العسكري': 'Military', 'مدني': 'Civilian', 'المدني': 'Civilian',
+        'موظف': 'Employee', 'الموظف': 'Employee', 'موظفين': 'Employees', 'الموظفين': 'Employees',
+        'ضابط': 'Officer', 'الضابط': 'Officer', 'ضباط': 'Officers', 'الضباط': 'Officers',
+        'رتبة': 'Rank', 'الرتبة': 'Rank', 'رتب': 'Ranks', 'الرتب': 'Ranks',
+        'رئيس': 'Head', 'الرئيس': 'Head', 'مدير': 'Director', 'المدير': 'Director',
+        'وكيل': 'Undersecretary', 'الوكيل': 'Undersecretary', 'وزير': 'Minister', 'الوزير': 'Minister',
+        'مقرر': 'Rapporteur', 'المقرر': 'Rapporteur', 'باحث': 'Researcher', 'الباحث': 'Researcher',
+        'مستشار': 'Advisor', 'المستشار': 'Advisor', 'مهندس': 'Engineer', 'المهندس': 'Engineer',
+        'اخصائي': 'Specialist', 'أخصائي': 'Specialist', 'الأخصائي': 'Specialist',
+        'خدمة': 'Service', 'الخدمة': 'Service', 'خدمات': 'Services', 'الخدمات': 'Services',
+        'اسكان': 'Housing', 'إسكان': 'Housing', 'الإسكان': 'Housing',
+
         // Location & Geography
-        'منطقة': 'Area', 'مناطق': 'Areas', 'محافظة': 'Governorate', 'بلدية': 'Municipality',
-        'مدينة': 'City', 'قرية': 'Village', 'مجمع': 'Block', 'طريق': 'Road', 'شارع': 'Avenue',
+        'منطقة': 'Area', 'المنطقة': 'Area', 'مناطق': 'Areas', 'محافظة': 'Governorate', 'المحافظة': 'Governorate', 'بلدية': 'Municipality', 'البلدية': 'Municipality',
+        'مدينة': 'City', 'المدينة': 'City', 'قرية': 'Village', 'القرية': 'Village',
+        'مجمع': 'Block', 'المجمع': 'Block', 'طريق': 'Road', 'الطريق': 'Road', 'شارع': 'Avenue', 'الشارع': 'Avenue',
         'جنوبية': 'Southern', 'شمالية': 'Northern', 'عاصمة': 'Capital', 'وسطى': 'Central',
-        'سافرة': 'Safra', 'سافر': 'Safra', 'عوالي': 'Awali', 'رفاع': 'Riffa', 'منامة': 'Manama', 'محرق': 'Muharraq',
+        'سافرة': 'Safra', 'سافر': 'Safra', 'عوالي': 'Awali', 'رفاع': 'Riffa', 'الرفاع': 'Riffa', 'منامة': 'Manama', 'المنامة': 'Manama', 'محرق': 'Muharraq', 'المحرق': 'Muharraq',
+
         // Financial & Utilities
-        'كهرباء': 'Electricity', 'ماء': 'Water', 'مياه': 'Water', 'استهلاك': 'Consumption',
-        'فاتورة': 'Bill', 'فواتير': 'Bills', 'عداد': 'Meter', 'قراءة': 'Reading',
-        'سداد': 'Payment', 'دفع': 'Payment', 'مدفوع': 'Paid', 'مستحق': 'Due', 'متأخرات': 'Arrears',
-        'بنك': 'Bank', 'مصرف': 'Bank', 'شيك': 'Cheque', 'راتب': 'Salary', 'رواتب': 'Salaries',
-        'دينار': 'Dinar', 'فلس': 'Fils',
-        // Common Verbs & Particles
+        'كهرباء': 'Electricity', 'الكهرباء': 'Electricity', 'ماء': 'Water', 'الماء': 'Water', 'مياه': 'Water', 'المياه': 'Water',
+        'استهلاك': 'Consumption', 'الاستهلاك': 'Consumption', 'فاتورة': 'Bill', 'الفاتورة': 'Bill', 'فواتير': 'Bills',
+        'عداد': 'Meter', 'العداد': 'Meter', 'قراءة': 'Reading', 'القراءة': 'Reading',
+        'سداد': 'Payment', 'السداد': 'Payment', 'دفع': 'Payment', 'الدفع': 'Payment',
+        'مدفوع': 'Paid', 'مستحق': 'Due', 'المستحق': 'Due', 'متأخرات': 'Arrears', 'المتأخرات': 'Arrears', 'متاخرات': 'Arrears',
+        'تحصيل': 'Collection', 'التحصيل': 'Collection', 'قسط': 'Installment', 'القسط': 'Installment', 'اقساط': 'Installments', 'أقساط': 'Installments',
+        'بنك': 'Bank', 'البنك': 'Bank', 'بنوك': 'Banks', 'مصرف': 'Bank', 'المصرف': 'Bank',
+        'شيك': 'Cheque', 'الشيك': 'Cheque', 'شيكات': 'Cheques', 'الشيكات': 'Cheques',
+        'راتب': 'Salary', 'الراتب': 'Salary', 'رواتب': 'Salaries',
+        'دينار': 'Dinar', 'الدينار': 'Dinar', 'دنانير': 'Dinars', 'فلس': 'Fils', 'الفلس': 'Fils',
+        'اجمالي': 'Total', 'إجمالي': 'Total', 'الإجمالي': 'Total', 'صافي': 'Net', 'الصافي': 'Net', 'مجموع': 'Total', 'المجموع': 'Total',
+        'متبقي': 'Remaining', 'المتبقي': 'Remaining', 'باقي': 'Remaining',
+
+        // Verbs & Particles
+        'يرجى': 'Kindly', 'نرجو': 'We request', 'رجاء': 'Please', 'الرجاء': 'Please',
         'يلتزم': 'undertakes', 'يتعهد': 'pledges', 'يقر': 'declares', 'يوافق': 'agrees',
         'يدفع': 'pays', 'يسدد': 'settles', 'يستلم': 'receives', 'يسلم': 'hands over',
         'يخلي': 'vacates', 'يحافظ': 'preserves', 'يخطر': 'notifies', 'ينذر': 'warns',
         'يوقع': 'signs', 'يعتمد': 'approves', 'يعتبر': 'is considered', 'يجوز': 'may', 'يحظر': 'is prohibited',
-        'يجب': 'shall', 'ينبغي': 'should', 'تم': 'completed', 'صدر': 'issued', 'ورد': 'received',
+        'يجب': 'shall', 'ينبغي': 'should', 'يتعين': 'is required', 'يلزم': 'is required',
+        'يراجع': 'reviews / visits', 'يحضر': 'reports / attends', 'يخالف': 'violates',
+        'تم': 'completed', 'صدر': 'issued', 'ورد': 'received',
         'في': 'in', 'على': 'on', 'إلى': 'to', 'الى': 'to', 'من': 'from', 'عن': 'about',
         'مع': 'with', 'بين': 'between', 'لدى': 'with', 'حتى': 'until', 'منذ': 'since',
         'بعد': 'after', 'قبل': 'before', 'تحت': 'under', 'فوق': 'above', 'امام': 'in front of', 'أمام': 'in front of',
@@ -466,13 +650,20 @@
         'هذا': 'this', 'هذه': 'this', 'ذلك': 'that', 'تلك': 'that', 'هؤلاء': 'these',
         'هو': 'he', 'هي': 'she', 'هم': 'they', 'نحن': 'we', 'انا': 'I', 'أنا': 'I',
         'الذي': 'which', 'التي': 'which', 'الذين': 'who',
-        'كل': 'every', 'جميع': 'all', 'بعض': 'some', 'غير': 'non / other', 'دون': 'without', 'بدون': 'without',
-        'فقط': 'only', 'ايضا': 'also', 'أيضاً': 'also', 'حسب': 'according to', 'وفق': 'according to', 'بموجب': 'pursuant to',
-        'الاول': 'First', 'الأول': 'First', 'اول': 'first', 'أول': 'first',
-        'الثاني': 'Second', 'ثاني': 'second',
+        'كل': 'every', 'جميع': 'all', 'كافة': 'all', 'بعض': 'some', 'غير': 'non / other', 'دون': 'without', 'بدون': 'without',
+        'فقط': 'only', 'ايضا': 'also', 'أيضاً': 'also', 'كذلك': 'likewise',
+        'حسب': 'according to', 'وفق': 'according to', 'بموجب': 'pursuant to', 'بناء': 'based',
+        'الاول': 'First', 'الأول': 'First', 'اول': 'first', 'أول': 'first', 'اولى': 'First', 'أولى': 'First',
+        'الثاني': 'Second', 'ثاني': 'second', 'ثانية': 'Second',
         'الثالث': 'Third', 'ثالث': 'third',
         'الرابع': 'Fourth', 'رابع': 'fourth',
-        'الخامس': 'Fifth', 'خامس': 'fifth'
+        'الخامس': 'Fifth', 'خامس': 'fifth',
+        'السادس': 'Sixth', 'سادس': 'sixth',
+        'السابع': 'Seventh', 'سابع': 'seventh',
+        'الثامن': 'Eighth', 'ثامن': 'eighth',
+        'التاسع': 'Ninth', 'تاسع': 'ninth',
+        'العاشر': 'Tenth', 'عاشر': 'tenth',
+        'كامل': 'full', 'الكامل': 'full', 'شامل': 'comprehensive', 'عام': 'general', 'خاص': 'special'
     };
 
     // ── Bahraini & Arab Personal / Family Names ──
@@ -487,6 +678,7 @@
         'طارق': 'Tariq', 'وليد': 'Waleed', 'فيصل': 'Faisal', 'جمال': 'Jamal', 'عادل': 'Adel',
         'نبيل': 'Nabeel', 'سامي': 'Sami', 'هشام': 'Hisham', 'فؤاد': 'Fouad', 'كمال': 'Kamal',
         'صلاح': 'Salah', 'مصطفى': 'Mustafa', 'سعود': 'Saud', 'غانم': 'Ghanem', 'صقر': 'Saqer',
+        'جميل': 'Jameel', 'عمران': 'Omran', 'حبيب': 'Habib', 'يعقوب': 'Yaqoob', 'مهدي': 'Mahdi',
         'فاطمة': 'Fatima', 'مريم': 'Maryam', 'عائشة': 'Aisha', 'زينب': 'Zainab', 'سارة': 'Sarah',
         'نورة': 'Noora', 'منيرة': 'Muneera', 'هدى': 'Huda', 'لطيفة': 'Lateefa', 'أسماء': 'Asma',
         'اسماء': 'Asma', 'شيخة': 'Shaikha', 'دانة': 'Dana', 'ريم': 'Reem', 'ليلى': 'Layla',
@@ -521,7 +713,112 @@
         'بن': 'Bin', 'ابن': 'Ibn', 'آل': 'Al-', 'بو': 'Bu'
     };
 
-    // ── Phonetic Transliteration Fallback ──
+    // ── Unicode Normalization & Dual Key Map ──
+    function normalizeArabicText(text) {
+        if (!text || typeof text !== 'string') return '';
+        return text
+            .normalize('NFKC')
+            .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+            .trim();
+    }
+
+    function normalizeArabicKey(str) {
+        if (!str) return '';
+        return normalizeArabicText(str)
+            .replace(/[إأآٱ]/g, 'ا')
+            .replace(/ة/g, 'ه')
+            
+            .replace(/[ؤئ]/g, 'ء');
+    }
+
+    function escapeRegex(str) {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function buildFlexiblePhraseRegex(phrase) {
+        const clean = normalizeArabicText(phrase);
+        let pat = '';
+        for (let i = 0; i < clean.length; i++) {
+            const ch = clean[i];
+            if (ch === ' ') {
+                pat += '\\s+';
+            } else if (/[اإأآٱ]/.test(ch)) {
+                pat += '[اإأآٱ]';
+            } else if (/[ةه]/.test(ch)) {
+                pat += '[ةه]';
+            } else if (ch === 'ي') {
+                pat += 'ي';
+            } else if (ch === 'ى') {
+                pat += 'ى';
+            } else if (/[ؤئء]/.test(ch)) {
+                pat += '[ؤئء]';
+            } else {
+                pat += escapeRegex(ch);
+            }
+        }
+        return new RegExp('(^|[^\\u0600-\\u06FFA-Za-z0-9])' + pat + '(?=[^\\u0600-\\u06FFA-Za-z0-9]|$)', 'gu');
+    }
+
+    // Pre-compile phrases (longest first)
+    ARABIC_PHRASES.sort((a, b) => b.ar.length - a.ar.length);
+    ARABIC_PHRASES.forEach(p => {
+        p.regex = buildFlexiblePhraseRegex(p.ar);
+    });
+
+    const NORMALIZED_WORDS = new Map();
+    for (const [k, v] of Object.entries(ARABIC_WORDS)) {
+        NORMALIZED_WORDS.set(k, v);
+        NORMALIZED_WORDS.set(normalizeArabicKey(k), v);
+        if (k.endsWith('ة')) NORMALIZED_WORDS.set(k.slice(0, -1) + 'ه', v);
+        if (k.endsWith('ه')) NORMALIZED_WORDS.set(k.slice(0, -1) + 'ة', v);
+        if (k.startsWith('ا')) {
+            NORMALIZED_WORDS.set('إ' + k.slice(1), v);
+            NORMALIZED_WORDS.set('أ' + k.slice(1), v);
+        }
+    }
+
+    const NORMALIZED_NAMES = new Map();
+    for (const [k, v] of Object.entries(ARABIC_NAMES)) {
+        NORMALIZED_NAMES.set(k, v);
+        NORMALIZED_NAMES.set(normalizeArabicKey(k), v);
+        if (k.endsWith('ة')) NORMALIZED_NAMES.set(k.slice(0, -1) + 'ه', v);
+        if (k.endsWith('ه')) NORMALIZED_NAMES.set(k.slice(0, -1) + 'ة', v);
+    }
+
+    // ── Reverse Stream Detection & Un-reversing ──
+    function detectAndUnreverseArabic(text) {
+        if (!text || typeof text !== 'string') return text;
+        const clean = normalizeArabicText(text);
+        const words = clean.split(/\s+/).filter(Boolean);
+        let reversedScore = 0;
+        for (const w of words) {
+            if (w.startsWith('ة')) reversedScore += 3;
+            if (w.endsWith('لاو')) reversedScore += 3;
+            if (w.endsWith('لا') && !w.startsWith('ال') && w.length >= 4) reversedScore += 2;
+            if (['دقع', 'راجيإ', 'ءابرهك', 'نكسم', 'ةرازو', 'ةرازاو', 'ةكلمم', 'خيرات', 'ينيرحب', 'مقر', 'عافد'].includes(w)) {
+                reversedScore += 3;
+            }
+        }
+        if (reversedScore >= 2) {
+            return clean.split('').reverse().join('');
+        }
+        return text;
+    }
+
+    function unreverseWordIfApplicable(word) {
+        if (!word || word.length < 2) return word;
+        const rev = word.split('').reverse().join('');
+        if (word.startsWith('ة') || word.endsWith('لاو') || (word.endsWith('لا') && !word.startsWith('ال') && word.length >= 4)) {
+            return rev;
+        }
+        const knownReversedStems = ['دقع', 'راجيإ', 'ءابرهك', 'نكسم', 'ةرازو', 'ةرازاو', 'ةكلمم', 'خيرات', 'ينيرحب', 'مقر', 'عافد'];
+        if (knownReversedStems.includes(word)) {
+            return rev;
+        }
+        return word;
+    }
+
+    // ── Phonetic Transliteration Fallback (Used only for unknown proper/personal names) ──
     const ARABIC_CHAR_MAP = {
         'ا': 'a', 'أ': 'a', 'إ': 'i', 'آ': 'aa', 'ء': '\'', 'ؤ': '\'', 'ئ': '\'',
         'ب': 'b', 'ت': 't', 'ث': 'th', 'ج': 'j', 'ح': 'h', 'خ': 'kh',
@@ -533,7 +830,7 @@
 
     function transliterateArabic(word) {
         if (!word) return '';
-        const clean = word.replace(/[\u064B-\u0652\u0670\u0640]/g, '');
+        const clean = word.replace(/[\u064B-\u065F\u0670\u0640]/g, '');
         let res = '';
         for (let i = 0; i < clean.length; i++) {
             const ch = clean[i];
@@ -551,23 +848,34 @@
 
     function lookupArabicStem(stem) {
         if (!stem) return null;
-        if (ARABIC_WORDS[stem]) return ARABIC_WORDS[stem];
+        if (NORMALIZED_WORDS.has(stem)) return NORMALIZED_WORDS.get(stem);
         if (ARABIC_NAMES[stem]) return ARABIC_NAMES[stem];
-        const stemNorm = stem.replace(/[\u064B-\u0652\u0670\u0640]/g, '').replace(/[إأآ]/g, 'ا').replace(/ة$/g, 'ه');
-        if (ARABIC_WORDS[stemNorm]) return ARABIC_WORDS[stemNorm];
-        if (ARABIC_NAMES[stemNorm]) return ARABIC_NAMES[stemNorm];
+
+        const stemNorm = normalizeArabicKey(stem);
+        if (NORMALIZED_WORDS.has(stemNorm)) return NORMALIZED_WORDS.get(stemNorm);
+        if (NORMALIZED_NAMES.has(stemNorm)) return NORMALIZED_NAMES.get(stemNorm);
+
+        if (stem.endsWith('ة') || stem.endsWith('ه')) {
+            const alt = stem.endsWith('ة') ? (stem.slice(0, -1) + 'ه') : (stem.slice(0, -1) + 'ة');
+            if (NORMALIZED_WORDS.has(alt)) return NORMALIZED_WORDS.get(alt);
+            const altNorm = normalizeArabicKey(alt);
+            if (NORMALIZED_WORDS.has(altNorm)) return NORMALIZED_WORDS.get(altNorm);
+        }
+
         if (stem.endsWith('ت')) {
             const withTaa = stem.slice(0, -1) + 'ة';
             const withHaa = stem.slice(0, -1) + 'ه';
-            if (ARABIC_WORDS[withTaa]) return ARABIC_WORDS[withTaa];
-            if (ARABIC_WORDS[withHaa]) return ARABIC_WORDS[withHaa];
+            if (NORMALIZED_WORDS.has(withTaa)) return NORMALIZED_WORDS.get(withTaa);
+            if (NORMALIZED_WORDS.has(withHaa)) return NORMALIZED_WORDS.get(withHaa);
+            const withTaaNorm = normalizeArabicKey(withTaa);
+            if (NORMALIZED_WORDS.has(withTaaNorm)) return NORMALIZED_WORDS.get(withTaaNorm);
         }
         return null;
     }
 
     function translateArabicWord(rawWord) {
         if (!rawWord || typeof rawWord !== 'string') return '';
-        const word = rawWord.trim();
+        let word = rawWord.trim();
         if (!word) return '';
 
         // Separate attached punctuation: e.g. "(المستأجر)" -> prefix "(", core "المستأجر", suffix ")"
@@ -578,8 +886,11 @@
         }
 
         const prefixPunct = m[1] || '';
-        const coreArabic = m[2];
+        let coreArabic = m[2];
         const suffixPunct = m[3] || '';
+
+        // Un-reverse individual word if it exhibits reversal
+        coreArabic = unreverseWordIfApplicable(coreArabic);
 
         // 1. Direct match
         const directCore = lookupArabicStem(coreArabic);
@@ -589,16 +900,24 @@
 
         // 2. Morphological decomposition
         const prefixes = [
+            { ar: 'وبال', en: 'and in the ' },
+            { ar: 'ولل', en: 'and for the ' },
+            { ar: 'وكال', en: 'and like the ' },
+            { ar: 'فبال', en: 'so in the ' },
+            { ar: 'فلل', en: 'so for the ' },
             { ar: 'وال', en: 'and the ' },
             { ar: 'فال', en: 'and the ' },
             { ar: 'بال', en: 'in the ' },
-            { ar: 'ولل', en: 'and for the ' },
             { ar: 'لل', en: 'for the ' },
             { ar: 'كال', en: 'as the ' },
             { ar: 'ال', en: 'the ' },
+            { ar: 'سي', en: 'will ' },
+            { ar: 'س', en: 'will ' },
+            { ar: 'وب', en: 'and with ' },
+            { ar: 'ول', en: 'and to ' },
             { ar: 'و', en: 'and ' },
             { ar: 'ف', en: 'then ' },
-            { ar: 'ب', en: 'by ' },
+            { ar: 'ب', en: 'in ' },
             { ar: 'ل', en: 'to ' }
         ];
 
@@ -613,8 +932,10 @@
             { ar: 'ي', en: ' my' },
             { ar: 'ين', en: '' },
             { ar: 'ون', en: '' },
+            { ar: 'ان', en: '' },
             { ar: 'ات', en: '' },
-            { ar: 'ية', en: '' }
+            { ar: 'ية', en: '' },
+            { ar: 'يه', en: '' }
         ];
 
         // Try prefix only
@@ -680,29 +1001,34 @@
         let result = text.trim();
         if (!result) return '';
 
-        // 1. Convert Eastern Arabic numerals to Western digits
+        // 0. Unicode normalization and strip diacritics / tatweel
+        result = normalizeArabicText(result);
+
+        // 1. Detect and un-reverse Arabic stream if visual RTL was reversed in PDF
+        result = detectAndUnreverseArabic(result);
+
+        // 2. Convert Eastern Arabic numerals to Western digits
         const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
         arabicNumerals.forEach((ch, idx) => {
             result = result.replaceAll(ch, String(idx));
         });
 
-        // 2. Normalize Arabic punctuation
+        // 3. Normalize Arabic punctuation
         result = result
             .replaceAll('،', ', ')
             .replaceAll('؛', '; ')
             .replaceAll('؟', '? ');
 
-        // 3. Multi-word phrase and entity replacements (longest first, boundary-aware)
+        // 4. Multi-word phrase and entity replacements (longest first, boundary-aware)
         for (const item of ARABIC_PHRASES) {
-            if (!item.ar) continue;
-            const escaped = item.ar.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            const regex = new RegExp(`(^|[^\\u0600-\\u06FFA-Za-z0-9])${escaped}(?=[^\\u0600-\\u06FFA-Za-z0-9]|$)`, 'g');
-            result = result.replace(regex, (match, p1) => `${p1}${item.en}`);
+            if (!item.regex) continue;
+            item.regex.lastIndex = 0;
+            result = result.replace(item.regex, (match, p1) => `${p1}${item.en}`);
         }
 
-        // 4. Tokenize remaining words and translate individual Arabic words/names/stems
+        // 5. Tokenize remaining words and translate individual Arabic words/names/stems
         if (/[\u0600-\u06FF]/.test(result)) {
-            const tokens = result.split(/(\s+|[,;:\-–—\(\)\[\]"'\/\\]+)/);
+            const tokens = result.split(/(\s+|[,;:\-–—\(\)\[\]"'/\\]+)/);
             result = tokens.map(tok => {
                 if (!tok || !/[\u0600-\u06FF]/.test(tok)) {
                     return tok;
@@ -850,7 +1176,7 @@
             const x1 = x0 + w;
             const y1 = y0 + h;
             valid.push({
-                str: it.str,
+                str: it.str.normalize('NFKC'),
                 x0, y0, x1, y1, h, w
             });
         }
@@ -882,8 +1208,9 @@
 
         const lines = [];
         for (const cluster of clusters) {
-            const lineText = cluster.items.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
+            let lineText = cluster.items.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
             if (lineText.length > 0) {
+                lineText = detectAndUnreverseArabic(lineText);
                 lines.push({
                     text: lineText,
                     bbox: {
@@ -913,7 +1240,7 @@
                 const viewport = page.getViewport({ scale: 1.0 });
                 const textContent = await page.getTextContent();
                 if (textContent && textContent.items && textContent.items.length > 0) {
-                    const arabicItems = textContent.items.filter(it => it.str && /[\u0600-\u06FF]/.test(it.str));
+                    const arabicItems = textContent.items.filter(it => it.str && /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFC]/.test(it.str));
                     if (arabicItems.length > 0) {
                         const lines = clusterPdfItemsIntoLines(textContent.items, viewport.height);
                         if (lines.length > 0) {
@@ -1029,7 +1356,7 @@
             const origText = line.text.trim();
             if (!origText || origText.length < 1) return;
 
-            const hasArabic = /[\u0600-\u06FF]/.test(origText);
+            const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFC]/.test(origText);
             const translated = hasArabic ? translateArabicText(origText) : origText;
             if (!translated || !translated.trim()) return;
 
@@ -1055,19 +1382,20 @@
             box.style.position = 'absolute';
             box.style.left = `${Math.round(left)}px`;
             box.style.top = `${Math.round(top)}px`;
-            box.style.width = `${Math.round(width)}px`;
-            box.style.height = `${Math.round(height)}px`;
+            box.style.minWidth = `${Math.round(width)}px`;
+            box.style.maxWidth = `${Math.max(Math.round(width), Math.round(canvasCssWidth - left - 10))}px`;
+            box.style.minHeight = `${Math.round(height)}px`;
+            box.style.height = 'auto';
             box.style.fontSize = `${fontSize}px`;
             box.style.backgroundColor = '#ffffff';
             box.style.color = '#0f172a';
             box.style.display = 'flex';
             box.style.alignItems = 'center';
             box.style.justifyContent = 'flex-start';
-            box.style.padding = '0 4px';
+            box.style.padding = '1px 5px';
             box.style.boxSizing = 'border-box';
-            box.style.overflow = 'hidden';
-            box.style.textOverflow = 'ellipsis';
-            box.style.whiteSpace = 'nowrap';
+            box.style.wordBreak = 'break-word';
+            box.style.lineHeight = '1.2';
             box.style.fontFamily = 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
             box.style.fontWeight = '500';
             box.style.lineHeight = '1.15';
@@ -1809,6 +2137,15 @@
         const overlay = document.getElementById('document-translation-overlay');
 
         currentPinnedDoc = null;
+        if (currentPdfDoc) {
+            try { currentPdfDoc.destroy(); } catch (e) {}
+            currentPdfDoc = null;
+        }
+        currentPdfUrl = null;
+        if (currentLoadingTask) {
+            try { currentLoadingTask.destroy(); } catch (e) {}
+            currentLoadingTask = null;
+        }
 
         removeDocumentTranslation();
 
@@ -1896,6 +2233,9 @@
     window.isDocumentTranslationActive = () => isTranslationActive;
     window.translateArabicText = translateArabicText;
     window.translateArabicWord = translateArabicWord;
+    window.detectAndUnreverseArabic = detectAndUnreverseArabic;
+    window.unreverseWordIfApplicable = unreverseWordIfApplicable;
+    window.lookupArabicStem = lookupArabicStem;
     window.transliterateArabic = transliterateArabic;
     window.clusterPdfItemsIntoLines = clusterPdfItemsIntoLines;
     window.getEnglishCategory = getEnglishCategory;
