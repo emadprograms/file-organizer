@@ -2327,6 +2327,48 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
         return rows > 0;
     }
 
+    private static async Task SafeWritePdfBytesAsync(string targetFilePath, byte[] pdfBytes)
+    {
+        var dir = Path.GetDirectoryName(targetFilePath);
+        if (!string.IsNullOrEmpty(dir))
+            Directory.CreateDirectory(dir);
+
+        for (int attempt = 1; attempt <= 10; attempt++)
+        {
+            try
+            {
+                await using var fs = new FileStream(targetFilePath, FileMode.Create, FileAccess.Write, FileShare.ReadWrite);
+                await fs.WriteAsync(pdfBytes);
+                await fs.FlushAsync();
+                return;
+            }
+            catch (IOException)
+            {
+                if (attempt == 10) throw;
+                await Task.Delay(100);
+            }
+        }
+    }
+
+    private static void SafeDeleteFile(string filePath)
+    {
+        if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath)) return;
+        for (int attempt = 1; attempt <= 5; attempt++)
+        {
+            try
+            {
+                File.Delete(filePath);
+                return;
+            }
+            catch (IOException)
+            {
+                if (attempt == 5) break;
+                Thread.Sleep(50);
+            }
+            catch { break; }
+        }
+    }
+
     public async Task<ExtractPagesResponseDto> ExtractPagesAsync(
         string areaId,
         string houseId,
@@ -2417,7 +2459,12 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
             : src.PrimaryDate;
 
         // Physical PDF slicing
-        var possiblePaths = new[]
+        var batchFilePath = await conn.QueryFirstOrDefaultAsync<string>(
+            "SELECT file_path FROM batches WHERE id = @BatchId;",
+            new { BatchId = src.BatchId }, tx);
+
+        var vaultDir = Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault");
+        var possiblePaths = new List<string>
         {
             Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, "vault", $"doc_{vaultId}.pdf"),
             Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault", $"doc_{vaultId}.pdf"),
@@ -2432,60 +2479,74 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
             Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"{vaultId}.pdf"),
             Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"{vaultId}.pdf"),
         };
+        if (!string.IsNullOrEmpty(batchFilePath))
+        {
+            possiblePaths.Add(Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, batchFilePath));
+            possiblePaths.Add(Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, batchFilePath));
+        }
+
         var sourcePdfPath = possiblePaths.FirstOrDefault(File.Exists);
 
         if (!string.IsNullOrEmpty(sourcePdfPath) && File.Exists(sourcePdfPath))
         {
             try
             {
-                var vaultDir = Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault");
                 Directory.CreateDirectory(vaultDir);
                 var newVaultFile = Path.Combine(vaultDir, $"doc_{newVaultId}.pdf");
 
                 var sourceBytes = await File.ReadAllBytesAsync(sourcePdfPath);
-                using var ms = new MemoryStream(sourceBytes);
-                using var inputDoc = PdfReader.Open(ms, PdfDocumentOpenMode.Import);
 
-                // 1. Create new extracted document
+                // 1. Create new extracted document with target pages
+                using (var msTarget = new MemoryStream(sourceBytes))
+                using (var inDocTarget = PdfReader.Open(msTarget, PdfDocumentOpenMode.Import))
                 using (var targetDoc = new PdfDocument())
                 {
                     foreach (var pageNum in pagesToExtract)
                     {
-                        if (pageNum <= inputDoc.PageCount)
+                        if (pageNum <= inDocTarget.PageCount)
                         {
-                            targetDoc.AddPage(inputDoc.Pages[pageNum - 1]);
+                            targetDoc.AddPage(inDocTarget.Pages[pageNum - 1]);
                         }
                     }
-                    targetDoc.Save(newVaultFile);
+                    using var outMs = new MemoryStream();
+                    targetDoc.Save(outMs, false);
+                    await SafeWritePdfBytesAsync(newVaultFile, outMs.ToArray());
                 }
 
-                // 2. Update source document if DeleteFromSource
+                // 2. Update source document only if DeleteFromSource (MOVE mode)
                 if (request.DeleteFromSource)
                 {
+                    var targetSourcePdfPath = sourcePdfPath.Contains("batches")
+                        ? Path.Combine(vaultDir, $"doc_{vaultId}.pdf")
+                        : sourcePdfPath;
+
                     if (remainingPages.Count == 0)
                     {
-                        try { File.Delete(sourcePdfPath); } catch { }
+                        SafeDeleteFile(sourcePdfPath);
+                        if (targetSourcePdfPath != sourcePdfPath)
+                            SafeDeleteFile(targetSourcePdfPath);
                     }
                     else
                     {
+                        using var msSource = new MemoryStream(sourceBytes);
+                        using var inDocSource = PdfReader.Open(msSource, PdfDocumentOpenMode.Import);
                         using var updatedSourceDoc = new PdfDocument();
                         foreach (var pageNum in remainingPages)
                         {
-                            if (pageNum <= inputDoc.PageCount)
+                            if (pageNum <= inDocSource.PageCount)
                             {
-                                updatedSourceDoc.AddPage(inputDoc.Pages[pageNum - 1]);
+                                updatedSourceDoc.AddPage(inDocSource.Pages[pageNum - 1]);
                             }
                         }
-                        var tempFile = Path.GetTempFileName();
-                        updatedSourceDoc.Save(tempFile);
-                        File.Copy(tempFile, sourcePdfPath, overwrite: true);
-                        try { File.Delete(tempFile); } catch { }
+                        using var outMs = new MemoryStream();
+                        updatedSourceDoc.Save(outMs, false);
+                        await SafeWritePdfBytesAsync(targetSourcePdfPath, outMs.ToArray());
                     }
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // In non-filesystem / in-memory environments, proceed with DB update
+                Console.Error.WriteLine($"[ExtractPagesAsync] Physical PDF error: {ex.Message}");
             }
         }
 
@@ -2525,24 +2586,23 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
             ORDER BY page_number ASC;",
             new { VaultId = vaultId }, tx)).ToList();
 
-        // Reassign extracted pages in pages table:
-        // Note: page_number in pages represents page in batch, so we preserve it to respect UNIQUE(batch_id, page_number)
-        foreach (var pNum in pagesToExtract)
-        {
-            if (pNum >= 1 && pNum <= existingPages.Count)
-            {
-                var p = existingPages[pNum - 1];
-                await conn.ExecuteAsync(@"
-                    UPDATE pages 
-                    SET vault_id = @NewVaultId, category = @TargetCategory, tenant_id = @TargetTenantId, house_id = @HouseId
-                    WHERE id = @PageId;",
-                    new { NewVaultId = newVaultId, TargetCategory = targetCategory, TargetTenantId = targetTenantId, HouseId = realHouseId, PageId = p.Id }, tx);
-            }
-        }
-
         bool sourceDeleted = false;
         if (request.DeleteFromSource)
         {
+            // MOVE MODE: Reassign extracted pages in pages table to the new document
+            foreach (var pNum in pagesToExtract)
+            {
+                if (pNum >= 1 && pNum <= existingPages.Count)
+                {
+                    var p = existingPages[pNum - 1];
+                    await conn.ExecuteAsync(@"
+                        UPDATE pages 
+                        SET vault_id = @NewVaultId, category = @TargetCategory, tenant_id = @TargetTenantId, house_id = @HouseId
+                        WHERE id = @PageId;",
+                        new { NewVaultId = newVaultId, TargetCategory = targetCategory, TargetTenantId = targetTenantId, HouseId = realHouseId, PageId = p.Id }, tx);
+                }
+            }
+
             if (remainingPages.Count == 0)
             {
                 await conn.ExecuteAsync("DELETE FROM documents WHERE vault_id = @VaultId;", new { VaultId = vaultId }, tx);
@@ -2553,6 +2613,12 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
                 await conn.ExecuteAsync("UPDATE documents SET page_count = @PageCount, is_manual = 1 WHERE vault_id = @VaultId;",
                     new { PageCount = remainingPages.Count, VaultId = vaultId }, tx);
             }
+        }
+        else
+        {
+            // COPY MODE:
+            // Source document remains completely intact with its original pages and count.
+            // New document is recorded with is_manual = 1.
         }
 
         await tx.CommitAsync();
@@ -2565,7 +2631,7 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
         {
             Status = "success",
             SourceVaultId = vaultId,
-            SourceRemainingPages = sourceDeleted ? 0 : remainingPages.Count,
+            SourceRemainingPages = request.DeleteFromSource ? (sourceDeleted ? 0 : remainingPages.Count) : totalPages,
             SourceDeleted = sourceDeleted,
             NewVaultId = newVaultId,
             NewCategory = targetCategory,
@@ -2623,7 +2689,12 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
 
         var remainingPages = Enumerable.Range(1, totalPages).Except(pagesToDelete).ToList();
 
-        var possiblePaths = new[]
+        var batchFilePath = await conn.QueryFirstOrDefaultAsync<string>(
+            "SELECT file_path FROM batches WHERE id = @BatchId;",
+            new { BatchId = src.BatchId }, tx);
+
+        var vaultDir = Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault");
+        var possiblePaths = new List<string>
         {
             Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, "vault", $"doc_{vaultId}.pdf"),
             Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault", $"doc_{vaultId}.pdf"),
@@ -2638,39 +2709,50 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
             Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"{vaultId}.pdf"),
             Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"{vaultId}.pdf"),
         };
+        if (!string.IsNullOrEmpty(batchFilePath))
+        {
+            possiblePaths.Add(Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, batchFilePath));
+            possiblePaths.Add(Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, batchFilePath));
+        }
+
         var sourcePdfPath = possiblePaths.FirstOrDefault(File.Exists);
 
         if (!string.IsNullOrEmpty(sourcePdfPath) && File.Exists(sourcePdfPath))
         {
             try
             {
+                var targetSourcePdfPath = sourcePdfPath.Contains("batches")
+                    ? Path.Combine(vaultDir, $"doc_{vaultId}.pdf")
+                    : sourcePdfPath;
+
                 if (remainingPages.Count == 0)
                 {
-                    try { File.Delete(sourcePdfPath); } catch { }
+                    SafeDeleteFile(sourcePdfPath);
+                    if (targetSourcePdfPath != sourcePdfPath)
+                        SafeDeleteFile(targetSourcePdfPath);
                 }
                 else
                 {
                     var sourceBytes = await File.ReadAllBytesAsync(sourcePdfPath);
                     using var ms = new MemoryStream(sourceBytes);
-                    using var inputDoc = PdfReader.Open(ms, PdfDocumentOpenMode.Import);
+                    using var inDoc = PdfReader.Open(ms, PdfDocumentOpenMode.Import);
 
                     using var updatedDoc = new PdfDocument();
                     foreach (var pageNum in remainingPages)
                     {
-                        if (pageNum <= inputDoc.PageCount)
+                        if (pageNum <= inDoc.PageCount)
                         {
-                            updatedDoc.AddPage(inputDoc.Pages[pageNum - 1]);
+                            updatedDoc.AddPage(inDoc.Pages[pageNum - 1]);
                         }
                     }
-                    var tempFile = Path.GetTempFileName();
-                    updatedDoc.Save(tempFile);
-                    File.Copy(tempFile, sourcePdfPath, overwrite: true);
-                    try { File.Delete(tempFile); } catch { }
+                    using var outMs = new MemoryStream();
+                    updatedDoc.Save(outMs, false);
+                    await SafeWritePdfBytesAsync(targetSourcePdfPath, outMs.ToArray());
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // In-memory/test environment safe fallback
+                Console.Error.WriteLine($"[DeletePagesAsync] Physical PDF update error: {ex.Message}");
             }
         }
 
@@ -2761,7 +2843,12 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
         if (request.PageOrder.Count != totalPages || request.PageOrder.Distinct().Count() != totalPages || request.PageOrder.Any(p => p < 1 || p > totalPages))
             throw new ArgumentException($"Page order must be a valid permutation of numbers 1 through {totalPages}.");
 
-        var possiblePaths = new[]
+        var batchFilePath = await conn.QueryFirstOrDefaultAsync<string>(
+            "SELECT file_path FROM batches WHERE id = @BatchId;",
+            new { BatchId = src.BatchId }, tx);
+
+        var vaultDir = Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault");
+        var possiblePaths = new List<string>
         {
             Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, "vault", $"doc_{vaultId}.pdf"),
             Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault", $"doc_{vaultId}.pdf"),
@@ -2776,32 +2863,41 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
             Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"{vaultId}.pdf"),
             Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"{vaultId}.pdf"),
         };
+        if (!string.IsNullOrEmpty(batchFilePath))
+        {
+            possiblePaths.Add(Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, batchFilePath));
+            possiblePaths.Add(Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, batchFilePath));
+        }
+
         var sourcePdfPath = possiblePaths.FirstOrDefault(File.Exists);
 
         if (!string.IsNullOrEmpty(sourcePdfPath) && File.Exists(sourcePdfPath))
         {
             try
             {
+                var targetSourcePdfPath = sourcePdfPath.Contains("batches")
+                    ? Path.Combine(vaultDir, $"doc_{vaultId}.pdf")
+                    : sourcePdfPath;
+
                 var sourceBytes = await File.ReadAllBytesAsync(sourcePdfPath);
                 using var ms = new MemoryStream(sourceBytes);
-                using var inputDoc = PdfReader.Open(ms, PdfDocumentOpenMode.Import);
+                using var inDoc = PdfReader.Open(ms, PdfDocumentOpenMode.Import);
 
                 using var reorderedDoc = new PdfDocument();
                 foreach (var pageNum in request.PageOrder)
                 {
-                    if (pageNum <= inputDoc.PageCount)
+                    if (pageNum <= inDoc.PageCount)
                     {
-                        reorderedDoc.AddPage(inputDoc.Pages[pageNum - 1]);
+                        reorderedDoc.AddPage(inDoc.Pages[pageNum - 1]);
                     }
                 }
-                var tempFile = Path.GetTempFileName();
-                reorderedDoc.Save(tempFile);
-                File.Copy(tempFile, sourcePdfPath, overwrite: true);
-                try { File.Delete(tempFile); } catch { }
+                using var outMs = new MemoryStream();
+                reorderedDoc.Save(outMs, false);
+                await SafeWritePdfBytesAsync(targetSourcePdfPath, outMs.ToArray());
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // In-memory/test environment safe fallback
+                Console.Error.WriteLine($"[ReorderPagesAsync] Physical PDF error: {ex.Message}");
             }
         }
 

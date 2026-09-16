@@ -582,7 +582,7 @@ app.MapGet("/api/pdf/{vaultId}", async (HttpContext httpContext, string vaultId,
     var fileInfo = new FileInfo(filePath);
     var lastModified = fileInfo.LastWriteTimeUtc;
     var etag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{fileInfo.Length}_{lastModified.Ticks}\"");
-    httpContext.Response.Headers.Append("Cache-Control", "private, max-age=604800, stale-while-revalidate=86400");
+    httpContext.Response.Headers.Append("Cache-Control", "private, no-cache, must-revalidate");
 
     return Results.File(filePath, "application/pdf", lastModified: lastModified, entityTag: etag, enableRangeProcessing: true);
 });
@@ -645,7 +645,7 @@ app.MapGet("/api/areas/{areaId}/houses/{houseId}/pdf/{vaultId}", async (
     var fileInfo = new FileInfo(filePath);
     var lastModified = fileInfo.LastWriteTimeUtc;
     var etag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue($"\"{fileInfo.Length}_{lastModified.Ticks}\"");
-    httpContext.Response.Headers.Append("Cache-Control", "private, max-age=604800, stale-while-revalidate=86400");
+    httpContext.Response.Headers.Append("Cache-Control", "private, no-cache, must-revalidate");
 
     return Results.File(filePath, "application/pdf", lastModified: lastModified, entityTag: etag, enableRangeProcessing: true);
 });

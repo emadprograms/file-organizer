@@ -291,6 +291,12 @@
                                     <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879a3 3 0 11-4.242-4.242L10.758 10M12 12L9.121 9.121m0 0a3 3 0 10-4.242 4.242L7.758 16"/></svg>
                                     <span class="hidden sm:inline font-medium">Edit Pages</span>
                                 </button>
+                                <button id="viewer-translate-btn" type="button" class="text-xs text-blue-300 hover:text-white bg-blue-950/40 hover:bg-blue-800/60 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border border-blue-600/50 flex items-center gap-1.5 transition-all cursor-pointer" title="Translate document to English (Offline) • ترجمة المستند للإنجليزية" aria-label="Translate Document to English" aria-pressed="false">
+                                    <svg class="w-3.5 h-3.5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/>
+                                    </svg>
+                                    <span id="viewer-translate-label" class="font-medium">English</span>
+                                </button>
                                 <button id="viewer-mode-toggle" type="button" class="text-xs text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border border-slate-700 flex items-center gap-1.5 transition-colors cursor-pointer" title="Toggle viewer mode (Computer / Tab) • تبديل وضع العارض (كمبيوتر / تابلت)">
                                     <svg id="viewer-mode-icon" class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
                                     <span id="viewer-mode-label">Computer</span>
@@ -304,6 +310,7 @@
                         <div class="relative flex-1 w-full h-full overflow-hidden flex flex-col bg-slate-100 dark:bg-slate-900">
                             <iframe id="pdf-frame" class="pdf-viewer flex-1 w-full h-full border-0"></iframe>
                             <div id="pdf-canvas-container" class="hidden flex-1 w-full h-full overflow-y-auto overflow-x-hidden p-3 sm:p-6 flex flex-col items-center gap-4"></div>
+                            <div id="document-translation-overlay" class="hidden absolute inset-0 z-15 overflow-y-auto bg-slate-950/60 backdrop-blur-xs p-3 sm:p-6 flex flex-col items-center gap-6"></div>
                             <div id="pdf-viewer-loading" class="hidden absolute inset-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs flex flex-col items-center justify-center gap-3 z-20">
                                 <svg class="w-8 h-8 text-blue-600 animate-spin" fill="none" viewBox="0 0 24 24">
                                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -1636,9 +1643,13 @@
                         <svg class="w-4 h-4 text-rose-500 hover:text-white flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                         <span class="btn-text">Delete Selected</span>
                     </button>
+                    <button id="btn-editor-copy-selected" type="button" disabled class="px-3.5 py-2 text-xs font-bold text-blue-700 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/40 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 rounded-xl disabled:opacity-40 disabled:pointer-events-none transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs">
+                        <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                        <span class="btn-text">Copy Pages... (نسخ)</span>
+                    </button>
                     <button id="btn-editor-extract-selected" type="button" disabled class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl disabled:opacity-40 disabled:pointer-events-none transition-all flex items-center gap-1.5 cursor-pointer shadow-sm shadow-blue-500/25">
                         <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"/></svg>
-                        <span class="btn-text">Separate &amp; Move...</span>
+                        <span class="btn-text">Separate &amp; Move... (فصل ونقل)</span>
                     </button>
                 </div>
             </div>
@@ -1655,13 +1666,40 @@
                     </div>
                     <div>
                         <h3 class="text-base font-bold text-slate-900 dark:text-white tracking-tight" id="extract-submodal-title">Separate &amp; Move Pages</h3>
-                        <p class="text-xs text-slate-500 dark:text-slate-400">فصل الصفحات إلى وثيقة جديدة</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400" id="extract-submodal-desc">فصل أو نسخ الصفحات إلى وثيقة جديدة</p>
                     </div>
                 </div>
                 <span id="extract-pages-count-badge" class="text-xs font-mono font-semibold px-2.5 py-1 bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 rounded-lg"></span>
             </div>
 
-            <div class="p-6 space-y-4">
+            <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                <!-- Operation Mode: Move vs Copy -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                        Operation Mode / نوع العملية <span class="text-rose-500">*</span>
+                    </label>
+                    <div class="grid grid-cols-2 gap-2.5">
+                        <label id="extract-mode-move-label" class="flex items-center gap-2.5 p-2.5 rounded-xl border-2 border-blue-500 bg-blue-50/60 dark:bg-blue-950/40 cursor-pointer transition-all">
+                            <input type="radio" name="extract-operation-mode" id="extract-mode-move" value="move" checked class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600">
+                            <div class="text-start">
+                                <div class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                                    <span>🚚 Move (نقل وفصل)</span>
+                                </div>
+                                <div class="text-[10px] text-slate-500 dark:text-slate-400">يحذف الصفحة من الأصل</div>
+                            </div>
+                        </label>
+                        <label id="extract-mode-copy-label" class="flex items-center gap-2.5 p-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 cursor-pointer transition-all">
+                            <input type="radio" name="extract-operation-mode" id="extract-mode-copy" value="copy" class="w-4 h-4 text-blue-600 focus:ring-blue-500 border-slate-300 dark:border-slate-600">
+                            <div class="text-start">
+                                <div class="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                                    <span>📋 Copy (نسخ فقط)</span>
+                                </div>
+                                <div class="text-[10px] text-slate-500 dark:text-slate-400">يبقي الأصل دون تغيير</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
                 <!-- Target Category -->
                 <div>
                     <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
@@ -1716,7 +1754,7 @@
                     Cancel • إلغاء
                 </button>
                 <button id="btn-extract-confirm" type="button" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2 shadow-sm shadow-blue-500/25 cursor-pointer">
-                    <span id="btn-extract-confirm-text">Confirm &amp; Separate (تأكيد الفصل)</span>
+                    <span id="btn-extract-confirm-text">Confirm &amp; Move (تأكيد الفصل والنقل)</span>
                 </button>
             </div>
         </div>

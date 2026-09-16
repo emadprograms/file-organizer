@@ -1970,6 +1970,290 @@ public class RepositoryTests : IDisposable
         Assert.True(newDoc.TenantId > 0);
         Assert.Equal("H-AST", newDoc.HouseId);
     }
+
+    [Fact]
+    public async Task ExtractPagesAsync_WithPhysicalPdf_SlicesAndUpdatesSourceAndTargetPdfs()
+    {
+        var tempAreas = Path.Combine(Path.GetTempPath(), $"areas_{Guid.NewGuid():N}");
+        try
+        {
+            var areaId = "AreaPhys";
+            var houseId = "100";
+            var vaultId = Guid.NewGuid().ToString("N");
+            var vaultDir = Path.Combine(tempAreas, areaId, houseId, "vault");
+            Directory.CreateDirectory(vaultDir);
+
+            var pdfFile = Path.Combine(vaultDir, $"doc_{vaultId}.pdf");
+            using (var doc = new PdfSharpCore.Pdf.PdfDocument())
+            {
+                doc.AddPage();
+                doc.AddPage();
+                doc.AddPage();
+                doc.Save(pdfFile);
+            }
+
+            await _repo.AddAreaAsync(areaId, "AP");
+            await _repo.AddHouseAsync(houseId, areaId);
+            var tenant = await _repo.AddTenantAsync(houseId, "Tenant 100", "2024-01-01");
+            await _repo.AddManualDocumentAsync(new IngestRequestDto
+            {
+                AreaId = areaId,
+                HouseId = houseId,
+                TenantId = tenant.Id,
+                Category = "10 - صيانة",
+                ArabicTitle = "وثيقة 3 صفحات",
+                VaultId = vaultId,
+                PageCount = 3
+            });
+
+            var extractReq = new ExtractPagesRequestDto
+            {
+                PageNumbers = new List<int> { 2 },
+                TargetCategory = "04 - محضر تسليم مفتاح",
+                TargetTenantId = tenant.Id,
+                TargetTitle = "صفحة منفصلة",
+                DeleteFromSource = true
+            };
+
+            var res = await _repo.ExtractPagesAsync(areaId, houseId, vaultId, extractReq, tempAreas);
+
+            Assert.Equal("success", res.Status);
+
+            // Check source PDF
+            Assert.True(File.Exists(pdfFile));
+            using (var srcPdf = PdfSharpCore.Pdf.IO.PdfReader.Open(pdfFile, PdfSharpCore.Pdf.IO.PdfDocumentOpenMode.Import))
+            {
+                Assert.Equal(2, srcPdf.PageCount);
+            }
+
+            // Check extracted PDF
+            var newPdfFile = Path.Combine(vaultDir, $"doc_{res.NewVaultId}.pdf");
+            Assert.True(File.Exists(newPdfFile));
+            using (var newPdf = PdfSharpCore.Pdf.IO.PdfReader.Open(newPdfFile, PdfSharpCore.Pdf.IO.PdfDocumentOpenMode.Import))
+            {
+                Assert.Equal(1, newPdf.PageCount);
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(tempAreas))
+            {
+                try { Directory.Delete(tempAreas, true); } catch { }
+            }
+        }
+    }
+
+    [Fact]
+    public async Task ExtractPagesAsync_WithPhysicalPdf_CopyMode_KeepsSourcePdfAndCreatesTargetPdf()
+    {
+        var tempAreas = Path.Combine(Path.GetTempPath(), $"areas_{Guid.NewGuid():N}");
+        try
+        {
+            var areaId = "AreaPhysCopy";
+            var houseId = "101";
+            var vaultId = Guid.NewGuid().ToString("N");
+            var vaultDir = Path.Combine(tempAreas, areaId, houseId, "vault");
+            Directory.CreateDirectory(vaultDir);
+
+            var pdfFile = Path.Combine(vaultDir, $"doc_{vaultId}.pdf");
+            using (var doc = new PdfSharpCore.Pdf.PdfDocument())
+            {
+                doc.AddPage();
+                doc.AddPage();
+                doc.AddPage();
+                doc.Save(pdfFile);
+            }
+
+            await _repo.AddAreaAsync(areaId, "APC");
+            await _repo.AddHouseAsync(houseId, areaId);
+            var tenant = await _repo.AddTenantAsync(houseId, "Tenant 101", "2024-01-01");
+            await _repo.AddManualDocumentAsync(new IngestRequestDto
+            {
+                AreaId = areaId,
+                HouseId = houseId,
+                TenantId = tenant.Id,
+                Category = "05 - عقود",
+                ArabicTitle = "عقد أصلي 3 صفحات",
+                VaultId = vaultId,
+                PageCount = 3
+            });
+
+            var extractReq = new ExtractPagesRequestDto
+            {
+                PageNumbers = new List<int> { 1, 2 },
+                TargetCategory = "02 - بيانات شخصية",
+                TargetTenantId = tenant.Id,
+                TargetTitle = "نسخة صفحتين",
+                DeleteFromSource = false // COPY MODE
+            };
+
+            var res = await _repo.ExtractPagesAsync(areaId, houseId, vaultId, extractReq, tempAreas);
+
+            Assert.Equal("success", res.Status);
+            Assert.Equal(3, res.SourceRemainingPages); // Source unchanged
+
+            // Check source PDF is intact (still 3 pages)
+            Assert.True(File.Exists(pdfFile));
+            using (var srcPdf = PdfSharpCore.Pdf.IO.PdfReader.Open(pdfFile, PdfSharpCore.Pdf.IO.PdfDocumentOpenMode.Import))
+            {
+                Assert.Equal(3, srcPdf.PageCount);
+            }
+
+            // Check source document in DB is intact
+            var srcDoc = await _repo.GetDocumentRawAsync(vaultId);
+            Assert.NotNull(srcDoc);
+            Assert.Equal(3, srcDoc.PageCount);
+
+            // Check new copied PDF exists with 2 pages
+            var newPdfFile = Path.Combine(vaultDir, $"doc_{res.NewVaultId}.pdf");
+            Assert.True(File.Exists(newPdfFile));
+            using (var newPdf = PdfSharpCore.Pdf.IO.PdfReader.Open(newPdfFile, PdfSharpCore.Pdf.IO.PdfDocumentOpenMode.Import))
+            {
+                Assert.Equal(2, newPdf.PageCount);
+            }
+
+            // Check new document in DB has 2 pages
+            var newDoc = await _repo.GetDocumentRawAsync(res.NewVaultId!);
+            Assert.NotNull(newDoc);
+            Assert.Equal(2, newDoc.PageCount);
+        }
+        finally
+        {
+            if (Directory.Exists(tempAreas))
+            {
+                try { Directory.Delete(tempAreas, true); } catch { }
+            }
+        }
+    }
+
+    [Fact]
+    public async Task DeletePagesAsync_WithPhysicalPdf_RemovesPagesFromDiskPdf()
+    {
+        var tempAreas = Path.Combine(Path.GetTempPath(), $"areas_{Guid.NewGuid():N}");
+        try
+        {
+            var areaId = "AreaPhysDel";
+            var houseId = "102";
+            var vaultId = Guid.NewGuid().ToString("N");
+            var vaultDir = Path.Combine(tempAreas, areaId, houseId, "vault");
+            Directory.CreateDirectory(vaultDir);
+
+            var pdfFile = Path.Combine(vaultDir, $"doc_{vaultId}.pdf");
+            using (var doc = new PdfSharpCore.Pdf.PdfDocument())
+            {
+                doc.AddPage();
+                doc.AddPage();
+                doc.AddPage();
+                doc.AddPage();
+                doc.Save(pdfFile);
+            }
+
+            await _repo.AddAreaAsync(areaId, "APD");
+            await _repo.AddHouseAsync(houseId, areaId);
+            var tenant = await _repo.AddTenantAsync(houseId, "Tenant 102", "2024-01-01");
+            await _repo.AddManualDocumentAsync(new IngestRequestDto
+            {
+                AreaId = areaId,
+                HouseId = houseId,
+                TenantId = tenant.Id,
+                Category = "06 - كهرباء وماء",
+                ArabicTitle = "فاتورة 4 صفحات",
+                VaultId = vaultId,
+                PageCount = 4
+            });
+
+            var deleteReq = new DeletePagesRequestDto
+            {
+                PageNumbers = new List<int> { 2, 4 }
+            };
+
+            var res = await _repo.DeletePagesAsync(areaId, houseId, vaultId, deleteReq, tempAreas);
+
+            Assert.Equal("success", res.Status);
+            Assert.Equal(2, res.RemainingPages);
+            Assert.False(res.DocumentDeleted);
+
+            // Check disk PDF now has 2 pages
+            Assert.True(File.Exists(pdfFile));
+            using (var updatedPdf = PdfSharpCore.Pdf.IO.PdfReader.Open(pdfFile, PdfSharpCore.Pdf.IO.PdfDocumentOpenMode.Import))
+            {
+                Assert.Equal(2, updatedPdf.PageCount);
+            }
+
+            // Check metadata in DB
+            var meta = await _repo.GetDocumentRawAsync(vaultId);
+            Assert.NotNull(meta);
+            Assert.Equal(2, meta.PageCount);
+        }
+        finally
+        {
+            if (Directory.Exists(tempAreas))
+            {
+                try { Directory.Delete(tempAreas, true); } catch { }
+            }
+        }
+    }
+
+    [Fact]
+    public async Task DeletePagesAsync_WithPhysicalPdf_AllPagesDeleted_RemovesPdfFromDisk()
+    {
+        var tempAreas = Path.Combine(Path.GetTempPath(), $"areas_{Guid.NewGuid():N}");
+        try
+        {
+            var areaId = "AreaPhysDelAll";
+            var houseId = "103";
+            var vaultId = Guid.NewGuid().ToString("N");
+            var vaultDir = Path.Combine(tempAreas, areaId, houseId, "vault");
+            Directory.CreateDirectory(vaultDir);
+
+            var pdfFile = Path.Combine(vaultDir, $"doc_{vaultId}.pdf");
+            using (var doc = new PdfSharpCore.Pdf.PdfDocument())
+            {
+                doc.AddPage();
+                doc.AddPage();
+                doc.Save(pdfFile);
+            }
+
+            await _repo.AddAreaAsync(areaId, "APDA");
+            await _repo.AddHouseAsync(houseId, areaId);
+            var tenant = await _repo.AddTenantAsync(houseId, "Tenant 103", "2024-01-01");
+            await _repo.AddManualDocumentAsync(new IngestRequestDto
+            {
+                AreaId = areaId,
+                HouseId = houseId,
+                TenantId = tenant.Id,
+                Category = "07 - استقطاع إيجار",
+                ArabicTitle = "استقطاع صفحتين",
+                VaultId = vaultId,
+                PageCount = 2
+            });
+
+            var deleteReq = new DeletePagesRequestDto
+            {
+                PageNumbers = new List<int> { 1, 2 }
+            };
+
+            var res = await _repo.DeletePagesAsync(areaId, houseId, vaultId, deleteReq, tempAreas);
+
+            Assert.Equal("success", res.Status);
+            Assert.Equal(0, res.RemainingPages);
+            Assert.True(res.DocumentDeleted);
+
+            // Check disk PDF is removed
+            Assert.False(File.Exists(pdfFile));
+
+            // Check document in DB is removed
+            var meta = await _repo.GetDocumentRawAsync(vaultId);
+            Assert.Null(meta);
+        }
+        finally
+        {
+            if (Directory.Exists(tempAreas))
+            {
+                try { Directory.Delete(tempAreas, true); } catch { }
+            }
+        }
+    }
 }
 
 

@@ -36,12 +36,19 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
         <button id="btn-editor-deselect-all"></button>
         <span id="page-editor-selected-count"></span>
         <button id="btn-editor-delete-selected" disabled><span class="btn-text">Delete Selected</span></button>
+        <button id="btn-editor-copy-selected" disabled><span class="btn-text">Copy Pages...</span></button>
         <button id="btn-editor-extract-selected" disabled><span class="btn-text">Separate & Move...</span></button>
       </div>
 
       <!-- Extract Submodal -->
       <div id="extract-pages-submodal" class="hidden" style="display: none;">
         <span id="extract-pages-count-badge"></span>
+        <label id="extract-mode-move-label">
+          <input type="radio" id="extract-mode-move" name="extract-mode" value="move" checked />
+        </label>
+        <label id="extract-mode-copy-label">
+          <input type="radio" id="extract-mode-copy" name="extract-mode" value="copy" />
+        </label>
         <select id="extract-target-category"></select>
         <div id="extract-custom-cat-container" class="hidden">
           <input id="extract-custom-cat-input" type="text" />
@@ -642,6 +649,173 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
 
     expect(reorderCalls.length).toBe(2);
     expect(reorderCalls[1].page_order).toEqual([1, 3, 2]);
+  });
+
+  it('opens extract submodal in copy mode when btn-editor-copy-selected is clicked, sending delete_from_source: false and keeping editor open', async () => {
+    const mockDoc = {
+      vault_id: 'doc_copy_mode_test',
+      brief_arabic_title: 'عقد للإيجار',
+      category: '05 - عقود',
+      area_id: 'Safra C',
+      house_id: '101',
+      page_count: 3
+    };
+
+    let extractPayload = null;
+    global.fetch = vi.fn((url, options) => {
+      if (typeof url === 'string' && url.includes('/extract-pages')) {
+        extractPayload = JSON.parse(options.body);
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            status: 'success',
+            new_vault_id: 'doc_new_copy',
+            new_title: 'نسخة مستخرجة',
+            remaining_pages: 3
+          })
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+
+    window.reloadCurrentDocument = vi.fn();
+    window.refreshCurrentTab = vi.fn();
+    window.loadTree = vi.fn();
+
+    await window.openPageEditor(mockDoc);
+
+    // Select page 1
+    const cards = document.querySelectorAll('.page-editor-card');
+    cards[0].click();
+
+    const btnCopy = document.getElementById('btn-editor-copy-selected');
+    expect(btnCopy.disabled).toBe(false);
+
+    // Click Copy
+    btnCopy.click();
+
+    const submodal = document.getElementById('extract-pages-submodal');
+    expect(submodal.classList.contains('hidden')).toBe(false);
+
+    const copyRadio = document.getElementById('extract-mode-copy');
+    const moveRadio = document.getElementById('extract-mode-move');
+    expect(copyRadio.checked).toBe(true);
+    expect(moveRadio.checked).toBe(false);
+
+    const confirmBtn = document.getElementById('btn-extract-confirm');
+    await confirmBtn.onclick(new Event('click'));
+
+    // Verify payload had delete_from_source = false
+    expect(extractPayload).not.toBeNull();
+    expect(extractPayload.delete_from_source).toBe(false);
+    expect(extractPayload.page_numbers).toEqual([1]);
+
+    // In copy mode, parent editor modal remains open
+    const editorModal = document.getElementById('doc-page-editor-modal');
+    expect(editorModal.classList.contains('hidden')).toBe(false);
+
+    expect(window.reloadCurrentDocument).toHaveBeenCalledWith(true);
+    expect(global.showToast).toHaveBeenCalled();
+  });
+
+  it('opens extract submodal in move mode when btn-editor-extract-selected is clicked, sending delete_from_source: true', async () => {
+    const mockDoc = {
+      vault_id: 'doc_move_mode_test',
+      brief_arabic_title: 'عقد للنقل',
+      category: '05 - عقود',
+      area_id: 'Safra C',
+      house_id: '101',
+      page_count: 3
+    };
+
+    let extractPayload = null;
+    global.fetch = vi.fn((url, options) => {
+      if (typeof url === 'string' && url.includes('/extract-pages')) {
+        extractPayload = JSON.parse(options.body);
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            status: 'success',
+            new_vault_id: 'doc_new_moved',
+            new_title: 'نقل مستخرج',
+            remaining_pages: 2
+          })
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+
+    window.reloadCurrentDocument = vi.fn();
+
+    await window.openPageEditor(mockDoc);
+
+    const cards = document.querySelectorAll('.page-editor-card');
+    cards[1].click();
+
+    const btnExtract = document.getElementById('btn-editor-extract-selected');
+    btnExtract.click();
+
+    const moveRadio = document.getElementById('extract-mode-move');
+    const copyRadio = document.getElementById('extract-mode-copy');
+    expect(moveRadio.checked).toBe(true);
+    expect(copyRadio.checked).toBe(false);
+
+    const confirmBtn = document.getElementById('btn-extract-confirm');
+    await confirmBtn.onclick(new Event('click'));
+
+    expect(extractPayload).not.toBeNull();
+    expect(extractPayload.delete_from_source).toBe(true);
+    expect(extractPayload.page_numbers).toEqual([2]);
+  });
+
+  it('executes delete pages with fallback to universal endpoint when area route fails', async () => {
+    const mockDoc = {
+      vault_id: 'doc_del_fallback_test',
+      brief_arabic_title: 'وثيقة حذف مع بديل',
+      category: '06 - كهرباء وماء',
+      area_id: 'default',
+      house_id: 'default',
+      page_count: 3
+    };
+
+    const fetchedUrls = [];
+    global.fetch = vi.fn((url, options) => {
+      fetchedUrls.push(url);
+      if (typeof url === 'string' && url.includes('/areas/') && url.includes('/delete-pages')) {
+        return Promise.resolve({
+          ok: false,
+          status: 404,
+          json: async () => ({ error: 'Not found on area route' })
+        });
+      }
+      if (typeof url === 'string' && url.includes('/api/documents/doc_del_fallback_test/delete-pages')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            status: 'success',
+            remaining_pages: 2,
+            document_deleted: false
+          })
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => [] });
+    });
+
+    window.confirm = vi.fn(() => true);
+    window.reloadCurrentDocument = vi.fn();
+
+    await window.openPageEditor(mockDoc);
+
+    const cards = document.querySelectorAll('.page-editor-card');
+    cards[0].click();
+
+    const btnDelete = document.getElementById('btn-editor-delete-selected');
+    await btnDelete.onclick(new Event('click'));
+
+    // Should have called the fallback route
+    expect(fetchedUrls.some(u => u.includes('/api/documents/doc_del_fallback_test/delete-pages'))).toBe(true);
+    expect(window.reloadCurrentDocument).toHaveBeenCalledWith(true);
+    expect(global.showToast).toHaveBeenCalled();
   });
 });
 

@@ -1188,5 +1188,19 @@ html.dark .compliance-item {
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
 }
 
+/* ── Document Translation Overlay (Offline English Translation) ─────────── */
+#document-translation-overlay {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+}
 
+.translation-page-sheet {
+    max-width: 820px;
+    width: 100%;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
 
+.translation-page-sheet.peeking {
+    opacity: 0.12 !important;
+    pointer-events: none;
+}

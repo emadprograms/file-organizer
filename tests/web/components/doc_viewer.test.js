@@ -29,9 +29,13 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
           <div id="viewer-category-badge" class="hidden">
             <span id="viewer-category-val"></span>
           </div>
+          <button id="viewer-translate-btn"><span id="viewer-translate-label">English</span></button>
           <a id="viewer-download" href="#">Open</a>
         </div>
-        <iframe id="pdf-frame" src="about:blank"></iframe>
+        <div class="viewport">
+          <iframe id="pdf-frame" src="about:blank"></iframe>
+          <div id="document-translation-overlay" class="hidden"></div>
+        </div>
       </div>
     `;
 

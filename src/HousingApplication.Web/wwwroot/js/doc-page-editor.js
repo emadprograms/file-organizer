@@ -11,10 +11,15 @@
     let btnSelectAll = null;
     let btnDeselectAll = null;
     let btnDeleteSelected = null;
+    let btnCopySelected = null;
     let btnExtractSelected = null;
 
-    // Sub-modal elements for Extract & Move
+    // Sub-modal elements for Extract, Move & Copy
     let extractModal = null;
+    let extractModeMoveRadio = null;
+    let extractModeCopyRadio = null;
+    let extractModeMoveLabel = null;
+    let extractModeCopyLabel = null;
     let extractCategorySelect = null;
     let extractCustomCatContainer = null;
     let extractCustomCatInput = null;
@@ -108,9 +113,14 @@
         btnSelectAll = document.getElementById('btn-editor-select-all');
         btnDeselectAll = document.getElementById('btn-editor-deselect-all');
         btnDeleteSelected = document.getElementById('btn-editor-delete-selected');
+        btnCopySelected = document.getElementById('btn-editor-copy-selected');
         btnExtractSelected = document.getElementById('btn-editor-extract-selected');
 
         extractModal = document.getElementById('extract-pages-submodal');
+        extractModeMoveRadio = document.getElementById('extract-mode-move');
+        extractModeCopyRadio = document.getElementById('extract-mode-copy');
+        extractModeMoveLabel = document.getElementById('extract-mode-move-label');
+        extractModeCopyLabel = document.getElementById('extract-mode-copy-label');
         extractCategorySelect = document.getElementById('extract-target-category');
         extractCustomCatContainer = document.getElementById('extract-custom-cat-container');
         extractCustomCatInput = document.getElementById('extract-custom-cat-input');
@@ -126,10 +136,14 @@
         if (btnSelectAll) btnSelectAll.onclick = selectAllPages;
         if (btnDeselectAll) btnDeselectAll.onclick = deselectAllPages;
         if (btnDeleteSelected) btnDeleteSelected.onclick = handleDeleteSelectedPages;
-        if (btnExtractSelected) btnExtractSelected.onclick = openExtractSubmodal;
+        if (btnCopySelected) btnCopySelected.onclick = () => openExtractSubmodal('copy');
+        if (btnExtractSelected) btnExtractSelected.onclick = () => openExtractSubmodal('move');
 
         if (btnExtractCancel) btnExtractCancel.onclick = closeExtractSubmodal;
         if (btnExtractConfirm) btnExtractConfirm.onclick = executeExtractPages;
+
+        if (extractModeMoveRadio) extractModeMoveRadio.onchange = updateExtractModeUI;
+        if (extractModeCopyRadio) extractModeCopyRadio.onchange = updateExtractModeUI;
 
         if (extractCategorySelect) {
             extractCategorySelect.onchange = () => {
@@ -157,6 +171,31 @@
                 }
             }
         });
+    }
+
+    function updateExtractModeUI() {
+        const isMove = extractModeMoveRadio ? extractModeMoveRadio.checked : true;
+        if (extractModeMoveLabel) {
+            if (isMove) {
+                extractModeMoveLabel.classList.add('border-blue-500', 'bg-blue-50/50', 'dark:bg-blue-950/20');
+                extractModeMoveLabel.classList.remove('border-slate-200', 'dark:border-slate-700');
+            } else {
+                extractModeMoveLabel.classList.remove('border-blue-500', 'bg-blue-50/50', 'dark:bg-blue-950/20');
+                extractModeMoveLabel.classList.add('border-slate-200', 'dark:border-slate-700');
+            }
+        }
+        if (extractModeCopyLabel) {
+            if (!isMove) {
+                extractModeCopyLabel.classList.add('border-blue-500', 'bg-blue-50/50', 'dark:bg-blue-950/20');
+                extractModeCopyLabel.classList.remove('border-slate-200', 'dark:border-slate-700');
+            } else {
+                extractModeCopyLabel.classList.remove('border-blue-500', 'bg-blue-50/50', 'dark:bg-blue-950/20');
+                extractModeCopyLabel.classList.add('border-slate-200', 'dark:border-slate-700');
+            }
+        }
+        if (btnExtractConfirmText) {
+            btnExtractConfirmText.textContent = isMove ? 'Confirm & Move (تأكيد النقل والفصل)' : 'Confirm & Copy (تأكيد النسخ)';
+        }
     }
 
     async function openPageEditor(doc, fallbackCategory = null) {
@@ -253,7 +292,7 @@
         const house = activeEditorDoc.house_id;
 
         try {
-            const pdfUrl = resolvePdfUrl(area, house, vaultId);
+            const pdfUrl = resolvePdfUrl(area, house, vaultId, Date.now());
             
             if (typeof pdfjsLib !== 'undefined') {
                 const loadingTask = pdfjsLib.getDocument({ url: pdfUrl });
@@ -495,11 +534,19 @@
             }
         }
 
+        if (btnCopySelected) {
+            btnCopySelected.disabled = count === 0;
+            const textSpan = btnCopySelected.querySelector('.btn-text');
+            if (textSpan) {
+                textSpan.textContent = count > 0 ? `Copy Selected (${count})...` : 'Copy Pages...';
+            }
+        }
+
         if (btnExtractSelected) {
             btnExtractSelected.disabled = count === 0;
             const textSpan = btnExtractSelected.querySelector('.btn-text');
             if (textSpan) {
-                textSpan.textContent = count > 0 ? `Separate & Move (${count})...` : 'Separate & Move...';
+                textSpan.textContent = count > 0 ? `Move Selected (${count})...` : 'Move Pages...';
             }
         }
     }
@@ -591,19 +638,31 @@
 
     async function executeDeletePages(pagesToDelete) {
         if (!activeEditorDoc || pagesToDelete.length === 0) return;
-        const area = activeEditorDoc.area_id;
-        const house = activeEditorDoc.house_id;
+        const area = activeEditorDoc.area_id || 'default';
+        const house = activeEditorDoc.house_id || 'default';
         const vaultId = activeEditorDoc.vault_id || activeEditorDoc.id;
         const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
 
         if (editorLoading) editorLoading.classList.remove('hidden');
 
         try {
-            const res = await fetch(getApiUrl(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(vaultId)}/delete-pages`), {
+            let res = await fetch(getApiUrl(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(vaultId)}/delete-pages`), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ page_numbers: pagesToDelete })
             });
+
+            // Fallback to universal endpoint if area/house route failed
+            if (!res.ok) {
+                const altRes = await fetch(getApiUrl(`/api/documents/${encodeURIComponent(vaultId)}/delete-pages`), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ page_numbers: pagesToDelete })
+                });
+                if (altRes.ok) {
+                    res = altRes;
+                }
+            }
 
             if (!res.ok) {
                 const errData = await res.json().catch(() => ({}));
@@ -628,11 +687,14 @@
                 pagesToDelete.forEach(p => selectedPageNumbers.delete(p));
                 activeEditorDoc.page_count = data.remaining_pages;
                 
-                // Re-open editor with updated state
+                // Re-open editor with updated state (and cache-busting)
                 await openPageEditor(activeEditorDoc);
             }
 
-            // Live refresh UI
+            // Live refresh UI & Document Viewer
+            if (typeof window !== 'undefined' && typeof window.reloadCurrentDocument === 'function') {
+                window.reloadCurrentDocument(true);
+            }
             if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
                 await window.refreshCurrentTab(area, house);
             } else if (typeof refreshCurrentTab === 'function') {
@@ -650,7 +712,7 @@
         }
     }
 
-    async function openExtractSubmodal() {
+    async function openExtractSubmodal(initialMode = 'move') {
         if (!activeEditorDoc) return;
         if (selectedPageNumbers.size === 0) {
             const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
@@ -663,6 +725,18 @@
             extractModal = document.getElementById('extract-pages-submodal');
         }
         if (!extractModal) return;
+
+        // Set Move vs Copy Mode
+        if (extractModeMoveRadio && extractModeCopyRadio) {
+            if (initialMode === 'copy') {
+                extractModeCopyRadio.checked = true;
+                extractModeMoveRadio.checked = false;
+            } else {
+                extractModeMoveRadio.checked = true;
+                extractModeCopyRadio.checked = false;
+            }
+            updateExtractModeUI();
+        }
 
         // 1. Immediately display on top of everything
         extractModal.style.zIndex = '9999';
@@ -787,6 +861,7 @@
         const targetTitle = extractTitleInput ? extractTitleInput.value.trim() : targetCat;
         const targetDate = extractDateInput ? extractDateInput.value.trim() : '';
         const targetNotes = extractNotesInput ? extractNotesInput.value.trim() : '';
+        const isMove = extractModeMoveRadio ? extractModeMoveRadio.checked : true;
 
         const area = activeEditorDoc.area_id || 'default';
         const house = activeEditorDoc.house_id || 'default';
@@ -794,7 +869,7 @@
         const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
 
         if (btnExtractConfirm) btnExtractConfirm.disabled = true;
-        if (btnExtractConfirmText) btnExtractConfirmText.textContent = 'Extracting...';
+        if (btnExtractConfirmText) btnExtractConfirmText.textContent = isMove ? 'Moving...' : 'Copying...';
 
         try {
             const reqBody = JSON.stringify({
@@ -804,7 +879,7 @@
                 target_title: targetTitle,
                 target_date: targetDate,
                 target_notes: targetNotes,
-                delete_from_source: true
+                delete_from_source: isMove
             });
 
             // Primary call to area/house route
@@ -833,14 +908,39 @@
 
             const data = await res.json();
 
+            const actionVerb = isMove ? 'moved & separated' : 'copied';
+            const actionVerbAr = isMove ? 'تم النقل والفصل' : 'تم النسخ';
             if (toast) {
-                toast(`Successfully extracted into "${data.new_title || targetCat}"!`, 'success');
+                toast(`Successfully ${actionVerb} into "${data.new_title || targetCat}"! (${actionVerbAr})`, 'success');
             }
 
             closeExtractSubmodal();
-            closePageEditor();
 
-            // Refresh views
+            if (isMove) {
+                closePageEditor();
+                if (data.document_deleted || data.remaining_pages === 0) {
+                    if (typeof window !== 'undefined' && typeof window.closeDocument === 'function') {
+                        window.closeDocument();
+                    }
+                }
+            } else {
+                // In Copy mode, source document is unchanged.
+                // Clear selection and re-render selection UI
+                selectedPageNumbers.clear();
+                updateSelectionUI();
+                if (editorGrid) {
+                    editorGrid.querySelectorAll('.page-editor-card').forEach(card => {
+                        card.classList.remove('border-blue-500', 'ring-2', 'ring-blue-400/50', 'bg-blue-50/20');
+                        const checkmark = card.querySelector('.page-card-checkmark');
+                        if (checkmark) checkmark.classList.add('opacity-0');
+                    });
+                }
+            }
+
+            // Live refresh UI & Document Viewer Panel
+            if (typeof window !== 'undefined' && typeof window.reloadCurrentDocument === 'function') {
+                window.reloadCurrentDocument(true);
+            }
             if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
                 await window.refreshCurrentTab(area, house);
             } else if (typeof refreshCurrentTab === 'function') {
@@ -850,11 +950,9 @@
                 await window.loadTree();
             }
 
-            // Open the new document in viewer or reload current
-            if (data.new_vault_id && typeof window !== 'undefined' && typeof window.openDocument === 'function') {
+            // If move succeeded and created a new document, open it
+            if (isMove && data.new_vault_id && typeof window !== 'undefined' && typeof window.openDocument === 'function') {
                 window.openDocument(data.new_vault_id, data.new_title || targetCat, data.new_category);
-            } else if (typeof window !== 'undefined' && typeof window.reloadCurrentDocument === 'function') {
-                window.reloadCurrentDocument(true);
             }
         } catch (err) {
             console.error('Extract pages error:', err);
@@ -862,7 +960,7 @@
             else alert(err.message || 'Failed to extract pages');
         } finally {
             if (btnExtractConfirm) btnExtractConfirm.disabled = false;
-            if (btnExtractConfirmText) btnExtractConfirmText.textContent = 'Confirm & Separate (تأكيد الفصل)';
+            updateExtractModeUI();
         }
     }
 
