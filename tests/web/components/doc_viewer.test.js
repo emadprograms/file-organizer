@@ -721,4 +721,223 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       expect(pdfFrame.src).toContain('/lib/pdfjs/web/viewer.html');
     });
   });
+
+  describe('Document Translation Engine & Complete Text Coverage Suite (Google-Style In-Place Overlay)', () => {
+    beforeEach(() => {
+      eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
+    });
+
+    it('translates official governmental, ministry, and security headquarters titles accurately', () => {
+      const input = 'مملكة البحرين - وزارة الداخلية - رئاسة الأمن العام';
+      const output = window.translateArabicText(input);
+      expect(output).toContain('Kingdom of Bahrain');
+      expect(output).toContain('Ministry of Interior');
+      expect(output).toContain('Public Security Headquarters');
+      expect(/[\u0600-\u06FF]/.test(output)).toBe(false);
+    });
+
+    it('translates housing allocations, eviction notices, undertakings, and lease contracts cleanly', () => {
+      const t1 = window.translateArabicText('وزارة الإسكان والتخطيط العمراني - أمر تخصيص مسكن');
+      expect(t1).toContain('Ministry of Housing and Urban Planning');
+      expect(t1).toContain('Housing Allocation Order');
+      expect(/[\u0600-\u06FF]/.test(t1)).toBe(false);
+
+      const t2 = window.translateArabicText('إقرار وتعهد بإخلاء الوحدة السكنية رقم 500 بمنطقة سافرة');
+      expect(t2).toContain('Declaration and Undertaking');
+      expect(t2).toContain('to vacate Housing Unit');
+      expect(t2).toContain('Safra Area');
+      expect(/[\u0600-\u06FF]/.test(t2)).toBe(false);
+
+      const t3 = window.translateArabicText('عقد إيجار موثق - الطرف الأول (المؤجر) والطرف الثاني (المستأجر)');
+      expect(t3).toContain('Notarized Tenancy Contract');
+      expect(t3).toContain('First Party (Lessor)');
+      expect(t3).toContain('Second Party (Tenant)');
+      expect(/[\u0600-\u06FF]/.test(t3)).toBe(false);
+    });
+
+    it('converts Eastern Arabic numerals (٠-٩) and formats dates, blocks, and house numbers', () => {
+      const input = 'المسكن رقم ٥٠٠ طريق ٤٢١٠ مجمع ٩٤٢ بتاريخ ٢٠٢٤/٠٥/١٢';
+      const output = window.translateArabicText(input);
+      expect(output).toContain('500');
+      expect(output).toContain('4210');
+      expect(output).toContain('942');
+      expect(output).toContain('2024/05/12');
+      expect(output).toContain('House No.');
+      expect(output).toContain('Road');
+      expect(output).toContain('Block');
+      expect(output).toContain('dated');
+      expect(/[\u0600-\u06FF]/.test(output)).toBe(false);
+    });
+
+    it('recognizes Bahraini personal and family names without leaving raw Arabic', () => {
+      const input = 'سعادة العقيد محمد راشد آل خليفة بحضور علي أحمد الدوسري';
+      const output = window.translateArabicText(input);
+      expect(output).toContain('Colonel');
+      expect(output).toContain('Mohamed');
+      expect(output).toContain('Rashid');
+      expect(output).toContain('Al Khalifa');
+      expect(output).toContain('Ali');
+      expect(output).toContain('Ahmed');
+      expect(output).toContain('Al Doseri');
+      expect(/[\u0600-\u06FF]/.test(output)).toBe(false);
+    });
+
+    it('handles morphological prefixes (وال، بال، لل) and suffixes (ها، هم، ه) via stem decomposition', () => {
+      // "والمستأجر" (and the tenant), "بالعقد" (in the contract)
+      const w1 = window.translateArabicWord('والمستأجر');
+      expect(w1.toLowerCase()).toContain('and the');
+      expect(w1.toLowerCase()).toContain('tenant');
+
+      const w2 = window.translateArabicWord('بالعقد');
+      expect(w2.toLowerCase()).toContain('in the');
+      expect(w2.toLowerCase()).toContain('contract');
+
+      const w3 = window.translateArabicWord('التزاماته');
+      expect(w3.toLowerCase()).toContain('obligation');
+      expect(w3.toLowerCase()).toContain('his');
+    });
+
+    it('phonetically transliterates unindexed proper nouns so zero Arabic characters remain in output', () => {
+      const obscureWord = 'الزايد';
+      const output = window.translateArabicText(obscureWord);
+      expect(output.length).toBeGreaterThan(0);
+      expect(/[\u0600-\u06FF]/.test(output)).toBe(false);
+
+      const complexSentence = 'خطاب رسمي صادر من جهة مجهولة برقم 999';
+      const translated = window.translateArabicText(complexSentence);
+      expect(translated).toContain('Official letter');
+      expect(translated).toContain('999');
+      // Guarantee zero Arabic remnants in final translation
+      expect(/[\u0600-\u06FF]/.test(translated)).toBe(false);
+    });
+
+    it('clusterPdfItemsIntoLines merges fragmented digital PDF text items into cohesive lines with accurate bounding boxes', () => {
+      const fragmentedItems = [
+        { str: 'وزارة ', transform: [1, 0, 0, 1, 100, 700], height: 14, width: 40 },
+        { str: 'الإسكان ', transform: [1, 0, 0, 1, 145, 700], height: 14, width: 45 },
+        { str: 'رقم 101', transform: [1, 0, 0, 1, 195, 700], height: 14, width: 50 },
+        // Line 2 (Y is lower, e.g. ty=660 vs ty=700)
+        { str: 'عقد إيجار موثق', transform: [1, 0, 0, 1, 100, 660], height: 14, width: 100 }
+      ];
+
+      const lines = window.clusterPdfItemsIntoLines(fragmentedItems, 800);
+      expect(lines.length).toBe(2);
+
+      // First line merged
+      expect(lines[0].text).toBe('وزارة الإسكان رقم 101');
+      expect(lines[0].bbox.x0).toBe(100);
+      expect(lines[0].bbox.x1).toBe(245);
+
+      // Second line
+      expect(lines[1].text).toBe('عقد إيجار موثق');
+      expect(lines[1].bbox.x0).toBe(100);
+      expect(lines[1].bbox.x1).toBe(200);
+    });
+
+    it('guarantees 100% text line coverage with NO lines silently dropped in renderPageTranslationLayer', async () => {
+      // Mock Tesseract to return 4 diverse lines representing an entire document
+      const sampleDocumentLines = [
+        { text: 'مملكة البحرين - وزارة الداخلية', bbox: { x0: 100, y0: 50, x1: 500, y1: 85 } },
+        { text: 'إشعار بإخلاء الوحدة السكنية رقم 500', bbox: { x0: 80, y0: 100, x1: 520, y1: 135 } },
+        { text: 'المستأجر: علي أحمد حسن - الرقم الشخصي: 880123456', bbox: { x0: 80, y0: 150, x1: 520, y1: 185 } },
+        { text: 'يجب إخلاء المسكن وتسليم المفاتيح خلال ثلاثين يوماً', bbox: { x0: 80, y0: 200, x1: 520, y1: 235 } }
+      ];
+
+      global.Tesseract = {
+        createWorker: vi.fn().mockResolvedValue({
+          recognize: vi.fn().mockResolvedValue({
+            data: { lines: sampleDocumentLines }
+          }),
+          terminate: vi.fn().mockResolvedValue()
+        })
+      };
+
+      const canvasContainer = document.getElementById('pdf-canvas-container');
+      canvasContainer.innerHTML = `
+        <div class="pdf-page-wrapper relative" data-page-number="1">
+          <canvas class="pdf-page-canvas" width="600" height="800" style="width:600px; height:800px;"></canvas>
+        </div>
+      `;
+      const wrapper = canvasContainer.querySelector('.pdf-page-wrapper');
+
+      await window.renderPageTranslationLayer(wrapper, 1, 'doc_coverage_test');
+
+      const layer = wrapper.querySelector('.pdf-translation-layer');
+      expect(layer).not.toBeNull();
+
+      const boxes = layer.querySelectorAll('.in-place-translated-box');
+      // CRITICAL ASSERTION: Exactly 4 lines entered, exactly 4 boxes MUST be rendered (0% drop rate, 100% coverage)
+      expect(boxes.length).toBe(4);
+
+      // Verify every box contains translated English text and ZERO leftover Arabic characters
+      boxes.forEach((box) => {
+        const text = box.textContent;
+        expect(text.length).toBeGreaterThan(0);
+        expect(/[\u0600-\u06FF]/.test(text)).toBe(false);
+      });
+
+      // Box 1: Ministry
+      expect(boxes[0].textContent).toContain('Ministry of Interior');
+      // Box 2: Eviction Notice
+      expect(boxes[1].textContent).toContain('Housing Unit Eviction Notice');
+      expect(boxes[1].textContent).toContain('500');
+      // Box 3: Tenant Name & CPR
+      expect(boxes[2].textContent).toContain('Tenant: Ali Ahmed Hassan');
+      expect(boxes[2].textContent).toContain('880123456');
+    });
+
+    it('preserves user-favored translucent peek (opacity 0.12) on hover, toggle on click, and global peek button', async () => {
+      global.Tesseract = {
+        createWorker: vi.fn().mockResolvedValue({
+          recognize: vi.fn().mockResolvedValue({
+            data: {
+              lines: [
+                { text: 'عقد إيجار موثق', bbox: { x0: 50, y0: 50, x1: 300, y1: 80 } }
+              ]
+            }
+          }),
+          terminate: vi.fn().mockResolvedValue()
+        })
+      };
+
+      const canvasContainer = document.getElementById('pdf-canvas-container');
+      canvasContainer.innerHTML = `
+        <div class="pdf-page-wrapper relative" data-page-number="1">
+          <canvas class="pdf-page-canvas" width="600" height="800" style="width:600px; height:800px;"></canvas>
+        </div>
+      `;
+      const wrapper = canvasContainer.querySelector('.pdf-page-wrapper');
+
+      await window.renderPageTranslationLayer(wrapper, 1, 'doc_peek_test');
+
+      const layer = wrapper.querySelector('.pdf-translation-layer');
+      const box = layer.querySelector('.in-place-translated-box');
+      expect(box).not.toBeNull();
+
+      // Initial state: fully opaque
+      expect(box.style.opacity).not.toBe('0.12');
+
+      // User hovers over translated box: becomes translucent (0.12) to peek underneath
+      box.dispatchEvent(new Event('mouseenter'));
+      expect(box.style.opacity).toBe('0.12');
+
+      // User leaves hover: returns to opaque
+      box.dispatchEvent(new Event('mouseleave'));
+      expect(box.style.opacity).toBe('1');
+
+      // User clicks to pin/toggle translucent peek
+      box.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(box.style.opacity).toBe('0.12');
+      box.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(box.style.opacity).toBe('1');
+
+      // "Peek Original" page button toggles all boxes
+      const peekBtn = layer.querySelector('.btn-peek-scan');
+      expect(peekBtn).not.toBeNull();
+      peekBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(box.style.opacity).toBe('0');
+      peekBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      expect(box.style.opacity).toBe('1');
+    });
+  });
 });
