@@ -187,6 +187,56 @@
                     <button id="btn-ingest-trigger" type="button" class="group relative w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-white bg-blue-600 hover:bg-blue-500 active:bg-blue-700 shadow-sm hover:shadow-lg hover:shadow-blue-500/35 transform transition-all duration-200 ease-out hover:scale-110 active:scale-95 cursor-pointer flex-shrink-0" title="Upload Document (⌘I)" aria-label="Upload Document">
                         <svg class="w-5 h-5 text-white transition-transform duration-200 ease-out group-hover:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
                     </button>
+
+                    <!-- Subtle Vertical Divider -->
+                    <div class="h-5 w-px bg-slate-200/90 dark:bg-slate-700 mx-0.5 select-none" aria-hidden="true"></div>
+
+                    <!-- User Profile & Session Controls -->
+                    <div id="user-profile-wrapper" class="relative flex items-center">
+                        <button id="user-profile-btn" type="button" class="flex items-center gap-2 pl-2 pr-2.5 py-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/70 transition-all text-xs shadow-2xs cursor-pointer select-none group" aria-haspopup="true" aria-expanded="false" title="الحساب والصلاحيات • User Profile & Permissions">
+                            <div id="user-avatar-badge" class="w-6 h-6 rounded-full bg-blue-600 text-white font-bold text-[11px] flex items-center justify-center shadow-xs">
+                                ?
+                            </div>
+                            <div class="flex flex-col text-left rtl:text-right hidden sm:flex">
+                                <span id="user-display-name" class="font-bold text-slate-800 dark:text-slate-200 text-xs leading-none truncate max-w-[90px]">User</span>
+                                <span id="user-role-badge" class="text-[9px] font-semibold text-emerald-600 dark:text-emerald-400 leading-tight">Admin</span>
+                            </div>
+                            <svg class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-transform duration-150" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+                        <!-- Dropdown Menu -->
+                        <div id="user-profile-dropdown" class="hidden absolute right-0 top-full mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-3 space-y-3 backdrop-blur-lg">
+                            <div class="flex items-center gap-3 p-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-100 dark:border-slate-800">
+                                <div id="dropdown-avatar-badge" class="w-10 h-10 rounded-xl bg-blue-600 text-white font-bold text-base flex items-center justify-center shadow-sm flex-shrink-0">
+                                    U
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <div id="dropdown-user-name" class="font-bold text-slate-900 dark:text-slate-100 text-sm truncate">User</div>
+                                    <div id="dropdown-role-badge" class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                                        Admin
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="p-2.5 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800/80 text-[11px] text-slate-600 dark:text-slate-300 space-y-1">
+                                <div class="font-bold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <span>الصلاحيات • Permissions</span>
+                                </div>
+                                <p id="dropdown-role-desc" class="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed"></p>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                                <button id="btn-switch-user" type="button" class="px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+                                    <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                                    <span>تبديل • Switch</span>
+                                </button>
+                                <button id="btn-logout" type="button" class="px-3 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl border border-rose-200 dark:border-rose-900/50 transition-colors flex items-center justify-center gap-1.5 cursor-pointer">
+                                    <svg class="w-3.5 h-3.5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                                    <span>خروج • Logout</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </header>
 
@@ -309,6 +359,10 @@
                                 <button id="viewer-edit-pages-btn" type="button" class="text-xs text-amber-300 hover:text-white bg-amber-950/40 hover:bg-amber-800/60 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg border border-amber-600/50 flex items-center gap-1.5 transition-colors cursor-pointer" title="Edit Pages (Delete, Separate, Reorder) • تعديل وفصل الصفحات">
                                     <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879a3 3 0 11-4.242-4.242L10.758 10M12 12L9.121 9.121m0 0a3 3 0 10-4.242 4.242L7.758 16"/></svg>
                                     <span class="hidden sm:inline font-medium">Edit Pages</span>
+                                </button>
+                                <button id="viewer-merge-btn" type="button" class="text-xs text-emerald-300 hover:text-white bg-emerald-950/40 hover:bg-emerald-800/60 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg border border-emerald-600/50 flex items-center gap-1.5 transition-colors cursor-pointer" title="Merge with another document • دمج مع مستند آخر">
+                                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                                    <span class="hidden sm:inline font-medium">Merge</span>
                                 </button>
                                 <button id="viewer-translate-btn" type="button" class="text-xs text-blue-300 hover:text-white bg-blue-950/40 hover:bg-blue-800/60 px-2 py-1 sm:px-2.5 sm:py-1.5 rounded-lg border border-blue-600/50 flex items-center gap-1.5 transition-all cursor-pointer" title="Translate document to English (Offline) • ترجمة المستند للإنجليزية" aria-label="Translate Document to English" aria-pressed="false">
                                     <svg class="w-3.5 h-3.5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -713,6 +767,10 @@
                 <button id="btn-doc-edit-pages" type="button" class="px-3.5 py-2 text-xs font-bold text-amber-700 hover:text-white bg-amber-50 hover:bg-amber-600 border border-amber-200 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs" title="Edit, split, reorder, or delete pages in this document">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879a3 3 0 11-4.242-4.242L10.758 10M12 12L9.121 9.121m0 0a3 3 0 10-4.242 4.242L7.758 16"/></svg>
                     <span>✂️ Edit Pages</span>
+                </button>
+                <button id="btn-doc-merge" type="button" class="px-3.5 py-2 text-xs font-bold text-emerald-700 hover:text-white bg-emerald-50 hover:bg-emerald-600 border border-emerald-200 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs" title="Merge this document with another document">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    <span>🔗 Merge</span>
                 </button>
                 <button id="doc-modal-cancel" type="button" onclick="if(typeof window.closeDocModal==='function')window.closeDocModal();" class="px-4 py-2 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors shadow-2xs">Cancel</button>
                 <button id="doc-modal-submit" type="button" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-all flex items-center gap-2 shadow-sm shadow-blue-500/25">
@@ -1169,6 +1227,9 @@
         <button id="btn-batch-copy" type="button" class="flex items-center px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-semibold transition-colors cursor-pointer shadow-xs">
             <span>Copy Selected</span>
         </button>
+        <button id="btn-batch-merge" type="button" class="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold transition-colors cursor-pointer shadow-xs disabled:opacity-50 disabled:cursor-not-allowed" title="Merge 2 or more selected documents into one">
+            <span>🔗 Merge Selected</span>
+        </button>
         <button id="btn-batch-delete" type="button" class="flex items-center px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-semibold transition-colors cursor-pointer shadow-xs">
             <span>Delete Selected</span>
         </button>
@@ -1297,6 +1358,126 @@
                 <button id="btn-batch-delete-confirm" type="button" class="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-all shadow-sm shadow-rose-500/25 flex items-center gap-2 cursor-pointer">
                     <span id="batch-delete-spinner" class="hidden animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
                     <span id="batch-delete-btn-text">🗑️ Delete Permanently</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Document Merge Modal -->
+    <div id="merge-docs-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4" tabindex="-1" role="dialog" aria-labelledby="merge-docs-title" aria-modal="true">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-xl w-full flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-emerald-50/60 dark:bg-emerald-950/30">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-2xs">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 dark:text-white tracking-tight" id="merge-docs-title">دمج المستندات • Merge Documents</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400" id="merge-docs-subtitle">دمج ملفين أو أكثر في ملف PDF واحد بالتسلسل المطلوب</p>
+                    </div>
+                </div>
+                <button id="merge-docs-close" type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer" aria-label="Close">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+                <!-- Document List & Ordering -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                            تسلسل المستندات المدمجة • Document Sequence <span class="text-rose-500">*</span>
+                        </label>
+                        <span id="merge-docs-count-badge" class="text-[11px] font-mono font-semibold px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-lg">0 docs • 0 pages</span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 mb-2">استخدم أزرار الأسهم لتغيير ترتيب دمج المستندات في ملف الـ PDF الناتج.</p>
+                    <div id="merge-docs-list" class="space-y-1.5 max-h-48 overflow-y-auto p-1 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <!-- Populated dynamically -->
+                    </div>
+
+                    <!-- Add Additional Document Selector -->
+                    <div id="merge-add-doc-container" class="mt-2 flex items-center gap-2">
+                        <select id="merge-add-doc-select" class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-700 font-medium text-slate-800 dark:text-slate-100">
+                            <option value="">-- إضافة مستند آخر للدمج / Select doc to add --</option>
+                        </select>
+                        <button id="btn-merge-add-doc" type="button" class="px-3 py-2 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 border border-emerald-200 dark:border-emerald-800 rounded-xl flex-shrink-0 transition-colors cursor-pointer">
+                            + إضافة
+                        </button>
+                    </div>
+                </div>
+
+                <hr class="border-slate-100 dark:border-slate-700" />
+
+                <!-- Target Document Settings -->
+                <div class="space-y-3.5">
+                    <div>
+                        <label for="merge-target-title" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                            عنوان المستند المدمج • Target Document Title <span class="text-rose-500">*</span>
+                        </label>
+                        <input id="merge-target-title" type="text" placeholder="مثال: عقد الإيجار وهوية الساكن" class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50 dark:bg-slate-700 focus:bg-white font-medium text-slate-800 dark:text-slate-100" />
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label for="merge-target-category" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                المجلد المستهدف • Target Folder <span class="text-rose-500">*</span>
+                            </label>
+                            <select id="merge-target-category" class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50 dark:bg-slate-700 font-medium text-slate-800 dark:text-slate-100">
+                                <!-- Populated dynamically -->
+                            </select>
+                            <div id="merge-custom-cat-container" class="mt-2 hidden">
+                                <input id="merge-custom-cat-input" type="text" placeholder="اسم المجلد الجديد..." class="w-full px-3 py-2 text-xs border border-emerald-200 dark:border-emerald-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-emerald-50/40 dark:bg-emerald-950/30 text-slate-800 dark:text-slate-100" />
+                            </div>
+                        </div>
+                        <div>
+                            <label for="merge-target-tenant" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                المستأجر • Tenant
+                            </label>
+                            <select id="merge-target-tenant" class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50 dark:bg-slate-700 font-medium text-slate-800 dark:text-slate-100">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label for="merge-target-date" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                تاريخ المستند • Document Date
+                            </label>
+                            <input id="merge-target-date" type="date" class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50 dark:bg-slate-700 focus:bg-white font-medium text-slate-800 dark:text-slate-100" />
+                        </div>
+                        <div>
+                            <label for="merge-target-notes" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                ملاحظات • Notes (اختياري)
+                            </label>
+                            <input id="merge-target-notes" type="text" placeholder="أي ملاحظات إضافية..." class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50 dark:bg-slate-700 focus:bg-white font-medium text-slate-800 dark:text-slate-100" />
+                        </div>
+                    </div>
+
+                    <!-- Delete sources checkbox -->
+                    <label class="flex items-start gap-2.5 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-700/40 hover:bg-slate-100/60 dark:hover:bg-slate-700/60 transition-colors cursor-pointer">
+                        <input type="checkbox" id="merge-delete-sources" checked class="mt-0.5 w-4 h-4 text-emerald-600 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer">
+                        <div>
+                            <div class="text-xs font-bold text-slate-800 dark:text-slate-200">حذف المستندات الأصلية بعد الدمج • Delete source documents after merge</div>
+                            <div class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">عند تفعيل هذا الخيار، يتم استبدال الملفات الأصلية بالملف المدمج. إلغاء التفعيل يحتفظ بالملفات الأصلية كنسخ.</div>
+                        </div>
+                    </label>
+                </div>
+
+                <!-- Status alert -->
+                <div id="merge-docs-status" class="p-3 rounded-xl text-xs font-medium hidden"></div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3.5 border-t border-slate-100 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-900/30 flex justify-end gap-3">
+                <button id="btn-merge-docs-cancel" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-2xs cursor-pointer">
+                    Cancel • إلغاء
+                </button>
+                <button id="btn-merge-docs-confirm" type="button" class="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-sm shadow-emerald-500/25 flex items-center gap-2 cursor-pointer">
+                    <span id="merge-docs-spinner" class="hidden animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
+                    <span id="merge-docs-btn-text">🔗 دمج المستندات • Merge</span>
                 </button>
             </div>
         </div>
@@ -1779,12 +1960,95 @@
         </div>
     </div>
 
+    <!-- Login Screen Modal Overlay -->
+    <div id="login-screen" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 hidden" aria-hidden="true" role="dialog" aria-modal="true">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col transition-all duration-300">
+            <!-- Modal Header -->
+            <div class="px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between">
+                <div class="flex items-center gap-3.5">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center shadow-md shadow-blue-500/30 flex-shrink-0">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-bold text-slate-900 dark:text-white tracking-tight">نظام إدارة الوثائق السكنية</h2>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">تسجيل الدخول للنظام • Sign In to Housing System</p>
+                    </div>
+                </div>
+                <button id="btn-close-login" type="button" class="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center transition-colors hidden cursor-pointer" title="Close • إغلاق">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-5 overflow-y-auto max-h-[calc(100vh-160px)]">
+                <!-- Error Alert Box -->
+                <div id="login-error" class="hidden p-3.5 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 text-rose-800 dark:text-rose-300 text-xs font-semibold flex items-center gap-2.5">
+                    <svg class="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    <span class="error-text">بيانات الدخول غير صحيحة</span>
+                </div>
+
+                <!-- Quick User Selector Section -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">
+                        اختر المستخدم للتبديل السريع • Select User Preset
+                    </label>
+                    <div id="login-presets-container" class="space-y-3">
+                        <!-- Rendered dynamically by AuthManager -->
+                    </div>
+                </div>
+
+                <div class="relative flex py-1 items-center">
+                    <div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+                    <span class="flex-shrink mx-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">أو تسجيل الدخول اليدوي • Or Manual</span>
+                    <div class="flex-grow border-t border-slate-200 dark:border-slate-800"></div>
+                </div>
+
+                <!-- Manual Login Form -->
+                <form id="login-form" class="space-y-3.5">
+                    <div>
+                        <label for="login-username" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                            اسم المستخدم • Username
+                        </label>
+                        <div class="relative">
+                            <input id="login-username" type="text" required placeholder="Emad, Nawaf, Mustafa..." autocomplete="username" class="w-full px-3.5 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="login-password" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                            كلمة المرور • Password
+                        </label>
+                        <div class="relative">
+                            <input id="login-password" type="password" required placeholder="••••••••" autocomplete="current-password" class="w-full pl-3.5 pr-10 py-2.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium transition-all" />
+                            <button id="btn-toggle-password" type="button" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer" title="Show / hide password">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-slate-400 mt-1">كلمة المرور الافتراضية للجميع: <span class="font-mono text-blue-500 font-semibold">password123</span></p>
+                    </div>
+
+                    <button id="btn-login-submit" type="submit" class="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold text-xs shadow-md shadow-blue-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        <svg class="login-spinner w-3.5 h-3.5 animate-spin hidden" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <span class="login-btn-text">تسجيل الدخول • Sign In</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+                <span>الصلاحيات تُطبق آلياً حسب حساب المستخدم</span>
+                <span class="text-[10px] font-mono">v17.0 RBAC</span>
+            </div>
+        </div>
+    </div>
+
     <!-- Local Vendor Scripts -->
     <script src="lib/pdfjs/pdf.min.js"></script>
     <script src="lib/tesseract/tesseract.min.js"></script>
 
     <!-- Modular Application Scripts -->
     <script src="js/api.js?v=260911-29"></script>
+    <script src="js/auth-manager.js?v=260917-01"></script>
     <script src="js/resizer.js?v=260911-29"></script>
     <script src="js/pdf-preview.js?v=260911-34"></script>
     <script src="js/command-palette.js?v=260911-34"></script>

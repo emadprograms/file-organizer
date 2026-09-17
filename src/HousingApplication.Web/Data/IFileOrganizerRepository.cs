@@ -46,6 +46,12 @@ public interface IFileOrganizerRepository
     Task<ExtractPagesResponseDto> ExtractPagesAsync(string areaId, string houseId, string vaultId, ExtractPagesRequestDto request, string? areasRoot = null);
     Task<DeletePagesResponseDto> DeletePagesAsync(string areaId, string houseId, string vaultId, DeletePagesRequestDto request, string? areasRoot = null);
     Task<ReorderPagesResponseDto> ReorderPagesAsync(string areaId, string houseId, string vaultId, ReorderPagesRequestDto request, string? areasRoot = null);
+    Task<MergeDocumentsResponseDto> MergeDocumentsAsync(string areaId, string houseId, MergeDocumentsRequestDto request, string? areasRoot = null);
+
+    // User Authentication & Management
+    Task<User?> GetUserByUsernameAsync(string username);
+    Task<User?> GetUserByIdAsync(int id);
+    Task<IReadOnlyList<UserDto>> GetAllUsersAsync();
 
     // Helpers for database seeding and testing
     Task<Area> AddAreaAsync(string areaId, string? code = null);

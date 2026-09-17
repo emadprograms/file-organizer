@@ -425,6 +425,17 @@
                 countEl.textContent = '0 selected';
             }
         }
+
+        const btnMerge = document.getElementById('btn-batch-merge');
+        if (btnMerge) {
+            if (count >= 2) {
+                btnMerge.disabled = false;
+                btnMerge.title = 'Merge 2 or more selected documents into one';
+            } else {
+                btnMerge.disabled = true;
+                btnMerge.title = 'Select at least 2 documents to merge';
+            }
+        }
     }
 
     function getBatchAreaFromHash() {
@@ -1258,12 +1269,44 @@
         }
     }
 
+    function openBatchMergeModal() {
+        if (selectedDocIds.size < 2) {
+            const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+            if (toast) toast('يرجى تحديد وثيقتين على الأقل للدمج / Please select at least 2 documents to merge', 'warning');
+            return;
+        }
+
+        const cats = (typeof currentCategories !== 'undefined' ? currentCategories : (typeof window !== 'undefined' ? window.currentCategories : [])) || [];
+        const selectedDocs = [];
+        for (const vid of selectedDocIds) {
+            let foundDoc = null;
+            for (const c of cats) {
+                if (c.documents) {
+                    foundDoc = c.documents.find(d => d.vault_id === vid);
+                    if (foundDoc) break;
+                }
+            }
+            if (foundDoc) {
+                selectedDocs.push({ ...foundDoc });
+            } else {
+                selectedDocs.push({ vault_id: vid, title: `Document ${vid}` });
+            }
+        }
+
+        if (typeof window !== 'undefined' && typeof window.openMergeModal === 'function') {
+            window.openMergeModal(selectedDocs);
+        }
+    }
+
     function initBatchOperations() {
         const btnMove = document.getElementById('btn-batch-move');
         if (btnMove) btnMove.onclick = openBatchMoveModal;
 
         const btnCopy = document.getElementById('btn-batch-copy');
         if (btnCopy) btnCopy.onclick = openBatchCopyModal;
+
+        const btnMerge = document.getElementById('btn-batch-merge');
+        if (btnMerge) btnMerge.onclick = openBatchMergeModal;
 
         const btnDelete = document.getElementById('btn-batch-delete');
         if (btnDelete) btnDelete.onclick = openBatchDeleteModal;
@@ -2713,6 +2756,7 @@
         window.openBatchDeleteModal = openBatchDeleteModal;
         window.closeBatchDeleteModal = closeBatchDeleteModal;
         window.handleBatchDeleteSubmit = handleBatchDeleteSubmit;
+        window.openBatchMergeModal = openBatchMergeModal;
         window.initBatchOperations = initBatchOperations;
         window.openBatchMoveForDoc = openBatchMoveForDoc;
         window.openBatchCopyForDoc = openBatchCopyForDoc;
@@ -2785,6 +2829,7 @@
             openBatchDeleteModal,
             closeBatchDeleteModal,
             handleBatchDeleteSubmit,
+            openBatchMergeModal,
             initBatchOperations,
             isStandardCategoryName,
             isCategoryMatch,

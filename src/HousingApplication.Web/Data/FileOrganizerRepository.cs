@@ -2958,5 +2958,298 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
             PageOrder = request.PageOrder
         };
     }
+
+    public async Task<MergeDocumentsResponseDto> MergeDocumentsAsync(
+        string areaId,
+        string houseId,
+        MergeDocumentsRequestDto request,
+        string? areasRoot = null)
+    {
+        if (request.VaultIds == null || request.VaultIds.Count < 2)
+            throw new ArgumentException("At least two documents must be selected to perform a merge.");
+
+        var resolvedAreasRoot = !string.IsNullOrEmpty(areasRoot)
+            ? areasRoot
+            : (_configuration?["AREAS_ROOT_PATH"] ?? Environment.GetEnvironmentVariable("AREAS_ROOT_PATH") ?? "../areas");
+
+        var cleanHouseId = houseId.Contains(" - ") ? houseId.Split(" - ")[0].Trim() : houseId.Trim();
+
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+        await using var tx = await conn.BeginTransactionAsync();
+
+        // Query all documents matching vault_ids
+        var docsRaw = (await conn.QueryAsync<(
+            string VaultId, string HouseId, int TenantId, int BatchId,
+            string? PrimaryDate, string? ArabicTitle, string? Category,
+            int PageCount, int IsManual, string? Notes, string? AreaId
+        )>(@"
+            SELECT d.vault_id AS VaultId, d.house_id AS HouseId, d.tenant_id AS TenantId, d.batch_id AS BatchId,
+                   d.primary_date AS PrimaryDate, d.arabic_title AS ArabicTitle, d.category AS Category,
+                   d.page_count AS PageCount, d.is_manual AS IsManual, d.notes AS Notes,
+                   h.area_id AS AreaId
+            FROM documents d
+            LEFT JOIN houses h ON d.house_id = h.id
+            WHERE d.vault_id IN @VaultIds;",
+            new { VaultIds = request.VaultIds }, tx)).ToList();
+
+        if (docsRaw.Count < 2)
+            throw new ArgumentException("At least two valid existing documents must be found to merge.");
+
+        // Maintain the user-specified sequence
+        var docMap = docsRaw.ToDictionary(d => d.VaultId, d => d);
+        var orderedDocs = request.VaultIds
+            .Where(id => docMap.ContainsKey(id))
+            .Select(id => docMap[id])
+            .ToList();
+
+        if (orderedDocs.Count < 2)
+            throw new ArgumentException("At least two valid ordered documents are required.");
+
+        var firstDoc = orderedDocs[0];
+        var realHouseId = !string.IsNullOrWhiteSpace(firstDoc.HouseId) ? firstDoc.HouseId : cleanHouseId;
+        var realCleanHouseId = TextUtils.ExtractHouseNumber(realHouseId);
+        var realAreaId = !string.IsNullOrWhiteSpace(firstDoc.AreaId) ? firstDoc.AreaId : areaId;
+
+        // Target properties fallback
+        var targetCategory = !string.IsNullOrWhiteSpace(request.TargetCategory)
+            ? Constants.FormatCategoryWithPrefix(request.TargetCategory)
+            : (firstDoc.Category ?? "13 - رسائل متنوعة");
+
+        var targetTenantId = (request.TargetTenantId.HasValue && request.TargetTenantId.Value > 0)
+            ? request.TargetTenantId.Value
+            : (firstDoc.TenantId > 0 ? firstDoc.TenantId : 0);
+
+        if (targetTenantId <= 0)
+        {
+            var resident = await conn.QueryFirstOrDefaultAsync<int?>(
+                "SELECT id FROM tenants WHERE (house_id = @HouseId OR house_id = @CleanHouseId) AND is_resident = 1 LIMIT 1;",
+                new { HouseId = realHouseId, CleanHouseId = realCleanHouseId }, tx);
+            if (resident.HasValue && resident.Value > 0)
+            {
+                targetTenantId = resident.Value;
+            }
+            else
+            {
+                var anyTenant = await conn.QueryFirstOrDefaultAsync<int?>(
+                    "SELECT id FROM tenants WHERE house_id = @HouseId OR house_id = @CleanHouseId LIMIT 1;",
+                    new { HouseId = realHouseId, CleanHouseId = realCleanHouseId }, tx);
+                if (anyTenant.HasValue && anyTenant.Value > 0)
+                    targetTenantId = anyTenant.Value;
+                else
+                {
+                    targetTenantId = await conn.QuerySingleAsync<int>(@"
+                        INSERT INTO tenants (name, house_id, is_resident)
+                        VALUES (@Name, @HouseId, 0);
+                        SELECT last_insert_rowid();",
+                        new { Name = "غير محدد", HouseId = realCleanHouseId }, tx);
+                }
+            }
+        }
+
+        var targetTenantName = await conn.QueryFirstOrDefaultAsync<string>(
+            "SELECT name FROM tenants WHERE id = @TenantId;",
+            new { TenantId = targetTenantId }, tx);
+
+        var targetTitle = !string.IsNullOrWhiteSpace(request.TargetTitle)
+            ? request.TargetTitle.Trim()
+            : (!string.IsNullOrWhiteSpace(firstDoc.ArabicTitle) ? $"{firstDoc.ArabicTitle} (مدمج)" : targetCategory);
+
+        var targetDate = !string.IsNullOrWhiteSpace(request.TargetDate)
+            ? request.TargetDate.Trim()
+            : orderedDocs.Select(d => d.PrimaryDate).FirstOrDefault(d => !string.IsNullOrWhiteSpace(d));
+
+        var targetNotes = !string.IsNullOrWhiteSpace(request.TargetNotes)
+            ? request.TargetNotes.Trim()
+            : null;
+
+        var newVaultId = Guid.NewGuid().ToString("N");
+        var vaultDir = Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault");
+        Directory.CreateDirectory(vaultDir);
+        var newVaultFile = Path.Combine(vaultDir, $"doc_{newVaultId}.pdf");
+
+        // Merge physical PDF files using PdfSharpCore
+        int totalPages = 0;
+        using (var targetDoc = new PdfDocument())
+        {
+            foreach (var doc in orderedDocs)
+            {
+                var docVaultId = doc.VaultId;
+                var batchFilePath = await conn.QueryFirstOrDefaultAsync<string>(
+                    "SELECT file_path FROM batches WHERE id = @BatchId;",
+                    new { BatchId = doc.BatchId }, tx);
+
+                var possiblePaths = new List<string>
+                {
+                    Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, "vault", $"doc_{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault", $"doc_{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, "vault", $"{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault", $"{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, ".source_files", "vault", $"doc_{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, ".source_files", "vault", $"doc_{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, ".source_files", "vault", $"{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, ".source_files", "vault", $"{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"doc_{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"doc_{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"{docVaultId}.pdf"),
+                };
+                if (!string.IsNullOrEmpty(batchFilePath))
+                {
+                    possiblePaths.Add(Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, batchFilePath));
+                    possiblePaths.Add(Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, batchFilePath));
+                }
+
+                var sourcePdfPath = possiblePaths.FirstOrDefault(File.Exists);
+                if (!string.IsNullOrEmpty(sourcePdfPath) && File.Exists(sourcePdfPath))
+                {
+                    try
+                    {
+                        var sourceBytes = await File.ReadAllBytesAsync(sourcePdfPath);
+                        using var msSource = new MemoryStream(sourceBytes);
+                        using var inDoc = PdfReader.Open(msSource, PdfDocumentOpenMode.Import);
+                        for (int i = 0; i < inDoc.PageCount; i++)
+                        {
+                            targetDoc.AddPage(inDoc.Pages[i]);
+                            totalPages++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLine($"[MergeDocumentsAsync] Error reading PDF for {docVaultId}: {ex.Message}");
+                    }
+                }
+            }
+
+            if (targetDoc.PageCount > 0)
+            {
+                using var outMs = new MemoryStream();
+                targetDoc.Save(outMs, false);
+                await SafeWritePdfBytesAsync(newVaultFile, outMs.ToArray());
+            }
+        }
+
+        if (totalPages == 0)
+        {
+            totalPages = orderedDocs.Sum(d => d.PageCount > 0 ? d.PageCount : 1);
+        }
+
+        // Insert new merged document into documents table
+        const string insertDocSql = @"
+            INSERT INTO documents (
+                vault_id, house_id, tenant_id, batch_id, primary_date,
+                arabic_title, category, page_count, is_manual, notes, is_timeline_visible
+            ) VALUES (
+                @VaultId, @HouseId, @TenantId, @BatchId, @PrimaryDate,
+                @ArabicTitle, @Category, @PageCount, 1, @Notes, 1
+            );";
+
+        await conn.ExecuteAsync(insertDocSql, new
+        {
+            VaultId = newVaultId,
+            HouseId = realHouseId,
+            TenantId = targetTenantId,
+            BatchId = firstDoc.BatchId,
+            PrimaryDate = targetDate,
+            ArabicTitle = targetTitle,
+            Category = targetCategory,
+            PageCount = totalPages,
+            Notes = targetNotes
+        }, tx);
+
+        // If delete_sources is requested, reassign pages and delete source documents
+        if (request.DeleteSources)
+        {
+            foreach (var doc in orderedDocs)
+            {
+                var docVaultId = doc.VaultId;
+
+                // Reassign pages in pages table to the new merged document
+                await conn.ExecuteAsync(@"
+                    UPDATE pages 
+                    SET vault_id = @NewVaultId, category = @TargetCategory, tenant_id = @TargetTenantId, house_id = @HouseId
+                    WHERE vault_id = @VaultId;",
+                    new { NewVaultId = newVaultId, TargetCategory = targetCategory, TargetTenantId = targetTenantId, HouseId = realHouseId, VaultId = docVaultId }, tx);
+
+                // Physical deletion of vault file
+                var fileCandidates = new[]
+                {
+                    Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, "vault", $"doc_{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault", $"doc_{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, "vault", $"{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault", $"{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"doc_{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"doc_{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"{docVaultId}.pdf"),
+                    Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"{docVaultId}.pdf"),
+                };
+                foreach (var f in fileCandidates)
+                {
+                    SafeDeleteFile(f);
+                }
+
+                await conn.ExecuteAsync("DELETE FROM documents WHERE vault_id = @VaultId;", new { VaultId = docVaultId }, tx);
+            }
+        }
+
+        // Update tenant start date if relevant
+        if (targetTenantId > 0)
+        {
+            var minDate = await conn.QueryFirstOrDefaultAsync<string>(
+                "SELECT MIN(primary_date) FROM documents WHERE tenant_id = @TenantId AND is_timeline_visible = 1 AND primary_date IS NOT NULL AND primary_date != '';",
+                new { TenantId = targetTenantId }, tx);
+            if (!string.IsNullOrWhiteSpace(minDate))
+            {
+                await conn.ExecuteAsync(
+                    "UPDATE tenants SET start_date = @MinDate WHERE id = @TenantId;",
+                    new { MinDate = minDate, TenantId = targetTenantId }, tx);
+            }
+        }
+
+        await tx.CommitAsync();
+
+        return new MergeDocumentsResponseDto
+        {
+            Status = "success",
+            MergedVaultId = newVaultId,
+            MergedCategory = targetCategory,
+            MergedTenantId = targetTenantId,
+            MergedTenantName = targetTenantName,
+            MergedTitle = targetTitle,
+            TotalPages = totalPages,
+            SourceVaultIds = orderedDocs.Select(d => d.VaultId).ToList(),
+            SourcesDeleted = request.DeleteSources
+        };
+    }
+
+    public async Task<User?> GetUserByUsernameAsync(string username)
+    {
+        if (string.IsNullOrWhiteSpace(username)) return null;
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+        return await conn.QuerySingleOrDefaultAsync<User>(
+            "SELECT id, username, display_name AS DisplayName, password_hash AS PasswordHash, salt, role, created_at AS CreatedAt, is_active AS IsActive FROM users WHERE LOWER(username) = LOWER(@Username) AND is_active = 1;",
+            new { Username = username.Trim() });
+    }
+
+    public async Task<User?> GetUserByIdAsync(int id)
+    {
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+        return await conn.QuerySingleOrDefaultAsync<User>(
+            "SELECT id, username, display_name AS DisplayName, password_hash AS PasswordHash, salt, role, created_at AS CreatedAt, is_active AS IsActive FROM users WHERE id = @Id AND is_active = 1;",
+            new { Id = id });
+    }
+
+    public async Task<IReadOnlyList<UserDto>> GetAllUsersAsync()
+    {
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+        var users = await conn.QueryAsync<User>(
+            "SELECT id, username, display_name AS DisplayName, password_hash AS PasswordHash, salt, role, created_at AS CreatedAt, is_active AS IsActive FROM users WHERE is_active = 1 ORDER BY CASE WHEN role = 'Admin' THEN 1 ELSE 2 END, id ASC;");
+        return users.Select(u => new UserDto
+        {
+            Id = u.Id,
+            Username = u.Username,
+            DisplayName = u.DisplayName,
+            Role = u.Role
+        }).ToList();
+    }
 }
 

@@ -498,7 +498,77 @@
         { ar: 'فلساً', en: 'Fils' },
         { ar: 'فلس', en: 'Fils' },
         { ar: 'شهرياً', en: 'Monthly' },
-        { ar: 'سنوياً', en: 'Annually' }
+        { ar: 'سنوياً', en: 'Annually' },
+
+        // ── Common Administrative, Notice & Legal Phrases ──
+        { ar: 'بسم الله الرحمن الرحيم', en: 'In the name of Allah/God, the Most Gracious, the Most Merciful' },
+        { ar: 'يرجى التكرم بالحضور', en: 'Kindly attend / report in person' },
+        { ar: 'يرجى التكرم بالعلم', en: 'Kindly be informed' },
+        { ar: 'نحيطكم علماً بأن', en: 'We hereby inform you that' },
+        { ar: 'نحيطكم علماً', en: 'We hereby inform you' },
+        { ar: 'بناء على ما تقدم', en: 'Based on the foregoing' },
+        { ar: 'بناءً على ما تقدم', en: 'Based on the foregoing' },
+        { ar: 'قيد الدراسة', en: 'under review / pending' },
+        { ar: 'قيد التنفيذ', en: 'in progress / under implementation' },
+        { ar: 'المعمول بها', en: 'applicable / in force' },
+        { ar: 'المعمول به', en: 'applicable / in force' },
+        { ar: 'البطاقة الذكية', en: 'Smart Card / National ID' },
+        { ar: 'بطاقة ذكية', en: 'Smart Card / National ID' },
+        { ar: 'كشف حساب بنكي', en: 'Bank Account Statement' },
+        { ar: 'كشف حساب', en: 'Account Statement' },
+        { ar: 'رقم الحساب الدولي الآيبان', en: 'IBAN (International Bank Account Number)' },
+        { ar: 'رقم الحساب الدولي', en: 'IBAN (International Bank Account Number)' },
+        { ar: 'الحساب الدولي الآيبان', en: 'IBAN (International Bank Account Number)' },
+        { ar: 'الحساب الدولي', en: 'International Account (IBAN)' },
+        { ar: 'الطرف الأول: المؤجر', en: 'First Party: Lessor / Landlord' },
+        { ar: 'الطرف الثاني: المستأجر', en: 'Second Party: Tenant' },
+        { ar: 'الطرف الأول', en: 'First Party (Lessor)' },
+        { ar: 'الطرف الثاني', en: 'Second Party (Tenant)' },
+        { ar: 'مدة العقد', en: 'Contract Duration' },
+        { ar: 'سنة واحدة', en: 'One Year' },
+        { ar: 'والقيمة الإيجارية الشهرية', en: 'and the Monthly Rental Amount' },
+        { ar: 'القيمة الإيجارية الشهرية', en: 'Monthly Rental Amount' },
+        { ar: 'والقيمة الإيجارية', en: 'and the Rental Value' },
+        { ar: 'القيمة الإيجارية', en: 'Rental Value' },
+        { ar: 'الأجرة المستحقة', en: 'Outstanding Rent Due' },
+        { ar: 'الأجرة الشهرية', en: 'Monthly Rent' },
+        { ar: 'إشعار إخلاء', en: 'Eviction Notice' },
+        { ar: 'إنذار إخلاء', en: 'Eviction Warning' },
+        { ar: 'أمر إخلاء', en: 'Eviction Order' },
+        { ar: 'شعبة الإسكان', en: 'Housing Division' },
+        { ar: 'قسم الشؤون القانونية', en: 'Legal Affairs Department' },
+        { ar: 'قسم الشئون القانونية', en: 'Legal Affairs Department' },
+        { ar: 'الشؤون القانونية', en: 'Legal Affairs' },
+        { ar: 'الشئون القانونية', en: 'Legal Affairs' },
+        { ar: 'خلال مدة أقصاها', en: 'within a maximum period of' },
+        { ar: 'أيام من تاريخه', en: 'days from its date' },
+        { ar: 'من تاريخه', en: 'from its date' },
+        { ar: 'اتخاذ الإجراءات القانونية', en: 'initiating legal proceedings' },
+        { ar: 'الإجراءات القانونية', en: 'legal procedures' },
+        { ar: 'بحالة جيدة', en: 'in good condition' },
+        { ar: 'خالية من الشواغل', en: 'vacant and free of encumbrances' },
+        { ar: 'الكهرباء والماء', en: 'Electricity and Water' },
+        { ar: 'فواتير الكهرباء والماء', en: 'Electricity & Water Bills' },
+        { ar: 'فواتير الكهرباء', en: 'Electricity Bills' },
+        { ar: 'الختم الرسمي', en: 'Official Stamp / Seal' },
+        { ar: 'تحريراً في', en: 'Issued on / Executed on' },
+        { ar: 'تبدأ من', en: 'commencing from' },
+        { ar: 'وتنتهي في', en: 'and expiring on' },
+        { ar: 'تنتهي في', en: 'expiring on' },
+        { ar: 'تم استلام', en: 'has been received' },
+        { ar: 'وفقاً للأنظمة واللوائح', en: 'in accordance with systems and regulations' },
+        { ar: 'وفقاً للأنظمة', en: 'in accordance with regulations' },
+        { ar: 'إدارة الخدمات الإسكانية', en: 'Housing Services Directorate' },
+        { ar: 'صيانة وإصلاح', en: 'Maintenance & Repair' },
+        { ar: 'طلب صيانة', en: 'Maintenance Request' },
+        { ar: 'توقيع المستأجر', en: 'Tenant Signature' },
+        { ar: 'توقيع المؤجر', en: 'Lessor Signature' },
+        { ar: 'الرقم الشخصي', en: 'CPR / ID Number' },
+        { ar: 'مقر الوزارة', en: 'Ministry Headquarters' },
+        { ar: 'مقر شعبة', en: 'Division Headquarters' },
+        { ar: 'إلى مقر', en: 'to the headquarters of' },
+        { ar: 'التكرم بالحضور', en: 'kindly attend / report' },
+        { ar: 'لعدم سداد', en: 'for non-payment of' }
     ];
 
     // ── Word-Level Vocabulary Dictionary (500+ Words) ──
@@ -833,7 +903,46 @@
         'ميلاد': 'birth', 'الميلاد': 'birth',
         'وفاة': 'death', 'الوفاة': 'death',
         'ورثة': 'heirs', 'الورثة': 'heirs',
-        'داخلية': 'Interior', 'الداخلية': 'Interior'
+        'داخلية': 'Interior', 'الداخلية': 'Interior',
+
+        // Administrative & Eviction Terms
+        'عدم': 'non- / lack of', 'لعدم': 'due to failure of / for non-',
+        'تحديث': 'updating / renewal', 'لتحديث': 'to update',
+        'مقر': 'headquarters / office / premises', 'المقر': 'headquarters',
+        'شعبة': 'division / section', 'الشعبة': 'division',
+        'قسم': 'department / section', 'القسم': 'department',
+        'الشؤون': 'affairs', 'شؤون': 'affairs', 'الشئون': 'affairs', 'شئون': 'affairs',
+        'أقصاها': 'maximum of', 'أقصى': 'maximum', 'اقصى': 'maximum', 'اقصاها': 'maximum of',
+        'إجراءات': 'procedures / measures', 'الإجراءات': 'procedures / measures', 'اجراءات': 'procedures',
+        'تسليم': 'handover / delivery', 'التسليم': 'handover', 'تسليمها': 'handing it over',
+        'شواغل': 'occupants / encumbrances', 'الشواغل': 'occupants / encumbrances',
+        'كافة': 'all', 'رسوم': 'fees', 'الرسوم': 'fees',
+        'فواتير': 'bills / invoices', 'الفواتير': 'bills', 'فاتورة': 'bill / invoice', 'الفاتورة': 'bill',
+        'ماء': 'water', 'الماء': 'water', 'مياه': 'water', 'المياه': 'water',
+        'ختم': 'stamp / seal', 'الختم': 'stamp / seal',
+        'تحريراً': 'issued / drawn up', 'تحرير': 'issuance / drafting',
+        'تبدأ': 'starts / commences', 'تنتهي': 'ends / expires',
+        'استلام': 'Receipt', 'الاستلام': 'Receipt',
+        'أنظمة': 'systems / regulations', 'الأنظمة': 'systems / regulations',
+        'لوائح': 'regulations / bylaws', 'اللوائح': 'regulations / bylaws',
+        'مرفقات': 'attachments', 'المرفقات': 'attachments',
+        'كشف': 'statement / disclosure', 'الكشف': 'statement',
+        'أشهر': 'months', 'اشهر': 'months',
+        'توقيع': 'signature', 'التوقيع': 'signature',
+        'مؤجر': 'lessor / landlord', 'المؤجر': 'lessor / landlord',
+        'مدة': 'duration / period', 'المدة': 'duration / period',
+        'سنة': 'year', 'السنة': 'year',
+        'قيمة': 'value / amount', 'القيمة': 'value / amount',
+        'شهرية': 'monthly', 'الشهرية': 'monthly',
+        'أجرة': 'rent / fee', 'الأجرة': 'rent / fee', 'اجرة': 'rent',
+        'مستحق': 'due / payable', 'مستحقة': 'due / outstanding', 'المستحقة': 'due / outstanding',
+        'ذكية': 'smart', 'الذكية': 'smart',
+        'دولي': 'international', 'الدولي': 'international',
+        'آيبان': 'IBAN', 'الآيبان': 'IBAN', 'ايبان': 'IBAN',
+        'شارع': 'street / avenue', 'الشارع': 'street / avenue',
+        'ديوان': 'bureau / court', 'الديوان': 'bureau',
+        'وإلا': 'otherwise / or else', 'نظراً': 'given that / in view of', 'نظرا': 'given that',
+        'التكرم': 'kindly', 'تكرم': 'kindness', 'حضور': 'attendance', 'الحضور': 'attendance'
     };
 
     // ── Bahraini & Arab Personal / Family Names ──
@@ -959,15 +1068,30 @@
         const clean = normalizeArabicText(text);
         const words = clean.split(/\s+/).filter(Boolean);
         let reversedScore = 0;
+        let normalScore = 0;
         for (const w of words) {
-            if (w.startsWith('ة')) reversedScore += 3;
-            if (w.endsWith('لاو')) reversedScore += 3;
-            if (w.endsWith('لا') && !w.startsWith('ال') && w.length >= 4) reversedScore += 2;
-            if (['دقع', 'راجيإ', 'ءابرهك', 'نكسم', 'ةرازو', 'ةرازاو', 'ةكلمم', 'خيرات', 'ينيرحب', 'مقر', 'عافد'].includes(w)) {
+            // Strong reversed indicators:
+            // ة at word start is impossible in valid Arabic typography
+            if (w.startsWith('ة') && w.length > 1) reversedScore += 3;
+            // لاو at word end (وال reversed) is impossible as a valid suffix
+            if (w.endsWith('لاو') && w.length > 3) reversedScore += 3;
+            // لاب at word end (بال reversed)
+            if (w.endsWith('لاب') && w.length > 3) reversedScore += 3;
+            // Unambiguous reversed vocabulary stems with zero legitimate Arabic collision
+            // Note: 'مقر' is intentionally excluded because مقر is valid Arabic for Headquarters/Premises
+            if (['دقع', 'راجيإ', 'ءابرهك', 'نكسم', 'ةرازو', 'ةرازاو', 'ةكلمم', 'خيرات', 'ينيرحب', 'عافد'].includes(w)) {
                 reversedScore += 3;
             }
+
+            // Normal Arabic stream indicators
+            if (w.startsWith('ال') && w.length > 3) normalScore += 2;
+            if (w.startsWith('وال') && w.length > 4) normalScore += 2;
+            if (w.startsWith('بال') && w.length > 4) normalScore += 2;
+            if (w.endsWith('ة') && w.length > 2) normalScore += 2;
+            if (w.endsWith('ات') && w.length > 3) normalScore += 1;
         }
-        if (reversedScore >= 2) {
+        // Only reverse if reversed indicators clearly dominate normal indicators
+        if (reversedScore >= 3 && reversedScore > normalScore) {
             return clean.split('').reverse().join('');
         }
         return text;
@@ -976,10 +1100,10 @@
     function unreverseWordIfApplicable(word) {
         if (!word || word.length < 2) return word;
         const rev = word.split('').reverse().join('');
-        if (word.startsWith('ة') || word.endsWith('لاو') || (word.endsWith('لا') && !word.startsWith('ال') && word.length >= 4)) {
+        if (word.startsWith('ة') || word.endsWith('لاو') || word.endsWith('لاب')) {
             return rev;
         }
-        const knownReversedStems = ['دقع', 'راجيإ', 'ءابرهك', 'نكسم', 'ةرازو', 'ةرازاو', 'ةكلمم', 'خيرات', 'ينيرحب', 'مقر', 'عافد'];
+        const knownReversedStems = ['دقع', 'راجيإ', 'ءابرهك', 'نكسم', 'ةرازو', 'ةرازاو', 'ةكلمم', 'خيرات', 'ينيرحب', 'عافد'];
         if (knownReversedStems.includes(word)) {
             return rev;
         }
@@ -1339,7 +1463,8 @@
     function clusterPdfItemsIntoLines(items, viewportHeight) {
         if (!items || items.length === 0) return [];
         const valid = [];
-        for (const it of items) {
+        for (let idx = 0; idx < items.length; idx++) {
+            const it = items[idx];
             if (!it.str || !it.str.trim()) continue;
             const tx = it.transform || [1, 0, 0, 1, 0, 0];
             const h = it.height || 14;
@@ -1349,19 +1474,17 @@
             const x1 = x0 + w;
             const y1 = y0 + h;
             valid.push({
+                idx,
                 str: it.str.normalize('NFKC'),
                 x0, y0, x1, y1, h, w
             });
         }
         if (valid.length === 0) return [];
 
-        // Sort by vertical position (top to bottom)
-        valid.sort((a, b) => a.y0 - b.y0);
-
+        // Group into line clusters based on vertical proximity without scrambling intra-line word order
         const clusters = [];
         for (const item of valid) {
-            // Group items whose vertical baseline is within 6px or 50% line height
-            const cluster = clusters.find(c => Math.abs(c.y0 - item.y0) <= Math.max(6, item.h * 0.5));
+            const cluster = clusters.find(c => Math.abs(c.y0 - item.y0) <= Math.max(6, item.h * 0.55));
             if (cluster) {
                 cluster.items.push(item);
                 cluster.x0 = Math.min(cluster.x0, item.x0);
@@ -1379,8 +1502,13 @@
             }
         }
 
+        // Sort lines top-to-bottom
+        clusters.sort((a, b) => a.y0 - b.y0);
+
         const lines = [];
         for (const cluster of clusters) {
+            // Within each line cluster, maintain original stream index (reading order)
+            cluster.items.sort((a, b) => a.idx - b.idx);
             let lineText = cluster.items.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
             if (lineText.length > 0) {
                 lineText = detectAndUnreverseArabic(lineText);
@@ -1441,14 +1569,23 @@
                 const worker = await getTesseractWorker();
                 if (worker) {
                     const res = await worker.recognize(canvas);
-                    if (res && res.data && res.data.lines && res.data.lines.length > 0) {
-                        const lines = res.data.lines
-                            .filter(l => l.text && l.text.trim().length > 0)
-                            .map(l => ({
-                                text: l.text.trim(),
-                                bbox: l.bbox,
-                                words: l.words
-                            }));
+                    if (res && res.data) {
+                        let lines = [];
+                        if (res.data.lines && res.data.lines.length > 0) {
+                            lines = res.data.lines
+                                .filter(l => l.text && l.text.trim().length > 0)
+                                .map(l => ({
+                                    text: l.text.trim(),
+                                    bbox: l.bbox,
+                                    words: l.words
+                                }));
+                        } else if (res.data.text && res.data.text.trim().length > 0) {
+                            lines = res.data.text
+                                .split('\n')
+                                .map(t => t.trim())
+                                .filter(t => t.length > 0)
+                                .map(text => ({ text }));
+                        }
                         if (lines.length > 0) {
                             pageOcrCache.set(cacheKey, lines);
                             indicator.remove();
@@ -2056,6 +2193,28 @@
                         tenant_name: currentPinnedDoc.tenant_name || currentPinnedDoc.tenant || '',
                         tenant_id: currentPinnedDoc.tenant_id || null
                     }, currentPinnedDoc.category);
+                }
+            };
+        }
+
+        const viewerMergeBtn = document.getElementById('viewer-merge-btn');
+        if (viewerMergeBtn) {
+            viewerMergeBtn.onclick = (e) => {
+                e.preventDefault();
+                if (currentPinnedDoc && typeof window.openMergeModal === 'function') {
+                    const area = (typeof currentArea !== 'undefined' ? currentArea : window.currentArea);
+                    const house = (typeof currentHouse !== 'undefined' ? currentHouse : window.currentHouse);
+                    window.openMergeModal([{
+                        vault_id: currentPinnedDoc.vaultId,
+                        title: currentPinnedDoc.title,
+                        category: currentPinnedDoc.category,
+                        area_id: area,
+                        house_id: house,
+                        tenant: currentPinnedDoc.tenant || currentPinnedDoc.tenant_name || '',
+                        tenant_name: currentPinnedDoc.tenant_name || currentPinnedDoc.tenant || '',
+                        tenant_id: currentPinnedDoc.tenant_id || null,
+                        page_count: currentPinnedDoc.page_count || 1
+                    }], currentPinnedDoc.category);
                 }
             };
         }

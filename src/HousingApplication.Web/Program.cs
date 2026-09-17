@@ -1,4 +1,5 @@
 using System.IO.Compression;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -6,6 +7,8 @@ using System.Text.RegularExpressions;
 using FileOrganizer.Web.Common;
 using FileOrganizer.Web.Data;
 using FileOrganizer.Web.Models;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http.Json;
 using PdfSharpCore.Drawing;
 using PdfSharpCore.Pdf;
@@ -29,6 +32,28 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader();
     });
 });
+
+// Configure Cookie Authentication
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.Cookie.Name = "HousingApp.Auth";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.ExpireTimeSpan = TimeSpan.FromDays(30);
+        options.SlidingExpiration = true;
+        options.Events.OnRedirectToLogin = context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return Task.CompletedTask;
+        };
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Task.CompletedTask;
+        };
+    });
+builder.Services.AddAuthorization();
 
 // Register DI services
 builder.Services.AddSingleton<ISqliteDbConnectionFactory, SqliteDbConnectionFactory>();
@@ -58,6 +83,8 @@ using (var scope = app.Services.CreateScope())
 
 app.UseCors();
 app.UseResponseCompression();
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Static file serving from wwwroot/
 var staticContentTypeProvider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
@@ -93,6 +120,128 @@ app.UseStaticFiles(new StaticFileOptions
 // Health check
 // ---------------------------------------------------------------------------
 app.MapGet("/api/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+
+// ---------------------------------------------------------------------------
+// RBAC Security Helpers
+// ---------------------------------------------------------------------------
+static bool IsRestrictedFromDelete(HttpContext ctx)
+{
+    // If authenticated user is a Contributor, they cannot delete
+    if (ctx.User.Identity?.IsAuthenticated == true)
+    {
+        if (ctx.User.IsInRole("Contributor")) return true;
+        var canDeleteClaim = ctx.User.FindFirst("can_delete")?.Value;
+        if (string.Equals(canDeleteClaim, "false", StringComparison.OrdinalIgnoreCase)) return true;
+    }
+
+    // Optional header-based role checking (for testing and automation)
+    var headerRole = ctx.Request.Headers["X-User-Role"].FirstOrDefault();
+    if (string.Equals(headerRole, "Contributor", StringComparison.OrdinalIgnoreCase))
+        return true;
+
+    var headerUser = ctx.Request.Headers["X-User"].FirstOrDefault();
+    if (!string.IsNullOrEmpty(headerUser))
+    {
+        var contributors = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Nawaf", "Naseem", "Mulla", "Mariam", "Shaima", "Mona"
+        };
+        if (contributors.Contains(headerUser.Trim()))
+            return true;
+    }
+
+    return false;
+}
+
+// ---------------------------------------------------------------------------
+// Authentication API
+// ---------------------------------------------------------------------------
+app.MapGet("/api/auth/users", async (IFileOrganizerRepository repo) =>
+{
+    var users = await repo.GetAllUsersAsync();
+    return Results.Ok(users);
+});
+
+app.MapGet("/api/auth/me", (HttpContext httpContext) =>
+{
+    if (httpContext.User.Identity?.IsAuthenticated != true)
+    {
+        return Results.Ok(new AuthStatusResponseDto
+        {
+            Authenticated = false,
+            User = null
+        });
+    }
+
+    var username = httpContext.User.Identity.Name ?? "";
+    var displayName = httpContext.User.FindFirst("display_name")?.Value ?? username;
+    var role = httpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? "Contributor";
+    int.TryParse(httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id);
+
+    var userDto = new UserDto
+    {
+        Id = id,
+        Username = username,
+        DisplayName = displayName,
+        Role = role
+    };
+
+    return Results.Ok(new AuthStatusResponseDto
+    {
+        Authenticated = true,
+        User = userDto
+    });
+});
+
+app.MapPost("/api/auth/login", async (
+    LoginRequestDto req,
+    HttpContext httpContext,
+    IFileOrganizerRepository repo) =>
+{
+    if (string.IsNullOrWhiteSpace(req.Username))
+        return Results.BadRequest(new { error = "Username is required." });
+
+    var user = await repo.GetUserByUsernameAsync(req.Username.Trim());
+    if (user == null)
+        return Results.Json(new { error = "Invalid username or password." }, statusCode: StatusCodes.Status401Unauthorized);
+
+    var isPasswordValid = PasswordHasher.VerifyPassword(req.Password, user.PasswordHash, user.Salt, user.Username);
+    if (!isPasswordValid)
+        return Results.Json(new { error = "Invalid username or password." }, statusCode: StatusCodes.Status401Unauthorized);
+
+    var claims = new List<Claim>
+    {
+        new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+        new(ClaimTypes.Name, user.Username),
+        new("display_name", user.DisplayName),
+        new(ClaimTypes.Role, user.Role),
+        new("can_delete", (user.Role == "Admin").ToString().ToLower())
+    };
+
+    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+    await httpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity));
+
+    var userDto = new UserDto
+    {
+        Id = user.Id,
+        Username = user.Username,
+        DisplayName = user.DisplayName,
+        Role = user.Role
+    };
+
+    return Results.Ok(new LoginResponseDto
+    {
+        Success = true,
+        Message = "Logged in successfully.",
+        User = userDto
+    });
+});
+
+app.MapPost("/api/auth/logout", async (HttpContext httpContext) =>
+{
+    await httpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+    return Results.Ok(new { success = true, message = "Logged out successfully." });
+});
 
 // ---------------------------------------------------------------------------
 // Tree API
@@ -162,9 +311,13 @@ app.MapPost("/api/areas/{areaId}/houses", async (
 app.MapDelete("/api/areas/{areaId}/houses/{houseId}", async (
     string areaId,
     string houseId,
+    HttpContext httpContext,
     IFileOrganizerRepository repo,
     IConfiguration config) =>
 {
+    if (IsRestrictedFromDelete(httpContext))
+        return Results.Json(new { status = "error", error = "Permission denied: Contributor accounts have read and upload access only and cannot delete records." }, statusCode: StatusCodes.Status403Forbidden);
+
     if (string.IsNullOrWhiteSpace(houseId))
     {
         return Results.BadRequest(new { error = "House ID is required and cannot be empty." });
@@ -486,8 +639,12 @@ app.MapDelete("/api/areas/{areaId}/houses/{houseId}/categories/{categoryName}", 
     string areaId,
     string houseId,
     string categoryName,
+    HttpContext httpContext,
     IFileOrganizerRepository repo) =>
 {
+    if (IsRestrictedFromDelete(httpContext))
+        return Results.Json(new { status = "error", error = "Permission denied: Contributor accounts have read and upload access only and cannot delete records." }, statusCode: StatusCodes.Status403Forbidden);
+
     var reassigned = await repo.DeleteCategoryAsync(houseId, categoryName);
     return Results.Ok(new
     {
@@ -777,9 +934,13 @@ app.MapDelete("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}", async 
     string areaId,
     string houseId,
     string vaultId,
+    HttpContext httpContext,
     IFileOrganizerRepository repo,
     IConfiguration config) =>
 {
+    if (IsRestrictedFromDelete(httpContext))
+        return Results.Json(new { status = "error", error = "Permission denied: Contributor accounts have read and upload access only and cannot delete records." }, statusCode: StatusCodes.Status403Forbidden);
+
     var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
     var success = await repo.DeleteDocumentAsync(areaId, houseId, vaultId, areasRoot);
     if (!success)
@@ -792,9 +953,13 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/batch-delete", async
     string areaId,
     string houseId,
     BatchDeleteRequestDto dto,
+    HttpContext httpContext,
     IFileOrganizerRepository repo,
     IConfiguration config) =>
 {
+    if (IsRestrictedFromDelete(httpContext))
+        return Results.Json(new { status = "error", error = "Permission denied: Contributor accounts have read and upload access only and cannot delete records." }, statusCode: StatusCodes.Status403Forbidden);
+
     if (dto.VaultIds == null || dto.VaultIds.Count == 0)
         return Results.BadRequest(new { error = "vault_ids must not be empty." });
 
@@ -876,9 +1041,13 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/delete-pag
     string houseId,
     string vaultId,
     DeletePagesRequestDto dto,
+    HttpContext httpContext,
     IFileOrganizerRepository repo,
     IConfiguration config) =>
 {
+    if (IsRestrictedFromDelete(httpContext))
+        return Results.Json(new { status = "error", error = "Permission denied: Contributor accounts have read and upload access only and cannot delete records." }, statusCode: StatusCodes.Status403Forbidden);
+
     if (dto.PageNumbers == null || dto.PageNumbers.Count == 0)
         return Results.BadRequest(new { error = "page_numbers must not be empty." });
 
@@ -965,9 +1134,13 @@ app.MapPost("/api/documents/{vaultId}/extract-pages", async (
 app.MapPost("/api/documents/{vaultId}/delete-pages", async (
     string vaultId,
     DeletePagesRequestDto dto,
+    HttpContext httpContext,
     IFileOrganizerRepository repo,
     IConfiguration config) =>
 {
+    if (IsRestrictedFromDelete(httpContext))
+        return Results.Json(new { status = "error", error = "Permission denied: Contributor accounts have read and upload access only and cannot delete records." }, statusCode: StatusCodes.Status403Forbidden);
+
     if (dto.PageNumbers == null || dto.PageNumbers.Count == 0)
         return Results.BadRequest(new { error = "page_numbers must not be empty." });
 

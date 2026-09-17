@@ -2313,7 +2313,240 @@ public class RepositoryTests : IDisposable
             }
         }
     }
+
+    [Fact]
+    public async Task MergeDocumentsAsync_WithTwoValidDocuments_CreatesMergedDocumentWithCombinedPages()
+    {
+        var area = await _repo.AddAreaAsync("AreaMerge");
+        var house = await _repo.AddHouseAsync("H-MRG", area.Id);
+        var tenant = await _repo.AddTenantAsync(house.Id, "محمد العتيبي", "2020-01-01");
+
+        var doc1VaultId = Guid.NewGuid().ToString("N");
+        var doc2VaultId = Guid.NewGuid().ToString("N");
+
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = area.Id,
+            HouseId = house.Id,
+            TenantId = tenant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد إيجار 1",
+            PrimaryDate = "2021-01-15",
+            VaultId = doc1VaultId,
+            PageCount = 3
+        });
+
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = area.Id,
+            HouseId = house.Id,
+            TenantId = tenant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "ملحق عقد",
+            PrimaryDate = "2021-06-20",
+            VaultId = doc2VaultId,
+            PageCount = 2
+        });
+
+        var mergeReq = new MergeDocumentsRequestDto
+        {
+            VaultIds = new List<string> { doc1VaultId, doc2VaultId },
+            TargetTitle = "عقد إيجار مدمج مع الملحق",
+            TargetCategory = "05 - عقود",
+            TargetTenantId = tenant.Id,
+            TargetDate = "2021-01-15",
+            TargetNotes = "تم دمج العقد مع الملحق",
+            DeleteSources = false
+        };
+
+        var res = await _repo.MergeDocumentsAsync(area.Id, house.Id, mergeReq);
+
+        Assert.Equal("success", res.Status);
+        Assert.False(string.IsNullOrEmpty(res.MergedVaultId));
+        Assert.Equal("عقد إيجار مدمج مع الملحق", res.MergedTitle);
+        Assert.Equal(5, res.TotalPages);
+        Assert.False(res.SourcesDeleted);
+
+        // Verify merged document exists in database
+        var mergedDoc = await _repo.GetDocumentRawAsync(res.MergedVaultId);
+        Assert.NotNull(mergedDoc);
+        Assert.Equal(5, mergedDoc.PageCount);
+        Assert.Equal("عقد إيجار مدمج مع الملحق", mergedDoc.ArabicTitle);
+
+        // Sources should still exist since DeleteSources was false
+        var src1 = await _repo.GetDocumentRawAsync(doc1VaultId);
+        var src2 = await _repo.GetDocumentRawAsync(doc2VaultId);
+        Assert.NotNull(src1);
+        Assert.NotNull(src2);
+    }
+
+    [Fact]
+    public async Task MergeDocumentsAsync_WithDeleteSourcesTrue_DeletesSourceDocumentsAndCreatesMerged()
+    {
+        var area = await _repo.AddAreaAsync("AreaMergeDel");
+        var house = await _repo.AddHouseAsync("H-MDEL", area.Id);
+        var tenant = await _repo.AddTenantAsync(house.Id, "خالد الدوسري", "2022-03-01");
+
+        var doc1VaultId = Guid.NewGuid().ToString("N");
+        var doc2VaultId = Guid.NewGuid().ToString("N");
+
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = area.Id,
+            HouseId = house.Id,
+            TenantId = tenant.Id,
+            Category = "06 - كهرباء وماء",
+            ArabicTitle = "فاتورة كهرباء 1",
+            PrimaryDate = "2022-04-10",
+            VaultId = doc1VaultId,
+            PageCount = 1
+        });
+
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = area.Id,
+            HouseId = house.Id,
+            TenantId = tenant.Id,
+            Category = "06 - كهرباء وماء",
+            ArabicTitle = "فاتورة كهرباء 2",
+            PrimaryDate = "2022-05-10",
+            VaultId = doc2VaultId,
+            PageCount = 2
+        });
+
+        var mergeReq = new MergeDocumentsRequestDto
+        {
+            VaultIds = new List<string> { doc1VaultId, doc2VaultId },
+            TargetTitle = "فواتير كهرباء مدمجة",
+            TargetCategory = "06 - كهرباء وماء",
+            TargetTenantId = tenant.Id,
+            DeleteSources = true
+        };
+
+        var res = await _repo.MergeDocumentsAsync(area.Id, house.Id, mergeReq);
+
+        Assert.Equal("success", res.Status);
+        Assert.True(res.SourcesDeleted);
+        Assert.Equal(3, res.TotalPages);
+
+        // Merged doc exists
+        var mergedDoc = await _repo.GetDocumentRawAsync(res.MergedVaultId);
+        Assert.NotNull(mergedDoc);
+        Assert.Equal(3, mergedDoc.PageCount);
+
+        // Sources should be deleted from DB
+        var src1 = await _repo.GetDocumentRawAsync(doc1VaultId);
+        var src2 = await _repo.GetDocumentRawAsync(doc2VaultId);
+        Assert.Null(src1);
+        Assert.Null(src2);
+    }
+
+    [Fact]
+    public async Task MergeDocumentsAsync_WithFewerThanTwoDocuments_ThrowsArgumentException()
+    {
+        var mergeReq = new MergeDocumentsRequestDto
+        {
+            VaultIds = new List<string> { "single_vault_id" }
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            _repo.MergeDocumentsAsync("AreaInvalid", "H-INV", mergeReq));
+    }
+
+    [Fact]
+    public async Task MergeDocumentsAsync_WithPhysicalPdfs_MergesPagesIntoSinglePdfOnDisk()
+    {
+        var tempAreas = Path.Combine(Path.GetTempPath(), "test_merge_phys_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var areaId = "AreaPhysMerge";
+            var houseId = "202";
+            var doc1VaultId = Guid.NewGuid().ToString("N");
+            var doc2VaultId = Guid.NewGuid().ToString("N");
+            var vaultDir = Path.Combine(tempAreas, areaId, houseId, "vault");
+            Directory.CreateDirectory(vaultDir);
+
+            // Create Doc 1 with 2 pages
+            var pdf1 = Path.Combine(vaultDir, $"doc_{doc1VaultId}.pdf");
+            using (var d1 = new PdfSharpCore.Pdf.PdfDocument())
+            {
+                d1.AddPage();
+                d1.AddPage();
+                d1.Save(pdf1);
+            }
+
+            // Create Doc 2 with 3 pages
+            var pdf2 = Path.Combine(vaultDir, $"doc_{doc2VaultId}.pdf");
+            using (var d2 = new PdfSharpCore.Pdf.PdfDocument())
+            {
+                d2.AddPage();
+                d2.AddPage();
+                d2.AddPage();
+                d2.Save(pdf2);
+            }
+
+            await _repo.AddAreaAsync(areaId, "APM");
+            await _repo.AddHouseAsync(houseId, areaId);
+            var tenant = await _repo.AddTenantAsync(houseId, "Physical Merge Tenant", "2024-01-01");
+
+            await _repo.AddManualDocumentAsync(new IngestRequestDto
+            {
+                AreaId = areaId,
+                HouseId = houseId,
+                TenantId = tenant.Id,
+                Category = "05 - عقود",
+                ArabicTitle = "وثيقة 1",
+                VaultId = doc1VaultId,
+                PageCount = 2
+            });
+
+            await _repo.AddManualDocumentAsync(new IngestRequestDto
+            {
+                AreaId = areaId,
+                HouseId = houseId,
+                TenantId = tenant.Id,
+                Category = "05 - عقود",
+                ArabicTitle = "وثيقة 2",
+                VaultId = doc2VaultId,
+                PageCount = 3
+            });
+
+            var mergeReq = new MergeDocumentsRequestDto
+            {
+                VaultIds = new List<string> { doc1VaultId, doc2VaultId },
+                TargetTitle = "وثيقة مدمجة 5 صفحات",
+                TargetCategory = "05 - عقود",
+                TargetTenantId = tenant.Id,
+                DeleteSources = true
+            };
+
+            var res = await _repo.MergeDocumentsAsync(areaId, houseId, mergeReq, tempAreas);
+
+            Assert.Equal("success", res.Status);
+            Assert.Equal(5, res.TotalPages);
+
+            // Check merged physical PDF on disk has 5 pages
+            var mergedPdfPath = Path.Combine(vaultDir, $"doc_{res.MergedVaultId}.pdf");
+            Assert.True(File.Exists(mergedPdfPath));
+            using (var outPdf = PdfSharpCore.Pdf.IO.PdfReader.Open(mergedPdfPath, PdfSharpCore.Pdf.IO.PdfDocumentOpenMode.Import))
+            {
+                Assert.Equal(5, outPdf.PageCount);
+            }
+
+            // Check source files deleted from disk
+            Assert.False(File.Exists(pdf1));
+            Assert.False(File.Exists(pdf2));
+        }
+        finally
+        {
+            if (Directory.Exists(tempAreas))
+            {
+                try { Directory.Delete(tempAreas, true); } catch { }
+            }
+        }
+    }
 }
+
 
 
 

@@ -887,4 +887,59 @@ public record ReorderPagesResponseDto
     public List<int> PageOrder { get; init; } = new();
 }
 
+public record MergeDocumentsRequestDto
+{
+    [JsonPropertyName("vault_ids")]
+    public List<string> VaultIds { get; init; } = new();
+
+    [JsonPropertyName("target_title")]
+    public string? TargetTitle { get; init; }
+
+    [JsonPropertyName("target_category")]
+    public string? TargetCategory { get; init; }
+
+    [JsonPropertyName("target_tenant_id")]
+    public int? TargetTenantId { get; init; }
+
+    [JsonPropertyName("target_date")]
+    public string? TargetDate { get; init; }
+
+    [JsonPropertyName("target_notes")]
+    public string? TargetNotes { get; init; }
+
+    [JsonPropertyName("delete_sources")]
+    public bool DeleteSources { get; init; } = false;
+}
+
+public record MergeDocumentsResponseDto
+{
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = "success";
+
+    [JsonPropertyName("merged_vault_id")]
+    public string MergedVaultId { get; init; } = string.Empty;
+
+    [JsonPropertyName("merged_category")]
+    public string MergedCategory { get; init; } = string.Empty;
+
+    [JsonPropertyName("merged_tenant_id")]
+    public int MergedTenantId { get; init; }
+
+    [JsonPropertyName("merged_tenant_name")]
+    public string? MergedTenantName { get; init; }
+
+    [JsonPropertyName("merged_title")]
+    public string? MergedTitle { get; init; }
+
+    [JsonPropertyName("total_pages")]
+    public int TotalPages { get; init; }
+
+    [JsonPropertyName("source_vault_ids")]
+    public List<string> SourceVaultIds { get; init; } = new();
+
+    [JsonPropertyName("sources_deleted")]
+    public bool SourcesDeleted { get; init; }
+}
+
+
 
