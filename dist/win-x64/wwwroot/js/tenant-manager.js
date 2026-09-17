@@ -109,6 +109,18 @@
         }
         tenantModalRows.innerHTML = '<p class="text-xs text-slate-500 py-3 text-center">Loading tenants...</p>';
         tenantModalStatus.classList.add('hidden');
+
+        // RBAC: Check deletion permissions for Danger Zone
+        const dangerZone = document.getElementById('house-settings-danger-zone');
+        const dangerDivider = document.getElementById('house-settings-danger-divider');
+        const canDelete = (typeof window !== 'undefined' && window.authManager) ? window.authManager.hasDeletePermission() : true;
+        if (dangerZone) {
+            dangerZone.classList.toggle('hidden', !canDelete);
+        }
+        if (dangerDivider) {
+            dangerDivider.classList.toggle('hidden', !canDelete);
+        }
+
         tenantModal.classList.remove('hidden');
         loadTenantsForModal();
     }
@@ -385,6 +397,13 @@
     }
 
     function openDeleteHouseModal() {
+        const canDelete = (typeof window !== 'undefined' && window.authManager) ? window.authManager.hasDeletePermission() : true;
+        if (!canDelete) {
+            const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+            if (toast) toast('عذراً: ليس لديك صلاحية حذف المنازل (قراءة ورفع فقط) • House deletion is restricted for Contributor accounts.', 'error');
+            return;
+        }
+
         const area = (typeof currentArea !== 'undefined' && currentArea) ? currentArea : (window.currentArea || '');
         const house = (typeof currentHouse !== 'undefined' && currentHouse) ? currentHouse : (window.currentHouse || '');
         if (!house) {
@@ -439,6 +458,13 @@
     }
 
     async function executeDeleteHouse() {
+        const canDelete = (typeof window !== 'undefined' && window.authManager) ? window.authManager.hasDeletePermission() : true;
+        if (!canDelete) {
+            const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+            if (toast) toast('عذراً: ليس لديك صلاحية حذف المنازل (قراءة ورفع فقط) • House deletion is restricted for Contributor accounts.', 'error');
+            return;
+        }
+
         if (!targetHouseToDelete || !targetAreaOfHouseToDelete) return;
         if (!deleteHouseConfirmBtn || deleteHouseConfirmBtn.disabled) return;
 
@@ -532,6 +558,16 @@
     window.openDeleteHouseModal = openDeleteHouseModal;
     window.closeDeleteHouseModal = closeDeleteHouseModal;
     window.updateViewerTenantSelect = updateViewerTenantSelect;
+
+    if (typeof window !== 'undefined') {
+        window.addEventListener('auth:user-changed', (e) => {
+            const dangerZone = document.getElementById('house-settings-danger-zone');
+            const dangerDivider = document.getElementById('house-settings-danger-divider');
+            const canDelete = e.detail ? e.detail.canDelete : true;
+            if (dangerZone) dangerZone.classList.toggle('hidden', !canDelete);
+            if (dangerDivider) dangerDivider.classList.toggle('hidden', !canDelete);
+        });
+    }
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initTenantManager);

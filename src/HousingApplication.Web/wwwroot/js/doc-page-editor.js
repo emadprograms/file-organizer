@@ -370,12 +370,17 @@
             card.classList.add('border-blue-500', 'ring-2', 'ring-blue-400/50', 'bg-blue-50/20');
         }
 
+        const canDelete = (typeof window !== 'undefined' && window.authManager) ? window.authManager.hasDeletePermission() : true;
+        const deleteBtnHtml = canDelete
+            ? `<button type="button" class="btn-card-delete p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer" title="Delete page • حذف الصفحة">
+                <svg class="w-4 h-4 text-rose-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+            </button>`
+            : '<div class="w-4"></div>';
+
         card.innerHTML = `
             <!-- Card Top Bar: Actions & Selection -->
             <div class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between gap-1 flex-shrink-0">
-                <button type="button" class="btn-card-delete p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors" title="Delete page • حذف الصفحة">
-                    <svg class="w-4 h-4 text-rose-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                </button>
+                ${deleteBtnHtml}
                 <div class="flex items-center gap-1">
                     <button type="button" class="btn-move-left p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 disabled:opacity-30 disabled:pointer-events-none transition-all" title="Move earlier • تقديم الصفحة" ${displayPos <= 1 ? 'disabled' : ''}>
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
@@ -527,10 +532,17 @@
         }
 
         if (btnDeleteSelected) {
-            btnDeleteSelected.disabled = count === 0;
-            const textSpan = btnDeleteSelected.querySelector('.btn-text');
-            if (textSpan) {
-                textSpan.textContent = count > 0 ? `Delete Selected (${count})` : 'Delete Selected';
+            const canDelete = (typeof window !== 'undefined' && window.authManager) ? window.authManager.hasDeletePermission() : true;
+            if (!canDelete) {
+                btnDeleteSelected.classList.add('hidden');
+                btnDeleteSelected.disabled = true;
+            } else {
+                btnDeleteSelected.classList.remove('hidden');
+                btnDeleteSelected.disabled = count === 0;
+                const textSpan = btnDeleteSelected.querySelector('.btn-text');
+                if (textSpan) {
+                    textSpan.textContent = count > 0 ? `Delete Selected (${count})` : 'Delete Selected';
+                }
             }
         }
 
@@ -621,6 +633,14 @@
 
     async function handleDeleteSinglePage(pageNum, displayPos) {
         if (!activeEditorDoc) return;
+
+        const canDelete = (typeof window !== 'undefined' && window.authManager) ? window.authManager.hasDeletePermission() : true;
+        if (!canDelete) {
+            const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+            if (toast) toast('عذراً: ليس لديك صلاحية حذف صفحات الوثائق (قراءة ورفع فقط) • Page deletion is restricted for Contributor accounts.', 'error');
+            return;
+        }
+
         const confirmMsg = `Are you sure you want to delete Page ${displayPos}? This cannot be undone.\n\nهل أنت متأكد من حذف الصفحة ${displayPos} نهائياً؟`;
         if (!window.confirm(confirmMsg)) return;
 
@@ -629,6 +649,14 @@
 
     async function handleDeleteSelectedPages() {
         if (!activeEditorDoc || selectedPageNumbers.size === 0) return;
+
+        const canDelete = (typeof window !== 'undefined' && window.authManager) ? window.authManager.hasDeletePermission() : true;
+        if (!canDelete) {
+            const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+            if (toast) toast('عذراً: ليس لديك صلاحية حذف صفحات الوثائق (قراءة ورفع فقط) • Page deletion is restricted for Contributor accounts.', 'error');
+            return;
+        }
+
         const count = selectedPageNumbers.size;
         const confirmMsg = `Are you sure you want to delete ${count} selected page${count > 1 ? 's' : ''}? This cannot be undone.\n\nهل أنت متأكد من حذف ${count} صفحة محددة نهائياً؟`;
         if (!window.confirm(confirmMsg)) return;
@@ -638,6 +666,13 @@
 
     async function executeDeletePages(pagesToDelete) {
         if (!activeEditorDoc || pagesToDelete.length === 0) return;
+
+        const canDelete = (typeof window !== 'undefined' && window.authManager) ? window.authManager.hasDeletePermission() : true;
+        if (!canDelete) {
+            const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+            if (toast) toast('عذراً: ليس لديك صلاحية حذف صفحات الوثائق (قراءة ورفع فقط) • Page deletion is restricted for Contributor accounts.', 'error');
+            return;
+        }
         const area = activeEditorDoc.area_id || 'default';
         const house = activeEditorDoc.house_id || 'default';
         const vaultId = activeEditorDoc.vault_id || activeEditorDoc.id;
@@ -968,6 +1003,16 @@
     window.openPageEditor = openPageEditor;
     window.closePageEditor = closePageEditor;
     window.initPageEditor = initPageEditor;
+
+    if (typeof window !== 'undefined') {
+        window.addEventListener('auth:user-changed', () => {
+            updateSelectionUI();
+            if (activeEditorDoc) {
+                if (activePdfDoc) renderThumbnails();
+                else renderFallbackCards();
+            }
+        });
+    }
 
     if (typeof module !== 'undefined' && module.exports) {
         module.exports = {

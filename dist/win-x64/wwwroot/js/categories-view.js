@@ -426,6 +426,12 @@
             }
         }
 
+        const btnDelete = document.getElementById('btn-batch-delete');
+        if (btnDelete) {
+            const canDelete = (typeof window !== 'undefined' && window.authManager) ? window.authManager.hasDeletePermission() : true;
+            btnDelete.classList.toggle('hidden', !canDelete);
+        }
+
         const btnMerge = document.getElementById('btn-batch-merge');
         if (btnMerge) {
             if (count >= 2) {
@@ -1195,6 +1201,14 @@
 
     function openBatchDeleteModal() {
         if (selectedDocIds.size === 0) return;
+
+        const canDelete = (typeof window !== 'undefined' && window.authManager) ? window.authManager.hasDeletePermission() : true;
+        if (!canDelete) {
+            const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+            if (toast) toast('عذراً: ليس لديك صلاحية حذف الوثائق (قراءة ورفع فقط) • Deletion is restricted for Contributor accounts.', 'error');
+            return;
+        }
+
         const modal = document.getElementById('batch-delete-modal');
         const msg = document.getElementById('batch-delete-message');
         const subtitle = document.getElementById('batch-delete-subtitle');
@@ -2064,7 +2078,8 @@
         };
 
         const isCustomFolder = !isStandardCategoryName(cat.name);
-        const deleteFolderBtn = isCustomFolder
+        const canDelete = (typeof window !== 'undefined' && window.authManager) ? window.authManager.hasDeletePermission() : true;
+        const deleteFolderBtn = (isCustomFolder && canDelete)
             ? `<button type="button" class="btn-delete-folder opacity-0 group-hover/card:opacity-100 p-1 hover:bg-rose-50 rounded text-slate-400 hover:text-rose-600 transition-all text-xs flex-shrink-0" title="Delete Custom Folder" data-category-name="${escapeHtml(cat.name)}">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
             </button>`
@@ -2146,6 +2161,13 @@
         if (deleteBtn) {
             deleteBtn.onclick = async (e) => {
                 e.stopPropagation();
+                const canDelete = (typeof window !== 'undefined' && window.authManager) ? window.authManager.hasDeletePermission() : true;
+                if (!canDelete) {
+                    const toast = (typeof showToast === 'function') ? showToast : (window.showToast || null);
+                    if (toast) toast('عذراً: ليس لديك صلاحية حذف المجلدات (قراءة ورفع فقط) • Folder deletion is restricted for Contributor accounts.', 'error');
+                    return;
+                }
+
                 const catName = cat.name;
                 if (!window.confirm(`Are you sure you want to delete custom folder "${catName}"?\nAny documents in it will be moved to "13 - رسائل متنوعة".`)) {
                     return;
@@ -2856,6 +2878,16 @@
             cancelTouchDrag,
             removeTouchAvatar,
         };
+    }
+
+    if (typeof window !== 'undefined') {
+        window.addEventListener('auth:user-changed', () => {
+            const btnDelete = document.getElementById('btn-batch-delete');
+            if (btnDelete) {
+                const canDelete = window.authManager ? window.authManager.hasDeletePermission() : true;
+                btnDelete.classList.toggle('hidden', !canDelete);
+            }
+        });
     }
 })();
 

@@ -1200,5 +1200,102 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       expect(loadingDiv.id).toBe('pdf-viewer-loading');
       expect(typeof window.openDocument).toBe('function');
     });
+
+    it('does NOT falsely reverse normal Arabic sentences containing headquarters (مقر) or particles (وإلا)', () => {
+      // Test sentence with مقر (headquarters) - should NOT be reversed
+      const s1 = 'يرجى التكرم بالحضور إلى مقر شعبة الإسكان';
+      const unrev1 = window.detectAndUnreverseArabic(s1);
+      expect(unrev1).toBe(s1);
+      const t1 = window.translateArabicText(s1);
+      expect(t1).toContain('Kindly attend');
+      expect(t1).toContain('Housing Division');
+      expect(t1).not.toContain('Ajry');
+
+      // Test sentence with وإلا (otherwise / or else) - should NOT be reversed
+      const s2 = 'وإلا سيتم اتخاذ الإجراءات القانونية';
+      const unrev2 = window.detectAndUnreverseArabic(s2);
+      expect(unrev2).toBe(s2);
+      const t2 = window.translateArabicText(s2);
+      expect(t2).toContain('otherwise / or else');
+      expect(t2).toContain('legal action');
+      expect(t2).not.toContain('Mtys');
+    });
+
+    it('retains exact reading order when PDF text items have subpixel baseline jitter', () => {
+      // Simulate real-world PDF.js text items with subpixel baseline variations (descenders vs normal)
+      const jitteredItems = [
+        { str: 'وزارة', transform: [1, 0, 0, 1, 400, 700.5], height: 14, width: 50 },
+        { str: 'الإسكان', transform: [1, 0, 0, 1, 320, 700.1], height: 14, width: 60 },
+        { str: 'والتخطيط', transform: [1, 0, 0, 1, 230, 700.7], height: 14, width: 70 },
+        { str: 'العمراني', transform: [1, 0, 0, 1, 140, 700.2], height: 14, width: 70 }
+      ];
+
+      const lines = window.clusterPdfItemsIntoLines(jitteredItems, 800);
+      expect(lines.length).toBe(1);
+      // Must NOT be scrambled like "والتخطيط وزارة العمراني الإسكان"
+      expect(lines[0].text).toBe('وزارة الإسكان والتخطيط العمراني');
+
+      // Translation must match the full entity
+      const translated = window.translateArabicText(lines[0].text);
+      expect(translated).toBe('Ministry of Housing and Urban Planning');
+    });
+
+    it('translates complex housing eviction notices and tenancy contract terms accurately', () => {
+      // Eviction notice with non-payment and outstanding rent
+      const evictionText = 'إشعار إخلاء نظراً لعدم سداد الأجرة المستحقة';
+      const transEviction = window.translateArabicText(evictionText);
+      expect(transEviction).toContain('Eviction Notice');
+      expect(transEviction).toContain('Outstanding Rent Due');
+      expect(transEviction).not.toContain('Ladm');
+
+      // Bank account IBAN and smart card attachments
+      const ibanText = 'المرفقات: نسخة من البطاقة الذكية ورقم الحساب الدولي الآيبان';
+      const transIban = window.translateArabicText(ibanText);
+      expect(transIban).toContain('Smart Card / National ID');
+      expect(transIban).toContain('IBAN');
+
+      // Tenancy duration and monthly rent
+      const leaseTerms = 'مدة العقد: سنة واحدة والقيمة الإيجارية الشهرية 150 دينار بحريني';
+      const transLease = window.translateArabicText(leaseTerms);
+      expect(transLease).toContain('Contract Duration');
+      expect(transLease).toContain('One Year');
+      expect(transLease).toContain('Monthly Rental Amount');
+      expect(transLease).toContain('150');
+      expect(transLease).toContain('Bahraini Dinar (BHD)');
+    });
+
+    it('falls back to res.data.text when Tesseract OCR lines array is empty', async () => {
+      // Mock Tesseract returning whole-page text in data.text but empty lines array
+      global.Tesseract = {
+        createWorker: vi.fn().mockResolvedValue({
+          recognize: vi.fn().mockResolvedValue({
+            data: {
+              lines: [],
+              text: 'مملكة البحرين\nوزارة الإسكان والتخطيط العمراني\nأمر تخصيص مسكن'
+            }
+          }),
+          terminate: vi.fn().mockResolvedValue()
+        })
+      };
+
+      const canvasContainer = document.getElementById('pdf-canvas-container');
+      canvasContainer.innerHTML = `
+        <div class="pdf-page-wrapper relative" data-page-number="2">
+          <canvas class="pdf-page-canvas" width="600" height="800" style="width:600px; height:800px;"></canvas>
+        </div>
+      `;
+      const wrapper = canvasContainer.querySelector('.pdf-page-wrapper');
+
+      await window.renderPageTranslationLayer(wrapper, 2, 'doc_ocr_fallback_test');
+
+      const panel = canvasContainer.querySelector('.pdf-translation-panel[data-page-number="2"]');
+      expect(panel).not.toBeNull();
+
+      const lineEls = panel.querySelectorAll('div[title]');
+      expect(lineEls.length).toBe(3);
+      expect(lineEls[0].textContent).toContain('Kingdom of Bahrain');
+      expect(lineEls[1].textContent).toContain('Ministry of Housing and Urban Planning');
+      expect(lineEls[2].textContent).toContain('Housing Allocation Order');
+    });
   });
 });

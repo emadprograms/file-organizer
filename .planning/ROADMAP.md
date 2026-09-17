@@ -2,7 +2,7 @@
 
 ## Milestones
 
-- 🟡 **v17.0 User Authentication, Roles & Permissions** — Phases 116-119 (in progress)
+- ✅ **v17.0 User Authentication, Roles & Permissions** — Phases 116-119 (shipped 2026-09-17)
 - ✅ **v16.1 Document-Anchored Tenancy Dates & Minimalist Register** — Phase 115 (shipped 2026-09-14)
 - ✅ **v16.0 Settings Streamlining & Applicant Alignment** — Phase 114 (shipped 2026-09-13)
 - ✅ **v15.0 Decoupled .NET Core Architecture & Non-Residing Applicants Archive** — Phases 109-113 (shipped 2026-09-13)
@@ -16,18 +16,18 @@
 
 ## Phases
 
-### 🟡 v17.0 User Authentication, Roles & Permissions (Phases 116-119)
+### ✅ v17.0 User Authentication, Roles & Permissions (Phases 116-119) — SHIPPED 2026-09-17
 
-- [ ] **Phase 116: User Data Model, Password Security & Auth API**
+- [x] **Phase 116: User Data Model, Password Security & Auth API**
   - Goal: Create SQLite users table, cryptographic password hashing, seed 10 users (4 Admins: Emad, Bubshait, Ehtezaz, Mustafa; 6 Contributors: Nawaf, Naseem, Mulla, Mariam, Shaima, Mona), build session/cookie authentication endpoints (`/api/auth/login`, `/api/auth/logout`, `/api/auth/me`), and enforce backend 403 Forbidden on document/batch/page/house deletion for contributors.
   - Requirements: AUTH-01, AUTH-02, AUTH-03, AUTH-04, RBAC-01, RBAC-02, RBAC-03, RBAC-04, VER-01
-- [ ] **Phase 117: Login Screen, Session Management & Navbar User Profile**
+- [x] **Phase 117: Login Screen, Session Management & Navbar User Profile**
   - Goal: Implement bilingual (Arabic/English) login screen, active user session check, top navbar user indicator with avatar and role badge (`صلاحيات كاملة • Full Access` vs `قراءة ورفع فقط • Read & Upload`), and logout workflow.
   - Requirements: UI-01, UI-02, UI-03, VER-02
-- [ ] **Phase 118: Permission-Aware UI Enforcement & Zero-Delete Guards**
+- [x] **Phase 118: Permission-Aware UI Enforcement & Zero-Delete Guards**
   - Goal: Hide/disable all delete triggers across the frontend for Contributor users (3-dots menu Delete Document, multi-select Delete Selected, Document Page Editor page deletion, House Settings Danger Zone).
   - Requirements: PERM-01, PERM-02, PERM-03, PERM-04, VER-02
-- [ ] **Phase 119: Comprehensive Multi-Stack Verification & Milestone Audit**
+- [x] **Phase 119: Comprehensive Multi-Stack Verification & Milestone Audit**
   - Goal: Run complete backend xUnit tests and frontend Vitest tests, ensure 100% static asset synchronization between `src/` and `dist/`, and audit milestone completion against requirements.
   - Requirements: VER-03
 

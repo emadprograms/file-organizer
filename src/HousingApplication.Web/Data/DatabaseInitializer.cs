@@ -87,6 +87,18 @@ CREATE INDEX IF NOT EXISTS idx_pages_vault ON pages(vault_id);
 CREATE INDEX IF NOT EXISTS idx_documents_house_cat ON documents(house_id, category);
 CREATE INDEX IF NOT EXISTS idx_documents_category ON documents(category);
 CREATE INDEX IF NOT EXISTS idx_documents_title ON documents(arabic_title);
+
+CREATE TABLE IF NOT EXISTS users (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE NOT NULL,
+    display_name TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    salt TEXT NOT NULL,
+    role TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_active INTEGER NOT NULL DEFAULT 1
+);
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 ";
 
     public static void InitializeSchema(SqliteConnection connection)
@@ -132,6 +144,7 @@ CREATE INDEX IF NOT EXISTS idx_documents_title ON documents(arabic_title);
         catch (SqliteException) { }
 
         EnsureTenantStartDateNullable(connection);
+        EnsureUsersSeeded(connection);
     }
 
     public static async Task InitializeSchemaAsync(SqliteConnection connection)
@@ -177,6 +190,79 @@ CREATE INDEX IF NOT EXISTS idx_documents_title ON documents(arabic_title);
         catch (SqliteException) { }
 
         await EnsureTenantStartDateNullableAsync(connection);
+        await EnsureUsersSeededAsync(connection);
+    }
+
+    public static readonly (string Username, string DisplayName, string Role)[] DefaultUsers = new[]
+    {
+        ("Emad", "Emad", "Admin"),
+        ("Bubshait", "Bubshait", "Admin"),
+        ("Ehtezaz", "Ehtezaz", "Admin"),
+        ("Mustafa", "Mustafa", "Admin"),
+        ("Nawaf", "Nawaf", "Contributor"),
+        ("Naseem", "Naseem", "Contributor"),
+        ("Mulla", "Mulla", "Contributor"),
+        ("Mariam", "Mariam", "Contributor"),
+        ("Shaima", "Shaima", "Contributor"),
+        ("Mona", "Mona", "Contributor")
+    };
+
+    public static void EnsureUsersSeeded(SqliteConnection connection)
+    {
+        try
+        {
+            foreach (var (username, displayName, role) in DefaultUsers)
+            {
+                using var checkCmd = connection.CreateCommand();
+                checkCmd.CommandText = "SELECT COUNT(1) FROM users WHERE LOWER(username) = LOWER(@u);";
+                checkCmd.Parameters.AddWithValue("@u", username);
+                var exists = Convert.ToInt32(checkCmd.ExecuteScalar()) > 0;
+                if (!exists)
+                {
+                    var (hash, salt) = Common.PasswordHasher.HashPassword($"{username.ToLower()}123");
+                    using var insCmd = connection.CreateCommand();
+                    insCmd.CommandText = @"
+                        INSERT INTO users (username, display_name, password_hash, salt, role, is_active)
+                        VALUES (@u, @d, @h, @s, @r, 1);";
+                    insCmd.Parameters.AddWithValue("@u", username);
+                    insCmd.Parameters.AddWithValue("@d", displayName);
+                    insCmd.Parameters.AddWithValue("@h", hash);
+                    insCmd.Parameters.AddWithValue("@s", salt);
+                    insCmd.Parameters.AddWithValue("@r", role);
+                    insCmd.ExecuteNonQuery();
+                }
+            }
+        }
+        catch (SqliteException) { }
+    }
+
+    public static async Task EnsureUsersSeededAsync(SqliteConnection connection)
+    {
+        try
+        {
+            foreach (var (username, displayName, role) in DefaultUsers)
+            {
+                using var checkCmd = connection.CreateCommand();
+                checkCmd.CommandText = "SELECT COUNT(1) FROM users WHERE LOWER(username) = LOWER(@u);";
+                checkCmd.Parameters.AddWithValue("@u", username);
+                var count = Convert.ToInt32(await checkCmd.ExecuteScalarAsync());
+                if (count == 0)
+                {
+                    var (hash, salt) = Common.PasswordHasher.HashPassword($"{username.ToLower()}123");
+                    using var insCmd = connection.CreateCommand();
+                    insCmd.CommandText = @"
+                        INSERT INTO users (username, display_name, password_hash, salt, role, is_active)
+                        VALUES (@u, @d, @h, @s, @r, 1);";
+                    insCmd.Parameters.AddWithValue("@u", username);
+                    insCmd.Parameters.AddWithValue("@d", displayName);
+                    insCmd.Parameters.AddWithValue("@h", hash);
+                    insCmd.Parameters.AddWithValue("@s", salt);
+                    insCmd.Parameters.AddWithValue("@r", role);
+                    await insCmd.ExecuteNonQueryAsync();
+                }
+            }
+        }
+        catch (SqliteException) { }
     }
 
     private static void EnsureTenantStartDateNullable(SqliteConnection connection)
