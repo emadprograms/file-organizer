@@ -22,6 +22,9 @@ const {
     handleBatchMoveSubmit,
     handleBatchCopySubmit,
     deselectAllDocs,
+    isCategoryMatch,
+    normalizeCategoryName,
+    openCategoryFolder,
 } = require('../../../src/HousingApplication.Web/wwwroot/js/categories-view.js');
 
 const {
@@ -392,6 +395,94 @@ describe('Document 3-Dots Dropdown Menu & Categories Date Badge', () => {
                 expect(window.setSelectedDoc).toHaveBeenCalled();
                 expect(docsContainer.classList.contains('hidden')).toBe(false);
             });
+        });
+
+        it('matches unprefixed category name (عقود) against prefixed folder card (05 - عقود) and expands it', async () => {
+            const docList = document.getElementById('document-list');
+            docList.innerHTML = '';
+
+            const folderCard = document.createElement('div');
+            folderCard.className = 'category-folder-card';
+            folderCard.setAttribute('data-category-name', '05 - عقود');
+            const docsContainer = document.createElement('div');
+            docsContainer.className = 'category-docs hidden';
+
+            const testDoc = {
+                vault_id: 'doc_contract_504',
+                category: 'عقود',
+                brief_arabic_title: 'عقد إيجار موثق',
+                primary_tenant: 'محمد أحمد',
+                area_id: 'Al-Waha',
+                house_id: '504'
+            };
+
+            const targetCard = document.createElement('div');
+            targetCard.setAttribute('data-vault-id', testDoc.vault_id);
+            targetCard.className = 'category-doc-item';
+            targetCard.scrollIntoView = vi.fn();
+            docsContainer.appendChild(targetCard);
+            folderCard.appendChild(docsContainer);
+            docList.appendChild(folderCard);
+
+            window.setSelectedDoc = vi.fn();
+            // Use real openCategoryFolder
+            window.openCategoryFolder = openCategoryFolder;
+            window.isCategoryMatch = isCategoryMatch;
+
+            showDocInCategories(testDoc);
+
+            await vi.waitFor(() => {
+                expect(docsContainer.classList.contains('hidden')).toBe(false);
+                expect(targetCard.scrollIntoView).toHaveBeenCalled();
+                expect(targetCard.classList.contains('ring-4')).toBe(true);
+                expect(targetCard.classList.contains('ring-blue-500')).toBe(true);
+                expect(window.setSelectedDoc).toHaveBeenCalledWith(testDoc, testDoc.brief_arabic_title, targetCard);
+                expect(window.location.hash).toContain('504_%D9%85%D8%AD%D9%85%D8%AF%20%D8%A3%D8%AD%D9%85%D8%AF');
+            });
+        });
+
+        it('isCategoryMatch correctly matches prefixed and unprefixed names', () => {
+            expect(isCategoryMatch('05 - عقود', 'عقود')).toBe(true);
+            expect(isCategoryMatch('عقود', '05 - عقود')).toBe(true);
+            expect(isCategoryMatch('07 - استقطاع إيجار', 'استقطاع إيجار')).toBe(true);
+            expect(isCategoryMatch('14 - ملاحظات خاصة', 'ملاحظات خاصة')).toBe(true);
+            expect(isCategoryMatch('05 - عقود', 'استقطاع إيجار')).toBe(false);
+            expect(isCategoryMatch('', 'عقود')).toBe(false);
+        });
+
+        it('renderCategories preserves pending category and renders folder unhidden on initial scope load', () => {
+            const docList = document.getElementById('document-list');
+            docList.innerHTML = '';
+
+            window._pendingOpenCategory = 'عقود';
+            window.currentCategories = [
+                {
+                    tenant: 'محمد أحمد',
+                    name: '05 - عقود',
+                    document_count: 1,
+                    documents: [{ vault_id: 'doc_contract_1', category: '05 - عقود' }]
+                },
+                {
+                    tenant: 'محمد أحمد',
+                    name: '07 - استقطاع إيجار',
+                    document_count: 1,
+                    documents: [{ vault_id: 'doc_rent_1', category: '07 - استقطاع إيجار' }]
+                }
+            ];
+            global.currentTenant = 'محمد أحمد';
+            window.currentTenant = 'محمد أحمد';
+
+            renderCategories();
+
+            const contractFolder = docList.querySelector('.category-folder-card[data-category-name="05 - عقود"]');
+            expect(contractFolder).not.toBeNull();
+            const contractDocs = contractFolder.querySelector('.category-docs');
+            expect(contractDocs.classList.contains('hidden')).toBe(false);
+
+            const rentFolder = docList.querySelector('.category-folder-card[data-category-name="07 - استقطاع إيجار"]');
+            expect(rentFolder).not.toBeNull();
+            const rentDocs = rentFolder.querySelector('.category-docs');
+            expect(rentDocs.classList.contains('hidden')).toBe(true);
         });
     });
 

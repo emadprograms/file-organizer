@@ -164,6 +164,7 @@
         const isDifferentContext = (areaId !== currentArea || houseId !== currentHouse || tenantName !== currentTenant);
         if (isDifferentContext && tenantName && currentTab !== 'categories' && tabCategories && tabTimeline) {
             currentTab = 'categories';
+            if (typeof window !== 'undefined') window.currentTab = 'categories';
             tabCategories.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
             tabTimeline.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
         }
@@ -307,12 +308,19 @@
     }
 
     async function refreshCurrentTab(areaId, houseId) {
+        if (typeof window !== 'undefined' && window.currentTab) {
+            currentTab = window.currentTab;
+        }
         if (currentTab === 'timeline') {
             if (typeof window.loadTimeline === 'function') {
                 await window.loadTimeline(areaId, houseId);
             }
         } else {
-            if (!currentTenant) {
+            const activeTenant = currentTenant || (typeof window !== 'undefined' ? window.currentTenant : null);
+            if (activeTenant && !currentTenant) {
+                currentTenant = activeTenant;
+            }
+            if (!activeTenant) {
                 if (typeof window.loadHouseProfile === 'function') {
                     await window.loadHouseProfile(areaId, houseId);
                 }

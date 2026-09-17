@@ -155,19 +155,49 @@
         return fallbackCategory || 'وثيقة';
     }
 
+    function normalizeCategoryName(name) {
+        if (!name || typeof name !== 'string') return '';
+        const trimmed = name.trim();
+        return trimmed.replace(/^\d+\s*-\s*/, '').trim();
+    }
+
+    function isCategoryMatch(nameA, nameB) {
+        if (!nameA || !nameB) return false;
+        const a = String(nameA).trim();
+        const b = String(nameB).trim();
+        if (a === b) return true;
+
+        const normA = normalizeCategoryName(a);
+        const normB = normalizeCategoryName(b);
+        if (normA && normB && normA === normB) return true;
+
+        const prefixA = FOLDER_PREFIXES[normA] || FOLDER_PREFIXES[a];
+        const prefixB = FOLDER_PREFIXES[normB] || FOLDER_PREFIXES[b];
+        if (prefixA && prefixB && prefixA === prefixB) return true;
+
+        if (a.includes(b) || b.includes(a)) return true;
+        if (normA && normB && (normA.includes(normB) || normB.includes(normA))) return true;
+
+        return false;
+    }
+
     const openCategoryNames = new Set();
     let lastRenderedScope = null;
 
     function openCategoryFolder(categoryName) {
         if (!categoryName) return;
         openCategoryNames.add(categoryName);
+        const norm = normalizeCategoryName(categoryName);
+        if (norm) openCategoryNames.add(norm);
+
         if (typeof document !== 'undefined') {
             const cards = document.querySelectorAll('.category-folder-card');
             for (const c of cards) {
-                if (c.getAttribute('data-category-name') === categoryName) {
+                const cardCatName = c.getAttribute('data-category-name');
+                if (cardCatName && (cardCatName === categoryName || isCategoryMatch(cardCatName, categoryName))) {
+                    openCategoryNames.add(cardCatName);
                     const docs = c.querySelector('.category-docs');
                     if (docs) docs.classList.remove('hidden');
-                    break;
                 }
             }
         }
@@ -1959,7 +1989,12 @@
         const noteFolderBadge = hasNotedDoc 
             ? '<span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full text-[10px] font-bold border border-amber-300/80 flex-shrink-0" title="Contains documents with notes">📝 Notes</span>'
             : '';
-        const isFolderOpen = openCategoryNames.has(cat.name);
+        const isFolderOpen = openCategoryNames.has(cat.name) || 
+            (typeof window !== 'undefined' && window._pendingOpenCategory && isCategoryMatch(cat.name, window._pendingOpenCategory)) ||
+            Array.from(openCategoryNames).some(n => isCategoryMatch(cat.name, n));
+        if (isFolderOpen) {
+            openCategoryNames.add(cat.name);
+        }
         const docsContainerClasses = isFolderOpen 
             ? 'category-docs mt-2.5 pt-2.5 border-t border-slate-100 space-y-1'
             : 'category-docs hidden mt-2.5 pt-2.5 border-t border-slate-100 space-y-1';
@@ -2067,6 +2102,8 @@
                 const isNowHidden = docsContainer.classList.toggle('hidden');
                 if (isNowHidden) {
                     openCategoryNames.delete(cat.name);
+                    const norm = normalizeCategoryName(cat.name);
+                    if (norm) openCategoryNames.delete(norm);
                 } else {
                     openCategoryNames.add(cat.name);
                 }
@@ -2473,6 +2510,11 @@
         if (isInitialLoad || isScopeChanged) {
             openCategoryNames.clear();
             savedScrollOffsets = null;
+            if (typeof window !== 'undefined' && window._pendingOpenCategory) {
+                openCategoryNames.add(window._pendingOpenCategory);
+                const normPending = normalizeCategoryName(window._pendingOpenCategory);
+                if (normPending) openCategoryNames.add(normPending);
+            }
         } else if (docListEl) {
             if (!savedScrollOffsets) {
                 savedScrollOffsets = captureScrollOffsets();
@@ -2525,10 +2567,13 @@
         
         displayCategories.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
 
-        // Initial scope load: only open folders containing notes by default
+        // Initial scope load: open folders containing notes by default or matching pending category
         if (isInitialLoad || isScopeChanged) {
             displayCategories.forEach(cat => {
                 if (cat.documents && cat.documents.some(d => d.notes && d.notes.trim())) {
+                    openCategoryNames.add(cat.name);
+                }
+                if (typeof window !== 'undefined' && window._pendingOpenCategory && isCategoryMatch(cat.name, window._pendingOpenCategory)) {
                     openCategoryNames.add(cat.name);
                 }
             });
@@ -2636,6 +2681,8 @@
         window.getBatchResolvedTenant = getBatchResolvedTenant;
         window.formatBatchTenantLabel = formatBatchTenantLabel;
         window.getBatchSelectedDocsInfo = getBatchSelectedDocsInfo;
+        window.isCategoryMatch = isCategoryMatch;
+        window.normalizeCategoryName = normalizeCategoryName;
         window.openCategoryFolder = openCategoryFolder;
         window.getOpenCategoryFolders = getOpenCategoryFolders;
         window.resetCategoryOpenState = resetCategoryOpenState;
@@ -2698,6 +2745,8 @@
             handleBatchDeleteSubmit,
             initBatchOperations,
             isStandardCategoryName,
+            isCategoryMatch,
+            normalizeCategoryName,
             openCategoryFolder,
             getOpenCategoryFolders,
             resetCategoryOpenState,

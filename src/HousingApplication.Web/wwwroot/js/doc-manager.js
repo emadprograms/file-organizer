@@ -1180,6 +1180,11 @@
         const docTenant = doc.primary_tenant || doc.tenant || null;
         const docCategory = doc.category || '';
 
+        // Register pending folder to open across tab switches and renders
+        if (docCategory && typeof window !== 'undefined') {
+            window._pendingOpenCategory = docCategory;
+        }
+
         // Switch active tenant if document specifies a primary tenant
         if (docTenant) {
             if (typeof currentTenant !== 'undefined') currentTenant = docTenant;
@@ -1187,33 +1192,79 @@
         }
 
         // Switch tab to categories if not currently on categories
+        if (typeof currentTab !== 'undefined') currentTab = 'categories';
+        if (typeof window !== 'undefined') window.currentTab = 'categories';
+
         const tabCategories = document.getElementById('tab-categories');
-        if (tabCategories && (typeof currentTab === 'undefined' || currentTab !== 'categories')) {
-            tabCategories.click();
-        } else if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
-            window.refreshCurrentTab(area, house);
-        } else if (typeof refreshCurrentTab === 'function') {
-            refreshCurrentTab(area, house);
+        const tabTimeline = document.getElementById('tab-timeline');
+        if (tabCategories) {
+            tabCategories.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
+        }
+        if (tabTimeline) {
+            tabTimeline.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
         }
 
-        // Ensure target category folder is open
+        // Navigate to tenant route if tenant is specified, or trigger categories refresh
+        if (area && house && docTenant) {
+            const targetTenantId = `${house}_${docTenant}`;
+            const targetHash = `#/area/${encodeURIComponent(area)}/house/${encodeURIComponent(house)}/tenant/${encodeURIComponent(targetTenantId)}`;
+
+            if (tabCategories) {
+                tabCategories.click();
+            }
+
+            if (typeof window !== 'undefined' && window.location && window.location.hash !== targetHash) {
+                window.location.hash = targetHash;
+            } else if (typeof window !== 'undefined' && typeof window.selectHouse === 'function') {
+                window.selectHouse(area, house, docTenant);
+            } else if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                window.refreshCurrentTab(area, house);
+            } else if (typeof refreshCurrentTab === 'function') {
+                refreshCurrentTab(area, house);
+            }
+        } else {
+            if (tabCategories) {
+                tabCategories.click();
+            } else if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+                window.refreshCurrentTab(area, house);
+            } else if (typeof refreshCurrentTab === 'function') {
+                refreshCurrentTab(area, house);
+            }
+        }
+
+        // Ensure target category folder is open in categories-view
         if (docCategory && typeof window !== 'undefined' && typeof window.openCategoryFolder === 'function') {
             window.openCategoryFolder(docCategory);
         }
 
         const findAndHighlight = (attempts = 0) => {
             if (docCategory) {
-                const folderCard = document.querySelector(`.category-folder-card[data-category-name="${docCategory}"]`);
-                if (folderCard) {
-                    const docsContainer = folderCard.querySelector('.category-docs');
-                    if (docsContainer && docsContainer.classList.contains('hidden')) {
-                        docsContainer.classList.remove('hidden');
+                if (typeof window !== 'undefined' && typeof window.openCategoryFolder === 'function') {
+                    window.openCategoryFolder(docCategory);
+                }
+                const folderCards = document.querySelectorAll('.category-folder-card');
+                for (const folderCard of folderCards) {
+                    const cardCat = folderCard.getAttribute('data-category-name');
+                    const isMatch = (cardCat === docCategory) || 
+                        (typeof window !== 'undefined' && typeof window.isCategoryMatch === 'function' && window.isCategoryMatch(cardCat, docCategory));
+                    if (isMatch) {
+                        const docsContainer = folderCard.querySelector('.category-docs');
+                        if (docsContainer && docsContainer.classList.contains('hidden')) {
+                            docsContainer.classList.remove('hidden');
+                        }
                     }
                 }
             }
 
             const card = document.querySelector(`#document-list [data-vault-id="${vaultId}"]`);
             if (card) {
+                const parentFolder = card.closest('.category-folder-card');
+                if (parentFolder) {
+                    const folderCat = parentFolder.getAttribute('data-category-name');
+                    if (folderCat && typeof window !== 'undefined' && typeof window.openCategoryFolder === 'function') {
+                        window.openCategoryFolder(folderCat);
+                    }
+                }
                 const parentDocs = card.closest('.category-docs');
                 if (parentDocs && parentDocs.classList.contains('hidden')) {
                     parentDocs.classList.remove('hidden');
@@ -1228,14 +1279,20 @@
                 }, 2500);
 
                 const docTitle = doc.brief_arabic_title || doc.filename || 'Document';
-                if (typeof window.setSelectedDoc === 'function') {
+                if (typeof window !== 'undefined' && typeof window.setSelectedDoc === 'function') {
                     window.setSelectedDoc(doc, docTitle, card);
+                }
+                if (typeof window !== 'undefined') {
+                    window._pendingOpenCategory = null;
                 }
                 const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
                 if (toast) toast('Showing document in categories.');
-            } else if (attempts < 15) {
+            } else if (attempts < 30) {
                 setTimeout(() => findAndHighlight(attempts + 1), 100);
             } else {
+                if (typeof window !== 'undefined') {
+                    window._pendingOpenCategory = null;
+                }
                 const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
                 if (toast) toast('Document displayed in categories.');
             }
