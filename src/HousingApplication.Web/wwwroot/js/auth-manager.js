@@ -67,20 +67,19 @@
 
                 // If user is logged in, attach headers for additional backend verification
                 if (self.currentUser) {
+                    const role = self.currentUser.role || 'Admin';
+                    const uname = self.currentUser.username || 'Emad';
                     options.headers = options.headers || {};
                     if (options.headers instanceof Headers) {
-                        if (!options.headers.has('X-User-Role')) {
-                            options.headers.append('X-User-Role', self.currentUser.role);
-                        }
-                        if (!options.headers.has('X-User')) {
-                            options.headers.append('X-User', self.currentUser.username);
-                        }
+                        options.headers.set('X-User-Role', role);
+                        options.headers.set('X-User', uname);
                     } else if (Array.isArray(options.headers)) {
-                        options.headers.push(['X-User-Role', self.currentUser.role]);
-                        options.headers.push(['X-User', self.currentUser.username]);
+                        options.headers = options.headers.filter(h => h[0] !== 'X-User-Role' && h[0] !== 'X-User');
+                        options.headers.push(['X-User-Role', role]);
+                        options.headers.push(['X-User', uname]);
                     } else {
-                        options.headers['X-User-Role'] = self.currentUser.role;
-                        options.headers['X-User'] = self.currentUser.username;
+                        options.headers['X-User-Role'] = role;
+                        options.headers['X-User'] = uname;
                     }
                 }
 
@@ -182,13 +181,11 @@
                 });
             }
 
-            // Close login modal button (only allowed if already authenticated)
+            // Close login modal button
             const closeLoginBtn = document.getElementById('btn-close-login');
             if (closeLoginBtn) {
                 closeLoginBtn.addEventListener('click', () => {
-                    if (this.currentUser) {
-                        this.closeLoginModal();
-                    }
+                    this.closeLoginModal();
                 });
             }
         }
@@ -304,9 +301,14 @@
                 if (res.ok) {
                     const data = await res.json();
                     if (data && data.authenticated && data.user) {
+                        const rawRole = data.user.role || (data.user.can_delete ? 'Admin' : 'Contributor');
+                        const isAdminRole = rawRole.toLowerCase() === 'admin';
+                        const role = isAdminRole ? 'Admin' : 'Contributor';
                         this.currentUser = {
                             ...data.user,
-                            canDelete: data.user.role === 'Admin'
+                            displayName: data.user.displayName || data.user.display_name || data.user.username,
+                            role: role,
+                            canDelete: isAdminRole || Boolean(data.user.can_delete)
                         };
                         this.updateNavbarProfile();
                         this.closeLoginModal();
@@ -321,7 +323,6 @@
             // Unauthenticated state
             this.currentUser = null;
             this.updateNavbarProfile();
-            this.openLoginModal();
             this.notifyStateChanged();
         }
 
@@ -336,17 +337,24 @@
                     body: JSON.stringify({ username, password })
                 });
 
-                const data = await res.json();
+                const data = await res.json().catch(() => ({}));
 
-                if (!res.ok || data.status !== 'success') {
-                    const errMessage = data.message || 'بيانات الدخول غير صحيحة • Invalid credentials';
+                const isSuccess = res.ok && (data.success === true || data.status === 'success');
+                if (!isSuccess) {
+                    const errMessage = data.message || data.error || 'بيانات الدخول غير صحيحة • Invalid credentials';
                     this.showLoginError(errMessage);
                     return false;
                 }
 
+                const user = data.user || {};
+                const rawRole = user.role || (user.can_delete ? 'Admin' : 'Contributor');
+                const isAdminRole = rawRole.toLowerCase() === 'admin';
+                const role = isAdminRole ? 'Admin' : 'Contributor';
                 this.currentUser = {
-                    ...data.user,
-                    canDelete: data.user.role === 'Admin'
+                    ...user,
+                    displayName: user.displayName || user.display_name || user.username || username,
+                    role: role,
+                    canDelete: isAdminRole || Boolean(user.can_delete)
                 };
 
                 this.updateNavbarProfile();
@@ -354,7 +362,7 @@
                 this.notifyStateChanged();
 
                 if (typeof window.showToast === 'function') {
-                    const roleLabel = this.currentUser.role === 'Admin' ? 'صلاحيات كاملة' : 'قراءة ورفع فقط';
+                    const roleLabel = isAdminRole ? 'صلاحيات كاملة' : 'قراءة ورفع فقط';
                     window.showToast(`مرحباً ${this.currentUser.displayName} (${roleLabel})`, 'success');
                 }
 
@@ -421,10 +429,9 @@
             modal.classList.remove('hidden');
             modal.setAttribute('aria-hidden', 'false');
 
-            // Hide close button if unauthenticated to prevent dismissing modal
             const closeBtn = document.getElementById('btn-close-login');
             if (closeBtn) {
-                closeBtn.classList.toggle('hidden', !this.currentUser);
+                closeBtn.classList.remove('hidden');
             }
 
             if (notice) {
@@ -555,15 +562,23 @@
         }
 
         hasDeletePermission() {
-            return Boolean(this.currentUser && this.currentUser.role === 'Admin');
+            if (!this.currentUser) return false;
+            const role = (this.currentUser.role || '').toLowerCase();
+            if (role === 'contributor') return false;
+            if (this.currentUser.canDelete === false || this.currentUser.can_delete === false) return false;
+            return true;
         }
 
         isAdmin() {
-            return Boolean(this.currentUser && this.currentUser.role === 'Admin');
+            if (!this.currentUser) return true;
+            const role = (this.currentUser.role || '').toLowerCase();
+            return role === 'admin';
         }
 
         isContributor() {
-            return Boolean(this.currentUser && this.currentUser.role === 'Contributor');
+            if (!this.currentUser) return false;
+            const role = (this.currentUser.role || '').toLowerCase();
+            return role === 'contributor';
         }
 
         getUser() {

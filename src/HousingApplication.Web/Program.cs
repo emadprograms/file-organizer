@@ -15,6 +15,7 @@ using PdfSharpCore.Pdf;
 
 var builder = WebApplication.CreateBuilder(args);
 
+
 // Robust wwwroot resolution across development, standalone binary execution, and publish layouts
 var candidateWebRoots = new[]
 {
@@ -180,12 +181,17 @@ static bool IsRestrictedFromDelete(HttpContext ctx)
         if (ctx.User.IsInRole("Contributor")) return true;
         var canDeleteClaim = ctx.User.FindFirst("can_delete")?.Value;
         if (string.Equals(canDeleteClaim, "false", StringComparison.OrdinalIgnoreCase)) return true;
+        var role = ctx.User.FindFirst(ClaimTypes.Role)?.Value ?? ctx.User.FindFirst("role")?.Value;
+        if (string.Equals(role, "Contributor", StringComparison.OrdinalIgnoreCase)) return true;
+        if (string.Equals(role, "Admin", StringComparison.OrdinalIgnoreCase)) return false;
     }
 
     // Optional header-based role checking (for testing and automation)
     var headerRole = ctx.Request.Headers["X-User-Role"].FirstOrDefault();
     if (string.Equals(headerRole, "Contributor", StringComparison.OrdinalIgnoreCase))
         return true;
+    if (string.Equals(headerRole, "Admin", StringComparison.OrdinalIgnoreCase))
+        return false;
 
     var headerUser = ctx.Request.Headers["X-User"].FirstOrDefault();
     if (!string.IsNullOrEmpty(headerUser))
@@ -196,9 +202,34 @@ static bool IsRestrictedFromDelete(HttpContext ctx)
         };
         if (contributors.Contains(headerUser.Trim()))
             return true;
+
+        var admins = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "Emad", "Bubshait", "Ehtezaz", "Mustafa"
+        };
+        if (admins.Contains(headerUser.Trim()))
+            return false;
     }
 
     return false;
+}
+
+static string ResolveAreasRoot(IConfiguration config)
+{
+    var explicitRoot = config["AREAS_ROOT_PATH"] 
+        ?? config["AREAS_ROOT"] 
+        ?? config["areas_root"] 
+        ?? Environment.GetEnvironmentVariable("AREAS_ROOT_PATH")
+        ?? Environment.GetEnvironmentVariable("AREAS_ROOT");
+
+    if (!string.IsNullOrWhiteSpace(explicitRoot) && Directory.Exists(explicitRoot))
+        return Path.GetFullPath(explicitRoot);
+
+    if (Directory.Exists(@"D:\areas_v11"))
+        return @"D:\areas_v11";
+
+    var defaultPath = Path.GetFullPath("../areas");
+    return Directory.Exists(defaultPath) ? defaultPath : Directory.GetCurrentDirectory();
 }
 
 // ---------------------------------------------------------------------------
@@ -223,7 +254,7 @@ app.MapGet("/api/auth/me", (HttpContext httpContext) =>
 
     var username = httpContext.User.Identity.Name ?? "";
     var displayName = httpContext.User.FindFirst("display_name")?.Value ?? username;
-    var role = httpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? "Contributor";
+    var role = httpContext.User.FindFirst(ClaimTypes.Role)?.Value ?? httpContext.User.FindFirst("role")?.Value ?? "Contributor";
     int.TryParse(httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value, out var id);
 
     var userDto = new UserDto
@@ -257,13 +288,15 @@ app.MapPost("/api/auth/login", async (
     if (!isPasswordValid)
         return Results.Json(new { error = "Invalid username or password." }, statusCode: StatusCodes.Status401Unauthorized);
 
+    var isAdmin = string.Equals(user.Role, "Admin", StringComparison.OrdinalIgnoreCase);
     var claims = new List<Claim>
     {
         new(ClaimTypes.NameIdentifier, user.Id.ToString()),
         new(ClaimTypes.Name, user.Username),
         new("display_name", user.DisplayName),
         new(ClaimTypes.Role, user.Role),
-        new("can_delete", (user.Role == "Admin").ToString().ToLower())
+        new("role", user.Role),
+        new("can_delete", isAdmin.ToString().ToLower())
     };
 
     var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -334,7 +367,7 @@ app.MapPost("/api/areas/{areaId}/houses", async (
         return Results.BadRequest(new { error = "Area ID is required and cannot be empty." });
     }
 
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     try
     {
         var result = await repo.CreateHouseAsync(
@@ -371,7 +404,7 @@ app.MapDelete("/api/areas/{areaId}/houses/{houseId}", async (
         return Results.BadRequest(new { error = "House ID is required and cannot be empty." });
     }
 
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     var success = await repo.DeleteHouseAsync(areaId, houseId, areasRoot);
     if (!success)
     {
@@ -442,7 +475,7 @@ app.MapGet("/api/areas/{areaId}/houses/{houseId}/export-zip", async (
         tenantName = tenants.FirstOrDefault(t => t.Id == tenantId.Value)?.Name;
     }
 
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? config["AreasRoot"] ?? Path.Combine(Directory.GetCurrentDirectory(), "data");
+    var areasRoot = ResolveAreasRoot(config);
     if (!Directory.Exists(areasRoot))
     {
         var envRoot = Environment.GetEnvironmentVariable("AREAS_ROOT_PATH") ?? Environment.GetEnvironmentVariable("AREAS_ROOT");
@@ -559,7 +592,7 @@ app.MapGet("/api/areas/{areaId}/houses/{houseId}/export-pdf", async (
         .ThenBy(d => d.VaultId)
         .ToList();
 
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? config["AreasRoot"] ?? Path.Combine(Directory.GetCurrentDirectory(), "data");
+    var areasRoot = ResolveAreasRoot(config);
     if (!Directory.Exists(areasRoot))
     {
         var envRoot = Environment.GetEnvironmentVariable("AREAS_ROOT_PATH") ?? Environment.GetEnvironmentVariable("AREAS_ROOT");
@@ -761,7 +794,7 @@ app.MapGet("/api/search", async (string? q, int? limit, IFileOrganizerRepository
 // ---------------------------------------------------------------------------
 app.MapGet("/api/pdf/{vaultId}", async (HttpContext httpContext, string vaultId, IFileOrganizerRepository repo, IConfiguration config) =>
 {
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     var doc = await repo.GetDocumentDetailsAsync(vaultId, areasRoot);
 
     string? filePath = doc?.PhysicalPath;
@@ -800,7 +833,7 @@ app.MapGet("/api/areas/{areaId}/houses/{houseId}/pdf/{vaultId}", async (
     IFileOrganizerRepository repo,
     IConfiguration config) =>
 {
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     var cleanHouseId = TextUtils.ExtractHouseNumber(houseId);
 
     string? filePath = null;
@@ -865,7 +898,7 @@ app.MapGet("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}", async (
     IFileOrganizerRepository repo,
     IConfiguration config) =>
 {
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     var doc = await repo.GetDocumentDetailsAsync(vaultId, areasRoot);
     if (doc == null)
         return Results.NotFound(new { error = "Document not found." });
@@ -879,7 +912,7 @@ app.MapGet("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/metadata", 
     IFileOrganizerRepository repo,
     IConfiguration config) =>
 {
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     var doc = await repo.GetDocumentDetailsAsync(vaultId, areasRoot);
     if (doc == null)
         return Results.NotFound(new { error = "Document not found." });
@@ -891,7 +924,7 @@ app.MapGet("/api/documents/{vaultId}/metadata", async (
     IFileOrganizerRepository repo,
     IConfiguration config) =>
 {
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     var doc = await repo.GetDocumentDetailsAsync(vaultId, areasRoot);
     if (doc == null)
         return Results.NotFound(new { error = "Document not found." });
@@ -953,7 +986,7 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/copy", asy
     IFileOrganizerRepository repo,
     IConfiguration config) =>
 {
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     var result = await repo.CopyDocumentAsync(
         vaultId,
         targetCategory: payload.TargetCategory,
@@ -989,7 +1022,7 @@ app.MapDelete("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}", async 
     if (IsRestrictedFromDelete(httpContext))
         return Results.Json(new { status = "error", error = "Permission denied: Contributor accounts have read and upload access only and cannot delete records." }, statusCode: StatusCodes.Status403Forbidden);
 
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     var success = await repo.DeleteDocumentAsync(areaId, houseId, vaultId, areasRoot);
     if (!success)
         return Results.NotFound(new { status = "error", message = "Document not found" });
@@ -1011,7 +1044,7 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/batch-delete", async
     if (dto.VaultIds == null || dto.VaultIds.Count == 0)
         return Results.BadRequest(new { error = "vault_ids must not be empty." });
 
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     var result = await repo.BatchDeleteDocumentsAsync(areaId, houseId, dto.VaultIds, areasRoot);
     return Results.Ok(result);
 });
@@ -1045,7 +1078,7 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/batch-copy", async (
     if (string.IsNullOrWhiteSpace(dto.TargetCategory))
         return Results.BadRequest(new { error = "target_category must not be empty." });
 
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     var result = await repo.BatchCopyDocumentsAsync(areaId, houseId, dto.VaultIds, dto.TargetCategory, dto.TargetTenantId, areasRoot);
     return Results.Ok(result);
 });
@@ -1067,7 +1100,7 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/merge", async (
     if (dto.DeleteSources && IsRestrictedFromDelete(httpContext))
         dto = dto with { DeleteSources = false };
 
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     try
     {
         var result = await repo.MergeDocumentsAsync(areaId, houseId, dto, areasRoot);
@@ -1099,7 +1132,7 @@ app.MapPost("/api/documents/merge", async (
     if (dto.DeleteSources && IsRestrictedFromDelete(httpContext))
         dto = dto with { DeleteSources = false };
 
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     try
     {
         var result = await repo.MergeDocumentsAsync("default", "default", dto, areasRoot);
@@ -1133,7 +1166,7 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/extract-pa
     if (dto.PageNumbers == null || dto.PageNumbers.Count == 0)
         return Results.BadRequest(new { error = "page_numbers must not be empty." });
 
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     try
     {
         var result = await repo.ExtractPagesAsync(areaId, houseId, vaultId, dto, areasRoot);
@@ -1168,7 +1201,7 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/delete-pag
     if (dto.PageNumbers == null || dto.PageNumbers.Count == 0)
         return Results.BadRequest(new { error = "page_numbers must not be empty." });
 
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     try
     {
         var result = await repo.DeletePagesAsync(areaId, houseId, vaultId, dto, areasRoot);
@@ -1199,7 +1232,7 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/reorder-pa
     if (dto.PageOrder == null || dto.PageOrder.Count == 0)
         return Results.BadRequest(new { error = "page_order must not be empty." });
 
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     try
     {
         var result = await repo.ReorderPagesAsync(areaId, houseId, vaultId, dto, areasRoot);
@@ -1228,7 +1261,7 @@ app.MapPost("/api/documents/{vaultId}/extract-pages", async (
     if (dto.PageNumbers == null || dto.PageNumbers.Count == 0)
         return Results.BadRequest(new { error = "page_numbers must not be empty." });
 
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     try
     {
         var result = await repo.ExtractPagesAsync("default", "default", vaultId, dto, areasRoot);
@@ -1261,7 +1294,7 @@ app.MapPost("/api/documents/{vaultId}/delete-pages", async (
     if (dto.PageNumbers == null || dto.PageNumbers.Count == 0)
         return Results.BadRequest(new { error = "page_numbers must not be empty." });
 
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     try
     {
         var result = await repo.DeletePagesAsync("default", "default", vaultId, dto, areasRoot);
@@ -1290,7 +1323,7 @@ app.MapPost("/api/documents/{vaultId}/reorder-pages", async (
     if (dto.PageOrder == null || dto.PageOrder.Count == 0)
         return Results.BadRequest(new { error = "page_order must not be empty." });
 
-    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRoot = ResolveAreasRoot(config);
     try
     {
         var result = await repo.ReorderPagesAsync("default", "default", vaultId, dto, areasRoot);
@@ -1484,7 +1517,7 @@ app.MapPost("/api/ingest", async (
     }
 
     var vaultId = Guid.NewGuid().ToString("N");
-    var areasRootPath = config["AREAS_ROOT_PATH"] ?? "../areas";
+    var areasRootPath = ResolveAreasRoot(config);
 
     var tempFile = Path.GetTempFileName();
     try

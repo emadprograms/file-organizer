@@ -20,7 +20,13 @@ public class SqliteDbConnectionFactory : ISqliteDbConnectionFactory
     {
         var resolvedPath = dbPath 
             ?? configuration?["ORGANIZER_DB_PATH"] 
+            ?? configuration?["ORGANIZER_DB"]
+            ?? configuration?["organizer_db"]
             ?? configuration?["Database:Path"] 
+            ?? Environment.GetEnvironmentVariable("ORGANIZER_DB_PATH")
+            ?? Environment.GetEnvironmentVariable("ORGANIZER_DB")
+            ?? (File.Exists(@"D:\areas_v11\organizer.db") ? @"D:\areas_v11\organizer.db" : null)
+            ?? (File.Exists(@"D:\organizer.db") ? @"D:\organizer.db" : null)
             ?? "organizer.db";
 
         DatabasePath = resolvedPath;

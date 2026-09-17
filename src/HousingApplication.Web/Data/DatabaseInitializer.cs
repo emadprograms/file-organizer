@@ -82,7 +82,6 @@ CREATE INDEX IF NOT EXISTS idx_documents_house ON documents(house_id);
 CREATE INDEX IF NOT EXISTS idx_documents_tenant ON documents(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_documents_date ON documents(primary_date);
 CREATE INDEX IF NOT EXISTS idx_documents_manual ON documents(is_manual);
-CREATE INDEX IF NOT EXISTS idx_documents_timeline ON documents(is_timeline_visible);
 CREATE INDEX IF NOT EXISTS idx_pages_vault ON pages(vault_id);
 CREATE INDEX IF NOT EXISTS idx_documents_house_cat ON documents(house_id, category);
 CREATE INDEX IF NOT EXISTS idx_documents_category ON documents(category);
@@ -116,6 +115,14 @@ CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
             using var alterCmd = connection.CreateCommand();
             alterCmd.CommandText = "ALTER TABLE documents ADD COLUMN is_timeline_visible INTEGER DEFAULT 1;";
             alterCmd.ExecuteNonQuery();
+        }
+        catch (SqliteException) { }
+
+        try
+        {
+            using var idxCmd = connection.CreateCommand();
+            idxCmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_documents_timeline ON documents(is_timeline_visible);";
+            idxCmd.ExecuteNonQuery();
         }
         catch (SqliteException) { }
 
@@ -167,6 +174,14 @@ CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
 
         try
         {
+            using var idxCmd = connection.CreateCommand();
+            idxCmd.CommandText = "CREATE INDEX IF NOT EXISTS idx_documents_timeline ON documents(is_timeline_visible);";
+            await idxCmd.ExecuteNonQueryAsync();
+        }
+        catch (SqliteException) { }
+
+        try
+        {
             using var alterCmd = connection.CreateCommand();
             alterCmd.CommandText = "ALTER TABLE tenants ADD COLUMN is_resident INTEGER NOT NULL DEFAULT 1;";
             await alterCmd.ExecuteNonQueryAsync();
@@ -211,6 +226,23 @@ CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
     {
         try
         {
+            using (var createCmd = connection.CreateCommand())
+            {
+                createCmd.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS users (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        username TEXT UNIQUE NOT NULL,
+                        display_name TEXT NOT NULL,
+                        password_hash TEXT NOT NULL,
+                        salt TEXT NOT NULL,
+                        role TEXT NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        is_active INTEGER NOT NULL DEFAULT 1
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);";
+                createCmd.ExecuteNonQuery();
+            }
+
             foreach (var (username, displayName, role) in DefaultUsers)
             {
                 using var checkCmd = connection.CreateCommand();
@@ -240,6 +272,23 @@ CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
     {
         try
         {
+            using (var createCmd = connection.CreateCommand())
+            {
+                createCmd.CommandText = @"
+                    CREATE TABLE IF NOT EXISTS users (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        username TEXT UNIQUE NOT NULL,
+                        display_name TEXT NOT NULL,
+                        password_hash TEXT NOT NULL,
+                        salt TEXT NOT NULL,
+                        role TEXT NOT NULL,
+                        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                        is_active INTEGER NOT NULL DEFAULT 1
+                    );
+                    CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);";
+                await createCmd.ExecuteNonQueryAsync();
+            }
+
             foreach (var (username, displayName, role) in DefaultUsers)
             {
                 using var checkCmd = connection.CreateCommand();

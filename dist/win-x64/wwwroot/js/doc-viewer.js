@@ -1831,6 +1831,218 @@
         }
     }
 
+    // ── Overlay-based Translation for Tablet/Touch Devices ──────────────────
+    // Shows translation cards on top of the iframe PDF viewer.
+    // No canvas rendering needed — fast, lightweight, touch-friendly.
+    async function renderOverlayTranslation(vaultId) {
+        const overlay = document.getElementById('document-translation-overlay');
+        if (!overlay) return;
+
+        // Show overlay on top of iframe — iframe stays visible underneath
+        overlay.classList.remove('hidden');
+        overlay.classList.add('flex');
+
+        // Show loading spinner while fetching metadata
+        overlay.innerHTML = `
+            <div class="flex flex-col items-center justify-center p-8 bg-white/95 dark:bg-slate-900/95 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 gap-3 my-auto max-w-sm text-center">
+                <svg class="w-8 h-8 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                </svg>
+                <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">Translating Document</div>
+                <div class="text-xs text-slate-500 dark:text-slate-400">Loading translation from database...</div>
+            </div>
+        `;
+
+        try {
+            const meta = await fetchDocumentMetadata(vaultId);
+
+            // Bail out if document changed or translation was deactivated while loading
+            if (!currentPinnedDoc || currentPinnedDoc.vaultId !== vaultId || !isTranslationActive) {
+                return;
+            }
+
+            overlay.innerHTML = '';
+
+            const pages = (meta && Array.isArray(meta.pages) && meta.pages.length > 0) ? meta.pages : null;
+
+            if (!pages) {
+                // Fallback card when no per-page metadata is available
+                const docTitle = currentPinnedDoc.title || 'Official Document';
+                const catInfo = getEnglishCategory(currentPinnedDoc.category || (meta && meta.category));
+                const tenant = currentPinnedDoc.tenant_name || currentPinnedDoc.tenant || (meta && meta.tenant_name) || '';
+                const house = (typeof currentHouse !== 'undefined' ? currentHouse : window.currentHouse) || (meta && meta.house_id) || '';
+                const date = (meta && meta.primary_date) || '';
+
+                const fallbackCard = document.createElement('div');
+                fallbackCard.className = 'translation-page-sheet relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200/90 dark:border-slate-800 p-6 sm:p-8 space-y-4 text-slate-800 dark:text-slate-100 my-auto select-text';
+                fallbackCard.innerHTML = `
+                    <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-200/80 dark:border-slate-800">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60">
+                            <span>${catInfo.icon}</span>
+                            <span>${escapeHtml(catInfo.en)}</span>
+                        </span>
+                        <button type="button" class="btn-peek-scan text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer select-none">
+                            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                            <span>View Scan</span>
+                        </button>
+                    </div>
+                    <div class="p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/40">
+                        <span class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider block mb-0.5">Document Title:</span>
+                        <div class="text-sm font-semibold text-slate-900 dark:text-slate-100">${escapeHtml(docTitle)}</div>
+                    </div>
+                    <div class="text-xs text-slate-600 dark:text-slate-400 space-y-1.5">
+                        ${house ? `<div><strong>House:</strong> ${escapeHtml(String(house))}</div>` : ''}
+                        ${tenant ? `<div><strong>Tenant:</strong> ${escapeHtml(tenant)}</div>` : ''}
+                        ${date ? `<div><strong>Date:</strong> ${escapeHtml(date)}</div>` : ''}
+                    </div>
+                    <div class="text-slate-700 dark:text-slate-300 text-sm leading-relaxed border-t border-slate-100 dark:border-slate-800 pt-3">
+                        <p>This is an official document stored in the housing archive under category <strong>${escapeHtml(catInfo.en)}</strong>. Tap <strong>View Scan</strong> to see the original document underneath.</p>
+                    </div>
+                `;
+                attachOverlayPeekBehavior(fallbackCard, overlay);
+                overlay.appendChild(fallbackCard);
+                return;
+            }
+
+            // Render per-page translation cards
+            const totalPages = pages.length;
+            pages.forEach((p, idx) => {
+                const pageNum = p.page_number || p.pageNumber || idx + 1;
+                const catInfo = getEnglishCategory(p.fine_category || p.fineCategory || (meta && meta.category) || (currentPinnedDoc && currentPinnedDoc.category));
+                const dateText = p.raw_date || p.rawDate || (meta && meta.primary_date) || '';
+
+                const origContent = p.content_explanation || p.contentExplanation || '';
+                const origSubject = p.subject || '';
+                const origSender = p.sender || '';
+                const origReceiver = p.receiver || '';
+
+                // content_explanation is already English from AI — display directly
+                let contentText = '';
+                if (origContent) {
+                    const hasEnglish = /[a-zA-Z]/.test(origContent);
+                    contentText = hasEnglish ? origContent : translateArabicText(origContent);
+                } else {
+                    contentText = `Official archive record (${catInfo.en}). Associated with house ${(meta && meta.house_id) || ''}${(meta && meta.tenant_name) ? ', tenant ' + meta.tenant_name : ''}.`;
+                }
+
+                // subject/sender/receiver are Arabic — translate them
+                const subjectText = origSubject ? (/[a-zA-Z]/.test(origSubject) ? origSubject : translateArabicText(origSubject)) : '';
+                const senderText = origSender ? (/[a-zA-Z]/.test(origSender) ? origSender : translateArabicText(origSender)) : '';
+                const receiverText = origReceiver ? (/[a-zA-Z]/.test(origReceiver) ? origReceiver : translateArabicText(origReceiver)) : '';
+
+                const pageCard = document.createElement('div');
+                pageCard.className = 'translation-page-sheet relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200/90 dark:border-slate-800 p-5 sm:p-7 space-y-4 text-slate-800 dark:text-slate-100 select-text transition-all';
+                pageCard.setAttribute('data-page-number', pageNum);
+
+                pageCard.innerHTML = `
+                    <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200/80 dark:border-slate-800">
+                        <div class="flex items-center gap-2">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60">
+                                <span>${catInfo.icon}</span>
+                                <span>${escapeHtml(catInfo.en)}</span>
+                            </span>
+                            <span class="text-xs font-mono text-slate-400 dark:text-slate-500">Page ${pageNum} of ${totalPages}</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            ${dateText ? `<span class="text-xs text-slate-500 dark:text-slate-400 font-mono">${escapeHtml(dateText)}</span>` : ''}
+                            <button type="button" class="btn-peek-scan text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer select-none">
+                                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                <span>View Scan</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    ${(senderText || receiverText) ? `
+                    <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                        ${senderText ? `
+                        <div class="flex items-start gap-1.5 min-w-0">
+                            <span class="font-bold text-slate-500 uppercase text-[10px] tracking-wider flex-shrink-0 mt-0.5">FROM:</span>
+                            <span class="text-slate-700 dark:text-slate-200 font-medium">${escapeHtml(senderText)}</span>
+                        </div>` : ''}
+                        ${receiverText ? `
+                        <div class="flex items-start gap-1.5 min-w-0">
+                            <span class="font-bold text-slate-500 uppercase text-[10px] tracking-wider flex-shrink-0 mt-0.5">TO:</span>
+                            <span class="text-slate-700 dark:text-slate-200 font-medium">${escapeHtml(receiverText)}</span>
+                        </div>` : ''}
+                    </div>` : ''}
+
+                    ${subjectText ? `
+                    <div class="p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/40">
+                        <span class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider block mb-0.5">Subject / Title:</span>
+                        <div class="text-sm font-semibold text-slate-900 dark:text-slate-100">${escapeHtml(subjectText)}</div>
+                    </div>` : ''}
+
+                    <div class="space-y-2">
+                        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Document Content & Translation:</span>
+                        <div class="text-slate-700 dark:text-slate-200 text-sm sm:text-[15px] leading-relaxed space-y-2 font-normal">
+                            ${formatContentParagraphs(contentText)}
+                        </div>
+                    </div>
+
+                    ${(origSubject || origSender || origReceiver || origContent) ? `
+                    <details class="group mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
+                        <summary class="cursor-pointer text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex items-center justify-between select-none">
+                            <span class="flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5 text-slate-400 group-open:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                                <span>Original Arabic</span>
+                            </span>
+                            <span class="text-[10px] font-mono text-slate-400">النص الأصلي</span>
+                        </summary>
+                        <div class="mt-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800 font-arabic text-xs text-slate-600 dark:text-slate-400 space-y-2" dir="rtl">
+                            ${origSubject ? `<div><strong class="text-slate-700 dark:text-slate-300">الموضوع:</strong> ${escapeHtml(origSubject)}</div>` : ''}
+                            ${(origSender || origReceiver) ? `
+                            <div class="flex flex-wrap gap-x-4 gap-y-1">
+                                ${origSender ? `<div><strong class="text-slate-700 dark:text-slate-300">من:</strong> ${escapeHtml(origSender)}</div>` : ''}
+                                ${origReceiver ? `<div><strong class="text-slate-700 dark:text-slate-300">إلى:</strong> ${escapeHtml(origReceiver)}</div>` : ''}
+                            </div>` : ''}
+                            ${origContent ? `<div class="leading-relaxed border-t border-slate-200/40 dark:border-slate-800 pt-1.5 mt-1.5">${escapeHtml(origContent)}</div>` : ''}
+                        </div>
+                    </details>` : ''}
+                `;
+
+                attachOverlayPeekBehavior(pageCard, overlay);
+                overlay.appendChild(pageCard);
+            });
+        } catch (err) {
+            console.error('[Translation] Overlay translation failed:', err);
+            overlay.innerHTML = `
+                <div class="flex flex-col items-center justify-center p-8 bg-white/95 dark:bg-slate-900/95 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 gap-3 my-auto max-w-sm text-center">
+                    <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 flex items-center justify-center mb-1">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                    </div>
+                    <div class="text-sm font-semibold text-red-600 dark:text-red-400">Translation Error</div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(err.message || 'Could not load translation')}</div>
+                </div>
+            `;
+        }
+    }
+
+    function attachOverlayPeekBehavior(card, overlay) {
+        if (!card || !overlay) return;
+        card.querySelectorAll('.btn-peek-scan').forEach(btn => {
+            let timeout = null;
+            const startPeek = () => { card.classList.add('peeking'); };
+            const stopPeek = () => {
+                card.classList.remove('peeking');
+                if (timeout) { clearTimeout(timeout); timeout = null; }
+            };
+
+            btn.addEventListener('pointerdown', startPeek);
+            btn.addEventListener('pointerup', stopPeek);
+            btn.addEventListener('pointerleave', stopPeek);
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (card.classList.contains('peeking')) {
+                    stopPeek();
+                } else {
+                    startPeek();
+                    timeout = setTimeout(stopPeek, 4000);
+                }
+            });
+        });
+    }
+
     let currentTranslationPromise = null;
 
     async function renderDocumentTranslation() {
@@ -1848,6 +2060,15 @@
 
         console.debug('[Translation] Starting document translation for:', vaultId);
 
+        // Tablet/touch: use overlay cards on top of iframe (fast, no heavy canvas rendering)
+        if (shouldUseOfficialViewer()) {
+            currentTranslationPromise = renderOverlayTranslation(vaultId).finally(() => {
+                currentTranslationPromise = null;
+            });
+            return currentTranslationPromise;
+        }
+
+        // Desktop: use canvas-based translation panels below each rendered page
         currentTranslationPromise = (async () => {
             try {
                 const canvasContainer = document.getElementById('pdf-canvas-container');
@@ -1981,17 +2202,16 @@
             return false;
         }
 
-        // Touchscreen / Tablet auto-detection:
-        // Android, iOS (iPhone/iPad), tablets, or touch-first devices where iframe PDFs prompt downloads
+        // On tab (tablet/mobile), default mode should be tab (official PDF.js viewer)
+        // On computer (desktop/laptop), default mode should be computer (native PDF viewer)
         if (typeof navigator !== 'undefined') {
             const ua = navigator.userAgent || '';
-            const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(ua);
-            const isTouchScreen = (navigator.maxTouchPoints > 0 || (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(pointer: coarse)').matches));
+            const isMobileOrTabletUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(ua);
             const isIPad = /Macintosh/i.test(ua) && navigator.maxTouchPoints > 1;
 
-            if (isMobileUA || isIPad || isTouchScreen) return true;
+            if (isMobileOrTabletUA || isIPad) return true;
 
-            // Fallback for devices without native PDF viewer plugin
+            // Fallback for devices without native PDF viewer plugin (tablets/mobile)
             if (navigator.pdfViewerEnabled === false) return true;
         }
 
@@ -2042,30 +2262,53 @@
             try {
                 const frameWin = pdfFrame.contentWindow;
                 if (frameWin && frameWin.PDFViewerApplication && frameWin.PDFViewerApplication.initialized && typeof frameWin.PDFViewerApplication.open === 'function') {
+                    const app = frameWin.PDFViewerApplication;
+
                     try {
                         if (frameWin._app_options && frameWin._app_options.AppOptions) {
                             frameWin._app_options.AppOptions.set('defaultZoomValue', preferredZoom);
                         }
                     } catch (e) {}
 
-                    const openPromise = frameWin.PDFViewerApplication.open({ url: pdfUrl });
-                    if (openPromise && typeof openPromise.then === 'function') {
-                        openPromise.then(() => {
-                            try {
-                                if (frameWin.PDFViewerApplication.pdfViewer) {
-                                    frameWin.PDFViewerApplication.pdfViewer.currentScaleValue = preferredZoom;
-                                }
-                            } catch (err) {}
-                        }).catch(() => {});
-                    }
+                    const applyCurrentZoom = () => {
+                        try {
+                            const curZoom = getPreferredPdfZoom();
+                            if (curZoom && app.pdfViewer) {
+                                app.pdfViewer.currentScaleValue = curZoom;
+                                app.toolbar?.setPageScale(curZoom, app.pdfViewer.currentScale);
+                            }
+                        } catch (err) {}
+                    };
 
-                    if (frameWin.PDFViewerApplication.eventBus && !pdfFrame._hasScaleListener) {
+                    if (app.eventBus && !pdfFrame._hasScaleListener) {
                         pdfFrame._hasScaleListener = true;
-                        frameWin.PDFViewerApplication.eventBus._on('scalechanged', function(evt) {
+                        app.eventBus._on('scalechanged', function(evt) {
                             if (evt && evt.value) {
                                 setPreferredPdfZoom(evt.value);
                             }
                         });
+                        app.eventBus._on('scalechanging', function(evt) {
+                            if (evt && evt.presetValue) {
+                                setPreferredPdfZoom(evt.presetValue);
+                            }
+                        });
+                    }
+
+                    if (app.eventBus) {
+                        const onPagesReady = () => {
+                            applyCurrentZoom();
+                        };
+                        app.eventBus._on('pagesloaded', onPagesReady);
+                        app.eventBus._on('documentinit', onPagesReady);
+                    }
+
+                    const openPromise = app.open({ url: pdfUrl });
+                    if (openPromise && typeof openPromise.then === 'function') {
+                        openPromise.then(() => {
+                            applyCurrentZoom();
+                            setTimeout(applyCurrentZoom, 50);
+                            setTimeout(applyCurrentZoom, 200);
+                        }).catch(() => {});
                     }
 
                     reusedViewer = true;
@@ -2084,13 +2327,30 @@
             pdfFrame.addEventListener('load', function() {
                 try {
                     const win = pdfFrame.contentWindow;
-                    if (win && win.PDFViewerApplication && win.PDFViewerApplication.eventBus && !pdfFrame._hasScaleListener) {
-                        pdfFrame._hasScaleListener = true;
-                        win.PDFViewerApplication.eventBus._on('scalechanged', function(evt) {
-                            if (evt && evt.value) {
-                                setPreferredPdfZoom(evt.value);
+                    if (win && win.PDFViewerApplication && win.PDFViewerApplication.eventBus) {
+                        const app = win.PDFViewerApplication;
+                        if (!pdfFrame._hasScaleListener) {
+                            pdfFrame._hasScaleListener = true;
+                            app.eventBus._on('scalechanged', function(evt) {
+                                if (evt && evt.value) {
+                                    setPreferredPdfZoom(evt.value);
+                                }
+                            });
+                            app.eventBus._on('scalechanging', function(evt) {
+                                if (evt && evt.presetValue) {
+                                    setPreferredPdfZoom(evt.presetValue);
+                                }
+                            });
+                        }
+                        const applyZoom = () => {
+                            const curZoom = getPreferredPdfZoom();
+                            if (curZoom && app.pdfViewer) {
+                                app.pdfViewer.currentScaleValue = curZoom;
+                                app.toolbar?.setPageScale(curZoom, app.pdfViewer.currentScale);
                             }
-                        });
+                        };
+                        app.eventBus._on('pagesloaded', applyZoom);
+                        app.eventBus._on('documentinit', applyZoom);
                     }
                 } catch (err) {}
             });

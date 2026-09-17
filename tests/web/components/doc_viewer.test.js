@@ -842,6 +842,197 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
     });
   });
 
+  describe('Default Mode (Computer vs Tab) & Selected Zoom Persistence Suite', () => {
+    const originalNavigator = global.navigator;
+
+    beforeEach(() => {
+      localStorage.removeItem('pdf_viewer_mode');
+      localStorage.removeItem('pdf_zoom_preference');
+      eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
+    });
+
+    afterEach(() => {
+      Object.defineProperty(global, 'navigator', {
+        value: originalNavigator,
+        configurable: true,
+        writable: true
+      });
+    });
+
+    it('on computer (Windows desktop/laptop, even with touchscreen), default mode is computer', () => {
+      Object.defineProperty(global, 'navigator', {
+        value: {
+          pdfViewerEnabled: true,
+          maxTouchPoints: 10,
+          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
+        },
+        configurable: true,
+        writable: true
+      });
+      localStorage.removeItem('pdf_viewer_mode');
+      expect(window.shouldUseOfficialViewer()).toBe(false);
+      expect(window.shouldUseTabViewer()).toBe(false);
+    });
+
+    it('on computer (Mac desktop or MacBook without multi-touch), default mode is computer', () => {
+      Object.defineProperty(global, 'navigator', {
+        value: {
+          pdfViewerEnabled: true,
+          maxTouchPoints: 0,
+          userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        },
+        configurable: true,
+        writable: true
+      });
+      localStorage.removeItem('pdf_viewer_mode');
+      expect(window.shouldUseOfficialViewer()).toBe(false);
+      expect(window.shouldUseTabViewer()).toBe(false);
+    });
+
+    it('on tab (Android tablet), default mode is tab', () => {
+      Object.defineProperty(global, 'navigator', {
+        value: {
+          pdfViewerEnabled: false,
+          maxTouchPoints: 5,
+          userAgent: 'Mozilla/5.0 (Linux; Android 14; SM-X810; Tablet) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
+        },
+        configurable: true,
+        writable: true
+      });
+      localStorage.removeItem('pdf_viewer_mode');
+      expect(window.shouldUseOfficialViewer()).toBe(true);
+      expect(window.shouldUseTabViewer()).toBe(true);
+    });
+
+    it('on tab (iPad on iOS), default mode is tab', () => {
+      Object.defineProperty(global, 'navigator', {
+        value: {
+          pdfViewerEnabled: false,
+          maxTouchPoints: 5,
+          userAgent: 'Mozilla/5.0 (iPad; CPU OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148'
+        },
+        configurable: true,
+        writable: true
+      });
+      localStorage.removeItem('pdf_viewer_mode');
+      expect(window.shouldUseOfficialViewer()).toBe(true);
+      expect(window.shouldUseTabViewer()).toBe(true);
+    });
+
+    it('on tab (iPad on iPadOS 13+ desktop Safari mode), default mode is tab', () => {
+      Object.defineProperty(global, 'navigator', {
+        value: {
+          pdfViewerEnabled: false,
+          maxTouchPoints: 5,
+          userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15'
+        },
+        configurable: true,
+        writable: true
+      });
+      localStorage.removeItem('pdf_viewer_mode');
+      expect(window.shouldUseOfficialViewer()).toBe(true);
+      expect(window.shouldUseTabViewer()).toBe(true);
+    });
+
+    it('on devices where navigator.pdfViewerEnabled is false, default mode is tab', () => {
+      Object.defineProperty(global, 'navigator', {
+        value: {
+          pdfViewerEnabled: false,
+          maxTouchPoints: 0,
+          userAgent: 'CustomBrowserWithoutPDFPlugin'
+        },
+        configurable: true,
+        writable: true
+      });
+      localStorage.removeItem('pdf_viewer_mode');
+      expect(window.shouldUseOfficialViewer()).toBe(true);
+      expect(window.shouldUseTabViewer()).toBe(true);
+    });
+
+    it('remembers user last selected zoom setting when moving between documents', async () => {
+      localStorage.setItem('pdf_viewer_mode', 'tab');
+
+      const pdfFrame = document.getElementById('pdf-frame');
+      let currentScale = 'auto';
+      let toolbarScale = 'auto';
+      const eventHandlers = {};
+
+      const mockApp = {
+        initialized: true,
+        open: vi.fn().mockImplementation(() => Promise.resolve()),
+        eventBus: {
+          _on: vi.fn((event, handler) => {
+            eventHandlers[event] = handler;
+          })
+        },
+        pdfViewer: {
+          get currentScaleValue() { return currentScale; },
+          set currentScaleValue(val) { currentScale = val; }
+        },
+        toolbar: {
+          setPageScale: vi.fn((presetVal, scale) => {
+            toolbarScale = presetVal;
+          })
+        }
+      };
+
+      Object.defineProperty(pdfFrame, 'contentWindow', {
+        value: {
+          PDFViewerApplication: mockApp,
+          _app_options: {
+            AppOptions: { set: vi.fn() }
+          }
+        },
+        configurable: true,
+        writable: true
+      });
+
+      // 1. User is in tablet mode, initially sets Page Fit
+      window.setPreferredPdfZoom('page-fit');
+      window.openDocument('doc_A', 'Doc A', '05 - عقود');
+      await Promise.resolve();
+      expect(currentScale).toBe('page-fit');
+
+      // 2. User moves to another document -> remembers Page Fit, does NOT revert to automatic zoom
+      window.openDocument('doc_B', 'Doc B', '06 - كهرباء وماء');
+      await Promise.resolve();
+      expect(currentScale).toBe('page-fit');
+
+      // 3. User selects Automatic Zoom explicitly from dropdown
+      if (eventHandlers['scalechanged']) {
+        eventHandlers['scalechanged']({ value: 'auto' });
+      }
+      expect(localStorage.getItem('pdf_zoom_preference')).toBe('auto');
+
+      // 4. User moves to another document -> remembers Automatic Zoom
+      window.openDocument('doc_C', 'Doc C', '10 - صيانة');
+      await Promise.resolve();
+      expect(currentScale).toBe('auto');
+
+      // 5. User selects Page Width
+      if (eventHandlers['scalechanging']) {
+        eventHandlers['scalechanging']({ presetValue: 'page-width' });
+      }
+      expect(localStorage.getItem('pdf_zoom_preference')).toBe('page-width');
+
+      // 6. User moves to another document -> remembers Page Width
+      window.openDocument('doc_D', 'Doc D', '07 - صك الملكية');
+      await Promise.resolve();
+      expect(currentScale).toBe('page-width');
+
+      // 7. User selects 150%
+      if (eventHandlers['scalechanged']) {
+        eventHandlers['scalechanged']({ value: '1.5' });
+      }
+      expect(localStorage.getItem('pdf_zoom_preference')).toBe('1.5');
+
+      // 8. User moves to another document -> remembers 150%
+      window.openDocument('doc_E', 'Doc E', '08 - بطاقات ذكية');
+      await Promise.resolve();
+      expect(currentScale).toBe('1.5');
+    });
+  });
+
   describe('Document Translation Engine & Complete Text Coverage Suite (Google-Style In-Place Overlay)', () => {
     beforeEach(() => {
       eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));

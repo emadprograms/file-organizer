@@ -2332,6 +2332,16 @@
         };
     }
 
+    if (typeof window !== 'undefined') {
+        window.addEventListener('auth:user-changed', () => {
+            const btnDocDelete = document.getElementById('btn-doc-delete');
+            if (btnDocDelete) {
+                const canDelete = window.authManager ? window.authManager.hasDeletePermission() : true;
+                btnDocDelete.classList.toggle('hidden', !canDelete);
+            }
+        });
+    }
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initDocManager);
     } else {

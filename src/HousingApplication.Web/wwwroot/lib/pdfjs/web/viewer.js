@@ -1031,6 +1031,11 @@ const PDFViewerApplication = {
         await Promise.race([pagesPromise, new Promise(resolve => {
           setTimeout(resolve, FORCE_PAGES_LOADED_TIMEOUT);
         })]);
+        const preferredZoom = (typeof localStorage !== "undefined" && localStorage.getItem("pdf_zoom_preference")) || _app_options.AppOptions.get("defaultZoomValue") || null;
+        if (preferredZoom && pdfViewer) {
+          pdfViewer.currentScaleValue = preferredZoom;
+          this.toolbar?.setPageScale(preferredZoom, pdfViewer.currentScale);
+        }
         if (!initialBookmark && !hash) {
           return;
         }
@@ -1968,6 +1973,13 @@ function webViewerUpdateFindControlState({
 function webViewerScaleChanging(evt) {
   PDFViewerApplication.toolbar?.setPageScale(evt.presetValue, evt.scale);
   PDFViewerApplication.pdfViewer.update();
+  try {
+    const val = evt.presetValue || (evt.scale ? evt.scale.toString() : null);
+    if (val) {
+      localStorage.setItem("pdf_zoom_preference", val);
+      _app_options.AppOptions.set("defaultZoomValue", val);
+    }
+  } catch (e) {}
 }
 function webViewerRotationChanging(evt) {
   if (PDFViewerApplication.pdfThumbnailViewer) {
