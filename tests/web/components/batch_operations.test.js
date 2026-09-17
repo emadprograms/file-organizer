@@ -627,6 +627,7 @@ describe('Multi-Select Batch Document Operations (Phase 106)', () => {
 
     it('defaults batch move tenant to the open tenant folder (window.currentTenant) over first DB result', async () => {
         window.currentTenant = 'عثمان المساعد';
+        global.currentCategories[0].tenant = 'عثمان المساعد';
         toggleDocSelection('doc001', true);
 
         global.fetch = vi.fn().mockResolvedValue({
@@ -650,6 +651,7 @@ describe('Multi-Select Batch Document Operations (Phase 106)', () => {
 
     it('defaults batch move tenant to URL hash tenant when window.currentTenant is not set', async () => {
         window.currentTenant = null;
+        global.currentCategories[0].tenant = 'عمر الفاروق';
         window.location.hash = '#/area/Safra%20C/house/500/tenant/' + encodeURIComponent('500_عمر الفاروق');
         toggleDocSelection('doc001', true);
 
@@ -671,7 +673,7 @@ describe('Multi-Select Batch Document Operations (Phase 106)', () => {
         window.location.hash = '';
     });
 
-    it('pre-selects open tenant when moving single doc via openBatchMoveForDoc', async () => {
+    it('pre-selects the document\'s own tenant when moving single doc via openBatchMoveForDoc even when another tenant is active', async () => {
         window.currentTenant = 'عثمان المساعد';
         const testDoc = {
             vault_id: 'doc_single_999',
@@ -695,8 +697,8 @@ describe('Multi-Select Batch Document Operations (Phase 106)', () => {
         expect(modal.classList.contains('hidden')).toBe(false);
 
         const select = document.getElementById('batch-move-tenant-select');
-        // Because the open folder is 'عثمان المساعد', it must be chosen
-        expect(select.value).toBe('45');
+        // Because the document belongs to 'زيد الراجحي' (id 99), it must default to the same tenant, not 'عثمان المساعد'
+        expect(select.value).toBe('99');
         window.currentTenant = null;
     });
 

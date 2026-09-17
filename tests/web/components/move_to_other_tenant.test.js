@@ -8,6 +8,7 @@ const {
     removeDocFromDom,
     isMovingToOtherTenant,
     populateBatchTenantSelect,
+    getBatchSelectedDocsInfo,
     toggleDocSelection,
     deselectAllDocs,
     resetCategoryOpenState,
@@ -344,4 +345,87 @@ describe('Move Document(s) to Another Tenant in the Same House', () => {
 
         expect(window.loadTree).toHaveBeenCalled();
     });
+
+    it('defaults to the document\'s own tenant name (not the resident currentTenant) when moving a single document', async () => {
+        // active resident tenant is خالد العتيبي (ID 1)
+        global.currentTenant = 'خالد العتيبي';
+        window.currentTenant = 'خالد العتيبي';
+
+        // Document belongs to past tenant محمد مبارك (ID 2)
+        const pastTenantDoc = {
+            vault_id: 'doc_past_01',
+            brief_arabic_title: 'مخالصة مالية',
+            category: '05 - عقود',
+            tenant_id: 2,
+            tenant: 'محمد مبارك',
+            primary_tenant: 'محمد مبارك'
+        };
+
+        // Mock fetch for house tenants list returning both resident and past tenant
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => [
+                { id: 1, name: 'خالد العتيبي', is_active: true, is_resident: true },
+                { id: 2, name: 'محمد مبارك', is_active: false, is_resident: false }
+            ]
+        });
+
+        openBatchMoveForDoc(pastTenantDoc);
+
+        const modal = document.getElementById('batch-move-modal');
+        expect(modal.classList.contains('hidden')).toBe(false);
+
+        const tenantSelect = document.getElementById('batch-move-tenant-select');
+        // Wait for async populateBatchTenantSelect to finish
+        await vi.waitFor(() => {
+            expect(tenantSelect.options.length).toBeGreaterThanOrEqual(2);
+            // Must default to ID 2 (محمد مبارك - the document's own tenant), NOT ID 1 (خالد العتيبي)
+            expect(tenantSelect.value).toBe('2');
+            expect(tenantSelect.dataset.sourceTenantId).toBe('2');
+            expect(tenantSelect.dataset.sourceTenantName).toBe('محمد مبارك');
+        });
+    });
+
+    it('defaults to the selected documents\' own tenant name when multi-selecting documents', async () => {
+        global.currentTenant = 'خالد العتيبي';
+        window.currentTenant = 'خالد العتيبي';
+
+        global.currentCategories = [
+            {
+                tenant: 'محمد مبارك',
+                name: '05 - عقود',
+                document_count: 2,
+                documents: [
+                    { vault_id: 'doc_p1', tenant_id: 2, tenant: 'محمد مبارك', category: '05 - عقود' },
+                    { vault_id: 'doc_p2', tenant_id: 2, tenant: 'محمد مبارك', category: '05 - عقود' }
+                ]
+            }
+        ];
+
+        toggleDocSelection('doc_p1', true);
+        toggleDocSelection('doc_p2', true);
+
+        const info = getBatchSelectedDocsInfo();
+        expect(info.singleTenantId).toBe(2);
+        expect(info.singleTenantName).toBe('محمد مبارك');
+
+        deselectAllDocs();
+    });
+
+    it('falls back to currentTenant when moving document with no tenant metadata', () => {
+        global.currentTenant = 'خالد العتيبي';
+        window.currentTenant = 'خالد العتيبي';
+        global.currentCategories = [];
+
+        const unassignedDoc = {
+            vault_id: 'doc_unassigned_01',
+            brief_arabic_title: 'مستند عام'
+        };
+
+        openBatchMoveForDoc(unassignedDoc);
+
+        const info = getBatchSelectedDocsInfo();
+        expect(info.singleTenantName).toBe('خالد العتيبي');
+    });
 });
+

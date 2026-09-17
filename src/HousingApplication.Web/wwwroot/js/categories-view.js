@@ -550,26 +550,61 @@
         }
 
         if (singleTargetDoc) {
-            if (singleTargetDoc.tenant_id != null) tenantIds.add(singleTargetDoc.tenant_id);
-            const sName = singleTargetDoc.tenant || singleTargetDoc.primary_tenant;
-            if (sName) tenantNames.add(sName);
+            let sName = singleTargetDoc.tenant || singleTargetDoc.primary_tenant;
+            let sId = singleTargetDoc.tenant_id;
+            if (!sName && Array.isArray(activeCats)) {
+                for (const cat of activeCats) {
+                    if (cat.documents && cat.documents.some(d => d.vault_id === singleTargetDoc.vault_id)) {
+                        const foundDoc = cat.documents.find(d => d.vault_id === singleTargetDoc.vault_id);
+                        sName = cat.tenant || (foundDoc && foundDoc.tenant) || '';
+                        if (sId == null && foundDoc && foundDoc.tenant_id != null) {
+                            sId = foundDoc.tenant_id;
+                        }
+                        break;
+                    }
+                }
+            }
+            if (sId != null) tenantIds.add(sId);
+            if (sName) {
+                tenantNames.add(sName);
+                const key = sId != null ? `id_${sId}` : `name_${sName.trim().toLowerCase()}`;
+                if (!seenTenantKeys.has(key)) {
+                    seenTenantKeys.add(key);
+                    inMemoryTenants.push({ id: sId, name: sName, is_active: false });
+                }
+            }
         }
 
-        const openTenant = getBatchResolvedTenant();
-
-        // Priority 1: The tenant whose folder you are currently in
-        let targetTenantName = openTenant || null;
+        let targetTenantName = null;
         let targetTenantId = null;
 
-        // Fallback: If no open tenant folder is active, infer from singleTargetDoc or selected docs
-        if (!targetTenantName) {
-            if (singleTargetDoc) {
-                targetTenantName = singleTargetDoc.tenant || singleTargetDoc.primary_tenant || null;
-                targetTenantId = singleTargetDoc.tenant_id != null ? singleTargetDoc.tenant_id : null;
-            } else if (tenantNames.size > 0) {
-                targetTenantName = Array.from(tenantNames)[0];
-                targetTenantId = tenantIds.size > 0 ? Array.from(tenantIds)[0] : null;
+        // Priority 1: The document's own tenant (single document target)
+        if (singleTargetDoc) {
+            targetTenantName = singleTargetDoc.tenant || singleTargetDoc.primary_tenant || null;
+            targetTenantId = singleTargetDoc.tenant_id != null ? singleTargetDoc.tenant_id : null;
+            if (!targetTenantName && Array.isArray(activeCats)) {
+                for (const cat of activeCats) {
+                    if (cat.documents && cat.documents.some(d => d.vault_id === singleTargetDoc.vault_id)) {
+                        targetTenantName = cat.tenant || (cat.documents.find(d => d.vault_id === singleTargetDoc.vault_id)?.tenant) || null;
+                        if (targetTenantId == null) {
+                            const foundDoc = cat.documents.find(d => d.vault_id === singleTargetDoc.vault_id);
+                            if (foundDoc && foundDoc.tenant_id != null) targetTenantId = foundDoc.tenant_id;
+                        }
+                        break;
+                    }
+                }
             }
+        } 
+        // Priority 2: Selected documents' own tenant
+        else if (tenantNames.size > 0 || tenantIds.size > 0) {
+            targetTenantName = tenantNames.size > 0 ? Array.from(tenantNames)[0] : null;
+            targetTenantId = tenantIds.size > 0 ? Array.from(tenantIds)[0] : null;
+        }
+
+        // Priority 3 (Fallback): If no document tenant was resolved, fallback to the open/current tenant
+        if (!targetTenantName && targetTenantId == null) {
+            const openTenant = getBatchResolvedTenant();
+            targetTenantName = openTenant || null;
         }
 
         if (targetTenantName && targetTenantId == null) {
@@ -577,6 +612,11 @@
             const matched = inMemoryTenants.find(t => t.name && t.name.trim().toLowerCase() === cleanTarget);
             if (matched && matched.id != null) {
                 targetTenantId = matched.id;
+            }
+        } else if (targetTenantId != null && !targetTenantName) {
+            const matched = inMemoryTenants.find(t => t.id != null && String(t.id) === String(targetTenantId));
+            if (matched && matched.name) {
+                targetTenantName = matched.name;
             }
         }
 
@@ -661,14 +701,16 @@
                 const seenKeys = new Set();
                 const combinedTenants = [];
                 dbTenants.forEach(t => {
-                    const k = t.id != null ? `id_${t.id}` : `name_${(t.name || '').trim().toLowerCase()}`;
-                    seenKeys.add(k);
+                    if (t.id != null) seenKeys.add(`id_${t.id}`);
+                    if (t.name) seenKeys.add(`name_${(t.name || '').trim().toLowerCase()}`);
                     combinedTenants.push(t);
                 });
                 info.inMemoryTenants.forEach(t => {
-                    const k = t.id != null ? `id_${t.id}` : `name_${(t.name || '').trim().toLowerCase()}`;
-                    if (!seenKeys.has(k)) {
-                        seenKeys.add(k);
+                    const hasId = t.id != null && seenKeys.has(`id_${t.id}`);
+                    const hasName = t.name && seenKeys.has(`name_${(t.name || '').trim().toLowerCase()}`);
+                    if (!hasId && !hasName) {
+                        if (t.id != null) seenKeys.add(`id_${t.id}`);
+                        if (t.name) seenKeys.add(`name_${(t.name || '').trim().toLowerCase()}`);
                         combinedTenants.push(t);
                     }
                 });
@@ -775,15 +817,15 @@
         const tenantSelect = document.getElementById('batch-move-tenant-select');
         const sourceTenantId = tenantSelect ? (tenantSelect.dataset.sourceTenantId || '') : '';
 
-        // 1. Explicit sourceTenantId diff
-        if (sourceTenantId && String(sourceTenantId) !== String(targetTenantVal)) {
-            return true;
+        // 1. Explicit sourceTenantId comparison
+        if (sourceTenantId) {
+            return String(sourceTenantId) !== String(targetTenantVal);
         }
 
         // 2. Check targetDoc (or singleTargetDoc)
         const doc = targetDoc || singleTargetDoc;
-        if (doc && doc.tenant_id != null && String(doc.tenant_id) !== String(targetTenantVal)) {
-            return true;
+        if (doc && doc.tenant_id != null) {
+            return String(doc.tenant_id) !== String(targetTenantVal);
         }
 
         // 3. Check activeTenant from current view
