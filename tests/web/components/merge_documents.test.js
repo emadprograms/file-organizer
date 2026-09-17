@@ -20,6 +20,12 @@ const {
     removeMergeDoc,
     handleAddDocToMergeList,
     getActiveMergeDocs,
+    handleSwapMergeDocs,
+    showMergeStep,
+    updateMergeOrderSummary,
+    handleReorderContinue,
+    handlePickContinue,
+    handleSaveBack,
     openDocDropdownMenu,
     closeDocDropdownMenu
 } = require('../../../src/HousingApplication.Web/wwwroot/js/doc-manager.js');
@@ -55,28 +61,52 @@ function setupDOM() {
         <!-- Document Merge Modal -->
         <div id="merge-docs-modal" class="hidden">
             <h3 id="merge-docs-title">Merge Documents</h3>
+            <p id="merge-docs-subtitle">Combine documents into one PDF</p>
             <span id="merge-docs-count-badge">0 docs • 0 pages</span>
-            <div id="merge-docs-list"></div>
-            <div id="merge-add-doc-container">
-                <select id="merge-add-doc-select"></select>
-                <button id="btn-merge-add-doc" type="button">+ Add</button>
-            </div>
-            <input id="merge-target-title" type="text" />
-            <select id="merge-target-category"></select>
-            <div id="merge-custom-cat-container" class="hidden">
-                <input id="merge-custom-cat-input" type="text" />
-            </div>
-            <select id="merge-target-tenant"></select>
-            <input id="merge-target-date" type="date" />
-            <input id="merge-target-notes" type="text" />
-            <input id="merge-delete-sources" type="checkbox" checked />
-            <div id="merge-docs-status" class="hidden"></div>
             <button id="merge-docs-close" type="button"></button>
-            <button id="btn-merge-docs-cancel" type="button"></button>
-            <button id="btn-merge-docs-confirm" type="button">
-                <span id="merge-docs-spinner" class="hidden"></span>
-                <span id="merge-docs-btn-text">Merge</span>
-            </button>
+
+            <!-- Reorder Step (for >2 docs) -->
+            <div id="merge-step-reorder" class="hidden">
+                <div id="merge-docs-list"></div>
+                <div id="merge-add-doc-container">
+                    <select id="merge-add-doc-select"></select>
+                    <button id="btn-merge-add-doc" type="button">+ Add</button>
+                </div>
+                <button id="btn-merge-reorder-cancel" type="button">Cancel</button>
+                <button id="btn-merge-reorder-continue" type="button">Continue</button>
+            </div>
+
+            <!-- Pick Step (for 1 doc) -->
+            <div id="merge-step-pick" class="hidden">
+                <div id="merge-pick-first-doc-title"></div>
+                <select id="merge-pick-second-select"></select>
+                <button id="btn-merge-pick-cancel" type="button">Cancel</button>
+                <button id="btn-merge-pick-continue" type="button">Continue</button>
+            </div>
+
+            <!-- Save Step (direct for 2 docs or after continue) -->
+            <div id="merge-step-save" class="hidden">
+                <div id="merge-order-banner">
+                    <span id="merge-order-summary"></span>
+                    <button id="btn-merge-swap-order" type="button">Swap</button>
+                </div>
+                <input id="merge-target-title" type="text" />
+                <select id="merge-target-category"></select>
+                <div id="merge-custom-cat-container" class="hidden">
+                    <input id="merge-custom-cat-input" type="text" />
+                </div>
+                <select id="merge-target-tenant"></select>
+                <input id="merge-target-date" type="hidden" />
+                <input id="merge-target-notes" type="hidden" />
+                <input id="merge-delete-sources" type="checkbox" checked />
+                <div id="merge-docs-status" class="hidden"></div>
+                <button id="btn-merge-save-back" type="button" class="hidden">Back</button>
+                <button id="btn-merge-docs-cancel" type="button">Cancel</button>
+                <button id="btn-merge-docs-confirm" type="button">
+                    <span id="merge-docs-spinner" class="hidden"></span>
+                    <span id="merge-docs-btn-text">Merge</span>
+                </button>
+            </div>
         </div>
     `;
 }
@@ -210,7 +240,7 @@ describe('Document Merge Feature', () => {
     });
 
     describe('Merge Modal UI & Document Reordering', () => {
-        it('opens merge modal with initial documents and calculates total pages', async () => {
+        it('opens merge modal directly to Save & Name step when exactly 2 documents are selected', async () => {
             const doc1 = global.currentCategories[0].documents[0];
             const doc2 = global.currentCategories[0].documents[1];
 
@@ -219,19 +249,34 @@ describe('Document Merge Feature', () => {
             const modal = document.getElementById('merge-docs-modal');
             expect(modal.classList.contains('hidden')).toBe(false);
 
+            // Step 3 (Save) should be visible; Step 1 (Reorder) should be hidden
+            const saveStep = document.getElementById('merge-step-save');
+            const reorderStep = document.getElementById('merge-step-reorder');
+            expect(saveStep.classList.contains('hidden')).toBe(false);
+            expect(reorderStep.classList.contains('hidden')).toBe(true);
+
+            // Badge displays counts
             const badge = document.getElementById('merge-docs-count-badge');
             expect(badge.textContent).toContain('2 docs • 5 pages');
 
-            const activeDocs = getActiveMergeDocs();
-            expect(activeDocs).toHaveLength(2);
-            expect(activeDocs[0].vault_id).toBe('doc_aaa111');
-            expect(activeDocs[1].vault_id).toBe('doc_bbb222');
-
+            // Name defaults to first doc's title
             const titleInput = document.getElementById('merge-target-title');
-            expect(titleInput.value).toContain('عقد الإيجار + الهوية الشخصية');
+            expect(titleInput.value).toBe('عقد الإيجار');
+
+            // Category defaults to first doc's category
+            const catSelect = document.getElementById('merge-target-category');
+            expect(catSelect.value).toBe('01 - بيانات أساسية');
+
+            // Order summary shows doc 1 -> doc 2
+            const orderSummary = document.getElementById('merge-order-summary');
+            expect(orderSummary.textContent).toContain('عقد الإيجار → الهوية الشخصية');
+
+            // Date is inherited from doc 1
+            const dateInput = document.getElementById('merge-target-date');
+            expect(dateInput.value).toBe('2024-01-15');
         });
 
-        it('allows reordering documents with moveMergeDocUp and moveMergeDocDown', async () => {
+        it('swaps document order and updates defaults when Swap button is clicked', async () => {
             const doc1 = global.currentCategories[0].documents[0];
             const doc2 = global.currentCategories[0].documents[1];
 
@@ -240,18 +285,91 @@ describe('Document Merge Feature', () => {
             expect(getActiveMergeDocs()[0].vault_id).toBe('doc_aaa111');
             expect(getActiveMergeDocs()[1].vault_id).toBe('doc_bbb222');
 
-            // Move second document UP
-            moveMergeDocUp(1);
+            // Click Swap
+            handleSwapMergeDocs();
+
             expect(getActiveMergeDocs()[0].vault_id).toBe('doc_bbb222');
             expect(getActiveMergeDocs()[1].vault_id).toBe('doc_aaa111');
 
-            // Move first document DOWN
-            moveMergeDocDown(0);
-            expect(getActiveMergeDocs()[0].vault_id).toBe('doc_aaa111');
-            expect(getActiveMergeDocs()[1].vault_id).toBe('doc_bbb222');
+            // Title and summary updated to doc 2
+            const titleInput = document.getElementById('merge-target-title');
+            expect(titleInput.value).toBe('الهوية الشخصية');
+
+            const orderSummary = document.getElementById('merge-order-summary');
+            expect(orderSummary.textContent).toContain('الهوية الشخصية → عقد الإيجار');
+
+            const dateInput = document.getElementById('merge-target-date');
+            expect(dateInput.value).toBe('2024-01-16');
         });
 
-        it('allows adding an additional document from house dropdown', async () => {
+        it('opens rearrangement box first when more than 2 documents are selected', async () => {
+            const doc1 = global.currentCategories[0].documents[0];
+            const doc2 = global.currentCategories[0].documents[1];
+            const doc3 = global.currentCategories[1].documents[0]; // from '05 - عقود'
+
+            await openMergeModal([doc1, doc2, doc3]);
+
+            const modal = document.getElementById('merge-docs-modal');
+            expect(modal.classList.contains('hidden')).toBe(false);
+
+            // Reorder step is visible; Save step is hidden
+            const reorderStep = document.getElementById('merge-step-reorder');
+            const saveStep = document.getElementById('merge-step-save');
+            expect(reorderStep.classList.contains('hidden')).toBe(false);
+            expect(saveStep.classList.contains('hidden')).toBe(true);
+
+            expect(getActiveMergeDocs()).toHaveLength(3);
+
+            // Move doc 3 from index 2 up to index 1 then index 0
+            moveMergeDocUp(2);
+            moveMergeDocUp(1);
+            expect(getActiveMergeDocs()[0].vault_id).toBe('doc_ccc333');
+
+            // Click Continue to Save & Name view
+            handleReorderContinue();
+
+            expect(reorderStep.classList.contains('hidden')).toBe(true);
+            expect(saveStep.classList.contains('hidden')).toBe(false);
+
+            // Title, category, and date inherited from the new first doc (doc_ccc333)
+            const titleInput = document.getElementById('merge-target-title');
+            expect(titleInput.value).toBe('الملحق الإضافي');
+
+            const catSelect = document.getElementById('merge-target-category');
+            expect(catSelect.value).toBe('05 - عقود');
+
+            const dateInput = document.getElementById('merge-target-date');
+            expect(dateInput.value).toBe('2024-02-01');
+        });
+
+        it('opens pick step when exactly 1 document is selected', async () => {
+            const doc1 = global.currentCategories[0].documents[0];
+
+            await openMergeModal([doc1]);
+
+            const pickStep = document.getElementById('merge-step-pick');
+            const saveStep = document.getElementById('merge-step-save');
+            const reorderStep = document.getElementById('merge-step-reorder');
+            expect(pickStep.classList.contains('hidden')).toBe(false);
+            expect(saveStep.classList.contains('hidden')).toBe(true);
+            expect(reorderStep.classList.contains('hidden')).toBe(true);
+
+            const firstDocTitle = document.getElementById('merge-pick-first-doc-title');
+            expect(firstDocTitle.textContent).toBe('عقد الإيجار');
+
+            const pickSelect = document.getElementById('merge-pick-second-select');
+            expect(pickSelect.children.length).toBeGreaterThan(1);
+
+            // Pick second document and continue
+            pickSelect.value = 'doc_bbb222';
+            handlePickContinue();
+
+            expect(pickStep.classList.contains('hidden')).toBe(true);
+            expect(saveStep.classList.contains('hidden')).toBe(false);
+            expect(getActiveMergeDocs()).toHaveLength(2);
+        });
+
+        it('allows adding an additional document from house dropdown and removing a doc', async () => {
             const doc1 = global.currentCategories[0].documents[0];
             const doc2 = global.currentCategories[0].documents[1];
 
@@ -259,7 +377,6 @@ describe('Document Merge Feature', () => {
             expect(getActiveMergeDocs()).toHaveLength(2);
 
             const addSelect = document.getElementById('merge-add-doc-select');
-            // doc_ccc333 from '05 - عقود' should be in the dropdown
             expect(addSelect.children.length).toBeGreaterThan(1);
 
             addSelect.value = 'doc_ccc333';
@@ -271,21 +388,10 @@ describe('Document Merge Feature', () => {
             const badge = document.getElementById('merge-docs-count-badge');
             // 3 + 2 + 1 = 6 pages
             expect(badge.textContent).toContain('3 docs • 6 pages');
-        });
-
-        it('allows removing a document from merge list', async () => {
-            const doc1 = global.currentCategories[0].documents[0];
-            const doc2 = global.currentCategories[0].documents[1];
-
-            await openMergeModal([doc1, doc2]);
-            expect(getActiveMergeDocs()).toHaveLength(2);
 
             removeMergeDoc(0);
-            expect(getActiveMergeDocs()).toHaveLength(1);
+            expect(getActiveMergeDocs()).toHaveLength(2);
             expect(getActiveMergeDocs()[0].vault_id).toBe('doc_bbb222');
-
-            const badge = document.getElementById('merge-docs-count-badge');
-            expect(badge.textContent).toContain('1 doc • 2 pages');
         });
     });
 
