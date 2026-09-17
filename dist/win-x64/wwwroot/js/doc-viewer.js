@@ -663,7 +663,177 @@
         'الثامن': 'Eighth', 'ثامن': 'eighth',
         'التاسع': 'Ninth', 'تاسع': 'ninth',
         'العاشر': 'Tenth', 'عاشر': 'tenth',
-        'كامل': 'full', 'الكامل': 'full', 'شامل': 'comprehensive', 'عام': 'general', 'خاص': 'special'
+        'كامل': 'full', 'الكامل': 'full', 'شامل': 'comprehensive', 'عام': 'general', 'خاص': 'special',
+
+        // Common sentence particles & connectors
+        'حيث': 'where / whereas', 'بحيث': 'such that', 'لذا': 'therefore', 'لذلك': 'therefore',
+        'إذا': 'if', 'اذا': 'if', 'لو': 'if', 'إذ': 'since / as', 'اذ': 'since / as',
+        'لكن': 'but', 'ولكن': 'however', 'إلا': 'except', 'الا': 'except', 'سوى': 'except',
+        'أو': 'or', 'او': 'or', 'ام': 'or', 'أم': 'or',
+        'أن': 'that', 'ان': 'that', 'إن': 'indeed', 'ان': 'that',
+        'لا': 'no / not', 'لم': 'did not', 'لن': 'will not', 'ما': 'what / not', 'ليس': 'is not',
+        'قد': 'may / has', 'سوف': 'shall / will',
+        'عند': 'at / when', 'حين': 'when', 'عندما': 'when',
+        'كما': 'as / also', 'مثل': 'like', 'كي': 'in order to', 'لأن': 'because', 'لان': 'because',
+        'منها': 'including', 'بينها': 'among them', 'عليها': 'on it', 'فيها': 'in it', 'منه': 'from it',
+        'له': 'for him', 'لها': 'for her/it', 'لهم': 'for them',
+        'عليه': 'on him / upon which', 'فيه': 'in it / therein',
+        'ذات': 'of / same', 'نفس': 'same', 'كلا': 'both', 'كلتا': 'both',
+        'ضمن': 'within', 'حول': 'about / around', 'تجاه': 'towards', 'نحو': 'towards / about',
+        'ثم': 'then', 'أيضا': 'also', 'بل': 'rather', 'حتي': 'until',
+        'ابتداء': 'starting', 'اعتبارا': 'effective', 'اعتباراً': 'effective',
+        'وفقا': 'according to', 'وفقاً': 'according to', 'طبقا': 'in accordance with', 'طبقاً': 'in accordance with',
+        'نظرا': 'given that', 'نظراً': 'given that', 'استنادا': 'based on', 'استناداً': 'based on',
+        'علما': 'noting that', 'علماً': 'noting that',
+
+        // Subject / Topic / Content  
+        'موضوع': 'Subject', 'الموضوع': 'Subject', 'مضمون': 'Content', 'المضمون': 'Content',
+        'شأن': 'Regard', 'الشأن': 'Regard', 'بشأن': 'Regarding', 'بخصوص': 'Regarding',
+        'خصوص': 'Regard', 'الخصوص': 'Regard',
+        'سبب': 'Reason', 'السبب': 'Reason', 'اسباب': 'Reasons', 'أسباب': 'Reasons',
+        'هدف': 'Objective', 'الهدف': 'Objective', 'اهداف': 'Objectives', 'أهداف': 'Objectives',
+        'غرض': 'Purpose', 'الغرض': 'Purpose', 'اغراض': 'Purposes', 'أغراض': 'Purposes',
+        'نتيجة': 'Result', 'النتيجة': 'Result', 'نتائج': 'Results',
+
+        // Religious / opening phrases
+        'بسم': 'In the name of', 'الله': 'Allah/God', 'الرحمن': 'the Most Gracious',
+        'الرحيم': 'the Most Merciful', 'الحمد': 'Praise', 'رب': 'Lord',
+        'صلاة': 'Prayer', 'سلام': 'Peace', 'السلام': 'Peace',
+
+        // Verbs & Actions (additional)
+        'يمنح': 'grants', 'يمنع': 'prohibits', 'يكون': 'is/shall be', 'تكون': 'is/shall be',
+        'يتم': 'is done', 'يعد': 'is considered', 'تعد': 'is considered',
+        'يقوم': 'carries out', 'تقوم': 'carries out',
+        'يطلب': 'requests', 'يبلغ': 'notifies', 'يخالف': 'violates',
+        'يتقدم': 'applies', 'يستحق': 'deserves / is due',
+        'يحق': 'has the right', 'يتضمن': 'includes', 'يشمل': 'includes',
+        'يتعلق': 'relates to', 'يخص': 'concerns', 'يتطلب': 'requires',
+        'يؤكد': 'confirms', 'يعلم': 'knows / notifies', 'يفيد': 'informs / states',
+        'يثبت': 'proves', 'ينص': 'stipulates', 'يقضي': 'rules / decides',
+        'يتوجب': 'must', 'يستوجب': 'necessitates',
+        'يبدأ': 'begins', 'ينتهي': 'ends', 'يستمر': 'continues',
+        'يؤدي': 'leads to', 'ينتج': 'results in',
+        'يرفض': 'rejects', 'يقبل': 'accepts', 'يوضح': 'clarifies',
+        'يعلن': 'announces', 'يصدر': 'issues', 'يسري': 'is effective / applies',
+        'يعمل': 'works / applies', 'تعمل': 'works / applies',
+        'ابلغ': 'notified', 'أبلغ': 'notified', 'أُبلغ': 'was notified',
+        'صادر': 'issued', 'الصادر': 'issued', 'صادرة': 'issued', 'الصادرة': 'issued',
+        'مؤرخ': 'dated', 'المؤرخ': 'dated', 'مؤرخة': 'dated', 'المؤرخة': 'dated',
+        'موقع': 'signed / located', 'الموقع': 'signed / located', 'موقعة': 'signed',
+        'مسجل': 'registered', 'المسجل': 'registered', 'مسجلة': 'registered',
+        'معتمد': 'approved', 'المعتمد': 'approved', 'معتمدة': 'approved',
+        'محدد': 'specified', 'المحدد': 'specified', 'محددة': 'specified',
+        'مطلوب': 'required', 'المطلوب': 'required', 'مطلوبة': 'required',
+        'مرفق': 'attached', 'المرفق': 'attached',
+        'موجه': 'addressed', 'الموجه': 'addressed', 'موجهة': 'addressed',
+        'خاضع': 'subject to', 'الخاضع': 'subject to',
+        'مختص': 'competent', 'المختص': 'competent', 'المختصة': 'competent',
+        'أعلى': 'higher', 'أدنى': 'lower', 'أقصى': 'maximum', 'أدنى': 'minimum',
+        'آخر': 'other / last', 'اخر': 'other / last', 'آخرين': 'others', 'اخرين': 'others',
+        'أخرى': 'other', 'اخرى': 'other',
+        'جديد': 'new', 'الجديد': 'new', 'جديدة': 'new', 'الجديدة': 'new',
+        'قديم': 'old', 'القديم': 'old', 'قديمة': 'old', 'القديمة': 'old',
+        'سابق': 'previous', 'السابق': 'previous', 'سابقة': 'previous', 'السابقة': 'previous',
+        'لاحق': 'subsequent', 'اللاحق': 'subsequent', 'لاحقة': 'subsequent',
+        'حالي': 'current', 'الحالي': 'current', 'حالية': 'current', 'الحالية': 'current',
+        'مستقبل': 'future', 'المستقبل': 'future', 'مستقبلي': 'future',
+        'رسمي': 'official', 'الرسمي': 'official', 'رسمية': 'official', 'الرسمية': 'official',
+        'قانوني': 'legal', 'القانوني': 'legal', 'قانونية': 'legal', 'القانونية': 'legal',
+        'إداري': 'administrative', 'اداري': 'administrative', 'الإداري': 'administrative',
+        'مالي': 'financial', 'المالي': 'financial', 'مالية': 'financial', 'المالية': 'financial',
+        'حكومي': 'governmental', 'الحكومي': 'governmental', 'حكومية': 'governmental',
+        'عسكرية': 'military', 'العسكرية': 'military',
+        'فني': 'technical', 'الفني': 'technical', 'فنية': 'technical',
+        'صحيح': 'correct', 'الصحيح': 'correct', 'صحيحة': 'correct',
+        'خطأ': 'error / wrong', 'الخطأ': 'error',
+        'موثق': 'notarized / documented', 'الموثق': 'notarized',
+
+        // Greetings & Closings
+        'تحية': 'Greetings', 'التحية': 'Greetings', 'تقدير': 'Appreciation', 'التقدير': 'Appreciation',
+        'احترام': 'Respect', 'الاحترام': 'Respect', 'شكر': 'Thanks', 'الشكر': 'Thanks',
+        'تفضلوا': 'Please accept', 'فائق': 'highest', 'الفائق': 'highest',
+
+        // Numbers in text
+        'واحد': 'one', 'اثنان': 'two', 'ثلاثة': 'three', 'اربعة': 'four', 'أربعة': 'four',
+        'خمسة': 'five', 'ستة': 'six', 'سبعة': 'seven', 'ثمانية': 'eight', 'تسعة': 'nine', 'عشرة': 'ten',
+        'عشر': 'ten', 'عشرين': 'twenty', 'ثلاثين': 'thirty', 'اربعين': 'forty', 'أربعين': 'forty',
+        'خمسين': 'fifty', 'ستين': 'sixty', 'سبعين': 'seventy', 'ثمانين': 'eighty', 'تسعين': 'ninety',
+        'مائة': 'hundred', 'مئة': 'hundred', 'الف': 'thousand', 'ألف': 'thousand',
+        'مليون': 'million',
+
+        // Legal & Court
+        'تخلف': 'default / failure', 'التخلف': 'default', 'امتناع': 'refusal', 'الامتناع': 'refusal',
+        'إخلال': 'breach', 'اخلال': 'breach', 'الإخلال': 'breach',
+        'إلغاء': 'cancellation', 'الغاء': 'cancellation', 'الإلغاء': 'cancellation',
+        'سحب': 'withdrawal', 'السحب': 'withdrawal',
+        'تنفيذ': 'enforcement', 'التنفيذ': 'enforcement',
+        'دعوى': 'lawsuit', 'قضية': 'case', 'القضية': 'case', 'قضايا': 'cases',
+        'حكم': 'ruling', 'الحكم': 'ruling', 'احكام': 'rulings', 'أحكام': 'rulings',
+        'جلسة': 'hearing', 'الجلسة': 'hearing', 'جلسات': 'hearings',
+        'إلزام': 'mandate', 'الزام': 'mandate',
+        'مستحقات': 'outstanding dues', 'المستحقات': 'outstanding dues',
+        'ديون': 'debts', 'الديون': 'debts', 'مديونية': 'indebtedness',
+        'ذمة': 'liability', 'الذمة': 'liability',
+        'تظلم': 'grievance', 'اعتراض': 'objection', 'الاعتراض': 'objection',
+        'استئناف': 'appeal', 'الاستئناف': 'appeal',
+        'إقرار': 'declaration', 'اقرار': 'declaration', 'الإقرار': 'declaration',
+
+        // Housing Allocation & Construction
+        'توزيع': 'distribution', 'التوزيع': 'distribution',
+        'استحقاق': 'eligibility', 'الاستحقاق': 'eligibility',
+        'معايير': 'criteria', 'المعايير': 'criteria',
+        'أقدمية': 'seniority', 'اقدمية': 'seniority',
+        'ترشيح': 'nomination', 'الترشيح': 'nomination',
+        'تعديل': 'modification', 'التعديل': 'modification', 'تعديلات': 'modifications',
+        'توسعة': 'extension', 'التوسعة': 'extension',
+        'بناء': 'construction', 'البناء': 'construction',
+        'هدم': 'demolition', 'الهدم': 'demolition',
+        'إزالة': 'removal', 'ازالة': 'removal', 'الإزالة': 'removal',
+        'معاينة': 'inspection', 'المعاينة': 'inspection',
+        'فحص': 'examination', 'الفحص': 'examination',
+        'عيب': 'defect', 'عيوب': 'defects', 'خلل': 'fault', 'الخلل': 'fault',
+        'صالح': 'fit / valid', 'الصالح': 'fit',
+        'جاهز': 'ready', 'جاهزة': 'ready', 'جاهزية': 'readiness',
+        'مواصفات': 'specifications', 'المواصفات': 'specifications',
+        'مخطط': 'layout / plan', 'المخطط': 'layout',
+        'مساحة': 'area / size', 'المساحة': 'area',
+        'متر': 'meter', 'أمتار': 'meters', 'امتار': 'meters', 'مربع': 'square',
+        'حدود': 'boundaries', 'الحدود': 'boundaries',
+
+        // Utilities & Maintenance
+        'قطع': 'disconnection', 'القطع': 'disconnection',
+        'إعادة': 'reconnection / restoration', 'اعادة': 'reconnection',
+        'فصل': 'disconnection / separation', 'الفصل': 'disconnection',
+        'توصيل': 'connection', 'التوصيل': 'connection',
+        'تسريب': 'leakage', 'التسريب': 'leakage',
+        'صرف': 'drainage / disbursement', 'الصرف': 'drainage',
+        'خزان': 'tank', 'الخزان': 'tank',
+        'تكييف': 'air conditioning', 'مكيف': 'AC unit',
+
+        // Allowances & Payroll
+        'علاوة': 'allowance', 'العلاوة': 'allowance',
+        'مكافأة': 'bonus', 'المكافأة': 'bonus',
+        'إيقاف': 'suspension', 'ايقاف': 'suspension', 'وقف': 'suspension / stopping',
+        'تحويل': 'transfer', 'التحويل': 'transfer',
+        'إيداع': 'deposit', 'ايداع': 'deposit',
+        'خصم': 'deduction', 'الخصم': 'deduction',
+        'دخل': 'income', 'الدخل': 'income',
+        'معاش': 'pension', 'المعاش': 'pension',
+
+        // Family & Personal
+        'زوج': 'husband', 'الزوج': 'husband', 'زوجة': 'wife', 'الزوجة': 'wife',
+        'ابن': 'son', 'الابن': 'son', 'ابناء': 'sons', 'أبناء': 'sons',
+        'ابنة': 'daughter', 'الابنة': 'daughter', 'بنت': 'daughter',
+        'اولاد': 'children', 'أولاد': 'children',
+        'أسرة': 'family', 'اسرة': 'family', 'الأسرة': 'family',
+        'عائلة': 'family', 'العائلة': 'family',
+        'معيل': 'breadwinner', 'المعيل': 'breadwinner',
+        'فرد': 'member', 'الفرد': 'member', 'افراد': 'members', 'أفراد': 'members',
+        'أرملة': 'widow', 'ارملة': 'widow', 'مطلقة': 'divorcee',
+        'ميلاد': 'birth', 'الميلاد': 'birth',
+        'وفاة': 'death', 'الوفاة': 'death',
+        'ورثة': 'heirs', 'الورثة': 'heirs',
+        'داخلية': 'Interior', 'الداخلية': 'Interior'
     };
 
     // ── Bahraini & Arab Personal / Family Names ──
@@ -746,10 +916,8 @@
                 pat += '[اإأآٱ]';
             } else if (/[ةه]/.test(ch)) {
                 pat += '[ةه]';
-            } else if (ch === 'ي') {
-                pat += 'ي';
-            } else if (ch === 'ى') {
-                pat += 'ى';
+            } else if (/[يى]/.test(ch)) {
+                pat += '[يى]';
             } else if (/[ؤئء]/.test(ch)) {
                 pat += '[ؤئء]';
             } else {
@@ -928,14 +1096,15 @@
             { ar: 'كم', en: ' your' },
             { ar: 'نا', en: ' our' },
             { ar: 'ها', en: ' its' },
+            { ar: 'ية', en: '' },
+            { ar: 'يه', en: '' },
             { ar: 'ه', en: ' his' },
             { ar: 'ي', en: ' my' },
             { ar: 'ين', en: '' },
             { ar: 'ون', en: '' },
             { ar: 'ان', en: '' },
             { ar: 'ات', en: '' },
-            { ar: 'ية', en: '' },
-            { ar: 'يه', en: '' }
+            { ar: 'ة', en: '' }
         ];
 
         // Try prefix only
@@ -944,6 +1113,10 @@
                 const stem = coreArabic.slice(p.ar.length);
                 const stemMatch = lookupArabicStem(stem);
                 if (stemMatch) {
+                    // When ال + name, use "Al" instead of "the"
+                    if (p.ar === 'ال' && (ARABIC_NAMES[stem] || NORMALIZED_NAMES.has(stem) || NORMALIZED_NAMES.has(normalizeArabicKey(stem)))) {
+                        return prefixPunct + 'Al ' + stemMatch + suffixPunct;
+                    }
                     return prefixPunct + p.en + stemMatch + suffixPunct;
                 }
             }
@@ -1028,7 +1201,7 @@
 
         // 5. Tokenize remaining words and translate individual Arabic words/names/stems
         if (/[\u0600-\u06FF]/.test(result)) {
-            const tokens = result.split(/(\s+|[,;:\-–—\(\)\[\]"'/\\]+)/);
+            const tokens = result.split(/(\s+|[.,;:\-–—\(\)\[\]{}"'«»\u201C\u201D\u2018\u2019!?\u2026/\\•]+)/);
             result = tokens.map(tok => {
                 if (!tok || !/[\u0600-\u06FF]/.test(tok)) {
                     return tok;
@@ -1757,7 +1930,12 @@
 
         try {
             currentLoadingTask = pdfjsLib.getDocument(pdfUrl);
-            const pdf = await currentLoadingTask.promise;
+            // Add timeout to prevent infinite "loading document" state
+            const timeoutMs = 15000;
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('PDF loading timed out after 15 seconds')), timeoutMs)
+            );
+            const pdf = await Promise.race([currentLoadingTask.promise, timeoutPromise]);
             currentPdfDoc = pdf;
             currentPdfUrl = pdfUrl;
 
