@@ -1,33 +1,43 @@
 ---
 gsd_state_version: 1.0
-milestone: v16.1
-milestone_name: Document-Anchored Tenancy Dates & Minimalist Register
-current_phase: 115
-status: archived
-last_updated: "2026-09-15T13:15:00.000Z"
+milestone: v17.0
+milestone_name: User Authentication, Roles & Permissions
+current_phase: 116
+status: in_progress
+last_updated: "2026-09-17T14:48:00.000Z"
 last_activity: 2026-09-17
-last_activity_desc: Make a timestamped copy of organize.db and areas_v11 folder (QCK-52)
+last_activity_desc: Start milestone v17.0 User Authentication, Roles & Permissions
 progress:
-  total_phases: 1
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
-  percent: 100
+  total_phases: 4
+  completed_phases: 0
+  total_plans: 4
+  completed_plans: 0
+  percent: 0
 ---
 
 # Milestone State
 
-**Current Milestone:** v16.1: Document-Anchored Tenancy Dates & Minimalist Register (Archived)
-**Current Phase:** 115: Document-Anchored Tenancy Dates & Minimalist Register
-**Status:** archived
+**Current Milestone:** v17.0: User Authentication, Roles & Permissions
+**Current Phase:** 116: User Data Model, Password Security & Auth API
+**Status:** in_progress
+
+## Current Position
+
+Phase: 116: User Data Model, Password Security & Auth API
+Plan: —
+Status: Ready to execute
+Last activity: 2026-09-17 — Milestone v17.0 started
 
 ## Context
 
-Milestone v16.1 successfully implemented the document-anchored start date architecture (`MIN(primary_date)`), zero-document edge case handling ("Auto on first upload" with first-upload snapping), user-decided end dates, and a streamlined minimalist House Profile register (`المستأجرون`, single divider, `المتقدمون`). All 8 requirements verified with 100% pass across 161 .NET tests and 293 web tests. Ready for next milestone.
+Milestone v17.0 introduces full user authentication, session management, and role-based access control (RBAC). The system seeds 4 Full Access administrators (Emad, Bubshait, Ehtezaz, Mustafa) with complete rights, and 6 restricted contributors (Nawaf, Naseem, Mulla, Mariam, Shaima, Mona) with Read & Upload permissions only. Restricted contributors are strictly prevented from deleting documents, pages, batches, or houses across both backend API guardrails and frontend UI controls.
 
 ## Target Phases
 
-- [x] Phase 115: Document-Anchored Tenancy Dates & Minimalist Register
+- [ ] Phase 116: User Data Model, Password Security & Auth API
+- [ ] Phase 117: Login Screen, Session Management & Navbar User Profile
+- [ ] Phase 118: Permission-Aware UI Enforcement & Zero-Delete Guards
+- [ ] Phase 119: Comprehensive Multi-Stack Verification & Milestone Audit
 
 ## Quick Tasks Completed
 

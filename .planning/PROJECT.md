@@ -4,7 +4,16 @@
 
 A high-performance document management system and web dashboard for housing digital archives. It stores scanned documents in an immutable vault with relational SQLite metadata, delivering sub-10ms queries, dual Tree/Grid views, tenure color-coding, multi-tenant chronological timelines, category folder drill-downs, phonetic/fuzzy global search, in-browser PDF viewing, and one-click ZIP/PDF archive exports. Built natively on a pure ASP.NET Core 8.0 Minimal API architecture and vanilla JS, with zero Python runtime dependencies.
 
-## Current Milestone: Complete (Ready for Next Milestone)
+## Current Milestone: v17.0 User Authentication, Roles & Permissions
+
+**Goal:** Implement full user authentication, session management, and role-based access control (RBAC), distinguishing Full Access administrators from Read & Upload restricted contributors who cannot delete anything.
+
+**Target features:**
+- Seeded user store in SQLite with password hashing (Admins: Emad, Bubshait, Ehtezaz, Mustafa; Contributors: Nawaf, Naseem, Mulla, Mariam, Shaima, Mona)
+- Authentication API (`/api/auth/login`, `/api/auth/logout`, `/api/auth/me`) with secure cookie session handling
+- Backend RBAC guardrails returning 403 Forbidden on document delete, batch delete, page delete, and house delete for restricted users
+- Bilingual login screen, navbar user profile indicator, role badges, and logout flow
+- Permission-aware UI masking hiding all delete buttons, danger zones, and bulk delete actions from restricted contributors
 
 ## Past Milestones
 
