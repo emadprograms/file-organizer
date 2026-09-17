@@ -15,6 +15,29 @@ using PdfSharpCore.Pdf;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Robust wwwroot resolution across development, standalone binary execution, and publish layouts
+var candidateWebRoots = new[]
+{
+    builder.Environment.WebRootPath,
+    Path.Combine(builder.Environment.ContentRootPath, "wwwroot"),
+    Path.Combine(AppContext.BaseDirectory, "wwwroot"),
+    Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "wwwroot"),
+    Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "src", "HousingApplication.Web", "wwwroot"),
+    Path.Combine(Directory.GetCurrentDirectory(), "src", "HousingApplication.Web", "wwwroot"),
+    Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"),
+    Path.Combine(Directory.GetCurrentDirectory(), "dist", "win-x64", "wwwroot")
+};
+
+string? resolvedWebRoot = candidateWebRoots
+    .Where(p => !string.IsNullOrEmpty(p))
+    .Select(p => Path.GetFullPath(p))
+    .FirstOrDefault(p => Directory.Exists(p) && File.Exists(Path.Combine(p, "index.html")));
+
+if (!string.IsNullOrEmpty(resolvedWebRoot))
+{
+    builder.Environment.WebRootPath = resolvedWebRoot;
+}
+
 // Configure JSON options to match snake_case API contracts
 builder.Services.Configure<JsonOptions>(options =>
 {
@@ -93,28 +116,53 @@ staticContentTypeProvider.Mappings[".bcmap"] = "application/octet-stream";
 staticContentTypeProvider.Mappings[".pfb"] = "application/octet-stream";
 staticContentTypeProvider.Mappings[".mjs"] = "text/javascript";
 
-app.UseDefaultFiles();
-app.UseStaticFiles(new StaticFileOptions
+Microsoft.Extensions.FileProviders.IFileProvider? webRootFileProvider = null;
+if (!string.IsNullOrEmpty(resolvedWebRoot) && Directory.Exists(resolvedWebRoot))
 {
-    ContentTypeProvider = staticContentTypeProvider,
-    OnPrepareResponse = ctx =>
+    webRootFileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(resolvedWebRoot);
+    app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = webRootFileProvider });
+    app.UseStaticFiles(new StaticFileOptions
     {
-        var path = ctx.Context.Request.Path.Value ?? "";
-        if (path.StartsWith("/lib/", StringComparison.OrdinalIgnoreCase))
+        FileProvider = webRootFileProvider,
+        ContentTypeProvider = staticContentTypeProvider,
+        OnPrepareResponse = ctx =>
         {
-            // Vendor assets (PDF.js worker, viewer, fonts, cmaps) are heavy static dependencies (~4.5MB).
-            // Cache them aggressively in the browser so they are downloaded only once.
-            ctx.Context.Response.Headers.Append("Cache-Control", "public, max-age=31536000, immutable");
+            var path = ctx.Context.Request.Path.Value ?? "";
+            if (path.StartsWith("/lib/", StringComparison.OrdinalIgnoreCase))
+            {
+                ctx.Context.Response.Headers.Append("Cache-Control", "public, max-age=31536000, immutable");
+            }
+            else
+            {
+                ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+                ctx.Context.Response.Headers.Append("Pragma", "no-cache");
+                ctx.Context.Response.Headers.Append("Expires", "0");
+            }
         }
-        else
+    });
+}
+else
+{
+    app.UseDefaultFiles();
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        ContentTypeProvider = staticContentTypeProvider,
+        OnPrepareResponse = ctx =>
         {
-            // Application scripts & styles revalidate to ensure fresh UI code on updates
-            ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
-            ctx.Context.Response.Headers.Append("Pragma", "no-cache");
-            ctx.Context.Response.Headers.Append("Expires", "0");
+            var path = ctx.Context.Request.Path.Value ?? "";
+            if (path.StartsWith("/lib/", StringComparison.OrdinalIgnoreCase))
+            {
+                ctx.Context.Response.Headers.Append("Cache-Control", "public, max-age=31536000, immutable");
+            }
+            else
+            {
+                ctx.Context.Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+                ctx.Context.Response.Headers.Append("Pragma", "no-cache");
+                ctx.Context.Response.Headers.Append("Expires", "0");
+            }
         }
-    }
-});
+    });
+}
 
 // ---------------------------------------------------------------------------
 // Health check
@@ -1003,6 +1051,75 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/batch-copy", async (
 });
 
 // ---------------------------------------------------------------------------
+// Document Merge API
+// ---------------------------------------------------------------------------
+app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/merge", async (
+    string areaId,
+    string houseId,
+    MergeDocumentsRequestDto dto,
+    HttpContext httpContext,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    if (dto.VaultIds == null || dto.VaultIds.Count < 2)
+        return Results.BadRequest(new { error = "At least two documents must be selected to merge." });
+
+    if (dto.DeleteSources && IsRestrictedFromDelete(httpContext))
+        dto = dto with { DeleteSources = false };
+
+    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    try
+    {
+        var result = await repo.MergeDocumentsAsync(areaId, houseId, dto, areasRoot);
+        return Results.Ok(result);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(new { error = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+});
+
+app.MapPost("/api/documents/merge", async (
+    MergeDocumentsRequestDto dto,
+    HttpContext httpContext,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    if (dto.VaultIds == null || dto.VaultIds.Count < 2)
+        return Results.BadRequest(new { error = "At least two documents must be selected to merge." });
+
+    if (dto.DeleteSources && IsRestrictedFromDelete(httpContext))
+        dto = dto with { DeleteSources = false };
+
+    var areasRoot = config["AREAS_ROOT_PATH"] ?? "../areas";
+    try
+    {
+        var result = await repo.MergeDocumentsAsync("default", "default", dto, areasRoot);
+        return Results.Ok(result);
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(new { error = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+});
+
+// ---------------------------------------------------------------------------
 // Document Page Manipulation API (Extract, Delete, Reorder)
 // ---------------------------------------------------------------------------
 app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/extract-pages", async (
@@ -1460,7 +1577,14 @@ app.MapGet("/api/db/inspector/{tableName}", async (
 // ---------------------------------------------------------------------------
 // SPA Fallback Routing
 // ---------------------------------------------------------------------------
-app.MapFallbackToFile("index.html");
+if (webRootFileProvider != null)
+{
+    app.MapFallbackToFile("index.html", new StaticFileOptions { FileProvider = webRootFileProvider });
+}
+else
+{
+    app.MapFallbackToFile("index.html");
+}
 
 app.Run();
 
