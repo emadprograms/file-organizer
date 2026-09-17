@@ -1060,11 +1060,11 @@
             card.innerHTML = `
                 <div class="card-main-content flex-1 min-h-0 flex flex-col">
                     <div class="flex items-center justify-between gap-2 pb-2.5 mb-2.5 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
-                        <div class="flex items-center gap-2 min-w-0">
-                            <h3 class="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-blue-600 transition-colors truncate" title="${house.name}">
+                        <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                            <h3 class="font-bold text-slate-900 dark:text-slate-100 text-sm group-hover:text-blue-600 transition-colors flex-shrink-0 whitespace-nowrap" title="${house.name}">
                                 🏠 ${house.name}
                             </h3>
-                            <span class="tenants-count text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 flex-shrink-0">
+                            <span class="tenants-count text-[10px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full border border-slate-200 dark:border-slate-700 min-w-0 truncate" title="${countBadgeText}">
                                 ${countBadgeText}
                             </span>
                         </div>

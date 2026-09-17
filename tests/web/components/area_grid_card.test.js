@@ -613,6 +613,48 @@ describe('Area Grid House Card Component - Integrity Compliance Badge Synchroniz
     expect(card.textContent).toContain('5/5');
     expect(card.textContent).not.toContain('ناقص');
   });
+
+  it('ensures house number never truncates in crowded card header and delegates truncation to tenant count', () => {
+    const areaNode = {
+      name: 'Crowded Area',
+      children: [
+        {
+          id: '552',
+          name: '552 - Extra Long House Name Number Identifier',
+          duration_category: 'short',
+          total_documents: 8,
+          active_tenant_category_counts: {
+            'بيانات شخصية': 1
+          },
+          children: [
+            { type: 'tenant', name: 'Tenant 1', is_resident: 1, is_active: true },
+            { type: 'tenant', name: 'Applicant 1', is_resident: 0, is_active: false }
+          ]
+        }
+      ]
+    };
+
+    window.renderAreaGrid(areaNode);
+
+    const card = document.querySelector('.house-card[data-house-id="552"]');
+    expect(card).not.toBeNull();
+
+    const titleEl = card.querySelector('h3');
+    expect(titleEl).not.toBeNull();
+    // House number element MUST have flex-shrink-0 and whitespace-nowrap so it never shrinks into ellipsis
+    expect(titleEl.classList.contains('flex-shrink-0')).toBe(true);
+    expect(titleEl.classList.contains('whitespace-nowrap')).toBe(true);
+    expect(titleEl.classList.contains('truncate')).toBe(false);
+    expect(titleEl.textContent).toContain('🏠 552 - Extra Long House Name Number Identifier');
+
+    // Tenant count badge MUST have truncate and min-w-0, and NOT flex-shrink-0, so it absorbs shrinkage
+    const tenantCountBadge = card.querySelector('.tenants-count');
+    expect(tenantCountBadge).not.toBeNull();
+    expect(tenantCountBadge.classList.contains('truncate')).toBe(true);
+    expect(tenantCountBadge.classList.contains('min-w-0')).toBe(true);
+    expect(tenantCountBadge.classList.contains('flex-shrink-0')).toBe(false);
+    expect(tenantCountBadge.getAttribute('title')).toBe('1 Tenant • 1 Applicant');
+  });
 });
 
 
