@@ -98,6 +98,7 @@ function setupDOM() {
 describe('Document Merge Feature (Multi-Select Only)', () => {
     beforeEach(() => {
         setupDOM();
+        delete window.authManager;
         selectedDocIds.clear();
         global.currentArea = 'Safra C';
         global.currentHouse = '514';
@@ -188,6 +189,7 @@ describe('Document Merge Feature (Multi-Select Only)', () => {
 
     afterEach(() => {
         vi.restoreAllMocks();
+        delete window.authManager;
     });
 
     describe('Batch Action Bar Integration', () => {
