@@ -2239,8 +2239,18 @@
             const hash = preferredZoom ? `#zoom=${encodeURIComponent(preferredZoom)}` : '#zoom=page-fit';
             return `/lib/pdfjs/web/viewer.html?file=${encodeURIComponent(pdfUrl)}${hash}`;
         }
-        const computerView = (preferredZoom === 'page-fit' || preferredZoom === 'Fit') ? '#view=Fit' : '#view=FitH';
-        return pdfUrl + computerView;
+        if (preferredZoom === 'page-fit' || preferredZoom === 'Fit') {
+            return pdfUrl + '#view=Fit';
+        }
+        if (preferredZoom === 'page-width' || preferredZoom === 'FitH') {
+            return pdfUrl + '#view=FitH';
+        }
+        const num = parseFloat(preferredZoom);
+        if (!isNaN(num) && num > 0) {
+            const pct = num <= 5 ? Math.round(num * 100) : Math.round(num);
+            return `${pdfUrl}#zoom=${pct}`;
+        }
+        return pdfUrl + '#view=FitH';
     }
 
     function loadPdfIntoFrame(pdfFrame, pdfUrl) {

@@ -29,16 +29,16 @@ $TailscaleIp = (Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContin
     Select-Object -ExpandProperty IPAddress -First 1)
 
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host " 🚀 Starting Housing Application .NET Web Server on Windows" -ForegroundColor Cyan
+Write-Host "  Starting Housing Application .NET Web Server on Windows" -ForegroundColor Cyan
 Write-Host "==========================================================" -ForegroundColor Cyan
-Write-Host "📁 Database:    $DbPath" -ForegroundColor White
-Write-Host "📂 Areas Root:  $AreasRoot" -ForegroundColor White
-Write-Host "🌐 Local:       http://localhost:$Port" -ForegroundColor Green
+Write-Host "Database:    $DbPath" -ForegroundColor White
+Write-Host "Areas Root:  $AreasRoot" -ForegroundColor White
+Write-Host "Local:       http://localhost:$Port" -ForegroundColor Green
 if ($LocalIp) {
-    Write-Host "📱 Network LAN: http://${LocalIp}:$Port  (Accessible to devices on your Wi-Fi/LAN)" -ForegroundColor Yellow
+    Write-Host "Network LAN: http://${LocalIp}:$Port  [Accessible to devices on your Wi-Fi/LAN]" -ForegroundColor Yellow
 }
 if ($TailscaleIp) {
-    Write-Host "🔒 Tailscale:   http://${TailscaleIp}:$Port  (Accessible over Tailscale VPN)" -ForegroundColor Magenta
+    Write-Host "Tailscale:   http://${TailscaleIp}:$Port  [Accessible over Tailscale VPN]" -ForegroundColor Magenta
 }
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host "Press Ctrl+C to stop the server.`n" -ForegroundColor DarkGray

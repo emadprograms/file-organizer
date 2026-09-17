@@ -3654,10 +3654,15 @@ class PDFLinkService {
           dest = [null, {
             name: "FitV"
           }, zoomArgs.length > 1 ? zoomArgs[1] | 0 : null];
-        } else if (!zoomArg.includes("Fit")) {
+        } else if (zoomArg === "page-actual" || zoomArg === "actual") {
           dest = [null, {
             name: "XYZ"
-          }, zoomArgs.length > 1 ? zoomArgs[1] | 0 : null, zoomArgs.length > 2 ? zoomArgs[2] | 0 : null, zoomArgNumber ? zoomArgNumber / 100 : zoomArg];
+          }, zoomArgs.length > 1 ? zoomArgs[1] | 0 : null, zoomArgs.length > 2 ? zoomArgs[2] | 0 : null, 1];
+        } else if (!zoomArg.includes("Fit")) {
+          const parsedScale = zoomArgNumber ? (zoomArgNumber > 5 ? zoomArgNumber / 100 : zoomArgNumber) : zoomArg;
+          dest = [null, {
+            name: "XYZ"
+          }, zoomArgs.length > 1 ? zoomArgs[1] | 0 : null, zoomArgs.length > 2 ? zoomArgs[2] | 0 : null, parsedScale];
         } else if (zoomArg === "FitR") {
           if (zoomArgs.length !== 5) {
             console.error('PDFLinkService.setHash: Not enough parameters for "FitR".');

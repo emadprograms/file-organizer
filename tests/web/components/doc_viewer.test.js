@@ -1030,6 +1030,38 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       window.openDocument('doc_E', 'Doc E', '08 - بطاقات ذكية');
       await Promise.resolve();
       expect(currentScale).toBe('1.5');
+
+      // 9. User selects 100% (value is '1' in scaleSelect)
+      if (eventHandlers['scalechanged']) {
+        eventHandlers['scalechanged']({ value: '1' });
+      }
+      expect(localStorage.getItem('pdf_zoom_preference')).toBe('1');
+
+      // 10. User moves to another document -> remembers 100% ('1' / 1.0) and does NOT degrade to 0.01 (1%)
+      window.openDocument('doc_F', 'Doc F', '05 - عقود');
+      await Promise.resolve();
+      expect(currentScale).toBe('1');
+      expect(parseFloat(currentScale)).toBe(1.0);
+      expect(parseFloat(currentScale)).not.toBe(0.01);
+    });
+
+    it('in Computer mode, numeric scale preferences format as percentage zoom hash (100% -> #zoom=100, 150% -> #zoom=150)', () => {
+      localStorage.setItem('pdf_viewer_mode', 'computer');
+
+      localStorage.setItem('pdf_zoom_preference', '1');
+      expect(window.resolveViewerSrc('/api/doc_100')).toBe('/api/doc_100#zoom=100');
+
+      localStorage.setItem('pdf_zoom_preference', '1.5');
+      expect(window.resolveViewerSrc('/api/doc_150')).toBe('/api/doc_150#zoom=150');
+
+      localStorage.setItem('pdf_zoom_preference', '0.5');
+      expect(window.resolveViewerSrc('/api/doc_50')).toBe('/api/doc_50#zoom=50');
+
+      localStorage.setItem('pdf_zoom_preference', 'page-fit');
+      expect(window.resolveViewerSrc('/api/doc_fit')).toBe('/api/doc_fit#view=Fit');
+
+      localStorage.setItem('pdf_zoom_preference', 'page-width');
+      expect(window.resolveViewerSrc('/api/doc_width')).toBe('/api/doc_width#view=FitH');
     });
   });
 
