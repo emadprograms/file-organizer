@@ -2040,6 +2040,11 @@
             currentPdfDoc = pdf;
             currentPdfUrl = pdfUrl;
 
+            // Hide loading overlay immediately once PDF is fetched —
+            // renderPdfPages (which includes OCR) can take 30-60s per page
+            // and must NOT block behind the loading spinner.
+            if (pdfLoading) pdfLoading.classList.add('hidden');
+
             if (pageInfo) {
                 pageInfo.textContent = `${pdf.numPages} ${pdf.numPages === 1 ? 'صفحة' : 'صفحات'}`;
                 pageInfo.classList.remove('hidden');
@@ -2052,6 +2057,7 @@
             await renderPdfPages();
         } catch (err) {
             console.error('Failed to load PDF with PDF.js:', err);
+            if (pdfLoading) pdfLoading.classList.add('hidden');
             if (pdfError) {
                 pdfError.classList.remove('hidden');
                 const errMsg = document.getElementById('pdf-viewer-error-msg');
@@ -2061,8 +2067,6 @@
             }
             // If PDF.js fails to render, show iframe fallback
             if (pdfFrame) pdfFrame.classList.remove('hidden');
-        } finally {
-            if (pdfLoading) pdfLoading.classList.add('hidden');
         }
     }
 
@@ -2193,28 +2197,6 @@
                         tenant_name: currentPinnedDoc.tenant_name || currentPinnedDoc.tenant || '',
                         tenant_id: currentPinnedDoc.tenant_id || null
                     }, currentPinnedDoc.category);
-                }
-            };
-        }
-
-        const viewerMergeBtn = document.getElementById('viewer-merge-btn');
-        if (viewerMergeBtn) {
-            viewerMergeBtn.onclick = (e) => {
-                e.preventDefault();
-                if (currentPinnedDoc && typeof window.openMergeModal === 'function') {
-                    const area = (typeof currentArea !== 'undefined' ? currentArea : window.currentArea);
-                    const house = (typeof currentHouse !== 'undefined' ? currentHouse : window.currentHouse);
-                    window.openMergeModal([{
-                        vault_id: currentPinnedDoc.vaultId,
-                        title: currentPinnedDoc.title,
-                        category: currentPinnedDoc.category,
-                        area_id: area,
-                        house_id: house,
-                        tenant: currentPinnedDoc.tenant || currentPinnedDoc.tenant_name || '',
-                        tenant_name: currentPinnedDoc.tenant_name || currentPinnedDoc.tenant || '',
-                        tenant_id: currentPinnedDoc.tenant_id || null,
-                        page_count: currentPinnedDoc.page_count || 1
-                    }], currentPinnedDoc.category);
                 }
             };
         }

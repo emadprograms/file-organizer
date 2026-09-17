@@ -2197,28 +2197,6 @@
             };
         }
 
-        const viewerMergeBtn = document.getElementById('viewer-merge-btn');
-        if (viewerMergeBtn) {
-            viewerMergeBtn.onclick = (e) => {
-                e.preventDefault();
-                if (currentPinnedDoc && typeof window.openMergeModal === 'function') {
-                    const area = (typeof currentArea !== 'undefined' ? currentArea : window.currentArea);
-                    const house = (typeof currentHouse !== 'undefined' ? currentHouse : window.currentHouse);
-                    window.openMergeModal([{
-                        vault_id: currentPinnedDoc.vaultId,
-                        title: currentPinnedDoc.title,
-                        category: currentPinnedDoc.category,
-                        area_id: area,
-                        house_id: house,
-                        tenant: currentPinnedDoc.tenant || currentPinnedDoc.tenant_name || '',
-                        tenant_name: currentPinnedDoc.tenant_name || currentPinnedDoc.tenant || '',
-                        tenant_id: currentPinnedDoc.tenant_id || null,
-                        page_count: currentPinnedDoc.page_count || 1
-                    }], currentPinnedDoc.category);
-                }
-            };
-        }
-
         const modeToggleBtn = document.getElementById('viewer-mode-toggle');
         if (modeToggleBtn) {
             modeToggleBtn.onclick = (e) => {

@@ -428,18 +428,20 @@
 
         const btnDelete = document.getElementById('btn-batch-delete');
         if (btnDelete) {
-            const canDelete = (typeof window !== 'undefined' && window.authManager) ? window.authManager.hasDeletePermission() : true;
-            btnDelete.classList.toggle('hidden', !canDelete);
+            // Only hide delete button if authManager is present AND a restricted user (Contributor) is logged in
+            const isRestricted = (typeof window !== 'undefined' && window.authManager && window.authManager.currentUser && !window.authManager.hasDeletePermission());
+            btnDelete.classList.toggle('hidden', isRestricted);
         }
 
         const btnMerge = document.getElementById('btn-batch-merge');
         if (btnMerge) {
-            if (count >= 2) {
+            if (count >= 1) {
+                btnMerge.classList.remove('hidden');
                 btnMerge.disabled = false;
-                btnMerge.title = 'Merge 2 or more selected documents into one';
+                btnMerge.title = count === 1 ? 'Merge with another document' : 'Merge selected documents into one';
             } else {
                 btnMerge.disabled = true;
-                btnMerge.title = 'Select at least 2 documents to merge';
+                btnMerge.title = 'Select at least 1 document to merge';
             }
         }
     }
@@ -1284,9 +1286,9 @@
     }
 
     function openBatchMergeModal() {
-        if (selectedDocIds.size < 2) {
+        if (selectedDocIds.size === 0) {
             const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
-            if (toast) toast('يرجى تحديد وثيقتين على الأقل للدمج / Please select at least 2 documents to merge', 'warning');
+            if (toast) toast('يرجى تحديد وثيقة واحدة على الأقل للدمج / Please select at least 1 document to merge', 'warning');
             return;
         }
 
@@ -1297,7 +1299,10 @@
             for (const c of cats) {
                 if (c.documents) {
                     foundDoc = c.documents.find(d => d.vault_id === vid);
-                    if (foundDoc) break;
+                    if (foundDoc) {
+                        foundDoc.category = foundDoc.category || c.name;
+                        break;
+                    }
                 }
             }
             if (foundDoc) {
@@ -1415,6 +1420,9 @@
                 const res = await fetch(`/api/areas/${encodeURIComponent(areaId)}/houses/${encodeURIComponent(houseId)}/categories`);
                 if (!res.ok) throw new Error('Failed to load categories');
                 currentCategories = await res.json();
+            }
+            if (typeof window !== 'undefined') {
+                window.currentCategories = currentCategories;
             }
             
             const totalDocs = currentCategories.reduce((sum, cat) => sum + cat.document_count, 0);
@@ -2884,8 +2892,8 @@
         window.addEventListener('auth:user-changed', () => {
             const btnDelete = document.getElementById('btn-batch-delete');
             if (btnDelete) {
-                const canDelete = window.authManager ? window.authManager.hasDeletePermission() : true;
-                btnDelete.classList.toggle('hidden', !canDelete);
+                const isRestricted = window.authManager && window.authManager.currentUser && !window.authManager.hasDeletePermission();
+                btnDelete.classList.toggle('hidden', isRestricted);
             }
         });
     }

@@ -1,5 +1,37 @@
 # Milestones History
 
+## v17.0 User Authentication, Roles & Permissions (Shipped: 2026-09-17)
+
+**Phases completed:** 4 phases (116-119), 4 plans, 970 .NET xUnit tests (100% passing), 570 Vitest tests across 42 test files (100% passing)
+
+**Key accomplishments:**
+
+- **Backend Authentication & RBAC Engine (Phase 116):**
+  - Designed and migrated SQLite `users` table schema with PBKDF2 password hashing (100,000 iterations, 128-bit cryptographic salt) and seeded 10 pre-configured accounts:
+    - 4 Full Access Administrators: `Emad`, `Bubshait`, `Ehtezaz`, `Mustafa`
+    - 6 Read & Upload Contributors: `Nawaf`, `Naseem`, `Mulla`, `Mariam`, `Shaima`, `Mona`
+  - Created authentication endpoints (`POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`) with secure HTTP-only SameSite cookie sessions.
+  - Enforced strict backend authorization returning 403 Forbidden for Contributors attempting document deletion, batch deletion, page deletion, or house deletion, with security audit logging.
+- **Bilingual Login & Session Management UI (Phase 117):**
+  - Integrated sleek bilingual (Arabic/English) `#auth-modal` supporting keyboard submission (`Enter`), error feedback, and password visibility toggling.
+  - Added `#user-profile-badge` in top navigation bar displaying logged-in user avatar, username, and role badge (`مدير النظام • Admin` or `محرر • Contributor`).
+  - Implemented client-side `AuthManager` service managing session check, login, logout, and permission state across all views.
+- **Permission-Aware UI Masking & RBAC Enforcement (Phase 118):**
+  - Masked all delete buttons for Contributor accounts:
+    - Document 3-dots dropdown menu "Delete Document" action hidden.
+    - Document action modal `#btn-doc-delete` hidden.
+    - Batch Action Bar `#btn-batch-delete` hidden.
+    - Document Page Editor `#btn-page-delete-selected` hidden.
+    - Merge Documents modal `#merge-delete-sources` unchecked and disabled.
+    - House Settings Modal `#btn-delete-house` Danger Zone hidden.
+  - Preserved full operational capabilities for Admins across all deletion actions.
+- **Verification, Testing & Milestone Audit (Phase 119):**
+  - Added comprehensive test suites: 10 backend xUnit tests in `AuthAndRbacTests.cs`, 12 frontend Vitest tests in `auth_manager.test.js`, and 13 Vitest tests in `rbac_ui_enforcement.test.js`.
+  - Achieved 100% test pass rate: 970/970 backend .NET tests passing and 570/570 frontend Vitest tests passing across all 42 test files.
+  - Successfully audited all 18 milestone requirements with zero gaps or regressions.
+
+---
+
 ## v16.1 Document-Anchored Tenancy Dates & Minimalist Register (Shipped: 2026-09-14)
 
 **Phases completed:** 1 phase (115), 1 plan, 161 .NET xUnit tests (100% passing), 293 Vitest tests across 28 test files (100% passing)

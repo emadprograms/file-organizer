@@ -41,8 +41,6 @@
     let btnMergeDocsCancel = null;
     let btnMergeDocsConfirm = null;
     let mergeDocsList = null;
-    let mergeAddDocSelect = null;
-    let btnMergeAddDoc = null;
     let mergeTargetTitle = null;
     let mergeTargetCategory = null;
     let mergeCustomCatContainer = null;
@@ -57,17 +55,12 @@
     let mergeDocsBtnText = null;
 
     let mergeStepReorder = null;
-    let mergeStepPick = null;
     let mergeStepSave = null;
     let mergeOrderBanner = null;
     let mergeOrderSummary = null;
     let btnMergeSwapOrder = null;
     let btnMergeReorderCancel = null;
     let btnMergeReorderContinue = null;
-    let mergePickFirstDocTitle = null;
-    let mergePickSecondSelect = null;
-    let btnMergePickCancel = null;
-    let btnMergePickContinue = null;
     let btnMergeSaveBack = null;
     let initialMergeCount = 0;
 
@@ -147,11 +140,10 @@
         const btnDocMerge = document.getElementById('btn-doc-merge');
         if (btnDocMerge) {
             btnDocMerge.onclick = () => {
-                if (activeDocModalDoc && typeof window.openMergeModal === 'function') {
+                if (activeDocModalDoc && typeof openMergeModal === 'function') {
                     const docToMerge = { ...activeDocModalDoc };
-                    const catToMerge = activeDocModalCategory;
                     closeDocModal();
-                    window.openMergeModal([docToMerge], catToMerge);
+                    openMergeModal([docToMerge]);
                 }
             };
         }
@@ -177,28 +169,20 @@
         mergeDocsBtnText = document.getElementById('merge-docs-btn-text');
 
         mergeStepReorder = document.getElementById('merge-step-reorder');
-        mergeStepPick = document.getElementById('merge-step-pick');
         mergeStepSave = document.getElementById('merge-step-save');
         mergeOrderBanner = document.getElementById('merge-order-banner');
         mergeOrderSummary = document.getElementById('merge-order-summary');
         btnMergeSwapOrder = document.getElementById('btn-merge-swap-order');
         btnMergeReorderCancel = document.getElementById('btn-merge-reorder-cancel');
         btnMergeReorderContinue = document.getElementById('btn-merge-reorder-continue');
-        mergePickFirstDocTitle = document.getElementById('merge-pick-first-doc-title');
-        mergePickSecondSelect = document.getElementById('merge-pick-second-select');
-        btnMergePickCancel = document.getElementById('btn-merge-pick-cancel');
-        btnMergePickContinue = document.getElementById('btn-merge-pick-continue');
         btnMergeSaveBack = document.getElementById('btn-merge-save-back');
 
         if (mergeDocsClose) mergeDocsClose.onclick = closeMergeModal;
         if (btnMergeDocsCancel) btnMergeDocsCancel.onclick = closeMergeModal;
         if (btnMergeDocsConfirm) btnMergeDocsConfirm.onclick = handleMergeDocsSubmit;
-        if (btnMergeAddDoc) btnMergeAddDoc.onclick = handleAddDocToMergeList;
         if (btnMergeSwapOrder) btnMergeSwapOrder.onclick = handleSwapMergeDocs;
         if (btnMergeReorderCancel) btnMergeReorderCancel.onclick = closeMergeModal;
         if (btnMergeReorderContinue) btnMergeReorderContinue.onclick = handleReorderContinue;
-        if (btnMergePickCancel) btnMergePickCancel.onclick = closeMergeModal;
-        if (btnMergePickContinue) btnMergePickContinue.onclick = handlePickContinue;
         if (btnMergeSaveBack) btnMergeSaveBack.onclick = handleSaveBack;
     }
 
@@ -1072,10 +1056,6 @@
                 <svg class="w-3.5 h-3.5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879a3 3 0 11-4.242-4.242L10.758 10M12 12L9.121 9.121m0 0a3 3 0 10-4.242 4.242L7.758 16"/></svg>
                 <span>✂️ Edit &amp; Split Pages</span>
             </button>
-            <button type="button" class="doc-menu-item-merge w-full px-3.5 py-2 text-left flex items-center gap-2.5 font-medium text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer" title="Merge this document with another document • دمج مع مستند آخر">
-                <svg class="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-                <span>🔗 Merge Document</span>
-            </button>
             ${pinActionHtml}
             ${navActionHtml}
             ${canDelete ? `
@@ -1094,17 +1074,6 @@
                 closeDocDropdownMenu();
                 if (typeof window !== 'undefined' && typeof window.openPageEditor === 'function') {
                     window.openPageEditor(doc, currentCategory);
-                }
-            };
-        }
-
-        const btnMerge = menu.querySelector('.doc-menu-item-merge');
-        if (btnMerge) {
-            btnMerge.onclick = (ev) => {
-                ev.stopPropagation();
-                closeDocDropdownMenu();
-                if (typeof window !== 'undefined' && typeof window.openMergeModal === 'function') {
-                    window.openMergeModal([doc], currentCategory);
                 }
             };
         }
@@ -1898,7 +1867,6 @@
 
     function showMergeStep(step) {
         if (mergeStepReorder) mergeStepReorder.classList.toggle('hidden', step !== 'reorder');
-        if (mergeStepPick) mergeStepPick.classList.toggle('hidden', step !== 'pick');
         if (mergeStepSave) mergeStepSave.classList.toggle('hidden', step !== 'save');
     }
 
@@ -1979,90 +1947,9 @@
         if (btnMergeSwapOrder) btnMergeSwapOrder.classList.toggle('hidden', activeMergeDocs.length !== 2);
     }
 
-    function populateMergeAddDocSelect() {
-        if (!mergeAddDocSelect) return;
-        mergeAddDocSelect.innerHTML = '<option value="">-- إضافة مستند آخر للدمج / Select doc to add --</option>';
-        const activeVaultIds = new Set(activeMergeDocs.map(d => d.vault_id));
-        const cats = (typeof currentCategories !== 'undefined' ? currentCategories : (typeof window !== 'undefined' ? window.currentCategories : [])) || [];
-
-        cats.forEach(c => {
-            if (!c.documents) return;
-            c.documents.forEach(doc => {
-                if (doc.vault_id && !activeVaultIds.has(doc.vault_id)) {
-                    const opt = document.createElement('option');
-                    opt.value = doc.vault_id;
-                    const docTitle = doc.brief_arabic_title || doc.title || doc.file_name || doc.filename || 'Document';
-                    const pages = doc.page_count || doc.pages_count || 1;
-                    opt.textContent = `[${c.name || 'عام'}] ${docTitle} (${pages} ${pages === 1 ? 'page' : 'pages'})`;
-                    opt.dataset.doc = JSON.stringify(doc);
-                    mergeAddDocSelect.appendChild(opt);
-                }
-            });
-        });
-    }
-
-    function populateMergePickSecondSelect() {
-        if (!mergePickSecondSelect) return;
-        mergePickSecondSelect.innerHTML = '<option value="">-- اختر المستند الثاني للدمج / Select Doc --</option>';
-        const activeVaultIds = new Set(activeMergeDocs.map(d => d.vault_id));
-        const cats = (typeof currentCategories !== 'undefined' ? currentCategories : (typeof window !== 'undefined' ? window.currentCategories : [])) || [];
-
-        cats.forEach(c => {
-            if (!c.documents) return;
-            c.documents.forEach(doc => {
-                if (doc.vault_id && !activeVaultIds.has(doc.vault_id)) {
-                    const opt = document.createElement('option');
-                    opt.value = doc.vault_id;
-                    const docTitle = doc.brief_arabic_title || doc.title || doc.file_name || doc.filename || 'Document';
-                    const pages = doc.page_count || doc.pages_count || 1;
-                    opt.textContent = `[${c.name || 'عام'}] ${docTitle} (${pages} ${pages === 1 ? 'page' : 'pages'})`;
-                    opt.dataset.doc = JSON.stringify(doc);
-                    mergePickSecondSelect.appendChild(opt);
-                }
-            });
-        });
-    }
-
-    function handlePickContinue() {
-        if (!mergePickSecondSelect || !mergePickSecondSelect.value) {
-            alert('يرجى اختيار المستند الثاني للدمج / Please select a second document');
-            return;
-        }
-        const opt = mergePickSecondSelect.selectedOptions[0];
-        let docObj = null;
-        if (opt && opt.dataset.doc) {
-            try { docObj = JSON.parse(opt.dataset.doc); } catch (e) {}
-        }
-        if (!docObj) {
-            const cats = (typeof currentCategories !== 'undefined' ? currentCategories : (typeof window !== 'undefined' ? window.currentCategories : [])) || [];
-            for (const c of cats) {
-                if (c.documents) {
-                    docObj = c.documents.find(d => d.vault_id === mergePickSecondSelect.value);
-                    if (docObj) break;
-                }
-            }
-        }
-        if (!docObj) {
-            docObj = { vault_id: mergePickSecondSelect.value, title: `Document ${mergePickSecondSelect.value}` };
-        }
-        activeMergeDocs.push({ ...docObj });
-
-        updateMergeOrderSummary();
-        showMergeStep('save');
-        if (btnMergeSaveBack) btnMergeSaveBack.classList.remove('hidden');
-        if (btnMergeSwapOrder) btnMergeSwapOrder.classList.remove('hidden');
-        if (mergeOrderBanner) mergeOrderBanner.classList.remove('hidden');
-    }
-
     function handleSaveBack() {
-        if (initialMergeCount > 2) {
-            showMergeStep('reorder');
-            renderMergeDocsList();
-        } else if (initialMergeCount <= 1) {
-            activeMergeDocs = activeMergeDocs.slice(0, 1);
-            showMergeStep('pick');
-            populateMergePickSecondSelect();
-        }
+        showMergeStep('reorder');
+        renderMergeDocsList();
     }
 
     function renderMergeDocsList() {
@@ -2076,7 +1963,6 @@
             emptyEl.className = 'p-3 text-xs text-slate-400 text-center';
             emptyEl.textContent = 'لا توجد مستندات محددة للدمج / No documents selected';
             mergeDocsList.appendChild(emptyEl);
-            populateMergeAddDocSelect();
             return;
         }
 
@@ -2122,8 +2008,6 @@
 
             mergeDocsList.appendChild(row);
         });
-
-        populateMergeAddDocSelect();
     }
 
     function moveMergeDocUp(index) {
@@ -2145,30 +2029,12 @@
     function removeMergeDoc(index) {
         if (index < 0 || index >= activeMergeDocs.length) return;
         activeMergeDocs.splice(index, 1);
-        renderMergeDocsList();
-    }
-
-    function handleAddDocToMergeList() {
-        if (!mergeAddDocSelect || !mergeAddDocSelect.value) return;
-        const vaultId = mergeAddDocSelect.value;
-        const opt = mergeAddDocSelect.selectedOptions[0];
-        let docObj = null;
-        if (opt && opt.dataset.doc) {
-            try { docObj = JSON.parse(opt.dataset.doc); } catch (e) {}
+        if (activeMergeDocs.length < 2) {
+            closeMergeModal();
+            const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+            if (toast) toast('تم إلغاء الدمج لقلة المستندات المحددة / Merge cancelled: fewer than 2 documents', 'warning');
+            return;
         }
-        if (!docObj) {
-            const cats = (typeof currentCategories !== 'undefined' ? currentCategories : (typeof window !== 'undefined' ? window.currentCategories : [])) || [];
-            for (const c of cats) {
-                if (c.documents) {
-                    docObj = c.documents.find(d => d.vault_id === vaultId);
-                    if (docObj) break;
-                }
-            }
-        }
-        if (!docObj) {
-            docObj = { vault_id: vaultId, title: `Document ${vaultId}` };
-        }
-        activeMergeDocs.push({ ...docObj });
         renderMergeDocsList();
     }
 
@@ -2178,6 +2044,12 @@
         activeMergeDocs = Array.isArray(initialDocs) ? [...initialDocs] : (initialDocs ? [initialDocs] : []);
         initialMergeCount = activeMergeDocs.length;
         activeMergeFallbackCategory = fallbackCategory;
+
+        if (activeMergeDocs.length < 2) {
+            const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+            if (toast) toast('يرجى تحديد وثيقتين على الأقل للدمج / Please select at least 2 documents to merge', 'warning');
+            return;
+        }
 
         if (mergeDocsStatus) {
             mergeDocsStatus.textContent = '';
@@ -2191,13 +2063,14 @@
         if (mergeCustomCatInput) mergeCustomCatInput.value = '';
 
         if (mergeDeleteSources) {
-            const canDelete = (typeof window !== 'undefined' && window.authManager) ? window.authManager.hasDeletePermission() : true;
+            const isRestricted = (typeof window !== 'undefined' && window.authManager && window.authManager.currentUser && !window.authManager.hasDeletePermission());
+            const canDelete = !isRestricted;
             mergeDeleteSources.checked = canDelete;
             mergeDeleteSources.disabled = !canDelete;
             const container = mergeDeleteSources.closest('label') || mergeDeleteSources.parentElement;
             if (container) {
-                container.title = canDelete ? '' : 'حذف المستندات المصدر محجوب للموظفين • Deletion restricted for Contributors';
-                container.classList.toggle('opacity-50', !canDelete);
+                container.title = isRestricted ? 'حذف المستندات المصدر محجوب للموظفين • Deletion restricted for Contributors' : '';
+                container.classList.toggle('opacity-50', isRestricted);
             }
         }
 
@@ -2207,11 +2080,7 @@
 
         // Pre-fill target title with first doc's name by default
         if (mergeTargetTitle) {
-            if (firstDoc) {
-                mergeTargetTitle.value = firstDoc.brief_arabic_title || firstDoc.title || firstDoc.file_name || firstDoc.filename || 'مستند مدمج';
-            } else {
-                mergeTargetTitle.value = 'مستند مدمج';
-            }
+            mergeTargetTitle.value = firstDoc ? (firstDoc.brief_arabic_title || firstDoc.title || firstDoc.file_name || firstDoc.filename || 'مستند مدمج') : 'مستند مدمج';
         }
 
         // Pre-fill target date inheriting from first doc
@@ -2228,22 +2097,13 @@
 
         if (activeMergeDocs.length === 2) {
             showMergeStep('save');
-            populateMergeAddDocSelect();
             if (btnMergeSaveBack) btnMergeSaveBack.classList.add('hidden');
             if (mergeOrderBanner) mergeOrderBanner.classList.remove('hidden');
             if (btnMergeSwapOrder) btnMergeSwapOrder.classList.remove('hidden');
-        } else if (activeMergeDocs.length > 2) {
+        } else {
             showMergeStep('reorder');
             renderMergeDocsList();
-        } else if (activeMergeDocs.length === 1) {
-            showMergeStep('pick');
-            populateMergePickSecondSelect();
-            if (mergePickFirstDocTitle && firstDoc) {
-                mergePickFirstDocTitle.textContent = firstDoc.brief_arabic_title || firstDoc.title || firstDoc.file_name || firstDoc.filename || 'Document 1';
-            }
-        } else {
-            showMergeStep('pick');
-            populateMergePickSecondSelect();
+            if (btnMergeSaveBack) btnMergeSaveBack.classList.remove('hidden');
         }
 
         mergeDocsModal.classList.remove('hidden');
@@ -2312,7 +2172,8 @@
         const tenantVal = mergeTargetTenant && mergeTargetTenant.value ? parseInt(mergeTargetTenant.value, 10) : null;
         const dateVal = mergeTargetDate && mergeTargetDate.value ? mergeTargetDate.value : null;
         const notesVal = mergeTargetNotes && mergeTargetNotes.value ? mergeTargetNotes.value.trim() : null;
-        const canDelete = (typeof window !== 'undefined' && window.authManager) ? window.authManager.hasDeletePermission() : true;
+        const isRestricted = (typeof window !== 'undefined' && window.authManager && window.authManager.currentUser && !window.authManager.hasDeletePermission());
+        const canDelete = !isRestricted;
         const deleteSources = canDelete && mergeDeleteSources ? mergeDeleteSources.checked : false;
 
         const payload = {
@@ -2395,7 +2256,6 @@
     window.moveMergeDocUp = moveMergeDocUp;
     window.moveMergeDocDown = moveMergeDocDown;
     window.removeMergeDoc = removeMergeDoc;
-    window.handleAddDocToMergeList = handleAddDocToMergeList;
     window.getActiveMergeDocs = () => activeMergeDocs;
     window.showDocInTimeline = showDocInTimeline;
     window.showDocInCategories = showDocInCategories;
@@ -2422,7 +2282,6 @@
     window.showMergeStep = showMergeStep;
     window.updateMergeOrderSummary = updateMergeOrderSummary;
     window.handleReorderContinue = handleReorderContinue;
-    window.handlePickContinue = handlePickContinue;
     window.handleSaveBack = handleSaveBack;
 
     if (typeof module !== 'undefined' && module.exports) {
@@ -2442,13 +2301,11 @@
             moveMergeDocUp,
             moveMergeDocDown,
             removeMergeDoc,
-            handleAddDocToMergeList,
             getActiveMergeDocs: () => activeMergeDocs,
             handleSwapMergeDocs,
             showMergeStep,
             updateMergeOrderSummary,
             handleReorderContinue,
-            handlePickContinue,
             handleSaveBack,
             showDocInTimeline,
             showDocInCategories,

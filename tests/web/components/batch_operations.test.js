@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 const {
     loadCategories,
@@ -35,6 +35,7 @@ function setupDOM() {
             <span id="batch-selected-count">0 selected</span>
             <button id="btn-batch-move" type="button">Move Selected</button>
             <button id="btn-batch-copy" type="button">Copy Selected</button>
+            <button id="btn-batch-merge" type="button" disabled>Merge Selected</button>
             <button id="btn-batch-delete" type="button">Delete Selected</button>
             <button id="btn-batch-deselect" type="button">Deselect</button>
         </div>
@@ -732,5 +733,106 @@ describe('Multi-Select Batch Document Operations (Phase 106)', () => {
 
         const label = formatBatchTenantLabel({ name: 'سارة خالد', is_resident: 0 });
         expect(label).toBe('📋 سارة خالد (متقدم - لم يسكن)');
+    });
+
+    describe('Delete Selected & Merge Selected Button Behavior (Regression Guard)', () => {
+        afterEach(() => {
+            delete window.authManager;
+            delete window.openMergeModal;
+        });
+
+        it('maintains Delete Selected button visibility when documents are selected in default unauthenticated state, and reveals Merge Selected only on multi-select', () => {
+            delete window.authManager;
+            const btnDelete = document.getElementById('btn-batch-delete');
+            const btnMerge = document.getElementById('btn-batch-merge');
+            const bar = document.getElementById('batch-action-bar');
+
+            // Initially bar is hidden
+            updateBatchActionBar();
+            expect(bar.classList.contains('hidden')).toBe(true);
+
+            // Select 1 document: delete is visible, merge is hidden (multi-select only)
+            toggleDocSelection('doc001', true);
+            updateBatchActionBar();
+            expect(bar.classList.contains('hidden')).toBe(false);
+            expect(btnDelete.classList.contains('hidden')).toBe(false);
+            expect(btnMerge.classList.contains('hidden')).toBe(true);
+            expect(btnMerge.disabled).toBe(true);
+
+            // Select 2 documents (multi-select): merge is now visible and enabled
+            toggleDocSelection('doc002', true);
+            updateBatchActionBar();
+            expect(btnDelete.classList.contains('hidden')).toBe(false);
+            expect(btnMerge.classList.contains('hidden')).toBe(false);
+            expect(btnMerge.disabled).toBe(false);
+            expect(btnMerge.title).toContain('Merge selected documents');
+        });
+
+        it('maintains Delete Selected button visibility when authManager exists but user is unauthenticated (currentUser is null)', () => {
+            // Regression test: authManager instantiated before login must NEVER hide btn-batch-delete
+            window.authManager = {
+                currentUser: null,
+                hasDeletePermission: () => false
+            };
+
+            const btnDelete = document.getElementById('btn-batch-delete');
+            toggleDocSelection('doc001', true);
+            updateBatchActionBar();
+
+            expect(btnDelete.classList.contains('hidden')).toBe(false);
+        });
+
+        it('maintains Delete Selected button visibility when authManager has Admin user', () => {
+            window.authManager = {
+                currentUser: { username: 'Emad', role: 'Admin' },
+                hasDeletePermission: () => true
+            };
+
+            const btnDelete = document.getElementById('btn-batch-delete');
+            toggleDocSelection('doc001', true);
+            updateBatchActionBar();
+
+            expect(btnDelete.classList.contains('hidden')).toBe(false);
+        });
+
+        it('hides Delete Selected button ONLY when user is an authenticated Contributor', () => {
+            window.authManager = {
+                currentUser: { username: 'Nawaf', role: 'Contributor' },
+                hasDeletePermission: () => false
+            };
+
+            const btnDelete = document.getElementById('btn-batch-delete');
+            toggleDocSelection('doc001', true);
+            updateBatchActionBar();
+
+            expect(btnDelete.classList.contains('hidden')).toBe(true);
+        });
+
+        it('enables Merge Selected only for >= 2 selected documents and invokes openMergeModal with those documents', () => {
+            window.openMergeModal = vi.fn();
+            global.showToast = vi.fn();
+
+            // 1 document: blocked
+            toggleDocSelection('doc001', true);
+            updateBatchActionBar();
+            openBatchMergeModal();
+            expect(window.openMergeModal).not.toHaveBeenCalled();
+            expect(global.showToast).toHaveBeenCalledWith(expect.stringContaining('وثيقتين على الأقل'), 'warning');
+
+            // 2 documents: allowed
+            toggleDocSelection('doc002', true);
+            updateBatchActionBar();
+
+            const btnMerge = document.getElementById('btn-batch-merge');
+            expect(btnMerge.classList.contains('hidden')).toBe(false);
+            expect(btnMerge.disabled).toBe(false);
+
+            openBatchMergeModal();
+            expect(window.openMergeModal).toHaveBeenCalledTimes(1);
+            const passed = window.openMergeModal.mock.calls[0][0];
+            expect(passed).toHaveLength(2);
+            expect(passed[0].vault_id).toBe('doc001');
+            expect(passed[1].vault_id).toBe('doc002');
+        });
     });
 });

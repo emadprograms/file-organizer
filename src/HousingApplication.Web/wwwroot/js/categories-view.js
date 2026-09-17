@@ -428,17 +428,19 @@
 
         const btnDelete = document.getElementById('btn-batch-delete');
         if (btnDelete) {
-            const canDelete = (typeof window !== 'undefined' && window.authManager) ? window.authManager.hasDeletePermission() : true;
-            btnDelete.classList.toggle('hidden', !canDelete);
+            // Only hide delete button if authManager is present AND a restricted user (Contributor) is logged in
+            const isRestricted = (typeof window !== 'undefined' && window.authManager && window.authManager.currentUser && !window.authManager.hasDeletePermission());
+            btnDelete.classList.toggle('hidden', isRestricted);
         }
 
         const btnMerge = document.getElementById('btn-batch-merge');
         if (btnMerge) {
-            if (count >= 2) {
-                btnMerge.disabled = false;
-                btnMerge.title = 'Merge 2 or more selected documents into one';
+            const isMultiSelect = (count >= 2);
+            btnMerge.classList.toggle('hidden', !isMultiSelect);
+            btnMerge.disabled = !isMultiSelect;
+            if (isMultiSelect) {
+                btnMerge.title = 'Merge selected documents into one';
             } else {
-                btnMerge.disabled = true;
                 btnMerge.title = 'Select at least 2 documents to merge';
             }
         }
@@ -1297,7 +1299,10 @@
             for (const c of cats) {
                 if (c.documents) {
                     foundDoc = c.documents.find(d => d.vault_id === vid);
-                    if (foundDoc) break;
+                    if (foundDoc) {
+                        foundDoc.category = foundDoc.category || c.name;
+                        break;
+                    }
                 }
             }
             if (foundDoc) {
@@ -1415,6 +1420,9 @@
                 const res = await fetch(`/api/areas/${encodeURIComponent(areaId)}/houses/${encodeURIComponent(houseId)}/categories`);
                 if (!res.ok) throw new Error('Failed to load categories');
                 currentCategories = await res.json();
+            }
+            if (typeof window !== 'undefined') {
+                window.currentCategories = currentCategories;
             }
             
             const totalDocs = currentCategories.reduce((sum, cat) => sum + cat.document_count, 0);
@@ -2884,8 +2892,8 @@
         window.addEventListener('auth:user-changed', () => {
             const btnDelete = document.getElementById('btn-batch-delete');
             if (btnDelete) {
-                const canDelete = window.authManager ? window.authManager.hasDeletePermission() : true;
-                btnDelete.classList.toggle('hidden', !canDelete);
+                const isRestricted = window.authManager && window.authManager.currentUser && !window.authManager.hasDeletePermission();
+                btnDelete.classList.toggle('hidden', isRestricted);
             }
         });
     }

@@ -18,13 +18,11 @@ const {
     moveMergeDocUp,
     moveMergeDocDown,
     removeMergeDoc,
-    handleAddDocToMergeList,
     getActiveMergeDocs,
     handleSwapMergeDocs,
     showMergeStep,
     updateMergeOrderSummary,
     handleReorderContinue,
-    handlePickContinue,
     handleSaveBack,
     openDocDropdownMenu,
     closeDocDropdownMenu
@@ -32,14 +30,12 @@ const {
 
 function setupDOM() {
     document.body.innerHTML = `
-        <!-- Viewer Header -->
+        <!-- Viewer Header (Merge removed) -->
         <button id="viewer-edit-pages-btn" type="button"></button>
-        <button id="viewer-merge-btn" type="button"></button>
 
-        <!-- Doc Action Modal -->
+        <!-- Doc Action Modal (Merge removed) -->
         <div id="doc-action-modal" class="hidden">
             <button id="btn-doc-edit-pages" type="button"></button>
-            <button id="btn-doc-merge" type="button"></button>
             <button id="doc-modal-cancel" type="button"></button>
             <button id="doc-modal-close" type="button"></button>
             <button id="doc-modal-submit" type="button">
@@ -48,17 +44,17 @@ function setupDOM() {
             <button id="btn-doc-delete" type="button"></button>
         </div>
 
-        <!-- Floating Batch Action Bar -->
+        <!-- Floating Batch Action Bar (Only reveals Merge Selected on multi-select) -->
         <div id="batch-action-bar" class="hidden">
             <span id="batch-selected-count">0 selected</span>
             <button id="btn-batch-move" type="button">Move Selected</button>
             <button id="btn-batch-copy" type="button">Copy Selected</button>
-            <button id="btn-batch-merge" type="button" disabled>Merge Selected</button>
+            <button id="btn-batch-merge" type="button" class="hidden" disabled>Merge Selected</button>
             <button id="btn-batch-delete" type="button">Delete Selected</button>
             <button id="btn-batch-deselect" type="button">Deselect</button>
         </div>
 
-        <!-- Document Merge Modal -->
+        <!-- Document Merge Modal (Multi-Select only, no pick second doc step) -->
         <div id="merge-docs-modal" class="hidden">
             <h3 id="merge-docs-title">Merge Documents</h3>
             <p id="merge-docs-subtitle">Combine documents into one PDF</p>
@@ -68,23 +64,11 @@ function setupDOM() {
             <!-- Reorder Step (for >2 docs) -->
             <div id="merge-step-reorder" class="hidden">
                 <div id="merge-docs-list"></div>
-                <div id="merge-add-doc-container">
-                    <select id="merge-add-doc-select"></select>
-                    <button id="btn-merge-add-doc" type="button">+ Add</button>
-                </div>
                 <button id="btn-merge-reorder-cancel" type="button">Cancel</button>
                 <button id="btn-merge-reorder-continue" type="button">Continue</button>
             </div>
 
-            <!-- Pick Step (for 1 doc) -->
-            <div id="merge-step-pick" class="hidden">
-                <div id="merge-pick-first-doc-title"></div>
-                <select id="merge-pick-second-select"></select>
-                <button id="btn-merge-pick-cancel" type="button">Cancel</button>
-                <button id="btn-merge-pick-continue" type="button">Continue</button>
-            </div>
-
-            <!-- Save Step (direct for 2 docs or after continue) -->
+            <!-- Save Step (direct for 2 docs or after reordering) -->
             <div id="merge-step-save" class="hidden">
                 <div id="merge-order-banner">
                     <span id="merge-order-summary"></span>
@@ -111,7 +95,7 @@ function setupDOM() {
     `;
 }
 
-describe('Document Merge Feature', () => {
+describe('Document Merge Feature (Multi-Select Only)', () => {
     beforeEach(() => {
         setupDOM();
         selectedDocIds.clear();
@@ -207,25 +191,47 @@ describe('Document Merge Feature', () => {
     });
 
     describe('Batch Action Bar Integration', () => {
-        it('disables merge button when fewer than 2 documents are selected', () => {
+        it('hides and disables merge button when 0 documents are selected', () => {
             const btnMerge = document.getElementById('btn-batch-merge');
             updateBatchActionBar();
-            expect(btnMerge.disabled).toBe(true);
-
-            toggleDocSelection('doc_aaa111', true);
-            updateBatchActionBar();
+            expect(btnMerge.classList.contains('hidden')).toBe(true);
             expect(btnMerge.disabled).toBe(true);
         });
 
-        it('enables merge button when 2 or more documents are selected', () => {
+        it('keeps merge button hidden when only 1 document is selected', () => {
             const btnMerge = document.getElementById('btn-batch-merge');
+            const btnDelete = document.getElementById('btn-batch-delete');
+
+            toggleDocSelection('doc_aaa111', true);
+            updateBatchActionBar();
+            expect(btnMerge.classList.contains('hidden')).toBe(true);
+            expect(btnMerge.disabled).toBe(true);
+            expect(btnDelete.classList.contains('hidden')).toBe(false);
+        });
+
+        it('reveals and enables merge button only when 2 or more documents are selected (multi-select)', () => {
+            const btnMerge = document.getElementById('btn-batch-merge');
+            const btnDelete = document.getElementById('btn-batch-delete');
+
             toggleDocSelection('doc_aaa111', true);
             toggleDocSelection('doc_bbb222', true);
             updateBatchActionBar();
+
+            expect(btnMerge.classList.contains('hidden')).toBe(false);
             expect(btnMerge.disabled).toBe(false);
+            expect(btnMerge.title).toContain('Merge selected documents');
+            expect(btnDelete.classList.contains('hidden')).toBe(false);
         });
 
-        it('openBatchMergeModal collects selected docs and calls openMergeModal', () => {
+        it('blocks openBatchMergeModal if fewer than 2 documents are selected', () => {
+            toggleDocSelection('doc_aaa111', true);
+            openBatchMergeModal();
+
+            expect(global.openMergeModal).not.toHaveBeenCalled();
+            expect(global.showToast).toHaveBeenCalledWith(expect.stringContaining('وثيقتين على الأقل'), 'warning');
+        });
+
+        it('openBatchMergeModal collects selected docs and calls openMergeModal on multi-select', () => {
             toggleDocSelection('doc_aaa111', true);
             toggleDocSelection('doc_bbb222', true);
 
@@ -240,6 +246,15 @@ describe('Document Merge Feature', () => {
     });
 
     describe('Merge Modal UI & Document Reordering', () => {
+        it('rejects opening when fewer than 2 documents are provided', async () => {
+            const doc1 = global.currentCategories[0].documents[0];
+            await openMergeModal([doc1]);
+
+            const modal = document.getElementById('merge-docs-modal');
+            expect(modal.classList.contains('hidden')).toBe(true);
+            expect(global.showToast).toHaveBeenCalledWith(expect.stringContaining('وثيقتين على الأقل'), 'warning');
+        });
+
         it('opens merge modal directly to Save & Name step when exactly 2 documents are selected', async () => {
             const doc1 = global.currentCategories[0].documents[0];
             const doc2 = global.currentCategories[0].documents[1];
@@ -249,7 +264,7 @@ describe('Document Merge Feature', () => {
             const modal = document.getElementById('merge-docs-modal');
             expect(modal.classList.contains('hidden')).toBe(false);
 
-            // Step 3 (Save) should be visible; Step 1 (Reorder) should be hidden
+            // Save step is visible; Reorder step is hidden
             const saveStep = document.getElementById('merge-step-save');
             const reorderStep = document.getElementById('merge-step-reorder');
             expect(saveStep.classList.contains('hidden')).toBe(false);
@@ -340,74 +355,29 @@ describe('Document Merge Feature', () => {
 
             const dateInput = document.getElementById('merge-target-date');
             expect(dateInput.value).toBe('2024-02-01');
-        });
 
-        it('opens pick step when exactly 1 document is selected', async () => {
-            const doc1 = global.currentCategories[0].documents[0];
-
-            await openMergeModal([doc1]);
-
-            const pickStep = document.getElementById('merge-step-pick');
-            const saveStep = document.getElementById('merge-step-save');
-            const reorderStep = document.getElementById('merge-step-reorder');
-            expect(pickStep.classList.contains('hidden')).toBe(false);
+            // Click Back to return to reorder view
+            handleSaveBack();
+            expect(reorderStep.classList.contains('hidden')).toBe(false);
             expect(saveStep.classList.contains('hidden')).toBe(true);
-            expect(reorderStep.classList.contains('hidden')).toBe(true);
-
-            const firstDocTitle = document.getElementById('merge-pick-first-doc-title');
-            expect(firstDocTitle.textContent).toBe('عقد الإيجار');
-
-            const pickSelect = document.getElementById('merge-pick-second-select');
-            expect(pickSelect.children.length).toBeGreaterThan(1);
-
-            // Pick second document and continue
-            pickSelect.value = 'doc_bbb222';
-            handlePickContinue();
-
-            expect(pickStep.classList.contains('hidden')).toBe(true);
-            expect(saveStep.classList.contains('hidden')).toBe(false);
-            expect(getActiveMergeDocs()).toHaveLength(2);
         });
 
-        it('allows adding an additional document from house dropdown and removing a doc', async () => {
+        it('closes merge modal if removing documents reduces count below 2', async () => {
             const doc1 = global.currentCategories[0].documents[0];
             const doc2 = global.currentCategories[0].documents[1];
 
             await openMergeModal([doc1, doc2]);
             expect(getActiveMergeDocs()).toHaveLength(2);
 
-            const addSelect = document.getElementById('merge-add-doc-select');
-            expect(addSelect.children.length).toBeGreaterThan(1);
-
-            addSelect.value = 'doc_ccc333';
-            handleAddDocToMergeList();
-
-            expect(getActiveMergeDocs()).toHaveLength(3);
-            expect(getActiveMergeDocs()[2].vault_id).toBe('doc_ccc333');
-
-            const badge = document.getElementById('merge-docs-count-badge');
-            // 3 + 2 + 1 = 6 pages
-            expect(badge.textContent).toContain('3 docs • 6 pages');
-
             removeMergeDoc(0);
-            expect(getActiveMergeDocs()).toHaveLength(2);
-            expect(getActiveMergeDocs()[0].vault_id).toBe('doc_bbb222');
+
+            const modal = document.getElementById('merge-docs-modal');
+            expect(modal.classList.contains('hidden')).toBe(true);
+            expect(global.showToast).toHaveBeenCalledWith(expect.stringContaining('قلة المستندات'), 'warning');
         });
     });
 
     describe('Validation & API Submission', () => {
-        it('blocks submission if fewer than 2 documents are in merge list', async () => {
-            const doc1 = global.currentCategories[0].documents[0];
-            await openMergeModal([doc1]);
-
-            await handleMergeDocsSubmit();
-
-            expect(global.fetch).not.toHaveBeenCalledWith(expect.stringContaining('/merge'), expect.anything());
-            const status = document.getElementById('merge-docs-status');
-            expect(status.classList.contains('hidden')).toBe(false);
-            expect(status.textContent).toContain('يرجى اختيار وثيقتين على الأقل للدمج');
-        });
-
         it('blocks submission if target title is empty', async () => {
             const doc1 = global.currentCategories[0].documents[0];
             const doc2 = global.currentCategories[0].documents[1];
@@ -465,8 +435,8 @@ describe('Document Merge Feature', () => {
         });
     });
 
-    describe('3-Dots Menu & Doc Modal Triggers', () => {
-        it('includes Merge Document option in 3-dots dropdown menu', () => {
+    describe('Removal of Merge from Document Actions & Dropdowns', () => {
+        it('does NOT include Merge Document option in 3-dots dropdown menu', () => {
             const doc = global.currentCategories[0].documents[0];
             const btn = document.createElement('button');
             document.body.appendChild(btn);
@@ -474,18 +444,19 @@ describe('Document Merge Feature', () => {
             openDocDropdownMenu(new MouseEvent('click'), doc, '01 - بيانات أساسية', btn);
 
             const mergeItem = document.querySelector('.doc-menu-item-merge');
-            expect(mergeItem).not.toBeNull();
-            expect(mergeItem.textContent).toContain('Merge Document');
-
-            mergeItem.click();
-            expect(global.openMergeModal).toHaveBeenCalledTimes(1);
-            expect(global.openMergeModal.mock.calls[0][0][0].vault_id).toBe('doc_aaa111');
+            expect(mergeItem).toBeNull();
         });
 
-        it('wires btn-doc-merge inside doc-action-modal to openMergeModal', () => {
-            const docBtn = document.getElementById('btn-doc-merge');
-            expect(docBtn).not.toBeNull();
-            expect(typeof docBtn.onclick).toBe('function');
+        it('does NOT include merge button in viewer header or doc action modal', () => {
+            expect(document.getElementById('viewer-merge-btn')).toBeNull();
+            expect(document.getElementById('btn-doc-merge')).toBeNull();
+        });
+
+        it('does NOT include select another document picker step or extra doc selectors in merge modal', () => {
+            expect(document.getElementById('merge-step-pick')).toBeNull();
+            expect(document.getElementById('merge-pick-second-select')).toBeNull();
+            expect(document.getElementById('merge-add-doc-container')).toBeNull();
+            expect(document.getElementById('merge-save-add-doc-container')).toBeNull();
         });
     });
 });

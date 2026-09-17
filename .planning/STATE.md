@@ -30,7 +30,7 @@ Last activity: 2026-09-17 — Milestone v17.0 shipped to production
 
 ## Context
 
-Milestone v17.0 introduced complete user authentication, session management, and role-based access control (RBAC). The system seeds 4 Full Access administrators (Emad, Bubshait, Ehtezaz, Mustafa) with complete rights, and 6 restricted contributors (Nawaf, Naseem, Mulla, Mariam, Shaima, Mona) with Read & Upload permissions only. Restricted contributors are strictly prevented from deleting documents, pages, batches, custom folders, or houses across both backend API guardrails (403 Forbidden) and frontend UI controls. All 970 backend xUnit tests and all 563 frontend Vitest tests pass with 100% parity across src/ and dist/.
+Milestone v17.0 introduced complete user authentication, session management, and role-based access control (RBAC). The system seeds 4 Full Access administrators (Emad, Bubshait, Ehtezaz, Mustafa) with complete rights, and 6 restricted contributors (Nawaf, Naseem, Mulla, Mariam, Shaima, Mona) with Read & Upload permissions only. Restricted contributors are strictly prevented from deleting documents, pages, batches, custom folders, or houses across both backend API guardrails (403 Forbidden) and frontend UI controls. All 970 backend xUnit tests and all 570 frontend Vitest tests pass with 100% parity across src/ and dist/.
 
 ## Target Phases
 

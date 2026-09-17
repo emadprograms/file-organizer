@@ -157,6 +157,27 @@
 - Let the digital paperwork speak for itself: archival metadata that can be derived directly from physical documents should be auto-anchored rather than manually keyed.
 - Minimalist UI design with clear spatial separation (divider line) is more effective than verbose badge subtitles.
 
+## Milestone: v17.0 — User Authentication, Roles & Permissions
+
+**Shipped:** 2026-09-17
+**Phases:** 4 (Phases 116–119) | **Plans:** 4 | **Tests:** 970 xUnit tests, 570 Vitest tests across 42 test files (100% passing)
+
+### What Was Built
+- Full User Authentication & Seeded Store: SQLite schema migration adding `users` table with PBKDF2 SHA-256 password hashing (100,000 iterations, 128-bit cryptographic salts) and seeded 10 predefined users: 4 Full Access Admins (`Emad`, `Bubshait`, `Ehtezaz`, `Mustafa`) and 6 Read & Upload Contributors (`Nawaf`, `Naseem`, `Mulla`, `Mariam`, `Shaima`, `Mona`).
+- Session Management & Endpoints: Secure HTTP-only SameSite cookie sessions with `/api/auth/login`, `/api/auth/logout`, and `/api/auth/me`.
+- Role-Based Access Control (RBAC): Strict backend enforcement returning 403 Forbidden for Contributors attempting document deletion, batch deletion, page deletion, or house deletion, with security audit logging.
+- Bilingual Login & User Profile UI: Sleek bilingual modal (`#auth-modal`) with Enter key support, password visibility toggling, error alerts, top navbar user badge with avatar and role pill, and immediate session termination on logout.
+- Permission-Aware UI Masking: Clean frontend elimination of all deletion surfaces for Contributors across 3-dots menus, document action modals, batch action bars, page editor, merge modal source deletion, and settings Danger Zones, while preserving full Admin privileges.
+
+### What Worked
+- Dual-layer RBAC architecture: Enforcing permissions at both the API controller layer (403 Forbidden) and the presentation layer (UI element masking) guarantees that even if a user manipulates client-side JavaScript or DOM state, the database and file vault remain 100% protected against unauthorized deletion.
+- PBKDF2 with standard ASP.NET Core cryptographic primitives provided robust security without introducing external third-party packages or native binary dependencies.
+- Modular `auth-manager.js` service cleanly abstracted authentication state, publishing custom events (`auth:user-changed`, `auth:session-cleared`) that allowed all existing views to react dynamically without refactoring their core logic.
+
+### Key Lessons
+- Always pair UI masking with strict API-level authorization; never rely on frontend element hiding alone for access control.
+- In multi-user workstation environments, intuitive user-switching and explicit role badging significantly reduce user confusion.
+
 ---
 
 ## Cross-Milestone Trends
@@ -169,3 +190,5 @@
 | v15.0 | Pure .NET Core Single-Stack | ASP.NET Core 8.0 Minimal API | 293 Vitest (28 files) | 158 xUnit | None (0%) |
 | v16.0 | Pure .NET Core Single-Stack | ASP.NET Core 8.0 Minimal API | 293 Vitest (28 files) | 159 xUnit | None (0%) |
 | v16.1 | Pure .NET Core Single-Stack | ASP.NET Core 8.0 Minimal API | 293 Vitest (28 files) | 161 xUnit | None (0%) |
+| v17.0 | Pure .NET Core Single-Stack | ASP.NET Core 8.0 Minimal API | 570 Vitest (42 files) | 970 xUnit | None (0%) |
+

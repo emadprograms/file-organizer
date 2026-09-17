@@ -4,18 +4,40 @@
 
 A high-performance document management system and web dashboard for housing digital archives. It stores scanned documents in an immutable vault with relational SQLite metadata, delivering sub-10ms queries, dual Tree/Grid views, tenure color-coding, multi-tenant chronological timelines, category folder drill-downs, phonetic/fuzzy global search, in-browser PDF viewing, and one-click ZIP/PDF archive exports. Built natively on a pure ASP.NET Core 8.0 Minimal API architecture and vanilla JS, with zero Python runtime dependencies.
 
-## Current Milestone: v17.0 User Authentication, Roles & Permissions
+## Current Milestone: Preparing Next Milestone
 
-**Goal:** Implement full user authentication, session management, and role-based access control (RBAC), distinguishing Full Access administrators from Read & Upload restricted contributors who cannot delete anything.
-
-**Target features:**
-- Seeded user store in SQLite with password hashing (Admins: Emad, Bubshait, Ehtezaz, Mustafa; Contributors: Nawaf, Naseem, Mulla, Mariam, Shaima, Mona)
-- Authentication API (`/api/auth/login`, `/api/auth/logout`, `/api/auth/me`) with secure cookie session handling
-- Backend RBAC guardrails returning 403 Forbidden on document delete, batch delete, page delete, and house delete for restricted users
-- Bilingual login screen, navbar user profile indicator, role badges, and logout flow
-- Permission-aware UI masking hiding all delete buttons, danger zones, and bulk delete actions from restricted contributors
+**Status:** v17.0 Shipped. Use `/gsd-new-milestone` to plan the next version.
 
 ## Past Milestones
+
+<details>
+<summary>v17.0 User Authentication, Roles & Permissions (Shipped: 2026-09-17)</summary>
+
+- **Backend Authentication & RBAC Engine (Phase 116):**
+  - Designed and migrated SQLite `users` table schema with PBKDF2 password hashing (100,000 iterations, 128-bit cryptographic salt) and seeded 10 pre-configured accounts:
+    - 4 Full Access Administrators: `Emad`, `Bubshait`, `Ehtezaz`, `Mustafa`
+    - 6 Read & Upload Contributors: `Nawaf`, `Naseem`, `Mulla`, `Mariam`, `Shaima`, `Mona`
+  - Created authentication endpoints (`POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`) with secure HTTP-only SameSite cookie sessions.
+  - Enforced strict backend authorization returning 403 Forbidden for Contributors attempting document deletion, batch deletion, page deletion, or house deletion, with security audit logging.
+- **Bilingual Login & Session Management UI (Phase 117):**
+  - Integrated sleek bilingual (Arabic/English) `#auth-modal` supporting keyboard submission (`Enter`), error feedback, and password visibility toggling.
+  - Added `#user-profile-badge` in top navigation bar displaying logged-in user avatar, username, and role badge (`مدير النظام • Admin` or `محرر • Contributor`).
+  - Implemented client-side `AuthManager` service managing session check, login, logout, and permission state across all views.
+- **Permission-Aware UI Masking & RBAC Enforcement (Phase 118):**
+  - Masked all delete buttons for Contributor accounts:
+    - Document 3-dots dropdown menu "Delete Document" action hidden.
+    - Document action modal `#btn-doc-delete` hidden.
+    - Batch Action Bar `#btn-batch-delete` hidden.
+    - Document Page Editor `#btn-page-delete-selected` hidden.
+    - Merge Documents modal `#merge-delete-sources` unchecked and disabled.
+    - House Settings Modal `#btn-delete-house` Danger Zone hidden.
+  - Preserved full operational capabilities for Admins across all deletion actions.
+- **Verification, Testing & Milestone Audit (Phase 119):**
+  - Added comprehensive test suites: 10 backend xUnit tests in `AuthAndRbacTests.cs`, 12 frontend Vitest tests in `auth_manager.test.js`, and 13 Vitest tests in `rbac_ui_enforcement.test.js`.
+  - Achieved 100% test pass rate: 970/970 backend .NET tests passing and 570/570 frontend Vitest tests passing across all 42 test files.
+  - Successfully audited all 18 milestone requirements with zero gaps or regressions.
+
+</details>
 
 <details>
 <summary>v16.1 Document-Anchored Tenancy Dates & Minimalist Register (Shipped: 2026-09-14)</summary>
@@ -286,6 +308,27 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 
 ### Validated
 
+- ✓ Seeded user table with PBKDF2 hashing (AUTH-01, AUTH-02) — v17.0
+- ✓ 10 Seeded accounts: 4 Admins (Emad, Bubshait, Ehtezaz, Mustafa) and 6 Contributors (Nawaf, Naseem, Mulla, Mariam, Shaima, Mona) (AUTH-03) — v17.0
+- ✓ Authentication endpoints: /api/auth/login, /api/auth/logout, /api/auth/me (AUTH-04) — v17.0
+- ✓ Secure HTTP-only SameSite cookie session management (AUTH-05) — v17.0
+- ✓ Backend RBAC middleware returning 403 Forbidden for restricted operations (RBAC-01) — v17.0
+- ✓ Contributor restricted operations: document delete, batch delete, page delete, house delete (RBAC-02) — v17.0
+- ✓ Admin full access preservation across all operations (RBAC-03) — v17.0
+- ✓ Unauthenticated request handling with 401 Unauthorized (RBAC-04) — v17.0
+- ✓ Security audit logging of denied deletion attempts with user and timestamp (RBAC-05) — v17.0
+- ✓ Bilingual login modal (Arabic/English) with validation feedback (UI-01) — v17.0
+- ✓ Top navbar user profile badge with avatar and role indicator (UI-02) — v17.0
+- ✓ Logout flow with session clearing and return to login modal (UI-03) — v17.0
+- ✓ Client-side AuthManager service tracking state and role permissions (UI-04) — v17.0
+- ✓ Delete action masking: hide 3-dots delete and action modal delete from Contributors (MASK-01) — v17.0
+- ✓ Danger Zone masking: hide house delete in settings modal from Contributors (MASK-02) — v17.0
+- ✓ Batch delete masking: hide Delete Selected in batch bar from Contributors (MASK-03) — v17.0
+- ✓ Merge modal protection: disable/uncheck Delete Sources for Contributors (MASK-04) — v17.0
+- ✓ Page editor protection: hide Delete Selected Pages for Contributors (MASK-05) — v17.0
+- ✓ Multi-stack verification with 970 xUnit tests and 570 Vitest tests (VER-01, VER-02) — v17.0
+- ✓ Document-Anchored Tenancy Start Dates and Minimalist Two-Tier Register — v16.1
+- ✓ House Settings Table 12-Column Rebalance and Vacated Tenancy Conflict Protection — v16.0
 - ✓ Completely remove all legacy Python source files, .venv, requirements.txt, and pytest files (ARCH-01) — v15.0
 - ✓ Reorganize ASP.NET Core project into idiomatic `src/HousingApplication.Web/` with `HousingApplication.sln` (ARCH-02) — v15.0
 - ✓ Consolidate test suites under `tests/` with backend in `tests/HousingApplication.Tests/` (ARCH-03) — v15.0
@@ -404,12 +447,15 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 
 ## Current State
 
+- ✅ Shipped v17.0 User Authentication, Roles & Permissions on 2026-09-17.
+- ✅ Shipped v16.1 Document-Anchored Tenancy Dates & Minimalist Register on 2026-09-14.
+- ✅ Shipped v16.0 Settings Streamlining & Applicant Alignment on 2026-09-13.
 - ✅ Shipped v15.0 Decoupled .NET Core Architecture & Non-Residing Applicants Archive on 2026-09-13.
 - ✅ Shipped v14.0 Power-User Operations & Portfolio Expansion on 2026-09-12.
 - ✅ Shipped v13.0 Decoupled Monorepo Architecture & Native ASP.NET Core Web Server on 2026-09-09.
 - ✅ Shipped v12.0 Unified Document Ingestion System on 2026-09-09.
 - ✅ Shipped v11.0 Database Backend & Clean Storage Architecture on 2026-09-09.
-- Robust test coverage: 158 ASP.NET Core xUnit tests (100% passing) and 293 frontend Vitest tests across 28 test files (100% passing).
+- Comprehensive test coverage: 970 ASP.NET Core xUnit tests (100% passing) and 570 frontend Vitest tests across 42 test files (100% passing).
 - Pure single-stack runtime: 100% native ASP.NET Core 8.0 Minimal API backend and static file server with zero Python runtime dependencies.
 
 ## Context
@@ -423,6 +469,9 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 
 | Decision | Rationale | Outcome |
 |---|---|---|
+| PBKDF2 Password Hashing & Seeded User Store | Seeded 4 Full Access Admins (`Emad`, `Bubshait`, `Ehtezaz`, `Mustafa`) and 6 Read & Upload Contributors (`Nawaf`, `Naseem`, `Mulla`, `Mariam`, `Shaima`, `Mona`) using PBKDF2 SHA-256 with 100,000 iterations and 128-bit cryptographic salts. | ✓ Completed (Phase 116). |
+| Backend 403 Forbidden RBAC Enforcement | Enforced role-based access control at API controller level returning 403 Forbidden on document delete, batch delete, page delete, and house delete for Contributors, logging security denials. | ✓ Completed (Phase 116). |
+| Dual-Layer Permission Enforcement & UI Masking | Combined backend API authorization with frontend UI masking to hide delete buttons, batch delete actions, page editor deletion, and danger zones for Contributors while maintaining full Admin privileges. | ✓ Completed (Phases 117-118). |
 | Pure .NET Core Architecture | Eliminated all Python dependencies, establishing high performance single-stack ASP.NET Core 8.0 Minimal API. | ✓ Completed (Milestone v15.0). |
 | Single-Table Tenant/Applicant Union | Reused `tenants` table with `is_resident INTEGER` rather than creating separate applicant tables, preserving foreign key integrity and folder isolation. | ✓ Completed (Phase 110). |
 | Vacancy & Allocation Guardrails | Houses with only non-residing applicants remain grey / vacant; document auto-reallocation strictly excludes non-residing applicants. | ✓ Completed (Phase 110). |
@@ -443,4 +492,4 @@ Documents are safely stored once in an immutable vault with relational SQLite me
 | Playwright E2E Verification | Verifies real browser behavior against actual database records, guaranteeing zero regressions across Tree, Grid, Search, and PDF viewing. | ✓ Completed (Phase 96). |
 
 ---
-*Last updated: 2026-09-13 after v15.0 milestone*
+*Last updated: 2026-09-17 after v17.0 milestone*
