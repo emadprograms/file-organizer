@@ -55,7 +55,7 @@
                 for (const [k, count] of Object.entries(catCounts)) {
                     if (count > 0) {
                         const cleanK = k.replace(/^\d+\s*-\s*/, '').trim();
-                        if (cleanK === cat.key || cleanK === cat.label) {
+                        if (cleanK === cat.key || cleanK === cat.label || k.includes(cat.prefix) || k.startsWith(cat.id)) {
                             isPresent = true;
                             break;
                         }
@@ -450,6 +450,93 @@
         return compareHouseNumbers(a, b);
     }
 
+    function updateActiveFilterBadge(incompleteCount, completeCount, vacantCount) {
+        const badge = document.getElementById('grid-view-active-filter-badge');
+        if (!badge) return;
+
+        if (currentIntegrityFilter === 'incomplete') {
+            const countStr = typeof incompleteCount === 'number' ? ` (${incompleteCount})` : '';
+            badge.textContent = `Incomplete${countStr}`;
+            badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-300 dark:border-amber-800';
+            badge.classList.remove('hidden');
+        } else if (currentIntegrityFilter === 'complete') {
+            const countStr = typeof completeCount === 'number' ? ` (${completeCount})` : '';
+            badge.textContent = `Complete${countStr}`;
+            badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800';
+            badge.classList.remove('hidden');
+        } else if (currentIntegrityFilter === 'vacant') {
+            const countStr = typeof vacantCount === 'number' ? ` (${vacantCount})` : '';
+            badge.textContent = `Vacant${countStr}`;
+            badge.className = 'text-[10px] px-2 py-0.5 rounded-full font-bold bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-600';
+            badge.classList.remove('hidden');
+        } else {
+            badge.textContent = '';
+            badge.className = 'hidden';
+        }
+    }
+
+    function initGridViewOptions() {
+        if (typeof document === 'undefined') return;
+        const btn = document.getElementById('btn-grid-view-options');
+        const popover = document.getElementById('grid-view-popover');
+        if (!btn || !popover) return;
+
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            const isOpen = !popover.classList.contains('hidden');
+            if (isOpen) {
+                closeGridViewOptions();
+            } else {
+                openGridViewOptions();
+            }
+        };
+
+        popover.onclick = (e) => {
+            e.stopPropagation();
+        };
+
+        if (!document._gridViewListenersAttached) {
+            document._gridViewListenersAttached = true;
+
+            document.addEventListener('click', (e) => {
+                const livePopover = document.getElementById('grid-view-popover');
+                const liveBtn = document.getElementById('btn-grid-view-options');
+                if (livePopover && !livePopover.classList.contains('hidden')) {
+                    if (!livePopover.contains(e.target) && (!liveBtn || !liveBtn.contains(e.target))) {
+                        closeGridViewOptions();
+                    }
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                const livePopover = document.getElementById('grid-view-popover');
+                if (e.key === 'Escape' && livePopover && !livePopover.classList.contains('hidden')) {
+                    closeGridViewOptions();
+                }
+            });
+        }
+    }
+
+    function openGridViewOptions() {
+        const btn = document.getElementById('btn-grid-view-options');
+        const popover = document.getElementById('grid-view-popover');
+        const chevron = document.getElementById('grid-view-chevron');
+        if (!popover) return;
+        popover.classList.remove('hidden');
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+        if (chevron) chevron.classList.add('rotate-180');
+    }
+
+    function closeGridViewOptions() {
+        const btn = document.getElementById('btn-grid-view-options');
+        const popover = document.getElementById('grid-view-popover');
+        const chevron = document.getElementById('grid-view-chevron');
+        if (!popover) return;
+        popover.classList.add('hidden');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+        if (chevron) chevron.classList.remove('rotate-180');
+    }
+
     function renderIntegrityFilterPills(totalCount, incompleteCount, completeCount, vacantCount) {
         const container = document.getElementById('grid-integrity-pills');
         const summary = document.getElementById('grid-integrity-summary');
@@ -469,9 +556,9 @@
                 : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 font-medium';
 
             return `
-                <button type="button" class="grid-filter-pill px-2.5 py-1 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1.5 select-none ${btnClass}" data-filter="${f.id}">
-                    <span>${f.label}</span>
-                    <span class="text-[10px] px-1.5 py-0.2 rounded-full ${isActive ? 'bg-white/25 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'} font-bold">${f.count}</span>
+                <button type="button" class="grid-filter-pill px-2.5 py-1.5 rounded-xl text-xs transition-all cursor-pointer flex items-center justify-between gap-1.5 select-none ${btnClass}" data-filter="${f.id}">
+                    <span class="truncate">${f.label}</span>
+                    <span class="text-[10px] px-1.5 py-0.5 rounded-full ${isActive ? 'bg-white/25 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'} font-bold">${f.count}</span>
                 </button>
             `;
         }).join('');
@@ -486,20 +573,22 @@
         if (summary) {
             if (incompleteCount > 0) {
                 summary.innerHTML = `
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
-                        <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                        <span>${incompleteCount} ${incompleteCount === 1 ? 'house requires' : 'houses require'} documents</span>
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800/60">
+                        <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                        <span>${incompleteCount} req. docs</span>
                     </span>
                 `;
             } else {
                 summary.innerHTML = `
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
-                        <svg class="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-                        <span>All occupied houses 100% compliant</span>
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60">
+                        <svg class="w-3 h-3 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                        <span>100% compliant</span>
                     </span>
                 `;
             }
         }
+
+        updateActiveFilterBadge(incompleteCount, completeCount, vacantCount);
     }
 
     function formatLatestTenantStay(house) {
@@ -579,6 +668,11 @@
     }
 
     function selectAreaGrid(areaNode) {
+        if (!areaNode) return;
+        if (typeof window !== 'undefined' && window.globalTreeData && Array.isArray(window.globalTreeData)) {
+            const fresh = window.globalTreeData.find(a => a.name === areaNode.name || a.id === areaNode.id);
+            if (fresh) areaNode = fresh;
+        }
         currentArea = areaNode.name;
         currentHouse = null;
         currentTenant = null;
@@ -590,6 +684,11 @@
     }
 
     function renderAreaGrid(areaNode) {
+        if (!areaNode) return;
+        if (typeof window !== 'undefined' && window.globalTreeData && Array.isArray(window.globalTreeData)) {
+            const fresh = window.globalTreeData.find(a => a.name === areaNode.name || a.id === areaNode.id);
+            if (fresh) areaNode = fresh;
+        }
         document.querySelectorAll('.area-grid-btn').forEach(b => {
             if (b.dataset.areaName === areaNode.name) {
                 b.classList.add('bg-slate-800', 'text-white', 'border-slate-700');
@@ -615,6 +714,8 @@
         const gridTenureLegend = document.getElementById('grid-tenure-legend');
         const gridHouseSortContainer = document.getElementById('grid-house-sort-container');
         const gridHouseSortSelect = document.getElementById('grid-house-sort-select');
+        const gridViewOptionsWrapper = document.getElementById('grid-view-options-wrapper');
+        const gridIntegrityToolbar = document.getElementById('grid-integrity-toolbar');
         const openAddHouseBtn = document.getElementById('open-add-house-modal-btn');
         const houseCardsContainer = document.getElementById('area-grid-container') || document.getElementById('house-cards-container');
 
@@ -645,10 +746,23 @@
 
         currentAreaNode = areaNode;
         initHouseSortControl();
+        initGridViewOptions();
+
+        if (gridViewOptionsWrapper) {
+            gridViewOptionsWrapper.classList.remove('hidden');
+            gridViewOptionsWrapper.classList.add('flex');
+        }
 
         if (gridHouseSortContainer) {
             gridHouseSortContainer.classList.remove('hidden');
             gridHouseSortContainer.classList.add('flex');
+        }
+        if (gridTenureLegend) {
+            gridTenureLegend.classList.remove('hidden');
+            gridTenureLegend.classList.add('flex');
+        }
+        if (gridIntegrityToolbar) {
+            gridIntegrityToolbar.classList.remove('hidden');
         }
         const sortBy = getHouseSortPreference();
         if (gridHouseSortSelect) {
@@ -1053,18 +1167,28 @@
             areaGridPanel.classList.add('hidden');
             areaGridPanel.classList.remove('flex');
         }
+        const gridViewOptionsWrapper = document.getElementById('grid-view-options-wrapper');
+        if (gridViewOptionsWrapper) {
+            gridViewOptionsWrapper.classList.add('hidden');
+            gridViewOptionsWrapper.classList.remove('flex');
+        }
+        closeGridViewOptions();
         const gridAreaStats = document.getElementById('grid-area-stats');
         const gridTenureLegend = document.getElementById('grid-tenure-legend');
         const gridHouseSortContainer = document.getElementById('grid-house-sort-container');
+        const gridIntegrityToolbar = document.getElementById('grid-integrity-toolbar');
         const openAddHouseBtn = document.getElementById('open-add-house-modal-btn');
         if (gridAreaStats) gridAreaStats.classList.add('hidden');
         if (gridTenureLegend) {
             gridTenureLegend.classList.add('hidden');
-            gridTenureLegend.classList.remove('flex');
+            gridTenureLegend.classList.remove('flex', 'grid');
         }
         if (gridHouseSortContainer) {
             gridHouseSortContainer.classList.add('hidden');
-            gridHouseSortContainer.classList.remove('flex');
+            gridHouseSortContainer.classList.remove('flex', 'block');
+        }
+        if (gridIntegrityToolbar) {
+            gridIntegrityToolbar.classList.add('hidden');
         }
         if (openAddHouseBtn) {
             openAddHouseBtn.classList.add('hidden');
@@ -1280,6 +1404,7 @@
         const initAll = () => {
             initAddHouseModal();
             initHouseSortControl();
+            initGridViewOptions();
         };
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initAll);
@@ -1308,6 +1433,10 @@
     window.formatLatestTenantStay = formatLatestTenantStay;
     window.getHouseSortPreference = getHouseSortPreference;
     window.initHouseSortControl = initHouseSortControl;
+    window.initGridViewOptions = initGridViewOptions;
+    window.openGridViewOptions = openGridViewOptions;
+    window.closeGridViewOptions = closeGridViewOptions;
+    window.updateActiveFilterBadge = updateActiveFilterBadge;
     window.MANDATORY_INTEGRITY_CATEGORIES = MANDATORY_INTEGRITY_CATEGORIES;
     window.computeHouseIntegrity = computeHouseIntegrity;
     window.compareHouseIntegrityWorst = compareHouseIntegrityWorst;
@@ -1338,6 +1467,10 @@
             formatLatestTenantStay,
             getHouseSortPreference,
             initHouseSortControl,
+            initGridViewOptions,
+            openGridViewOptions,
+            closeGridViewOptions,
+            updateActiveFilterBadge,
             MANDATORY_INTEGRITY_CATEGORIES,
             computeHouseIntegrity,
             compareHouseIntegrityWorst,

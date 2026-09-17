@@ -1542,7 +1542,19 @@
                 if (timelineDateSpan) {
                     timelineDateSpan.textContent = newDate || 'No Date';
                 }
+                card.setAttribute('data-date', newDate || '0000-00-00');
             });
+
+            // If on timeline, immediately re-adjust document position in the timeline
+            const isTimeline = (typeof currentTab !== 'undefined' && currentTab === 'timeline') ||
+                               (typeof window !== 'undefined' && window.currentTab === 'timeline');
+            if (isTimeline) {
+                if (typeof window !== 'undefined' && typeof window.reorderTimelineCard === 'function') {
+                    window.reorderTimelineCard(activeDateModalDoc.vault_id, newDate);
+                } else if (typeof reorderTimelineCard === 'function') {
+                    reorderTimelineCard(activeDateModalDoc.vault_id, newDate);
+                }
+            }
 
             if (toast) {
                 toast('Document date updated successfully', 'success');
@@ -1555,11 +1567,6 @@
                     await window.refreshCurrentTab(area, house);
                 } else if (typeof refreshCurrentTab === 'function') {
                     await refreshCurrentTab(area, house);
-                }
-                if (typeof window !== 'undefined' && typeof window.loadTree === 'function') {
-                    await window.loadTree();
-                } else if (typeof loadTree === 'function') {
-                    await loadTree();
                 }
             } catch (refErr) {
                 console.warn('Refresh after date change warning:', refErr);

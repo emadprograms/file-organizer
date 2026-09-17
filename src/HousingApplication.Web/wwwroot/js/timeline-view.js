@@ -30,13 +30,20 @@
         return fallbackCategory || 'وثيقة';
     }
 
-    async function loadTimeline(areaId, houseId) {
+    async function loadTimeline(areaId, houseId, options = {}) {
         const docListEl = document.getElementById('document-list');
         const statsBadge = document.getElementById('stats-badge');
         if (!docListEl) return;
-        docListEl.innerHTML = '<p class="text-xs text-slate-500 p-3">Loading documents...</p>';
+
+        const hasCards = docListEl.querySelectorAll(':scope > div[data-vault-id]').length > 0;
+        const isSilent = (options && options.silent) || hasCards;
+        const savedScrollTop = docListEl.scrollTop;
+
+        if (!isSilent) {
+            docListEl.innerHTML = '<p class="text-xs text-slate-500 p-3">Loading documents...</p>';
+        }
         try {
-            if (isStaticMode) {
+            if (typeof isStaticMode !== 'undefined' && isStaticMode) {
                 const stateData = await fetchHouseState(areaId, houseId);
                 const groups = getDocumentGroups(stateData);
                 currentTimeline = groups.map(g => ({
@@ -59,6 +66,9 @@
                 if (!res.ok) throw new Error('Failed to load timeline');
                 currentTimeline = await res.json();
             }
+            if (!Array.isArray(currentTimeline)) {
+                currentTimeline = [];
+            }
             
             const displayTimeline = currentTenant 
                 ? currentTimeline.filter(doc => doc.primary_tenant === currentTenant)
@@ -70,9 +80,14 @@
             }
             
             renderTimeline();
+            if (savedScrollTop && docListEl) {
+                docListEl.scrollTop = savedScrollTop;
+            }
         } catch (err) {
             console.error(err);
-            docListEl.innerHTML = '<p class="text-xs text-rose-500 p-3">Error loading timeline.</p>';
+            if (!hasCards) {
+                docListEl.innerHTML = '<p class="text-xs text-rose-500 p-3">Error loading timeline.</p>';
+            }
         }
     }
 
@@ -291,12 +306,14 @@
             card.className = `p-3 rounded-xl transition-all mb-2 cursor-pointer group ${highlightClasses}`;
             card.draggable = true;
             card.setAttribute('data-vault-id', doc.vault_id);
+            const rawDocDate = (doc.dates && doc.dates[0] && doc.dates[0] !== 'NONE') ? doc.dates[0] : (doc.primary_date || '');
+            card.setAttribute('data-date', (rawDocDate && rawDocDate !== 'NONE') ? rawDocDate : '0000-00-00');
             if (typeof window.handleDocDragStart === 'function') {
                 card.ondragstart = (e) => window.handleDocDragStart(e, doc, doc.category);
                 card.ondragend = (e) => window.handleDocDragEnd(e);
             }
             const title = getCleanDocTitle(doc, doc.category);
-            const date = (doc.dates && doc.dates[0] && doc.dates[0] !== 'NONE') ? doc.dates[0] : 'No Date';
+            const date = (doc.dates && doc.dates[0] && doc.dates[0] !== 'NONE') ? doc.dates[0] : (doc.primary_date || 'No Date');
 
             const isManual = Boolean(doc.is_manual);
             const lockBadgeHtml = isManual 
@@ -425,9 +442,76 @@
         });
     }
 
+    function reorderTimelineCard(vaultId, newDate) {
+        if (!vaultId) return null;
+        const docListEl = document.getElementById('document-list');
+        if (!docListEl) return null;
+        const targetCard = docListEl.querySelector(`div[data-vault-id="${vaultId}"]`);
+        if (!targetCard) return null;
+
+        const dateSpan = targetCard.querySelector('.font-mono span');
+        if (dateSpan) {
+            dateSpan.textContent = newDate || 'No Date';
+        }
+        const normalizedTargetDate = (newDate && String(newDate).trim() && String(newDate).trim() !== 'NONE') 
+            ? String(newDate).trim() 
+            : '0000-00-00';
+        targetCard.setAttribute('data-date', normalizedTargetDate);
+
+        // Update in-memory collections
+        const updateDocInList = (list) => {
+            if (!Array.isArray(list)) return;
+            const item = list.find(d => d.vault_id === vaultId);
+            if (item) {
+                item.primary_date = newDate;
+                item.dates = newDate ? [newDate] : [];
+                item.date = newDate;
+                item.is_manual = 1;
+            }
+            list.sort((a, b) => {
+                const dateA = (a.dates && a.dates[0] && a.dates[0] !== 'NONE') ? a.dates[0] : (a.primary_date || '0000-00-00');
+                const dateB = (b.dates && b.dates[0] && b.dates[0] !== 'NONE') ? b.dates[0] : (b.primary_date || '0000-00-00');
+                return dateB.localeCompare(dateA);
+            });
+        };
+
+        if (typeof currentTimeline !== 'undefined') updateDocInList(currentTimeline);
+        if (typeof window !== 'undefined' && window.currentTimeline && window.currentTimeline !== currentTimeline) {
+            updateDocInList(window.currentTimeline);
+        }
+
+        // Re-position targetCard within sibling timeline cards
+        const siblingCards = Array.from(docListEl.querySelectorAll(':scope > div[data-vault-id]')).filter(c => c !== targetCard);
+        let inserted = false;
+        for (const sib of siblingCards) {
+            const sibDate = sib.getAttribute('data-date') || 
+                (sib.querySelector('.font-mono span') ? sib.querySelector('.font-mono span').textContent.trim() : '') || '0000-00-00';
+            const normalizedSibDate = (sibDate && sibDate !== 'No Date' && sibDate !== 'NONE') ? sibDate : '0000-00-00';
+
+            // Descending order (newest date first): insert before first older/equal sibling
+            if (normalizedTargetDate.localeCompare(normalizedSibDate) >= 0) {
+                docListEl.insertBefore(targetCard, sib);
+                inserted = true;
+                break;
+            }
+        }
+        if (!inserted) {
+            docListEl.appendChild(targetCard);
+        }
+
+        // Visual cue: subtle ring highlight indicating re-adjustment
+        targetCard.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50/50');
+        setTimeout(() => {
+            targetCard.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50/50');
+        }, 1200);
+
+        return targetCard;
+    }
+
     if (typeof window !== 'undefined') {
         window.loadTimeline = loadTimeline;
         window.renderTimeline = renderTimeline;
+        window.reorderTimelineCard = reorderTimelineCard;
         window.handleInlineRenameTimeline = handleInlineRename;
         window.isTouchEvent = isTouchEvent;
         window.isTouchOrMobileDevice = isTouchOrMobileDevice;
@@ -437,6 +521,7 @@
         module.exports = {
             loadTimeline,
             renderTimeline,
+            reorderTimelineCard,
             handleInlineRename,
             isTouchEvent,
             isTouchOrMobileDevice,

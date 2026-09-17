@@ -41,18 +41,31 @@
                 areaGridPanel.classList.add('hidden');
                 areaGridPanel.classList.remove('flex');
             }
+            const gridViewOptionsWrapper = document.getElementById('grid-view-options-wrapper');
+            if (gridViewOptionsWrapper) {
+                gridViewOptionsWrapper.classList.add('hidden');
+                gridViewOptionsWrapper.classList.remove('flex');
+            }
+            const gridViewPopover = document.getElementById('grid-view-popover');
+            if (gridViewPopover) {
+                gridViewPopover.classList.add('hidden');
+            }
             const gridAreaStats = document.getElementById('grid-area-stats');
             const gridTenureLegend = document.getElementById('grid-tenure-legend');
             const gridHouseSortContainer = document.getElementById('grid-house-sort-container');
+            const gridIntegrityToolbar = document.getElementById('grid-integrity-toolbar');
             const openAddHouseBtn = document.getElementById('open-add-house-modal-btn');
             if (gridAreaStats) gridAreaStats.classList.add('hidden');
             if (gridTenureLegend) {
                 gridTenureLegend.classList.add('hidden');
-                gridTenureLegend.classList.remove('flex');
+                gridTenureLegend.classList.remove('flex', 'grid');
             }
             if (gridHouseSortContainer) {
                 gridHouseSortContainer.classList.add('hidden');
-                gridHouseSortContainer.classList.remove('flex');
+                gridHouseSortContainer.classList.remove('flex', 'block');
+            }
+            if (gridIntegrityToolbar) {
+                gridIntegrityToolbar.classList.add('hidden');
             }
             if (openAddHouseBtn) {
                 openAddHouseBtn.classList.add('hidden');
@@ -148,7 +161,8 @@
 
         const tabCategories = document.getElementById('tab-categories');
         const tabTimeline = document.getElementById('tab-timeline');
-        if (tenantName && currentTab !== 'categories' && tabCategories && tabTimeline) {
+        const isDifferentContext = (areaId !== currentArea || houseId !== currentHouse || tenantName !== currentTenant);
+        if (isDifferentContext && tenantName && currentTab !== 'categories' && tabCategories && tabTimeline) {
             currentTab = 'categories';
             tabCategories.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
             tabTimeline.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
@@ -225,18 +239,31 @@
             areaGridPanel.classList.add('hidden');
             areaGridPanel.classList.remove('flex');
         }
+        const gridViewOptionsWrapper = document.getElementById('grid-view-options-wrapper');
+        if (gridViewOptionsWrapper) {
+            gridViewOptionsWrapper.classList.add('hidden');
+            gridViewOptionsWrapper.classList.remove('flex');
+        }
+        const gridViewPopover = document.getElementById('grid-view-popover');
+        if (gridViewPopover) {
+            gridViewPopover.classList.add('hidden');
+        }
         const gridAreaStats = document.getElementById('grid-area-stats');
         const gridTenureLegend = document.getElementById('grid-tenure-legend');
         const gridHouseSortContainer = document.getElementById('grid-house-sort-container');
+        const gridIntegrityToolbar = document.getElementById('grid-integrity-toolbar');
         const openAddHouseBtn = document.getElementById('open-add-house-modal-btn');
         if (gridAreaStats) gridAreaStats.classList.add('hidden');
         if (gridTenureLegend) {
             gridTenureLegend.classList.add('hidden');
-            gridTenureLegend.classList.remove('flex');
+            gridTenureLegend.classList.remove('flex', 'grid');
         }
         if (gridHouseSortContainer) {
             gridHouseSortContainer.classList.add('hidden');
-            gridHouseSortContainer.classList.remove('flex');
+            gridHouseSortContainer.classList.remove('flex', 'block');
+        }
+        if (gridIntegrityToolbar) {
+            gridIntegrityToolbar.classList.add('hidden');
         }
         if (openAddHouseBtn) {
             openAddHouseBtn.classList.add('hidden');
