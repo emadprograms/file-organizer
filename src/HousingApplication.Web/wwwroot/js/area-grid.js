@@ -673,13 +673,17 @@
             const fresh = window.globalTreeData.find(a => a.name === areaNode.name || a.id === areaNode.id);
             if (fresh) areaNode = fresh;
         }
-        currentArea = areaNode.name;
-        currentHouse = null;
-        currentTenant = null;
-        window.currentArea = areaNode.name;
-        window.currentHouse = null;
-        window.currentTenant = null;
-        window.location.hash = `#/area/${encodeURIComponent(areaNode.name)}`;
+        try { currentArea = areaNode.name; } catch (_) {}
+        try { currentHouse = null; } catch (_) {}
+        try { currentTenant = null; } catch (_) {}
+        if (typeof window !== 'undefined') {
+            window.currentArea = areaNode.name;
+            window.currentHouse = null;
+            window.currentTenant = null;
+            if (window.location) {
+                window.location.hash = `#/area/${encodeURIComponent(areaNode.name)}`;
+            }
+        }
         renderAreaGrid(areaNode);
     }
 

@@ -308,6 +308,9 @@
                 if (!allMovedInDom && typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
                     await window.refreshCurrentTab(area, house);
                 }
+                if (typeof window !== 'undefined' && typeof window.loadTree === 'function') {
+                    await window.loadTree();
+                }
             } else {
                 const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(activeDragged.vault_id)}`, {
                     method: 'PATCH',
@@ -338,6 +341,9 @@
                 }
                 if (!movedInDom && typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
                     await window.refreshCurrentTab(area, house);
+                }
+                if (typeof window !== 'undefined' && typeof window.loadTree === 'function') {
+                    await window.loadTree();
                 }
             }
         } catch (err) {

@@ -897,6 +897,10 @@
                     await window.refreshCurrentTab(activeArea, activeHouse);
                 }
             }
+
+            if (typeof window !== 'undefined' && typeof window.loadTree === 'function') {
+                await window.loadTree();
+            }
         } catch (err) {
             console.error(err);
             const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
@@ -1081,6 +1085,9 @@
             if (refreshFn) {
                 await refreshFn(activeArea, activeHouse);
             }
+            if (typeof window !== 'undefined' && typeof window.loadTree === 'function') {
+                await window.loadTree();
+            }
         } catch (err) {
             console.error(err);
             const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
@@ -1165,6 +1172,9 @@
 
             if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
                 await window.refreshCurrentTab(activeArea, activeHouse);
+            }
+            if (typeof window !== 'undefined' && typeof window.loadTree === 'function') {
+                await window.loadTree();
             }
         } catch (err) {
             console.error(err);

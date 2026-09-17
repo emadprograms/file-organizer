@@ -76,6 +76,9 @@
                         if (typeof window.refreshCurrentTab === 'function') {
                             window.refreshCurrentTab(currentArea, currentHouse);
                         }
+                        if (typeof window.loadTree === 'function') {
+                            await window.loadTree();
+                        }
                     }
                 } catch (err) {
                     console.error('Failed to update document tenant:', err);

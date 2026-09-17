@@ -13,7 +13,11 @@ describe('Area Grid House Card Component - Scrollbar for > 3 Tenancies', () => {
       </div>
     `;
 
+    delete global.globalTreeData;
+    delete window.globalTreeData;
     global.currentArea = 'Safra C';
+    global.currentHouse = null;
+    global.currentTenant = null;
     global.window.location = { hash: '' };
 
     const scriptCode = fs.readFileSync(
@@ -24,6 +28,8 @@ describe('Area Grid House Card Component - Scrollbar for > 3 Tenancies', () => {
   });
 
   afterEach(() => {
+    delete global.globalTreeData;
+    delete window.globalTreeData;
     document.body.innerHTML = '';
     vi.restoreAllMocks();
   });
@@ -448,6 +454,164 @@ describe('Area Grid House Card Component - Scrollbar for > 3 Tenancies', () => {
     expect(residentIndices.length).toBe(2);
     expect(applicantIndices.length).toBe(2);
     expect(Math.max(...residentIndices)).toBeLessThan(Math.min(...applicantIndices));
+  });
+});
+
+describe('Area Grid House Card Component - Integrity Compliance Badge Synchronization', () => {
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <div id="area-grid-panel" class="flex">
+        <h2 id="grid-area-title">Safra D</h2>
+        <div id="grid-area-stats"></div>
+        <div id="grid-tenure-legend"></div>
+        <div id="area-grid-container"></div>
+      </div>
+    `;
+
+    delete global.globalTreeData;
+    delete window.globalTreeData;
+    global.currentArea = 'Safra D';
+    global.currentHouse = null;
+    global.currentTenant = null;
+    global.window.location = { hash: '' };
+
+    const scriptCode = fs.readFileSync(
+      path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/area-grid.js'),
+      'utf8'
+    );
+    eval(scriptCode);
+  });
+
+  afterEach(() => {
+    delete global.globalTreeData;
+    delete window.globalTreeData;
+    document.body.innerHTML = '';
+    vi.restoreAllMocks();
+  });
+
+  it('evaluates house as complete 5/5 when Category 07 (Rent Deduction) is present with clean category name', () => {
+    const areaNode = {
+      name: 'Safra D',
+      children: [
+        {
+          id: '504',
+          name: '504 - Ahmed House',
+          duration_category: 'short',
+          total_documents: 10,
+          active_tenant_category_counts: {
+            'بيانات شخصية': 1,
+            'أمر تخصيص': 1,
+            'محضر تسليم مفتاح': 1,
+            'عقود': 1,
+            'استقطاع إيجار': 1
+          },
+          children: [
+            { type: 'tenant', name: 'أحمد يوسف المريسل', is_resident: 1, is_active: true }
+          ]
+        }
+      ]
+    };
+
+    window.renderAreaGrid(areaNode);
+
+    const card = document.querySelector('.house-card[data-house-id="504"]');
+    expect(card).not.toBeNull();
+
+    // Verify 5/5 badge is rendered and no warning text is present
+    expect(card.textContent).toContain('5/5');
+    expect(card.textContent).not.toContain('ناقص');
+    expect(card.textContent).not.toContain('استقطاع إيجار');
+  });
+
+  it('evaluates house as complete 5/5 when Category 07 is present with prefix format (07 - استقطاع إيجار)', () => {
+    const areaNode = {
+      name: 'Safra D',
+      children: [
+        {
+          id: '504',
+          name: '504 - Ahmed House',
+          duration_category: 'short',
+          total_documents: 10,
+          active_tenant_category_counts: {
+            '02 - بيانات شخصية': 1,
+            '03 - أمر تخصيص': 1,
+            '04 - محضر تسليم مفتاح': 1,
+            '05 - عقود': 1,
+            '07 - استقطاع إيجار': 1
+          },
+          children: [
+            { type: 'tenant', name: 'أحمد يوسف المريسل', is_resident: 1, is_active: true }
+          ]
+        }
+      ]
+    };
+
+    window.renderAreaGrid(areaNode);
+
+    const card = document.querySelector('.house-card[data-house-id="504"]');
+    expect(card).not.toBeNull();
+    expect(card.textContent).toContain('5/5');
+    expect(card.textContent).not.toContain('ناقص');
+  });
+
+  it('updates card from 4/5 warning to 5/5 complete when globalTreeData receives fresh active_tenant_category_counts', () => {
+    // 1. Initial render where Category 07 was missing
+    const areaNode = {
+      name: 'Safra D',
+      children: [
+        {
+          id: '504',
+          name: '504 - Ahmed House',
+          duration_category: 'short',
+          total_documents: 9,
+          active_tenant_category_counts: {
+            'بيانات شخصية': 1,
+            'أمر تخصيص': 1,
+            'محضر تسليم مفتاح': 1,
+            'عقود': 1
+          },
+          children: [
+            { type: 'tenant', name: 'أحمد يوسف المريسل', is_resident: 1, is_active: true }
+          ]
+        }
+      ]
+    };
+
+    window.renderAreaGrid(areaNode);
+    let card = document.querySelector('.house-card[data-house-id="504"]');
+    expect(card.textContent).toContain('4/5');
+    expect(card.textContent).toContain('استقطاع إيجار');
+
+    // 2. Global tree is updated after moving the document (e.g. via window.loadTree())
+    const updatedAreaNode = {
+      name: 'Safra D',
+      children: [
+        {
+          id: '504',
+          name: '504 - Ahmed House',
+          duration_category: 'short',
+          total_documents: 10,
+          active_tenant_category_counts: {
+            'بيانات شخصية': 1,
+            'أمر تخصيص': 1,
+            'محضر تسليم مفتاح': 1,
+            'عقود': 1,
+            'استقطاع إيجار': 1
+          },
+          children: [
+            { type: 'tenant', name: 'أحمد يوسف المريسل', is_resident: 1, is_active: true }
+          ]
+        }
+      ]
+    };
+    window.globalTreeData = [updatedAreaNode];
+
+    // 3. User navigates back to grid
+    window.selectAreaGrid(areaNode);
+
+    card = document.querySelector('.house-card[data-house-id="504"]');
+    expect(card.textContent).toContain('5/5');
+    expect(card.textContent).not.toContain('ناقص');
   });
 });
 

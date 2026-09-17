@@ -310,4 +310,38 @@ describe('Move Document(s) to Another Tenant in the Same House', () => {
         expect(sourceFolder.querySelector('.doc-count-badge').textContent).toBe('1');
         expect(targetFolder.querySelector('.doc-count-badge').textContent).toBe('2');
     });
+
+    it('invokes window.loadTree when moving documents to another tenant to keep global tree and area grid in sync', async () => {
+        window.loadTree = vi.fn().mockResolvedValue(true);
+        renderCategories();
+
+        toggleDocSelection('doc001', true);
+        openBatchMoveModal();
+
+        const folderSelect = document.getElementById('batch-move-folder-select');
+        folderSelect.value = '07 - استقطاع إيجار';
+
+        const tenantSelect = document.getElementById('batch-move-tenant-select');
+        tenantSelect.dataset.sourceTenantId = '1';
+
+        const opt2 = document.createElement('option');
+        opt2.value = '2';
+        opt2.textContent = 'أحمد المريسل';
+        tenantSelect.appendChild(opt2);
+        tenantSelect.value = '2';
+
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                status: 'success',
+                moved_count: 1,
+                target_category: '07 - استقطاع إيجار',
+                vault_ids: ['doc001']
+            })
+        });
+
+        await handleBatchMoveSubmit();
+
+        expect(window.loadTree).toHaveBeenCalled();
+    });
 });

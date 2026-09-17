@@ -23,7 +23,10 @@
         }
         
         if (backToGridBtn) {
-            backToGridBtn.addEventListener('click', () => {
+            backToGridBtn.addEventListener('click', async () => {
+                if (typeof window.loadTree === 'function') {
+                    await window.loadTree();
+                }
                 if (currentArea) {
                     const areaNode = globalTreeData ? globalTreeData.find(a => a.name === currentArea) : null;
                     if (areaNode && typeof window.selectAreaGrid === 'function') {

@@ -1452,6 +1452,65 @@ public class RepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task BatchMoveDocumentsAsync_MovingDocumentToActiveTenant_UpdatesActiveTenantCategoryCountsInTreeAndHouses()
+    {
+        // Arrange: House with active tenant (no category 07) and past tenant (has category 07)
+        await _repo.AddAreaAsync("AreaMove504", "M504");
+        await _repo.AddHouseAsync("504", "AreaMove504");
+        var tActive = await _repo.AddTenantAsync("504", "أحمد يوسف المريسل", "2021-01-20", isResident: 1);
+        var tPast = await _repo.AddTenantAsync("504", "عبدالله بدر بودواس", "2010-10-31", endDate: "2021-01-19", isResident: 1);
+
+        // Document #7 originally under past tenant
+        var doc7 = await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "AreaMove504",
+            HouseId = "504",
+            TenantId = tPast.Id,
+            Category = "07 - استقطاع إيجار",
+            ArabicTitle = "كتاب استقطاع مالي",
+            PrimaryDate = "2021-05-24",
+            PageCount = 1
+        });
+
+        // Verify pre-move state: active tenant has 0 category 07
+        var preHouses = await _repo.GetHousesAsync("AreaMove504");
+        var preCard = preHouses.First(h => h.Id == "504");
+        Assert.False(preCard.ActiveTenantCategoryCounts?.ContainsKey("استقطاع إيجار") == true && preCard.ActiveTenantCategoryCounts["استقطاع إيجار"] > 0);
+
+        // Act: Move document #7 to active tenant
+        var moveResult = await _repo.BatchMoveDocumentsAsync(
+            "AreaMove504",
+            "504",
+            new[] { doc7.VaultId! },
+            "07 - استقطاع إيجار",
+            targetTenantId: tActive.Id
+        );
+        Assert.Equal(1, moveResult.MovedCount);
+
+        // Assert: GetHouseProfileAsync shows active tenant has category 07
+        var profile = await _repo.GetHouseProfileAsync("AreaMove504", "504");
+        Assert.NotNull(profile);
+        var activeProf = profile.Tenants.First(t => t.Id == tActive.Id);
+        Assert.True(activeProf.CategoryCounts.ContainsKey("استقطاع إيجار"));
+        Assert.Equal(1, activeProf.CategoryCounts["استقطاع إيجار"]);
+
+        // Assert: GetHousesAsync (HouseCard) has ActiveTenantCategoryCounts with category 07
+        var postHouses = await _repo.GetHousesAsync("AreaMove504");
+        var postCard = postHouses.First(h => h.Id == "504");
+        Assert.NotNull(postCard.ActiveTenantCategoryCounts);
+        Assert.True(postCard.ActiveTenantCategoryCounts.ContainsKey("استقطاع إيجار"));
+        Assert.Equal(1, postCard.ActiveTenantCategoryCounts["استقطاع إيجار"]);
+
+        // Assert: GetTreeAsync has ActiveTenantCategoryCounts with category 07
+        var tree = await _repo.GetTreeAsync();
+        var treeArea = tree.First(a => a.Name == "AreaMove504");
+        var treeHouse = treeArea.Children!.First(h => h.Id == "504");
+        Assert.NotNull(treeHouse.ActiveTenantCategoryCounts);
+        Assert.True(treeHouse.ActiveTenantCategoryCounts.ContainsKey("استقطاع إيجار"));
+        Assert.Equal(1, treeHouse.ActiveTenantCategoryCounts["استقطاع إيجار"]);
+    }
+
+    [Fact]
     public async Task ExtractPagesAsync_SeparatesPagesIntoNewDocument_UpdatesRemainingPages_AndPreservesBatchLineage()
     {
         // Arrange

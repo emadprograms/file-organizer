@@ -95,12 +95,17 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             if (!string.IsNullOrWhiteSpace(dc.Category))
             {
                 var cleanCat = Constants.CleanCategoryName(dc.Category);
+                var rawCat = dc.Category.Trim();
                 if (!catCountsByHouse.TryGetValue(dc.HouseId, out var catDict))
                 {
                     catDict = new Dictionary<string, int>();
                     catCountsByHouse[dc.HouseId] = catDict;
                 }
                 catDict[cleanCat] = catDict.GetValueOrDefault(cleanCat) + dc.DocCount;
+                if (!string.IsNullOrEmpty(rawCat) && rawCat != cleanCat)
+                {
+                    catDict[rawCat] = catDict.GetValueOrDefault(rawCat) + dc.DocCount;
+                }
 
                 if (dc.TenantId > 0)
                 {
@@ -110,6 +115,10 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                         catCountsByTenant[dc.TenantId] = tCatDict;
                     }
                     tCatDict[cleanCat] = tCatDict.GetValueOrDefault(cleanCat) + dc.DocCount;
+                    if (!string.IsNullOrEmpty(rawCat) && rawCat != cleanCat)
+                    {
+                        tCatDict[rawCat] = tCatDict.GetValueOrDefault(rawCat) + dc.DocCount;
+                    }
                 }
             }
         }
@@ -319,12 +328,17 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             if (!string.IsNullOrWhiteSpace(dc.Category))
             {
                 var cleanCat = Constants.CleanCategoryName(dc.Category);
+                var rawCat = dc.Category.Trim();
                 if (!catCountsByHouse.TryGetValue(dc.HouseId, out var catDict))
                 {
                     catDict = new Dictionary<string, int>();
                     catCountsByHouse[dc.HouseId] = catDict;
                 }
                 catDict[cleanCat] = catDict.GetValueOrDefault(cleanCat) + dc.DocCount;
+                if (!string.IsNullOrEmpty(rawCat) && rawCat != cleanCat)
+                {
+                    catDict[rawCat] = catDict.GetValueOrDefault(rawCat) + dc.DocCount;
+                }
 
                 if (dc.TenantId > 0)
                 {
@@ -334,6 +348,10 @@ public class FileOrganizerRepository : IFileOrganizerRepository
                         catCountsByTenant[dc.TenantId] = tCatDict;
                     }
                     tCatDict[cleanCat] = tCatDict.GetValueOrDefault(cleanCat) + dc.DocCount;
+                    if (!string.IsNullOrEmpty(rawCat) && rawCat != cleanCat)
+                    {
+                        tCatDict[rawCat] = tCatDict.GetValueOrDefault(rawCat) + dc.DocCount;
+                    }
                 }
             }
         }
@@ -510,7 +528,12 @@ public class FileOrganizerRepository : IFileOrganizerRepository
             {
                 cSet.Add(d.Category);
                 var cleanCat = Constants.CleanCategoryName(d.Category);
+                var rawCat = d.Category.Trim();
                 cMap[cleanCat] = cMap.GetValueOrDefault(cleanCat) + 1;
+                if (!string.IsNullOrEmpty(rawCat) && rawCat != cleanCat)
+                {
+                    cMap[rawCat] = cMap.GetValueOrDefault(rawCat) + 1;
+                }
             }
         }
 
