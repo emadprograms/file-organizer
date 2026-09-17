@@ -1730,41 +1730,57 @@
     let currentTranslationPromise = null;
 
     async function renderDocumentTranslation() {
-        if (!currentPinnedDoc || !currentPinnedDoc.vaultId) return;
+        if (!currentPinnedDoc || !currentPinnedDoc.vaultId) {
+            console.debug('[Translation] No pinned document, skipping translation');
+            return;
+        }
         const vaultId = currentPinnedDoc.vaultId;
         const pdfUrl = resolvePdfUrl(vaultId);
 
         if (currentTranslationPromise) {
+            console.debug('[Translation] Translation already in progress, reusing promise');
             return currentTranslationPromise;
         }
 
+        console.debug('[Translation] Starting document translation for:', vaultId);
+
         currentTranslationPromise = (async () => {
-            const canvasContainer = document.getElementById('pdf-canvas-container');
-            const pdfFrame = document.getElementById('pdf-frame');
-            const overlay = document.getElementById('document-translation-overlay');
+            try {
+                const canvasContainer = document.getElementById('pdf-canvas-container');
+                const pdfFrame = document.getElementById('pdf-frame');
+                const overlay = document.getElementById('document-translation-overlay');
 
-            if (pdfFrame) pdfFrame.classList.add('hidden');
-            if (canvasContainer) canvasContainer.classList.remove('hidden');
-            if (overlay) {
-                overlay.classList.add('hidden');
-                overlay.classList.remove('flex');
-                overlay.innerHTML = '';
-            }
+                if (pdfFrame) pdfFrame.classList.add('hidden');
+                if (canvasContainer) canvasContainer.classList.remove('hidden');
+                if (overlay) {
+                    overlay.classList.add('hidden');
+                    overlay.classList.remove('flex');
+                    overlay.innerHTML = '';
+                }
 
-            const wrappers = canvasContainer ? canvasContainer.querySelectorAll('.pdf-page-wrapper') : [];
-            if (!currentPdfDoc || currentPdfUrl !== pdfUrl || wrappers.length === 0) {
-                await renderPdfDocument(pdfUrl);
-            }
+                const wrappers = canvasContainer ? canvasContainer.querySelectorAll('.pdf-page-wrapper') : [];
+                console.debug(`[Translation] Existing page wrappers: ${wrappers.length}, currentPdfDoc: ${!!currentPdfDoc}, pdfUrl match: ${currentPdfUrl === pdfUrl}`);
+                if (!currentPdfDoc || currentPdfUrl !== pdfUrl || wrappers.length === 0) {
+                    console.debug('[Translation] Rendering PDF document first...');
+                    await renderPdfDocument(pdfUrl);
+                    console.debug('[Translation] PDF document rendered');
+                }
 
-            if (!isTranslationActive || !currentPinnedDoc || currentPinnedDoc.vaultId !== vaultId) {
-                return;
-            }
+                if (!isTranslationActive || !currentPinnedDoc || currentPinnedDoc.vaultId !== vaultId) {
+                    console.debug('[Translation] Translation cancelled (state changed during PDF load)');
+                    return;
+                }
 
-            const freshWrappers = canvasContainer ? canvasContainer.querySelectorAll('.pdf-page-wrapper') : [];
-            for (let i = 0; i < freshWrappers.length; i++) {
-                const pageWrapper = freshWrappers[i];
-                const pageNum = parseInt(pageWrapper.getAttribute('data-page-number') || String(i + 1), 10);
-                await renderPageTranslationLayer(pageWrapper, pageNum, vaultId);
+                const freshWrappers = canvasContainer ? canvasContainer.querySelectorAll('.pdf-page-wrapper') : [];
+                console.debug(`[Translation] Processing ${freshWrappers.length} pages for translation`);
+                for (let i = 0; i < freshWrappers.length; i++) {
+                    const pageWrapper = freshWrappers[i];
+                    const pageNum = parseInt(pageWrapper.getAttribute('data-page-number') || String(i + 1), 10);
+                    await renderPageTranslationLayer(pageWrapper, pageNum, vaultId);
+                }
+                console.debug('[Translation] All pages processed');
+            } catch (err) {
+                console.error('[Translation] Document translation failed:', err);
             }
         })().finally(() => {
             currentTranslationPromise = null;

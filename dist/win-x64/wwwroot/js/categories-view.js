@@ -429,19 +429,19 @@
         const btnDelete = document.getElementById('btn-batch-delete');
         if (btnDelete) {
             // Only hide delete button if authManager is present AND a restricted user (Contributor) is logged in
-            const isRestricted = (typeof window !== 'undefined' && window.authManager && window.authManager.currentUser && !window.authManager.hasDeletePermission());
+            const isRestricted = Boolean(typeof window !== 'undefined' && window.authManager && window.authManager.currentUser && !window.authManager.hasDeletePermission());
             btnDelete.classList.toggle('hidden', isRestricted);
         }
 
         const btnMerge = document.getElementById('btn-batch-merge');
         if (btnMerge) {
-            if (count >= 1) {
-                btnMerge.classList.remove('hidden');
-                btnMerge.disabled = false;
-                btnMerge.title = count === 1 ? 'Merge with another document' : 'Merge selected documents into one';
+            const isMultiSelect = (count >= 2);
+            btnMerge.classList.toggle('hidden', !isMultiSelect);
+            btnMerge.disabled = !isMultiSelect;
+            if (isMultiSelect) {
+                btnMerge.title = 'Merge selected documents into one';
             } else {
-                btnMerge.disabled = true;
-                btnMerge.title = 'Select at least 1 document to merge';
+                btnMerge.title = 'Select at least 2 documents to merge';
             }
         }
     }
@@ -1286,9 +1286,9 @@
     }
 
     function openBatchMergeModal() {
-        if (selectedDocIds.size === 0) {
+        if (selectedDocIds.size < 2) {
             const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
-            if (toast) toast('يرجى تحديد وثيقة واحدة على الأقل للدمج / Please select at least 1 document to merge', 'warning');
+            if (toast) toast('يرجى تحديد وثيقتين على الأقل للدمج / Please select at least 2 documents to merge', 'warning');
             return;
         }
 
@@ -2892,7 +2892,7 @@
         window.addEventListener('auth:user-changed', () => {
             const btnDelete = document.getElementById('btn-batch-delete');
             if (btnDelete) {
-                const isRestricted = window.authManager && window.authManager.currentUser && !window.authManager.hasDeletePermission();
+                const isRestricted = Boolean(window.authManager && window.authManager.currentUser && !window.authManager.hasDeletePermission());
                 btnDelete.classList.toggle('hidden', isRestricted);
             }
         });

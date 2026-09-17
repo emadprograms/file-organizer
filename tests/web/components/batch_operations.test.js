@@ -834,5 +834,26 @@ describe('Multi-Select Batch Document Operations (Phase 106)', () => {
             expect(passed[0].vault_id).toBe('doc001');
             expect(passed[1].vault_id).toBe('doc002');
         });
+
+        it('keeps Delete Selected visible consistently across multiple document selections without toggling', () => {
+            delete window.authManager;
+            const btnDelete = document.getElementById('btn-batch-delete');
+
+            // Select doc 1
+            toggleDocSelection('doc001', true);
+            expect(btnDelete.classList.contains('hidden')).toBe(false);
+
+            // Select doc 2
+            toggleDocSelection('doc002', true);
+            expect(btnDelete.classList.contains('hidden')).toBe(false);
+
+            // Select doc 3
+            toggleDocSelection('doc003', true);
+            expect(btnDelete.classList.contains('hidden')).toBe(false);
+
+            // Deselect doc 2
+            toggleDocSelection('doc002', false);
+            expect(btnDelete.classList.contains('hidden')).toBe(false);
+        });
     });
 });

@@ -2063,7 +2063,7 @@
         if (mergeCustomCatInput) mergeCustomCatInput.value = '';
 
         if (mergeDeleteSources) {
-            const isRestricted = (typeof window !== 'undefined' && window.authManager && window.authManager.currentUser && !window.authManager.hasDeletePermission());
+            const isRestricted = Boolean(typeof window !== 'undefined' && window.authManager && window.authManager.currentUser && !window.authManager.hasDeletePermission());
             const canDelete = !isRestricted;
             mergeDeleteSources.checked = canDelete;
             mergeDeleteSources.disabled = !canDelete;

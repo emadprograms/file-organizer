@@ -429,7 +429,7 @@
         const btnDelete = document.getElementById('btn-batch-delete');
         if (btnDelete) {
             // Only hide delete button if authManager is present AND a restricted user (Contributor) is logged in
-            const isRestricted = (typeof window !== 'undefined' && window.authManager && window.authManager.currentUser && !window.authManager.hasDeletePermission());
+            const isRestricted = Boolean(typeof window !== 'undefined' && window.authManager && window.authManager.currentUser && !window.authManager.hasDeletePermission());
             btnDelete.classList.toggle('hidden', isRestricted);
         }
 
@@ -2892,7 +2892,7 @@
         window.addEventListener('auth:user-changed', () => {
             const btnDelete = document.getElementById('btn-batch-delete');
             if (btnDelete) {
-                const isRestricted = window.authManager && window.authManager.currentUser && !window.authManager.hasDeletePermission();
+                const isRestricted = Boolean(window.authManager && window.authManager.currentUser && !window.authManager.hasDeletePermission());
                 btnDelete.classList.toggle('hidden', isRestricted);
             }
         });
