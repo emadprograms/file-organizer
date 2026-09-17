@@ -44,9 +44,23 @@ exports.GenericCom = GenericCom;
 class GenericPreferences extends _preferences.BasePreferences {
   async _writeToStorage(prefObj) {
     localStorage.setItem("pdfjs.preferences", JSON.stringify(prefObj));
+    if (prefObj?.defaultZoomValue) {
+      localStorage.setItem("pdf_zoom_preference", prefObj.defaultZoomValue);
+    }
   }
   async _readFromStorage(prefObj) {
-    return JSON.parse(localStorage.getItem("pdfjs.preferences"));
+    let stored = null;
+    try {
+      stored = JSON.parse(localStorage.getItem("pdfjs.preferences"));
+    } catch (e) {}
+    if (!stored) {
+      stored = {};
+    }
+    const zoomPref = (typeof localStorage !== "undefined" && localStorage.getItem("pdf_zoom_preference")) || "page-fit";
+    if (zoomPref && !stored.defaultZoomValue) {
+      stored.defaultZoomValue = zoomPref;
+    }
+    return stored;
   }
 }
 class GenericExternalServices extends _app.DefaultExternalServices {
@@ -800,6 +814,10 @@ const PDFViewerApplication = {
     };
     return loadingTask.promise.then(pdfDocument => {
       this.load(pdfDocument);
+      const preferredZoom = (typeof _app_options !== "undefined" && _app_options.AppOptions.get("defaultZoomValue")) || (typeof localStorage !== "undefined" && localStorage.getItem("pdf_zoom_preference")) || "page-fit";
+      if (preferredZoom && this.pdfViewer) {
+        this.pdfViewer.currentScaleValue = preferredZoom;
+      }
     }, reason => {
       if (loadingTask !== this.pdfLoadingTask) {
         return undefined;
@@ -972,7 +990,7 @@ const PDFViewerApplication = {
           initialDest: openAction?.dest
         });
         const initialBookmark = this.initialBookmark;
-        const zoom = _app_options.AppOptions.get("defaultZoomValue");
+        const zoom = _app_options.AppOptions.get("defaultZoomValue") || (typeof localStorage !== "undefined" && localStorage.getItem("pdf_zoom_preference")) || "page-fit";
         let hash = zoom ? `zoom=${zoom}` : null;
         let rotation = null;
         let sidebarView = _app_options.AppOptions.get("sidebarViewOnLoad");
@@ -1301,8 +1319,9 @@ const PDFViewerApplication = {
     }
     this.toolbar?.setPageNumber(this.pdfViewer.currentPageNumber, this.pdfViewer.currentPageLabel);
     this.secondaryToolbar?.setPageNumber(this.pdfViewer.currentPageNumber);
-    if (!this.pdfViewer.currentScaleValue) {
-      this.pdfViewer.currentScaleValue = _ui_utils.DEFAULT_SCALE_VALUE;
+    if (!this.pdfViewer.currentScaleValue || this.pdfViewer.currentScaleValue === _ui_utils.DEFAULT_SCALE_VALUE) {
+      const preferredZoom = (typeof _app_options !== "undefined" && _app_options.AppOptions.get("defaultZoomValue")) || (typeof localStorage !== "undefined" && localStorage.getItem("pdf_zoom_preference")) || "page-fit";
+      this.pdfViewer.currentScaleValue = preferredZoom || _ui_utils.DEFAULT_SCALE_VALUE;
     }
   },
   _cleanup() {
@@ -1882,6 +1901,13 @@ function webViewerPageNumberChanged(evt) {
 }
 function webViewerScaleChanged(evt) {
   PDFViewerApplication.pdfViewer.currentScaleValue = evt.value;
+  try {
+    if (evt.value) {
+      localStorage.setItem("pdf_zoom_preference", evt.value);
+      _app_options.AppOptions.set("defaultZoomValue", evt.value);
+      PDFViewerApplication.preferences?.set("defaultZoomValue", evt.value).catch(() => {});
+    }
+  } catch (e) {}
 }
 function webViewerRotateCw() {
   PDFViewerApplication.rotatePages(90);
@@ -3604,18 +3630,22 @@ class PDFLinkService {
         const zoomArgs = params.get("zoom").split(",");
         const zoomArg = zoomArgs[0];
         const zoomArgNumber = parseFloat(zoomArg);
-        if (!zoomArg.includes("Fit")) {
+        if (zoomArg === "page-fit" || zoomArg === "Fit" || zoomArg === "FitB") {
+          dest = [null, {
+            name: "Fit"
+          }];
+        } else if (zoomArg === "page-width" || zoomArg === "FitH" || zoomArg === "FitBH") {
+          dest = [null, {
+            name: "FitH"
+          }, zoomArgs.length > 1 ? zoomArgs[1] | 0 : null];
+        } else if (zoomArg === "page-height" || zoomArg === "FitV" || zoomArg === "FitBV") {
+          dest = [null, {
+            name: "FitV"
+          }, zoomArgs.length > 1 ? zoomArgs[1] | 0 : null];
+        } else if (!zoomArg.includes("Fit")) {
           dest = [null, {
             name: "XYZ"
           }, zoomArgs.length > 1 ? zoomArgs[1] | 0 : null, zoomArgs.length > 2 ? zoomArgs[2] | 0 : null, zoomArgNumber ? zoomArgNumber / 100 : zoomArg];
-        } else if (zoomArg === "Fit" || zoomArg === "FitB") {
-          dest = [null, {
-            name: zoomArg
-          }];
-        } else if (zoomArg === "FitH" || zoomArg === "FitBH" || zoomArg === "FitV" || zoomArg === "FitBV") {
-          dest = [null, {
-            name: zoomArg
-          }, zoomArgs.length > 1 ? zoomArgs[1] | 0 : null];
         } else if (zoomArg === "FitR") {
           if (zoomArgs.length !== 5) {
             console.error('PDFLinkService.setHash: Not enough parameters for "FitR".');
@@ -12288,7 +12318,8 @@ class Toolbar {
     this.pageLabel = null;
     this.hasPageLabels = false;
     this.pagesCount = 0;
-    this.pageScaleValue = _ui_utils.DEFAULT_SCALE_VALUE;
+    const preferredZoom = (typeof _app_options !== "undefined" && _app_options.AppOptions.get("defaultZoomValue")) || (typeof localStorage !== "undefined" && localStorage.getItem("pdf_zoom_preference")) || "page-fit";
+    this.pageScaleValue = preferredZoom || _ui_utils.DEFAULT_SCALE_VALUE;
     this.pageScale = _ui_utils.DEFAULT_SCALE;
     this.#updateUIState(true);
     this.updateLoadingIndicatorState();

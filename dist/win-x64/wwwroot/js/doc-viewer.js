@@ -2003,23 +2003,71 @@
         return shouldUseOfficialViewer();
     }
 
+    function getPreferredPdfZoom() {
+        try {
+            if (typeof localStorage !== 'undefined') {
+                const stored = localStorage.getItem('pdf_zoom_preference');
+                if (stored) return stored;
+            }
+        } catch (e) {}
+        return shouldUseOfficialViewer() ? 'page-fit' : 'page-width';
+    }
+
+    function setPreferredPdfZoom(zoomValue) {
+        if (!zoomValue) return;
+        try {
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('pdf_zoom_preference', zoomValue);
+            }
+        } catch (e) {}
+    }
+
     function resolveViewerSrc(pdfUrl) {
+        const preferredZoom = getPreferredPdfZoom();
         if (shouldUseOfficialViewer()) {
-            return `/lib/pdfjs/web/viewer.html?file=${encodeURIComponent(pdfUrl)}`;
+            const hash = preferredZoom ? `#zoom=${encodeURIComponent(preferredZoom)}` : '#zoom=page-fit';
+            return `/lib/pdfjs/web/viewer.html?file=${encodeURIComponent(pdfUrl)}${hash}`;
         }
-        return pdfUrl + '#view=FitH';
+        const computerView = (preferredZoom === 'page-fit' || preferredZoom === 'Fit') ? '#view=Fit' : '#view=FitH';
+        return pdfUrl + computerView;
     }
 
     function loadPdfIntoFrame(pdfFrame, pdfUrl) {
         if (!pdfFrame) return;
         const targetSrc = resolveViewerSrc(pdfUrl);
+        const preferredZoom = getPreferredPdfZoom();
 
         let reusedViewer = false;
         if (shouldUseOfficialViewer()) {
             try {
                 const frameWin = pdfFrame.contentWindow;
                 if (frameWin && frameWin.PDFViewerApplication && frameWin.PDFViewerApplication.initialized && typeof frameWin.PDFViewerApplication.open === 'function') {
-                    frameWin.PDFViewerApplication.open({ url: pdfUrl });
+                    try {
+                        if (frameWin._app_options && frameWin._app_options.AppOptions) {
+                            frameWin._app_options.AppOptions.set('defaultZoomValue', preferredZoom);
+                        }
+                    } catch (e) {}
+
+                    const openPromise = frameWin.PDFViewerApplication.open({ url: pdfUrl });
+                    if (openPromise && typeof openPromise.then === 'function') {
+                        openPromise.then(() => {
+                            try {
+                                if (frameWin.PDFViewerApplication.pdfViewer) {
+                                    frameWin.PDFViewerApplication.pdfViewer.currentScaleValue = preferredZoom;
+                                }
+                            } catch (err) {}
+                        }).catch(() => {});
+                    }
+
+                    if (frameWin.PDFViewerApplication.eventBus && !pdfFrame._hasScaleListener) {
+                        pdfFrame._hasScaleListener = true;
+                        frameWin.PDFViewerApplication.eventBus._on('scalechanged', function(evt) {
+                            if (evt && evt.value) {
+                                setPreferredPdfZoom(evt.value);
+                            }
+                        });
+                    }
+
                     reusedViewer = true;
                 }
             } catch (e) {
@@ -2030,6 +2078,24 @@
         if (!reusedViewer && pdfFrame.src !== targetSrc) {
             pdfFrame.src = targetSrc;
         }
+
+        if (!pdfFrame._hasLoadZoomListener && typeof pdfFrame.addEventListener === 'function') {
+            pdfFrame._hasLoadZoomListener = true;
+            pdfFrame.addEventListener('load', function() {
+                try {
+                    const win = pdfFrame.contentWindow;
+                    if (win && win.PDFViewerApplication && win.PDFViewerApplication.eventBus && !pdfFrame._hasScaleListener) {
+                        pdfFrame._hasScaleListener = true;
+                        win.PDFViewerApplication.eventBus._on('scalechanged', function(evt) {
+                            if (evt && evt.value) {
+                                setPreferredPdfZoom(evt.value);
+                            }
+                        });
+                    }
+                } catch (err) {}
+            });
+        }
+
         pdfFrame.classList.remove('hidden');
     }
 
@@ -2620,6 +2686,8 @@
     window.shouldUseTabViewer = shouldUseOfficialViewer;
     window.updateViewerModeButton = updateViewerModeButton;
     window.resolveViewerSrc = resolveViewerSrc;
+    window.getPreferredPdfZoom = getPreferredPdfZoom;
+    window.setPreferredPdfZoom = setPreferredPdfZoom;
     window.resolvePdfUrl = resolvePdfUrl;
     window.toggleFullscreen = toggleFullscreen;
     window.initViewerControls = initViewerControls;

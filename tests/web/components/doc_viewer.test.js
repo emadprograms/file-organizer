@@ -705,7 +705,140 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       // Tab mode viewer must be shown
       expect(canvasContainer.classList.contains('hidden')).toBe(true);
       expect(pdfFrame.classList.contains('hidden')).toBe(false);
-      expect(pdfFrame.src).toContain('/lib/pdfjs/web/viewer.html');
+    });
+  });
+
+  describe('PDF Zoom Mode Persistence Suite (Page Fit vs Automatic Zoom)', () => {
+    beforeEach(() => {
+      localStorage.removeItem('pdf_zoom_preference');
+      eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
+    });
+
+    it('getPreferredPdfZoom defaults to page-fit in Tab mode when no preference is set', () => {
+      localStorage.setItem('pdf_viewer_mode', 'tab');
+      expect(window.getPreferredPdfZoom()).toBe('page-fit');
+    });
+
+    it('getPreferredPdfZoom defaults to page-width in Computer mode when no preference is set', () => {
+      localStorage.setItem('pdf_viewer_mode', 'computer');
+      expect(window.getPreferredPdfZoom()).toBe('page-width');
+    });
+
+    it('setPreferredPdfZoom updates localStorage and getPreferredPdfZoom returns the stored value', () => {
+      window.setPreferredPdfZoom('page-fit');
+      expect(localStorage.getItem('pdf_zoom_preference')).toBe('page-fit');
+      expect(window.getPreferredPdfZoom()).toBe('page-fit');
+
+      window.setPreferredPdfZoom('1.5');
+      expect(localStorage.getItem('pdf_zoom_preference')).toBe('1.5');
+      expect(window.getPreferredPdfZoom()).toBe('1.5');
+    });
+
+    it('resolveViewerSrc includes #zoom=page-fit for Tab mode by default', () => {
+      localStorage.setItem('pdf_viewer_mode', 'tab');
+      const src = window.resolveViewerSrc('/api/doc_1');
+      expect(src).toBe('/lib/pdfjs/web/viewer.html?file=%2Fapi%2Fdoc_1#zoom=page-fit');
+    });
+
+    it('resolveViewerSrc includes stored zoom preference in URL hash for Tab mode', () => {
+      localStorage.setItem('pdf_viewer_mode', 'tab');
+      localStorage.setItem('pdf_zoom_preference', '1.25');
+      const src = window.resolveViewerSrc('/api/doc_custom');
+      expect(src).toBe('/lib/pdfjs/web/viewer.html?file=%2Fapi%2Fdoc_custom#zoom=1.25');
+    });
+
+    it('resolveViewerSrc uses #view=Fit in Computer mode when preferred zoom is page-fit', () => {
+      localStorage.setItem('pdf_viewer_mode', 'computer');
+      localStorage.setItem('pdf_zoom_preference', 'page-fit');
+      const src = window.resolveViewerSrc('/api/doc_pagefit');
+      expect(src).toBe('/api/doc_pagefit#view=Fit');
+    });
+
+    it('resolveViewerSrc uses #view=FitH in Computer mode when preferred zoom is page-width or default', () => {
+      localStorage.setItem('pdf_viewer_mode', 'computer');
+      localStorage.removeItem('pdf_zoom_preference');
+      const defaultSrc = window.resolveViewerSrc('/api/doc_default');
+      expect(defaultSrc).toBe('/api/doc_default#view=FitH');
+
+      localStorage.setItem('pdf_zoom_preference', 'page-width');
+      const widthSrc = window.resolveViewerSrc('/api/doc_width');
+      expect(widthSrc).toBe('/api/doc_width#view=FitH');
+    });
+
+    it('persists zoom across multiple document loads and re-applies preferred scale on reused PDF viewer', async () => {
+      localStorage.setItem('pdf_viewer_mode', 'tab');
+      localStorage.setItem('pdf_zoom_preference', 'page-fit');
+
+      const pdfFrame = document.getElementById('pdf-frame');
+      const mockSet = vi.fn();
+      let currentScale = 'auto';
+
+      const mockEventHandlers = {};
+      const mockEventBus = {
+        _on: vi.fn((event, handler) => {
+          mockEventHandlers[event] = handler;
+        })
+      };
+
+      const mockOpen = vi.fn().mockImplementation(() => {
+        return Promise.resolve();
+      });
+
+      Object.defineProperty(pdfFrame, 'contentWindow', {
+        value: {
+          PDFViewerApplication: {
+            initialized: true,
+            open: mockOpen,
+            eventBus: mockEventBus,
+            pdfViewer: {
+              get currentScaleValue() { return currentScale; },
+              set currentScaleValue(val) { currentScale = val; }
+            }
+          },
+          _app_options: {
+            AppOptions: {
+              set: mockSet
+            }
+          }
+        },
+        configurable: true,
+        writable: true
+      });
+
+      // 1. Open first document
+      window.openDocument('doc_1', 'Document 1', '05 - عقود');
+      expect(mockOpen).toHaveBeenCalled();
+      expect(mockSet).toHaveBeenCalledWith('defaultZoomValue', 'page-fit');
+
+      // Wait for open promise resolution
+      await Promise.resolve();
+      expect(currentScale).toBe('page-fit');
+
+      // 2. User changes zoom to 125% inside PDF.js viewer
+      if (mockEventHandlers['scalechanged']) {
+        mockEventHandlers['scalechanged']({ value: '1.25' });
+      }
+      expect(localStorage.getItem('pdf_zoom_preference')).toBe('1.25');
+
+      // 3. User navigates to next document
+      window.openDocument('doc_2', 'Document 2', '06 - كهرباء وماء');
+      expect(mockSet).toHaveBeenCalledWith('defaultZoomValue', '1.25');
+
+      await Promise.resolve();
+      expect(currentScale).toBe('1.25');
+
+      // 4. User sets zoom back to page-fit
+      if (mockEventHandlers['scalechanged']) {
+        mockEventHandlers['scalechanged']({ value: 'page-fit' });
+      }
+      expect(localStorage.getItem('pdf_zoom_preference')).toBe('page-fit');
+
+      // 5. Open third document via peek
+      window.peekDocument('doc_3', 'Document 3', '10 - صيانة');
+      expect(mockSet).toHaveBeenCalledWith('defaultZoomValue', 'page-fit');
+
+      await Promise.resolve();
+      expect(currentScale).toBe('page-fit');
     });
   });
 
