@@ -817,6 +817,30 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
     expect(window.reloadCurrentDocument).toHaveBeenCalledWith(true);
     expect(global.showToast).toHaveBeenCalled();
   });
+
+  it('leaves extract-target-notes completely empty by default when opening extract submodal', async () => {
+    const mockDoc = {
+      vault_id: 'doc_notes_empty_test',
+      brief_arabic_title: 'إشعار صيانة',
+      filename: 'sample.pdf',
+      category: '10 - صيانة',
+      page_count: 2
+    };
+
+    global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: async () => [] }));
+
+    await window.openPageEditor(mockDoc);
+
+    const cards = document.querySelectorAll('.page-editor-card');
+    cards[0].click();
+
+    const btnExtract = document.getElementById('btn-editor-extract-selected');
+    btnExtract.onclick();
+
+    const notesInput = document.getElementById('extract-target-notes');
+    expect(notesInput.value).toBe('');
+    expect(notesInput.value).not.toContain('Separated from');
+  });
 });
 
 

@@ -782,7 +782,7 @@
             extractDateInput.value = match ? match[0] : '';
         }
         if (extractNotesInput) {
-            extractNotesInput.value = `Separated from ${activeEditorDoc.brief_arabic_title || activeEditorDoc.filename || 'document'}`;
+            extractNotesInput.value = '';
         }
 
         // Populate Tenants immediately with general option and resident tenant
