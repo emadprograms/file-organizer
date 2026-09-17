@@ -942,7 +942,22 @@
         'شارع': 'street / avenue', 'الشارع': 'street / avenue',
         'ديوان': 'bureau / court', 'الديوان': 'bureau',
         'وإلا': 'otherwise / or else', 'نظراً': 'given that / in view of', 'نظرا': 'given that',
-        'التكرم': 'kindly', 'تكرم': 'kindness', 'حضور': 'attendance', 'الحضور': 'attendance'
+        'التكرم': 'kindly', 'تكرم': 'kindness', 'حضور': 'attendance', 'الحضور': 'attendance',
+        'التماس': 'petition / appeal', 'التماسات': 'petitions / appeals', 'الالتماس': 'petition',
+        'إمداد': 'supply', 'الإمداد': 'supply', 'تموين': 'provisioning', 'التموين': 'provisioning',
+        'سعادة': 'His Excellency', 'السعادة': 'Excellency',
+        'نائب': 'Member of Parliament / Deputy', 'النائب': 'Member of Parliament', 'نواب': 'Deputies / MPs', 'النواب': 'Parliament / Deputies',
+        'مجلس': 'Council / Board', 'المجلس': 'Council',
+        'منسق': 'coordinator', 'تنسيق': 'coordination', 'التنسيق': 'coordination',
+        'إحالة': 'referral', 'الإحالة': 'referral', 'محال': 'referred',
+        'منتفع': 'beneficiary / tenant', 'المنتفع': 'beneficiary / tenant', 'مخالف': 'violator', 'المخالف': 'violator',
+        'قضية': 'lawsuit / case', 'القضية': 'lawsuit / case', 'قضايا': 'cases',
+        'إدارية': 'administrative', 'الإدارية': 'administrative',
+        'استئناف': 'appeal', 'الاستئناف': 'appeal', 'مستأنف': 'appellant',
+        'تنفيذ': 'enforcement', 'التنفيذ': 'enforcement',
+        'تمديد': 'extension', 'التمديد': 'extension', 'مؤقت': 'temporary', 'المؤقت': 'temporary',
+        'إنسانية': 'humanitarian', 'الإنسانية': 'humanitarian',
+        'إشعار': 'Notice', 'الإشعار': 'Notice', 'إشعارات': 'Notices', 'الإشعارات': 'Notices'
     };
 
     // ── Bahraini & Arab Personal / Family Names ──
@@ -1442,12 +1457,16 @@
                     }
                 }
 
-                const worker = await Tesseract.createWorker('ara', 1, {
+                const createPromise = Tesseract.createWorker('ara', 1, {
                     workerPath: `${basePath}/worker.min.js`,
                     corePath: `${basePath}/tesseract-core-simd-lstm.wasm.js`,
                     langPath: basePath,
                     gzip: true
                 });
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Tesseract worker init timed out after 10s')), 10000)
+                );
+                const worker = await Promise.race([createPromise, timeoutPromise]);
                 tesseractWorker = worker;
                 return worker;
             } catch (err) {
@@ -1532,9 +1551,76 @@
             return pageOcrCache.get(cacheKey);
         }
 
-        const canvas = pageWrapper.querySelector('canvas.pdf-page-canvas');
+        const canvas = pageWrapper ? pageWrapper.querySelector('canvas.pdf-page-canvas') : null;
 
-        // 1. Digital text layer from PDF.js if available
+        // 1. Primary: Database Metadata (Instant & accurate AI/DB translation)
+        try {
+            const meta = await fetchDocumentMetadata(vaultId);
+            if (meta) {
+                if (meta.pages && Array.isArray(meta.pages) && meta.pages.length > 0) {
+                    const p = meta.pages.find(x => (x.page_number || x.pageNumber) === pageNum)
+                           || meta.pages[pageNum - 1]
+                           || (pageNum === 1 ? meta.pages[0] : null);
+                    if (p) {
+                        const lines = [];
+                        if (p.subject) {
+                            const subTr = translateArabicText(p.subject);
+                            lines.push({
+                                text: subTr ? `Subject: ${subTr}` : p.subject,
+                                original: p.subject
+                            });
+                        }
+                        if (p.sender) {
+                            const sndTr = translateArabicText(p.sender);
+                            lines.push({
+                                text: sndTr ? `From: ${sndTr}` : p.sender,
+                                original: p.sender
+                            });
+                        }
+                        if (p.receiver) {
+                            const rcvTr = translateArabicText(p.receiver);
+                            lines.push({
+                                text: rcvTr ? `To: ${rcvTr}` : p.receiver,
+                                original: p.receiver
+                            });
+                        }
+                        if (p.content_explanation) {
+                            const hasAr = /[\u0600-\u06FF]/.test(p.content_explanation);
+                            const explTr = hasAr ? translateArabicText(p.content_explanation) : p.content_explanation;
+                            lines.push({
+                                text: explTr,
+                                original: p.content_explanation
+                            });
+                        }
+                        if (lines.length > 0) {
+                            pageOcrCache.set(cacheKey, lines);
+                            return lines;
+                        }
+                    }
+                } else if (meta.arabic_title || meta.category || meta.notes) {
+                    const lines = [];
+                    if (meta.arabic_title) {
+                        const tTr = translateArabicText(meta.arabic_title);
+                        lines.push({ text: `Document: ${tTr}`, original: meta.arabic_title });
+                    }
+                    if (meta.category) {
+                        const catObj = getEnglishCategory(meta.category);
+                        lines.push({ text: `Category: ${catObj.en || meta.category}`, original: meta.category });
+                    }
+                    if (meta.notes) {
+                        lines.push({ text: `Notes: ${translateArabicText(meta.notes)}`, original: meta.notes });
+                    }
+                    if (lines.length > 0) {
+                        pageOcrCache.set(cacheKey, lines);
+                        return lines;
+                    }
+                }
+            }
+        } catch (e) {
+            console.debug('Metadata extraction fallback to PDF/OCR:', e);
+        }
+
+        // 2. Secondary: Digital text layer from PDF.js if available
         if (pdfDoc) {
             try {
                 const page = await pdfDoc.getPage(pageNum);
@@ -1555,20 +1641,32 @@
             }
         }
 
-        // 2. Client-side Offline OCR via Local Tesseract.js
+        // 3. Fallback: Client-side Offline OCR via Local Tesseract.js
         if (canvas && typeof Tesseract !== 'undefined') {
-            const indicator = document.createElement('div');
-            indicator.className = 'ocr-scanning-indicator absolute top-3 left-3 px-3 py-1.5 rounded-xl bg-slate-900/85 text-white backdrop-blur-xs text-xs flex items-center gap-2 shadow-lg z-30 pointer-events-none animate-pulse';
-            indicator.innerHTML = `
-                <svg class="w-3.5 h-3.5 animate-spin text-blue-400 flex-shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
-                <span>Translating scan (Offline OCR)...</span>
-            `;
-            pageWrapper.appendChild(indicator);
-
+            const indicator = pageWrapper ? pageWrapper.querySelector('.ocr-scanning-indicator') : null;
             try {
                 const worker = await getTesseractWorker();
                 if (worker) {
-                    const res = await worker.recognize(canvas);
+                    // Downscale canvas to max 1200px width for fast, reliable offline OCR
+                    let ocrCanvas = canvas;
+                    if (canvas.width > 1200) {
+                        const scale = 1200 / canvas.width;
+                        const scaled = document.createElement('canvas');
+                        scaled.width = 1200;
+                        scaled.height = Math.round(canvas.height * scale);
+                        const sCtx = scaled.getContext('2d');
+                        if (sCtx) {
+                            sCtx.drawImage(canvas, 0, 0, scaled.width, scaled.height);
+                            ocrCanvas = scaled;
+                        }
+                    }
+
+                    const ocrPromise = worker.recognize(ocrCanvas);
+                    const timeoutPromise = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('OCR recognition timed out after 12 seconds')), 12000)
+                    );
+                    const res = await Promise.race([ocrPromise, timeoutPromise]);
+
                     if (res && res.data) {
                         let lines = [];
                         if (res.data.lines && res.data.lines.length > 0) {
@@ -1588,47 +1686,12 @@
                         }
                         if (lines.length > 0) {
                             pageOcrCache.set(cacheKey, lines);
-                            indicator.remove();
                             return lines;
                         }
                     }
                 }
             } catch (err) {
                 console.error('Tesseract offline OCR error:', err);
-            } finally {
-                indicator.remove();
-            }
-        }
-
-        // 3. Fallback: Database metadata if present
-        const meta = await fetchDocumentMetadata(vaultId);
-        if (meta && meta.pages && meta.pages.length > 0) {
-            const p = meta.pages.find(x => (x.page_number || x.pageNumber) === pageNum);
-            if (p) {
-                const lines = [];
-                const cW = canvas ? (canvas.clientWidth || canvas.width || 600) : 600;
-                if (p.subject) {
-                    lines.push({
-                        text: p.subject,
-                        bbox: { x0: 40, y0: 60, x1: cW - 40, y1: 95 }
-                    });
-                }
-                if (p.sender) {
-                    lines.push({
-                        text: p.sender,
-                        bbox: { x0: 40, y0: 105, x1: Math.round(cW * 0.5), y1: 130 }
-                    });
-                }
-                if (p.content_explanation) {
-                    lines.push({
-                        text: p.content_explanation,
-                        bbox: { x0: 40, y0: 145, x1: cW - 40, y1: 220 }
-                    });
-                }
-                if (lines.length > 0) {
-                    pageOcrCache.set(cacheKey, lines);
-                    return lines;
-                }
             }
         }
 
@@ -1645,85 +1708,126 @@
             ? pageWrapper.parentElement.querySelector(`.pdf-translation-panel[data-page-number="${pageNum}"]`)
             : null;
         if (panel) panel.remove();
-        // Also remove legacy overlay layers
         const oldLayer = pageWrapper.querySelector(`.pdf-translation-layer[data-page-number="${pageNum}"]`);
         if (oldLayer) oldLayer.remove();
 
-        const lines = await detectPageText(pageWrapper, pageNum, vaultId, currentPdfDoc);
-        if (!lines || lines.length === 0) {
-            return;
-        }
-
-        // Collect and translate all text lines
-        const translatedLines = [];
-        lines.forEach(line => {
-            if (!line || !line.text) return;
-            const origText = line.text.trim();
-            if (!origText || origText.length < 1) return;
-
-            const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFC]/.test(origText);
-            const translated = hasArabic ? translateArabicText(origText) : origText;
-            if (translated && translated.trim()) {
-                translatedLines.push({
-                    original: origText,
-                    translated: translated.trim()
-                });
-            }
-        });
-
-        if (translatedLines.length === 0) return;
-
-        // Build the translation panel — inserted AFTER the page wrapper inside the canvas container
-        panel = document.createElement('div');
-        panel.className = 'pdf-translation-panel';
-        panel.setAttribute('data-page-number', pageNum);
-
-        // Page header
-        const header = document.createElement('div');
-        header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid rgba(148,163,184,0.25);';
-        header.innerHTML = `
-            <div style="display:flex;align-items:center;gap:8px;">
-                <svg style="width:16px;height:16px;color:#3b82f6;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
-                <span style="font-size:13px;font-weight:600;color:#e2e8f0;">Page ${pageNum} — English Translation</span>
-            </div>
-            <span style="font-size:11px;color:#64748b;">${translatedLines.length} lines</span>
+        // Show a per-page translation progress badge while analyzing
+        const indicator = document.createElement('div');
+        indicator.className = 'ocr-scanning-indicator';
+        indicator.style.cssText = 'position:absolute;top:8px;left:8px;padding:4px 12px;border-radius:12px;background:rgba(15,23,42,0.85);color:white;font-size:11px;z-index:30;pointer-events:none;display:flex;align-items:center;gap:6px;backdrop-filter:blur(4px);';
+        indicator.innerHTML = `
+            <svg style="width:14px;height:14px;animation:spin 1s linear infinite;flex-shrink:0;" fill="none" viewBox="0 0 24 24"><circle style="opacity:0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path style="opacity:0.75;" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+            <span>Translating page ${pageNum}...</span>
         `;
-        panel.appendChild(header);
+        pageWrapper.appendChild(indicator);
 
-        // Translation content
-        const content = document.createElement('div');
-        content.style.cssText = 'padding:12px 16px;display:flex;flex-direction:column;gap:6px;';
+        try {
+            console.debug(`[Translation] Page ${pageNum}: detecting text...`);
+            const lines = await detectPageText(pageWrapper, pageNum, vaultId, currentPdfDoc);
 
-        translatedLines.forEach((item, idx) => {
-            const lineEl = document.createElement('div');
-            lineEl.style.cssText = 'font-size:14px;line-height:1.6;color:#f1f5f9;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:4px 0;';
-            lineEl.textContent = item.translated;
-            lineEl.setAttribute('title', `Original: ${item.original}`);
-            lineEl.style.cursor = 'help';
-            content.appendChild(lineEl);
-        });
+            indicator.remove();
 
-        panel.appendChild(content);
+            if (!lines || lines.length === 0) {
+                console.debug(`[Translation] Page ${pageNum}: no text detected`);
+                const noticePanel = document.createElement('div');
+                noticePanel.className = 'pdf-translation-panel';
+                noticePanel.setAttribute('data-page-number', pageNum);
+                noticePanel.style.cssText = 'width:100%;max-width:816px;margin:0 auto 16px auto;background:rgba(15,23,42,0.85);border:1px solid rgba(148,163,184,0.2);border-radius:12px;padding:14px 20px;text-align:center;color:#94a3b8;font-size:13px;backdrop-filter:blur(6px);';
+                noticePanel.innerHTML = `<span style="color:#e2e8f0;font-weight:600;">Page ${pageNum}</span>: No extractable text or metadata found for this page.`;
+                if (pageWrapper.nextSibling) {
+                    pageWrapper.parentElement.insertBefore(noticePanel, pageWrapper.nextSibling);
+                } else {
+                    pageWrapper.parentElement.appendChild(noticePanel);
+                }
+                return;
+            }
 
-        // Style the panel
-        panel.style.cssText = [
-            'width:100%',
-            'max-width:816px',
-            'margin:0 auto 16px auto',
-            'background:linear-gradient(135deg,rgba(15,23,42,0.95),rgba(30,41,59,0.95))',
-            'border:1px solid rgba(148,163,184,0.2)',
-            'border-radius:12px',
-            'backdrop-filter:blur(8px)',
-            'box-shadow:0 4px 16px rgba(0,0,0,0.2)',
-            'overflow:hidden',
-            'user-select:text',
-        ].join(';') + ';';
+            // Collect and translate all text lines
+            const translatedLines = [];
+            lines.forEach(line => {
+                if (!line || !line.text) return;
+                const origText = line.text.trim();
+                if (!origText || origText.length < 1) return;
 
-        // Insert AFTER the page wrapper in the canvas container
-        if (pageWrapper.nextSibling) {
-            pageWrapper.parentElement.insertBefore(panel, pageWrapper.nextSibling);
-        } else {
-            pageWrapper.parentElement.appendChild(panel);
+                const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFC]/.test(origText);
+                const translated = hasArabic ? translateArabicText(origText) : origText;
+                if (translated && translated.trim()) {
+                    translatedLines.push({
+                        original: line.original || origText,
+                        translated: translated.trim()
+                    });
+                }
+            });
+
+            if (translatedLines.length === 0) return;
+
+            // Build the translation panel — inserted AFTER the page wrapper inside the canvas container
+            panel = document.createElement('div');
+            panel.className = 'pdf-translation-panel';
+            panel.setAttribute('data-page-number', pageNum);
+
+            // Page header
+            const header = document.createElement('div');
+            header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid rgba(148,163,184,0.25);';
+            header.innerHTML = `
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <svg style="width:16px;height:16px;color:#3b82f6;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+                    <span style="font-size:13px;font-weight:600;color:#e2e8f0;">Page ${pageNum} — English Translation & Summary</span>
+                </div>
+                <span style="font-size:11px;color:#64748b;">${translatedLines.length} item${translatedLines.length === 1 ? '' : 's'}</span>
+            `;
+            panel.appendChild(header);
+
+            // Translation content
+            const content = document.createElement('div');
+            content.style.cssText = 'padding:14px 18px;display:flex;flex-direction:column;gap:8px;';
+
+            translatedLines.forEach(item => {
+                const lineEl = document.createElement('div');
+                lineEl.style.cssText = 'font-size:14px;line-height:1.6;color:#f1f5f9;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:3px 0;';
+                lineEl.textContent = item.translated;
+                if (item.original && item.original !== item.translated) {
+                    lineEl.setAttribute('title', `Original: ${item.original}`);
+                    lineEl.style.cursor = 'help';
+                }
+                content.appendChild(lineEl);
+            });
+
+            panel.appendChild(content);
+
+            // Style the panel
+            panel.style.cssText = [
+                'width:100%',
+                'max-width:816px',
+                'margin:0 auto 16px auto',
+                'background:linear-gradient(135deg,rgba(15,23,42,0.95),rgba(30,41,59,0.95))',
+                'border:1px solid rgba(148,163,184,0.2)',
+                'border-radius:12px',
+                'backdrop-filter:blur(8px)',
+                'box-shadow:0 4px 16px rgba(0,0,0,0.2)',
+                'overflow:hidden',
+                'user-select:text',
+            ].join(';') + ';';
+
+            // Insert AFTER the page wrapper in the canvas container
+            if (pageWrapper.nextSibling) {
+                pageWrapper.parentElement.insertBefore(panel, pageWrapper.nextSibling);
+            } else {
+                pageWrapper.parentElement.appendChild(panel);
+            }
+        } catch (err) {
+            console.error(`[Translation] Page ${pageNum}: error during translation:`, err);
+            indicator.remove();
+            const errorPanel = document.createElement('div');
+            errorPanel.className = 'pdf-translation-panel';
+            errorPanel.setAttribute('data-page-number', pageNum);
+            errorPanel.style.cssText = 'width:100%;max-width:816px;margin:0 auto 16px auto;background:rgba(127,29,29,0.3);border:1px solid rgba(239,68,68,0.3);border-radius:12px;padding:12px 16px;text-align:center;color:#fca5a5;font-size:12px;';
+            errorPanel.textContent = `Page ${pageNum}: Translation failed — ${err.message || 'Unknown error'}`;
+            if (pageWrapper.nextSibling) {
+                pageWrapper.parentElement.insertBefore(errorPanel, pageWrapper.nextSibling);
+            } else {
+                pageWrapper.parentElement.appendChild(errorPanel);
+            }
         }
     }
 
@@ -1764,19 +1868,14 @@
                     console.debug('[Translation] Rendering PDF document first...');
                     await renderPdfDocument(pdfUrl);
                     console.debug('[Translation] PDF document rendered');
-                }
-
-                if (!isTranslationActive || !currentPinnedDoc || currentPinnedDoc.vaultId !== vaultId) {
-                    console.debug('[Translation] Translation cancelled (state changed during PDF load)');
-                    return;
-                }
-
-                const freshWrappers = canvasContainer ? canvasContainer.querySelectorAll('.pdf-page-wrapper') : [];
-                console.debug(`[Translation] Processing ${freshWrappers.length} pages for translation`);
-                for (let i = 0; i < freshWrappers.length; i++) {
-                    const pageWrapper = freshWrappers[i];
-                    const pageNum = parseInt(pageWrapper.getAttribute('data-page-number') || String(i + 1), 10);
-                    await renderPageTranslationLayer(pageWrapper, pageNum, vaultId);
+                } else {
+                    const freshWrappers = canvasContainer ? canvasContainer.querySelectorAll('.pdf-page-wrapper') : [];
+                    console.debug(`[Translation] Processing ${freshWrappers.length} existing pages for translation`);
+                    for (let i = 0; i < freshWrappers.length; i++) {
+                        const pageWrapper = freshWrappers[i];
+                        const pageNum = parseInt(pageWrapper.getAttribute('data-page-number') || String(i + 1), 10);
+                        await renderPageTranslationLayer(pageWrapper, pageNum, vaultId);
+                    }
                 }
                 console.debug('[Translation] All pages processed');
             } catch (err) {

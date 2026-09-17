@@ -1297,5 +1297,122 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       expect(lineEls[1].textContent).toContain('Ministry of Housing and Urban Planning');
       expect(lineEls[2].textContent).toContain('Housing Allocation Order');
     });
+
+    it('extracts structured translation and English summary from database metadata as Priority 1', async () => {
+      // Mock fetch for document metadata returning detailed AI-ingested metadata
+      const origFetch = global.fetch;
+      global.fetch = vi.fn().mockImplementation(async (url) => {
+        if (url.includes('/metadata')) {
+          return {
+            ok: true,
+            json: async () => ({
+              vault_id: 'doc_meta_p1_test',
+              arabic_title: 'خطاب إخلاء الوحدة السكنية رقم 1544',
+              category: 'إشعارات',
+              pages: [
+                {
+                  page_number: 1,
+                  subject: 'إخلاء الوحدة السكنية رقم 1544 طريق 3332 أم الحصم',
+                  sender: 'فرع إسكان الشرطة، إدارة الإمداد والتموين، وزارة الداخلية',
+                  receiver: 'سعادة مدير إدارة الإمداد والتموين',
+                  content_explanation: 'A formal urgent letter from the Ministry of Interior regarding vacating housing unit number 1544.'
+                }
+              ]
+            })
+          };
+        }
+        return { ok: false };
+      });
+
+      const canvasContainer = document.getElementById('pdf-canvas-container');
+      canvasContainer.innerHTML = `
+        <div class="pdf-page-wrapper relative" data-page-number="1">
+          <canvas class="pdf-page-canvas" width="600" height="800" style="width:600px; height:800px;"></canvas>
+        </div>
+      `;
+      const wrapper = canvasContainer.querySelector('.pdf-page-wrapper');
+
+      await window.renderPageTranslationLayer(wrapper, 1, 'doc_meta_p1_test');
+
+      const panel = canvasContainer.querySelector('.pdf-translation-panel[data-page-number="1"]');
+      expect(panel).not.toBeNull();
+
+      const text = panel.textContent;
+      expect(text).toContain('Subject');
+      expect(text).toContain('From');
+      expect(text).toContain('To');
+      expect(text).toContain('A formal urgent letter from the Ministry of Interior regarding vacating housing unit number 1544');
+
+      global.fetch = origFetch;
+    });
+
+    it('matches metadata pages when page_number reflects absolute batch indices rather than 1-indexed relative page number', async () => {
+      const origFetch = global.fetch;
+      global.fetch = vi.fn().mockImplementation(async (url) => {
+        if (url.includes('/metadata')) {
+          return {
+            ok: true,
+            json: async () => ({
+              vault_id: 'doc_batch_idx_test',
+              arabic_title: 'كتاب التماسات النواب',
+              category: 'رسائل متنوعة',
+              pages: [
+                {
+                  page_number: 7, // Batch page 7, but viewed as page 1 of this 1-page extracted document
+                  subject: 'التماسات النواب بخصوص إخلاء وحدة سكنية',
+                  sender: 'مكتب الوكيل المساعد للشئون الإدارية',
+                  content_explanation: 'Official letter submitted by Member of Parliament regarding eviction reconsideration.'
+                }
+              ]
+            })
+          };
+        }
+        return { ok: false };
+      });
+
+      const canvasContainer = document.getElementById('pdf-canvas-container');
+      canvasContainer.innerHTML = `
+        <div class="pdf-page-wrapper relative" data-page-number="1">
+          <canvas class="pdf-page-canvas" width="600" height="800" style="width:600px; height:800px;"></canvas>
+        </div>
+      `;
+      const wrapper = canvasContainer.querySelector('.pdf-page-wrapper');
+
+      await window.renderPageTranslationLayer(wrapper, 1, 'doc_batch_idx_test');
+
+      const panel = canvasContainer.querySelector('.pdf-translation-panel[data-page-number="1"]');
+      expect(panel).not.toBeNull();
+
+      const text = panel.textContent;
+      expect(text).toContain('Subject');
+      expect(text).toContain('Official letter submitted by Member of Parliament regarding eviction reconsideration');
+
+      global.fetch = origFetch;
+    });
+
+    it('renders a user-friendly notice panel when page has no extractable text or metadata', async () => {
+      const origFetch = global.fetch;
+      global.fetch = vi.fn().mockResolvedValue({ ok: false });
+      const origTesseract = global.Tesseract;
+      delete global.Tesseract;
+
+      const canvasContainer = document.getElementById('pdf-canvas-container');
+      canvasContainer.innerHTML = `
+        <div class="pdf-page-wrapper relative" data-page-number="5">
+          <canvas class="pdf-page-canvas" width="600" height="800" style="width:600px; height:800px;"></canvas>
+        </div>
+      `;
+      const wrapper = canvasContainer.querySelector('.pdf-page-wrapper');
+
+      await window.renderPageTranslationLayer(wrapper, 5, 'doc_empty_scan_test');
+
+      const panel = canvasContainer.querySelector('.pdf-translation-panel[data-page-number="5"]');
+      expect(panel).not.toBeNull();
+      expect(panel.textContent).toContain('Page 5');
+      expect(panel.textContent).toContain('No extractable text or metadata found');
+
+      global.fetch = origFetch;
+      global.Tesseract = origTesseract;
+    });
   });
 });

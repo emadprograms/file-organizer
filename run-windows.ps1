@@ -1,4 +1,4 @@
-﻿# Windows Startup Script for Housing Application (.NET Web Server)
+# Windows Startup Script for Housing Application (.NET Web Server)
 $ErrorActionPreference = "Stop"
 
 # Detect database and vault directories
@@ -43,7 +43,9 @@ if ($TailscaleIp) {
 Write-Host "==========================================================" -ForegroundColor Cyan
 Write-Host "Press Ctrl+C to stop the server.`n" -ForegroundColor DarkGray
 
-dotnet run --project "$PSScriptRoot\src\HousingApplication.Web\HousingApplication.Web.csproj" `
+Set-Location -Path "$PSScriptRoot\src\HousingApplication.Web"
+
+dotnet run `
     --urls "http://0.0.0.0:$Port" `
     --ORGANIZER_DB_PATH "$DbPath" `
     --AREAS_ROOT_PATH "$AreasRoot"
