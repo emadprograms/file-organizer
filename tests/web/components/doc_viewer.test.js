@@ -479,7 +479,7 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       expect(label.textContent).toBe('English');
     });
 
-    it('renders in-place Google Translate style overlay directly over document canvas with bounding boxes', async () => {
+    it('renders translation panel below document canvas with all detected text lines translated', async () => {
       // Enable translation
       localStorage.setItem('doc_viewer_translate', 'true');
       eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
@@ -497,40 +497,25 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       const pageWrapper = canvasContainer.querySelector('.pdf-page-wrapper');
       expect(pageWrapper).not.toBeNull();
 
-      const translationLayer = pageWrapper.querySelector('.pdf-translation-layer');
-      expect(translationLayer).not.toBeNull();
+      // New approach: translation panel as sibling after page wrapper
+      const panel = canvasContainer.querySelector('.pdf-translation-panel');
+      expect(panel).not.toBeNull();
 
-      const boxes = translationLayer.querySelectorAll('.in-place-translated-box');
-      expect(boxes.length).toBeGreaterThanOrEqual(2);
+      // Panel should contain translated text lines
+      const lineEls = panel.querySelectorAll('div[title]');
+      expect(lineEls.length).toBeGreaterThanOrEqual(2);
 
-      // Box 1: Ministry of Interior
-      const box1 = boxes[0];
-      expect(box1.textContent).toBe('Office of the Undersecretary of the Ministry of Interior');
-      expect(box1.getAttribute('data-original-text')).toBe('مكتب وكيل وزارة الداخلية');
-      expect(box1.getAttribute('title')).toContain('مكتب وكيل وزارة الداخلية');
-      expect(box1.style.backgroundColor).toBe('rgb(255, 255, 255)');
-      expect(box1.style.position).toBe('absolute');
+      // Line 1: Ministry of Interior
+      expect(lineEls[0].textContent).toBe('Office of the Undersecretary of the Ministry of Interior');
+      expect(lineEls[0].getAttribute('title')).toContain('مكتب وكيل وزارة الداخلية');
 
-      // Box 2: Housing Allocation Order
-      const box2 = boxes[1];
-      expect(box2.textContent).toBe('Housing Allocation Order');
-      expect(box2.getAttribute('data-original-text')).toBe('أمر تخصيص مسكن');
+      // Line 2: Housing Allocation Order
+      expect(lineEls[1].textContent).toBe('Housing Allocation Order');
+      expect(lineEls[1].getAttribute('title')).toContain('أمر تخصيص مسكن');
 
-      // Box hover peek behavior
-      box1.dispatchEvent(new Event('mouseenter'));
-      expect(box1.style.opacity).toBe('0.12');
-      box1.dispatchEvent(new Event('mouseleave'));
-      expect(box1.style.opacity).toBe('1');
-
-      // Page Peek Original button interaction
-      const peekBtn = translationLayer.querySelector('.btn-peek-scan');
-      expect(peekBtn).not.toBeNull();
-      peekBtn.click();
-      expect(box1.style.opacity).toBe('0');
-      expect(box2.style.opacity).toBe('0');
-      peekBtn.click();
-      expect(box1.style.opacity).toBe('1');
-      expect(box2.style.opacity).toBe('1');
+      // Panel should have page number header
+      expect(panel.textContent).toContain('Page');
+      expect(panel.textContent).toContain('English Translation');
     });
 
     it('translates newly uploaded documents without database AI metadata using offline OCR', async () => {
@@ -548,25 +533,27 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
 
       const canvasContainer = document.getElementById('pdf-canvas-container');
       const pageWrapper = canvasContainer.querySelector('.pdf-page-wrapper');
-      const translationLayer = pageWrapper.querySelector('.pdf-translation-layer');
-      expect(translationLayer).not.toBeNull();
 
-      const boxes = translationLayer.querySelectorAll('.in-place-translated-box');
-      expect(boxes.length).toBeGreaterThanOrEqual(1);
-      expect(boxes[0].textContent).toContain('Office of the Undersecretary');
+      // New approach: translation panel instead of overlay layer
+      const panel = canvasContainer.querySelector('.pdf-translation-panel');
+      expect(panel).not.toBeNull();
+
+      const lineEls = panel.querySelectorAll('div[title]');
+      expect(lineEls.length).toBeGreaterThanOrEqual(1);
+      expect(lineEls[0].textContent).toContain('Office of the Undersecretary');
     });
 
-    it('closeDocument dismisses and clears translation layers', async () => {
+    it('closeDocument dismisses and clears translation panels', async () => {
       localStorage.setItem('doc_viewer_translate', 'true');
       eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
       window.openDocument('doc_test_close', 'مستند إغلاق', '05 - عقود');
       await window.renderDocumentTranslation();
 
       const canvasContainer = document.getElementById('pdf-canvas-container');
-      expect(canvasContainer.querySelectorAll('.pdf-translation-layer').length).toBeGreaterThan(0);
+      expect(canvasContainer.querySelectorAll('.pdf-translation-panel').length).toBeGreaterThan(0);
 
       window.closeDocument();
-      expect(canvasContainer.querySelectorAll('.pdf-translation-layer').length).toBe(0);
+      expect(canvasContainer.querySelectorAll('.pdf-translation-panel').length).toBe(0);
     });
   });
 
@@ -862,31 +849,33 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
 
       await window.renderPageTranslationLayer(wrapper, 1, 'doc_coverage_test');
 
-      const layer = wrapper.querySelector('.pdf-translation-layer');
-      expect(layer).not.toBeNull();
+      // The new approach creates a translation panel AFTER the wrapper in the container
+      const panel = canvasContainer.querySelector('.pdf-translation-panel[data-page-number="1"]');
+      expect(panel).not.toBeNull();
 
-      const boxes = layer.querySelectorAll('.in-place-translated-box');
-      // CRITICAL ASSERTION: Exactly 4 lines entered, exactly 4 boxes MUST be rendered (0% drop rate, 100% coverage)
-      expect(boxes.length).toBe(4);
+      // Get all translated line divs in the panel content
+      const lineEls = panel.querySelectorAll('div[title]');
+      // CRITICAL ASSERTION: Exactly 4 lines entered, exactly 4 lines MUST be rendered (0% drop rate, 100% coverage)
+      expect(lineEls.length).toBe(4);
 
-      // Verify every box contains translated English text and ZERO leftover Arabic characters
-      boxes.forEach((box) => {
-        const text = box.textContent;
+      // Verify every line contains translated English text and ZERO leftover Arabic characters
+      lineEls.forEach((el) => {
+        const text = el.textContent;
         expect(text.length).toBeGreaterThan(0);
         expect(/[\u0600-\u06FF]/.test(text)).toBe(false);
       });
 
-      // Box 1: Ministry
-      expect(boxes[0].textContent).toContain('Ministry of Interior');
-      // Box 2: Eviction Notice
-      expect(boxes[1].textContent).toContain('Housing Unit Eviction Notice');
-      expect(boxes[1].textContent).toContain('500');
-      // Box 3: Tenant Name & CPR
-      expect(boxes[2].textContent).toContain('Tenant: Ali Ahmed Hassan');
-      expect(boxes[2].textContent).toContain('880123456');
+      // Line 1: Ministry
+      expect(lineEls[0].textContent).toContain('Ministry of Interior');
+      // Line 2: Eviction Notice
+      expect(lineEls[1].textContent).toContain('Housing Unit Eviction Notice');
+      expect(lineEls[1].textContent).toContain('500');
+      // Line 3: Tenant Name & CPR
+      expect(lineEls[2].textContent).toContain('Tenant: Ali Ahmed Hassan');
+      expect(lineEls[2].textContent).toContain('880123456');
     });
 
-    it('preserves user-favored translucent peek (opacity 0.12) on hover, toggle on click, and global peek button', async () => {
+    it('shows translation panel below page with tooltip access to original Arabic text', async () => {
       global.Tesseract = {
         createWorker: vi.fn().mockResolvedValue({
           recognize: vi.fn().mockResolvedValue({
@@ -908,36 +897,26 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       `;
       const wrapper = canvasContainer.querySelector('.pdf-page-wrapper');
 
-      await window.renderPageTranslationLayer(wrapper, 1, 'doc_peek_test');
+      await window.renderPageTranslationLayer(wrapper, 1, 'doc_panel_test');
 
-      const layer = wrapper.querySelector('.pdf-translation-layer');
-      const box = layer.querySelector('.in-place-translated-box');
-      expect(box).not.toBeNull();
+      // Translation panel should be a sibling after the wrapper
+      const panel = canvasContainer.querySelector('.pdf-translation-panel[data-page-number="1"]');
+      expect(panel).not.toBeNull();
 
-      // Initial state: fully opaque
-      expect(box.style.opacity).not.toBe('0.12');
+      // Panel should contain a header with page number
+      expect(panel.textContent).toContain('Page 1');
+      expect(panel.textContent).toContain('English Translation');
 
-      // User hovers over translated box: becomes translucent (0.12) to peek underneath
-      box.dispatchEvent(new Event('mouseenter'));
-      expect(box.style.opacity).toBe('0.12');
+      // The translated line should be present with English text
+      const lineEls = panel.querySelectorAll('div[title]');
+      expect(lineEls.length).toBe(1);
+      expect(lineEls[0].textContent).toContain('Notarized Tenancy Contract');
 
-      // User leaves hover: returns to opaque
-      box.dispatchEvent(new Event('mouseleave'));
-      expect(box.style.opacity).toBe('1');
+      // Original Arabic should be available via title tooltip
+      expect(lineEls[0].getAttribute('title')).toContain('عقد إيجار موثق');
 
-      // User clicks to pin/toggle translucent peek
-      box.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      expect(box.style.opacity).toBe('0.12');
-      box.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      expect(box.style.opacity).toBe('1');
-
-      // "Peek Original" page button toggles all boxes
-      const peekBtn = layer.querySelector('.btn-peek-scan');
-      expect(peekBtn).not.toBeNull();
-      peekBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      expect(box.style.opacity).toBe('0');
-      peekBtn.dispatchEvent(new MouseEvent('click', { bubbles: true }));
-      expect(box.style.opacity).toBe('1');
+      // Panel should be user-selectable text
+      expect(panel.style.userSelect).toBe('text');
     });
 
     it('translates official administrative sentences into real English words without phonetic transliteration', () => {
@@ -1030,11 +1009,14 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       expect(translated).toBe('Lease & Tenancy Contract');
     });
 
-    it('renders Google Translate style overlay with minWidth and auto-expansion to prevent text clipping', async () => {
+    it('renders translation panel below page wrapper with header, translated lines, and selectable text', async () => {
       window.closeDocument();
 
+      // Create a container to hold wrapper + panel (simulates canvasContainer)
+      const container = document.createElement('div');
       const wrapper = document.createElement('div');
       wrapper.className = 'pdf-page-wrapper relative';
+      wrapper.setAttribute('data-page-number', '1');
       const canvas = document.createElement('canvas');
       canvas.className = 'pdf-page-canvas';
       canvas.width = 600;
@@ -1042,21 +1024,28 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       canvas.style.width = '600px';
       canvas.style.height = '800px';
       wrapper.appendChild(canvas);
+      container.appendChild(wrapper);
+      document.body.appendChild(container);
 
       await window.renderPageTranslationLayer(wrapper, 1, 'doc_style_test');
-      const layer = wrapper.querySelector('.pdf-translation-layer');
-      const boxes = layer.querySelectorAll('.in-place-translated-box');
-      expect(boxes.length).toBeGreaterThanOrEqual(1);
 
-      const firstBox = boxes[0];
-      // Expect minWidth to cover original Arabic text width
-      expect(firstBox.style.minWidth).toBeDefined();
-      expect(firstBox.style.minWidth).not.toBe('');
-      // Expect maxWidth to allow expansion up to canvas margins
-      expect(firstBox.style.maxWidth).toBeDefined();
-      expect(firstBox.style.height).toBe('auto');
-      expect(firstBox.style.wordBreak).toBe('break-word');
-      expect(firstBox.textContent).toBe('Office of the Undersecretary of the Ministry of Interior');
+      // Panel should be inserted after wrapper inside container
+      const panel = container.querySelector('.pdf-translation-panel');
+      expect(panel).not.toBeNull();
+
+      // Panel should contain the translated text
+      const lineEls = panel.querySelectorAll('div[title]');
+      expect(lineEls.length).toBeGreaterThanOrEqual(1);
+      expect(lineEls[0].textContent).toBe('Office of the Undersecretary of the Ministry of Interior');
+
+      // Panel should have header with page number
+      expect(panel.textContent).toContain('Page 1');
+      expect(panel.textContent).toContain('English Translation');
+
+      // Panel should be selectable
+      expect(panel.style.userSelect).toBe('text');
+
+      container.remove();
     });
 
     it('decomposes complex morphological particles and attached prepositions into natural English', () => {

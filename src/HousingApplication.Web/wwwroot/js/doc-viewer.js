@@ -1503,27 +1503,22 @@
         const canvas = pageWrapper.querySelector('canvas.pdf-page-canvas');
         if (!canvas) return;
 
-        let layer = pageWrapper.querySelector(`.pdf-translation-layer[data-page-number="${pageNum}"]`);
-        if (!layer) {
-            layer = document.createElement('div');
-            layer.className = 'pdf-translation-layer absolute inset-0 pointer-events-auto z-10 select-text';
-            layer.setAttribute('data-page-number', pageNum);
-            pageWrapper.appendChild(layer);
-        }
-
-        layer.innerHTML = '';
+        // Remove any existing translation panel for this page
+        let panel = pageWrapper.parentElement
+            ? pageWrapper.parentElement.querySelector(`.pdf-translation-panel[data-page-number="${pageNum}"]`)
+            : null;
+        if (panel) panel.remove();
+        // Also remove legacy overlay layers
+        const oldLayer = pageWrapper.querySelector(`.pdf-translation-layer[data-page-number="${pageNum}"]`);
+        if (oldLayer) oldLayer.remove();
 
         const lines = await detectPageText(pageWrapper, pageNum, vaultId, currentPdfDoc);
         if (!lines || lines.length === 0) {
             return;
         }
 
-        const canvasCssWidth = parseFloat(canvas.style.width) || canvas.clientWidth || canvas.width;
-        const canvasCssHeight = parseFloat(canvas.style.height) || canvas.clientHeight || canvas.height;
-        const scaleRatioX = canvasCssWidth / (canvas.width || canvasCssWidth);
-        const scaleRatioY = canvasCssHeight / (canvas.height || canvasCssHeight);
-
-        let renderedBoxesCount = 0;
+        // Collect and translate all text lines
+        const translatedLines = [];
         lines.forEach(line => {
             if (!line || !line.text) return;
             const origText = line.text.trim();
@@ -1531,99 +1526,67 @@
 
             const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFC]/.test(origText);
             const translated = hasArabic ? translateArabicText(origText) : origText;
-            if (!translated || !translated.trim()) return;
-
-            const bbox = line.bbox || { x0: 0, y0: 0, x1: 100, y1: 30 };
-            const rawX0 = (bbox.x0 !== undefined) ? bbox.x0 : (bbox.left !== undefined ? bbox.left : 0);
-            const rawY0 = (bbox.y0 !== undefined) ? bbox.y0 : (bbox.top !== undefined ? bbox.top : 0);
-            const rawX1 = (bbox.x1 !== undefined) ? bbox.x1 : (bbox.right !== undefined ? bbox.right : (rawX0 + (bbox.width || 0)));
-            const rawY1 = (bbox.y1 !== undefined) ? bbox.y1 : (bbox.bottom !== undefined ? bbox.bottom : (rawY0 + (bbox.height || 0)));
-
-            const left = Math.max(0, rawX0 * scaleRatioX);
-            const top = Math.max(0, rawY0 * scaleRatioY);
-            const width = Math.max(30, (rawX1 - rawX0) * scaleRatioX);
-            const height = Math.max(16, (rawY1 - rawY0) * scaleRatioY);
-
-            const fontSize = Math.max(10, Math.min(Math.round(height * 0.72), 22));
-
-            const box = document.createElement('div');
-            box.className = 'in-place-translated-box';
-            box.setAttribute('data-original-text', origText);
-            box.setAttribute('title', `Original: ${origText}\nClick or hover to peek scan`);
-            box.textContent = translated;
-
-            box.style.position = 'absolute';
-            box.style.left = `${Math.round(left)}px`;
-            box.style.top = `${Math.round(top)}px`;
-            box.style.minWidth = `${Math.round(width)}px`;
-            box.style.maxWidth = `${Math.max(Math.round(width), Math.round(canvasCssWidth - left - 10))}px`;
-            box.style.minHeight = `${Math.round(height)}px`;
-            box.style.height = 'auto';
-            box.style.fontSize = `${fontSize}px`;
-            box.style.backgroundColor = '#ffffff';
-            box.style.color = '#0f172a';
-            box.style.display = 'flex';
-            box.style.alignItems = 'center';
-            box.style.justifyContent = 'flex-start';
-            box.style.padding = '1px 5px';
-            box.style.boxSizing = 'border-box';
-            box.style.wordBreak = 'break-word';
-            box.style.lineHeight = '1.2';
-            box.style.fontFamily = 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
-            box.style.fontWeight = '500';
-            box.style.lineHeight = '1.15';
-            box.style.borderRadius = '2px';
-            box.style.boxShadow = '0 1px 2px rgba(0,0,0,0.08)';
-            box.style.zIndex = '10';
-            box.style.transition = 'opacity 0.15s ease';
-            box.style.cursor = 'pointer';
-            box.style.userSelect = 'text';
-
-            box.addEventListener('mouseenter', () => { box.style.opacity = '0.12'; });
-            box.addEventListener('mouseleave', () => { box.style.opacity = '1'; });
-            box.addEventListener('click', (e) => {
-                e.stopPropagation();
-                box.style.opacity = (box.style.opacity === '0.12' ? '1' : '0.12');
-            });
-
-            layer.appendChild(box);
-            renderedBoxesCount++;
+            if (translated && translated.trim()) {
+                translatedLines.push({
+                    original: origText,
+                    translated: translated.trim()
+                });
+            }
         });
 
-        if (renderedBoxesCount > 0) {
-            const peekBtn = document.createElement('button');
-            peekBtn.type = 'button';
-            peekBtn.className = 'btn-peek-scan absolute top-2 left-2 px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-900/85 hover:bg-blue-800 text-white backdrop-blur-xs z-20 cursor-pointer shadow-xs transition-all flex items-center gap-1.5 select-none';
-            peekBtn.title = 'Hold or click to peek at original Arabic scan • انقر لمعاينة المسح الأصلي';
-            peekBtn.innerHTML = `
-                <svg class="w-3.5 h-3.5 text-blue-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                <span>Peek Original</span>
-            `;
+        if (translatedLines.length === 0) return;
 
-            let isPeeking = false;
-            const applyPeekState = (peeking) => {
-                layer.querySelectorAll('.in-place-translated-box').forEach(b => {
-                    b.style.opacity = peeking ? '0' : '1';
-                });
-                if (peeking) {
-                    peekBtn.classList.add('bg-blue-600');
-                    peekBtn.classList.remove('bg-blue-900/85');
-                } else {
-                    peekBtn.classList.remove('bg-blue-600');
-                    peekBtn.classList.add('bg-blue-900/85');
-                }
-            };
+        // Build the translation panel — inserted AFTER the page wrapper inside the canvas container
+        panel = document.createElement('div');
+        panel.className = 'pdf-translation-panel';
+        panel.setAttribute('data-page-number', pageNum);
 
-            peekBtn.addEventListener('pointerdown', () => applyPeekState(true));
-            peekBtn.addEventListener('pointerup', () => { if (!isPeeking) applyPeekState(false); });
-            peekBtn.addEventListener('pointerleave', () => { if (!isPeeking) applyPeekState(false); });
-            peekBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                isPeeking = !isPeeking;
-                applyPeekState(isPeeking);
-            });
+        // Page header
+        const header = document.createElement('div');
+        header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid rgba(148,163,184,0.25);';
+        header.innerHTML = `
+            <div style="display:flex;align-items:center;gap:8px;">
+                <svg style="width:16px;height:16px;color:#3b82f6;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
+                <span style="font-size:13px;font-weight:600;color:#e2e8f0;">Page ${pageNum} — English Translation</span>
+            </div>
+            <span style="font-size:11px;color:#64748b;">${translatedLines.length} lines</span>
+        `;
+        panel.appendChild(header);
 
-            layer.appendChild(peekBtn);
+        // Translation content
+        const content = document.createElement('div');
+        content.style.cssText = 'padding:12px 16px;display:flex;flex-direction:column;gap:6px;';
+
+        translatedLines.forEach((item, idx) => {
+            const lineEl = document.createElement('div');
+            lineEl.style.cssText = 'font-size:14px;line-height:1.6;color:#f1f5f9;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:4px 0;';
+            lineEl.textContent = item.translated;
+            lineEl.setAttribute('title', `Original: ${item.original}`);
+            lineEl.style.cursor = 'help';
+            content.appendChild(lineEl);
+        });
+
+        panel.appendChild(content);
+
+        // Style the panel
+        panel.style.cssText = [
+            'width:100%',
+            'max-width:816px',
+            'margin:0 auto 16px auto',
+            'background:linear-gradient(135deg,rgba(15,23,42,0.95),rgba(30,41,59,0.95))',
+            'border:1px solid rgba(148,163,184,0.2)',
+            'border-radius:12px',
+            'backdrop-filter:blur(8px)',
+            'box-shadow:0 4px 16px rgba(0,0,0,0.2)',
+            'overflow:hidden',
+            'user-select:text',
+        ].join(';') + ';';
+
+        // Insert AFTER the page wrapper in the canvas container
+        if (pageWrapper.nextSibling) {
+            pageWrapper.parentElement.insertBefore(panel, pageWrapper.nextSibling);
+        } else {
+            pageWrapper.parentElement.appendChild(panel);
         }
     }
 
@@ -1677,6 +1640,7 @@
         const canvasContainer = document.getElementById('pdf-canvas-container');
         if (canvasContainer) {
             canvasContainer.querySelectorAll('.pdf-translation-layer').forEach(l => l.remove());
+            canvasContainer.querySelectorAll('.pdf-translation-panel').forEach(l => l.remove());
             canvasContainer.querySelectorAll('.ocr-scanning-indicator').forEach(i => i.remove());
             canvasContainer.classList.add('hidden');
         }
