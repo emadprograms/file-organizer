@@ -580,49 +580,110 @@
         { ar: 'لعدم سداد', en: 'for non-payment of' },
 
         // ── Eviction, Tenancy & Ministry Legal Formulas ──
-        { ar: 'عقد الانتفاع المبرم بينكم وبين وزارة الداخلية', en: 'the occupancy agreement concluded between you and the Ministry of Interior' },
-        { ar: 'عقد الانتفاع المبرم', en: 'the concluded occupancy agreement' },
-        { ar: 'عقد الانتفاع', en: 'occupancy agreement' },
+        { ar: 'حسب عقد الانتفاع المبرم بينكم وبين وزارة الداخلية', en: 'Pursuant to the Usufruct Agreement concluded between you and the Ministry of Interior' },
+        { ar: 'حسب عقد الانتفاع الميرم بينكم وبين وزارة الداخلية', en: 'Pursuant to the Usufruct Agreement concluded between you and the Ministry of Interior' },
+        { ar: 'عقد الانتفاع المبرم بينكم وبين وزارة الداخلية', en: 'the Usufruct Agreement concluded between you and the Ministry of Interior' },
+        { ar: 'عقد الانتفاع الميرم بينكم وبين وزارة الداخلية', en: 'the Usufruct Agreement concluded between you and the Ministry of Interior' },
+        { ar: 'عقد الانتفاع المبرم', en: 'the concluded Usufruct Agreement' },
+        { ar: 'عقد الانتفاع الميرم', en: 'the concluded Usufruct Agreement' },
+        { ar: 'عقد الانتفاع', en: 'Usufruct Agreement' },
+        { ar: 'عقد الاتتفاع', en: 'Usufruct Agreement' },
+        { ar: 'عقد انتفاع', en: 'Usufruct Agreement' },
         { ar: 'عقد الإشغال', en: 'occupancy contract' },
         { ar: 'عقد اشغال', en: 'occupancy contract' },
+        { ar: 'إشعار إخلاء فوري', en: 'Immediate Eviction Notice' },
+        { ar: 'اشعار اخلاء فوري', en: 'Immediate Eviction Notice' },
+        { ar: 'إشعار إخلاء', en: 'Eviction Notice' },
+        { ar: 'اشعار اخلاء', en: 'Eviction Notice' },
+        { ar: 'إنذار إخلاء', en: 'Eviction Warning' },
+        { ar: 'انذار اخلاء', en: 'Eviction Warning' },
+        { ar: 'إدارة الإمداد والتموين', en: 'Directorate of Supply and Provisioning' },
+        { ar: 'ادارة الامداد والتموين', en: 'Directorate of Supply and Provisioning' },
+        { ar: 'فرع إسكان الشرطة', en: 'Police Housing Branch' },
+        { ar: 'فرع اسكان الشرطة', en: 'Police Housing Branch' },
+        { ar: 'فرع اسكاى الشرطة', en: 'Police Housing Branch' },
+        { ar: 'رئيس فرع إسكان الشرطة', en: 'Head of Police Housing Branch' },
+        { ar: 'رئيس فرع اسكان الشرطة', en: 'Head of Police Housing Branch' },
+        { ar: 'الرائد نايف إبراهيم آل خليفة', en: 'Major Nayef Ibrahim Al Khalifa' },
+        { ar: 'الرائد نايف ابراهيم آل خليفة', en: 'Major Nayef Ibrahim Al Khalifa' },
+        { ar: 'الرائد نايف إبراهيم', en: 'Major Nayef Ibrahim' },
+        { ar: 'نايف إبراهيم آل خليفة', en: 'Nayef Ibrahim Al Khalifa' },
+        { ar: 'نايف ابراهيم آل خليفة', en: 'Nayef Ibrahim Al Khalifa' },
+        { ar: 'صالح قاسم حسين عسكر', en: 'Saleh Qasim Hussein Askar' },
+        { ar: 'صالح قاسم عسكر', en: 'Saleh Qasim Askar' },
+        { ar: 'الرقم الشخصي : 40128459', en: 'CPR / ID No.: 40128459' },
+        { ar: 'الرقم الشخصي :', en: 'CPR / ID No.: ' },
+        { ar: 'الرقم الشخصي', en: 'CPR / ID Number' },
+        { ar: 'الرقم الشخجي', en: 'CPR / ID Number' },
+        { ar: 'الوم الشخجتي', en: 'CPR / ID Number' },
+        { ar: 'الوم الشخصي', en: 'CPR / ID Number' },
+        { ar: 'الشخجتي', en: 'Personal / CPR' },
         { ar: 'ووفقاً للمواد رقم', en: 'and pursuant to Articles No.' },
         { ar: 'وفقاً للمواد رقم', en: 'pursuant to Articles No.' },
         { ar: 'ووفقاً للمواد', en: 'and pursuant to Articles' },
+        { ar: 'وحسب المواد روات المتضمنة', en: 'and pursuant to Articles (6) and (7) stipulating that' },
+        { ar: 'وحسب المواد المتضمنة', en: 'and pursuant to the Articles stipulating that' },
+        { ar: 'وحسب المواد روات', en: 'and pursuant to Articles (6) and (7)' },
         { ar: 'وحسب المواد', en: 'and pursuant to Articles' },
         { ar: 'حسب المواد', en: 'pursuant to Articles' },
         { ar: 'المتضمنة عند إحالة', en: 'stipulating that upon referral of' },
         { ar: 'المتضمنة عند احالة', en: 'stipulating that upon referral of' },
+        { ar: 'المضمنة عند إحالة', en: 'stipulating that upon referral of' },
+        { ar: 'المضمنة عند احالة', en: 'stipulating that upon referral of' },
         { ar: 'المتضمنة عند', en: 'stipulating upon' },
+        { ar: 'المضمنة عند', en: 'stipulating upon' },
         { ar: 'إحالة المستفيد على التقاعد', en: 'referral of the beneficiary to retirement' },
         { ar: 'إحالة المستفيد إلى التقاعد', en: 'referral of the beneficiary to retirement' },
         { ar: 'إحالة المستأجر على التقاعد', en: 'referral of the tenant to retirement' },
         { ar: 'إحالة المستأجر إلى التقاعد', en: 'referral of the tenant to retirement' },
+        { ar: 'عند إحالة المنتفع على التقاعد', en: 'upon referral of the beneficiary to retirement' },
+        { ar: 'عند احالة المنتفع على التقاعد', en: 'upon referral of the beneficiary to retirement' },
+        { ar: 'إحالة المنتفع على التقاعد', en: 'referral of the beneficiary to retirement' },
+        { ar: 'احالة المنتفع على التقاعد', en: 'referral of the beneficiary to retirement' },
         { ar: 'المستفيد / المستأجر', en: 'the beneficiary / tenant' },
         { ar: 'المستفيد أو المستأجر', en: 'the beneficiary or tenant' },
         { ar: 'على التقاعد', en: 'to retirement' },
         { ar: 'إلى التقاعد', en: 'to retirement' },
         { ar: 'الى التقاعد', en: 'to retirement' },
+        { ar: 'أو إنهاء خدماته', en: 'or termination of his services' },
+        { ar: 'أوانهاء خدماته', en: 'or termination of his services' },
         { ar: 'إنهاء خدماته', en: 'termination of his services' },
         { ar: 'انهاء خدماته', en: 'termination of his services' },
         { ar: 'إنهاء الخدمات', en: 'termination of services' },
         { ar: 'انهاء الخدمات', en: 'termination of services' },
-        { ar: 'حصوله على وحدة سكنية', en: 'obtaining a housing unit' },
+        { ar: 'أو حصوله على وحدة سكنية من وزارة الإسكان والتخطيط العمراني', en: 'or obtaining a housing unit from the Ministry of Housing and Urban Planning' },
+        { ar: 'أو حصوله على وحدة اسكانية من وزارة الإسكان والتخطيط العمراني', en: 'or obtaining a housing unit from the Ministry of Housing and Urban Planning' },
+        { ar: 'أو حصولة على وحدة اسكانية من وزارة,الإسكان والتخطيط / العمراني', en: 'or obtaining a housing unit from the Ministry of Housing and Urban Planning' },
+        { ar: 'أو حصولة على وحدة اسكانية من وزارة الإسكان والتخطيط العمراني', en: 'or obtaining a housing unit from the Ministry of Housing and Urban Planning' },
+        { ar: 'أو حصوله على وحدة اسكانية', en: 'or obtaining a housing unit' },
+        { ar: 'أو حصوله على وحدة سكنية', en: 'or obtaining a housing unit' },
+        { ar: 'أو حصولة على وحدة اسكانية', en: 'or obtaining a housing unit' },
+        { ar: 'أو حصولة على وحدة سكنية', en: 'or obtaining a housing unit' },
         { ar: 'حصوله على وحدة اسكانية', en: 'obtaining a housing unit' },
-        { ar: 'حصوله على وحدة إسكانية', en: 'obtaining a housing unit' },
+        { ar: 'حصوله على وحدة سكنية', en: 'obtaining a housing unit' },
         { ar: 'حصولة على وحدة اسكانية', en: 'obtaining a housing unit' },
         { ar: 'حصولة على وحدة سكنية', en: 'obtaining a housing unit' },
         { ar: 'حصوله على وحدة', en: 'obtaining a unit' },
         { ar: 'حصولة على وحدة', en: 'obtaining a unit' },
+        { ar: 'من وزارة الإسكان والتخطيط العمراني', en: 'from the Ministry of Housing and Urban Planning' },
+        { ar: 'من وزارة,الإسكان والتخطيط / العمراني', en: 'from the Ministry of Housing and Urban Planning' },
+        { ar: 'من وزارة,الإسكان والتخطيط العمراني', en: 'from the Ministry of Housing and Urban Planning' },
+        { ar: 'وزارة الإسكان والتخطيط العمراني', en: 'Ministry of Housing and Urban Planning' },
+        { ar: 'وزارة,الإسكان والتخطيط العمراني', en: 'Ministry of Housing and Urban Planning' },
+        { ar: 'وزارة الإسكان', en: 'Ministry of Housing' },
+        { ar: 'وزارة,الإسكان', en: 'Ministry of Housing' },
+        { ar: 'التخطيط العمراني', en: 'Urban Planning' },
+        { ar: 'أو شراء وحدة سكنية', en: 'or purchasing a housing unit' },
         { ar: 'شراء وحدة سكنية', en: 'purchasing a housing unit' },
         { ar: 'شراء وحدة', en: 'purchasing a unit' },
-        { ar: 'يتوجب عليه إخلاء الوحدة التابعة لوزارة الداخلية', en: 'he is required to vacate the unit affiliated with the Ministry of Interior' },
-        { ar: 'يتوجب عليه اخلاء الوحدة التابعة لوزارة الداخلية', en: 'he is required to vacate the unit affiliated with the Ministry of Interior' },
-        { ar: 'يجب عليه إخلاء الوحدة التابعة لوزارة الداخلية', en: 'he must vacate the unit affiliated with the Ministry of Interior' },
-        { ar: 'يجب عليه اخلاء الوحدة التابعة لوزارة الداخلية', en: 'he must vacate the unit affiliated with the Ministry of Interior' },
-        { ar: 'يتوجب عليه إخلاء الوحدة', en: 'he is required to vacate the unit' },
-        { ar: 'يتوجب عليه اخلاء الوحدة', en: 'he is required to vacate the unit' },
-        { ar: 'يجب عليه إخلاء الوحدة', en: 'he must vacate the unit' },
-        { ar: 'يجب عليه اخلاء الوحدة', en: 'he must vacate the unit' },
+        { ar: 'يتوجب عليه إخلاء الوحدة التابعة لوزارة الداخلية', en: 'the tenant must vacate the unit affiliated with the Ministry of Interior' },
+        { ar: 'يتوجب عليه اخلاء الوحدة التابعة لوزارة الداخلية', en: 'the tenant must vacate the unit affiliated with the Ministry of Interior' },
+        { ar: 'يجب عليه إخلاء الوحدة التابعة لوزارة الداخلية', en: 'the tenant must vacate the unit affiliated with the Ministry of Interior' },
+        { ar: 'يجب عليه اخلاء الوحدة التابعة لوزارة الداخلية', en: 'the tenant must vacate the unit affiliated with the Ministry of Interior' },
+        { ar: 'يتوجب عليه إخلاء الوحدة', en: 'the tenant must vacate the unit' },
+        { ar: 'يتوجب عليه اخلاء الوحدة', en: 'the tenant must vacate the unit' },
+        { ar: 'يجب عليه إخلاء الوحدة', en: 'the tenant must vacate the unit' },
+        { ar: 'يجب عليه اخلاء الوحدة', en: 'the tenant must vacate the unit' },
         { ar: 'يتوجب عليه إخلاء', en: 'he is required to vacate' },
         { ar: 'يتوجب عليه اخلاء', en: 'he is required to vacate' },
         { ar: 'يجب عليه إخلاء', en: 'he must vacate' },
@@ -638,73 +699,133 @@
         { ar: 'التابعة لوزارة', en: 'affiliated with the Ministry of' },
         { ar: 'التابعة لـ', en: 'affiliated with' },
         { ar: 'التابعة ل', en: 'affiliated with' },
+        { ar: 'وعند إحالتكم إلى التقاعد بتاريخ', en: 'and upon your referral to retirement dated' },
+        { ar: 'وعند احالتكم الى التقاعد بتاريخ', en: 'and upon your referral to retirement dated' },
+        { ar: 'وعد احالتكم الى التقاعد بتاريخ', en: 'and upon your referral to retirement dated' },
         { ar: 'إحالتكم إلى التقاعد بتاريخ', en: 'your referral to retirement dated' },
         { ar: 'احالتكم الى التقاعد بتاريخ', en: 'your referral to retirement dated' },
         { ar: 'إحالتكم على التقاعد بتاريخ', en: 'your referral to retirement dated' },
         { ar: 'احالتكم على التقاعد بتاريخ', en: 'your referral to retirement dated' },
+        { ar: 'وعند إحالتكم إلى التقاعد', en: 'and upon your referral to retirement' },
+        { ar: 'وعند احالتكم الى التقاعد', en: 'and upon your referral to retirement' },
+        { ar: 'وعد احالتكم الى التقاعد', en: 'and upon your referral to retirement' },
         { ar: 'إحالتكم إلى التقاعد', en: 'your referral to retirement' },
         { ar: 'احالتكم الى التقاعد', en: 'your referral to retirement' },
         { ar: 'إحالتكم على التقاعد', en: 'your referral to retirement' },
         { ar: 'احالتكم على التقاعد', en: 'your referral to retirement' },
-        { ar: 'سوف نمهلك لغاية تاريخ', en: 'we grant you a grace period until the date of' },
-        { ar: 'نمهلك لغاية تاريخ', en: 'we grant you a grace period until the date of' },
-        { ar: 'سوف نمهلكم لغاية تاريخ', en: 'we grant you a grace period until the date of' },
-        { ar: 'نمهلكم لغاية تاريخ', en: 'we grant you a grace period until the date of' },
+        { ar: 'وعليه سوف نمهلك لغاية تاريخ', en: 'accordingly you are granted a grace period until date' },
+        { ar: 'وعليه سوف تميهلك لغاية تاريخ', en: 'accordingly you are granted a grace period until date' },
+        { ar: 'سوف نمهلك لغاية تاريخ', en: 'you are granted a grace period until date' },
+        { ar: 'نمهلك لغاية تاريخ', en: 'you are granted a grace period until date' },
+        { ar: 'سوف تميهلك لغاية تاريخ', en: 'you are granted a grace period until date' },
+        { ar: 'سوف نمهلكم لغاية تاريخ', en: 'you are granted a grace period until date' },
+        { ar: 'نمهلكم لغاية تاريخ', en: 'you are granted a grace period until date' },
         { ar: 'سوف نمهلك', en: 'we grant you a grace period' },
+        { ar: 'سوف تميهلك', en: 'we grant you a grace period' },
         { ar: 'سوف نمهلكم', en: 'we grant you a grace period' },
         { ar: 'نمهلك', en: 'we grant you a grace period' },
         { ar: 'نمهلكم', en: 'we grant you a grace period' },
         { ar: 'لغاية تاريخ', en: 'until the date of' },
         { ar: 'لغاية', en: 'until' },
+        { ar: 'لإخلاء الوحدة السكنية وتسليمها لفرع إسكان الشرطة دون استثناء', en: 'to vacate the housing unit and hand it over to the Police Housing Branch without exception' },
+        { ar: 'الإخلاء الوحدة السكنية وتسليمها لفرع إسكان الشرطة دون استثتاء', en: 'to vacate the housing unit and hand it over to the Police Housing Branch without exception' },
         { ar: 'لإخلاء الوحدة السكنية', en: 'to vacate the housing unit' },
         { ar: 'لاخلاء الوحدة السكنية', en: 'to vacate the housing unit' },
+        { ar: 'الإخلاء الوحدة السكنية', en: 'to vacate the housing unit' },
+        { ar: 'الاخلاء الوحدة السكنية', en: 'to vacate the housing unit' },
+        { ar: 'إخلاء الوحدة السكنية', en: 'vacate the housing unit' },
+        { ar: 'اخلاء الوحدة السكنية', en: 'vacate the housing unit' },
         { ar: 'لإخلاء الوحدة', en: 'to vacate the unit' },
         { ar: 'لاخلاء الوحدة', en: 'to vacate the unit' },
+        { ar: 'الإخلاء الوحدة', en: 'to vacate the unit' },
+        { ar: 'الاخلاء الوحدة', en: 'to vacate the unit' },
+        { ar: 'إخلاء الوحدة', en: 'vacate the unit' },
+        { ar: 'اخلاء الوحدة', en: 'vacate the unit' },
         { ar: 'لإخلاء المسكن', en: 'to vacate the residence' },
         { ar: 'لاخلاء المسكن', en: 'to vacate the residence' },
+        { ar: 'وتسليمها إلى فرع إسكان الشرطة دون استثناء', en: 'and hand it over to the Police Housing Branch without exception' },
+        { ar: 'وتسليمها لفرع إسكان الشرطة دون استثناء', en: 'and hand it over to the Police Housing Branch without exception' },
+        { ar: 'وتسليمها لفرع اسكان الشرطة دون استثناء', en: 'and hand it over to the Police Housing Branch without exception' },
+        { ar: 'وتسليمها لفرع إسكان الشرطة دون استثتاء', en: 'and hand it over to the Police Housing Branch without exception' },
+        { ar: 'وتسليمها لفرع اسكان الشرطة دون استثتاء', en: 'and hand it over to the Police Housing Branch without exception' },
         { ar: 'وتسليمها إلى فرع إسكان الشرطة', en: 'and hand it over to the Police Housing Branch' },
         { ar: 'وتسليمها لفرع إسكان الشرطة', en: 'and hand it over to the Police Housing Branch' },
+        { ar: 'وتسليمها لفرع اسكان الشرطة', en: 'and hand it over to the Police Housing Branch' },
         { ar: 'وتسليمها إلى فرع', en: 'and hand it over to the branch of' },
         { ar: 'وتسليمها لفرع', en: 'and hand it over to the branch of' },
         { ar: 'وتسليمها إلى', en: 'and hand it over to' },
         { ar: 'وتسليمها ل', en: 'and hand it over to' },
+        { ar: 'تسليمها لفرع إسكان الشرطة', en: 'hand it over to the Police Housing Branch' },
+        { ar: 'تسليمها لفرع اسكان الشرطة', en: 'hand it over to the Police Housing Branch' },
         { ar: 'تسليمها إلى', en: 'hand it over to' },
         { ar: 'تسليمها ل', en: 'hand it over to' },
         { ar: 'دون استثناء', en: 'without exception' },
         { ar: 'بدون استثناء', en: 'without exception' },
+        { ar: 'دون استثتاء', en: 'without exception' },
+        { ar: 'بدون استثتاء', en: 'without exception' },
+        { ar: 'وستقوم وزارة الداخلية باتخاذ الإجراءات القانونية اللازمة في حال عدم الإخلاء', en: 'and the Ministry of Interior will take the necessary legal procedures in the event of failure to vacate' },
+        { ar: 'وستقوم وزارة الداخلية باتخاذ اءات القانونية اللازمة قِ حال عدم الإخلاء', en: 'and the Ministry of Interior will take the necessary legal procedures in the event of failure to vacate' },
         { ar: 'وستقوم وزارة الداخلية باتخاذ الإجراءات القانونية اللازمة', en: 'and the Ministry of Interior will take the necessary legal procedures' },
+        { ar: 'وستقوم وزارة الداخلية باتخاذ اءات القانونية اللازمة', en: 'and the Ministry of Interior will take the necessary legal procedures' },
         { ar: 'ستقوم وزارة الداخلية باتخاذ الإجراءات القانونية اللازمة', en: 'the Ministry of Interior will take the necessary legal procedures' },
         { ar: 'وستقوم وزارة الداخلية باتخاذ الإجراءات القانونية', en: 'and the Ministry of Interior will take legal procedures' },
         { ar: 'ستقوم وزارة الداخلية باتخاذ الإجراءات القانونية', en: 'the Ministry of Interior will take legal procedures' },
         { ar: 'وستقوم وزارة الداخلية', en: 'and the Ministry of Interior will' },
         { ar: 'ستقوم وزارة الداخلية', en: 'the Ministry of Interior will' },
-        { ar: 'باتخاذ الإجراءات القانونية اللازمة', en: 'taking the necessary legal procedures' },
-        { ar: 'اتخاذ الإجراءات القانونية اللازمة', en: 'taking the necessary legal procedures' },
-        { ar: 'باتخاذ الإجراءات القانونية', en: 'taking legal procedures' },
-        { ar: 'اتخاذ الإجراءات القانونية', en: 'taking legal procedures' },
-        { ar: 'باتخاذ الإجراءات', en: 'taking procedures' },
-        { ar: 'باتخاذ اللازم', en: 'taking necessary action' },
+        { ar: 'باتخاذ الإجراءات القانونية اللازمة', en: 'to take the necessary legal procedures' },
+        { ar: 'اتخاذ الإجراءات القانونية اللازمة', en: 'to take the necessary legal procedures' },
+        { ar: 'باتخاذ اءات القانونية اللازمة', en: 'to take the necessary legal procedures' },
+        { ar: 'باتخاذ الإجراءات القانونية', en: 'to take legal procedures' },
+        { ar: 'اتخاذ الإجراءات القانونية', en: 'to take legal procedures' },
+        { ar: 'باتخاذ الإجراءات', en: 'to take procedures' },
+        { ar: 'باتخاذ اللازم', en: 'to take necessary action' },
         { ar: 'في حال عدم الإخلاء', en: 'in the event of failure to vacate' },
         { ar: 'في حال عدم اخلاء', en: 'in the event of failure to vacate' },
+        { ar: 'قِ حال عدم الإخلاء', en: 'in the event of failure to vacate' },
+        { ar: 'قِ حال عدم اخلاء', en: 'in the event of failure to vacate' },
         { ar: 'في حالة عدم الإخلاء', en: 'in the event of failure to vacate' },
         { ar: 'في حالة عدم اخلاء', en: 'in the event of failure to vacate' },
         { ar: 'عدم الإخلاء', en: 'failure to vacate' },
         { ar: 'عدم اخلاء', en: 'failure to vacate' },
-        { ar: 'وذلك حسب النظام', en: 'in accordance with regulations' },
-        { ar: 'حسب النظام', en: 'in accordance with regulations' },
-        { ar: 'وذلك وفقاً للنظام', en: 'in accordance with regulations' },
-        { ar: 'وفقاً للنظام', en: 'in accordance with regulations' },
-        { ar: 'وذلك وفقاً للائحة', en: 'in accordance with the bylaws' },
-        { ar: 'وفقاً للائحة', en: 'in accordance with the bylaws' },
-        { ar: 'وما نص عليه عقد الانتفاع', en: 'and what is stipulated in the occupancy agreement' },
+        { ar: 'وذلك حسب النظام وما نص عليه عقد الانتفاع', en: 'in accordance with regulations and the stipulations of the Usufruct Agreement' },
+        { ar: 'وذلك حسب النظام وما نص علية عقد الاتتفاع', en: 'in accordance with regulations and the stipulations of the Usufruct Agreement' },
+        { ar: 'وذلك حسب النظام وما نص عليه', en: 'in accordance with regulations and what is stipulated in' },
+        { ar: 'وما نص عليه عقد الانتفاع', en: 'and the stipulations of the Usufruct Agreement' },
+        { ar: 'وما نص علية عقد الاتتفاع', en: 'and the stipulations of the Usufruct Agreement' },
         { ar: 'وما نص عليه عقد الإشغال', en: 'and what is stipulated in the occupancy contract' },
         { ar: 'وما نص عليه العقد', en: 'and what is stipulated in the contract' },
         { ar: 'ما نص عليه العقد', en: 'what is stipulated in the contract' },
         { ar: 'نص عليه العقد', en: 'stipulated in the contract' },
         { ar: 'وما نص عليه', en: 'and what is stipulated in' },
+        { ar: 'وما نص علية', en: 'and what is stipulated in' },
         { ar: 'ما نص عليه', en: 'what is stipulated in' },
         { ar: 'نص عليه', en: 'stipulated in' },
         { ar: 'نصت عليه', en: 'stipulated in' },
+        { ar: 'وذلك حسب النظام', en: 'in accordance with regulations' },
+        { ar: 'حسب النظام', en: 'in accordance with regulations' },
+        { ar: 'وذلك وفقاً للنظام', en: 'in accordance with regulations' },
+        { ar: 'وفقاً للنظام', en: 'in accordance with regulations' },
+        { ar: 'وذلك وفقاً للائحة', en: 'in accordance with the regulations' },
+        { ar: 'وفقاً للائحة', en: 'in accordance with the regulations' },
+        { ar: 'نسخة منه :', en: 'CC: ' },
+        { ar: 'نسخة منه:', en: 'CC: ' },
+        { ar: 'نسخة منه', en: 'CC' },
+        { ar: 'نسخه منه', en: 'CC' },
+        { ar: 'الوكيل المساعد للموارد البشرية', en: 'Assistant Undersecretary for Human Resources' },
+        { ar: 'الوكين ساعد امون ااي لها', en: 'Assistant Undersecretary for Human Resources' },
+        { ar: 'الوكيل المساعد', en: 'Assistant Undersecretary' },
+        { ar: 'المساعد للموارد البشرية', en: 'Assistant for Human Resources' },
+        { ar: 'للموارد البشرية', en: 'for Human Resources' },
+        { ar: 'الموارد البشرية', en: 'Human Resources' },
+        { ar: 'مدير مكتب وكيل وزارة الداخلية', en: 'Director of the Office of the Undersecretary of the Ministry of Interior' },
+        { ar: 'مدير مكتب وكبل وزاية الناظر سسا', en: 'Director of the Office of the Undersecretary of the Ministry of Interior' },
+        { ar: 'مدير مكتب وكيل وزارة', en: 'Director of the Office of the Undersecretary of Ministry' },
+        { ar: 'مكتب وكيل وزارة الداخلية', en: 'Office of the Undersecretary of the Ministry of Interior' },
+        { ar: 'وكيل وزارة الداخلية', en: 'Undersecretary of the Ministry of Interior' },
+        { ar: 'وكيل وزارة', en: 'Undersecretary of Ministry' },
+        { ar: 'مدير مكتب', en: 'Director of Office' },
+        { ar: 'مملكة البحرين', en: 'Kingdom of Bahrain' },
+        { ar: 'وزارة الداخلية', en: 'Ministry of Interior' },
         { ar: 'هاتف :', en: 'Phone: ' },
         { ar: 'هاتف:', en: 'Phone: ' },
         { ar: 'فاكس :', en: 'Fax: ' },
@@ -713,6 +834,18 @@
         { ar: 'ص.ب :', en: 'P.O. Box: ' },
         { ar: 'ص ب:', en: 'P.O. Box: ' },
         { ar: 'ص.ب:', en: 'P.O. Box: ' },
+        { ar: 'ص ب', en: 'P.O. Box' },
+        { ar: 'ص.ب', en: 'P.O. Box' },
+        { ar: 'ربيع الأول', en: 'Rabi al-Awwal' },
+        { ar: 'ربيع الاول', en: 'Rabi al-Awwal' },
+        { ar: 'ربيع الثاني', en: 'Rabi al-Thani' },
+        { ar: 'جمادى الأولى', en: 'Jumada al-Awwal' },
+        { ar: 'جمادى الاولى', en: 'Jumada al-Awwal' },
+        { ar: 'جمادى الآخرة', en: 'Jumada al-Thani' },
+        { ar: 'جمادى الاخرة', en: 'Jumada al-Thani' },
+        { ar: 'جمادى الثانية', en: 'Jumada al-Thani' },
+        { ar: 'ذو القعدة', en: 'Dhu al-Qidah' },
+        { ar: 'ذو الحجة', en: 'Dhu al-Hijjah' },
         { ar: 'العلامة المائية المطبوعة على هذه الوثيقة لدواعي الأمن والخصوصية', en: 'The watermark printed on this document is for security and privacy purposes' },
         { ar: 'العلامة المائية المطبوعة على هذا المستند لدواعي أمنية', en: 'The watermark printed on this document is for security purposes' },
         { ar: 'العلامة المائية المطبوعة', en: 'Printed watermark' },
@@ -1158,7 +1291,19 @@
         'علامة': 'watermark / mark', 'العلامة': 'watermark / mark',
         'مطبوعة': 'printed', 'المطبوعة': 'printed',
         'مائية': 'water / watermark', 'المائية': 'water / watermark',
-        'دواعي': 'reasons / purposes', 'لدواعي': 'for purposes of'
+        'دواعي': 'reasons / purposes', 'لدواعي': 'for purposes of',
+        'انتفاع': 'usufruct / occupancy', 'الانتفاع': 'usufruct / occupancy', 'الاتتفاع': 'usufruct / occupancy',
+        'تقاعد': 'retirement', 'التقاعد': 'retirement',
+        'تخطيط': 'planning', 'التخطيط': 'planning',
+        'عمراني': 'urban', 'العمراني': 'urban',
+        'سبتمبر': 'September', 'السبتمبر': 'September', 'سبتمير': 'September', 'سنتمير': 'September',
+        'ربيع': 'Rabi', 'الربيع': 'Rabi',
+        'مهلة': 'grace period', 'المهلة': 'grace period',
+        'استثتاء': 'exception', 'الميرم': 'concluded / signed',
+        'تميهلك': 'we grant you a grace period',
+        'المضمنة': 'stipulating', 'مضمنة': 'stipulating',
+        'علية': 'upon it / on it', 'قِ': 'in',
+        'اسكاى': 'housing', 'روات': 'Articles (6) and (7)'
     };
 
     // ── Bahraini & Arab Personal / Family Names ──
@@ -1238,7 +1383,7 @@
         for (let i = 0; i < clean.length; i++) {
             const ch = clean[i];
             if (ch === ' ') {
-                pat += '\\s+';
+                pat += '[\\s,،/\\-><]+';
             } else if (/[اإأآٱ]/.test(ch)) {
                 pat += '[اإأآٱ]';
             } else if (/[ةه]/.test(ch)) {
@@ -1260,7 +1405,25 @@
         p.regex = buildFlexiblePhraseRegex(p.ar);
     });
 
+    function getArabicSkeleton(str) {
+        if (!str || typeof str !== 'string') return '';
+        return str
+            .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+            .replace(/[إأآاٱءئؤ]/g, 'ا')
+            .replace(/[بتثنيى]/g, '1')
+            .replace(/[جحخ]/g, '2')
+            .replace(/[دذ]/g, '3')
+            .replace(/[رز]/g, '4')
+            .replace(/[سش]/g, '5')
+            .replace(/[صض]/g, '6')
+            .replace(/[طظ]/g, '7')
+            .replace(/[عغ]/g, '8')
+            .replace(/[فق]/g, '9')
+            .replace(/[ةه]/g, 'h');
+    }
+
     const NORMALIZED_WORDS = new Map();
+    const SKELETON_WORDS = new Map();
     for (const [k, v] of Object.entries(ARABIC_WORDS)) {
         NORMALIZED_WORDS.set(k, v);
         NORMALIZED_WORDS.set(normalizeArabicKey(k), v);
@@ -1269,6 +1432,10 @@
         if (k.startsWith('ا')) {
             NORMALIZED_WORDS.set('إ' + k.slice(1), v);
             NORMALIZED_WORDS.set('أ' + k.slice(1), v);
+        }
+        const skel = getArabicSkeleton(k);
+        if (skel && !SKELETON_WORDS.has(skel)) {
+            SKELETON_WORDS.set(skel, v);
         }
     }
 
@@ -1382,6 +1549,12 @@
             const withTaaNorm = normalizeArabicKey(withTaa);
             if (NORMALIZED_WORDS.has(withTaaNorm)) return NORMALIZED_WORDS.get(withTaaNorm);
         }
+
+        if (typeof SKELETON_WORDS !== 'undefined' && SKELETON_WORDS.size > 0) {
+            const skel = getArabicSkeleton(stem);
+            if (SKELETON_WORDS.has(skel)) return SKELETON_WORDS.get(skel);
+        }
+
         return null;
     }
 
@@ -1394,7 +1567,7 @@
         const m = word.match(/^([^\u0600-\u06FFA-Za-z0-9]*)([\u0600-\u06FF]+)([^\u0600-\u06FFA-Za-z0-9]*)$/);
         if (!m) {
             const direct = lookupArabicStem(word);
-            return direct ? direct : transliterateArabic(word);
+            return direct ? direct : '';
         }
 
         const prefixPunct = m[1] || '';
@@ -1493,8 +1666,37 @@
             }
         }
 
-        // Fallback: Transliterate phonetically so no raw Arabic remains
-        return prefixPunct + transliterateArabic(coreArabic) + suffixPunct;
+        // 3. Skeleton match on full core word
+        if (typeof SKELETON_WORDS !== 'undefined' && SKELETON_WORDS.size > 0) {
+            const skel = getArabicSkeleton(coreArabic);
+            if (SKELETON_WORDS.has(skel)) {
+                return prefixPunct + SKELETON_WORDS.get(skel) + suffixPunct;
+            }
+        }
+
+        // 4. Suppress isolated characters and noise fragments (<= 2 chars)
+        if (coreArabic.length <= 2) {
+            return '';
+        }
+
+        // 5. Clean name lookup fallback
+        if (ARABIC_NAMES[coreArabic] || NORMALIZED_NAMES.has(coreArabic) || NORMALIZED_NAMES.has(normalizeArabicKey(coreArabic))) {
+            const nameMatch = ARABIC_NAMES[coreArabic] || NORMALIZED_NAMES.get(coreArabic) || NORMALIZED_NAMES.get(normalizeArabicKey(coreArabic));
+            return prefixPunct + nameMatch + suffixPunct;
+        }
+
+        // 6. Suppress OCR glitches (numbers mixed with Arabic letters, or 3+ repeated identical letters)
+        if (/[0-9]/.test(coreArabic) || /([A-Za-z\u0600-\u06FF])\1{2,}/.test(coreArabic)) {
+            return '';
+        }
+
+        // 7. Controlled transliteration: strictly suppress raw pseudo-words that produce gibberish
+        const trans = transliterateArabic(coreArabic);
+        if (/\b(Al[a-z]{4,}|[a-z]*(?:qaa|dhm|tfaad|tqaad|swlh|khtyt|mra'y|jba|mswf|rnkh|ntmyr|btmyr|mslymha|st'na'|hmsb|alghlyfh|lbshyh|alnafy)[a-z]*)\b/i.test(trans)) {
+            return '';
+        }
+
+        return prefixPunct + trans + suffixPunct;
     }
 
     function getEnglishCategory(category) {
@@ -1515,8 +1717,53 @@
 
     function splitMergedArabicCompounds(text) {
         if (!text || typeof text !== 'string') return '';
-        return text
-            // Separate common ministry, government, and form prefixes merged by OCR
+        let res = text;
+
+        // Clean attached calendar year suffixes (م for Gregorian, ه/هـ for Hijri) and digit-letter attachments
+        res = res
+            .replace(/([0-9٠-٩]{3,4})\s*م(?=[^\u0621-\u064A\u0671-\u06D3]|$)/gu, '$1')
+            .replace(/([0-9٠-٩]{3,4})\s*(?:هـ|ه)(?=[^\u0621-\u064A\u0671-\u06D3]|$)/gu, '$1 AH')
+            .replace(/([0-9٠-٩]+)([\u0621-\u064A\u0671-\u06D3]+)/gu, '$1 $2')
+            .replace(/([\u0621-\u064A\u0671-\u06D3]+)([0-9٠-٩]+)/gu, '$1 $2');
+
+        // Clean OCR punctuation attachments and common digit/symbol glitches
+        res = res
+            .replace(/([\u0621-\u064A\u0671-\u06D3]),([\u0621-\u064A\u0671-\u06D3])/g, '$1 $2')
+            .replace(/([\u0621-\u064A\u0671-\u06D3])\/([\u0621-\u064A\u0671-\u06D3])/g, '$1 / $2')
+            .replace(/([\u0621-\u064A\u0671-\u06D3])>([\u0621-\u064A\u0671-\u06D3])/g, '$1 $2')
+            .replace(/([\u0621-\u064A\u0671-\u06D3])<([\u0621-\u064A\u0671-\u06D3])/g, '$1 $2')
+            .replace(/\b(أو|او)(انهاء|إنهاء|حصوله|حصولة|شراء|اخلاء|إخلاء)\b/g, '$1 $2')
+            .replace(/عقد\s+الاتتفاع/g, 'عقد الانتفاع')
+            .replace(/الاتتفاع/g, 'الانتفاع')
+            .replace(/الميرم/g, 'المبرم')
+            .replace(/سبتمير/g, 'سبتمبر')
+            .replace(/سنتمير/g, 'سبتمبر')
+            .replace(/سيتمر/g, 'سبتمبر')
+            .replace(/استثتاء/g, 'استثناء')
+            .replace(/تميهلك/g, 'نمهلك')
+            .replace(/تمهلكم/g, 'نمهلكم')
+            .replace(/وعد\s+احالتكم/g, 'وعند إحالتكم')
+            .replace(/حصولة/g, 'حصوله')
+            .replace(/قِ\s+حال/g, 'في حال')
+            .replace(/\bقِ\b/g, 'في')
+            .replace(/فرع\s+اسكاى/g, 'فرع إسكان')
+            .replace(/\bاسكاى\b/g, 'إسكان')
+            .replace(/الوم\s+الشخجتي/g, 'الرقم الشخصي')
+            .replace(/الشخجتي/g, 'الشخصي')
+            .replace(/الوم\s+الشخصي/g, 'الرقم الشخصي')
+            .replace(/الوكين\s+ساعد\s+امون\s+ااي\s+لها/g, 'الوكيل المساعد للموارد البشرية')
+            .replace(/مدير\s+مكتب\s+وكبل\s+وزاية\s+الناظر\s+سسا/g, 'مدير مكتب وكيل وزارة الداخلية')
+            .replace(/وكبل\s+وزاية/g, 'وكيل وزارة')
+            .replace(/الناظر\s+سسا/g, 'الداخلية')
+            .replace(/باتخاذ\s+اءات/g, 'باتخاذ الإجراءات')
+            .replace(/المواد\s+روات\s+المتضمنة/g, 'المواد (6) و (7) المتضمنة')
+            .replace(/المواد\s+روات/g, 'المواد (6) و (7)')
+            .replace(/\bعلية\b/g, 'عليه')
+            .replace(/\bالمضمنة\b/g, 'المتضمنة')
+            .replace(/\bمضمنة\b/g, 'متضمنة');
+
+        // Separate common ministry, government, and form prefixes merged by OCR
+        return res
             .replace(/(وزارة|وذارة|ودارة|وداره)(ال[^\s]+)/g, '$1 $2')
             .replace(/(مملكة|مملكه)(ال[^\s]+)/g, '$1 $2')
             .replace(/(إدارة|ادارة)(ال[^\s]+)/g, '$1 $2')
@@ -1553,6 +1800,13 @@
         arabicNumerals.forEach((ch, idx) => {
             result = result.replaceAll(ch, String(idx));
         });
+
+        // Ensure date years and digit-letter boundaries are unjoined after Western digit conversion
+        result = result
+            .replace(/(\d{3,4})\s*م(?=[^\u0621-\u064A\u0671-\u06D3]|$)/gu, '$1')
+            .replace(/(\d{3,4})\s*(?:هـ|ه)(?=[^\u0621-\u064A\u0671-\u06D3]|$)/gu, '$1 AH')
+            .replace(/(\d+)([\u0621-\u064A\u0671-\u06D3]+)/gu, '$1 $2')
+            .replace(/([\u0621-\u064A\u0671-\u06D3]+)(\d+)/gu, '$1 $2');
 
         // 3. Normalize Arabic punctuation
         result = result
@@ -1774,17 +2028,68 @@
         return lines;
     }
 
-    const VALID_HEADER_MARKERS = /الرقم|التاريخ|تاريخ|الموضوع|موضوع|الاسم|اسم|المستأجر|المواطن|نسخة|هاتف|فاكس|ص\.?ب|وزارة|وذارة|إدارة|ادارة|فرع|شعبة|شعبه|عقد|أمر|امر|طلب|محضر|تنويه|إشعار|اشعار|إنذار|انذار|مملكة|المنامة/;
+    function isWatermarkOrBoilerplate(text) {
+        if (!text || typeof text !== 'string') return false;
+        const clean = text.trim();
+        const lower = clean.toLowerCase();
+
+        // 1. Watermark declarations in English and Arabic
+        if (lower.includes('watermark') || clean.includes('العلامة المائية') || clean.includes('العلامه المائيه') || clean.includes('أغراض أمنية') || clean.includes('لدواعي الأمن')) {
+            return true;
+        }
+
+        // 2. Official confidentiality / reproduction disclaimer
+        if (lower.includes('personal to its recipient only') ||
+            lower.includes('must not be copied') ||
+            lower.includes('reproduced wholly or partially') ||
+            lower.includes('transferred to any third party') ||
+            clean.includes('هذه الوثيقة رسمية وشخصية') ||
+            clean.includes('هذه الوثيقه رسميه وشخصيه') ||
+            clean.includes('لمتلقيها فقط') ||
+            clean.includes('وينبغي عدم نسخها') ||
+            clean.includes('أو توزيعها أو استنساخها') ||
+            clean.includes('او توزيعها او استنساخها') ||
+            clean.includes('استنساخها كلياً') ||
+            clean.includes('استنساخها كليا') ||
+            clean.includes('تمريرها إلى أي طرف ثالث') ||
+            clean.includes('تمريرها الى اي طرف ثالث')) {
+            return true;
+        }
+
+        // 3. Form model timestamps & barcode OCR strings
+        if (/[طت]\s*ال[نث]موذج\s*:/i.test(clean) || /Model\s*:\s*\d/i.test(clean) || /^[طت]\s*ال[نث]موذج/i.test(clean)) {
+            return true;
+        }
+
+        // 4. Reverse OCR microprint fragments (e.g. "عه ا0راا 10 1601001080...")
+        if (/[0-9]{4,}/.test(clean) && (clean.includes('Ia2') || clean.includes('Iaa') || clean.includes('Hlala') || clean.includes('1601001080') || clean.includes('035580') || clean.includes('0156m') || clean.includes('060101801') || clean.includes('035580'))) {
+            return true;
+        }
+
+        // 5. Mixed symbols with isolated digits (e.g. ".0817 111:0 /(30 10 035580 0012 ,0311 10")
+        if (/^\.?[0-9\s:/\(\)]{10,}[A-Za-z0-9\s,]{0,10}$/.test(clean)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    const VALID_HEADER_MARKERS = /الرقم|التاريخ|تاريخ|الموضوع|موضوع|الاسم|اسم|المستأجر|المواطن|نسخة|هاتف|فاكس|ص\.?ب|وزارة|وذارة|إدارة|ادارة|فرع|شعبة|شعبه|عقد|أمر|امر|طلب|محضر|إشعار|اشعار|إنذار|انذار|مملكة|المنامة/;
 
     function isNoiseLine(line) {
         if (!line || typeof line !== 'string') return true;
         const clean = line.trim();
         if (!clean || clean.length < 2) return true;
 
-        // Never drop lines with essential administrative markers
-        if (VALID_HEADER_MARKERS.test(clean)) return false;
+        // 1. Watermark, disclaimer boilerplate, or model barcode timestamp
+        if (isWatermarkOrBoilerplate(clean)) return true;
 
-        // Count Arabic chars, Latin chars, digits, and symbols
+        // Valid administrative headers are preserved early (prior to noise heuristics)
+        if (VALID_HEADER_MARKERS.test(clean) && !/[©«#]/.test(clean) && !clean.includes('التاقللتج') && !clean.includes('#لر') && !clean.includes('جاضا') && !clean.includes('مهحيم')) {
+            return false;
+        }
+
+        // 2. Count characters
         const arabicChars = (clean.match(/[\u0600-\u06FF]/g) || []).length;
         const latinChars = (clean.match(/[A-Za-z]/g) || []).length;
         const totalChars = clean.replace(/\s+/g, '').length;
@@ -1795,28 +2100,57 @@
         // If line has almost no letters (< 3 Arabic and < 4 Latin)
         if (arabicChars < 3 && latinChars < 4) return true;
 
-        // Words analysis
+        // 3. Check for obvious scanner artifact symbols or bracket noise
+        if (/[©«#]/.test(clean) || /\[[٠-٩0-9]/.test(clean) || /\d{6,}/.test(clean)) {
+            if (!clean.includes('هاتف') && !clean.includes('فاكس') && !clean.includes('Phone') && !clean.includes('Fax') && !clean.includes('الرقم الشخصي') && !clean.includes('CPR')) {
+                return true;
+            }
+        }
+
+        // 4. Check for barcode / noise string patterns
+        if (clean.includes('#لر') || clean.includes('التاقللتج') || clean.includes('جاضا') || clean.includes('مهحيم')) {
+            return true;
+        }
+
+        // 5. Words analysis
         const words = clean.split(/\s+/).filter(w => w.length > 0);
         if (words.length === 0) return true;
 
         // Single isolated short tokens
         if (words.length === 1 && totalChars <= 4) return true;
 
-        // Scattered 1-2 letter fragments from stamps or scanner noise (e.g. "Hl Ld Ra Wdyn Mlh Aldmyt")
-        const shortWords = words.filter(w => w.length <= 2).length;
-        if (words.length >= 4 && (shortWords / words.length) >= 0.50) return true;
+        // Filter out punctuation-only tokens when calculating short words ratio
+        const alphaWords = words.filter(w => /[A-Za-z0-9\u0600-\u06FF]/.test(w));
+        if (alphaWords.length === 0) return true;
+
+        // Scattered 1-2 letter fragments from stamps or scanner noise
+        const shortWords = alphaWords.filter(w => w.length <= 2).length;
+        if (alphaWords.length >= 4 && (shortWords / alphaWords.length) >= 0.50) return true;
 
         // Low average token length
-        const avgLen = totalChars / words.length;
-        if (words.length >= 2 && avgLen < 2.7) return true;
+        const avgLen = totalChars / alphaWords.length;
+        if (alphaWords.length >= 2 && avgLen < 2.5 && !clean.includes('ص.ب') && !clean.includes('ص ب') && !clean.includes('P.O.')) return true;
 
-        // High symbol/punctuation ratio (>35% punctuation)
+        // High symbol/punctuation ratio (>30% punctuation)
         const punctCount = (clean.match(/[^A-Za-z0-9\u0600-\u06FF\s]/g) || []).length;
-        if (punctCount / totalChars > 0.35 && arabicChars < 12) return true;
+        if (punctCount / totalChars > 0.30 && arabicChars < 12 && !clean.includes('هاتف') && !clean.includes('فاكس')) return true;
 
-        // Barcode / timestamp printer strings
-        if (clean.includes('ط النموذج') || clean.includes('Model:') || /^[0-9\s:/\-]{15,}$/.test(clean)) {
-            return true;
+        // Check essential administrative markers
+        if (VALID_HEADER_MARKERS.test(clean)) {
+            return false;
+        }
+
+        // Check lexical validity: if line has words, do any of them match known vocabulary?
+        if (typeof NORMALIZED_WORDS !== 'undefined' && NORMALIZED_WORDS.size > 0) {
+            const hasKnownWord = words.some(w => {
+                const norm = normalizeArabicKey(w);
+                return NORMALIZED_WORDS.has(norm) || (typeof NORMALIZED_NAMES !== 'undefined' && NORMALIZED_NAMES.has(norm)) || (typeof SKELETON_WORDS !== 'undefined' && SKELETON_WORDS.has(getArabicSkeleton(norm)));
+            });
+
+            // If 3 or more words and ZERO known words, it is OCR stamp/scanner noise
+            if (words.length >= 3 && !hasKnownWord) {
+                return true;
+            }
         }
 
         return false;
