@@ -116,22 +116,57 @@ Physically reorders the pages of a PDF in the vault based on a sequence of 1-bas
 #### 2. Rotate Document Pages (`POST /api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/rotate-pages`)
 Rotates specific pages of a PDF by a given angle (default 90° clockwise) and permanently rewrites the PDF to disk. Also available via `/api/documents/{vaultId}/rotate-pages`.
 
-- **Request Body (`application/json`):**
-  ```json
-  {
-    "pages": [1, 3],
-    "angle": 90
-  }
-  ```
+- **Request Body Options (`application/json`):**
+  - **Option A (Pages list format):**
+    ```json
+    {
+      "pages": [1, 3],
+      "angle": 90
+    }
+    ```
+  - **Option B (Rotations dictionary format):**
+    ```json
+    {
+      "rotations": {
+        "1": 90,
+        "3": 90
+      }
+    }
+    ```
+  - **Option C (Combined format for max compatibility):**
+    ```json
+    {
+      "rotations": { "1": 90, "3": 90 },
+      "pages": [1, 3],
+      "angle": 90
+    }
+    ```
 - **Response (`200 OK`):**
   ```json
   {
     "status": "success",
-    "message": "Rotated 2 pages by 90 degrees",
     "vault_id": "doc_12345",
-    "page_count": 5
+    "page_count": 5,
+    "rotations": {
+      "1": 90,
+      "3": 90
+    }
   }
   ```
+
+---
+
+### UI Component: Document Page Editor (`#doc-page-editor-modal`)
+The Document Page Editor provides a high-comfort visual canvas for editing, rotating, deleting, extracting, and reordering document pages:
+- **Responsive Card Zoom:**
+  - Zoom levels: 70%, 85%, 100% (default), 120%, 145%, 175%, 210%.
+  - Controls: Dedicated `+` / `-` / `100%` buttons in the modal header, keyboard shortcuts (`Ctrl +`, `Ctrl -`, `Ctrl 0`), and `Ctrl + Scroll` wheel gestures.
+  - Dynamic Grid: CSS Grid with `repeat(auto-fill, minmax(min(100%, var(--editor-card-min-width)), var(--editor-card-max-width)))` and `justify-content: center` ensures single-page, two-page, and multi-page documents scale smoothly and never distort or blow up to fill 1000px uncontrollably.
+  - Fluid Canvas: Canvases scale fluidly with CSS `object-fit: contain` and auto-re-render sharp high-DPI bitmaps upon zoom stabilization.
+- **Page Rotation:**
+  - 1-tap `↻ 90°` button directly on each page card header for immediate individual page rotation.
+  - Multi-page "Rotate 90° (تدوير 90°)" button in bottom toolbar for rotating all selected pages simultaneously.
+  - Permanent PDF rewrite via `RotatePagesAsync` with immediate cache-busted viewer sync.
 
 
 

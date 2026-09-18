@@ -38,13 +38,13 @@
     let editorZoomLevelLabel = null;
 
     const EDITOR_ZOOM_LEVELS = [
-        { scale: 0.70, minW: 160, thumbH: 190, label: '70%' },
-        { scale: 0.85, minW: 190, thumbH: 230, label: '85%' },
-        { scale: 1.00, minW: 230, thumbH: 280, label: '100%' },
-        { scale: 1.20, minW: 280, thumbH: 340, label: '120%' },
-        { scale: 1.45, minW: 340, thumbH: 420, label: '145%' },
-        { scale: 1.75, minW: 420, thumbH: 520, label: '175%' },
-        { scale: 2.10, minW: 520, thumbH: 640, label: '210%' }
+        { scale: 0.70, minW: 160, maxW: 210, thumbH: 190, label: '70%' },
+        { scale: 0.85, minW: 190, maxW: 250, thumbH: 230, label: '85%' },
+        { scale: 1.00, minW: 230, maxW: 300, thumbH: 280, label: '100%' },
+        { scale: 1.20, minW: 280, maxW: 360, thumbH: 340, label: '120%' },
+        { scale: 1.45, minW: 340, maxW: 440, thumbH: 420, label: '145%' },
+        { scale: 1.75, minW: 420, maxW: 540, thumbH: 520, label: '175%' },
+        { scale: 2.10, minW: 520, maxW: 680, thumbH: 640, label: '210%' }
     ];
     const DEFAULT_EDITOR_ZOOM_INDEX = 2; // 100%
     let currentEditorZoomIndex = DEFAULT_EDITOR_ZOOM_INDEX;
@@ -235,12 +235,35 @@
         initEditorZoom();
     }
 
+    let editorZoomRerenderTimer = null;
+    function scheduleZoomRerender() {
+        if (editorZoomRerenderTimer) clearTimeout(editorZoomRerenderTimer);
+        editorZoomRerenderTimer = setTimeout(async () => {
+            if (!activePdfDoc || !editorGrid) return;
+            const cards = editorGrid.querySelectorAll('.page-editor-card');
+            for (const card of cards) {
+                const pageNum = parseInt(card.getAttribute('data-page-num'), 10);
+                if (pageNum && !isNaN(pageNum)) {
+                    await renderPageCanvas(card, pageNum);
+                }
+            }
+        }, 200);
+    }
+
     function applyEditorCardZoom() {
         const config = EDITOR_ZOOM_LEVELS[currentEditorZoomIndex] || EDITOR_ZOOM_LEVELS[DEFAULT_EDITOR_ZOOM_INDEX];
         const modal = document.getElementById('doc-page-editor-modal') || editorModal;
         if (modal) {
             modal.style.setProperty('--editor-card-min-width', `${config.minW}px`);
+            modal.style.setProperty('--editor-card-max-width', `${config.maxW}px`);
             modal.style.setProperty('--editor-thumb-height', `${config.thumbH}px`);
+        }
+
+        const grid = document.getElementById('page-editor-grid') || editorGrid;
+        if (grid) {
+            grid.style.setProperty('--editor-card-min-width', `${config.minW}px`);
+            grid.style.setProperty('--editor-card-max-width', `${config.maxW}px`);
+            grid.style.setProperty('--editor-thumb-height', `${config.thumbH}px`);
         }
 
         const lbl = document.getElementById('editor-zoom-level-label') || editorZoomLevelLabel;
@@ -254,6 +277,8 @@
         try {
             localStorage.setItem('editor_card_zoom_level', config.scale.toString());
         } catch (e) {}
+
+        scheduleZoomRerender();
     }
 
     function zoomInEditorCards() {
@@ -624,18 +649,23 @@
             const container = cardEl.querySelector('.card-thumbnail-container');
             if (!container) return;
 
-            const targetWidth = Math.max(container.clientWidth || 160, 140);
+            const targetWidth = Math.max(container.clientWidth || 240, 160);
+            const targetHeight = Math.max(container.clientHeight || 280, 190);
             const unscaled = page.getViewport({ scale: 1.0 });
-            const scale = targetWidth / unscaled.width;
+            const scaleX = targetWidth / unscaled.width;
+            const scaleY = targetHeight / unscaled.height;
+            const scale = Math.min(scaleX, scaleY);
             const viewport = page.getViewport({ scale });
 
             const outputScale = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
             const canvas = document.createElement('canvas');
-            canvas.className = 'max-w-full max-h-full object-contain rounded shadow-2xs block mx-auto';
+            canvas.className = 'max-w-full max-h-full object-contain rounded shadow-2xs block mx-auto pointer-events-none select-none';
             canvas.width = Math.floor(viewport.width * outputScale);
             canvas.height = Math.floor(viewport.height * outputScale);
-            canvas.style.width = Math.floor(viewport.width) + 'px';
-            canvas.style.height = Math.floor(viewport.height) + 'px';
+            canvas.style.maxWidth = '100%';
+            canvas.style.maxHeight = '100%';
+            canvas.style.width = 'auto';
+            canvas.style.height = 'auto';
 
             const ctx = canvas.getContext('2d');
             if (ctx) {
@@ -985,10 +1015,19 @@
                 endpoint = `/api/documents/${encodeURIComponent(vaultId)}/rotate-pages`;
             }
 
+            const rotationsMap = {};
+            pagesToRotate.forEach(p => {
+                rotationsMap[p.toString()] = angle;
+            });
+
             const res = await fetch(getApiUrl(endpoint), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pages: pagesToRotate, angle })
+                body: JSON.stringify({
+                    rotations: rotationsMap,
+                    pages: pagesToRotate,
+                    angle: angle
+                })
             });
 
             if (res.ok) {

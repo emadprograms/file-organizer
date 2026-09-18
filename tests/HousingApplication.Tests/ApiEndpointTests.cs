@@ -1616,6 +1616,89 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
     }
 
     [Fact]
+    public async Task RotatePages_ApiEndpoint_PagesListFormat_Success()
+    {
+        await _fixture.SeedDataAsync();
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+        var areaId = "AreaRotateList";
+        var houseId = "H-ROT-LIST";
+        await repo.AddAreaAsync(areaId, "RLT");
+        await repo.AddHouseAsync(houseId, areaId);
+        var tenant = await repo.AddTenantAsync(houseId, "Rotate Tenant List", "2024-01-01");
+
+        var vaultId = Guid.NewGuid().ToString("N");
+        await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = areaId,
+            HouseId = houseId,
+            TenantId = tenant.Id,
+            Category = "01 - بيانات أساسية",
+            ArabicTitle = "وثيقة قائمة الصفحات للتدوير",
+            VaultId = vaultId,
+            PageCount = 2,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        var req = new RotatePagesRequestDto
+        {
+            Pages = new List<int> { 1, 2 },
+            Angle = 90
+        };
+
+        var response = await _client.PostAsJsonAsync($"/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/rotate-pages", req);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<RotatePagesResponseDto>();
+        Assert.NotNull(body);
+        Assert.Equal("success", body.Status);
+        Assert.Equal(vaultId, body.VaultId);
+        Assert.Equal(90, body.Rotations["1"]);
+        Assert.Equal(90, body.Rotations["2"]);
+    }
+
+    [Fact]
+    public async Task RotatePages_ApiEndpoint_DirectVaultEndpoint_PagesListFormat_Success()
+    {
+        await _fixture.SeedDataAsync();
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+        var areaId = "AreaRotateDirect";
+        var houseId = "H-ROT-DIRECT";
+        await repo.AddAreaAsync(areaId, "RDT");
+        await repo.AddHouseAsync(houseId, areaId);
+        var tenant = await repo.AddTenantAsync(houseId, "Rotate Tenant Direct", "2024-01-01");
+
+        var vaultId = Guid.NewGuid().ToString("N");
+        await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = areaId,
+            HouseId = houseId,
+            TenantId = tenant.Id,
+            Category = "01 - بيانات أساسية",
+            ArabicTitle = "وثيقة التدفق المباشر",
+            VaultId = vaultId,
+            PageCount = 3,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        var req = new RotatePagesRequestDto
+        {
+            Pages = new List<int> { 2 },
+            Angle = 90
+        };
+
+        var response = await _client.PostAsJsonAsync($"/api/documents/{vaultId}/rotate-pages", req);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<RotatePagesResponseDto>();
+        Assert.NotNull(body);
+        Assert.Equal("success", body.Status);
+        Assert.Equal(vaultId, body.VaultId);
+        Assert.Equal(90, body.Rotations["2"]);
+    }
+
+    [Fact]
     public async Task GetDocumentMetadata_DirectVaultEndpoint_ReturnsMetadataWithTenantAndAreaInfo()
     {
         var response = await _client.GetAsync("/api/documents/seedvault001/metadata");

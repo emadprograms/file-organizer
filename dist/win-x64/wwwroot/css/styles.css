@@ -1216,6 +1216,7 @@ html.dark .compliance-item {
 
 #doc-page-editor-modal {
     --editor-card-min-width: 230px;
+    --editor-card-max-width: 300px;
     --editor-thumb-height: 280px;
 }
 
@@ -1254,14 +1255,15 @@ html.dark .compliance-item {
 /* Page Editor Dynamic Grid */
 #page-editor-grid.editor-grid-dynamic {
     display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--editor-card-min-width, 230px)), 1fr)) !important;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--editor-card-min-width, 230px)), var(--editor-card-max-width, 300px))) !important;
+    justify-content: center !important;
     gap: 1.25rem !important;
     align-items: stretch;
 }
 
 #page-editor-grid .card-thumbnail-container {
     min-height: var(--editor-thumb-height, 280px) !important;
-    height: var(--editor-thumb-height, 280px);
+    height: var(--editor-thumb-height, 280px) !important;
     transition: height 0.15s ease-out, min-height 0.15s ease-out;
 }
 
@@ -1293,8 +1295,15 @@ html.dark .compliance-item {
     transform: translateX(-4px);
 }
 
-.card-thumbnail-container canvas,
-.card-thumbnail-container img {
+#page-editor-grid .card-thumbnail-container canvas,
+#page-editor-grid .card-thumbnail-container img {
+    max-width: 100% !important;
+    max-height: 100% !important;
+    width: auto !important;
+    height: auto !important;
+    object-fit: contain !important;
+    display: block !important;
+    margin: 0 auto !important;
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 

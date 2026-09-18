@@ -899,9 +899,18 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
       btnIn.click();
       expect(label.textContent).toBe('120%');
       expect(modal.style.getPropertyValue('--editor-card-min-width')).toBe('280px');
+      expect(modal.style.getPropertyValue('--editor-card-max-width')).toBe('360px');
+      expect(modal.style.getPropertyValue('--editor-thumb-height')).toBe('340px');
+
+      const grid = document.getElementById('page-editor-grid');
+      expect(grid.style.getPropertyValue('--editor-card-min-width')).toBe('280px');
+      expect(grid.style.getPropertyValue('--editor-card-max-width')).toBe('360px');
+      expect(grid.style.getPropertyValue('--editor-thumb-height')).toBe('340px');
 
       btnIn.click();
       expect(label.textContent).toBe('145%');
+      expect(modal.style.getPropertyValue('--editor-card-min-width')).toBe('340px');
+      expect(modal.style.getPropertyValue('--editor-card-max-width')).toBe('440px');
 
       btnOut.click();
       expect(label.textContent).toBe('120%');
@@ -909,6 +918,8 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
       btnReset.click();
       expect(label.textContent).toBe('100%');
       expect(modal.style.getPropertyValue('--editor-card-min-width')).toBe('230px');
+      expect(modal.style.getPropertyValue('--editor-card-max-width')).toBe('300px');
+      expect(modal.style.getPropertyValue('--editor-thumb-height')).toBe('280px');
     });
 
     it('handles keyboard shortcuts (Ctrl+, Ctrl-, Ctrl 0) to adjust editor zoom', async () => {
@@ -962,7 +973,7 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
       expect(zoomOutWheel.defaultPrevented).toBe(true);
     });
 
-    it('rotates single page via card rotate button and calls rotate-pages API', async () => {
+    it('rotates single page via card rotate button and calls rotate-pages API with rotations dictionary and pages array', async () => {
       const mockDoc = {
         vault_id: 'doc_rot_single',
         brief_arabic_title: 'وثيقة تدوير مفردة',
@@ -1005,10 +1016,11 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
       const body = JSON.parse(rotateCall.options.body);
       expect(body.pages).toEqual([2]);
       expect(body.angle).toBe(90);
+      expect(body.rotations).toEqual({ "2": 90 });
       expect(global.showToast).toHaveBeenCalled();
     });
 
-    it('rotates multiple selected pages via toolbar button and calls rotate-pages API', async () => {
+    it('rotates multiple selected pages via toolbar button and calls rotate-pages API with rotations dictionary and pages array', async () => {
       const mockDoc = {
         vault_id: 'doc_rot_multi',
         brief_arabic_title: 'وثيقة تدوير متعدد',
@@ -1052,6 +1064,7 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
       const body = JSON.parse(rotateCall.options.body);
       expect(body.pages).toEqual([1, 3]);
       expect(body.angle).toBe(90);
+      expect(body.rotations).toEqual({ "1": 90, "3": 90 });
       expect(global.showToast).toHaveBeenCalled();
     });
 

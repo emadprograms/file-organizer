@@ -879,6 +879,33 @@ public record RotatePagesRequestDto
 {
     [JsonPropertyName("rotations")]
     public Dictionary<string, int> Rotations { get; init; } = new();
+
+    [JsonPropertyName("pages")]
+    public List<int>? Pages { get; init; }
+
+    [JsonPropertyName("angle")]
+    public int? Angle { get; init; }
+
+    public Dictionary<string, int> GetNormalizedRotations()
+    {
+        if (Rotations != null && Rotations.Count > 0)
+        {
+            return new Dictionary<string, int>(Rotations);
+        }
+
+        if (Pages != null && Pages.Count > 0)
+        {
+            var angle = Angle ?? 90;
+            var dict = new Dictionary<string, int>();
+            foreach (var page in Pages)
+            {
+                dict[page.ToString()] = angle;
+            }
+            return dict;
+        }
+
+        return new Dictionary<string, int>();
+    }
 }
 
 public record RotatePagesResponseDto

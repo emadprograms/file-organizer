@@ -1263,13 +1263,15 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/rotate-pag
     IFileOrganizerRepository repo,
     IConfiguration config) =>
 {
-    if (dto.Rotations == null || dto.Rotations.Count == 0)
+    var rotations = dto.GetNormalizedRotations();
+    if (rotations.Count == 0)
         return Results.BadRequest(new { error = "rotations must not be empty." });
 
+    var normalizedDto = dto with { Rotations = rotations };
     var areasRoot = ResolveAreasRoot(config);
     try
     {
-        var result = await repo.RotatePagesAsync(areaId, houseId, vaultId, dto, areasRoot);
+        var result = await repo.RotatePagesAsync(areaId, houseId, vaultId, normalizedDto, areasRoot);
         return Results.Ok(result);
     }
     catch (KeyNotFoundException ex)
@@ -1383,13 +1385,15 @@ app.MapPost("/api/documents/{vaultId}/rotate-pages", async (
     IFileOrganizerRepository repo,
     IConfiguration config) =>
 {
-    if (dto.Rotations == null || dto.Rotations.Count == 0)
+    var rotations = dto.GetNormalizedRotations();
+    if (rotations.Count == 0)
         return Results.BadRequest(new { error = "rotations must not be empty." });
 
+    var normalizedDto = dto with { Rotations = rotations };
     var areasRoot = ResolveAreasRoot(config);
     try
     {
-        var result = await repo.RotatePagesAsync("default", "default", vaultId, dto, areasRoot);
+        var result = await repo.RotatePagesAsync("default", "default", vaultId, normalizedDto, areasRoot);
         return Results.Ok(result);
     }
     catch (KeyNotFoundException ex)

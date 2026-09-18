@@ -2975,7 +2975,8 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
         RotatePagesRequestDto request,
         string? areasRoot = null)
     {
-        if (request.Rotations == null || request.Rotations.Count == 0)
+        var rotations = request.GetNormalizedRotations();
+        if (rotations.Count == 0)
             throw new ArgumentException("Rotations dictionary must not be empty.");
 
         var resolvedAreasRoot = !string.IsNullOrEmpty(areasRoot)
@@ -3048,7 +3049,7 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
                 using var ms = new MemoryStream(sourceBytes);
                 using var doc = PdfReader.Open(ms, PdfDocumentOpenMode.Modify);
 
-                foreach (var (pageKey, angle) in request.Rotations)
+                foreach (var (pageKey, angle) in rotations)
                 {
                     if (int.TryParse(pageKey, out int pageNum) && pageNum >= 1 && pageNum <= doc.PageCount)
                     {
@@ -3076,7 +3077,7 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
             Status = "success",
             VaultId = vaultId,
             PageCount = src.PageCount,
-            Rotations = request.Rotations
+            Rotations = rotations
         };
     }
 
