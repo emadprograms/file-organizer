@@ -437,6 +437,102 @@ describe('Touchscreen & Mobile Interactions Protection (Android Tablet Support)'
         });
     });
 
+    describe('Touch Scrolling Reset & View Jump Prevention', () => {
+        it('suppresses docEl click in categories view if touch scrolling occurred within 450ms', () => {
+            renderCategories();
+            const docList = document.getElementById('document-list');
+            const docEl = docList.querySelector('.category-doc-item');
+            expect(docEl).not.toBeNull();
+
+            // Set touch scroll timestamp to now (simulating ongoing/recent touch scroll)
+            window._lastTouchScrollTimestamp = Date.now();
+            docEl.click();
+
+            // openDocument must NOT be invoked because user was scrolling
+            expect(global.openDocument).not.toHaveBeenCalled();
+
+            // After 500ms, click succeeds
+            window._lastTouchScrollTimestamp = Date.now() - 500;
+            docEl.click();
+            expect(global.openDocument).toHaveBeenCalledWith('doc_touch_01', 'عقد إيجار شقة', '05 - عقود');
+        });
+
+        it('suppresses folder card click in categories view if touch scrolling occurred within 450ms', () => {
+            renderCategories();
+            const card = document.querySelector('.category-folder-card');
+            expect(card).not.toBeNull();
+            const docsContainer = card.querySelector('.category-docs');
+            expect(docsContainer).not.toBeNull();
+            const initiallyHidden = docsContainer.classList.contains('hidden');
+
+            // While touch scrolling, clicking folder card must NOT toggle the folder
+            window._lastTouchScrollTimestamp = Date.now();
+            card.click();
+            expect(docsContainer.classList.contains('hidden')).toBe(initiallyHidden);
+
+            // After scrolling finishes (>450ms), clicking toggles the folder
+            window._lastTouchScrollTimestamp = Date.now() - 500;
+            card.click();
+            expect(docsContainer.classList.contains('hidden')).toBe(!initiallyHidden);
+        });
+
+        it('suppresses previewIcon and menuBtn click in categories view during touch scrolling', () => {
+            renderCategories();
+            const docList = document.getElementById('document-list');
+            const previewIcon = docList.querySelector('.doc-preview-icon');
+            const menuBtn = docList.querySelector('.action-menu-btn');
+            window.openDocInspector = vi.fn();
+            window.openDocDropdownMenu = vi.fn();
+
+            window._lastTouchScrollTimestamp = Date.now();
+            if (previewIcon) previewIcon.click();
+            expect(window.openDocInspector).not.toHaveBeenCalled();
+
+            if (menuBtn) menuBtn.click();
+            expect(window.openDocDropdownMenu).not.toHaveBeenCalled();
+
+            delete window.openDocInspector;
+            delete window.openDocDropdownMenu;
+        });
+
+        it('blurs active element on doc click to prevent browser focus auto-scroll to open doc', () => {
+            renderCategories();
+            const docList = document.getElementById('document-list');
+            const docEl = docList.querySelector('.category-doc-item');
+
+            const blurSpy = vi.fn();
+            docEl.blur = blurSpy;
+            Object.defineProperty(document, 'activeElement', { value: docEl, configurable: true });
+
+            window._lastTouchScrollTimestamp = 0;
+            docEl.click();
+
+            expect(blurSpy).toHaveBeenCalled();
+        });
+
+        it('suppresses timeline card click during touch scrolling and blurs active element', () => {
+            renderTimeline();
+            const docList = document.getElementById('document-list');
+            const card = docList.querySelector('div[data-vault-id]');
+            expect(card).not.toBeNull();
+
+            // Suppress during scroll
+            window._lastTouchScrollTimestamp = Date.now();
+            card.click();
+            expect(global.openDocument).not.toHaveBeenCalled();
+
+            // Allows after scroll
+            window._lastTouchScrollTimestamp = Date.now() - 500;
+            const blurSpy = vi.fn();
+            card.blur = blurSpy;
+            Object.defineProperty(document, 'activeElement', { value: card, configurable: true });
+
+            card.click();
+            expect(global.openDocument).toHaveBeenCalledWith('doc_touch_01', 'عقد إيجار شقة', '05 - عقود');
+            expect(blurSpy).toHaveBeenCalled();
+        });
+    });
+
     describe('Tablet Bottom Document Scrolling & Safe Area Clearance', () => {
         it('verifies index.html document-list-panel has overflow-hidden and document-list has flex-1 min-h-0 overflow-y-auto pb-28', () => {
             const fs = require('fs');

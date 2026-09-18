@@ -1630,7 +1630,7 @@
             touchDragTimer = setTimeout(() => {
                 if (!touchDragState) return;
                 startTouchDrag(touchDragState);
-            }, 500);
+            }, 280);
         }, { passive: true });
 
         docEl.addEventListener('touchmove', (e) => {
@@ -2026,6 +2026,12 @@
         // Info icon on left before name: opens Document Inspector & Notes modal
         if (previewIcon) {
             previewIcon.onclick = (e) => {
+                if (typeof window !== 'undefined' && window._lastTouchScrollTimestamp && (Date.now() - window._lastTouchScrollTimestamp < 450)) {
+                    return;
+                }
+                if (typeof document !== 'undefined' && document.activeElement && typeof document.activeElement.blur === 'function') {
+                    document.activeElement.blur();
+                }
                 e.stopPropagation();
                 if (typeof window !== 'undefined' && typeof window.setSelectedDoc === 'function') {
                     window.setSelectedDoc(doc, title, docEl);
@@ -2046,6 +2052,12 @@
                 }
             };
             menuBtn.onclick = (e) => {
+                if (typeof window !== 'undefined' && window._lastTouchScrollTimestamp && (Date.now() - window._lastTouchScrollTimestamp < 450)) {
+                    return;
+                }
+                if (typeof document !== 'undefined' && document.activeElement && typeof document.activeElement.blur === 'function') {
+                    document.activeElement.blur();
+                }
                 e.stopPropagation();
                 if (typeof window !== 'undefined' && typeof window.cancelPeek === 'function') {
                     window.cancelPeek();
@@ -2063,11 +2075,17 @@
             if (typeof window !== 'undefined' && window._justFinishedTouchDrag && (Date.now() - window._justFinishedTouchDrag < 600)) {
                 return;
             }
+            if (typeof window !== 'undefined' && window._lastTouchScrollTimestamp && (Date.now() - window._lastTouchScrollTimestamp < 450)) {
+                return;
+            }
             const now = Date.now();
             if (e && isTouchEvent(e) && (now - lastDocRowClickTime < 250)) {
                 return;
             }
             lastDocRowClickTime = now;
+            if (typeof document !== 'undefined' && document.activeElement && typeof document.activeElement.blur === 'function') {
+                document.activeElement.blur();
+            }
             e.stopPropagation();
             const currentTitle = getCleanDocTitle(doc, title);
             if (typeof window !== 'undefined' && typeof window.setSelectedDoc === 'function') {
@@ -2249,11 +2267,17 @@
             if (typeof window !== 'undefined' && window._justFinishedTouchDrag && (Date.now() - window._justFinishedTouchDrag < 600)) {
                 return;
             }
+            if (typeof window !== 'undefined' && window._lastTouchScrollTimestamp && (Date.now() - window._lastTouchScrollTimestamp < 450)) {
+                return;
+            }
             const now = Date.now();
             if (e && isTouchEvent(e) && (now - lastCardClickTime < 250)) {
                 return;
             }
             lastCardClickTime = now;
+            if (typeof document !== 'undefined' && document.activeElement && typeof document.activeElement.blur === 'function') {
+                document.activeElement.blur();
+            }
             const docsContainer = card.querySelector('.category-docs');
             if (docsContainer) {
                 const isNowHidden = docsContainer.classList.toggle('hidden');

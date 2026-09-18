@@ -173,6 +173,12 @@
         const displayTitle = title || (doc && (doc.brief_arabic_title || doc.filename)) || 'Document';
 
         el.addEventListener('mouseenter', () => {
+            if (typeof window !== 'undefined' && typeof window.isTouchOrMobileDevice === 'function' && window.isTouchOrMobileDevice()) {
+                return;
+            }
+            if (typeof window !== 'undefined' && window._lastTouchTimestamp && (Date.now() - window._lastTouchTimestamp < 1500)) {
+                return;
+            }
             currentHoverDoc = { vaultId, title: displayTitle, doc, el };
             clearTimeout(peekTimer);
             peekTimer = setTimeout(() => {
@@ -194,6 +200,10 @@
     // ── Document Selection ───────────────────────────────────────────────────
 
     function setSelectedDoc(doc, title, el) {
+        if (typeof document !== 'undefined' && document.activeElement && typeof document.activeElement.blur === 'function') {
+            document.activeElement.blur();
+        }
+
         document.querySelectorAll('.doc-row-selected').forEach(elem => {
             elem.classList.remove('doc-row-selected');
         });

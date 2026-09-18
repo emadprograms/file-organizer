@@ -111,17 +111,49 @@
     }
 
     // Global Touch & Pointer Tracking for Mobile / Touchscreen Support
-    if (typeof window !== 'undefined' && !window._touchTrackingInitialized) {
-        window._touchTrackingInitialized = true;
-        window._lastTouchTimestamp = 0;
-        window.addEventListener('touchstart', () => {
-            window._lastTouchTimestamp = Date.now();
-        }, { passive: true, capture: true });
-        window.addEventListener('pointerdown', (e) => {
-            if (e && (e.pointerType === 'touch' || e.pointerType === 'pen')) {
+    if (typeof window !== 'undefined') {
+        if (!window._lastTouchScrollTimestamp) {
+            window._lastTouchScrollTimestamp = 0;
+        }
+        if (!window._timelineTouchTrackingInitialized) {
+            window._timelineTouchTrackingInitialized = true;
+            let tlTouchStartX = 0;
+            let tlTouchStartY = 0;
+            window.addEventListener('touchstart', (e) => {
                 window._lastTouchTimestamp = Date.now();
-            }
-        }, { passive: true, capture: true });
+                const touch = e.touches && e.touches[0];
+                if (touch) {
+                    tlTouchStartX = touch.clientX;
+                    tlTouchStartY = touch.clientY;
+                }
+            }, { passive: true, capture: true });
+
+            window.addEventListener('touchmove', (e) => {
+                const touch = e.touches && e.touches[0];
+                if (touch) {
+                    const dist = Math.hypot(touch.clientX - tlTouchStartX, touch.clientY - tlTouchStartY);
+                    if (dist > 6) {
+                        window._lastTouchScrollTimestamp = Date.now();
+                    }
+                }
+            }, { passive: true, capture: true });
+
+            window.addEventListener('touchend', (e) => {
+                const touch = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]);
+                if (touch) {
+                    const dist = Math.hypot(touch.clientX - tlTouchStartX, touch.clientY - tlTouchStartY);
+                    if (dist > 6) {
+                        window._lastTouchScrollTimestamp = Date.now();
+                    }
+                }
+            }, { passive: true, capture: true });
+
+            window.addEventListener('pointerdown', (e) => {
+                if (e && (e.pointerType === 'touch' || e.pointerType === 'pen')) {
+                    window._lastTouchTimestamp = Date.now();
+                }
+            }, { passive: true, capture: true });
+        }
     }
 
     function isTouchOrMobileDevice() {
@@ -384,6 +416,12 @@
             // Info icon on left before name: opens Document Inspector & Notes modal
             if (previewIcon) {
                 previewIcon.onclick = (e) => {
+                    if (typeof window !== 'undefined' && window._lastTouchScrollTimestamp && (Date.now() - window._lastTouchScrollTimestamp < 450)) {
+                        return;
+                    }
+                    if (typeof document !== 'undefined' && document.activeElement && typeof document.activeElement.blur === 'function') {
+                        document.activeElement.blur();
+                    }
                     e.stopPropagation();
                     if (typeof window.setSelectedDoc === 'function') {
                         window.setSelectedDoc(doc, title, card);
@@ -404,6 +442,12 @@
                     }
                 };
                 menuBtn.onclick = (e) => {
+                    if (typeof window !== 'undefined' && window._lastTouchScrollTimestamp && (Date.now() - window._lastTouchScrollTimestamp < 450)) {
+                        return;
+                    }
+                    if (typeof document !== 'undefined' && document.activeElement && typeof document.activeElement.blur === 'function') {
+                        document.activeElement.blur();
+                    }
                     e.stopPropagation();
                     if (typeof window.cancelPeek === 'function') {
                         window.cancelPeek();
@@ -421,11 +465,17 @@
                 if (typeof window !== 'undefined' && window._justFinishedTouchDrag && (Date.now() - window._justFinishedTouchDrag < 600)) {
                     return;
                 }
+                if (typeof window !== 'undefined' && window._lastTouchScrollTimestamp && (Date.now() - window._lastTouchScrollTimestamp < 450)) {
+                    return;
+                }
                 const now = Date.now();
                 if (e && isTouchEvent(e) && (now - lastCardClickTime < 250)) {
                     return;
                 }
                 lastCardClickTime = now;
+                if (typeof document !== 'undefined' && document.activeElement && typeof document.activeElement.blur === 'function') {
+                    document.activeElement.blur();
+                }
                 const currentDocTitle = getCleanDocTitle(doc, title);
                 if (typeof window !== 'undefined' && typeof window.setSelectedDoc === 'function') {
                     window.setSelectedDoc(doc, currentDocTitle, card);

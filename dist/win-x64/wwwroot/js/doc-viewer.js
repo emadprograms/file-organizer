@@ -2740,6 +2740,9 @@
     let lastOpenDocTime = 0;
 
     function openDocument(vaultId, title, category = null) {
+        if (typeof document !== 'undefined' && document.activeElement && typeof document.activeElement.blur === 'function') {
+            document.activeElement.blur();
+        }
         initViewerControls();
 
         const now = Date.now();
