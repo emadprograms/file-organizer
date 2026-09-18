@@ -73,6 +73,7 @@ function setupDOM() {
                 <div id="merge-order-banner">
                     <span id="merge-order-summary"></span>
                     <button id="btn-merge-swap-order" type="button">Swap</button>
+                    <div id="merge-preview-cards"></div>
                 </div>
                 <input id="merge-target-title" type="text" />
                 <select id="merge-target-category"></select>
@@ -317,6 +318,54 @@ describe('Document Merge Feature (Multi-Select Only)', () => {
 
             const dateInput = document.getElementById('merge-target-date');
             expect(dateInput.value).toBe('2024-01-16');
+        });
+
+        it('renders visual document preview cards with thumbnails and swap button for 2 documents', async () => {
+            const doc1 = global.currentCategories[0].documents[0];
+            const doc2 = global.currentCategories[0].documents[1];
+
+            await openMergeModal([doc1, doc2]);
+
+            const previewCardsContainer = document.getElementById('merge-preview-cards');
+            expect(previewCardsContainer).toBeTruthy();
+
+            const cards = previewCardsContainer.querySelectorAll('.merge-preview-card');
+            expect(cards).toHaveLength(2);
+
+            // First card should have #1 (البداية) and doc1 title
+            expect(cards[0].textContent).toContain('#1 (البداية)');
+            expect(cards[0].textContent).toContain('عقد الإيجار');
+            expect(cards[0].querySelector('.merge-card-thumbnail')).toBeTruthy();
+
+            // Second card should have #2 (النهاية) and doc2 title
+            expect(cards[1].textContent).toContain('#2 (النهاية)');
+            expect(cards[1].textContent).toContain('الهوية الشخصية');
+            expect(cards[1].querySelector('.merge-card-thumbnail')).toBeTruthy();
+
+            // Inline swap button exists between cards
+            const inlineSwapBtn = previewCardsContainer.querySelector('.btn-merge-inline-swap');
+            expect(inlineSwapBtn).toBeTruthy();
+
+            // Clicking inline swap button swaps cards
+            inlineSwapBtn.click();
+
+            const updatedCards = previewCardsContainer.querySelectorAll('.merge-preview-card');
+            expect(updatedCards[0].textContent).toContain('#1 (البداية)');
+            expect(updatedCards[0].textContent).toContain('الهوية الشخصية');
+            expect(updatedCards[1].textContent).toContain('#2 (النهاية)');
+            expect(updatedCards[1].textContent).toContain('عقد الإيجار');
+        });
+
+        it('renders mini thumbnails in reorder rows for >2 documents', async () => {
+            const doc1 = global.currentCategories[0].documents[0];
+            const doc2 = global.currentCategories[0].documents[1];
+            const doc3 = global.currentCategories[1].documents[0];
+
+            await openMergeModal([doc1, doc2, doc3]);
+
+            const listEl = document.getElementById('merge-docs-list');
+            const miniThumbs = listEl.querySelectorAll('.merge-thumbnail-mini');
+            expect(miniThumbs).toHaveLength(3);
         });
 
         it('opens rearrangement box first when more than 2 documents are selected', async () => {

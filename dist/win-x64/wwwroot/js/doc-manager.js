@@ -58,11 +58,15 @@
     let mergeStepSave = null;
     let mergeOrderBanner = null;
     let mergeOrderSummary = null;
+    let mergePreviewCards = null;
     let btnMergeSwapOrder = null;
     let btnMergeReorderCancel = null;
     let btnMergeReorderContinue = null;
     let btnMergeSaveBack = null;
     let initialMergeCount = 0;
+
+    const mergeThumbnailCache = new Map();
+    const mergeThumbnailPromises = new Map();
 
     let activeMergeDocs = [];
     let activeMergeFallbackCategory = null;
@@ -172,6 +176,7 @@
         mergeStepSave = document.getElementById('merge-step-save');
         mergeOrderBanner = document.getElementById('merge-order-banner');
         mergeOrderSummary = document.getElementById('merge-order-summary');
+        mergePreviewCards = document.getElementById('merge-preview-cards');
         btnMergeSwapOrder = document.getElementById('btn-merge-swap-order');
         btnMergeReorderCancel = document.getElementById('btn-merge-reorder-cancel');
         btnMergeReorderContinue = document.getElementById('btn-merge-reorder-continue');
@@ -1870,6 +1875,140 @@
         if (mergeStepSave) mergeStepSave.classList.toggle('hidden', step !== 'save');
     }
 
+    function cloneCanvas(oldCanvas) {
+        if (typeof document === 'undefined') return oldCanvas;
+        const newCanvas = document.createElement('canvas');
+        newCanvas.width = oldCanvas.width;
+        newCanvas.height = oldCanvas.height;
+        newCanvas.style.width = oldCanvas.style.width;
+        newCanvas.style.height = oldCanvas.style.height;
+        newCanvas.className = oldCanvas.className;
+        const ctx = newCanvas.getContext('2d');
+        if (ctx && typeof ctx.drawImage === 'function') {
+            try { ctx.drawImage(oldCanvas, 0, 0); } catch (e) {}
+        }
+        return newCanvas;
+    }
+
+    function getFallbackThumbnailPlaceholder(isMini = false) {
+        if (typeof document === 'undefined') return null;
+        const el = document.createElement('div');
+        el.className = 'w-full h-full flex flex-col items-center justify-center text-slate-300 dark:text-slate-600 select-none';
+        if (isMini) {
+            el.innerHTML = `<svg class="w-5 h-5 text-rose-500/80" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4z"/></svg>`;
+        } else {
+            el.innerHTML = `
+                <svg class="w-7 h-7 text-rose-500/80 mb-1" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zM6 20V4h5v7h7v9H6z"/></svg>
+                <span class="text-[10px] font-bold font-mono text-slate-400 dark:text-slate-500">PDF</span>
+            `;
+        }
+        return el;
+    }
+
+    function resolveMergeDocPdfUrl(doc) {
+        if (!doc) return null;
+        const vaultId = doc.vault_id || doc.id;
+        if (!vaultId) return null;
+        const area = getResolvedArea(doc) || 'default';
+        const house = getResolvedHouse(doc) || 'default';
+        if (typeof getPdfUrl === 'function' && area && area !== 'default' && house && house !== 'default') {
+            return getPdfUrl(area, house, vaultId);
+        } else if (area && area !== 'default' && house && house !== 'default') {
+            return `/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/pdf/${encodeURIComponent(vaultId)}`;
+        } else {
+            return `/api/pdf/${encodeURIComponent(vaultId)}`;
+        }
+    }
+
+    async function renderDocThumbnail(containerEl, doc, width = 112, height = 144) {
+        if (!containerEl || !doc) return;
+        const isMini = width < 60;
+        const key = String(doc.vault_id || doc.id || doc.file_name || doc.title || '');
+
+        if (key && mergeThumbnailCache.has(key)) {
+            const cached = mergeThumbnailCache.get(key);
+            containerEl.innerHTML = '';
+            if (cached && cached.dataUrl) {
+                const img = document.createElement('img');
+                img.src = cached.dataUrl;
+                img.alt = doc.brief_arabic_title || doc.title || 'PDF Preview';
+                img.className = 'max-w-full max-h-full object-contain rounded shadow-2xs block mx-auto pointer-events-none select-none';
+                containerEl.appendChild(img);
+                return;
+            } else if (cached && cached.canvas) {
+                containerEl.appendChild(cloneCanvas(cached.canvas));
+                return;
+            }
+        }
+
+        containerEl.innerHTML = '';
+        const placeholder = getFallbackThumbnailPlaceholder(isMini);
+        if (placeholder) containerEl.appendChild(placeholder);
+
+        const pdfLib = (typeof window !== 'undefined' && window.pdfjsLib) || (typeof pdfjsLib !== 'undefined' ? pdfjsLib : null);
+        if (!pdfLib || typeof pdfLib.getDocument !== 'function') {
+            return;
+        }
+
+        const pdfUrl = resolveMergeDocPdfUrl(doc);
+        if (!pdfUrl) return;
+
+        try {
+            let promise = mergeThumbnailPromises.get(key);
+            if (!promise) {
+                promise = (async () => {
+                    const loadingTask = pdfLib.getDocument({ url: pdfUrl });
+                    const pdf = await loadingTask.promise;
+                    const page = await pdf.getPage(1);
+                    const unscaled = page.getViewport({ scale: 1.0 });
+                    const targetW = width || 112;
+                    const scale = targetW / unscaled.width;
+                    const viewport = page.getViewport({ scale });
+                    const outputScale = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
+
+                    const canvas = document.createElement('canvas');
+                    canvas.className = 'max-w-full max-h-full object-contain rounded shadow-2xs block mx-auto';
+                    canvas.width = Math.floor(viewport.width * outputScale);
+                    canvas.height = Math.floor(viewport.height * outputScale);
+                    canvas.style.width = Math.floor(viewport.width) + 'px';
+                    canvas.style.height = Math.floor(viewport.height) + 'px';
+
+                    const ctx = canvas.getContext('2d');
+                    if (ctx) {
+                        ctx.scale(outputScale, outputScale);
+                    }
+                    await page.render({ canvasContext: ctx, viewport }).promise;
+
+                    let dataUrl = null;
+                    try {
+                        dataUrl = canvas.toDataURL();
+                    } catch (e) {}
+
+                    const entry = { dataUrl, canvas };
+                    mergeThumbnailCache.set(key, entry);
+                    return entry;
+                })();
+                mergeThumbnailPromises.set(key, promise);
+            }
+
+            const res = await promise;
+            if (containerEl && (containerEl.isConnected !== false)) {
+                containerEl.innerHTML = '';
+                if (res && res.dataUrl) {
+                    const img = document.createElement('img');
+                    img.src = res.dataUrl;
+                    img.alt = doc.brief_arabic_title || doc.title || 'PDF Preview';
+                    img.className = 'max-w-full max-h-full object-contain rounded shadow-2xs block mx-auto pointer-events-none select-none';
+                    containerEl.appendChild(img);
+                } else if (res && res.canvas) {
+                    containerEl.appendChild(cloneCanvas(res.canvas));
+                }
+            }
+        } catch (err) {
+            console.warn('Could not render merge thumbnail for document:', doc.title || doc.vault_id, err);
+        }
+    }
+
     function updateMergeOrderSummary() {
         if (mergeOrderSummary) {
             if (activeMergeDocs.length === 2) {
@@ -1887,6 +2026,70 @@
         const totalPages = activeMergeDocs.reduce((acc, d) => acc + (d.page_count || d.pages_count || 1), 0);
         if (mergeDocsCountBadge) {
             mergeDocsCountBadge.textContent = `${activeMergeDocs.length} ${activeMergeDocs.length === 1 ? 'doc' : 'docs'} • ${totalPages} pages`;
+        }
+
+        if (mergePreviewCards) {
+            mergePreviewCards.innerHTML = '';
+            if (activeMergeDocs.length > 0) {
+                activeMergeDocs.forEach((doc, idx) => {
+                    const title = doc.brief_arabic_title || doc.title || doc.file_name || doc.filename || `وثيقة ${idx + 1}`;
+                    const cat = doc.category || doc.folder || activeMergeFallbackCategory || 'عام';
+                    const pages = doc.page_count || doc.pages_count || 1;
+                    const isFirst = idx === 0;
+
+                    let badgeLabel = `#${idx + 1}`;
+                    if (activeMergeDocs.length === 2) {
+                        badgeLabel = isFirst ? '#1 (البداية)' : '#2 (النهاية)';
+                    }
+
+                    const card = document.createElement('div');
+                    card.className = `merge-preview-card flex flex-col items-center bg-white dark:bg-slate-800 rounded-xl border ${isFirst ? 'border-emerald-500/50 shadow-xs' : 'border-slate-200 dark:border-slate-700'} p-2.5 w-36 flex-shrink-0 transition-all select-none`;
+                    card.setAttribute('data-merge-idx', idx);
+
+                    card.innerHTML = `
+                        <div class="flex items-center justify-between w-full mb-1.5 px-0.5">
+                            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${isFirst ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'} font-mono">${badgeLabel}</span>
+                            <span class="text-[10px] text-slate-400 font-mono">${pages} ${pages === 1 ? 'page' : 'pages'}</span>
+                        </div>
+                        <div class="merge-card-thumbnail w-30 h-38 bg-slate-100 dark:bg-slate-900/90 rounded-lg border border-slate-200/80 dark:border-slate-700 flex items-center justify-center overflow-hidden mb-2 shadow-2xs"></div>
+                        <div class="w-full text-center">
+                            <p class="text-[11px] font-bold text-slate-800 dark:text-slate-200 truncate" title="${title}">${title}</p>
+                            <p class="text-[10px] text-slate-400 dark:text-slate-400 truncate mt-0.5">${cat}</p>
+                        </div>
+                    `;
+
+                    const thumbContainer = card.querySelector('.merge-card-thumbnail');
+                    if (thumbContainer) {
+                        renderDocThumbnail(thumbContainer, doc, 120, 152);
+                    }
+
+                    mergePreviewCards.appendChild(card);
+
+                    // Insert connector between cards
+                    if (idx < activeMergeDocs.length - 1) {
+                        const connector = document.createElement('div');
+                        connector.className = 'flex flex-col items-center justify-center px-1 flex-shrink-0';
+                        if (activeMergeDocs.length === 2) {
+                            connector.innerHTML = `
+                                <button type="button" class="btn-merge-inline-swap p-2 rounded-full bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 border border-slate-200 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-700 text-emerald-600 dark:text-emerald-400 shadow-2xs hover:scale-110 active:scale-95 transition-all cursor-pointer" title="Swap sequence • تبديل الترتيب">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                                </button>
+                                <span class="text-[9px] font-semibold text-slate-400 mt-1 font-mono">ثم • then</span>
+                            `;
+                            const swapBtn = connector.querySelector('.btn-merge-inline-swap');
+                            if (swapBtn) swapBtn.onclick = handleSwapMergeDocs;
+                        } else {
+                            connector.innerHTML = `
+                                <div class="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500">
+                                    <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+                                </div>
+                                <span class="text-[9px] font-semibold text-slate-400 mt-1 font-mono">ثم</span>
+                            `;
+                        }
+                        mergePreviewCards.appendChild(connector);
+                    }
+                });
+            }
         }
     }
 
@@ -1982,6 +2185,7 @@
                         <button type="button" class="btn-merge-down w-5 h-4 flex items-center justify-center rounded bg-slate-100 dark:bg-slate-700 text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 disabled:opacity-25 disabled:pointer-events-none text-[9px] cursor-pointer transition-colors" ${idx === activeMergeDocs.length - 1 ? 'disabled' : ''} title="Move Later • تأخير">▼</button>
                     </div>
                     <span class="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-mono text-xs font-bold flex items-center justify-center flex-shrink-0 border border-emerald-100 dark:border-emerald-800/60">${idx + 1}</span>
+                    <div class="merge-thumbnail-mini w-10 h-13 rounded-md bg-slate-100 dark:bg-slate-900 border border-slate-200/80 dark:border-slate-700/80 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-2xs"></div>
                     <div class="min-w-0 flex-1">
                         <div class="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title="${title}">${title}</div>
                         <div class="flex items-center gap-1.5 mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
@@ -1996,6 +2200,11 @@
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             `;
+
+            const miniThumb = row.querySelector('.merge-thumbnail-mini');
+            if (miniThumb) {
+                renderDocThumbnail(miniThumb, doc, 40, 52);
+            }
 
             const btnUp = row.querySelector('.btn-merge-up');
             if (btnUp) btnUp.onclick = () => moveMergeDocUp(idx);
@@ -2116,6 +2325,9 @@
         mergeDocsModal.classList.remove('flex');
         activeMergeDocs = [];
         initialMergeCount = 0;
+        mergeThumbnailCache.clear();
+        mergeThumbnailPromises.clear();
+        if (mergePreviewCards) mergePreviewCards.innerHTML = '';
         if (mergeDocsStatus) {
             mergeDocsStatus.textContent = '';
             mergeDocsStatus.classList.add('hidden');
@@ -2281,6 +2493,8 @@
     window.handleSwapMergeDocs = handleSwapMergeDocs;
     window.showMergeStep = showMergeStep;
     window.updateMergeOrderSummary = updateMergeOrderSummary;
+    window.renderDocThumbnail = renderDocThumbnail;
+    window.mergeThumbnailCache = mergeThumbnailCache;
     window.handleReorderContinue = handleReorderContinue;
     window.handleSaveBack = handleSaveBack;
 
@@ -2305,6 +2519,8 @@
             handleSwapMergeDocs,
             showMergeStep,
             updateMergeOrderSummary,
+            renderDocThumbnail,
+            mergeThumbnailCache,
             handleReorderContinue,
             handleSaveBack,
             showDocInTimeline,

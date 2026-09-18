@@ -1825,7 +1825,20 @@ function webViewerResize() {
   }
   const currentScaleValue = pdfViewer.currentScaleValue;
   if (currentScaleValue === "auto" || currentScaleValue === "page-fit" || currentScaleValue === "page-width") {
-    pdfViewer.currentScaleValue = currentScaleValue;
+    const container = pdfViewer.container;
+    const prevScrollTop = container ? container.scrollTop : 0;
+    const prevScale = pdfViewer.currentScale || 1;
+    if (typeof pdfViewer.setScale === "function") {
+      pdfViewer.setScale(currentScaleValue, {
+        noScroll: true
+      });
+    } else {
+      pdfViewer.currentScaleValue = currentScaleValue;
+    }
+    if (container && prevScrollTop > 0 && prevScale > 0 && pdfViewer.currentScale > 0) {
+      const scaleRatio = pdfViewer.currentScale / prevScale;
+      container.scrollTop = Math.round(prevScrollTop * scaleRatio);
+    }
   }
   pdfViewer.update();
 }
@@ -8835,6 +8848,12 @@ class PDFViewer {
       noScroll: false
     });
   }
+  setScale(val, options = {}) {
+    if (!this.pdfDocument) {
+      return;
+    }
+    this.#setScale(val, options);
+  }
   get pagesRotation() {
     return this._pagesRotation;
   }
@@ -9369,6 +9388,14 @@ class PDFViewer {
     }
     this._currentScale = newScale;
     if (!noScroll) {
+      if (!this._location && this.container && this.container.scrollTop > 0) {
+        try {
+          const visible = this._getVisiblePages();
+          if (visible && visible.first) {
+            this._updateLocation(visible.first);
+          }
+        } catch (e) {}
+      }
       let page = this._currentPageNumber,
         dest;
       if (this._location && !(this.isInPresentationMode || this.isChangingPresentationMode)) {

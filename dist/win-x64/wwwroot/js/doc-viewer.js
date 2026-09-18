@@ -2060,15 +2060,7 @@
 
         console.debug('[Translation] Starting document translation for:', vaultId);
 
-        // Tablet/touch: use overlay cards on top of iframe (fast, no heavy canvas rendering)
-        if (shouldUseOfficialViewer()) {
-            currentTranslationPromise = renderOverlayTranslation(vaultId).finally(() => {
-                currentTranslationPromise = null;
-            });
-            return currentTranslationPromise;
-        }
-
-        // Desktop: use canvas-based translation panels below each rendered page
+        // Desktop / Tab: use canvas-based translation panels below each rendered page
         currentTranslationPromise = (async () => {
             try {
                 const canvasContainer = document.getElementById('pdf-canvas-container');
@@ -2284,7 +2276,19 @@
                         try {
                             const curZoom = getPreferredPdfZoom();
                             if (curZoom && app.pdfViewer) {
-                                app.pdfViewer.currentScaleValue = curZoom;
+                                if (app.pdfViewer.currentScaleValue === curZoom) {
+                                    return;
+                                }
+                                const container = app.pdfViewer.container;
+                                const prevScrollTop = container ? container.scrollTop : 0;
+                                if (typeof app.pdfViewer.setScale === 'function') {
+                                    app.pdfViewer.setScale(curZoom, { noScroll: prevScrollTop > 0 });
+                                } else {
+                                    app.pdfViewer.currentScaleValue = curZoom;
+                                }
+                                if (container && prevScrollTop > 0) {
+                                    container.scrollTop = prevScrollTop;
+                                }
                                 app.toolbar?.setPageScale(curZoom, app.pdfViewer.currentScale);
                             }
                         } catch (err) {}
@@ -2304,7 +2308,8 @@
                         });
                     }
 
-                    if (app.eventBus) {
+                    if (app.eventBus && !pdfFrame._hasDocInitListeners) {
+                        pdfFrame._hasDocInitListeners = true;
                         const onPagesReady = () => {
                             applyCurrentZoom();
                         };
@@ -2316,8 +2321,6 @@
                     if (openPromise && typeof openPromise.then === 'function') {
                         openPromise.then(() => {
                             applyCurrentZoom();
-                            setTimeout(applyCurrentZoom, 50);
-                            setTimeout(applyCurrentZoom, 200);
                         }).catch(() => {});
                     }
 
@@ -2355,12 +2358,27 @@
                         const applyZoom = () => {
                             const curZoom = getPreferredPdfZoom();
                             if (curZoom && app.pdfViewer) {
-                                app.pdfViewer.currentScaleValue = curZoom;
+                                if (app.pdfViewer.currentScaleValue === curZoom) {
+                                    return;
+                                }
+                                const container = app.pdfViewer.container;
+                                const prevScrollTop = container ? container.scrollTop : 0;
+                                if (typeof app.pdfViewer.setScale === 'function') {
+                                    app.pdfViewer.setScale(curZoom, { noScroll: prevScrollTop > 0 });
+                                } else {
+                                    app.pdfViewer.currentScaleValue = curZoom;
+                                }
+                                if (container && prevScrollTop > 0) {
+                                    container.scrollTop = prevScrollTop;
+                                }
                                 app.toolbar?.setPageScale(curZoom, app.pdfViewer.currentScale);
                             }
                         };
-                        app.eventBus._on('pagesloaded', applyZoom);
-                        app.eventBus._on('documentinit', applyZoom);
+                        if (!pdfFrame._hasDocInitListeners) {
+                            pdfFrame._hasDocInitListeners = true;
+                            app.eventBus._on('pagesloaded', applyZoom);
+                            app.eventBus._on('documentinit', applyZoom);
+                        }
                     }
                 } catch (err) {}
             });

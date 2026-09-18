@@ -1771,4 +1771,233 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       global.Tesseract = origTesseract;
     });
   });
+
+  describe('Tablet Scroll View Preservation & Resize Suite', () => {
+    beforeEach(() => {
+      localStorage.setItem('pdf_viewer_mode', 'tab');
+      localStorage.setItem('doc_viewer_translate', 'false');
+      eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
+    });
+
+    it('in loadPdfIntoFrame, applyCurrentZoom preserves container.scrollTop and uses noScroll when container is scrolled', async () => {
+      localStorage.setItem('pdf_zoom_preference', 'page-fit');
+
+      const mockSetScale = vi.fn();
+      let scaleValue = 'page-fit';
+      const mockContainer = { scrollTop: 450, scrollHeight: 2000, clientHeight: 800 };
+
+      const mockPdfViewer = {
+        get currentScaleValue() { return scaleValue; },
+        set currentScaleValue(val) { scaleValue = val; },
+        currentScale: 1.2,
+        setScale: mockSetScale,
+        container: mockContainer
+      };
+
+      const mockToolbar = {
+        setPageScale: vi.fn()
+      };
+
+      const listeners = {};
+      const mockEventBus = {
+        _on: vi.fn((event, handler) => {
+          listeners[event] = listeners[event] || [];
+          listeners[event].push(handler);
+        }),
+        _off: vi.fn()
+      };
+
+      const mockOpen = vi.fn().mockResolvedValue({});
+
+      const pdfFrame = document.getElementById('pdf-frame');
+      delete pdfFrame._hasDocInitListeners;
+      delete pdfFrame._hasScaleListener;
+
+      Object.defineProperty(pdfFrame, 'contentWindow', {
+        value: {
+          PDFViewerApplication: {
+            initialized: true,
+            open: mockOpen,
+            pdfViewer: mockPdfViewer,
+            toolbar: mockToolbar,
+            eventBus: mockEventBus
+          },
+          _app_options: {
+            AppOptions: {
+              set: vi.fn()
+            }
+          }
+        },
+        writable: true,
+        configurable: true
+      });
+
+      // User has scrolled the document to 450px
+      expect(mockContainer.scrollTop).toBe(450);
+
+      // Open a document
+      window.openDocument('doc_tab_scroll_test', 'وثيقة تجريبية للتمرير', '05 - عقود');
+
+      // Frame listeners must be guarded
+      expect(pdfFrame._hasDocInitListeners).toBe(true);
+      expect(pdfFrame._hasScaleListener).toBe(true);
+
+      // Verify open was called
+      expect(mockOpen).toHaveBeenCalled();
+
+      // Ensure scrollTop was preserved at 450px and NOT reset to 0
+      expect(mockContainer.scrollTop).toBe(450);
+    });
+
+    it('in loadPdfIntoFrame, applyCurrentZoom skips re-setting scale if currentScaleValue already equals preferred zoom', async () => {
+      localStorage.setItem('pdf_zoom_preference', 'page-fit');
+
+      const setScaleSpy = vi.fn();
+      let scaleSetterCalled = false;
+
+      const mockContainer = { scrollTop: 600, scrollHeight: 2400, clientHeight: 800 };
+      const mockPdfViewer = {
+        _currentScaleValue: 'page-fit',
+        get currentScaleValue() { return this._currentScaleValue; },
+        set currentScaleValue(val) {
+          scaleSetterCalled = true;
+          this._currentScaleValue = val;
+        },
+        currentScale: 1.0,
+        setScale: setScaleSpy,
+        container: mockContainer
+      };
+
+      const pdfFrame = document.getElementById('pdf-frame');
+      delete pdfFrame._hasDocInitListeners;
+      delete pdfFrame._hasScaleListener;
+
+      const listeners = {};
+      const mockEventBus = {
+        _on: vi.fn((event, handler) => {
+          listeners[event] = listeners[event] || [];
+          listeners[event].push(handler);
+        }),
+        _off: vi.fn()
+      };
+
+      Object.defineProperty(pdfFrame, 'contentWindow', {
+        value: {
+          PDFViewerApplication: {
+            initialized: true,
+            open: vi.fn().mockResolvedValue({}),
+            pdfViewer: mockPdfViewer,
+            toolbar: { setPageScale: vi.fn() },
+            eventBus: mockEventBus
+          },
+          _app_options: { AppOptions: { set: vi.fn() } }
+        },
+        writable: true,
+        configurable: true
+      });
+
+      window.openDocument('doc_zoom_match', 'وثيقة تطابق الحجم', '05 - عقود');
+
+      // Trigger pagesloaded event
+      if (listeners['pagesloaded'] && listeners['pagesloaded'][0]) {
+        listeners['pagesloaded'][0]();
+      }
+
+      // Because zoom was already 'page-fit', neither setter nor setScale should have re-triggered
+      expect(scaleSetterCalled).toBe(false);
+      expect(setScaleSpy).not.toHaveBeenCalled();
+      expect(mockContainer.scrollTop).toBe(600);
+    });
+
+    it('in loadPdfIntoFrame, event listeners for pagesloaded and documentinit are not duplicated on repeated opens', () => {
+      const pdfFrame = document.getElementById('pdf-frame');
+      delete pdfFrame._hasDocInitListeners;
+      delete pdfFrame._hasScaleListener;
+
+      const registeredEvents = [];
+      const mockEventBus = {
+        _on: vi.fn((event) => {
+          registeredEvents.push(event);
+        }),
+        _off: vi.fn()
+      };
+
+      Object.defineProperty(pdfFrame, 'contentWindow', {
+        value: {
+          PDFViewerApplication: {
+            initialized: true,
+            open: vi.fn().mockResolvedValue({}),
+            pdfViewer: { currentScaleValue: 'page-fit', currentScale: 1.0, container: { scrollTop: 0 } },
+            toolbar: { setPageScale: vi.fn() },
+            eventBus: mockEventBus
+          },
+          _app_options: { AppOptions: { set: vi.fn() } }
+        },
+        writable: true,
+        configurable: true
+      });
+
+      // Open document 1
+      window.openDocument('doc_1', 'وثيقة 1', '05 - عقود');
+      const firstCount = registeredEvents.filter(e => e === 'pagesloaded').length;
+      expect(firstCount).toBe(1);
+
+      // Open document 2
+      window.openDocument('doc_2', 'وثيقة 2', '05 - عقود');
+      const secondCount = registeredEvents.filter(e => e === 'pagesloaded').length;
+      // Must remain 1 (no duplicate listener registered)
+      expect(secondCount).toBe(1);
+
+      // Open document 3
+      window.openDocument('doc_3', 'وثيقة 3', '05 - عقود');
+      const thirdCount = registeredEvents.filter(e => e === 'pagesloaded').length;
+      expect(thirdCount).toBe(1);
+    });
+
+    it('viewer.js webViewerResize logic preserves scroll position and uses setScale with noScroll: true', () => {
+      // Test the viewer.js webViewerResize contract directly
+      const mockContainer = { scrollTop: 320, scrollHeight: 2000, clientHeight: 700 };
+      const mockPdfViewer = {
+        currentScaleValue: 'page-fit',
+        currentScale: 1.0,
+        container: mockContainer,
+        setScale: vi.fn((scaleVal, opts) => {
+          // Simulate scale recalculation on dynamic viewport height change
+          if (opts && opts.noScroll) {
+            mockPdfViewer.currentScale = 1.05; // 5% scale increase from address bar collapse
+          }
+        }),
+        update: vi.fn()
+      };
+
+      const viewerJsCode = fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/lib/pdfjs/web/viewer.js'), 'utf8');
+
+      // Verify that viewer.js contains the setScale method on PDFViewer class
+      expect(viewerJsCode).toContain('setScale(val, options = {})');
+      // Verify that viewer.js webViewerResize uses setScale with noScroll: true
+      expect(viewerJsCode).toContain('pdfViewer.setScale(currentScaleValue, {');
+      expect(viewerJsCode).toContain('noScroll: true');
+      // Verify that viewer.js webViewerResize proportionally adjusts container.scrollTop
+      expect(viewerJsCode).toContain('container.scrollTop = Math.round(prevScrollTop * scaleRatio);');
+
+      // Simulate the webViewerResize logic
+      const currentScaleValue = mockPdfViewer.currentScaleValue;
+      if (currentScaleValue === 'auto' || currentScaleValue === 'page-fit' || currentScaleValue === 'page-width') {
+        const container = mockPdfViewer.container;
+        const prevScrollTop = container ? container.scrollTop : 0;
+        const prevScale = mockPdfViewer.currentScale || 1;
+        if (typeof mockPdfViewer.setScale === 'function') {
+          mockPdfViewer.setScale(currentScaleValue, { noScroll: true });
+        }
+        if (container && prevScrollTop > 0 && prevScale > 0 && mockPdfViewer.currentScale > 0) {
+          const scaleRatio = mockPdfViewer.currentScale / prevScale;
+          container.scrollTop = Math.round(prevScrollTop * scaleRatio);
+        }
+      }
+
+      expect(mockPdfViewer.setScale).toHaveBeenCalledWith('page-fit', { noScroll: true });
+      // 320 * (1.05 / 1.0) = 336 (smooth proportional scroll, not 0!)
+      expect(mockContainer.scrollTop).toBe(336);
+    });
+  });
 });
