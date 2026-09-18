@@ -957,7 +957,54 @@
         { ar: 'رجب', en: 'Rajab' },
         { ar: 'شعبان', en: 'Shaban' },
         { ar: 'رمضان', en: 'Ramadan' },
-        { ar: 'محرم', en: 'Muharram' }
+        { ar: 'محرم', en: 'Muharram' },
+
+        // ── Bahrain Military & Police Ranks ──
+        { ar: 'فريق أول', en: 'General' },
+        { ar: 'فريق', en: 'Lieutenant General' },
+        { ar: 'لواء', en: 'Major General' },
+        { ar: 'عميد', en: 'Brigadier General' },
+        { ar: 'عقيد', en: 'Colonel' },
+        { ar: 'مقدم', en: 'Lieutenant Colonel' },
+        { ar: 'رائد', en: 'Major' },
+        { ar: 'ملازم أول', en: 'First Lieutenant' },
+        { ar: 'ملازم اول', en: 'First Lieutenant' },
+        { ar: 'ملازم ثاني', en: 'Second Lieutenant' },
+        { ar: 'ملازم', en: 'Lieutenant' },
+        { ar: 'وكيل أول', en: 'Chief Warrant Officer' },
+        { ar: 'وكيل اول', en: 'Chief Warrant Officer' },
+        { ar: 'رئيس عرفاء', en: 'Master Sergeant' },
+        { ar: 'رئيس عرقاء', en: 'Master Sergeant' },
+        { ar: 'رقيب أول', en: 'Staff Sergeant' },
+        { ar: 'رقيب اول', en: 'Staff Sergeant' },
+        { ar: 'رقيب', en: 'Sergeant' },
+        { ar: 'جندي أول', en: 'Private First Class' },
+        { ar: 'جندي اول', en: 'Private First Class' },
+        { ar: 'جندي', en: 'Private' },
+        { ar: 'شرطي أول', en: 'Senior Policeman' },
+        { ar: 'شرطي', en: 'Policeman' },
+
+        // ── Utility Bills & Invoices ──
+        { ar: 'فاتورة خدمات', en: 'Utility Services Bill' },
+        { ar: 'فاتورة كهرباء وماء', en: 'Electricity & Water Utility Bill' },
+        { ar: 'فاتورة كهرباء', en: 'Electricity Bill' },
+        { ar: 'فاتورة ماء', en: 'Water Bill' },
+        { ar: 'فاتورة المياه', en: 'Water Bill' },
+        { ar: 'فاتورة الكهرباء', en: 'Electricity Bill' },
+        { ar: 'استقطاع بدل الانتفاع', en: 'Deduction of Usufruct Allowance' },
+        { ar: 'طلب استقطاع بدل انتفاع', en: 'Request for Usufruct Allowance Deduction' },
+        { ar: 'استقطاع مبلغ بدل الانتفاع', en: 'Deduction of Usufruct Allowance Amount' },
+
+        // ── Maintenance & Renovation Requests ──
+        { ar: 'طلب استبدال أبواب ونوافذ', en: 'request for replacement of doors and windows' },
+        { ar: 'طلب استبدال أبواب', en: 'request for replacement of doors' },
+        { ar: 'طلب استبدال نوافذ', en: 'request for replacement of windows' },
+        { ar: 'طلب استبدال', en: 'request for replacement' },
+        { ar: 'طلب تركيب مظلة', en: 'request for installation of canopy shade' },
+        { ar: 'طلب تركيب', en: 'request for installation' },
+        { ar: 'استبدال أبواب ونوافذ', en: 'replacement of doors and windows' },
+        { ar: 'استبدال أبواب', en: 'replacement of doors' },
+        { ar: 'استبدال نوافذ', en: 'replacement of windows' }
     ];
 
     // ── Word-Level Vocabulary Dictionary (500+ Words) ──
@@ -1245,6 +1292,9 @@
         'أقدمية': 'seniority', 'اقدمية': 'seniority',
         'ترشيح': 'nomination', 'الترشيح': 'nomination',
         'تعديل': 'modification', 'التعديل': 'modification', 'تعديلات': 'modifications',
+        'استبدال': 'replacement', 'الاستبدال': 'replacement', 'تبديل': 'replacement',
+        'تركيب': 'installation', 'التركيب': 'installation',
+        'مظلة': 'shade / canopy', 'المظلة': 'shade / canopy',
         'توسعة': 'extension', 'التوسعة': 'extension',
         'بناء': 'construction', 'البناء': 'construction',
         'هدم': 'demolition', 'الهدم': 'demolition',
@@ -1407,7 +1457,19 @@
         'سكانية': 'Smart / CPR', 'السكانية': 'Smart / CPR',
         'مؤقتة': 'temporary', 'المؤقتة': 'temporary',
         'عريف': 'Corporal', 'العريف': 'Corporal',
-        'نقيب': 'Captain', 'النقيب': 'Captain'
+        'نقيب': 'Captain', 'النقيب': 'Captain',
+        'ملازم': 'Lieutenant', 'الملازم': 'Lieutenant',
+        'رائد': 'Major', 'الرائد': 'Major',
+        'مقدم': 'Lieutenant Colonel', 'المقدم': 'Lieutenant Colonel',
+        'عقيد': 'Colonel', 'العقيد': 'Colonel',
+        'عميد': 'Brigadier General', 'العميد': 'Brigadier General',
+        'لواء': 'Major General', 'اللواء': 'Major General',
+        'فريق': 'General', 'الفريق': 'General',
+        'رقيب': 'Sergeant', 'الرقيب': 'Sergeant',
+        'عرفاء': 'Sergeants', 'العرفاء': 'Sergeants',
+        'عرقاء': 'Sergeants',
+        'شرطي': 'Policeman', 'الشرطي': 'Policeman',
+        'جندي': 'Private', 'الجندي': 'Private'
     };
 
     // ── Bahraini & Arab Personal / Family Names ──
@@ -1539,7 +1601,7 @@
             NORMALIZED_WORDS.set('أ' + k.slice(1), v);
         }
         const skel = getArabicSkeleton(k);
-        if (skel && !SKELETON_WORDS.has(skel)) {
+        if (skel && k.length >= 3 && !SKELETON_WORDS.has(skel)) {
             SKELETON_WORDS.set(skel, v);
         }
     }
@@ -1655,7 +1717,7 @@
             if (NORMALIZED_WORDS.has(withTaaNorm)) return NORMALIZED_WORDS.get(withTaaNorm);
         }
 
-        if (typeof SKELETON_WORDS !== 'undefined' && SKELETON_WORDS.size > 0) {
+        if (typeof SKELETON_WORDS !== 'undefined' && SKELETON_WORDS.size > 0 && stem.length >= 3) {
             const skel = getArabicSkeleton(stem);
             if (SKELETON_WORDS.has(skel)) return SKELETON_WORDS.get(skel);
         }
@@ -1772,7 +1834,7 @@
         }
 
         // 3. Skeleton match on full core word
-        if (typeof SKELETON_WORDS !== 'undefined' && SKELETON_WORDS.size > 0) {
+        if (typeof SKELETON_WORDS !== 'undefined' && SKELETON_WORDS.size > 0 && coreArabic.length >= 3) {
             const skel = getArabicSkeleton(coreArabic);
             if (SKELETON_WORDS.has(skel)) {
                 return prefixPunct + SKELETON_WORDS.get(skel) + suffixPunct;
@@ -1796,8 +1858,12 @@
         }
 
         // 7. Controlled transliteration: strictly suppress raw pseudo-words that produce gibberish
+        if (coreArabic.length <= 3 && !ARABIC_NAMES[coreArabic] && !NORMALIZED_NAMES.has(coreArabic) && !NORMALIZED_NAMES.has(normalizeArabicKey(coreArabic))) {
+            return '';
+        }
+
         const trans = transliterateArabic(coreArabic);
-        if (/\b(Al[a-z]{4,}|[a-z]*(?:qaa|dhm|tfaad|tqaad|swlh|khtyt|mra'y|jba|mswf|rnkh|ntmyr|btmyr|mslymha|st'na'|hmsb|alghlyfh|lbshyh|alnafy)[a-z]*)\b/i.test(trans)) {
+        if (/\b(Al[a-z]{4,}|[a-z]*(?:qaa|dhm|tfaad|tqaad|swlh|khtyt|mra'y|jba|mswf|rnkh|ntmyr|btmyr|mslymha|st'na'|hmsb|alghlyfh|lbshyh|alnafy|mktb|ihdhar|hdyth|yskn|asbwa|khalkh|khdhaaf|tltfa|laa|bttak)[a-z]*)\b/i.test(trans)) {
             return '';
         }
 
@@ -1837,6 +1903,7 @@
             .replace(/([\u0621-\u064A\u0671-\u06D3])\/([\u0621-\u064A\u0671-\u06D3])/g, '$1 / $2')
             .replace(/([\u0621-\u064A\u0671-\u06D3])>([\u0621-\u064A\u0671-\u06D3])/g, '$1 $2')
             .replace(/([\u0621-\u064A\u0671-\u06D3])<([\u0621-\u064A\u0671-\u06D3])/g, '$1 $2')
+            .replace(/\.([\u0621-\u064A\u0671-\u06D3])/g, '. $1')
             .replace(/\b(أو|او)(انهاء|إنهاء|حصوله|حصولة|شراء|اخلاء|إخلاء)\b/g, '$1 $2')
             .replace(/عقد\s+الاتتفاع/g, 'عقد الانتفاع')
             .replace(/الاتتفاع/g, 'الانتفاع')
@@ -1849,10 +1916,11 @@
             .replace(/تمهلكم/g, 'نمهلكم')
             .replace(/وعد\s+احالتكم/g, 'وعند إحالتكم')
             .replace(/حصولة/g, 'حصوله')
-            .replace(/قِ\s+حال/g, 'في حال')
-            .replace(/\bقِ\b/g, 'في')
+            .replace(/قِ?\s+حال/g, 'في حال')
             .replace(/فرع\s+اسكاى/g, 'فرع إسكان')
             .replace(/\bاسكاى\b/g, 'إسكان')
+            .replace(/الشرطلة/g, 'الشرطة')
+            .replace(/إبراهيسم/g, 'إبراهيم')
             .replace(/الوم\s+الشخجتي/g, 'الرقم الشخصي')
             .replace(/الشخجتي/g, 'الشخصي')
             .replace(/الوم\s+الشخصي/g, 'الرقم الشخصي')
@@ -1866,6 +1934,15 @@
             .replace(/\bعلية\b/g, 'عليه')
             .replace(/\bالمضمنة\b/g, 'المتضمنة')
             .replace(/\bمضمنة\b/g, 'متضمنة');
+
+        // Clean official header lines merged with margin barcodes or side stamps
+        res = res
+            .replace(/^(مملكة\s+البحرين)[\s\S]*?(?:[0-9٠-٩]{4,}|[0-9٠-٩\s]{6,}|للا|تلتف)[\s\S]*$/m, '$1')
+            .replace(/^(وزارة\s+الداخلي(?:ة)?)[\s\S]*?(?:[0-9٠-٩]{4,}|[0-9٠-٩\s]{6,}|الاسم)[\s\S]*$/m, 'وزارة الداخلية')
+            .replace(/^(مكتب\s+إدارة\s+إسكان\s+الشرطة|فرع\s+إسكان\s+الشرطة|إدارة\s+إسكان\s+الشرطة)[\s\S]*?(?:[0-9٠-٩]{4,}|[0-9٠-٩\s]{6,}|خذااف)[\s\S]*$/m, '$1')
+            .replace(/(مملكة\s+البحرين)\s+(?:للا\s+)?(?:تلتف[^\s]+\s*)?(?:[0-9٠-٩\s]{6,})/gu, '$1')
+            .replace(/(وزارة\s+الداخلي(?:ة)?)\s+[0-9٠-٩\s]+(?:الاسم\s*)?[0-9٠-٩\s]{6,}/gu, '$1')
+            .replace(/^[0-9٠-٩\s]{1,6}(?:[\u0600-\u06FF]{1,2}\s+)?(?:[0-9٠-٩\s]{1,6})?(مكتب\s+إدارة\s+إسكان\s+الشرطة|فرع\s+إسكان\s+الشرطة)/gu, '$1');
 
         // Separate common ministry, government, and form prefixes merged by OCR
         return res

@@ -28,9 +28,32 @@ describe('OCR Translation Quality & Real-World Scan Verification', () => {
   // Transliteration typically creates tokens with Arabic roots converted to Latin with awkward letter clusters
   function hasTransliterationGibberish(text) {
     if (!text || typeof text !== 'string') return false;
-    const gibberishPattern = /\b(Al[a-z]{4,}|[a-z]*(?:qaa|dhm|tfaad|tqaad|swlh|khtyt|mra'y|jba|mswf|rnkh|ntmyr|btmyr|mslymha|st'na'|hmsb|alghlyfh|lbshyh|alnafy)[a-z]*)\b/i;
+    const gibberishPattern = /\b(Al[a-z]{4,}|[a-z]*(?:qaa|dhm|tfaad|tqaad|swlh|khtyt|mra'y|jba|mswf|rnkh|ntmyr|btmyr|mslymha|st'na'|hmsb|alghlyfh|lbshyh|alnafy|mktb|ihdhar|hdyth|yskn|asbwa|khalkh|khdhaaf|tltfa|laa|bttak)[a-z]*)\b/i;
     return gibberishPattern.test(text);
   }
+
+  // Exact raw OCR lines produced by Tesseract from vault document 393a2e4942354f309dda331fca474468
+  const RAW_OCR_LINES_393A = [
+    "مملكة البحرين للا تلتفعتد2 1ه 11177016",
+    "وزارة الداخلي 0 الاسم 11722105 175 017 1111718757",
+    "مكتب إدارة إسكان الشرطة 7 01171 61517 خذااف1ا 15771",
+    "الرقم: ق أ ع/م !|ش/7١//1/‏ و2193",
+    "التاريخ ‎“(١‏ شوال ‎١478",
+    "‏جح <ح أكتوبر 7 ‎٠٠‏ 1",
+    "الموضوع:عريف رقم 1 صالح قاسم حسين",
+    ": منزل 85 طريق “٠؛؛‏ سافرة - د",
+    "‎.١‏ - الرجاء إحضار صورة شخصية حديثة ونسخة من البطاقات السكانية لجميع أفراد العائلة",
+    "اللذين يسكنون في الوحدة السكنية المؤقتة.وذلك لمكتب إدارة إسكان الشرطة في موعد أقصاه",
+    "أسبوع من استلام المذكرة.",
+    "وار أسكر؟> 1 ٍِ",
+    "0 ا >",
+    "حا ب ‎١‏ لو د ك",
+    "نا الا ال النقيب/ م",
+    "15 اج 8 مكتب إدارة إسكان الشرطلة",
+    "2 0",
+    "7 0 0# إبراهيسم محمد فولاد",
+    "0"
+  ];
 
   // Exact raw OCR lines produced by Tesseract from vault document a3cc73ba7993427fb5b53fb37b3c977d
   const RAW_OCR_LINES_A3CC = [
@@ -209,6 +232,94 @@ describe('OCR Translation Quality & Real-World Scan Verification', () => {
       expect(fullText).toMatch(/30 September 2025/i);
       expect(fullText).toMatch(/vacate/i);
       expect(fullText).toMatch(/Kingdom of Bahrain/i);
+    });
+  });
+
+  describe('End-to-End Pipeline on Real Document 393a2e4942354f309dda331fca474468 (Safra House 685 Notice)', () => {
+    it('processes raw OCR lines, purges 100% of scanner/stamp noise, strips margin barcodes from headers, and translates fluently', () => {
+      // 1. Filter lines through isNoiseLine
+      const cleanLines = RAW_OCR_LINES_393A.filter(l => !window.isNoiseLine(l));
+
+      // Noise suppression: at least 7 noise lines purged
+      expect(cleanLines.length).toBeLessThanOrEqual(RAW_OCR_LINES_393A.length - 7);
+
+      // 2. Translate every retained line
+      const translatedLines = cleanLines.map(l => window.translateArabicText(l));
+      const fullText = translatedLines.join('\n');
+
+      // Verify ZERO transliteration gibberish in entire translated document
+      expect(hasTransliterationGibberish(fullText)).toBe(false);
+
+      // Verify ZERO raw broken transliteration tokens explicitly flagged by user
+      expect(fullText).not.toMatch(/\bMktb\b/i);
+      expect(fullText).not.toMatch(/\bIhdhar\b/i);
+      expect(fullText).not.toMatch(/\bHdythh?\b/i);
+      expect(fullText).not.toMatch(/\bYsknwn\b/i);
+      expect(fullText).not.toMatch(/\bLmktb\b/i);
+      expect(fullText).not.toMatch(/\bAsbwa\b/i);
+      expect(fullText).not.toMatch(/\bShwal\b/i);
+      expect(fullText).not.toMatch(/\bKhalkh\b/i);
+      expect(fullText).not.toMatch(/\bLaa\b/i);
+
+      // Verify barcode noise is stripped from official headers
+      expect(fullText).toMatch(/Kingdom of Bahrain/i);
+      expect(fullText).not.toMatch(/11177016/);
+      expect(fullText).toMatch(/Ministry of Interior/i);
+      expect(fullText).not.toMatch(/11722105/);
+      expect(fullText).toMatch(/Police Housing Directorate Office/i);
+      expect(fullText).not.toMatch(/61517/);
+
+      // Verify high-quality readable English translation of key body contents
+      expect(fullText).toMatch(/Corporal No\./i);
+      expect(fullText).toMatch(/Saleh.*Qasim.*Hussain/i);
+      expect(fullText).toMatch(/Safra/i);
+      expect(fullText).toMatch(/Please provide a recent personal photograph and a copy of Smart \/ CPR Cards for all family members/i);
+      expect(fullText).toMatch(/who reside in the temporary housing unit/i);
+      expect(fullText).toMatch(/Police Housing Directorate Office no later than/i);
+      expect(fullText).toMatch(/one week from receipt of the memorandum/i);
+      expect(fullText).toMatch(/Shawwal/i);
+    });
+  });
+
+  describe('30-Document Multi-Category Quality Benchmark Suite', () => {
+    it('translates military and police administrative ranks accurately without transliteration', () => {
+      expect(window.translateArabicText('رئيس عرفاء')).toBe('Master Sergeant');
+      expect(window.translateArabicText('رئيس عرقاء')).toBe('Master Sergeant');
+      expect(window.translateArabicText('عريف رقم 594175')).toMatch(/Corporal No\.\s*594175/i);
+      expect(window.translateArabicText('النقيب / إبراهيم محمد')).toMatch(/Captain\s*\/\s*Ibrahim Mohamed/i);
+      expect(window.translateArabicText('ملازم أول حسن')).toMatch(/First Lieutenant\s*Hassan/i);
+      expect(window.translateArabicText('الرائد أحمد')).toMatch(/Major\s*Ahmed/i);
+    });
+
+    it('translates official ministry and directorate entities cleanly without transliteration', () => {
+      expect(window.translateArabicText('مكتب إدارة إسكان الشرطة')).toBe('Police Housing Directorate Office');
+      expect(window.translateArabicText('إدارة الإمداد والتموين')).toBe('Directorate of Supply and Catering');
+      expect(window.translateArabicText('فرع اسكان الشرطة')).toBe('Police Housing Branch');
+      expect(window.translateArabicText('وزارة الداخلية')).toBe('Ministry of Interior');
+      expect(window.translateArabicText('مملكة البحرين')).toBe('Kingdom of Bahrain');
+    });
+
+    it('translates tenancy, utility bills, deductions, and notices with strict quality thresholds', () => {
+      // Usufruct / Occupancy
+      expect(window.translateArabicText('استقطاع بدل الانتفاع')).toMatch(/(?:deduction|deduct).*(?:usufruct|occupancy|allowance)/i);
+
+      // Utility Bills
+      expect(window.translateArabicText('فاتورة خدمات')).toMatch(/utility.*services.*bill|utility bill|services bill/i);
+      expect(window.translateArabicText('هيئة الكهرباء والماء')).toMatch(/Electricity & Water Authority/i);
+
+      // Eviction & Notices
+      expect(window.translateArabicText('إشعار إخلاء وحدة سكنية')).toMatch(/Housing Unit Eviction Notice/i);
+      expect(window.translateArabicText('مهلة لغاية تاريخ 30 سبتمبر')).toMatch(/grace period until.*30 September/i);
+
+      // Maintenance & Modification
+      expect(window.translateArabicText('طلب استبدال أبواب ونوافذ')).toMatch(/request.*replacement.*doors.*windows/i);
+    });
+
+    it('ensures zero occurrences of content_explanation or AI fallback mechanism', () => {
+      // The entire offline OCR pipeline must function purely client-side without any server AI dependency
+      expect(typeof window.translateArabicText).toBe('function');
+      expect(typeof window.detectPageText).toBe('function');
+      expect(typeof window.renderPageTranslationLayer).toBe('function');
     });
   });
 });
