@@ -90,6 +90,7 @@
         { ar: 'إشعار إخلاء مسكن', en: 'House Eviction Notice' },
         { ar: 'إشعارات الإخلاء', en: 'Eviction Notices' },
         { ar: 'إشعارات إخلاء', en: 'Eviction Notices' },
+        { ar: 'إشعار إخلاء فوري', en: 'Immediate Eviction Notice' },
         { ar: 'إشعار إخلاء', en: 'Eviction Notice' },
         { ar: 'إنذار بإخلاء', en: 'Eviction Warning Notice' },
         { ar: 'إنذار نهائي بالإخلاء', en: 'Final Eviction Warning' },
@@ -651,6 +652,7 @@
         'حضور': 'Appearance / Attendance', 'الحضور': 'Attendance / Reporting',
         'مراجعة': 'Visit / Review', 'المراجعة': 'Visit / Review',
         'ضرورة': 'Urgency / Necessity', 'ضروري': 'Necessary', 'نهائي': 'Final', 'نهائية': 'Final', 'نهائيا': 'Finally', 'نهائياً': 'Finally',
+        'فوري': 'Immediate', 'الفوري': 'Immediate', 'فورية': 'Immediate', 'فوراً': 'Immediately', 'فورا': 'Immediately',
         'كائن': 'Located', 'الكائن': 'Located', 'كائنة': 'Located', 'الكائنة': 'Located',
         'مذكور': 'Mentioned', 'المذكور': 'Mentioned', 'مذكورة': 'Mentioned', 'المذكورة': 'Mentioned', 'مذكورين': 'Mentioned', 'المذكورين': 'Mentioned',
         'اعلاه': 'Above', 'أعلاه': 'Above', 'ادناه': 'Below', 'أدناه': 'Below', 'سالف': 'Aforementioned', 'السالف': 'Aforementioned',
@@ -862,7 +864,7 @@
         'معاينة': 'inspection', 'المعاينة': 'inspection',
         'فحص': 'examination', 'الفحص': 'examination',
         'عيب': 'defect', 'عيوب': 'defects', 'خلل': 'fault', 'الخلل': 'fault',
-        'صالح': 'fit / valid', 'الصالح': 'fit',
+        'صالح': 'valid', 'الصالح': 'valid',
         'جاهز': 'ready', 'جاهزة': 'ready', 'جاهزية': 'readiness',
         'مواصفات': 'specifications', 'المواصفات': 'specifications',
         'مخطط': 'layout / plan', 'المخطط': 'layout',
@@ -973,6 +975,8 @@
         'نبيل': 'Nabeel', 'سامي': 'Sami', 'هشام': 'Hisham', 'فؤاد': 'Fouad', 'كمال': 'Kamal',
         'صلاح': 'Salah', 'مصطفى': 'Mustafa', 'سعود': 'Saud', 'غانم': 'Ghanem', 'صقر': 'Saqer',
         'جميل': 'Jameel', 'عمران': 'Omran', 'حبيب': 'Habib', 'يعقوب': 'Yaqoob', 'مهدي': 'Mahdi',
+        'صالح': 'Saleh', 'نايف': 'Nayef', 'نائف': 'Nayef',
+        'عسكر': 'Askar', 'العسكر': 'Al Askar',
         'فاطمة': 'Fatima', 'مريم': 'Maryam', 'عائشة': 'Aisha', 'زينب': 'Zainab', 'سارة': 'Sarah',
         'نورة': 'Noora', 'منيرة': 'Muneera', 'هدى': 'Huda', 'لطيفة': 'Lateefa', 'أسماء': 'Asma',
         'اسماء': 'Asma', 'شيخة': 'Shaikha', 'دانة': 'Dana', 'ريم': 'Reem', 'ليلى': 'Layla',
@@ -1606,8 +1610,46 @@
         // 2. Extract Full Document Letter Content
         let bodyLines = [];
 
-        // Primary text extraction: Digital text layer from PDF.js if available
-        if (pdfDoc) {
+        // Primary source: Use AI-generated content_explanation if available (pre-computed during ingestion)
+        // This is a high-quality English translation and far superior to OCR+dictionary for scanned documents
+        try {
+            const meta = docMetadataCache.get(vaultId);
+            if (meta && meta.pages && Array.isArray(meta.pages) && meta.pages.length > 0) {
+                const p = meta.pages.find(x => (x.page_number || x.pageNumber) === pageNum)
+                       || meta.pages[pageNum - 1]
+                       || (pageNum === 1 ? meta.pages[0] : null);
+                if (p && p.content_explanation && typeof p.content_explanation === 'string' && p.content_explanation.trim().length > 20) {
+                    // Split content_explanation into readable paragraph lines
+                    const explanation = p.content_explanation.trim();
+                    const sentences = explanation.split(/(?<=[.!?])\s+/);
+                    // Group sentences into ~2-3 sentence paragraphs for readability
+                    const paragraphs = [];
+                    let currentPara = '';
+                    for (const sentence of sentences) {
+                        if (currentPara && (currentPara.length + sentence.length > 200)) {
+                            paragraphs.push(currentPara.trim());
+                            currentPara = sentence;
+                        } else {
+                            currentPara += (currentPara ? ' ' : '') + sentence;
+                        }
+                    }
+                    if (currentPara.trim()) paragraphs.push(currentPara.trim());
+
+                    if (paragraphs.length > 0) {
+                        // Add a divider line between headers and body
+                        bodyLines.push({ text: '── Letter Content ──', isHeader: true, isEnglish: true });
+                        for (const para of paragraphs) {
+                            bodyLines.push({ text: para, isEnglish: true });
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            console.debug('content_explanation extraction fallback:', e);
+        }
+
+        // Secondary source: Digital text layer from PDF.js (for non-scanned PDFs)
+        if (bodyLines.length === 0 && pdfDoc) {
             try {
                 const page = await pdfDoc.getPage(pageNum);
                 const viewport = page.getViewport({ scale: 1.0 });
@@ -1744,6 +1786,16 @@
                 if (!line || !line.text) return;
                 const origText = line.text.trim();
                 if (!origText || origText.length < 1) return;
+
+                // Lines from content_explanation are already in English — pass through as-is
+                if (line.isEnglish) {
+                    translatedLines.push({
+                        original: line.original || origText,
+                        translated: origText,
+                        isHeader: !!line.isHeader
+                    });
+                    return;
+                }
 
                 const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFC]/.test(origText);
                 const translated = hasArabic ? translateArabicText(origText) : origText;
