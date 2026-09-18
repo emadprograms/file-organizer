@@ -1654,8 +1654,8 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       expect(lineEls[2].textContent).toContain('Housing Allocation Order');
     });
 
-    it('extracts structured translation and English summary from database metadata as Priority 1', async () => {
-      // Mock fetch for document metadata returning detailed AI-ingested metadata
+    it('does NOT use database metadata content_explanation for translation — relies on PDF text layer and OCR only', async () => {
+      // Metadata is available but should be ignored by detectPageText; translation comes from page text
       const origFetch = global.fetch;
       global.fetch = vi.fn().mockImplementation(async (url) => {
         if (url.includes('/metadata')) {
@@ -1693,16 +1693,15 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       const panel = canvasContainer.querySelector('.pdf-translation-panel[data-page-number="1"]');
       expect(panel).not.toBeNull();
 
+      // Metadata fields should NOT appear since we skip metadata in detectPageText
       const text = panel.textContent;
-      expect(text).toContain('Subject');
-      expect(text).toContain('From');
-      expect(text).toContain('To');
-      expect(text).toContain('A formal urgent letter from the Ministry of Interior regarding vacating housing unit number 1544');
+      expect(text).not.toContain('A formal urgent letter');
+      expect(text).not.toContain('content_explanation');
 
       global.fetch = origFetch;
     });
 
-    it('matches metadata pages when page_number reflects absolute batch indices rather than 1-indexed relative page number', async () => {
+    it('does not use metadata batch page indices — falls through to text layer or no-text notice', async () => {
       const origFetch = global.fetch;
       global.fetch = vi.fn().mockImplementation(async (url) => {
         if (url.includes('/metadata')) {
@@ -1714,7 +1713,7 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
               category: 'رسائل متنوعة',
               pages: [
                 {
-                  page_number: 7, // Batch page 7, but viewed as page 1 of this 1-page extracted document
+                  page_number: 7,
                   subject: 'التماسات النواب بخصوص إخلاء وحدة سكنية',
                   sender: 'مكتب الوكيل المساعد للشئون الإدارية',
                   content_explanation: 'Official letter submitted by Member of Parliament regarding eviction reconsideration.'
@@ -1739,9 +1738,9 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       const panel = canvasContainer.querySelector('.pdf-translation-panel[data-page-number="1"]');
       expect(panel).not.toBeNull();
 
+      // Metadata content_explanation should NOT be used
       const text = panel.textContent;
-      expect(text).toContain('Subject');
-      expect(text).toContain('Official letter submitted by Member of Parliament regarding eviction reconsideration');
+      expect(text).not.toContain('Official letter submitted by Member of Parliament');
 
       global.fetch = origFetch;
     });

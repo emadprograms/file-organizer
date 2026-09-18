@@ -1356,127 +1356,126 @@
     </div>
 
     <!-- Document Merge Modal -->
-    <div id="merge-docs-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center hidden p-4" tabindex="-1" role="dialog" aria-labelledby="merge-docs-title" aria-modal="true">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-2xl sm:max-w-3xl w-full max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+    <div id="merge-docs-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-xs z-50 flex items-center justify-center hidden p-2 sm:p-4 md:p-6" tabindex="-1" role="dialog" aria-labelledby="merge-docs-title" aria-modal="true">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 w-full max-w-5xl h-[92vh] max-h-[900px] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <!-- Modal Header -->
-            <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/70 dark:bg-slate-800/80">
-                <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-800/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-2xs">
+            <div class="px-4 sm:px-6 py-3.5 bg-slate-900 text-white flex justify-between items-center gap-3 border-b border-slate-800 flex-shrink-0">
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-400/30 text-emerald-400 flex items-center justify-center shadow-xs flex-shrink-0">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
                     </div>
-                    <div>
-                        <h3 class="text-base font-bold text-slate-900 dark:text-white tracking-tight" id="merge-docs-title">Merge Documents</h3>
-                        <p class="text-xs text-slate-500 dark:text-slate-400" id="merge-docs-subtitle">Combine documents into one PDF</p>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                            <h3 class="font-bold text-sm sm:text-base truncate text-white" id="merge-docs-title">دمج المستندات • Merge Documents</h3>
+                            <span id="merge-docs-count-badge" class="text-xs px-2.5 py-0.5 rounded-full font-medium bg-slate-800 text-emerald-400 border border-slate-700 flex-shrink-0">0 docs • 0 pages</span>
+                        </div>
+                        <p class="text-xs text-slate-400 truncate" id="merge-docs-subtitle">دمج ملفات PDF بالتسلسل المطلوب مع معاينة كاملة</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <span id="merge-docs-count-badge" class="text-[11px] font-mono font-semibold px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 rounded-lg"></span>
-                    <button id="merge-docs-close" type="button" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer" aria-label="Close">
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    <button id="merge-docs-close" type="button" class="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors cursor-pointer" aria-label="Close" title="Close • إغلاق">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
                 </div>
             </div>
 
             <!-- Step 1: Reorder Step (Shown when > 2 documents are selected) -->
-            <div id="merge-step-reorder" class="hidden p-6 space-y-4">
-                <div class="flex items-center justify-between">
-                    <span class="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
-                        <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
-                        <span>ترتيب المستندات • Reorder Documents</span>
-                    </span>
-                    <span class="text-[11px] text-slate-400 font-medium">استخدم الأسهم للترتيب • Use arrows to reorder</span>
+            <div id="merge-step-reorder" class="hidden flex-1 flex flex-col overflow-hidden">
+                <div class="relative flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-100 dark:bg-slate-950">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                            <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"/></svg>
+                            <span>ترتيب المستندات • Reorder Documents</span>
+                        </span>
+                        <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">استخدم أزرار الأسهم على البطاقات للتقديم والتأخير • Use arrows on cards to reorder</span>
+                    </div>
+                    <div id="merge-docs-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pb-12">
+                        <!-- Populated dynamically with visual cards -->
+                    </div>
                 </div>
-                <div id="merge-docs-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[58vh] overflow-y-auto p-2 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-200 dark:border-slate-700">
-                    <!-- Populated dynamically with document items -->
-                </div>
-                <div class="pt-2 flex justify-end gap-2 border-t border-slate-100 dark:border-slate-700">
-                    <button id="btn-merge-reorder-cancel" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer">
-                        Cancel
+                <div class="px-4 sm:px-6 py-3 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 flex-shrink-0 shadow-lg">
+                    <button id="btn-merge-reorder-cancel" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer">
+                        Cancel • إلغاء
                     </button>
-                    <button id="btn-merge-reorder-continue" type="button" class="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-sm shadow-emerald-500/25 flex items-center gap-1.5 cursor-pointer">
-                        <span>متابعة • Continue</span>
+                    <button id="btn-merge-reorder-continue" type="button" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-sm shadow-emerald-500/25 flex items-center gap-2 cursor-pointer">
+                        <span>متابعة للحفظ • Continue to Save</span>
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
                     </button>
                 </div>
             </div>
 
             <!-- Step 2: Save & Name View (Shown directly for 2 docs, or after reordering) -->
-            <div id="merge-step-save" class="p-6 space-y-4">
-                <!-- Visual Document Preview & Sequence Banner -->
-                <div id="merge-order-banner" class="flex flex-col gap-2 p-3 rounded-2xl bg-slate-50/90 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700">
-                    <div class="flex items-center justify-between text-xs">
-                        <span class="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
-                            <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                            <span>معاينة المستندات • Document Preview</span>
-                        </span>
-                        <span id="merge-order-summary" class="hidden">Doc 1 → Doc 2</span>
-                        <button id="btn-merge-swap-order" type="button" class="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/80 px-2.5 py-1 rounded-xl shadow-2xs transition-all cursor-pointer flex-shrink-0" title="Swap order • تبديل الترتيب">
-                            <span class="text-sm">⇄</span>
-                            <span>تبديل • Swap</span>
-                        </button>
-                    </div>
+            <div id="merge-step-save" class="flex-1 flex flex-col overflow-hidden">
+                <!-- Top Area: Spacious Serial Document Preview -->
+                <div class="relative flex-1 overflow-y-auto p-4 sm:p-6 bg-slate-100 dark:bg-slate-950">
+                    <div id="merge-order-banner" class="space-y-4">
+                        <div class="flex items-center justify-between text-xs">
+                            <span class="text-xs font-bold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                                <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                <span>معاينة المستندات بالتسلسل • Document Preview</span>
+                            </span>
+                            <span id="merge-order-summary" class="hidden">Doc 1 → Doc 2</span>
+                            <button id="btn-merge-swap-order" type="button" class="flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-300 bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 border border-emerald-200 dark:border-emerald-800/80 px-2.5 py-1 rounded-xl shadow-2xs transition-all cursor-pointer flex-shrink-0" title="Swap order • تبديل الترتيب">
+                                <span class="text-sm">⇄</span>
+                                <span>تبديل • Swap</span>
+                            </button>
+                        </div>
 
-                    <!-- Visual Preview Cards container -->
-                    <div id="merge-preview-cards" class="flex items-center justify-center gap-4 pt-1 pb-2 overflow-x-auto w-full">
-                        <!-- Populated dynamically with visual preview cards -->
-                    </div>
-                </div>
-
-                <!-- Document Name -->
-                <div>
-                    <label for="merge-target-title" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                        اسم المستند المدمج • Document Name <span class="text-rose-500">*</span>
-                    </label>
-                    <input id="merge-target-title" type="text" placeholder="اسم المستند..." class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50 dark:bg-slate-700 focus:bg-white font-medium text-slate-800 dark:text-slate-100" />
-                </div>
-
-                <!-- Target Category Folder -->
-                <div>
-                    <label for="merge-target-category" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                        حفظ في مجلد • Target Category Folder <span class="text-rose-500">*</span>
-                    </label>
-                    <select id="merge-target-category" class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50 dark:bg-slate-700 focus:bg-white font-medium text-slate-800 dark:text-slate-100">
-                    </select>
-                    <div id="merge-custom-cat-container" class="mt-2 hidden">
-                        <input id="merge-custom-cat-input" type="text" placeholder="اسم المجلد الجديد..." class="w-full px-3 py-2 text-xs border border-emerald-200 dark:border-emerald-700 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-emerald-50/40 dark:bg-emerald-950/30 text-slate-800 dark:text-slate-100" />
+                        <!-- Visual Preview Cards container (Spacious Grid) -->
+                        <div id="merge-preview-cards" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pb-4">
+                            <!-- Populated dynamically with visual preview cards -->
+                        </div>
                     </div>
                 </div>
 
-                <!-- Target Tenant -->
-                <div>
-                    <label for="merge-target-tenant" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                        المستأجر • Target Tenant
-                    </label>
-                    <select id="merge-target-tenant" class="w-full px-3 py-2 text-xs border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50 dark:bg-slate-700 focus:bg-white font-medium text-slate-800 dark:text-slate-100">
-                    </select>
-                </div>
+                <!-- Bottom Sticky Bar: Execution & Save Controls -->
+                <div class="px-4 sm:px-6 py-3.5 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 flex flex-col gap-3 flex-shrink-0 shadow-lg">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label for="merge-target-title" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                اسم المستند المدمج • Document Name <span class="text-rose-500">*</span>
+                            </label>
+                            <input id="merge-target-title" type="text" placeholder="اسم المستند..." class="w-full px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-medium" />
+                        </div>
+                        <div>
+                            <label for="merge-target-category" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                حفظ في مجلد • Target Category Folder <span class="text-rose-500">*</span>
+                            </label>
+                            <select id="merge-target-category" class="w-full px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-medium"></select>
+                            <div id="merge-custom-cat-container" class="mt-1 hidden">
+                                <input id="merge-custom-cat-input" type="text" placeholder="اسم المجلد الجديد..." class="w-full px-3 py-1.5 text-xs border border-emerald-200 dark:border-emerald-700 rounded-xl bg-emerald-50/40 dark:bg-emerald-950/30 text-slate-800 dark:text-slate-100 font-medium" />
+                            </div>
+                        </div>
+                        <div>
+                            <label for="merge-target-tenant" class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                                المستأجر • Target Tenant
+                            </label>
+                            <select id="merge-target-tenant" class="w-full px-3 py-1.5 text-xs border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 font-medium"></select>
+                        </div>
+                    </div>
 
-                <!-- Hidden Date & Notes for property inheritance -->
-                <input id="merge-target-date" type="hidden" />
-                <input id="merge-target-notes" type="hidden" />
+                    <input id="merge-target-date" type="hidden" />
+                    <input id="merge-target-notes" type="hidden" />
+                    <div id="merge-docs-status" class="p-2.5 rounded-xl text-xs font-medium hidden"></div>
 
-                <!-- Delete Source Docs Checkbox -->
-                <label class="flex items-center gap-2 pt-1 text-xs text-slate-700 dark:text-slate-300 cursor-pointer select-none">
-                    <input type="checkbox" id="merge-delete-sources" checked class="w-4 h-4 text-emerald-600 rounded border-slate-300 dark:border-slate-600 focus:ring-emerald-500 cursor-pointer" />
-                    <span>حذف المستندات الأصلية بعد الدمج • Delete original documents</span>
-                </label>
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                        <label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 cursor-pointer select-none">
+                            <input type="checkbox" id="merge-delete-sources" checked class="w-4 h-4 text-emerald-600 rounded border-slate-300 dark:border-slate-600 focus:ring-emerald-500 cursor-pointer" />
+                            <span>حذف المستندات الأصلية بعد الدمج • Delete original documents</span>
+                        </label>
 
-                <!-- Status alert -->
-                <div id="merge-docs-status" class="p-3 rounded-xl text-xs font-medium hidden"></div>
-
-                <!-- Save Step Footer -->
-                <div class="pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-between items-center gap-3">
-                    <button id="btn-merge-save-back" type="button" class="hidden text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer">
-                        ← Back • رجوع
-                    </button>
-                    <div class="flex items-center gap-3 ml-auto">
-                        <button id="btn-merge-docs-cancel" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors shadow-2xs cursor-pointer">
-                            Cancel • إلغاء
-                        </button>
-                        <button id="btn-merge-docs-confirm" type="button" class="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl transition-all shadow-sm shadow-emerald-500/25 flex items-center gap-2 cursor-pointer">
-                            <span id="merge-docs-spinner" class="hidden animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
-                            <span id="merge-docs-btn-text">🔗 دمج • Merge</span>
-                        </button>
+                        <div class="flex items-center gap-2 ml-auto">
+                            <button id="btn-merge-save-back" type="button" class="hidden px-3.5 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer">
+                                ← Back • رجوع
+                            </button>
+                            <button id="btn-merge-docs-cancel" type="button" class="px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer">
+                                Cancel • إلغاء
+                            </button>
+                            <button id="btn-merge-docs-confirm" type="button" class="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl shadow-md shadow-emerald-500/25 transition-all flex items-center gap-2 cursor-pointer">
+                                <span id="merge-docs-spinner" class="hidden animate-spin w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full"></span>
+                                <span id="merge-docs-btn-text">⚡ دمج المستندات • Merge Documents</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -1553,74 +1553,7 @@
 
         const canvas = pageWrapper ? pageWrapper.querySelector('canvas.pdf-page-canvas') : null;
 
-        // 1. Primary: Database Metadata (Instant & accurate AI/DB translation)
-        try {
-            const meta = await fetchDocumentMetadata(vaultId);
-            if (meta) {
-                if (meta.pages && Array.isArray(meta.pages) && meta.pages.length > 0) {
-                    const p = meta.pages.find(x => (x.page_number || x.pageNumber) === pageNum)
-                           || meta.pages[pageNum - 1]
-                           || (pageNum === 1 ? meta.pages[0] : null);
-                    if (p) {
-                        const lines = [];
-                        if (p.subject) {
-                            const subTr = translateArabicText(p.subject);
-                            lines.push({
-                                text: subTr ? `Subject: ${subTr}` : p.subject,
-                                original: p.subject
-                            });
-                        }
-                        if (p.sender) {
-                            const sndTr = translateArabicText(p.sender);
-                            lines.push({
-                                text: sndTr ? `From: ${sndTr}` : p.sender,
-                                original: p.sender
-                            });
-                        }
-                        if (p.receiver) {
-                            const rcvTr = translateArabicText(p.receiver);
-                            lines.push({
-                                text: rcvTr ? `To: ${rcvTr}` : p.receiver,
-                                original: p.receiver
-                            });
-                        }
-                        if (p.content_explanation) {
-                            const hasAr = /[\u0600-\u06FF]/.test(p.content_explanation);
-                            const explTr = hasAr ? translateArabicText(p.content_explanation) : p.content_explanation;
-                            lines.push({
-                                text: explTr,
-                                original: p.content_explanation
-                            });
-                        }
-                        if (lines.length > 0) {
-                            pageOcrCache.set(cacheKey, lines);
-                            return lines;
-                        }
-                    }
-                } else if (meta.arabic_title || meta.category || meta.notes) {
-                    const lines = [];
-                    if (meta.arabic_title) {
-                        const tTr = translateArabicText(meta.arabic_title);
-                        lines.push({ text: `Document: ${tTr}`, original: meta.arabic_title });
-                    }
-                    if (meta.category) {
-                        const catObj = getEnglishCategory(meta.category);
-                        lines.push({ text: `Category: ${catObj.en || meta.category}`, original: meta.category });
-                    }
-                    if (meta.notes) {
-                        lines.push({ text: `Notes: ${translateArabicText(meta.notes)}`, original: meta.notes });
-                    }
-                    if (lines.length > 0) {
-                        pageOcrCache.set(cacheKey, lines);
-                        return lines;
-                    }
-                }
-            }
-        } catch (e) {
-            console.debug('Metadata extraction fallback to PDF/OCR:', e);
-        }
-
-        // 2. Secondary: Digital text layer from PDF.js if available
+        // 1. Primary: Digital text layer from PDF.js if available
         if (pdfDoc) {
             try {
                 const page = await pdfDoc.getPage(pageNum);
@@ -1641,7 +1574,7 @@
             }
         }
 
-        // 3. Fallback: Client-side Offline OCR via Local Tesseract.js
+        // 2. Fallback: Client-side Offline OCR via Local Tesseract.js
         if (canvas && typeof Tesseract !== 'undefined') {
             const indicator = pageWrapper ? pageWrapper.querySelector('.ocr-scanning-indicator') : null;
             try {

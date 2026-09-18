@@ -2043,21 +2043,28 @@
                     }
 
                     const card = document.createElement('div');
-                    card.className = `merge-preview-card flex flex-col bg-white dark:bg-slate-800 rounded-2xl border-2 ${isFirst ? 'border-emerald-500 shadow-md ring-2 ring-emerald-400/20' : 'border-slate-200 dark:border-slate-700 shadow-sm'} w-52 sm:w-60 flex-shrink-0 transition-all select-none overflow-hidden group`;
+                    card.className = `merge-preview-card relative bg-white dark:bg-slate-800 rounded-2xl border-2 ${isFirst ? 'border-emerald-500 shadow-md ring-2 ring-emerald-400/20' : 'border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md'} transition-all flex flex-col overflow-hidden select-none group`;
                     card.setAttribute('data-merge-idx', idx);
 
                     card.innerHTML = `
-                        <!-- Card Top Bar: Badge & Page Count -->
-                        <div class="px-3 py-1.5 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between">
+                        <!-- Card Top Bar: Badge & Reorder Controls directly on card (like edit pages) -->
+                        <div class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between gap-1 flex-shrink-0">
                             <span class="px-2 py-0.5 rounded text-xs font-bold font-mono ${isFirst ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}">${badgeLabel}</span>
-                            <span class="text-[11px] text-slate-400 font-mono">${pages} ${pages === 1 ? 'page' : 'pages'}</span>
+                            <div class="flex items-center gap-1">
+                                <button type="button" class="btn-card-move-left p-1 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 disabled:opacity-25 disabled:pointer-events-none transition-all cursor-pointer" ${idx === 0 ? 'disabled' : ''} title="Move earlier • تقديم">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+                                </button>
+                                <button type="button" class="btn-card-move-right p-1 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 disabled:opacity-25 disabled:pointer-events-none transition-all cursor-pointer" ${idx === activeMergeDocs.length - 1 ? 'disabled' : ''} title="Move later • تأخير">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
+                                </button>
+                            </div>
                         </div>
 
-                        <!-- Card Thumbnail Body: Large visual focus (like edit & split pages) -->
-                        <div class="merge-card-thumbnail flex-1 min-h-[210px] sm:min-h-[250px] p-2.5 flex items-center justify-center bg-slate-100/50 dark:bg-slate-900/40 overflow-hidden">
-                            <div class="text-center text-slate-400 flex flex-col items-center gap-1.5">
+                        <!-- Card Thumbnail Body: Large visual focus (like edit pages) -->
+                        <div class="merge-card-thumbnail card-thumbnail-container flex-1 min-h-[200px] sm:min-h-[260px] p-3 flex items-center justify-center bg-slate-100/50 dark:bg-slate-900/40 overflow-hidden">
+                            <div class="text-center text-slate-400 flex flex-col items-center gap-2">
                                 <svg class="w-8 h-8 opacity-40 animate-pulse text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                                <span class="text-[10px] font-mono text-slate-400">Loading preview...</span>
+                                <span class="text-xs font-mono text-slate-400">Loading preview...</span>
                             </div>
                         </div>
 
@@ -2068,9 +2075,31 @@
                         </div>
                     `;
 
+                    const btnMoveLeft = card.querySelector('.btn-card-move-left');
+                    if (btnMoveLeft) {
+                        btnMoveLeft.onclick = () => {
+                            if (activeMergeDocs.length === 2) {
+                                handleSwapMergeDocs();
+                            } else {
+                                moveMergeDocUp(idx);
+                            }
+                        };
+                    }
+
+                    const btnMoveRight = card.querySelector('.btn-card-move-right');
+                    if (btnMoveRight) {
+                        btnMoveRight.onclick = () => {
+                            if (activeMergeDocs.length === 2) {
+                                handleSwapMergeDocs();
+                            } else {
+                                moveMergeDocDown(idx);
+                            }
+                        };
+                    }
+
                     const thumbContainer = card.querySelector('.merge-card-thumbnail');
                     if (thumbContainer) {
-                        renderDocThumbnail(thumbContainer, doc, 220, 280);
+                        renderDocThumbnail(thumbContainer, doc, 240, 300);
                     }
 
                     mergePreviewCards.appendChild(card);
@@ -2181,7 +2210,7 @@
 
         activeMergeDocs.forEach((doc, idx) => {
             const card = document.createElement('div');
-            card.className = 'relative bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-2xs hover:shadow-md transition-all flex flex-col overflow-hidden select-none group';
+            card.className = 'page-editor-card relative bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden select-none group';
 
             const title = doc.brief_arabic_title || doc.title || doc.file_name || doc.filename || 'وثيقة';
             const cat = doc.category || doc.folder || activeMergeFallbackCategory || 'عام';
@@ -2189,31 +2218,31 @@
 
             card.innerHTML = `
                 <!-- Card Top Bar: Order Badge & Reorder Controls -->
-                <div class="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between gap-1 flex-shrink-0">
-                    <span class="w-6 h-6 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 font-mono text-xs font-bold flex items-center justify-center flex-shrink-0 border border-emerald-100 dark:border-emerald-800/60">#${idx + 1}</span>
-                    <div class="flex items-center gap-1">
-                        <button type="button" class="btn-merge-up p-1 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 disabled:opacity-25 disabled:pointer-events-none transition-all cursor-pointer" ${idx === 0 ? 'disabled' : ''} title="Move Earlier • تقديم">
+                <div class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between gap-1 flex-shrink-0">
+                    <button type="button" class="btn-merge-remove p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer" title="Remove document • إزالة">
+                        <svg class="w-4 h-4 text-rose-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </button>
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" class="btn-merge-up p-1 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 disabled:opacity-25 disabled:pointer-events-none transition-all cursor-pointer" ${idx === 0 ? 'disabled' : ''} title="Move earlier • تقديم">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
                         </button>
-                        <button type="button" class="btn-merge-down p-1 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 disabled:opacity-25 disabled:pointer-events-none transition-all cursor-pointer" ${idx === activeMergeDocs.length - 1 ? 'disabled' : ''} title="Move Later • تأخير">
+                        <button type="button" class="btn-merge-down p-1 rounded-md text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 disabled:opacity-25 disabled:pointer-events-none transition-all cursor-pointer" ${idx === activeMergeDocs.length - 1 ? 'disabled' : ''} title="Move later • تأخير">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"/></svg>
                         </button>
-                        <button type="button" class="btn-merge-remove p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-md hover:bg-rose-50 dark:hover:bg-rose-950/50 transition-colors cursor-pointer ml-0.5" title="Remove • إزالة">
-                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </button>
+                        <span class="px-2 py-0.5 rounded text-xs font-bold font-mono bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 ml-1">#${idx + 1}</span>
                     </div>
                 </div>
 
                 <!-- Card Thumbnail Body: Large preview focus (like edit & split pages) -->
-                <div class="merge-thumbnail-mini flex-1 min-h-[160px] sm:min-h-[190px] p-2 flex items-center justify-center bg-slate-100/50 dark:bg-slate-900/40 overflow-hidden">
-                    <div class="text-center text-slate-400 flex flex-col items-center gap-1.5">
-                        <svg class="w-7 h-7 opacity-40 animate-pulse text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-                        <span class="text-[10px] font-mono text-slate-400">Loading...</span>
+                <div class="merge-thumbnail-mini card-thumbnail-container flex-1 min-h-[200px] sm:min-h-[260px] p-3 flex items-center justify-center bg-slate-100/50 dark:bg-slate-900/40 overflow-hidden">
+                    <div class="text-center text-slate-400 flex flex-col items-center gap-2">
+                        <svg class="w-8 h-8 opacity-40 animate-pulse text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                        <span class="text-xs font-mono text-slate-400">Loading...</span>
                     </div>
                 </div>
 
                 <!-- Card Footer: Subtle title and metadata (image is main focus) -->
-                <div class="px-2.5 py-1.5 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between text-[11px] font-medium text-slate-600 dark:text-slate-300">
+                <div class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-700/80 flex items-center justify-between text-xs font-medium text-slate-600 dark:text-slate-300">
                     <span class="truncate flex-1" title="${title}">${title}</span>
                     <span class="text-[10px] text-slate-400 font-mono ml-1 flex-shrink-0">${pages}p</span>
                 </div>
@@ -2221,7 +2250,7 @@
 
             const miniThumb = card.querySelector('.merge-thumbnail-mini');
             if (miniThumb) {
-                renderDocThumbnail(miniThumb, doc, 180, 220);
+                renderDocThumbnail(miniThumb, doc, 240, 300);
             }
 
             const btnUp = card.querySelector('.btn-merge-up');
