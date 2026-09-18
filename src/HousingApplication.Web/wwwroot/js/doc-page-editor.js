@@ -31,6 +31,23 @@
     let btnExtractConfirm = null;
     let btnExtractConfirmText = null;
 
+    let btnEditorZoomOut = null;
+    let btnEditorZoomIn = null;
+    let btnEditorZoomReset = null;
+    let editorZoomLevelLabel = null;
+
+    const EDITOR_ZOOM_LEVELS = [
+        { scale: 0.70, minW: 160, thumbH: 190, label: '70%' },
+        { scale: 0.85, minW: 190, thumbH: 230, label: '85%' },
+        { scale: 1.00, minW: 230, thumbH: 280, label: '100%' },
+        { scale: 1.20, minW: 280, thumbH: 340, label: '120%' },
+        { scale: 1.45, minW: 340, thumbH: 420, label: '145%' },
+        { scale: 1.75, minW: 420, thumbH: 520, label: '175%' },
+        { scale: 2.10, minW: 520, thumbH: 640, label: '210%' }
+    ];
+    const DEFAULT_EDITOR_ZOOM_INDEX = 2; // 100%
+    let currentEditorZoomIndex = DEFAULT_EDITOR_ZOOM_INDEX;
+
     let activeEditorDoc = null;
     let activePdfDoc = null;
     let selectedPageNumbers = new Set();
@@ -159,18 +176,137 @@
             };
         }
 
-        // Close on Escape key
-        document.addEventListener('keydown', (e) => {
+        // Keyboard shortcuts: Escape to close, Ctrl +/-/0 to zoom
+        const handleEditorKeyDown = (e) => {
+            if (e._editorKeyHandled) return;
+            e._editorKeyHandled = true;
+
+            const curEditorModal = document.getElementById('doc-page-editor-modal') || editorModal;
+            const curExtractModal = document.getElementById('doc-page-extract-modal') || document.getElementById('extract-pages-submodal') || extractModal;
             if (e.key === 'Escape') {
-                if (extractModal && !extractModal.classList.contains('hidden')) {
+                if (curExtractModal && !curExtractModal.classList.contains('hidden')) {
                     e.preventDefault();
                     closeExtractSubmodal();
-                } else if (editorModal && !editorModal.classList.contains('hidden')) {
+                } else if (curEditorModal && !curEditorModal.classList.contains('hidden') && curEditorModal.style.display !== 'none') {
                     e.preventDefault();
                     closePageEditor();
                 }
+            } else if (e.ctrlKey || e.metaKey) {
+                if (curEditorModal && !curEditorModal.classList.contains('hidden') && curEditorModal.style.display !== 'none') {
+                    if (e.key === '=' || e.key === '+' || e.code === 'NumpadAdd') {
+                        e.preventDefault();
+                        zoomInEditorCards();
+                    } else if (e.key === '-' || e.key === '_' || e.code === 'NumpadSubtract') {
+                        e.preventDefault();
+                        zoomOutEditorCards();
+                    } else if (e.key === '0' || e.code === 'Numpad0') {
+                        e.preventDefault();
+                        resetEditorCardZoom();
+                    }
+                }
             }
-        });
+        };
+
+        if (typeof window !== 'undefined') {
+            if (window._editorZoomKeydownHandler) {
+                if (typeof document !== 'undefined') {
+                    document.removeEventListener('keydown', window._editorZoomKeydownHandler);
+                }
+                window.removeEventListener('keydown', window._editorZoomKeydownHandler);
+            }
+            window._editorZoomKeydownHandler = handleEditorKeyDown;
+            window.addEventListener('keydown', window._editorZoomKeydownHandler);
+            if (typeof document !== 'undefined') {
+                document.addEventListener('keydown', window._editorZoomKeydownHandler);
+            }
+        }
+
+        btnEditorZoomOut = document.getElementById('btn-editor-zoom-out');
+        btnEditorZoomIn = document.getElementById('btn-editor-zoom-in');
+        btnEditorZoomReset = document.getElementById('btn-editor-zoom-reset');
+        editorZoomLevelLabel = document.getElementById('editor-zoom-level-label');
+
+        initEditorZoom();
+    }
+
+    function applyEditorCardZoom() {
+        const config = EDITOR_ZOOM_LEVELS[currentEditorZoomIndex] || EDITOR_ZOOM_LEVELS[DEFAULT_EDITOR_ZOOM_INDEX];
+        const modal = document.getElementById('doc-page-editor-modal') || editorModal;
+        if (modal) {
+            modal.style.setProperty('--editor-card-min-width', `${config.minW}px`);
+            modal.style.setProperty('--editor-thumb-height', `${config.thumbH}px`);
+        }
+
+        const lbl = document.getElementById('editor-zoom-level-label') || editorZoomLevelLabel;
+        if (lbl) lbl.textContent = config.label;
+
+        const bOut = document.getElementById('btn-editor-zoom-out') || btnEditorZoomOut;
+        const bIn = document.getElementById('btn-editor-zoom-in') || btnEditorZoomIn;
+        if (bOut) bOut.disabled = currentEditorZoomIndex === 0;
+        if (bIn) bIn.disabled = currentEditorZoomIndex === EDITOR_ZOOM_LEVELS.length - 1;
+
+        try {
+            localStorage.setItem('editor_card_zoom_level', config.scale.toString());
+        } catch (e) {}
+    }
+
+    function zoomInEditorCards() {
+        if (currentEditorZoomIndex < EDITOR_ZOOM_LEVELS.length - 1) {
+            currentEditorZoomIndex++;
+            applyEditorCardZoom();
+        }
+    }
+
+    function zoomOutEditorCards() {
+        if (currentEditorZoomIndex > 0) {
+            currentEditorZoomIndex--;
+            applyEditorCardZoom();
+        }
+    }
+
+    function resetEditorCardZoom() {
+        currentEditorZoomIndex = DEFAULT_EDITOR_ZOOM_INDEX;
+        applyEditorCardZoom();
+    }
+
+    function initEditorZoom() {
+        try {
+            const saved = (typeof localStorage !== 'undefined' && localStorage) ? localStorage.getItem('editor_card_zoom_level') : null;
+            if (saved !== null) {
+                const parsed = parseFloat(saved);
+                const closestIdx = EDITOR_ZOOM_LEVELS.reduce((prev, curr, idx) => {
+                    return Math.abs(curr.scale - parsed) < Math.abs(EDITOR_ZOOM_LEVELS[prev].scale - parsed) ? idx : prev;
+                }, DEFAULT_EDITOR_ZOOM_INDEX);
+                currentEditorZoomIndex = closestIdx;
+            } else {
+                currentEditorZoomIndex = DEFAULT_EDITOR_ZOOM_INDEX;
+            }
+        } catch (e) {
+            currentEditorZoomIndex = DEFAULT_EDITOR_ZOOM_INDEX;
+        }
+
+        applyEditorCardZoom();
+
+        const bOut = document.getElementById('btn-editor-zoom-out') || btnEditorZoomOut;
+        const bIn = document.getElementById('btn-editor-zoom-in') || btnEditorZoomIn;
+        const bReset = document.getElementById('btn-editor-zoom-reset') || btnEditorZoomReset;
+        if (bOut) bOut.onclick = zoomOutEditorCards;
+        if (bIn) bIn.onclick = zoomInEditorCards;
+        if (bReset) bReset.onclick = resetEditorCardZoom;
+
+        const modal = document.getElementById('doc-page-editor-modal') || editorModal;
+        if (modal) {
+            modal.onwheel = (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    if (e.deltaY < 0) {
+                        zoomInEditorCards();
+                    } else if (e.deltaY > 0) {
+                        zoomOutEditorCards();
+                    }
+                }
+            };
+        }
     }
 
     function updateExtractModeUI() {
@@ -234,6 +370,7 @@
 
         updateSelectionUI();
 
+        applyEditorCardZoom();
         editorModal.classList.remove('hidden');
         editorModal.style.display = 'flex';
 
@@ -395,7 +532,7 @@
             </div>
 
             <!-- Card Thumbnail Body -->
-            <div class="card-thumbnail-container flex-1 min-h-[160px] sm:min-h-[200px] p-3 flex items-center justify-center bg-slate-100/50 dark:bg-slate-900/40 overflow-hidden">
+            <div class="card-thumbnail-container flex-1 min-h-[160px] sm:min-h-[200px] p-3 flex items-center justify-center bg-slate-100/50 dark:bg-slate-900/40 overflow-hidden" style="min-height: var(--editor-thumb-height, 280px); height: var(--editor-thumb-height, 280px);">
                 <div class="thumbnail-placeholder text-center text-slate-400 flex flex-col items-center gap-2">
                     <svg class="w-8 h-8 opacity-40 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
                     <span class="text-xs font-mono">Page ${actualPageNum}</span>
@@ -1003,6 +1140,11 @@
     window.openPageEditor = openPageEditor;
     window.closePageEditor = closePageEditor;
     window.initPageEditor = initPageEditor;
+    window.zoomInEditorCards = zoomInEditorCards;
+    window.zoomOutEditorCards = zoomOutEditorCards;
+    window.resetEditorCardZoom = resetEditorCardZoom;
+    window.applyEditorCardZoom = applyEditorCardZoom;
+    window.getEditorCardZoomLevel = () => (EDITOR_ZOOM_LEVELS[currentEditorZoomIndex] || {}).scale;
 
     if (typeof window !== 'undefined') {
         window.addEventListener('auth:user-changed', () => {
@@ -1018,7 +1160,12 @@
         module.exports = {
             openPageEditor,
             closePageEditor,
-            initPageEditor
+            initPageEditor,
+            zoomInEditorCards,
+            zoomOutEditorCards,
+            resetEditorCardZoom,
+            applyEditorCardZoom,
+            getEditorCardZoomLevel: () => (EDITOR_ZOOM_LEVELS[currentEditorZoomIndex] || {}).scale
         };
     }
 })();

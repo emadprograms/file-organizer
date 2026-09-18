@@ -9,6 +9,10 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
   );
 
   beforeEach(() => {
+    try {
+      if (typeof localStorage !== 'undefined') localStorage.clear();
+    } catch (e) {}
+
     // Set up DOM from index.html elements relevant to doc page editor
     document.body.innerHTML = `
       <div id="document-viewer-panel">
@@ -28,6 +32,9 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
         <h3 id="page-editor-title"></h3>
         <p id="page-editor-subtitle"></p>
         <span id="page-editor-count-badge"></span>
+        <button id="btn-editor-zoom-out">-</button>
+        <button id="btn-editor-zoom-reset"><span id="editor-zoom-level-label">100%</span></button>
+        <button id="btn-editor-zoom-in">+</button>
         <button id="page-editor-close-btn"></button>
         <div id="page-editor-loading" class="hidden"></div>
         <div id="page-editor-grid"></div>
@@ -65,6 +72,9 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
     global.currentArea = 'Safra C';
     global.currentHouse = '101';
     global.showToast = vi.fn();
+    if (typeof localStorage !== 'undefined') {
+      localStorage.clear();
+    }
 
     // Load doc-page-editor.js
     const scriptCode = fs.readFileSync(
@@ -840,6 +850,104 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
     const notesInput = document.getElementById('extract-target-notes');
     expect(notesInput.value).toBe('');
     expect(notesInput.value).not.toContain('Separated from');
+  });
+
+  describe('Canvas Page Card Zoom Controls (+/-, Ctrl+, Ctrl+Scroll)', () => {
+    it('includes zoom controls in index.html for page editor modal header', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const indexHtml = fs.readFileSync(path.join(__dirname, '../../../src/HousingApplication.Web/wwwroot/index.html'), 'utf8');
+      expect(indexHtml).toContain('id="btn-editor-zoom-out"');
+      expect(indexHtml).toContain('id="btn-editor-zoom-in"');
+      expect(indexHtml).toContain('id="btn-editor-zoom-reset"');
+      expect(indexHtml).toContain('id="editor-zoom-level-label"');
+    });
+
+    it('adjusts zoom level and CSS custom properties on doc-page-editor-modal via buttons', async () => {
+      const mockDoc = {
+        vault_id: 'doc_zoom_test',
+        brief_arabic_title: 'إشعار صيانة',
+        filename: 'sample.pdf',
+        category: '10 - صيانة',
+        page_count: 2
+      };
+      global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: async () => [] }));
+
+      await window.openPageEditor(mockDoc);
+
+      const modal = document.getElementById('doc-page-editor-modal');
+      const btnIn = document.getElementById('btn-editor-zoom-in');
+      const btnOut = document.getElementById('btn-editor-zoom-out');
+      const btnReset = document.getElementById('btn-editor-zoom-reset');
+      const label = document.getElementById('editor-zoom-level-label');
+
+      expect(label.textContent).toBe('100%');
+
+      btnIn.click();
+      expect(label.textContent).toBe('120%');
+      expect(modal.style.getPropertyValue('--editor-card-min-width')).toBe('280px');
+
+      btnIn.click();
+      expect(label.textContent).toBe('145%');
+
+      btnOut.click();
+      expect(label.textContent).toBe('120%');
+
+      btnReset.click();
+      expect(label.textContent).toBe('100%');
+      expect(modal.style.getPropertyValue('--editor-card-min-width')).toBe('230px');
+    });
+
+    it('handles keyboard shortcuts (Ctrl+, Ctrl-, Ctrl 0) to adjust editor zoom', async () => {
+      const mockDoc = {
+        vault_id: 'doc_kb_zoom_test',
+        brief_arabic_title: 'إشعار صيانة',
+        filename: 'sample.pdf',
+        category: '10 - صيانة',
+        page_count: 2
+      };
+      global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: async () => [] }));
+
+      await window.openPageEditor(mockDoc);
+
+      const label = document.getElementById('editor-zoom-level-label');
+      expect(label.textContent).toBe('100%');
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '=', ctrlKey: true, bubbles: true }));
+      expect(label.textContent).toBe('120%');
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '-', ctrlKey: true, bubbles: true }));
+      expect(label.textContent).toBe('100%');
+
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: '0', ctrlKey: true, bubbles: true }));
+      expect(label.textContent).toBe('100%');
+    });
+
+    it('handles Ctrl + Scroll wheel to adjust editor zoom with preventDefault', async () => {
+      const mockDoc = {
+        vault_id: 'doc_wheel_zoom_test',
+        brief_arabic_title: 'إشعار صيانة',
+        filename: 'sample.pdf',
+        category: '10 - صيانة',
+        page_count: 2
+      };
+      global.fetch = vi.fn(() => Promise.resolve({ ok: true, json: async () => [] }));
+
+      await window.openPageEditor(mockDoc);
+
+      const modal = document.getElementById('doc-page-editor-modal');
+      const label = document.getElementById('editor-zoom-level-label');
+
+      const zoomInWheel = new WheelEvent('wheel', { deltaY: -100, ctrlKey: true, cancelable: true, bubbles: true });
+      modal.dispatchEvent(zoomInWheel);
+      expect(label.textContent).toBe('120%');
+      expect(zoomInWheel.defaultPrevented).toBe(true);
+
+      const zoomOutWheel = new WheelEvent('wheel', { deltaY: 100, ctrlKey: true, cancelable: true, bubbles: true });
+      modal.dispatchEvent(zoomOutWheel);
+      expect(label.textContent).toBe('100%');
+      expect(zoomOutWheel.defaultPrevented).toBe(true);
+    });
   });
 });
 

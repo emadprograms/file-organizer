@@ -1206,3 +1206,62 @@ html.dark .compliance-item {
     opacity: 0.12 !important;
     pointer-events: none;
 }
+
+/* ── Document Merge & Page Editor Card Zoom & Dynamic Canvas ── */
+#merge-docs-modal {
+    --merge-card-min-width: 280px;
+    --merge-thumb-height: 330px;
+    --merge-card-max-width: 520px;
+}
+
+#doc-page-editor-modal {
+    --editor-card-min-width: 230px;
+    --editor-thumb-height: 280px;
+}
+
+/* Merge Modal Dynamic Grid & Flex Canvas */
+#merge-preview-cards.merge-grid-dynamic,
+#merge-docs-list.merge-grid-dynamic {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--merge-card-min-width, 260px)), 1fr)) !important;
+    gap: 1.25rem !important;
+    align-items: stretch;
+}
+
+#merge-preview-cards.merge-flex-2doc {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 1.5rem !important;
+    padding-top: 0.5rem;
+    padding-bottom: 1rem;
+}
+
+#merge-preview-cards.merge-flex-2doc .merge-preview-card {
+    flex: 1 1 min(100%, var(--merge-card-min-width, 320px)) !important;
+    max-width: var(--merge-card-max-width, 520px) !important;
+    min-width: min(100%, var(--merge-card-min-width, 260px)) !important;
+}
+
+.merge-card-thumbnail,
+#merge-docs-list .merge-thumbnail-mini {
+    min-height: var(--merge-thumb-height, 260px) !important;
+    height: var(--merge-thumb-height, 260px);
+    transition: height 0.15s ease-out, min-height 0.15s ease-out;
+}
+
+/* Page Editor Dynamic Grid */
+#page-editor-grid.editor-grid-dynamic {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--editor-card-min-width, 200px)), 1fr)) !important;
+    gap: 1.25rem !important;
+    align-items: stretch;
+}
+
+#page-editor-grid .card-thumbnail-container {
+    min-height: var(--editor-thumb-height, 200px) !important;
+    height: var(--editor-thumb-height, 200px);
+    transition: height 0.15s ease-out, min-height 0.15s ease-out;
+}
+

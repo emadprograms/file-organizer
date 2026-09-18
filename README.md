@@ -88,12 +88,20 @@ The modern web application (`http://localhost:5000`) offers a responsive, high-p
   - **Interactive Peek Scan**: Hovering or clicking any translated box temporarily dims it to reveal the original scan underneath. A dedicated "Peek Original" page button toggles the entire scan view.
   - **Instant Digital Layer Support**: Leverages embedded PDF text layers when available for sub-10ms overlay generation with automatic fallback to client-side OCR for physical scans.
   - User preference (`localStorage`) persists translation state seamlessly across documents and session reloads.
+- **Document Merge & Page Editor Visual Canvas Zooming**:
+  - Interactive card zoom scaling across Document Merge (`#merge-docs-modal`) and Edit & Split Pages (`#doc-page-editor-modal`) modals.
+  - Header zoom buttons (`-`, `+`, and reset indicator) supporting 7 discrete scaling levels (`70%`, `85%`, `100%`, `120%`, `145%`, `175%`, `210%`).
+  - Universal keyboard shortcuts: `Ctrl +` / `Ctrl =` (Zoom In), `Ctrl -` (Zoom Out), and `Ctrl 0` (Reset to 100%).
+  - Mouse wheel zoom: `Ctrl + Scroll` (Wheel Up = Zoom In, Wheel Down = Zoom Out) with native browser zoom suppression (`e.preventDefault()`).
+  - Dynamic 2-document flex canvas layout (`merge-flex-2doc`) maximizing card preview size (~430px) across wide displays with centered inline swap and reorder buttons.
+  - Persistent zoom level preferences stored in `localStorage` across reloads and sessions.
 - **Keyboard Shortcuts**:
   - `⌘B` / `Ctrl+B`: Toggle navigation sidebar collapse/expand.
   - `⌘K` / `Ctrl+K`: Open Global Spotlight Search.
   - `⌘I` / `Ctrl+I`: Open Ingest & Document Upload Station.
   - `Space`: Quick Look document preview inspector.
   - `Shift+D`: Toggle Dark / Light theme.
+  - `Ctrl +` / `Ctrl -` / `Ctrl 0`: Zoom in, zoom out, or reset card size in Merge and Page Editor modals.
   - `?`: Open the interactive Keyboard Shortcuts guide modal.
   - `Esc`: Dismiss active modals, dropdowns, and previews.
 

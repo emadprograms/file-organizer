@@ -59,6 +59,9 @@ function setupDOM() {
             <h3 id="merge-docs-title">Merge Documents</h3>
             <p id="merge-docs-subtitle">Combine documents into one PDF</p>
             <span id="merge-docs-count-badge">0 docs • 0 pages</span>
+            <button id="btn-merge-zoom-out" type="button">-</button>
+            <button id="btn-merge-zoom-reset" type="button"><span id="merge-zoom-level-label">100%</span></button>
+            <button id="btn-merge-zoom-in" type="button">+</button>
             <button id="merge-docs-close" type="button"></button>
 
             <!-- Reorder Step (for >2 docs) -->
@@ -100,6 +103,7 @@ describe('Document Merge Feature (Multi-Select Only)', () => {
     beforeEach(() => {
         setupDOM();
         delete window.authManager;
+        if (typeof localStorage !== 'undefined') localStorage.clear();
         selectedDocIds.clear();
         global.currentArea = 'Safra C';
         global.currentHouse = '514';
@@ -508,6 +512,99 @@ describe('Document Merge Feature (Multi-Select Only)', () => {
             expect(document.getElementById('merge-pick-second-select')).toBeNull();
             expect(document.getElementById('merge-add-doc-container')).toBeNull();
             expect(document.getElementById('merge-save-add-doc-container')).toBeNull();
+        });
+    });
+
+    describe('Canvas Card Sizing & Zoom Controls (+/-, Ctrl+, Ctrl+Scroll)', () => {
+        it('includes zoom controls in index.html for merge modal header', () => {
+            const fs = require('fs');
+            const path = require('path');
+            const indexHtml = fs.readFileSync(path.join(__dirname, '../../../src/HousingApplication.Web/wwwroot/index.html'), 'utf8');
+            expect(indexHtml).toContain('id="btn-merge-zoom-out"');
+            expect(indexHtml).toContain('id="btn-merge-zoom-in"');
+            expect(indexHtml).toContain('id="btn-merge-zoom-reset"');
+            expect(indexHtml).toContain('id="merge-zoom-level-label"');
+        });
+
+        it('adjusts zoom level and CSS custom properties on merge-docs-modal via buttons', async () => {
+            const doc1 = global.currentCategories[0].documents[0];
+            const doc2 = global.currentCategories[0].documents[1];
+            await openMergeModal([doc1, doc2]);
+
+            const modal = document.getElementById('merge-docs-modal');
+            const btnIn = document.getElementById('btn-merge-zoom-in');
+            const btnOut = document.getElementById('btn-merge-zoom-out');
+            const btnReset = document.getElementById('btn-merge-zoom-reset');
+            const label = document.getElementById('merge-zoom-level-label');
+
+            expect(label.textContent).toBe('100%');
+
+            btnIn.click();
+            expect(label.textContent).toBe('120%');
+            expect(modal.style.getPropertyValue('--merge-card-min-width')).toBe('340px');
+
+            btnIn.click();
+            expect(label.textContent).toBe('145%');
+
+            btnOut.click();
+            expect(label.textContent).toBe('120%');
+
+            btnReset.click();
+            expect(label.textContent).toBe('100%');
+            expect(modal.style.getPropertyValue('--merge-card-min-width')).toBe('280px');
+        });
+
+        it('handles keyboard shortcuts (Ctrl+, Ctrl-, Ctrl 0) to adjust zoom', async () => {
+            const doc1 = global.currentCategories[0].documents[0];
+            const doc2 = global.currentCategories[0].documents[1];
+            await openMergeModal([doc1, doc2]);
+
+            const label = document.getElementById('merge-zoom-level-label');
+            expect(label.textContent).toBe('100%');
+
+            window.dispatchEvent(new KeyboardEvent('keydown', { key: '=', ctrlKey: true, bubbles: true }));
+            expect(label.textContent).toBe('120%');
+
+            window.dispatchEvent(new KeyboardEvent('keydown', { key: '-', ctrlKey: true, bubbles: true }));
+            expect(label.textContent).toBe('100%');
+
+            window.dispatchEvent(new KeyboardEvent('keydown', { key: '+', ctrlKey: true, bubbles: true }));
+            expect(label.textContent).toBe('120%');
+
+            window.dispatchEvent(new KeyboardEvent('keydown', { key: '0', ctrlKey: true, bubbles: true }));
+            expect(label.textContent).toBe('100%');
+        });
+
+        it('handles Ctrl + Scroll wheel to adjust zoom with preventDefault', async () => {
+            const doc1 = global.currentCategories[0].documents[0];
+            const doc2 = global.currentCategories[0].documents[1];
+            await openMergeModal([doc1, doc2]);
+
+            const modal = document.getElementById('merge-docs-modal');
+            const label = document.getElementById('merge-zoom-level-label');
+
+            const zoomInWheel = new WheelEvent('wheel', { deltaY: -100, ctrlKey: true, cancelable: true, bubbles: true });
+            modal.dispatchEvent(zoomInWheel);
+            expect(label.textContent).toBe('120%');
+            expect(zoomInWheel.defaultPrevented).toBe(true);
+
+            const zoomOutWheel = new WheelEvent('wheel', { deltaY: 100, ctrlKey: true, cancelable: true, bubbles: true });
+            modal.dispatchEvent(zoomOutWheel);
+            expect(label.textContent).toBe('100%');
+            expect(zoomOutWheel.defaultPrevented).toBe(true);
+        });
+
+        it('applies merge-flex-2doc on preview container for 2 docs and dynamic thumbnail sizing', async () => {
+            const doc1 = global.currentCategories[0].documents[0];
+            const doc2 = global.currentCategories[0].documents[1];
+            await openMergeModal([doc1, doc2]);
+
+            const previewCardsContainer = document.getElementById('merge-preview-cards');
+            expect(previewCardsContainer.classList.contains('merge-flex-2doc')).toBe(true);
+
+            const cards = previewCardsContainer.querySelectorAll('.merge-preview-card');
+            expect(cards).toHaveLength(2);
+            expect(cards[0].style.flex).toContain('var(--merge-card-min-width');
         });
     });
 });

@@ -83,7 +83,16 @@ The web client provides a unified interface across both Desktop PC and Tablet de
      - Each document card is moved to its target category container via `moveDocInDom` and count badges update smoothly.
      - `deselectAllDocs()` clears selection checkboxes and state.
      - All dimming styles and touch avatars are cleaned up reliably in `finally` handlers.
-- **Asset Mirroring**: Web assets are strictly mirrored across three locations: `src/api/static/js/`, `web-net/wwwroot/js/`, and `dist/win-x64/wwwroot/js/`.
+- **Canvas Sizing & Card Zoom Architecture**:
+  - **Dynamic Card Sizing Engine**: Replaces rigid multi-column layouts with CSS custom properties (`--merge-card-min-width`, `--merge-thumb-height`, `--merge-card-max-width`, `--editor-card-min-width`, `--editor-thumb-height`).
+  - **Dynamic 2-Doc Flex Layout (`.merge-flex-2doc`)**: When 2 documents are selected for merging, cards expand to fill the full container width (`min(100%, 520px)`, ~430px each) with high-resolution PDF previews (360×480) and centered inline swap/reorder buttons, preventing empty blank columns on wide displays.
+  - **Discrete Multi-Step Zooming**: Provides 7 granular zoom levels (`70%`, `85%`, `100%`, `120%`, `145%`, `175%`, `210%`), exposed through header controls (`btn-merge-zoom-in`, `btn-merge-zoom-out`, `btn-merge-zoom-reset`, and corresponding editor buttons).
+  - **Universal Event Handling**:
+    - Keyboard navigation: `Ctrl +` / `Ctrl =` (Zoom In), `Ctrl -` (Zoom Out), and `Ctrl 0` (Reset).
+    - Mouse wheel zoom: `Ctrl + Scroll` (`WheelEvent.deltaY < 0` zooms in, `deltaY > 0` zooms out) with `e.preventDefault()` to prevent outer browser viewport zooming.
+    - Event deduplication and cleanup: Listeners attached to both `window` and `document` ensure responsive event capture in all browser and test environments without redundant double-execution.
+    - Persistence: Current zoom scale is automatically persisted to `localStorage` (`merge_card_zoom_level` and `editor_card_zoom_level`).
+- **Asset Mirroring**: Web assets are strictly mirrored across three locations: `src/api/static/js/`, `src/HousingApplication.Web/wwwroot/js/`, and `dist/win-x64/wwwroot/js/`.
 
 ### Dark Mode Design System & Tablet Responsive Architecture
 The application features a dedicated, semantic dark mode design system engineered specifically for high-DPI displays (such as iPad Liquid Retina and OLED screens) and desktop environments:

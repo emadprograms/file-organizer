@@ -1553,7 +1553,64 @@
 
         const canvas = pageWrapper ? pageWrapper.querySelector('canvas.pdf-page-canvas') : null;
 
-        // 1. Primary: Digital text layer from PDF.js if available
+        // 1. Primary: Database Document Records (Instant translation of Subject, Sender, Receiver, Title)
+        try {
+            const meta = await fetchDocumentMetadata(vaultId);
+            if (meta) {
+                if (meta.pages && Array.isArray(meta.pages) && meta.pages.length > 0) {
+                    const p = meta.pages.find(x => (x.page_number || x.pageNumber) === pageNum)
+                           || meta.pages[pageNum - 1]
+                           || (pageNum === 1 ? meta.pages[0] : null);
+                    if (p) {
+                        const lines = [];
+                        if (p.subject) {
+                            const subTr = translateArabicText(p.subject);
+                            lines.push({
+                                text: subTr ? `Subject: ${subTr}` : p.subject,
+                                original: p.subject
+                            });
+                        }
+                        if (p.sender) {
+                            const sndTr = translateArabicText(p.sender);
+                            lines.push({
+                                text: sndTr ? `From: ${sndTr}` : p.sender,
+                                original: p.sender
+                            });
+                        }
+                        if (p.receiver) {
+                            const rcvTr = translateArabicText(p.receiver);
+                            lines.push({
+                                text: rcvTr ? `To: ${rcvTr}` : p.receiver,
+                                original: p.receiver
+                            });
+                        }
+                        // Explicit user rule: content_explanation is intentionally NOT used
+                        if (lines.length > 0) {
+                            pageOcrCache.set(cacheKey, lines);
+                            return lines;
+                        }
+                    }
+                } else if (meta.arabic_title || meta.category) {
+                    const lines = [];
+                    if (meta.arabic_title) {
+                        const tTr = translateArabicText(meta.arabic_title);
+                        lines.push({ text: `Document: ${tTr}`, original: meta.arabic_title });
+                    }
+                    if (meta.category) {
+                        const catObj = getEnglishCategory(meta.category);
+                        lines.push({ text: `Category: ${catObj.en || meta.category}`, original: meta.category });
+                    }
+                    if (lines.length > 0) {
+                        pageOcrCache.set(cacheKey, lines);
+                        return lines;
+                    }
+                }
+            }
+        } catch (e) {
+            console.debug('Metadata extraction fallback to PDF/OCR:', e);
+        }
+
+        // 2. Secondary: Digital text layer from PDF.js if available
         if (pdfDoc) {
             try {
                 const page = await pdfDoc.getPage(pageNum);
@@ -1574,7 +1631,7 @@
             }
         }
 
-        // 2. Fallback: Client-side Offline OCR via Local Tesseract.js
+        // 3. Fallback: Client-side Offline OCR via Local Tesseract.js
         if (canvas && typeof Tesseract !== 'undefined') {
             const indicator = pageWrapper ? pageWrapper.querySelector('.ocr-scanning-indicator') : null;
             try {
@@ -1636,10 +1693,9 @@
         const canvas = pageWrapper.querySelector('canvas.pdf-page-canvas');
         if (!canvas) return;
 
-        // Remove any existing translation panel for this page
-        let panel = pageWrapper.parentElement
-            ? pageWrapper.parentElement.querySelector(`.pdf-translation-panel[data-page-number="${pageNum}"]`)
-            : null;
+        // Remove any existing translation panel for this page (inside wrapper or as sibling)
+        let panel = pageWrapper.querySelector(`.pdf-translation-panel[data-page-number="${pageNum}"]`)
+            || (pageWrapper.parentElement ? pageWrapper.parentElement.querySelector(`.pdf-translation-panel[data-page-number="${pageNum}"]`) : null);
         if (panel) panel.remove();
         const oldLayer = pageWrapper.querySelector(`.pdf-translation-layer[data-page-number="${pageNum}"]`);
         if (oldLayer) oldLayer.remove();
@@ -1665,13 +1721,9 @@
                 const noticePanel = document.createElement('div');
                 noticePanel.className = 'pdf-translation-panel';
                 noticePanel.setAttribute('data-page-number', pageNum);
-                noticePanel.style.cssText = 'width:100%;max-width:816px;margin:0 auto 16px auto;background:rgba(15,23,42,0.85);border:1px solid rgba(148,163,184,0.2);border-radius:12px;padding:14px 20px;text-align:center;color:#94a3b8;font-size:13px;backdrop-filter:blur(6px);';
+                noticePanel.style.cssText = 'position:absolute;top:12px;left:12px;right:12px;z-index:20;background:rgba(15,23,42,0.92);border:1px solid rgba(148,163,184,0.3);border-radius:12px;padding:14px 20px;text-align:center;color:#94a3b8;font-size:13px;backdrop-filter:blur(8px);box-shadow:0 8px 32px rgba(0,0,0,0.35);';
                 noticePanel.innerHTML = `<span style="color:#e2e8f0;font-weight:600;">Page ${pageNum}</span>: No extractable text or metadata found for this page.`;
-                if (pageWrapper.nextSibling) {
-                    pageWrapper.parentElement.insertBefore(noticePanel, pageWrapper.nextSibling);
-                } else {
-                    pageWrapper.parentElement.appendChild(noticePanel);
-                }
+                pageWrapper.appendChild(noticePanel);
                 return;
             }
 
@@ -1694,20 +1746,26 @@
 
             if (translatedLines.length === 0) return;
 
-            // Build the translation panel — inserted AFTER the page wrapper inside the canvas container
+            // Build the translation panel — positioned OVER the page
             panel = document.createElement('div');
             panel.className = 'pdf-translation-panel';
             panel.setAttribute('data-page-number', pageNum);
 
-            // Page header
+            // Page header with title and Peek Scan button
             const header = document.createElement('div');
             header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid rgba(148,163,184,0.25);';
             header.innerHTML = `
                 <div style="display:flex;align-items:center;gap:8px;">
                     <svg style="width:16px;height:16px;color:#3b82f6;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
-                    <span style="font-size:13px;font-weight:600;color:#e2e8f0;">Page ${pageNum} — English Translation & Summary</span>
+                    <span style="font-size:13px;font-weight:600;color:#e2e8f0;">Page ${pageNum} — English Translation</span>
                 </div>
-                <span style="font-size:11px;color:#64748b;">${translatedLines.length} item${translatedLines.length === 1 ? '' : 's'}</span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:11px;color:#94a3b8;">${translatedLines.length} item${translatedLines.length === 1 ? '' : 's'}</span>
+                    <button type="button" class="btn-peek-scan" style="display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;background:rgba(51,65,85,0.8);border:1px solid rgba(148,163,184,0.3);color:#e2e8f0;font-size:11px;font-weight:500;cursor:pointer;">
+                        <svg style="width:12px;height:12px;color:#94a3b8;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        <span>View Scan</span>
+                    </button>
+                </div>
             `;
             panel.appendChild(header);
 
@@ -1728,252 +1786,53 @@
 
             panel.appendChild(content);
 
-            // Style the panel
+            // Style the panel over the page
             panel.style.cssText = [
-                'width:100%',
-                'max-width:816px',
-                'margin:0 auto 16px auto',
-                'background:linear-gradient(135deg,rgba(15,23,42,0.95),rgba(30,41,59,0.95))',
-                'border:1px solid rgba(148,163,184,0.2)',
+                'position:absolute',
+                'top:12px',
+                'left:12px',
+                'right:12px',
+                'max-height:calc(100% - 24px)',
+                'overflow-y:auto',
+                'z-index:20',
+                'background:linear-gradient(135deg,rgba(15,23,42,0.92),rgba(30,41,59,0.92))',
+                'border:1px solid rgba(148,163,184,0.3)',
                 'border-radius:12px',
-                'backdrop-filter:blur(8px)',
-                'box-shadow:0 4px 16px rgba(0,0,0,0.2)',
-                'overflow:hidden',
+                'backdrop-filter:blur(10px)',
+                'box-shadow:0 8px 32px rgba(0,0,0,0.35)',
+                'transition:opacity 0.15s ease',
                 'user-select:text',
             ].join(';') + ';';
 
-            // Insert AFTER the page wrapper in the canvas container
-            if (pageWrapper.nextSibling) {
-                pageWrapper.parentElement.insertBefore(panel, pageWrapper.nextSibling);
-            } else {
-                pageWrapper.parentElement.appendChild(panel);
+            // Peek Scan button behavior: dims the translation panel to reveal scan underneath
+            const peekBtn = header.querySelector('.btn-peek-scan');
+            if (peekBtn) {
+                let peeking = false;
+                const togglePeek = (state) => {
+                    peeking = state;
+                    panel.style.opacity = peeking ? '0.08' : '1';
+                };
+                peekBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    togglePeek(!peeking);
+                });
+                peekBtn.addEventListener('pointerdown', () => togglePeek(true));
+                peekBtn.addEventListener('pointerup', () => togglePeek(false));
+                peekBtn.addEventListener('pointerleave', () => togglePeek(false));
             }
+
+            // Insert OVER the page (inside pageWrapper)
+            pageWrapper.appendChild(panel);
         } catch (err) {
             console.error(`[Translation] Page ${pageNum}: error during translation:`, err);
             indicator.remove();
             const errorPanel = document.createElement('div');
             errorPanel.className = 'pdf-translation-panel';
             errorPanel.setAttribute('data-page-number', pageNum);
-            errorPanel.style.cssText = 'width:100%;max-width:816px;margin:0 auto 16px auto;background:rgba(127,29,29,0.3);border:1px solid rgba(239,68,68,0.3);border-radius:12px;padding:12px 16px;text-align:center;color:#fca5a5;font-size:12px;';
-            errorPanel.textContent = `Page ${pageNum}: Translation failed — ${err.message || 'Unknown error'}`;
-            if (pageWrapper.nextSibling) {
-                pageWrapper.parentElement.insertBefore(errorPanel, pageWrapper.nextSibling);
-            } else {
-                pageWrapper.parentElement.appendChild(errorPanel);
-            }
+            errorPanel.style.cssText = 'position:absolute;top:12px;left:12px;right:12px;z-index:20;background:rgba(15,23,42,0.92);border:1px solid rgba(239,68,68,0.4);border-radius:12px;padding:14px 20px;text-align:center;color:#fca5a5;font-size:13px;backdrop-filter:blur(8px);';
+            errorPanel.innerHTML = `<span style="color:#f87171;font-weight:600;">Page ${pageNum}</span>: Translation failed.`;
+            pageWrapper.appendChild(errorPanel);
         }
-    }
-
-    // ── Overlay-based Translation for Tablet/Touch Devices ──────────────────
-    // Shows translation cards on top of the iframe PDF viewer.
-    // No canvas rendering needed — fast, lightweight, touch-friendly.
-    async function renderOverlayTranslation(vaultId) {
-        const overlay = document.getElementById('document-translation-overlay');
-        if (!overlay) return;
-
-        // Show overlay on top of iframe — iframe stays visible underneath
-        overlay.classList.remove('hidden');
-        overlay.classList.add('flex');
-
-        // Show loading spinner while fetching metadata
-        overlay.innerHTML = `
-            <div class="flex flex-col items-center justify-center p-8 bg-white/95 dark:bg-slate-900/95 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 gap-3 my-auto max-w-sm text-center">
-                <svg class="w-8 h-8 text-blue-500 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                </svg>
-                <div class="text-sm font-semibold text-slate-800 dark:text-slate-100">Translating Document</div>
-                <div class="text-xs text-slate-500 dark:text-slate-400">Loading translation from database...</div>
-            </div>
-        `;
-
-        try {
-            const meta = await fetchDocumentMetadata(vaultId);
-
-            // Bail out if document changed or translation was deactivated while loading
-            if (!currentPinnedDoc || currentPinnedDoc.vaultId !== vaultId || !isTranslationActive) {
-                return;
-            }
-
-            overlay.innerHTML = '';
-
-            const pages = (meta && Array.isArray(meta.pages) && meta.pages.length > 0) ? meta.pages : null;
-
-            if (!pages) {
-                // Fallback card when no per-page metadata is available
-                const docTitle = currentPinnedDoc.title || 'Official Document';
-                const catInfo = getEnglishCategory(currentPinnedDoc.category || (meta && meta.category));
-                const tenant = currentPinnedDoc.tenant_name || currentPinnedDoc.tenant || (meta && meta.tenant_name) || '';
-                const house = (typeof currentHouse !== 'undefined' ? currentHouse : window.currentHouse) || (meta && meta.house_id) || '';
-                const date = (meta && meta.primary_date) || '';
-
-                const fallbackCard = document.createElement('div');
-                fallbackCard.className = 'translation-page-sheet relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200/90 dark:border-slate-800 p-6 sm:p-8 space-y-4 text-slate-800 dark:text-slate-100 my-auto select-text';
-                fallbackCard.innerHTML = `
-                    <div class="flex items-center justify-between gap-2 pb-3 border-b border-slate-200/80 dark:border-slate-800">
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60">
-                            <span>${catInfo.icon}</span>
-                            <span>${escapeHtml(catInfo.en)}</span>
-                        </span>
-                        <button type="button" class="btn-peek-scan text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer select-none">
-                            <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                            <span>View Scan</span>
-                        </button>
-                    </div>
-                    <div class="p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/40">
-                        <span class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider block mb-0.5">Document Title:</span>
-                        <div class="text-sm font-semibold text-slate-900 dark:text-slate-100">${escapeHtml(docTitle)}</div>
-                    </div>
-                    <div class="text-xs text-slate-600 dark:text-slate-400 space-y-1.5">
-                        ${house ? `<div><strong>House:</strong> ${escapeHtml(String(house))}</div>` : ''}
-                        ${tenant ? `<div><strong>Tenant:</strong> ${escapeHtml(tenant)}</div>` : ''}
-                        ${date ? `<div><strong>Date:</strong> ${escapeHtml(date)}</div>` : ''}
-                    </div>
-                    <div class="text-slate-700 dark:text-slate-300 text-sm leading-relaxed border-t border-slate-100 dark:border-slate-800 pt-3">
-                        <p>This is an official document stored in the housing archive under category <strong>${escapeHtml(catInfo.en)}</strong>. Tap <strong>View Scan</strong> to see the original document underneath.</p>
-                    </div>
-                `;
-                attachOverlayPeekBehavior(fallbackCard, overlay);
-                overlay.appendChild(fallbackCard);
-                return;
-            }
-
-            // Render per-page translation cards
-            const totalPages = pages.length;
-            pages.forEach((p, idx) => {
-                const pageNum = p.page_number || p.pageNumber || idx + 1;
-                const catInfo = getEnglishCategory(p.fine_category || p.fineCategory || (meta && meta.category) || (currentPinnedDoc && currentPinnedDoc.category));
-                const dateText = p.raw_date || p.rawDate || (meta && meta.primary_date) || '';
-
-                const origContent = p.content_explanation || p.contentExplanation || '';
-                const origSubject = p.subject || '';
-                const origSender = p.sender || '';
-                const origReceiver = p.receiver || '';
-
-                // content_explanation is already English from AI — display directly
-                let contentText = '';
-                if (origContent) {
-                    const hasEnglish = /[a-zA-Z]/.test(origContent);
-                    contentText = hasEnglish ? origContent : translateArabicText(origContent);
-                } else {
-                    contentText = `Official archive record (${catInfo.en}). Associated with house ${(meta && meta.house_id) || ''}${(meta && meta.tenant_name) ? ', tenant ' + meta.tenant_name : ''}.`;
-                }
-
-                // subject/sender/receiver are Arabic — translate them
-                const subjectText = origSubject ? (/[a-zA-Z]/.test(origSubject) ? origSubject : translateArabicText(origSubject)) : '';
-                const senderText = origSender ? (/[a-zA-Z]/.test(origSender) ? origSender : translateArabicText(origSender)) : '';
-                const receiverText = origReceiver ? (/[a-zA-Z]/.test(origReceiver) ? origReceiver : translateArabicText(origReceiver)) : '';
-
-                const pageCard = document.createElement('div');
-                pageCard.className = 'translation-page-sheet relative bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200/90 dark:border-slate-800 p-5 sm:p-7 space-y-4 text-slate-800 dark:text-slate-100 select-text transition-all';
-                pageCard.setAttribute('data-page-number', pageNum);
-
-                pageCard.innerHTML = `
-                    <div class="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200/80 dark:border-slate-800">
-                        <div class="flex items-center gap-2">
-                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 dark:border-blue-800/60">
-                                <span>${catInfo.icon}</span>
-                                <span>${escapeHtml(catInfo.en)}</span>
-                            </span>
-                            <span class="text-xs font-mono text-slate-400 dark:text-slate-500">Page ${pageNum} of ${totalPages}</span>
-                        </div>
-                        <div class="flex items-center gap-2">
-                            ${dateText ? `<span class="text-xs text-slate-500 dark:text-slate-400 font-mono">${escapeHtml(dateText)}</span>` : ''}
-                            <button type="button" class="btn-peek-scan text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer select-none">
-                                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                                <span>View Scan</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    ${(senderText || receiverText) ? `
-                    <div class="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                        ${senderText ? `
-                        <div class="flex items-start gap-1.5 min-w-0">
-                            <span class="font-bold text-slate-500 uppercase text-[10px] tracking-wider flex-shrink-0 mt-0.5">FROM:</span>
-                            <span class="text-slate-700 dark:text-slate-200 font-medium">${escapeHtml(senderText)}</span>
-                        </div>` : ''}
-                        ${receiverText ? `
-                        <div class="flex items-start gap-1.5 min-w-0">
-                            <span class="font-bold text-slate-500 uppercase text-[10px] tracking-wider flex-shrink-0 mt-0.5">TO:</span>
-                            <span class="text-slate-700 dark:text-slate-200 font-medium">${escapeHtml(receiverText)}</span>
-                        </div>` : ''}
-                    </div>` : ''}
-
-                    ${subjectText ? `
-                    <div class="p-3 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/40">
-                        <span class="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider block mb-0.5">Subject / Title:</span>
-                        <div class="text-sm font-semibold text-slate-900 dark:text-slate-100">${escapeHtml(subjectText)}</div>
-                    </div>` : ''}
-
-                    <div class="space-y-2">
-                        <span class="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Document Content & Translation:</span>
-                        <div class="text-slate-700 dark:text-slate-200 text-sm sm:text-[15px] leading-relaxed space-y-2 font-normal">
-                            ${formatContentParagraphs(contentText)}
-                        </div>
-                    </div>
-
-                    ${(origSubject || origSender || origReceiver || origContent) ? `
-                    <details class="group mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/80">
-                        <summary class="cursor-pointer text-xs font-semibold text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex items-center justify-between select-none">
-                            <span class="flex items-center gap-1.5">
-                                <svg class="w-3.5 h-3.5 text-slate-400 group-open:rotate-90 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-                                <span>Original Arabic</span>
-                            </span>
-                            <span class="text-[10px] font-mono text-slate-400">النص الأصلي</span>
-                        </summary>
-                        <div class="mt-2.5 p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200/60 dark:border-slate-800 font-arabic text-xs text-slate-600 dark:text-slate-400 space-y-2" dir="rtl">
-                            ${origSubject ? `<div><strong class="text-slate-700 dark:text-slate-300">الموضوع:</strong> ${escapeHtml(origSubject)}</div>` : ''}
-                            ${(origSender || origReceiver) ? `
-                            <div class="flex flex-wrap gap-x-4 gap-y-1">
-                                ${origSender ? `<div><strong class="text-slate-700 dark:text-slate-300">من:</strong> ${escapeHtml(origSender)}</div>` : ''}
-                                ${origReceiver ? `<div><strong class="text-slate-700 dark:text-slate-300">إلى:</strong> ${escapeHtml(origReceiver)}</div>` : ''}
-                            </div>` : ''}
-                            ${origContent ? `<div class="leading-relaxed border-t border-slate-200/40 dark:border-slate-800 pt-1.5 mt-1.5">${escapeHtml(origContent)}</div>` : ''}
-                        </div>
-                    </details>` : ''}
-                `;
-
-                attachOverlayPeekBehavior(pageCard, overlay);
-                overlay.appendChild(pageCard);
-            });
-        } catch (err) {
-            console.error('[Translation] Overlay translation failed:', err);
-            overlay.innerHTML = `
-                <div class="flex flex-col items-center justify-center p-8 bg-white/95 dark:bg-slate-900/95 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 gap-3 my-auto max-w-sm text-center">
-                    <div class="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 flex items-center justify-center mb-1">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                    </div>
-                    <div class="text-sm font-semibold text-red-600 dark:text-red-400">Translation Error</div>
-                    <div class="text-xs text-slate-500 dark:text-slate-400">${escapeHtml(err.message || 'Could not load translation')}</div>
-                </div>
-            `;
-        }
-    }
-
-    function attachOverlayPeekBehavior(card, overlay) {
-        if (!card || !overlay) return;
-        card.querySelectorAll('.btn-peek-scan').forEach(btn => {
-            let timeout = null;
-            const startPeek = () => { card.classList.add('peeking'); };
-            const stopPeek = () => {
-                card.classList.remove('peeking');
-                if (timeout) { clearTimeout(timeout); timeout = null; }
-            };
-
-            btn.addEventListener('pointerdown', startPeek);
-            btn.addEventListener('pointerup', stopPeek);
-            btn.addEventListener('pointerleave', stopPeek);
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (card.classList.contains('peeking')) {
-                    stopPeek();
-                } else {
-                    startPeek();
-                    timeout = setTimeout(stopPeek, 4000);
-                }
-            });
-        });
     }
 
     let currentTranslationPromise = null;

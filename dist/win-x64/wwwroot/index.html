@@ -1373,6 +1373,18 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
+                    <!-- Zoom Controls (Card Sizing) -->
+                    <div class="flex items-center bg-slate-800/90 border border-slate-700/80 rounded-xl p-0.5 text-xs text-slate-300 shadow-inner">
+                        <button id="btn-merge-zoom-out" type="button" class="p-1.5 hover:text-white hover:bg-slate-700/70 rounded-lg transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none" title="Zoom out cards (Ctrl - or Ctrl+Scroll) • تصغير البطاقات">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 12H4"/></svg>
+                        </button>
+                        <button id="btn-merge-zoom-reset" type="button" class="px-2 py-1 font-mono text-[11px] font-semibold hover:text-white hover:bg-slate-700/70 rounded-lg transition-all cursor-pointer select-none" title="Reset card size (Ctrl 0) • استعادة الحجم الافتراضي">
+                            <span id="merge-zoom-level-label">100%</span>
+                        </button>
+                        <button id="btn-merge-zoom-in" type="button" class="p-1.5 hover:text-white hover:bg-slate-700/70 rounded-lg transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none" title="Zoom in cards (Ctrl + or Ctrl+Scroll) • تكبير البطاقات">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                        </button>
+                    </div>
                     <button id="merge-docs-close" type="button" class="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors cursor-pointer" aria-label="Close" title="Close • إغلاق">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
@@ -1389,7 +1401,7 @@
                         </span>
                         <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">استخدم أزرار الأسهم على البطاقات للتقديم والتأخير • Use arrows on cards to reorder</span>
                     </div>
-                    <div id="merge-docs-list" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pb-12">
+                    <div id="merge-docs-list" class="merge-grid-dynamic grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pb-12">
                         <!-- Populated dynamically with visual cards -->
                     </div>
                 </div>
@@ -1422,7 +1434,7 @@
                         </div>
 
                         <!-- Visual Preview Cards container (Spacious Grid) -->
-                        <div id="merge-preview-cards" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pb-4">
+                        <div id="merge-preview-cards" class="merge-grid-dynamic grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pb-4">
                             <!-- Populated dynamically with visual preview cards -->
                         </div>
                     </div>
@@ -1804,6 +1816,18 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
+                    <!-- Zoom Controls (Page Card Sizing) -->
+                    <div class="flex items-center bg-slate-800/90 border border-slate-700/80 rounded-xl p-0.5 text-xs text-slate-300 shadow-inner">
+                        <button id="btn-editor-zoom-out" type="button" class="p-1.5 hover:text-white hover:bg-slate-700/70 rounded-lg transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none" title="Zoom out pages (Ctrl - or Ctrl+Scroll) • تصغير الصفحات">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 12H4"/></svg>
+                        </button>
+                        <button id="btn-editor-zoom-reset" type="button" class="px-2 py-1 font-mono text-[11px] font-semibold hover:text-white hover:bg-slate-700/70 rounded-lg transition-all cursor-pointer select-none" title="Reset page size (Ctrl 0) • استعادة الحجم الافتراضي">
+                            <span id="editor-zoom-level-label">100%</span>
+                        </button>
+                        <button id="btn-editor-zoom-in" type="button" class="p-1.5 hover:text-white hover:bg-slate-700/70 rounded-lg transition-all cursor-pointer disabled:opacity-30 disabled:pointer-events-none" title="Zoom in pages (Ctrl + or Ctrl+Scroll) • تكبير الصفحات">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"/></svg>
+                        </button>
+                    </div>
                     <button id="page-editor-close-btn" type="button" class="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors cursor-pointer" title="Close editor • إغلاق">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                     </button>
@@ -1820,7 +1844,7 @@
                     <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Rendering pages... • جاري معالجة الصفحات...</span>
                 </div>
 
-                <div id="page-editor-grid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pb-20">
+                <div id="page-editor-grid" class="editor-grid-dynamic grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 pb-20">
                     <!-- Dynamic page cards -->
                 </div>
             </div>
@@ -2052,8 +2076,8 @@
     <script src="js/pdf-preview.js?v=260911-34"></script>
     <script src="js/command-palette.js?v=260911-34"></script>
     <script src="js/tenant-manager.js?v=260911-34"></script>
-    <script src="js/doc-manager.js?v=260912-02"></script>
-    <script src="js/doc-viewer.js?v=260917-02"></script>
+    <script src="js/doc-manager.js?v=260918-01"></script>
+    <script src="js/doc-viewer.js?v=260918-03"></script>
     <script src="js/doc-page-editor.js?v=260915-01"></script>
     <script src="js/db-inspector.js?v=260911-29"></script>
     <script src="js/area-grid.js?v=260912-01"></script>
