@@ -564,12 +564,177 @@
         { ar: 'طلب صيانة', en: 'Maintenance Request' },
         { ar: 'توقيع المستأجر', en: 'Tenant Signature' },
         { ar: 'توقيع المؤجر', en: 'Lessor Signature' },
+        { ar: 'الرقم الشخصي :', en: 'CPR / ID No.: ' },
+        { ar: 'الرقم الشخصي:', en: 'CPR / ID No.: ' },
         { ar: 'الرقم الشخصي', en: 'CPR / ID Number' },
+        { ar: 'الاسم :', en: 'Name: ' },
+        { ar: 'الاسم:', en: 'Name: ' },
+        { ar: 'اسم المستأجر :', en: 'Tenant Name: ' },
+        { ar: 'اسم المستأجر:', en: 'Tenant Name: ' },
+        { ar: 'اسم المنتفع :', en: 'Beneficiary Name: ' },
+        { ar: 'اسم المنتفع:', en: 'Beneficiary Name: ' },
         { ar: 'مقر الوزارة', en: 'Ministry Headquarters' },
         { ar: 'مقر شعبة', en: 'Division Headquarters' },
         { ar: 'إلى مقر', en: 'to the headquarters of' },
         { ar: 'التكرم بالحضور', en: 'kindly attend / report' },
-        { ar: 'لعدم سداد', en: 'for non-payment of' }
+        { ar: 'لعدم سداد', en: 'for non-payment of' },
+
+        // ── Eviction, Tenancy & Ministry Legal Formulas ──
+        { ar: 'عقد الانتفاع المبرم بينكم وبين وزارة الداخلية', en: 'the occupancy agreement concluded between you and the Ministry of Interior' },
+        { ar: 'عقد الانتفاع المبرم', en: 'the concluded occupancy agreement' },
+        { ar: 'عقد الانتفاع', en: 'occupancy agreement' },
+        { ar: 'عقد الإشغال', en: 'occupancy contract' },
+        { ar: 'عقد اشغال', en: 'occupancy contract' },
+        { ar: 'ووفقاً للمواد رقم', en: 'and pursuant to Articles No.' },
+        { ar: 'وفقاً للمواد رقم', en: 'pursuant to Articles No.' },
+        { ar: 'ووفقاً للمواد', en: 'and pursuant to Articles' },
+        { ar: 'وحسب المواد', en: 'and pursuant to Articles' },
+        { ar: 'حسب المواد', en: 'pursuant to Articles' },
+        { ar: 'المتضمنة عند إحالة', en: 'stipulating that upon referral of' },
+        { ar: 'المتضمنة عند احالة', en: 'stipulating that upon referral of' },
+        { ar: 'المتضمنة عند', en: 'stipulating upon' },
+        { ar: 'إحالة المستفيد على التقاعد', en: 'referral of the beneficiary to retirement' },
+        { ar: 'إحالة المستفيد إلى التقاعد', en: 'referral of the beneficiary to retirement' },
+        { ar: 'إحالة المستأجر على التقاعد', en: 'referral of the tenant to retirement' },
+        { ar: 'إحالة المستأجر إلى التقاعد', en: 'referral of the tenant to retirement' },
+        { ar: 'المستفيد / المستأجر', en: 'the beneficiary / tenant' },
+        { ar: 'المستفيد أو المستأجر', en: 'the beneficiary or tenant' },
+        { ar: 'على التقاعد', en: 'to retirement' },
+        { ar: 'إلى التقاعد', en: 'to retirement' },
+        { ar: 'الى التقاعد', en: 'to retirement' },
+        { ar: 'إنهاء خدماته', en: 'termination of his services' },
+        { ar: 'انهاء خدماته', en: 'termination of his services' },
+        { ar: 'إنهاء الخدمات', en: 'termination of services' },
+        { ar: 'انهاء الخدمات', en: 'termination of services' },
+        { ar: 'حصوله على وحدة سكنية', en: 'obtaining a housing unit' },
+        { ar: 'حصوله على وحدة اسكانية', en: 'obtaining a housing unit' },
+        { ar: 'حصوله على وحدة إسكانية', en: 'obtaining a housing unit' },
+        { ar: 'حصولة على وحدة اسكانية', en: 'obtaining a housing unit' },
+        { ar: 'حصولة على وحدة سكنية', en: 'obtaining a housing unit' },
+        { ar: 'حصوله على وحدة', en: 'obtaining a unit' },
+        { ar: 'حصولة على وحدة', en: 'obtaining a unit' },
+        { ar: 'شراء وحدة سكنية', en: 'purchasing a housing unit' },
+        { ar: 'شراء وحدة', en: 'purchasing a unit' },
+        { ar: 'يتوجب عليه إخلاء الوحدة التابعة لوزارة الداخلية', en: 'he is required to vacate the unit affiliated with the Ministry of Interior' },
+        { ar: 'يتوجب عليه اخلاء الوحدة التابعة لوزارة الداخلية', en: 'he is required to vacate the unit affiliated with the Ministry of Interior' },
+        { ar: 'يجب عليه إخلاء الوحدة التابعة لوزارة الداخلية', en: 'he must vacate the unit affiliated with the Ministry of Interior' },
+        { ar: 'يجب عليه اخلاء الوحدة التابعة لوزارة الداخلية', en: 'he must vacate the unit affiliated with the Ministry of Interior' },
+        { ar: 'يتوجب عليه إخلاء الوحدة', en: 'he is required to vacate the unit' },
+        { ar: 'يتوجب عليه اخلاء الوحدة', en: 'he is required to vacate the unit' },
+        { ar: 'يجب عليه إخلاء الوحدة', en: 'he must vacate the unit' },
+        { ar: 'يجب عليه اخلاء الوحدة', en: 'he must vacate the unit' },
+        { ar: 'يتوجب عليه إخلاء', en: 'he is required to vacate' },
+        { ar: 'يتوجب عليه اخلاء', en: 'he is required to vacate' },
+        { ar: 'يجب عليه إخلاء', en: 'he must vacate' },
+        { ar: 'يجب عليه اخلاء', en: 'he must vacate' },
+        { ar: 'يجب عليه', en: 'he must' },
+        { ar: 'يتوجب عليه', en: 'he is required to' },
+        { ar: 'الوحدة التابعة لوزارة الداخلية', en: 'the unit affiliated with the Ministry of Interior' },
+        { ar: 'الوحدة التابعة لوزارة الإسكان', en: 'the unit affiliated with the Ministry of Housing' },
+        { ar: 'الوحدة التابعة لـ', en: 'the unit affiliated with' },
+        { ar: 'الوحدة التابعة ل', en: 'the unit affiliated with' },
+        { ar: 'التابعة لوزارة الداخلية', en: 'affiliated with the Ministry of Interior' },
+        { ar: 'التابعة لوزارة الإسكان', en: 'affiliated with the Ministry of Housing' },
+        { ar: 'التابعة لوزارة', en: 'affiliated with the Ministry of' },
+        { ar: 'التابعة لـ', en: 'affiliated with' },
+        { ar: 'التابعة ل', en: 'affiliated with' },
+        { ar: 'إحالتكم إلى التقاعد بتاريخ', en: 'your referral to retirement dated' },
+        { ar: 'احالتكم الى التقاعد بتاريخ', en: 'your referral to retirement dated' },
+        { ar: 'إحالتكم على التقاعد بتاريخ', en: 'your referral to retirement dated' },
+        { ar: 'احالتكم على التقاعد بتاريخ', en: 'your referral to retirement dated' },
+        { ar: 'إحالتكم إلى التقاعد', en: 'your referral to retirement' },
+        { ar: 'احالتكم الى التقاعد', en: 'your referral to retirement' },
+        { ar: 'إحالتكم على التقاعد', en: 'your referral to retirement' },
+        { ar: 'احالتكم على التقاعد', en: 'your referral to retirement' },
+        { ar: 'سوف نمهلك لغاية تاريخ', en: 'we grant you a grace period until the date of' },
+        { ar: 'نمهلك لغاية تاريخ', en: 'we grant you a grace period until the date of' },
+        { ar: 'سوف نمهلكم لغاية تاريخ', en: 'we grant you a grace period until the date of' },
+        { ar: 'نمهلكم لغاية تاريخ', en: 'we grant you a grace period until the date of' },
+        { ar: 'سوف نمهلك', en: 'we grant you a grace period' },
+        { ar: 'سوف نمهلكم', en: 'we grant you a grace period' },
+        { ar: 'نمهلك', en: 'we grant you a grace period' },
+        { ar: 'نمهلكم', en: 'we grant you a grace period' },
+        { ar: 'لغاية تاريخ', en: 'until the date of' },
+        { ar: 'لغاية', en: 'until' },
+        { ar: 'لإخلاء الوحدة السكنية', en: 'to vacate the housing unit' },
+        { ar: 'لاخلاء الوحدة السكنية', en: 'to vacate the housing unit' },
+        { ar: 'لإخلاء الوحدة', en: 'to vacate the unit' },
+        { ar: 'لاخلاء الوحدة', en: 'to vacate the unit' },
+        { ar: 'لإخلاء المسكن', en: 'to vacate the residence' },
+        { ar: 'لاخلاء المسكن', en: 'to vacate the residence' },
+        { ar: 'وتسليمها إلى فرع إسكان الشرطة', en: 'and hand it over to the Police Housing Branch' },
+        { ar: 'وتسليمها لفرع إسكان الشرطة', en: 'and hand it over to the Police Housing Branch' },
+        { ar: 'وتسليمها إلى فرع', en: 'and hand it over to the branch of' },
+        { ar: 'وتسليمها لفرع', en: 'and hand it over to the branch of' },
+        { ar: 'وتسليمها إلى', en: 'and hand it over to' },
+        { ar: 'وتسليمها ل', en: 'and hand it over to' },
+        { ar: 'تسليمها إلى', en: 'hand it over to' },
+        { ar: 'تسليمها ل', en: 'hand it over to' },
+        { ar: 'دون استثناء', en: 'without exception' },
+        { ar: 'بدون استثناء', en: 'without exception' },
+        { ar: 'وستقوم وزارة الداخلية باتخاذ الإجراءات القانونية اللازمة', en: 'and the Ministry of Interior will take the necessary legal procedures' },
+        { ar: 'ستقوم وزارة الداخلية باتخاذ الإجراءات القانونية اللازمة', en: 'the Ministry of Interior will take the necessary legal procedures' },
+        { ar: 'وستقوم وزارة الداخلية باتخاذ الإجراءات القانونية', en: 'and the Ministry of Interior will take legal procedures' },
+        { ar: 'ستقوم وزارة الداخلية باتخاذ الإجراءات القانونية', en: 'the Ministry of Interior will take legal procedures' },
+        { ar: 'وستقوم وزارة الداخلية', en: 'and the Ministry of Interior will' },
+        { ar: 'ستقوم وزارة الداخلية', en: 'the Ministry of Interior will' },
+        { ar: 'باتخاذ الإجراءات القانونية اللازمة', en: 'taking the necessary legal procedures' },
+        { ar: 'اتخاذ الإجراءات القانونية اللازمة', en: 'taking the necessary legal procedures' },
+        { ar: 'باتخاذ الإجراءات القانونية', en: 'taking legal procedures' },
+        { ar: 'اتخاذ الإجراءات القانونية', en: 'taking legal procedures' },
+        { ar: 'باتخاذ الإجراءات', en: 'taking procedures' },
+        { ar: 'باتخاذ اللازم', en: 'taking necessary action' },
+        { ar: 'في حال عدم الإخلاء', en: 'in the event of failure to vacate' },
+        { ar: 'في حال عدم اخلاء', en: 'in the event of failure to vacate' },
+        { ar: 'في حالة عدم الإخلاء', en: 'in the event of failure to vacate' },
+        { ar: 'في حالة عدم اخلاء', en: 'in the event of failure to vacate' },
+        { ar: 'عدم الإخلاء', en: 'failure to vacate' },
+        { ar: 'عدم اخلاء', en: 'failure to vacate' },
+        { ar: 'وذلك حسب النظام', en: 'in accordance with regulations' },
+        { ar: 'حسب النظام', en: 'in accordance with regulations' },
+        { ar: 'وذلك وفقاً للنظام', en: 'in accordance with regulations' },
+        { ar: 'وفقاً للنظام', en: 'in accordance with regulations' },
+        { ar: 'وذلك وفقاً للائحة', en: 'in accordance with the bylaws' },
+        { ar: 'وفقاً للائحة', en: 'in accordance with the bylaws' },
+        { ar: 'وما نص عليه عقد الانتفاع', en: 'and what is stipulated in the occupancy agreement' },
+        { ar: 'وما نص عليه عقد الإشغال', en: 'and what is stipulated in the occupancy contract' },
+        { ar: 'وما نص عليه العقد', en: 'and what is stipulated in the contract' },
+        { ar: 'ما نص عليه العقد', en: 'what is stipulated in the contract' },
+        { ar: 'نص عليه العقد', en: 'stipulated in the contract' },
+        { ar: 'وما نص عليه', en: 'and what is stipulated in' },
+        { ar: 'ما نص عليه', en: 'what is stipulated in' },
+        { ar: 'نص عليه', en: 'stipulated in' },
+        { ar: 'نصت عليه', en: 'stipulated in' },
+        { ar: 'هاتف :', en: 'Phone: ' },
+        { ar: 'هاتف:', en: 'Phone: ' },
+        { ar: 'فاكس :', en: 'Fax: ' },
+        { ar: 'فاكس:', en: 'Fax: ' },
+        { ar: 'ص ب :', en: 'P.O. Box: ' },
+        { ar: 'ص.ب :', en: 'P.O. Box: ' },
+        { ar: 'ص ب:', en: 'P.O. Box: ' },
+        { ar: 'ص.ب:', en: 'P.O. Box: ' },
+        { ar: 'العلامة المائية المطبوعة على هذه الوثيقة لدواعي الأمن والخصوصية', en: 'The watermark printed on this document is for security and privacy purposes' },
+        { ar: 'العلامة المائية المطبوعة على هذا المستند لدواعي أمنية', en: 'The watermark printed on this document is for security purposes' },
+        { ar: 'العلامة المائية المطبوعة', en: 'Printed watermark' },
+        { ar: 'لدواعي الأمن والخصوصية', en: 'for security and privacy purposes' },
+        { ar: 'لدواعي أمنية', en: 'for security purposes' },
+        { ar: 'تنويه :هذه الوثيقة رسمية وشخصية لمتلقيها فقط', en: 'Notice: This document is official and personal to its recipient only' },
+        { ar: 'تنويه: هذه الوثيقة رسمية وشخصية لمتلقيها فقط', en: 'Notice: This document is official and personal to its recipient only' },
+        { ar: 'تنويه :', en: 'Notice: ' },
+        { ar: 'تنويه:', en: 'Notice: ' },
+        { ar: 'وينبغي عدم نسخها أو توزيعها أو استنساخها كليا أو جزئياً', en: 'and must not be copied, distributed, or reproduced wholly or partially' },
+        { ar: 'وينبغي عدم نسخها أو توزيعها أو استنساخها كلياً أو جزئياً', en: 'and must not be copied, distributed, or reproduced wholly or partially' },
+        { ar: 'ويجب عدم نسخها أو توزيعها أو استنساخها كلياً أو جزئياً', en: 'and must not be copied, distributed, or reproduced wholly or partially' },
+        { ar: 'ويجب عدم نسخها أو توزيعها أو استنساخها كليا أو جزئياً', en: 'and must not be copied, distributed, or reproduced wholly or partially' },
+        { ar: 'ولا تمريرها إلى أي طرف ثالث', en: 'nor transferred to any third party' },
+        { ar: 'ولا تمريرها لأي طرف ثالث', en: 'nor transferred to any third party' },
+        { ar: 'طرف ثالث', en: 'third party' },
+        { ar: 'كليا أو جزئيا', en: 'wholly or partially' },
+        { ar: 'كلياً أو جزئياً', en: 'wholly or partially' },
+        { ar: 'استنساخها', en: 'reproducing it' },
+        { ar: 'توزيعها', en: 'distributing it' },
+        { ar: 'نسخها', en: 'copying it' },
+        { ar: 'تمريرها', en: 'transferring it' }
     ];
 
     // ── Word-Level Vocabulary Dictionary (500+ Words) ──
@@ -715,7 +880,7 @@
         'يجب': 'shall', 'ينبغي': 'should', 'يتعين': 'is required', 'يلزم': 'is required',
         'يراجع': 'reviews / visits', 'يحضر': 'reports / attends', 'يخالف': 'violates',
         'تم': 'completed', 'صدر': 'issued', 'ورد': 'received',
-        'في': 'in', 'على': 'on', 'إلى': 'to', 'الى': 'to', 'من': 'from', 'عن': 'about',
+        'و': 'and', 'ف': 'and', 'في': 'in', 'على': 'on', 'إلى': 'to', 'الى': 'to', 'من': 'from', 'عن': 'about',
         'مع': 'with', 'بين': 'between', 'لدى': 'with', 'حتى': 'until', 'منذ': 'since',
         'بعد': 'after', 'قبل': 'before', 'تحت': 'under', 'فوق': 'above', 'امام': 'in front of', 'أمام': 'in front of',
         'خلف': 'behind', 'داخل': 'inside', 'خارج': 'outside', 'خلال': 'during',
@@ -959,7 +1124,41 @@
         'تنفيذ': 'enforcement', 'التنفيذ': 'enforcement',
         'تمديد': 'extension', 'التمديد': 'extension', 'مؤقت': 'temporary', 'المؤقت': 'temporary',
         'إنسانية': 'humanitarian', 'الإنسانية': 'humanitarian',
-        'إشعار': 'Notice', 'الإشعار': 'Notice', 'إشعارات': 'Notices', 'الإشعارات': 'Notices'
+        'إشعار': 'Notice', 'الإشعار': 'Notice', 'إشعارات': 'Notices', 'الإشعارات': 'Notices',
+        'اسم': 'Name', 'الاسم': 'Name', 'أسماء': 'Names', 'اسماء': 'Names',
+        'بينكم': 'between you', 'بيننا': 'between us', 'بينهم': 'between them',
+        'مبرم': 'concluded / signed', 'المبرم': 'concluded / signed',
+        'إشغال': 'occupancy', 'الإشغال': 'occupancy', 'اشغال': 'occupancy', 'الاشغال': 'occupancy',
+        'استثناء': 'exception', 'الاستثناء': 'exception',
+        'نص': 'stipulation / text', 'النص': 'text', 'ينص': 'stipulates', 'تنص': 'stipulates', 'نصه': 'stipulating',
+        'متضمنة': 'stipulating / providing', 'المتضمنة': 'stipulating / providing',
+        'تتضمن': 'stipulates / includes', 'يتضمن': 'stipulates / includes',
+        'خدماته': 'his services', 'خدمات': 'services',
+        'حصوله': 'obtaining', 'حصولة': 'obtaining', 'حصول': 'obtaining',
+        'احالتكم': 'your referral', 'إحالتكم': 'your referral',
+        'احالة': 'referral', 'إحالة': 'referral', 'الإحالة': 'referral',
+        'نمهلك': 'we grant you', 'نمهلكم': 'we grant you',
+        'لغاية': 'until', 'غاية': 'until',
+        'تسليمها': 'handing it over', 'استلامها': 'receiving it',
+        'إخلائها': 'vacating it', 'اخلائها': 'vacating it', 'إخلاؤها': 'its evacuation',
+        'ستقوم': 'will undertake', 'وستقوم': 'and will undertake', 'تقوم': 'undertakes', 'وتقوم': 'and undertakes',
+        'يقوم': 'undertakes', 'ويقوم': 'and undertakes',
+        'باتخاذ': 'taking', 'اتخاذ': 'taking', 'لاتخاذ': 'to take',
+        'التابعة': 'affiliated with', 'تابعة': 'affiliated with', 'التابع': 'affiliated with', 'تابع': 'affiliated with',
+        'هاتف': 'Phone', 'الهاتف': 'Phone', 'هواتف': 'Phones',
+        'فاكس': 'Fax', 'الفاكس': 'Fax',
+        'تنويه': 'Notice', 'التنويه': 'Notice',
+        'خصوصية': 'privacy', 'الخصوصية': 'privacy',
+        'سرية': 'confidentiality', 'السرية': 'confidentiality',
+        'شخصية': 'personal', 'الشخصية': 'personal',
+        'متلقيها': 'its recipient', 'مستلمها': 'its recipient',
+        'ثالث': 'third', 'الثالث': 'Third',
+        'كليا': 'wholly', 'كلياً': 'wholly', 'جزئيا': 'partially', 'جزئياً': 'partially',
+        'استنساخها': 'reproducing it', 'توزيعها': 'distributing it', 'نسخها': 'copying it', 'تمريرها': 'transferring it',
+        'علامة': 'watermark / mark', 'العلامة': 'watermark / mark',
+        'مطبوعة': 'printed', 'المطبوعة': 'printed',
+        'مائية': 'water / watermark', 'المائية': 'water / watermark',
+        'دواعي': 'reasons / purposes', 'لدواعي': 'for purposes of'
     };
 
     // ── Bahraini & Arab Personal / Family Names ──
@@ -1159,17 +1358,19 @@
 
     function lookupArabicStem(stem) {
         if (!stem) return null;
-        if (NORMALIZED_WORDS.has(stem)) return NORMALIZED_WORDS.get(stem);
         if (ARABIC_NAMES[stem]) return ARABIC_NAMES[stem];
+        if (NORMALIZED_WORDS.has(stem)) return NORMALIZED_WORDS.get(stem);
 
         const stemNorm = normalizeArabicKey(stem);
-        if (NORMALIZED_WORDS.has(stemNorm)) return NORMALIZED_WORDS.get(stemNorm);
         if (NORMALIZED_NAMES.has(stemNorm)) return NORMALIZED_NAMES.get(stemNorm);
+        if (NORMALIZED_WORDS.has(stemNorm)) return NORMALIZED_WORDS.get(stemNorm);
 
         if (stem.endsWith('ة') || stem.endsWith('ه')) {
             const alt = stem.endsWith('ة') ? (stem.slice(0, -1) + 'ه') : (stem.slice(0, -1) + 'ة');
+            if (NORMALIZED_NAMES.has(alt)) return NORMALIZED_NAMES.get(alt);
             if (NORMALIZED_WORDS.has(alt)) return NORMALIZED_WORDS.get(alt);
             const altNorm = normalizeArabicKey(alt);
+            if (NORMALIZED_NAMES.has(altNorm)) return NORMALIZED_NAMES.get(altNorm);
             if (NORMALIZED_WORDS.has(altNorm)) return NORMALIZED_WORDS.get(altNorm);
         }
 
@@ -1312,6 +1513,27 @@
         return { en: translateArabicText(clean) || 'Official Housing Document', icon: '📄' };
     }
 
+    function splitMergedArabicCompounds(text) {
+        if (!text || typeof text !== 'string') return '';
+        return text
+            // Separate common ministry, government, and form prefixes merged by OCR
+            .replace(/(وزارة|وذارة|ودارة|وداره)(ال[^\s]+)/g, '$1 $2')
+            .replace(/(مملكة|مملكه)(ال[^\s]+)/g, '$1 $2')
+            .replace(/(إدارة|ادارة)(ال[^\s]+)/g, '$1 $2')
+            .replace(/(فرع)(ال[^\s]+|إسكان[^\s]+|اسكان[^\s]+)/g, '$1 $2')
+            .replace(/(شعبة|شعبه)(ال[^\s]+|إسكان[^\s]+|اسكان[^\s]+)/g, '$1 $2')
+            .replace(/(إسكان|اسكان)(ال[^\s]+)/g, '$1 $2')
+            .replace(/(عقد)(ال[^\s]+|إيجار[^\s]+|ايجار[^\s]+|إشغال[^\s]+|اشغال[^\s]+)/g, '$1 $2')
+            .replace(/(أمر|امر)(ال[^\s]+|تخصيص[^\s]+)/g, '$1 $2')
+            .replace(/(محضر)(ال[^\s]+|تسليم[^\s]+|استلام[^\s]+|معاينة[^\s]+|اجتماع[^\s]+)/g, '$1 $2')
+            .replace(/(شهادة|شهاده)(ال[^\s]+|راتب[^\s]+)/g, '$1 $2')
+            .replace(/(فاتورة|فاتوره)(ال[^\s]+|كهرباء[^\s]+|ماء[^\s]+)/g, '$1 $2')
+            .replace(/(بطاقة|بطاقه)(ال[^\s]+|هوية[^\s]+|ذكية[^\s]+)/g, '$1 $2')
+            .replace(/(الرقم)(ال[^\s]+|الشخصي[^\s]+)/g, '$1 $2')
+            .replace(/(الاسم)(ال[^\s]+|الأول[^\s]+|الكامل[^\s]+)/g, '$1 $2')
+            .replace(/(رئيس|مدير|وكيل)(ال[^\s]+)/g, '$1 $2');
+    }
+
     function translateArabicText(text) {
         if (!text || typeof text !== 'string') return '';
         let result = text.trim();
@@ -1322,6 +1544,9 @@
 
         // 1. Detect and un-reverse Arabic stream if visual RTL was reversed in PDF
         result = detectAndUnreverseArabic(result);
+
+        // 1.5. Separate compound words merged by OCR without spaces
+        result = splitMergedArabicCompounds(result);
 
         // 2. Convert Eastern Arabic numerals to Western digits
         const arabicNumerals = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
@@ -1549,6 +1774,54 @@
         return lines;
     }
 
+    const VALID_HEADER_MARKERS = /الرقم|التاريخ|تاريخ|الموضوع|موضوع|الاسم|اسم|المستأجر|المواطن|نسخة|هاتف|فاكس|ص\.?ب|وزارة|وذارة|إدارة|ادارة|فرع|شعبة|شعبه|عقد|أمر|امر|طلب|محضر|تنويه|إشعار|اشعار|إنذار|انذار|مملكة|المنامة/;
+
+    function isNoiseLine(line) {
+        if (!line || typeof line !== 'string') return true;
+        const clean = line.trim();
+        if (!clean || clean.length < 2) return true;
+
+        // Never drop lines with essential administrative markers
+        if (VALID_HEADER_MARKERS.test(clean)) return false;
+
+        // Count Arabic chars, Latin chars, digits, and symbols
+        const arabicChars = (clean.match(/[\u0600-\u06FF]/g) || []).length;
+        const latinChars = (clean.match(/[A-Za-z]/g) || []).length;
+        const totalChars = clean.replace(/\s+/g, '').length;
+
+        // If no Arabic and no Latin letters at all (only symbols/digits), noise
+        if (arabicChars === 0 && latinChars === 0) return true;
+
+        // If line has almost no letters (< 3 Arabic and < 4 Latin)
+        if (arabicChars < 3 && latinChars < 4) return true;
+
+        // Words analysis
+        const words = clean.split(/\s+/).filter(w => w.length > 0);
+        if (words.length === 0) return true;
+
+        // Single isolated short tokens
+        if (words.length === 1 && totalChars <= 4) return true;
+
+        // Scattered 1-2 letter fragments from stamps or scanner noise (e.g. "Hl Ld Ra Wdyn Mlh Aldmyt")
+        const shortWords = words.filter(w => w.length <= 2).length;
+        if (words.length >= 4 && (shortWords / words.length) >= 0.50) return true;
+
+        // Low average token length
+        const avgLen = totalChars / words.length;
+        if (words.length >= 2 && avgLen < 2.7) return true;
+
+        // High symbol/punctuation ratio (>35% punctuation)
+        const punctCount = (clean.match(/[^A-Za-z0-9\u0600-\u06FF\s]/g) || []).length;
+        if (punctCount / totalChars > 0.35 && arabicChars < 12) return true;
+
+        // Barcode / timestamp printer strings
+        if (clean.includes('ط النموذج') || clean.includes('Model:') || /^[0-9\s:/\-]{15,}$/.test(clean)) {
+            return true;
+        }
+
+        return false;
+    }
+
     async function detectPageText(pageWrapper, pageNum, vaultId, pdfDoc) {
         const cacheKey = `${vaultId}_p${pageNum}`;
         if (pageOcrCache.has(cacheKey)) {
@@ -1610,46 +1883,8 @@
         // 2. Extract Full Document Letter Content
         let bodyLines = [];
 
-        // Primary source: Use AI-generated content_explanation if available (pre-computed during ingestion)
-        // This is a high-quality English translation and far superior to OCR+dictionary for scanned documents
-        try {
-            const meta = docMetadataCache.get(vaultId);
-            if (meta && meta.pages && Array.isArray(meta.pages) && meta.pages.length > 0) {
-                const p = meta.pages.find(x => (x.page_number || x.pageNumber) === pageNum)
-                       || meta.pages[pageNum - 1]
-                       || (pageNum === 1 ? meta.pages[0] : null);
-                if (p && p.content_explanation && typeof p.content_explanation === 'string' && p.content_explanation.trim().length > 20) {
-                    // Split content_explanation into readable paragraph lines
-                    const explanation = p.content_explanation.trim();
-                    const sentences = explanation.split(/(?<=[.!?])\s+/);
-                    // Group sentences into ~2-3 sentence paragraphs for readability
-                    const paragraphs = [];
-                    let currentPara = '';
-                    for (const sentence of sentences) {
-                        if (currentPara && (currentPara.length + sentence.length > 200)) {
-                            paragraphs.push(currentPara.trim());
-                            currentPara = sentence;
-                        } else {
-                            currentPara += (currentPara ? ' ' : '') + sentence;
-                        }
-                    }
-                    if (currentPara.trim()) paragraphs.push(currentPara.trim());
-
-                    if (paragraphs.length > 0) {
-                        // Add a divider line between headers and body
-                        bodyLines.push({ text: '── Letter Content ──', isHeader: true, isEnglish: true });
-                        for (const para of paragraphs) {
-                            bodyLines.push({ text: para, isEnglish: true });
-                        }
-                    }
-                }
-            }
-        } catch (e) {
-            console.debug('content_explanation extraction fallback:', e);
-        }
-
-        // Secondary source: Digital text layer from PDF.js (for non-scanned PDFs)
-        if (bodyLines.length === 0 && pdfDoc) {
+        // Primary text extraction: Digital text layer from PDF.js if available
+        if (pdfDoc) {
             try {
                 const page = await pdfDoc.getPage(pageNum);
                 const viewport = page.getViewport({ scale: 1.0 });
@@ -1659,7 +1894,7 @@
                     if (arabicItems.length > 0) {
                         const lines = clusterPdfItemsIntoLines(textContent.items, viewport.height);
                         if (lines.length > 0) {
-                            bodyLines = lines;
+                            bodyLines = lines.filter(l => !isNoiseLine(l.text));
                         }
                     }
                 }
@@ -1674,7 +1909,9 @@
                 const worker = await getTesseractWorker();
                 if (worker) {
                     let ocrCanvas = canvas;
-                    const targetWidth = Math.min(canvas.width, 1000);
+                    // High-resolution canvas scaling: Arabic requires ~180-250 DPI (1600-2000px width)
+                    // for sharp diacritics and dots without noise
+                    const targetWidth = Math.min(Math.max(canvas.width, 1600), 2200);
                     const scale = targetWidth / canvas.width;
                     const scaled = document.createElement('canvas');
                     scaled.width = targetWidth;
@@ -1682,43 +1919,35 @@
                     const sCtx = scaled.getContext('2d', { willReadFrequently: true });
                     if (sCtx) {
                         sCtx.drawImage(canvas, 0, 0, scaled.width, scaled.height);
-                        try {
-                            const imgData = sCtx.getImageData(0, 0, scaled.width, scaled.height);
-                            const data = imgData.data;
-                            for (let i = 0; i < data.length; i += 4) {
-                                const gray = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
-                                const contrast = gray < 180 ? Math.max(0, gray * 0.8) : Math.min(255, gray * 1.1);
-                                data[i] = contrast;
-                                data[i + 1] = contrast;
-                                data[i + 2] = contrast;
-                            }
-                            sCtx.putImageData(imgData, 0, 0);
-                        } catch (e) {}
                         ocrCanvas = scaled;
                     }
 
                     const ocrPromise = worker.recognize(ocrCanvas);
                     const timeoutPromise = new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('OCR recognition timed out after 30 seconds')), 30000)
+                        setTimeout(() => reject(new Error('OCR recognition timed out after 35 seconds')), 35000)
                     );
                     const res = await Promise.race([ocrPromise, timeoutPromise]);
 
                     if (res && res.data) {
+                        let extracted = [];
                         if (res.data.lines && res.data.lines.length > 0) {
-                            bodyLines = res.data.lines
+                            extracted = res.data.lines
                                 .filter(l => l.text && l.text.trim().length > 0)
                                 .map(l => ({
                                     text: l.text.trim(),
                                     bbox: l.bbox,
-                                    words: l.words
+                                    confidence: l.confidence
                                 }));
                         } else if (res.data.text && res.data.text.trim().length > 0) {
-                            bodyLines = res.data.text
+                            extracted = res.data.text
                                 .split('\n')
                                 .map(t => t.trim())
                                 .filter(t => t.length > 0)
                                 .map(text => ({ text }));
                         }
+
+                        // Filter out scanner artifacts, noise lines, and isolated characters
+                        bodyLines = extracted.filter(l => !isNoiseLine(l.text));
                     }
                 }
             } catch (err) {
@@ -1787,15 +2016,7 @@
                 const origText = line.text.trim();
                 if (!origText || origText.length < 1) return;
 
-                // Lines from content_explanation are already in English — pass through as-is
-                if (line.isEnglish) {
-                    translatedLines.push({
-                        original: line.original || origText,
-                        translated: origText,
-                        isHeader: !!line.isHeader
-                    });
-                    return;
-                }
+                if (!line.isHeader && isNoiseLine(origText)) return;
 
                 const hasArabic = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFC]/.test(origText);
                 const translated = hasArabic ? translateArabicText(origText) : origText;
@@ -2871,5 +3092,6 @@
     window.transliterateArabic = transliterateArabic;
     window.clusterPdfItemsIntoLines = clusterPdfItemsIntoLines;
     window.getEnglishCategory = getEnglishCategory;
+    window.isNoiseLine = isNoiseLine;
     window.updateTranslationButtonState = updateTranslationButtonState;
 })();

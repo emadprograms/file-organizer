@@ -1778,9 +1778,10 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       expect(text).toContain('Subject');
       expect(text).toContain('From');
       expect(text).toContain('To');
-      // content_explanation IS used as the body translation for readable English output
-      expect(text).toContain('A formal urgent letter');
-      expect(text).toContain('Letter Content');
+      // CRITICAL: content_explanation is strictly NOT used per user instruction
+      expect(text).not.toContain('A formal urgent letter');
+      expect(text).not.toContain('Letter Content');
+      expect(text).not.toContain('content_explanation');
 
       global.fetch = origFetch;
     });
@@ -1824,9 +1825,8 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
 
       const text = panel.textContent;
       expect(text).toContain('Subject');
-      // content_explanation IS used as body translation — verify the fallback matching works
-      // (page_number=7 doesn't match pageNum=1, but pages[0] fallback finds it)
-      expect(text).toContain('Official letter submitted by Member of Parliament');
+      // content_explanation is NOT used
+      expect(text).not.toContain('Official letter submitted by Member of Parliament');
 
       global.fetch = origFetch;
     });
