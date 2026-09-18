@@ -395,4 +395,126 @@ describe('House Settings Modal Layout & UX (QCK-22)', () => {
       })
     );
   });
+
+  it('auto-populates previous tenant end date with last document arrival date when not explicitly mentioned in settings', async () => {
+    global.fetch = vi.fn().mockImplementation((url) => {
+      if (url.includes('/tenants')) {
+        return Promise.resolve({
+          ok: true,
+          json: async () => [
+            {
+              id: 101,
+              name: 'Active Present Tenant',
+              start_date: '2023-01-01',
+              end_date: null,
+              is_resident: 1,
+              is_present: true,
+              last_doc_date: '2024-05-15'
+            },
+            {
+              id: 102,
+              name: 'Previous Tenant Without End Date',
+              start_date: '2020-01-01',
+              end_date: null,
+              is_resident: 1,
+              is_present: false,
+              last_doc_date: '2022-11-20'
+            }
+          ]
+        });
+      }
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    });
+
+    document.getElementById('btn-manage-tenants').click();
+    await new Promise(r => setTimeout(r, 20));
+
+    const rows = document.querySelectorAll('#tenant-modal-rows .tenant-row');
+    expect(rows.length).toBe(2);
+
+    const activeRow = rows[0];
+    const prevRow = rows[1];
+
+    // Active tenant is present, end date disabled and empty
+    expect(activeRow.querySelector('.tenant-present-check').checked).toBe(true);
+    expect(activeRow.querySelector('.tenant-end-input').disabled).toBe(true);
+    expect(activeRow.querySelector('.tenant-end-input').value).toBe('');
+
+    // Previous tenant is not present, end date auto-populated with last doc date
+    expect(prevRow.querySelector('.tenant-present-check').checked).toBe(false);
+    expect(prevRow.querySelector('.tenant-end-input').disabled).toBe(false);
+    expect(prevRow.querySelector('.tenant-end-input').value).toBe('2022-11-20');
+  });
+
+  it('saves previous tenant with last document arrival date as end_date when left unmentioned by user', async () => {
+    global.fetch = vi.fn().mockImplementation((url, opts) => {
+      if (opts && opts.method === 'POST') {
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ status: 'success', reallocated_count: 0, tenants_count: 2 })
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => [
+          {
+            id: 201,
+            name: 'Current Resident',
+            start_date: '2023-01-01',
+            end_date: null,
+            is_resident: 1,
+            is_present: true,
+            last_doc_date: '2024-06-01'
+          },
+          {
+            id: 202,
+            name: 'Past Resident',
+            start_date: '2019-01-01',
+            end_date: null,
+            is_resident: 1,
+            is_present: false,
+            last_doc_date: '2021-08-10'
+          }
+        ]
+      });
+    });
+
+    document.getElementById('btn-manage-tenants').click();
+    await new Promise(r => setTimeout(r, 20));
+
+    const saveBtn = document.getElementById('tenant-modal-save');
+    saveBtn.click();
+    await new Promise(r => setTimeout(r, 20));
+
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/areas/Safra%20C/houses/500/tenants',
+      expect.objectContaining({
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenants: [
+            {
+              id: 201,
+              name: 'Current Resident',
+              start_date: '2023-01-01',
+              end_date: null,
+              house_id: '500',
+              is_resident: 1,
+              notes: null
+            },
+            {
+              id: 202,
+              name: 'Past Resident',
+              start_date: '2019-01-01',
+              end_date: '2021-08-10',
+              house_id: '500',
+              is_resident: 1,
+              notes: null
+            }
+          ],
+          reallocate: true
+        })
+      })
+    );
+  });
 });

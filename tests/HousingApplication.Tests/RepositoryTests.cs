@@ -2619,6 +2619,92 @@ public class RepositoryTests : IDisposable
             }
         }
     }
+
+    [Fact]
+    public async Task PastTenantWithoutExplicitEndDate_SetsEndDateToLastDocArrivalDate()
+    {
+        // Arrange
+        const string areaId = "Safra C";
+        const string houseId = "600";
+        await _repo.AddAreaAsync(areaId, "SC");
+        await _repo.AddHouseAsync(houseId, areaId);
+
+        // Add 2 tenants: one past resident (no end date), one present resident
+        var pastTenant = await _repo.AddTenantAsync(houseId, "مستأجر قديم", "2019-01-01", null, isResident: 1);
+        var activeTenant = await _repo.AddTenantAsync(houseId, "مستأجر حالي", "2023-01-01", null, isResident: 1);
+
+        // Add documents for past tenant with multiple arrival dates
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = areaId,
+            HouseId = houseId,
+            TenantId = pastTenant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد إيجار أول",
+            PrimaryDate = "2019-03-01",
+            PageCount = 1
+        });
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = areaId,
+            HouseId = houseId,
+            TenantId = pastTenant.Id,
+            Category = "01 - إيجارات",
+            ArabicTitle = "وصل إيجار أخير",
+            PrimaryDate = "2021-10-15",
+            PageCount = 1
+        });
+
+        // Act 1: Query tenants via GetTenantsAsync
+        var tenants = await _repo.GetTenantsAsync(houseId);
+
+        // Assert 1: Previous tenant has LastDocDate and effective EndDate = 2021-10-15, IsPresent = false
+        var fetchedPast = tenants.FirstOrDefault(t => t.Name == "مستأجر قديم");
+        var fetchedActive = tenants.FirstOrDefault(t => t.Name == "مستأجر حالي");
+
+        Assert.NotNull(fetchedPast);
+        Assert.NotNull(fetchedActive);
+
+        Assert.Equal(false, fetchedPast.IsPresent);
+        Assert.Equal("2021-10-15", fetchedPast.EndDate);
+        Assert.Equal("2021-10-15", fetchedPast.LastDocDate);
+
+        Assert.Equal(true, fetchedActive.IsPresent);
+        Assert.Null(fetchedActive.EndDate);
+
+        // Act 2: BulkUpdateTenantsAsync without specifying EndDate for past tenant
+        var updatePayload = new List<TenantDto>
+        {
+            new TenantDto
+            {
+                Id = fetchedActive.Id,
+                Name = fetchedActive.Name,
+                HouseId = houseId,
+                IsResident = 1,
+                IsPresent = true,
+                EndDate = null
+            },
+            new TenantDto
+            {
+                Id = fetchedPast.Id,
+                Name = fetchedPast.Name,
+                HouseId = houseId,
+                IsResident = 1,
+                IsPresent = false,
+                EndDate = null // Not mentioned by user!
+            }
+        };
+
+        var updateResult = await _repo.BulkUpdateTenantsAsync(houseId, updatePayload, reallocate: true);
+        Assert.Equal("success", updateResult.Status);
+
+        // Assert 2: Database persisted 2021-10-15 as end_date for past tenant
+        var reloaded = await _repo.GetTenantsAsync(houseId);
+        var reloadedPast = reloaded.FirstOrDefault(t => t.Name == "مستأجر قديم");
+        Assert.NotNull(reloadedPast);
+        Assert.Equal("2021-10-15", reloadedPast.EndDate);
+        Assert.Equal(false, reloadedPast.IsPresent);
+    }
 }
 
 

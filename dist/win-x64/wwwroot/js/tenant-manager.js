@@ -154,6 +154,36 @@
         }
     }
 
+    function resolveLastDocDate(r, nameFallback = '', tenantObj = null) {
+        if (r && r.dataset && r.dataset.lastDocDate) return r.dataset.lastDocDate;
+        if (tenantObj && (tenantObj.last_doc_date || tenantObj.max_doc_date)) {
+            const d = String(tenantObj.last_doc_date || tenantObj.max_doc_date).substring(0, 10);
+            if (r && r.dataset) r.dataset.lastDocDate = d;
+            return d;
+        }
+        const name = (nameFallback || (r ? r.querySelector('.tenant-name-input')?.value : '') || '').trim().toLowerCase();
+        const tenantId = r && r.dataset ? r.dataset.id : (tenantObj ? tenantObj.id : null);
+        if (typeof currentTimeline !== 'undefined' && Array.isArray(currentTimeline)) {
+            const tenantDocs = currentTimeline.filter(d => d && (
+                (tenantId && String(d.tenant_id) === String(tenantId)) ||
+                (name && (
+                    (d.primary_tenant && d.primary_tenant.trim().toLowerCase() === name) ||
+                    (d.tenant && d.tenant.trim().toLowerCase() === name)
+                ))
+            ));
+            const dates = tenantDocs
+                .map(d => (d.dates && d.dates[0]) || d.primary_date || d.date)
+                .filter(Boolean)
+                .sort();
+            if (dates.length > 0) {
+                const lastDate = String(dates[dates.length - 1]).substring(0, 10);
+                if (r && r.dataset) r.dataset.lastDocDate = lastDate;
+                return lastDate;
+            }
+        }
+        return '';
+    }
+
     function addTenantRow(t = null) {
         const row = document.createElement('div');
         row.className = 'tenant-row sm:grid sm:grid-cols-12 items-center gap-2 sm:gap-3 px-4 py-2 hover:bg-slate-50/60 transition-colors';
@@ -169,12 +199,23 @@
         let isPresent = false;
         if (!isApplicant) {
             if (t) {
-                const rawPresent = !endVal || endVal === 'present' || String(endVal).toLowerCase() === 'none';
-                isPresent = rawPresent && !alreadyHasPresent;
+                if (typeof t.is_present === 'boolean') {
+                    isPresent = t.is_present && !alreadyHasPresent;
+                } else {
+                    const rawPresent = !endVal || endVal === 'present' || String(endVal).toLowerCase() === 'none';
+                    isPresent = rawPresent && !alreadyHasPresent;
+                }
             } else {
                 isPresent = !alreadyHasPresent;
             }
         }
+
+        // Calculate date of last document arrival for this tenant if available
+        let lastDocArrival = resolveLastDocDate(row, nameVal, t);
+        if (!lastDocArrival && endVal && endVal !== 'present' && endVal !== 'none' && endVal !== 'null') {
+            lastDocArrival = String(endVal).substring(0, 10);
+        }
+        row.dataset.lastDocDate = lastDocArrival || '';
 
         const residentStartTitle = 'Start date is always selected as the first document and is auto if there is no document • تاريخ البدء يُحدّد دائماً من تاريخ أول وثيقة، ويكون تلقائياً عند عدم وجود وثائق';
         const applicantStartTitle = 'Application / Order Date • تاريخ الطلب/التخصيص';
@@ -186,6 +227,9 @@
             : `<input type="text" readonly value="تلقائي (عند أول رفع)" title="${isApplicant ? applicantStartTitle : residentStartTitle}" class="tenant-start-input w-full px-2 py-1.5 text-xs rounded-lg border border-dashed border-blue-300 dark:border-blue-700 bg-blue-50/50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 font-medium cursor-default" />`;
 
         const endInputTitle = isApplicant ? applicantEndTitle : residentEndTitle;
+        const effectiveEndVal = (isApplicant || isPresent || endVal === 'present')
+            ? ''
+            : (endVal && endVal !== 'none' && endVal !== 'null' ? endVal : (lastDocArrival || ''));
 
         row.innerHTML = `
             <div class="sm:col-span-3 flex items-center gap-2">
@@ -203,7 +247,7 @@
                 ${startInputHtml}
             </div>
             <div class="sm:col-span-2">
-                <input type="date" value="${isApplicant || isPresent ? '' : endVal}" ${isApplicant || isPresent ? 'disabled' : ''} title="${endInputTitle}"
+                <input type="date" value="${effectiveEndVal}" ${isApplicant || isPresent ? 'disabled' : ''} title="${endInputTitle}"
                        class="tenant-end-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 font-medium ${isApplicant || isPresent ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white'}" />
             </div>
             <div class="sm:col-span-1 flex items-center justify-between sm:justify-center">
@@ -251,6 +295,10 @@
                     endInput.disabled = false;
                     endInput.className = "tenant-end-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium";
                     endInput.title = residentEndTitle;
+                    if (!endInput.value) {
+                        const docDate = resolveLastDocDate(row);
+                        if (docDate) endInput.value = docDate;
+                    }
                 }
             }
         });
@@ -271,6 +319,10 @@
                             otherEnd.disabled = false;
                             otherEnd.className = "tenant-end-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium";
                             otherEnd.title = residentEndTitle;
+                            if (!otherEnd.value) {
+                                const docDate = resolveLastDocDate(otherRow);
+                                if (docDate) otherEnd.value = docDate;
+                            }
                         }
                     }
                 });
@@ -283,6 +335,10 @@
                     endInput.disabled = false;
                     endInput.className = "tenant-end-input w-full px-2 py-1.5 text-xs rounded-lg border border-slate-200 focus:outline-none focus:ring-1.5 focus:ring-blue-500/20 focus:border-blue-500 bg-white font-medium";
                     endInput.title = residentEndTitle;
+                    if (!endInput.value) {
+                        const docDate = resolveLastDocDate(row);
+                        if (docDate) endInput.value = docDate;
+                    }
                 }
             }
         });
@@ -324,7 +380,13 @@
             const isPresent = r.querySelector('.tenant-present-check').checked;
             const typeVal = r.querySelector('.tenant-type-select')?.value || 'resident';
             const isResident = typeVal === 'applicant' ? 0 : 1;
-            const end = (isResident === 0 || isPresent) ? null : (r.querySelector('.tenant-end-input').value || null);
+            let end = (isResident === 0 || isPresent) ? null : (r.querySelector('.tenant-end-input').value || null);
+
+            // If an end date of the previous tenant is not mentioned in the settings and he isn't marked as present
+            // then the date of his last document arrival is marked as the end date.
+            if (isResident === 1 && !isPresent && !end) {
+                end = resolveLastDocDate(r, name) || null;
+            }
 
             if (!name) {
                 showTenantStatus('All tenants must have a name', true);

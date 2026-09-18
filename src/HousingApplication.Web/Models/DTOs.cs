@@ -382,6 +382,12 @@ public record TenantDto
     [JsonPropertyName("is_resident")]
     public int IsResident { get; init; } = 1;
 
+    [JsonPropertyName("is_present")]
+    public bool? IsPresent { get; init; }
+
+    [JsonPropertyName("last_doc_date")]
+    public string? LastDocDate { get; init; }
+
     [JsonPropertyName("notes")]
     public string? Notes { get; init; }
 }

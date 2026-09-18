@@ -9,4 +9,5 @@ public class Tenant
     public string? EndDate { get; set; }
     public int IsResident { get; set; } = 1;
     public string? Notes { get; set; }
+    public string? LastDocDate { get; set; }
 }
