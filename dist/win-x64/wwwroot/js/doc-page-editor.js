@@ -11,6 +11,7 @@
     let btnSelectAll = null;
     let btnDeselectAll = null;
     let btnDeleteSelected = null;
+    let btnRotateSelected = null;
     let btnCopySelected = null;
     let btnExtractSelected = null;
 
@@ -53,6 +54,9 @@
     let selectedPageNumbers = new Set();
     let currentPageOrder = []; // Array of page numbers 1..N
     let isReordering = false;
+    let isRotating = false;
+    let cardRotations = {}; // pageNum -> degrees (0, 90, 180, 270)
+    let draggedPages = []; // array of page numbers currently being dragged
 
     const STANDARD_FOLDERS = [
         "01 - بيانات أساسية",
@@ -130,6 +134,7 @@
         btnSelectAll = document.getElementById('btn-editor-select-all');
         btnDeselectAll = document.getElementById('btn-editor-deselect-all');
         btnDeleteSelected = document.getElementById('btn-editor-delete-selected');
+        btnRotateSelected = document.getElementById('btn-editor-rotate-selected');
         btnCopySelected = document.getElementById('btn-editor-copy-selected');
         btnExtractSelected = document.getElementById('btn-editor-extract-selected');
 
@@ -153,6 +158,7 @@
         if (btnSelectAll) btnSelectAll.onclick = selectAllPages;
         if (btnDeselectAll) btnDeselectAll.onclick = deselectAllPages;
         if (btnDeleteSelected) btnDeleteSelected.onclick = handleDeleteSelectedPages;
+        if (btnRotateSelected) btnRotateSelected.onclick = () => rotateSelectedPages(90);
         if (btnCopySelected) btnCopySelected.onclick = () => openExtractSubmodal('copy');
         if (btnExtractSelected) btnExtractSelected.onclick = () => openExtractSubmodal('move');
 
@@ -470,6 +476,8 @@
         activePdfDoc = null;
         selectedPageNumbers.clear();
         currentPageOrder = [];
+        cardRotations = {};
+        draggedPages = [];
     }
 
     async function renderThumbnails() {
@@ -493,6 +501,10 @@
             const pageNum = currentPageOrder[i];
             const card = createPageCard(pageNum, i + 1, currentPageOrder.length);
             editorGrid.appendChild(card);
+            if (cardRotations[pageNum]) {
+                const placeholder = card.querySelector('.thumbnail-placeholder');
+                if (placeholder) placeholder.style.transform = `rotate(${cardRotations[pageNum]}deg)`;
+            }
         }
     }
 
@@ -501,6 +513,7 @@
         card.className = 'page-editor-card relative bg-white dark:bg-slate-800 rounded-2xl border-2 border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-md transition-all flex flex-col overflow-hidden cursor-pointer select-none group';
         card.setAttribute('data-page-num', actualPageNum);
         card.setAttribute('data-display-pos', displayPos);
+        card.setAttribute('draggable', 'true');
 
         const isSelected = selectedPageNumbers.has(actualPageNum);
         if (isSelected) {
@@ -517,7 +530,12 @@
         card.innerHTML = `
             <!-- Card Top Bar: Actions & Selection -->
             <div class="px-3 py-2 bg-slate-50 dark:bg-slate-900 border-b border-slate-100 dark:border-slate-700/80 flex items-center justify-between gap-1 flex-shrink-0">
-                ${deleteBtnHtml}
+                <div class="flex items-center gap-1">
+                    ${deleteBtnHtml}
+                    <button type="button" class="btn-card-rotate p-1.5 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/50 transition-colors cursor-pointer" title="Rotate 90° clockwise • تدوير الصفحة 90 درجة">
+                        <svg class="w-4 h-4 text-amber-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    </button>
+                </div>
                 <div class="flex items-center gap-1">
                     <button type="button" class="btn-move-left p-1 rounded-md text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 disabled:opacity-30 disabled:pointer-events-none transition-all" title="Move earlier • تقديم الصفحة" ${displayPos <= 1 ? 'disabled' : ''}>
                         <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
@@ -548,7 +566,7 @@
 
         // Card tap / click toggles selection
         card.onclick = (e) => {
-            if (e.target.closest('.btn-card-delete') || e.target.closest('.btn-move-left') || e.target.closest('.btn-move-right')) {
+            if (e.target.closest('.btn-card-delete') || e.target.closest('.btn-card-rotate') || e.target.closest('.btn-move-left') || e.target.closest('.btn-move-right')) {
                 return;
             }
             togglePageSelection(actualPageNum);
@@ -560,6 +578,15 @@
             btnDel.onclick = (e) => {
                 e.stopPropagation();
                 handleDeleteSinglePage(actualPageNum, displayPos);
+            };
+        }
+
+        // 1-tap rotate button on card (90 degrees clockwise)
+        const btnRot = card.querySelector('.btn-card-rotate');
+        if (btnRot) {
+            btnRot.onclick = (e) => {
+                e.stopPropagation();
+                rotatePage(actualPageNum, 90);
             };
         }
 
@@ -579,6 +606,13 @@
                 shiftPageOrder(displayPos - 1, 1);
             };
         }
+
+        // Drag and drop events
+        card.ondragstart = (e) => handleCardDragStart(e, actualPageNum, card);
+        card.ondragover = (e) => handleCardDragOver(e, card);
+        card.ondragleave = (e) => handleCardDragLeave(e, card);
+        card.ondrop = (e) => handleCardDrop(e, card);
+        card.ondragend = (e) => handleCardDragEnd(e);
 
         return card;
     }
@@ -609,6 +643,10 @@
             }
 
             await page.render({ canvasContext: ctx, viewport }).promise;
+
+            if (cardRotations[pageNum]) {
+                canvas.style.transform = `rotate(${cardRotations[pageNum]}deg)`;
+            }
 
             container.innerHTML = '';
             container.appendChild(canvas);
@@ -683,6 +721,14 @@
             }
         }
 
+        if (btnRotateSelected) {
+            btnRotateSelected.disabled = count === 0;
+            const textSpan = btnRotateSelected.querySelector('.btn-text');
+            if (textSpan) {
+                textSpan.textContent = count > 0 ? `Rotate 90° (${count})` : 'Rotate 90° (تدوير)';
+            }
+        }
+
         if (btnCopySelected) {
             btnCopySelected.disabled = count === 0;
             const textSpan = btnCopySelected.querySelector('.btn-text');
@@ -700,18 +746,13 @@
         }
     }
 
-    async function shiftPageOrder(currentIndex, direction) {
+    async function applyAndPersistPageOrder(newOrder) {
         if (isReordering) return;
-        const targetIndex = currentIndex + direction;
-        if (targetIndex < 0 || targetIndex >= currentPageOrder.length) return;
-
+        const previousOrder = [...currentPageOrder];
         isReordering = true;
-        try {
-            // Swap
-            const temp = currentPageOrder[currentIndex];
-            currentPageOrder[currentIndex] = currentPageOrder[targetIndex];
-            currentPageOrder[targetIndex] = temp;
 
+        try {
+            currentPageOrder = newOrder;
             if (activePdfDoc) {
                 await renderThumbnails();
             } else {
@@ -723,15 +764,22 @@
                 const area = activeEditorDoc.area_id;
                 const house = activeEditorDoc.house_id;
                 const vaultId = activeEditorDoc.vault_id || activeEditorDoc.id;
+                let endpoint;
+                if (area && area !== 'default' && house && house !== 'default') {
+                    endpoint = `/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(vaultId)}/reorder-pages`;
+                } else {
+                    endpoint = `/api/documents/${encodeURIComponent(vaultId)}/reorder-pages`;
+                }
+
                 try {
-                    const res = await fetch(getApiUrl(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(vaultId)}/reorder-pages`), {
+                    const res = await fetch(getApiUrl(endpoint), {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ page_order: currentPageOrder })
                     });
                     if (res.ok) {
                         // The PDF on disk is now physically rewritten into the new order.
-                        // Reset currentPageOrder to 1..N so future shifts are relative to the new file.
+                        // Reset currentPageOrder to 1..N so future shifts/drags are relative to the new file.
                         currentPageOrder = Array.from({ length: currentPageOrder.length }, (_, idx) => idx + 1);
 
                         // Reload activePdfDoc with cache-busting
@@ -753,18 +801,258 @@
                         }
                     } else {
                         // Revert local swap on failure
-                        const reverted = currentPageOrder[currentIndex];
-                        currentPageOrder[currentIndex] = currentPageOrder[targetIndex];
-                        currentPageOrder[targetIndex] = reverted;
+                        currentPageOrder = previousOrder;
                         if (activePdfDoc) await renderThumbnails();
                         else renderFallbackCards();
                     }
                 } catch (err) {
                     console.warn('Reorder pages API warning:', err);
+                    currentPageOrder = previousOrder;
+                    if (activePdfDoc) await renderThumbnails();
+                    else renderFallbackCards();
                 }
             }
         } finally {
             isReordering = false;
+        }
+    }
+
+    async function shiftPageOrder(currentIndex, direction) {
+        if (isReordering) return;
+        const targetIndex = currentIndex + direction;
+        if (targetIndex < 0 || targetIndex >= currentPageOrder.length) return;
+
+        const newOrder = [...currentPageOrder];
+        const temp = newOrder[currentIndex];
+        newOrder[currentIndex] = newOrder[targetIndex];
+        newOrder[targetIndex] = temp;
+
+        await applyAndPersistPageOrder(newOrder);
+    }
+
+    async function movePagesToTarget(pagesToMove, targetPageNum, dropBefore) {
+        if (!pagesToMove || pagesToMove.length === 0 || !targetPageNum) return;
+        if (pagesToMove.includes(targetPageNum)) return; // Dropped on self
+
+        // Filter out moved pages while keeping target
+        const remaining = currentPageOrder.filter(p => !pagesToMove.includes(p));
+        const targetIdx = remaining.indexOf(targetPageNum);
+        if (targetIdx === -1) return;
+
+        const insertIdx = dropBefore ? targetIdx : targetIdx + 1;
+        const newOrder = [
+            ...remaining.slice(0, insertIdx),
+            ...pagesToMove,
+            ...remaining.slice(insertIdx)
+        ];
+
+        // If order hasn't changed, ignore
+        if (newOrder.length === currentPageOrder.length && newOrder.every((p, i) => p === currentPageOrder[i])) {
+            return;
+        }
+
+        await applyAndPersistPageOrder(newOrder);
+    }
+
+    function handleCardDragStart(e, pageNum, cardEl) {
+        if (isReordering || isRotating) {
+            if (e && e.preventDefault) e.preventDefault();
+            return;
+        }
+        // Multi-page drag: if dragged card is selected and multiple are selected, move all selected
+        if (selectedPageNumbers.has(pageNum) && selectedPageNumbers.size > 1) {
+            draggedPages = currentPageOrder.filter(p => selectedPageNumbers.has(p));
+        } else {
+            draggedPages = [pageNum];
+        }
+
+        if (e && e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            try {
+                e.dataTransfer.setData('text/plain', JSON.stringify({ draggedPages }));
+            } catch (err) {}
+        }
+
+        if (cardEl) cardEl.classList.add('dragging');
+        if (draggedPages.length > 1 && editorGrid) {
+            draggedPages.forEach(p => {
+                const otherCard = editorGrid.querySelector(`div[data-page-num="${p}"]`);
+                if (otherCard) otherCard.classList.add('dragging');
+            });
+        }
+    }
+
+    function handleCardDragOver(e, card) {
+        if (e && e.preventDefault) e.preventDefault();
+        if (!draggedPages || draggedPages.length === 0) return;
+        if (e && e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+
+        const targetPageNum = parseInt(card.getAttribute('data-page-num'), 10);
+        if (draggedPages.includes(targetPageNum)) {
+            card.classList.remove('page-drop-before', 'page-drop-after');
+            return;
+        }
+
+        const rect = card.getBoundingClientRect();
+        const midX = (rect && rect.width > 0) ? (rect.left + rect.width / 2) : 0;
+        const isBefore = (rect && rect.width > 0 && e && typeof e.clientX === 'number') ? (e.clientX < midX) : true;
+
+        if (isBefore) {
+            card.classList.add('page-drop-before');
+            card.classList.remove('page-drop-after');
+        } else {
+            card.classList.add('page-drop-after');
+            card.classList.remove('page-drop-before');
+        }
+    }
+
+    function handleCardDragLeave(e, card) {
+        card.classList.remove('page-drop-before', 'page-drop-after');
+    }
+
+    async function handleCardDrop(e, targetCard) {
+        if (e) {
+            if (e.preventDefault) e.preventDefault();
+            if (e.stopPropagation) e.stopPropagation();
+        }
+
+        if (editorGrid) {
+            editorGrid.querySelectorAll('.page-editor-card').forEach(c => {
+                c.classList.remove('dragging', 'page-drop-before', 'page-drop-after');
+            });
+        }
+
+        if (!draggedPages || draggedPages.length === 0) return;
+
+        const targetPageNum = parseInt(targetCard.getAttribute('data-page-num'), 10);
+        if (!targetPageNum) return;
+
+        const rect = targetCard.getBoundingClientRect();
+        const midX = (rect && rect.width > 0) ? (rect.left + rect.width / 2) : 0;
+        const dropBefore = (rect && rect.width > 0 && e && typeof e.clientX === 'number') ? (e.clientX < midX) : true;
+
+        const pages = [...draggedPages];
+        draggedPages = [];
+        await movePagesToTarget(pages, targetPageNum, dropBefore);
+    }
+
+    function handleCardDragEnd(e) {
+        if (editorGrid) {
+            editorGrid.querySelectorAll('.page-editor-card').forEach(c => {
+                c.classList.remove('dragging', 'page-drop-before', 'page-drop-after');
+            });
+        }
+        draggedPages = [];
+    }
+
+    async function rotatePage(pageNum, angle = 90) {
+        await rotatePages([pageNum], angle);
+    }
+
+    async function rotateSelectedPages(angle = 90) {
+        if (selectedPageNumbers.size === 0) return;
+        const pages = Array.from(selectedPageNumbers);
+        await rotatePages(pages, angle);
+    }
+
+    async function rotatePages(pagesToRotate, angle = 90) {
+        if (!activeEditorDoc || isRotating || isReordering || !pagesToRotate || pagesToRotate.length === 0) return;
+        isRotating = true;
+
+        // Immediate visual feedback via CSS rotation transform
+        pagesToRotate.forEach(p => {
+            cardRotations[p] = ((cardRotations[p] || 0) + angle) % 360;
+            if (editorGrid) {
+                const card = editorGrid.querySelector(`div[data-page-num="${p}"]`);
+                if (card) {
+                    const thumb = card.querySelector('.card-thumbnail-container canvas, .card-thumbnail-container img, .card-thumbnail-container .thumbnail-placeholder');
+                    if (thumb) {
+                        thumb.style.transform = `rotate(${cardRotations[p]}deg)`;
+                    }
+                }
+            }
+        });
+
+        const area = activeEditorDoc.area_id;
+        const house = activeEditorDoc.house_id;
+        const vaultId = activeEditorDoc.vault_id || activeEditorDoc.id;
+
+        try {
+            let endpoint;
+            if (area && area !== 'default' && house && house !== 'default') {
+                endpoint = `/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(vaultId)}/rotate-pages`;
+            } else {
+                endpoint = `/api/documents/${encodeURIComponent(vaultId)}/rotate-pages`;
+            }
+
+            const res = await fetch(getApiUrl(endpoint), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pages: pagesToRotate, angle })
+            });
+
+            if (res.ok) {
+                // Rotation permanently persisted to disk
+                pagesToRotate.forEach(p => delete cardRotations[p]);
+
+                const cacheBust = Date.now();
+                const pdfUrl = resolvePdfUrl(area, house, vaultId, cacheBust);
+                if (typeof pdfjsLib !== 'undefined') {
+                    try {
+                        const loadingTask = pdfjsLib.getDocument({ url: pdfUrl });
+                        activePdfDoc = await loadingTask.promise;
+                        await renderThumbnails();
+                    } catch (loadErr) {
+                        console.warn('Could not reload activePdfDoc after rotate:', loadErr);
+                    }
+                } else {
+                    renderFallbackCards();
+                }
+
+                if (typeof window !== 'undefined' && typeof window.reloadCurrentDocument === 'function') {
+                    window.reloadCurrentDocument(true);
+                }
+
+                const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+                if (toast) {
+                    const count = pagesToRotate.length;
+                    toast(`تم تدوير وحفظ ${count > 1 ? count + ' صفحات' : 'الصفحة'} بنجاح • Rotated ${count} page${count > 1 ? 's' : ''} (90°)`, 'success');
+                }
+            } else {
+                // Revert visual transform on error
+                pagesToRotate.forEach(p => {
+                    cardRotations[p] = ((cardRotations[p] || 0) - angle + 360) % 360;
+                    if (editorGrid) {
+                        const card = editorGrid.querySelector(`div[data-page-num="${p}"]`);
+                        if (card) {
+                            const thumb = card.querySelector('.card-thumbnail-container canvas, .card-thumbnail-container img, .card-thumbnail-container .thumbnail-placeholder');
+                            if (thumb) {
+                                thumb.style.transform = cardRotations[p] ? `rotate(${cardRotations[p]}deg)` : '';
+                            }
+                        }
+                    }
+                });
+                const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+                if (toast) toast('Failed to rotate pages • فشل تدوير الصفحات', 'error');
+            }
+        } catch (err) {
+            console.error('Rotate pages error:', err);
+            pagesToRotate.forEach(p => {
+                cardRotations[p] = ((cardRotations[p] || 0) - angle + 360) % 360;
+                if (editorGrid) {
+                    const card = editorGrid.querySelector(`div[data-page-num="${p}"]`);
+                    if (card) {
+                        const thumb = card.querySelector('.card-thumbnail-container canvas, .card-thumbnail-container img, .card-thumbnail-container .thumbnail-placeholder');
+                        if (thumb) {
+                            thumb.style.transform = cardRotations[p] ? `rotate(${cardRotations[p]}deg)` : '';
+                        }
+                    }
+                }
+            });
+            const toast = (typeof showToast === 'function') ? showToast : (typeof window !== 'undefined' ? window.showToast : null);
+            if (toast) toast('Error rotating pages • خطأ أثناء تدوير الصفحات', 'error');
+        } finally {
+            isRotating = false;
         }
     }
 
@@ -1145,6 +1433,12 @@
     window.resetEditorCardZoom = resetEditorCardZoom;
     window.applyEditorCardZoom = applyEditorCardZoom;
     window.getEditorCardZoomLevel = () => (EDITOR_ZOOM_LEVELS[currentEditorZoomIndex] || {}).scale;
+    window.rotatePage = rotatePage;
+    window.rotateSelectedPages = rotateSelectedPages;
+    window.movePagesToTarget = movePagesToTarget;
+    window.handleCardDrop = handleCardDrop;
+    window.handleCardDragStart = handleCardDragStart;
+    window.getCurrentPageOrder = () => [...currentPageOrder];
 
     if (typeof window !== 'undefined') {
         window.addEventListener('auth:user-changed', () => {
@@ -1165,7 +1459,13 @@
             zoomOutEditorCards,
             resetEditorCardZoom,
             applyEditorCardZoom,
-            getEditorCardZoomLevel: () => (EDITOR_ZOOM_LEVELS[currentEditorZoomIndex] || {}).scale
+            getEditorCardZoomLevel: () => (EDITOR_ZOOM_LEVELS[currentEditorZoomIndex] || {}).scale,
+            rotatePage,
+            rotateSelectedPages,
+            movePagesToTarget,
+            handleCardDrop,
+            handleCardDragStart,
+            getCurrentPageOrder: () => [...currentPageOrder]
         };
     }
 })();

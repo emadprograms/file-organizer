@@ -555,6 +555,87 @@ describe('Document Viewer & Live Peek Header (Category Badge vs Tenant Select)',
       window.closeDocument();
       expect(canvasContainer.querySelectorAll('.pdf-translation-panel').length).toBe(0);
     });
+
+    it('renders top-quarter scrollable overlay with enlarged Eye icon peek button without text label', async () => {
+      localStorage.setItem('doc_viewer_translate', 'true');
+      eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
+      window.openDocument('doc_overlay_test', 'عقد إيجار تجريبي', '05 - عقود');
+      await window.renderDocumentTranslation();
+
+      const canvasContainer = document.getElementById('pdf-canvas-container');
+      const panel = canvasContainer.querySelector('.pdf-translation-panel');
+      expect(panel).not.toBeNull();
+
+      // Constrained to top-quarter of canvas
+      expect(panel.style.maxHeight).toBe('26%');
+      expect(panel.style.position).toBe('absolute');
+      expect(panel.style.top).toBe('10px');
+
+      // Internal container is scrollable
+      const scrollableContent = panel.querySelector('div[style*="overflow-y: auto"]');
+      expect(scrollableContent).not.toBeNull();
+
+      // Peek scan button has enlarged Eye icon and no text label
+      const peekBtn = panel.querySelector('.btn-peek-scan');
+      expect(peekBtn).not.toBeNull();
+      expect(peekBtn.textContent.trim()).toBe(''); // no text label
+      const eyeSvg = peekBtn.querySelector('svg');
+      expect(eyeSvg).not.toBeNull();
+      expect(eyeSvg.style.width).toBe('18px');
+      expect(eyeSvg.style.height).toBe('18px');
+
+      // Clicking peek button toggles opacity to 0.04
+      expect(panel.style.opacity).toBe('');
+      peekBtn.click();
+      expect(panel.style.opacity).toBe('0.04');
+      peekBtn.click();
+      expect(panel.style.opacity).toBe('1');
+    });
+
+    it('combines database metadata headers with full document content lines in translation panel', async () => {
+      const origFetch = global.fetch;
+      try {
+        // Mock metadata with subject and sender
+        global.fetch = vi.fn().mockImplementation((url) => {
+          if (typeof url === 'string' && url.includes('/metadata')) {
+            return Promise.resolve({
+              ok: true,
+              json: async () => ({
+                vault_id: 'doc_meta_ocr_combo',
+                pages: [
+                  {
+                    page_number: 1,
+                    subject: 'إشعار صيانة عاجل',
+                    sender: 'إدارة الصيانة والتشغيل',
+                    receiver: 'المستأجر'
+                  }
+                ]
+              })
+            });
+          }
+          return Promise.resolve({ ok: false, status: 404 });
+        });
+
+        localStorage.setItem('doc_viewer_translate', 'true');
+        eval(fs.readFileSync(path.resolve(__dirname, '../../../src/HousingApplication.Web/wwwroot/js/doc-viewer.js'), 'utf8'));
+        window.openDocument('doc_meta_ocr_combo', 'إشعار صيانة', '10 - صيانة');
+        await window.renderDocumentTranslation();
+
+        const canvasContainer = document.getElementById('pdf-canvas-container');
+        const panel = canvasContainer.querySelector('.pdf-translation-panel');
+        expect(panel).not.toBeNull();
+
+        // Contains both metadata header items and recognized lines
+        const lineEls = panel.querySelectorAll('div[title]');
+        expect(lineEls.length).toBeGreaterThanOrEqual(2);
+
+        const allText = panel.textContent;
+        expect(allText).toContain('Subject');
+        expect(allText).toContain('From');
+      } finally {
+        global.fetch = origFetch;
+      }
+    });
   });
 
   describe('Tab Mode & Multi-Page Document Regression Suite', () => {

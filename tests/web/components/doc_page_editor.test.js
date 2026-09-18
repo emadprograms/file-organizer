@@ -43,6 +43,7 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
         <button id="btn-editor-deselect-all"></button>
         <span id="page-editor-selected-count"></span>
         <button id="btn-editor-delete-selected" disabled><span class="btn-text">Delete Selected</span></button>
+        <button id="btn-editor-rotate-selected" disabled><span class="btn-text">Rotate 90°</span></button>
         <button id="btn-editor-copy-selected" disabled><span class="btn-text">Copy Pages...</span></button>
         <button id="btn-editor-extract-selected" disabled><span class="btn-text">Separate & Move...</span></button>
       </div>
@@ -99,6 +100,7 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
     expect(indexHtml).toContain('id="page-editor-grid"');
     expect(indexHtml).toContain('id="btn-editor-select-all"');
     expect(indexHtml).toContain('id="btn-editor-delete-selected"');
+    expect(indexHtml).toContain('id="btn-editor-rotate-selected"');
     expect(indexHtml).toContain('id="btn-editor-extract-selected"');
     expect(indexHtml).toContain('id="extract-pages-submodal"');
     expect(indexHtml).toContain('id="extract-target-category"');
@@ -126,12 +128,14 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
     const cards = grid.querySelectorAll('.page-editor-card');
     expect(cards.length).toBe(3);
 
-    // Verify 1-tap delete button and move buttons exist on each card for tablet touch use
+    // Verify 1-tap delete button, rotate button, and move buttons exist on each card for tablet touch use
     const firstCard = cards[0];
     expect(firstCard.querySelector('.btn-card-delete')).not.toBeNull();
+    expect(firstCard.querySelector('.btn-card-rotate')).not.toBeNull();
     expect(firstCard.querySelector('.btn-move-left')).not.toBeNull();
     expect(firstCard.querySelector('.btn-move-right')).not.toBeNull();
     expect(firstCard.querySelector('.card-checkbox-pill')).not.toBeNull();
+    expect(firstCard.getAttribute('draggable')).toBe('true');
   });
 
   it('toggles page selection and updates action buttons state and count badge', async () => {
@@ -146,36 +150,45 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
 
     const cards = document.querySelectorAll('.page-editor-card');
     const btnDelete = document.getElementById('btn-editor-delete-selected');
+    const btnRotate = document.getElementById('btn-editor-rotate-selected');
     const btnExtract = document.getElementById('btn-editor-extract-selected');
     const countBadge = document.getElementById('page-editor-selected-count');
 
     // Initially disabled
     expect(btnDelete.disabled).toBe(true);
+    expect(btnRotate.disabled).toBe(true);
     expect(btnExtract.disabled).toBe(true);
 
     // Click card 1 to select
     cards[0].click();
     expect(btnDelete.disabled).toBe(false);
+    expect(btnRotate.disabled).toBe(false);
+    expect(btnRotate.querySelector('.btn-text').textContent).toContain('Rotate 90° (1)');
     expect(btnExtract.disabled).toBe(false);
     expect(countBadge.textContent).toContain('1 selected');
 
     // Click card 2 to select
     cards[1].click();
+    expect(btnRotate.querySelector('.btn-text').textContent).toContain('Rotate 90° (2)');
     expect(countBadge.textContent).toContain('2 selected');
 
     // Click card 1 again to deselect
     cards[0].click();
+    expect(btnRotate.querySelector('.btn-text').textContent).toContain('Rotate 90° (1)');
     expect(countBadge.textContent).toContain('1 selected');
 
     // Deselect all
     document.getElementById('btn-editor-deselect-all').click();
     expect(btnDelete.disabled).toBe(true);
+    expect(btnRotate.disabled).toBe(true);
     expect(btnExtract.disabled).toBe(true);
     expect(countBadge.textContent).toBe('');
 
     // Select all
     document.getElementById('btn-editor-select-all').click();
     expect(btnDelete.disabled).toBe(false);
+    expect(btnRotate.disabled).toBe(false);
+    expect(btnRotate.querySelector('.btn-text').textContent).toContain('Rotate 90° (4)');
     expect(btnExtract.disabled).toBe(false);
     expect(countBadge.textContent).toContain('4 selected');
   });
@@ -947,6 +960,189 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
       modal.dispatchEvent(zoomOutWheel);
       expect(label.textContent).toBe('100%');
       expect(zoomOutWheel.defaultPrevented).toBe(true);
+    });
+
+    it('rotates single page via card rotate button and calls rotate-pages API', async () => {
+      const mockDoc = {
+        vault_id: 'doc_rot_single',
+        brief_arabic_title: 'وثيقة تدوير مفردة',
+        category: '10 - صيانة',
+        area_id: 'Safra C',
+        house_id: '101',
+        page_count: 3
+      };
+
+      let rotateCall = null;
+      global.fetch = vi.fn((url, options) => {
+        if (url.includes('/rotate-pages')) {
+          rotateCall = { url, options };
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              status: 'success',
+              message: 'Rotated 1 pages by 90 degrees',
+              vault_id: 'doc_rot_single',
+              page_count: 3
+            })
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => [] });
+      });
+
+      await window.openPageEditor(mockDoc);
+
+      const cards = document.querySelectorAll('.page-editor-card');
+      expect(cards.length).toBe(3);
+
+      const btnCardRotate = cards[1].querySelector('.btn-card-rotate');
+      expect(btnCardRotate).not.toBeNull();
+
+      // Click rotate on page 2 (90° clockwise)
+      await btnCardRotate.onclick(new Event('click'));
+
+      expect(rotateCall).not.toBeNull();
+      expect(rotateCall.url).toContain('/documents/doc_rot_single/rotate-pages');
+      const body = JSON.parse(rotateCall.options.body);
+      expect(body.pages).toEqual([2]);
+      expect(body.angle).toBe(90);
+      expect(global.showToast).toHaveBeenCalled();
+    });
+
+    it('rotates multiple selected pages via toolbar button and calls rotate-pages API', async () => {
+      const mockDoc = {
+        vault_id: 'doc_rot_multi',
+        brief_arabic_title: 'وثيقة تدوير متعدد',
+        category: '05 - عقود',
+        area_id: 'Safra C',
+        house_id: '101',
+        page_count: 4
+      };
+
+      let rotateCall = null;
+      global.fetch = vi.fn((url, options) => {
+        if (url.includes('/rotate-pages')) {
+          rotateCall = { url, options };
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              status: 'success',
+              message: 'Rotated 2 pages by 90 degrees',
+              vault_id: 'doc_rot_multi',
+              page_count: 4
+            })
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => [] });
+      });
+
+      await window.openPageEditor(mockDoc);
+
+      const cards = document.querySelectorAll('.page-editor-card');
+      // Select page 1 and page 3
+      cards[0].click();
+      cards[2].click();
+
+      const btnRotateSelected = document.getElementById('btn-editor-rotate-selected');
+      expect(btnRotateSelected.disabled).toBe(false);
+
+      await btnRotateSelected.onclick();
+
+      expect(rotateCall).not.toBeNull();
+      expect(rotateCall.url).toContain('/documents/doc_rot_multi/rotate-pages');
+      const body = JSON.parse(rotateCall.options.body);
+      expect(body.pages).toEqual([1, 3]);
+      expect(body.angle).toBe(90);
+      expect(global.showToast).toHaveBeenCalled();
+    });
+
+    it('moves single page to arbitrary position via movePagesToTarget and calls reorder API', async () => {
+      const mockDoc = {
+        vault_id: 'doc_arb_reorder',
+        brief_arabic_title: 'وثيقة نقل صفحة',
+        category: '05 - عقود',
+        area_id: 'Safra C',
+        house_id: '101',
+        page_count: 5
+      };
+
+      let reorderCall = null;
+      global.fetch = vi.fn((url, options) => {
+        if (url.includes('/reorder-pages')) {
+          reorderCall = { url, options };
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ status: 'success', page_order: [3, 1, 2, 4, 5] })
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => [] });
+      });
+
+      await window.openPageEditor(mockDoc);
+
+      // Move page 3 before page 1
+      await window.movePagesToTarget([3], 1, true);
+
+      expect(reorderCall).not.toBeNull();
+      expect(reorderCall.url).toContain('/documents/doc_arb_reorder/reorder-pages');
+      const body = JSON.parse(reorderCall.options.body);
+      expect(body.page_order).toEqual([3, 1, 2, 4, 5]);
+    });
+
+    it('drags multiple selected pages together as a group to arbitrary position and calls reorder API', async () => {
+      const mockDoc = {
+        vault_id: 'doc_multi_drag',
+        brief_arabic_title: 'وثيقة سحب متعدد',
+        category: '05 - عقود',
+        area_id: 'Safra C',
+        house_id: '101',
+        page_count: 5
+      };
+
+      let reorderCall = null;
+      global.fetch = vi.fn((url, options) => {
+        if (url.includes('/reorder-pages')) {
+          reorderCall = { url, options };
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ status: 'success', page_order: [4, 5, 1, 2, 3] })
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => [] });
+      });
+
+      await window.openPageEditor(mockDoc);
+
+      const cards = document.querySelectorAll('.page-editor-card');
+      // Multi-select pages 4 and 5
+      cards[3].click();
+      cards[4].click();
+
+      // Start drag on card 4
+      const dragEvent = {
+        dataTransfer: {
+          setData: vi.fn(),
+          effectAllowed: ''
+        },
+        preventDefault: vi.fn()
+      };
+      window.handleCardDragStart(dragEvent, 4, cards[3]);
+
+      // Drop before card 1 (page 1)
+      const dropEvent = {
+        preventDefault: vi.fn(),
+        stopPropagation: vi.fn(),
+        clientX: 0
+      };
+      // Mock getBoundingClientRect so clientX < midX is true (dropBefore = true)
+      cards[0].getBoundingClientRect = () => ({ left: 0, width: 200, right: 200, top: 0, bottom: 200 });
+
+      await window.handleCardDrop(dropEvent, cards[0]);
+
+      expect(reorderCall).not.toBeNull();
+      expect(reorderCall.url).toContain('/documents/doc_multi_drag/reorder-pages');
+      const body = JSON.parse(reorderCall.options.body);
+      // Pages 4 and 5 were moved to the very front in a single gesture!
+      expect(body.page_order).toEqual([4, 5, 1, 2, 3]);
     });
   });
 });

@@ -1552,6 +1552,70 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
     }
 
     [Fact]
+    public async Task RotatePages_ApiEndpoint_EmptyRotations_ReturnsBadRequest()
+    {
+        var req = new RotatePagesRequestDto
+        {
+            Rotations = new Dictionary<string, int>()
+        };
+
+        var response = await _client.PostAsJsonAsync("/api/areas/Area1/houses/House1/documents/vault_fake/rotate-pages", req);
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RotatePages_ApiEndpoint_NonExistentVaultId_ReturnsNotFound()
+    {
+        var req = new RotatePagesRequestDto
+        {
+            Rotations = new Dictionary<string, int> { { "1", 90 } }
+        };
+
+        var response = await _client.PostAsJsonAsync($"/api/areas/Area1/houses/House1/documents/vault_missing_{Guid.NewGuid():N}/rotate-pages", req);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task RotatePages_ApiEndpoint_Success_ReturnsRotations()
+    {
+        await _fixture.SeedDataAsync();
+        using var scope = _fixture.Services.CreateScope();
+        var repo = scope.ServiceProvider.GetRequiredService<IFileOrganizerRepository>();
+        var areaId = "AreaRotateApi";
+        var houseId = "H-ROT-API";
+        await repo.AddAreaAsync(areaId, "RTA");
+        await repo.AddHouseAsync(houseId, areaId);
+        var tenant = await repo.AddTenantAsync(houseId, "Rotate Tenant Api", "2024-01-01");
+
+        var vaultId = Guid.NewGuid().ToString("N");
+        await repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = areaId,
+            HouseId = houseId,
+            TenantId = tenant.Id,
+            Category = "01 - بيانات أساسية",
+            ArabicTitle = "وثيقة للتدوير اختبار",
+            VaultId = vaultId,
+            PageCount = 2,
+            AreasRoot = _fixture.AreasRoot
+        });
+
+        var req = new RotatePagesRequestDto
+        {
+            Rotations = new Dictionary<string, int> { { "1", 90 } }
+        };
+
+        var response = await _client.PostAsJsonAsync($"/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/rotate-pages", req);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<RotatePagesResponseDto>();
+        Assert.NotNull(body);
+        Assert.Equal("success", body.Status);
+        Assert.Equal(vaultId, body.VaultId);
+        Assert.Equal(90, body.Rotations["1"]);
+    }
+
+    [Fact]
     public async Task GetDocumentMetadata_DirectVaultEndpoint_ReturnsMetadataWithTenantAndAreaInfo()
     {
         var response = await _client.GetAsync("/api/documents/seedvault001/metadata");
@@ -1591,6 +1655,22 @@ public class ApiEndpointTests : IClassFixture<ApiTestFixture>, IAsyncLifetime
         Assert.NotNull(result);
         Assert.Equal("success", result.Status);
         Assert.False(string.IsNullOrEmpty(result.NewVaultId));
+    }
+
+    [Fact]
+    public async Task GetStaticFile_WasmAndGzAndTraineddata_ReturnsCorrectMimeTypes()
+    {
+        var wasmRes = await _client.GetAsync("/lib/tesseract/tesseract-core-simd-lstm.wasm");
+        Assert.Equal(HttpStatusCode.OK, wasmRes.StatusCode);
+        Assert.Equal("application/wasm", wasmRes.Content.Headers.ContentType?.MediaType);
+
+        var gzRes = await _client.GetAsync("/lib/tesseract/ara.traineddata.gz");
+        Assert.Equal(HttpStatusCode.OK, gzRes.StatusCode);
+        Assert.Equal("application/gzip", gzRes.Content.Headers.ContentType?.MediaType);
+
+        var tdRes = await _client.GetAsync("/lib/tesseract/ara.traineddata");
+        Assert.Equal(HttpStatusCode.OK, tdRes.StatusCode);
+        Assert.Equal("application/octet-stream", tdRes.Content.Headers.ContentType?.MediaType);
     }
 }
 

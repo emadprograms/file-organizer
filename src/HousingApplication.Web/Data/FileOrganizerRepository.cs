@@ -2911,7 +2911,16 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
                 {
                     if (pageNum <= inDoc.PageCount)
                     {
-                        reorderedDoc.AddPage(inDoc.Pages[pageNum - 1]);
+                        var addedPage = reorderedDoc.AddPage(inDoc.Pages[pageNum - 1]);
+                        if (request.Rotations != null)
+                        {
+                            if (request.Rotations.TryGetValue(pageNum.ToString(), out var angle) ||
+                                request.Rotations.TryGetValue((pageNum - 1).ToString(), out angle))
+                            {
+                                var normAngle = ((angle % 360) + 360) % 360;
+                                addedPage.Rotate = (addedPage.Rotate + normAngle) % 360;
+                            }
+                        }
                     }
                 }
                 using var outMs = new MemoryStream();
@@ -2956,6 +2965,118 @@ WHERE (house_id = @HouseId OR house_id = @CleanHouseId)
             Status = "success",
             VaultId = vaultId,
             PageOrder = request.PageOrder
+        };
+    }
+
+    public async Task<RotatePagesResponseDto> RotatePagesAsync(
+        string areaId,
+        string houseId,
+        string vaultId,
+        RotatePagesRequestDto request,
+        string? areasRoot = null)
+    {
+        if (request.Rotations == null || request.Rotations.Count == 0)
+            throw new ArgumentException("Rotations dictionary must not be empty.");
+
+        var resolvedAreasRoot = !string.IsNullOrEmpty(areasRoot)
+            ? areasRoot
+            : (_configuration?["AREAS_ROOT_PATH"] ?? Environment.GetEnvironmentVariable("AREAS_ROOT_PATH") ?? "../areas");
+
+        var cleanHouseId = houseId.Contains(" - ") ? houseId.Split(" - ")[0].Trim() : houseId.Trim();
+
+        await using var conn = await _connectionFactory.CreateConnectionAsync();
+        await using var tx = await conn.BeginTransactionAsync();
+
+        var src = await conn.QueryFirstOrDefaultAsync<(
+            string VaultId, string HouseId, int TenantId, int BatchId,
+            string? PrimaryDate, string? ArabicTitle, string? Category,
+            int PageCount, int IsManual, string? Notes, string? AreaId
+        )>(@"
+            SELECT d.vault_id AS VaultId, d.house_id AS HouseId, d.tenant_id AS TenantId, d.batch_id AS BatchId,
+                   d.primary_date AS PrimaryDate, d.arabic_title AS ArabicTitle, d.category AS Category,
+                   d.page_count AS PageCount, d.is_manual AS IsManual, d.notes AS Notes,
+                   h.area_id AS AreaId
+            FROM documents d
+            LEFT JOIN houses h ON d.house_id = h.id
+            WHERE d.vault_id = @VaultId;",
+            new { VaultId = vaultId }, tx);
+
+        if (string.IsNullOrEmpty(src.VaultId))
+            throw new KeyNotFoundException($"Document with vault ID '{vaultId}' not found.");
+
+        var realHouseId = !string.IsNullOrWhiteSpace(src.HouseId) ? src.HouseId : cleanHouseId;
+        var realCleanHouseId = TextUtils.ExtractHouseNumber(realHouseId);
+        var realAreaId = !string.IsNullOrWhiteSpace(src.AreaId) ? src.AreaId : areaId;
+
+        var batchFilePath = await conn.QueryFirstOrDefaultAsync<string>(
+            "SELECT file_path FROM batches WHERE id = @BatchId;",
+            new { BatchId = src.BatchId }, tx);
+
+        var vaultDir = Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault");
+        var possiblePaths = new List<string>
+        {
+            Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, "vault", $"{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, "vault", $"{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, ".source_files", "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, ".source_files", "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, ".source_files", "vault", $"{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, ".source_files", "vault", $"{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"doc_{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, areaId, houseId, "vault", $"{vaultId}.pdf"),
+            Path.Combine(resolvedAreasRoot, areaId, cleanHouseId, "vault", $"{vaultId}.pdf"),
+        };
+        if (!string.IsNullOrEmpty(batchFilePath))
+        {
+            possiblePaths.Add(Path.Combine(resolvedAreasRoot, realAreaId, realHouseId, batchFilePath));
+            possiblePaths.Add(Path.Combine(resolvedAreasRoot, realAreaId, realCleanHouseId, batchFilePath));
+        }
+
+        var sourcePdfPath = possiblePaths.FirstOrDefault(File.Exists);
+
+        if (!string.IsNullOrEmpty(sourcePdfPath) && File.Exists(sourcePdfPath))
+        {
+            try
+            {
+                var targetSourcePdfPath = sourcePdfPath.Contains("batches")
+                    ? Path.Combine(vaultDir, $"doc_{vaultId}.pdf")
+                    : sourcePdfPath;
+
+                var sourceBytes = await File.ReadAllBytesAsync(sourcePdfPath);
+                using var ms = new MemoryStream(sourceBytes);
+                using var doc = PdfReader.Open(ms, PdfDocumentOpenMode.Modify);
+
+                foreach (var (pageKey, angle) in request.Rotations)
+                {
+                    if (int.TryParse(pageKey, out int pageNum) && pageNum >= 1 && pageNum <= doc.PageCount)
+                    {
+                        var p = doc.Pages[pageNum - 1];
+                        var normalizedAngle = ((angle % 360) + 360) % 360;
+                        p.Rotate = (p.Rotate + normalizedAngle) % 360;
+                    }
+                }
+
+                using var outMs = new MemoryStream();
+                doc.Save(outMs, false);
+                await SafeWritePdfBytesAsync(targetSourcePdfPath, outMs.ToArray());
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"[RotatePagesAsync] Physical PDF error: {ex.Message}");
+            }
+        }
+
+        await conn.ExecuteAsync("UPDATE documents SET is_manual = 1 WHERE vault_id = @VaultId;", new { VaultId = vaultId }, tx);
+        await tx.CommitAsync();
+
+        return new RotatePagesResponseDto
+        {
+            Status = "success",
+            VaultId = vaultId,
+            PageCount = src.PageCount,
+            Rotations = request.Rotations
         };
     }
 

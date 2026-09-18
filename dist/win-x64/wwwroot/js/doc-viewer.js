@@ -1464,7 +1464,7 @@
                     gzip: true
                 });
                 const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Tesseract worker init timed out after 10s')), 10000)
+                    setTimeout(() => reject(new Error('Tesseract worker init timed out after 25s')), 25000)
                 );
                 const worker = await Promise.race([createPromise, timeoutPromise]);
                 tesseractWorker = worker;
@@ -1553,7 +1553,8 @@
 
         const canvas = pageWrapper ? pageWrapper.querySelector('canvas.pdf-page-canvas') : null;
 
-        // 1. Primary: Database Document Records (Instant translation of Subject, Sender, Receiver, Title)
+        // 1. Gather Database Metadata (Subject, Sender, Receiver, Title) as top headers
+        const metaLines = [];
         try {
             const meta = await fetchDocumentMetadata(vaultId);
             if (meta) {
@@ -1562,47 +1563,39 @@
                            || meta.pages[pageNum - 1]
                            || (pageNum === 1 ? meta.pages[0] : null);
                     if (p) {
-                        const lines = [];
                         if (p.subject) {
                             const subTr = translateArabicText(p.subject);
-                            lines.push({
+                            metaLines.push({
                                 text: subTr ? `Subject: ${subTr}` : p.subject,
-                                original: p.subject
+                                original: p.subject,
+                                isHeader: true
                             });
                         }
                         if (p.sender) {
                             const sndTr = translateArabicText(p.sender);
-                            lines.push({
+                            metaLines.push({
                                 text: sndTr ? `From: ${sndTr}` : p.sender,
-                                original: p.sender
+                                original: p.sender,
+                                isHeader: true
                             });
                         }
                         if (p.receiver) {
                             const rcvTr = translateArabicText(p.receiver);
-                            lines.push({
+                            metaLines.push({
                                 text: rcvTr ? `To: ${rcvTr}` : p.receiver,
-                                original: p.receiver
+                                original: p.receiver,
+                                isHeader: true
                             });
-                        }
-                        // Explicit user rule: content_explanation is intentionally NOT used
-                        if (lines.length > 0) {
-                            pageOcrCache.set(cacheKey, lines);
-                            return lines;
                         }
                     }
                 } else if (meta.arabic_title || meta.category) {
-                    const lines = [];
                     if (meta.arabic_title) {
                         const tTr = translateArabicText(meta.arabic_title);
-                        lines.push({ text: `Document: ${tTr}`, original: meta.arabic_title });
+                        metaLines.push({ text: `Document: ${tTr}`, original: meta.arabic_title, isHeader: true });
                     }
                     if (meta.category) {
                         const catObj = getEnglishCategory(meta.category);
-                        lines.push({ text: `Category: ${catObj.en || meta.category}`, original: meta.category });
-                    }
-                    if (lines.length > 0) {
-                        pageOcrCache.set(cacheKey, lines);
-                        return lines;
+                        metaLines.push({ text: `Category: ${catObj.en || meta.category}`, original: meta.category, isHeader: true });
                     }
                 }
             }
@@ -1610,7 +1603,10 @@
             console.debug('Metadata extraction fallback to PDF/OCR:', e);
         }
 
-        // 2. Secondary: Digital text layer from PDF.js if available
+        // 2. Extract Full Document Letter Content
+        let bodyLines = [];
+
+        // Primary text extraction: Digital text layer from PDF.js if available
         if (pdfDoc) {
             try {
                 const page = await pdfDoc.getPage(pageNum);
@@ -1621,8 +1617,7 @@
                     if (arabicItems.length > 0) {
                         const lines = clusterPdfItemsIntoLines(textContent.items, viewport.height);
                         if (lines.length > 0) {
-                            pageOcrCache.set(cacheKey, lines);
-                            return lines;
+                            bodyLines = lines;
                         }
                     }
                 }
@@ -1631,36 +1626,44 @@
             }
         }
 
-        // 3. Fallback: Client-side Offline OCR via Local Tesseract.js
-        if (canvas && typeof Tesseract !== 'undefined') {
-            const indicator = pageWrapper ? pageWrapper.querySelector('.ocr-scanning-indicator') : null;
+        // Full Page OCR: For scanned documents, run 100% offline client-side Tesseract OCR on canvas
+        if (bodyLines.length === 0 && canvas && typeof Tesseract !== 'undefined') {
             try {
                 const worker = await getTesseractWorker();
                 if (worker) {
-                    // Downscale canvas to max 1200px width for fast, reliable offline OCR
                     let ocrCanvas = canvas;
-                    if (canvas.width > 1200) {
-                        const scale = 1200 / canvas.width;
-                        const scaled = document.createElement('canvas');
-                        scaled.width = 1200;
-                        scaled.height = Math.round(canvas.height * scale);
-                        const sCtx = scaled.getContext('2d');
-                        if (sCtx) {
-                            sCtx.drawImage(canvas, 0, 0, scaled.width, scaled.height);
-                            ocrCanvas = scaled;
-                        }
+                    const targetWidth = Math.min(canvas.width, 1000);
+                    const scale = targetWidth / canvas.width;
+                    const scaled = document.createElement('canvas');
+                    scaled.width = targetWidth;
+                    scaled.height = Math.round(canvas.height * scale);
+                    const sCtx = scaled.getContext('2d', { willReadFrequently: true });
+                    if (sCtx) {
+                        sCtx.drawImage(canvas, 0, 0, scaled.width, scaled.height);
+                        try {
+                            const imgData = sCtx.getImageData(0, 0, scaled.width, scaled.height);
+                            const data = imgData.data;
+                            for (let i = 0; i < data.length; i += 4) {
+                                const gray = (data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
+                                const contrast = gray < 180 ? Math.max(0, gray * 0.8) : Math.min(255, gray * 1.1);
+                                data[i] = contrast;
+                                data[i + 1] = contrast;
+                                data[i + 2] = contrast;
+                            }
+                            sCtx.putImageData(imgData, 0, 0);
+                        } catch (e) {}
+                        ocrCanvas = scaled;
                     }
 
                     const ocrPromise = worker.recognize(ocrCanvas);
                     const timeoutPromise = new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error('OCR recognition timed out after 12 seconds')), 12000)
+                        setTimeout(() => reject(new Error('OCR recognition timed out after 30 seconds')), 30000)
                     );
                     const res = await Promise.race([ocrPromise, timeoutPromise]);
 
                     if (res && res.data) {
-                        let lines = [];
                         if (res.data.lines && res.data.lines.length > 0) {
-                            lines = res.data.lines
+                            bodyLines = res.data.lines
                                 .filter(l => l.text && l.text.trim().length > 0)
                                 .map(l => ({
                                     text: l.text.trim(),
@@ -1668,21 +1671,29 @@
                                     words: l.words
                                 }));
                         } else if (res.data.text && res.data.text.trim().length > 0) {
-                            lines = res.data.text
+                            bodyLines = res.data.text
                                 .split('\n')
                                 .map(t => t.trim())
                                 .filter(t => t.length > 0)
                                 .map(text => ({ text }));
-                        }
-                        if (lines.length > 0) {
-                            pageOcrCache.set(cacheKey, lines);
-                            return lines;
                         }
                     }
                 }
             } catch (err) {
                 console.error('Tesseract offline OCR error:', err);
             }
+        }
+
+        // Combine metadata headers and letter body content
+        const combined = [...metaLines, ...bodyLines];
+        if (combined.length > 0) {
+            pageOcrCache.set(cacheKey, combined);
+            return combined;
+        }
+
+        if (metaLines.length > 0) {
+            pageOcrCache.set(cacheKey, metaLines);
+            return metaLines;
         }
 
         return [];
@@ -1703,10 +1714,10 @@
         // Show a per-page translation progress badge while analyzing
         const indicator = document.createElement('div');
         indicator.className = 'ocr-scanning-indicator';
-        indicator.style.cssText = 'position:absolute;top:8px;left:8px;padding:4px 12px;border-radius:12px;background:rgba(15,23,42,0.85);color:white;font-size:11px;z-index:30;pointer-events:none;display:flex;align-items:center;gap:6px;backdrop-filter:blur(4px);';
+        indicator.style.cssText = 'position:absolute;top:8px;left:8px;padding:5px 14px;border-radius:12px;background:rgba(15,23,42,0.9);color:white;font-size:11px;z-index:30;pointer-events:none;display:flex;align-items:center;gap:8px;backdrop-filter:blur(4px);box-shadow:0 4px 16px rgba(0,0,0,0.3);';
         indicator.innerHTML = `
-            <svg style="width:14px;height:14px;animation:spin 1s linear infinite;flex-shrink:0;" fill="none" viewBox="0 0 24 24"><circle style="opacity:0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path style="opacity:0.75;" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
-            <span>Translating page ${pageNum}...</span>
+            <svg style="width:14px;height:14px;animation:spin 1s linear infinite;flex-shrink:0;color:#60a5fa;" fill="none" viewBox="0 0 24 24"><circle style="opacity:0.25;" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path style="opacity:0.75;" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg>
+            <span>Analyzing & translating page ${pageNum}...</span>
         `;
         pageWrapper.appendChild(indicator);
 
@@ -1721,7 +1732,7 @@
                 const noticePanel = document.createElement('div');
                 noticePanel.className = 'pdf-translation-panel';
                 noticePanel.setAttribute('data-page-number', pageNum);
-                noticePanel.style.cssText = 'position:absolute;top:12px;left:12px;right:12px;z-index:20;background:rgba(15,23,42,0.92);border:1px solid rgba(148,163,184,0.3);border-radius:12px;padding:14px 20px;text-align:center;color:#94a3b8;font-size:13px;backdrop-filter:blur(8px);box-shadow:0 8px 32px rgba(0,0,0,0.35);';
+                noticePanel.style.cssText = 'position:absolute;top:10px;left:12px;right:12px;max-height:26%;z-index:20;background:rgba(15,23,42,0.92);border:1px solid rgba(148,163,184,0.3);border-radius:12px;padding:12px 18px;text-align:center;color:#94a3b8;font-size:12.5px;backdrop-filter:blur(8px);box-shadow:0 8px 32px rgba(0,0,0,0.35);';
                 noticePanel.innerHTML = `<span style="color:#e2e8f0;font-weight:600;">Page ${pageNum}</span>: No extractable text or metadata found for this page.`;
                 pageWrapper.appendChild(noticePanel);
                 return;
@@ -1739,86 +1750,106 @@
                 if (translated && translated.trim()) {
                     translatedLines.push({
                         original: line.original || origText,
-                        translated: translated.trim()
+                        translated: translated.trim(),
+                        isHeader: !!line.isHeader
                     });
                 }
             });
 
             if (translatedLines.length === 0) return;
 
-            // Build the translation panel — positioned OVER the page
+            // Build the translation panel — positioned at top quarter with clean scrollbar
             panel = document.createElement('div');
             panel.className = 'pdf-translation-panel';
             panel.setAttribute('data-page-number', pageNum);
 
-            // Page header with title and Peek Scan button
+            // Page header with title and enlarged Peek Scan Eye button (no text label)
             const header = document.createElement('div');
-            header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid rgba(148,163,184,0.25);';
+            header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid rgba(148,163,184,0.25);flex-shrink:0;background:rgba(15,23,42,0.6);border-radius:12px 12px 0 0;';
             header.innerHTML = `
                 <div style="display:flex;align-items:center;gap:8px;">
                     <svg style="width:16px;height:16px;color:#3b82f6;flex-shrink:0;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"/></svg>
-                    <span style="font-size:13px;font-weight:600;color:#e2e8f0;">Page ${pageNum} — English Translation</span>
+                    <span style="font-size:12.5px;font-weight:600;color:#e2e8f0;">Page ${pageNum} — English Translation</span>
                 </div>
-                <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-size:11px;color:#94a3b8;">${translatedLines.length} item${translatedLines.length === 1 ? '' : 's'}</span>
-                    <button type="button" class="btn-peek-scan" style="display:flex;align-items:center;gap:4px;padding:3px 8px;border-radius:6px;background:rgba(51,65,85,0.8);border:1px solid rgba(148,163,184,0.3);color:#e2e8f0;font-size:11px;font-weight:500;cursor:pointer;">
-                        <svg style="width:12px;height:12px;color:#94a3b8;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                        <span>View Scan</span>
+                <div style="display:flex;align-items:center;gap:10px;">
+                    <span style="font-size:11px;color:#94a3b8;">${translatedLines.length} line${translatedLines.length === 1 ? '' : 's'}</span>
+                    <button type="button" class="btn-peek-scan" title="Toggle scan visibility • إظهار / إخفاء الأصل" style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:rgba(51,65,85,0.7);border:1px solid rgba(148,163,184,0.35);color:#93c5fd;cursor:pointer;transition:all 0.15s ease;">
+                        <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                     </button>
                 </div>
             `;
             panel.appendChild(header);
 
-            // Translation content
+            // Translation content with internal scrolling container
             const content = document.createElement('div');
-            content.style.cssText = 'padding:14px 18px;display:flex;flex-direction:column;gap:8px;';
+            content.style.cssText = 'padding:10px 14px 12px 14px;display:flex;flex-direction:column;gap:5px;overflow-y:auto;flex:1 1 auto;max-height:calc(100% - 40px);';
 
             translatedLines.forEach(item => {
                 const lineEl = document.createElement('div');
-                lineEl.style.cssText = 'font-size:14px;line-height:1.6;color:#f1f5f9;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:3px 0;';
-                lineEl.textContent = item.translated;
-                if (item.original && item.original !== item.translated) {
-                    lineEl.setAttribute('title', `Original: ${item.original}`);
-                    lineEl.style.cursor = 'help';
+                lineEl.setAttribute('title', item.original ? `Original: ${item.original}` : item.translated);
+                lineEl.style.cursor = 'help';
+
+                if (item.isHeader) {
+                    lineEl.style.cssText = 'font-size:12.5px;font-weight:600;color:#93c5fd;padding:2px 0;line-height:1.5;';
+                } else {
+                    lineEl.style.cssText = 'font-size:13.5px;line-height:1.6;color:#f1f5f9;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:2px 0;';
                 }
+                lineEl.textContent = item.translated;
                 content.appendChild(lineEl);
             });
 
             panel.appendChild(content);
 
-            // Style the panel over the page
+            // Style the panel over the page — constrained to top quarter with scrolling
             panel.style.cssText = [
                 'position:absolute',
-                'top:12px',
+                'top:10px',
                 'left:12px',
                 'right:12px',
-                'max-height:calc(100% - 24px)',
-                'overflow-y:auto',
+                'max-height:26%',
+                'display:flex',
+                'flex-direction:column',
+                'overflow:hidden',
                 'z-index:20',
-                'background:linear-gradient(135deg,rgba(15,23,42,0.92),rgba(30,41,59,0.92))',
+                'background:linear-gradient(135deg,rgba(15,23,42,0.96),rgba(30,41,59,0.96))',
                 'border:1px solid rgba(148,163,184,0.3)',
                 'border-radius:12px',
                 'backdrop-filter:blur(10px)',
-                'box-shadow:0 8px 32px rgba(0,0,0,0.35)',
-                'transition:opacity 0.15s ease',
+                'box-shadow:0 8px 32px rgba(0,0,0,0.4)',
+                'transition:opacity 0.2s ease',
                 'user-select:text',
             ].join(';') + ';';
 
-            // Peek Scan button behavior: dims the translation panel to reveal scan underneath
+            // Peek Scan button behavior: toggle visibility on click / hold
             const peekBtn = header.querySelector('.btn-peek-scan');
             if (peekBtn) {
                 let peeking = false;
-                const togglePeek = (state) => {
+                const setPeek = (state) => {
                     peeking = state;
-                    panel.style.opacity = peeking ? '0.08' : '1';
+                    panel.style.opacity = peeking ? '0.04' : '1';
+                    panel.style.pointerEvents = peeking ? 'none' : 'auto';
+                    peekBtn.style.pointerEvents = 'auto';
+                    if (peeking) {
+                        peekBtn.style.background = 'rgba(59,130,246,0.6)';
+                    } else {
+                        peekBtn.style.background = 'rgba(51,65,85,0.7)';
+                    }
                 };
                 peekBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    togglePeek(!peeking);
+                    setPeek(!peeking);
                 });
-                peekBtn.addEventListener('pointerdown', () => togglePeek(true));
-                peekBtn.addEventListener('pointerup', () => togglePeek(false));
-                peekBtn.addEventListener('pointerleave', () => togglePeek(false));
+                peekBtn.addEventListener('pointerdown', (e) => {
+                    e.stopPropagation();
+                    setPeek(true);
+                });
+                peekBtn.addEventListener('pointerup', (e) => {
+                    e.stopPropagation();
+                    setPeek(false);
+                });
+                peekBtn.addEventListener('pointerleave', () => {
+                    if (peeking) setPeek(false);
+                });
             }
 
             // Insert OVER the page (inside pageWrapper)
@@ -1829,7 +1860,7 @@
             const errorPanel = document.createElement('div');
             errorPanel.className = 'pdf-translation-panel';
             errorPanel.setAttribute('data-page-number', pageNum);
-            errorPanel.style.cssText = 'position:absolute;top:12px;left:12px;right:12px;z-index:20;background:rgba(15,23,42,0.92);border:1px solid rgba(239,68,68,0.4);border-radius:12px;padding:14px 20px;text-align:center;color:#fca5a5;font-size:13px;backdrop-filter:blur(8px);';
+            errorPanel.style.cssText = 'position:absolute;top:10px;left:12px;right:12px;z-index:20;background:rgba(15,23,42,0.92);border:1px solid rgba(239,68,68,0.4);border-radius:12px;padding:12px 18px;text-align:center;color:#fca5a5;font-size:12.5px;backdrop-filter:blur(8px);';
             errorPanel.innerHTML = `<span style="color:#f87171;font-weight:600;">Page ${pageNum}</span>: Translation failed.`;
             pageWrapper.appendChild(errorPanel);
         }

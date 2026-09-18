@@ -77,16 +77,14 @@ The modern web application (`http://localhost:5000`) offers a responsive, high-p
 - **Collapsible Sidebar**: Effortlessly collapse or expand the left areas navigation sidebar using the collapse button (`<<`) in the sidebar header or the sidebar toggle button in the top navigation bar.
 - **Persistent Layout**: Custom sidebar width and collapsed/expanded state are automatically persisted in `localStorage` across reloads.
 - **Google Translate Style In-Place Document Translation Overlay**:
-  - True Google Translate style visual text replacement mapped directly onto the document canvas at exact bounding box coordinates.
-  - Solid background-matched boxes cover original Arabic text with translated English text, preserving stamps, tables, seals, and visual page layout.
+  - **Top-Quarter Compact Scrollable Overlay**: Pinned to `max-height: 26%` at the top of the canvas, keeping ~75% of the scanned page unobstructed and visible, with an internal scrollable container (`overflow-y: auto`) to read full multi-paragraph translated documents.
+  - **Full Page OCR & Document Content Translation**: Combines document metadata headers (Subject, From, To) with full-page OCR body extraction on canvas via local WebAssembly Tesseract.js (or digital text layer), translating the entire letter content into English without truncation.
+  - **Enlarged Eye Icon Peek Scan**: Clean, enlarged Eye icon button (`18px × 18px`) without text labels; tap or click to toggle between English translation and original Arabic scan, with press-and-hold support on touchscreens.
   - **Natural Translation Engine**: Built-in comprehensive bilingual dictionary (500+ words, 150+ administrative phrases) translating legal contracts, eviction notices, utility bills, and correspondence into real, natural English words.
   - **Reversed Stream Detection**: Automatically identifies and un-reverses visual-order RTL text streams common in Middle Eastern PDF generators (e.g. `ةيلخادلا ةرازو` & `راجيإ دقع`).
   - **Spelling & Diacritic Normalization**: Normalizes diacritics/tashkeel, tatweel, and letter variations (`ة`/`ه`, `[إأآٱ]`/`ا`) with Unicode NFKC normalization supporting Arabic Presentation Forms (`\uFB50-\uFEFC`).
-  - **Zero Text Clipping & Auto-Expansion**: Google Translate-style auto-fitting overlay boxes with `minWidth` to fully obscure original Arabic and `maxWidth` with word-break to ensure English translations are never clipped.
-  - **100% Offline Client-Side OCR**: Bundles local WebAssembly `Tesseract.js` v5 and fast LSTM Arabic/English trained models (`wwwroot/lib/tesseract/`) requiring zero cloud APIs and zero internet connectivity.
+  - **100% Offline Client-Side OCR & WASM Static Assets**: Bundles local WebAssembly `Tesseract.js` v5 and fast LSTM Arabic/English trained models (`wwwroot/lib/tesseract/`) served natively with `.wasm`, `.gz`, and `.traineddata` MIME types, requiring zero cloud APIs and zero internet connectivity.
   - **Universal Support**: Works seamlessly on both indexed archive files and newly uploaded scans without prior AI processing or database entries.
-  - **Interactive Peek Scan**: Hovering or clicking any translated box temporarily dims it to reveal the original scan underneath. A dedicated "Peek Original" page button toggles the entire scan view.
-  - **Instant Digital Layer Support**: Leverages embedded PDF text layers when available for sub-10ms overlay generation with automatic fallback to client-side OCR for physical scans.
   - User preference (`localStorage`) persists translation state seamlessly across documents and session reloads.
 - **Document Merge & Page Editor Visual Canvas Zooming**:
   - Interactive card zoom scaling across Document Merge (`#merge-docs-modal`) and Edit & Split Pages (`#doc-page-editor-modal`) modals.
@@ -95,6 +93,12 @@ The modern web application (`http://localhost:5000`) offers a responsive, high-p
   - Mouse wheel zoom: `Ctrl + Scroll` (Wheel Up = Zoom In, Wheel Down = Zoom Out) with native browser zoom suppression (`e.preventDefault()`).
   - Dynamic 2-document flex canvas layout (`merge-flex-2doc`) maximizing card preview size (~430px) across wide displays with centered inline swap and reorder buttons.
   - Persistent zoom level preferences stored in `localStorage` across reloads and sessions.
+- **Multi-Page Drag & Drop Reordering & Page Rotation (Edit Pages)**:
+  - Drag single pages or multiple selected pages together as a cohesive group to any arbitrary target position in the document, completely bypassing tedious 1-step arrow buttons.
+  - Real-time visual drop insertion indicators (`page-drop-before` / `page-drop-after`) and drag ghost styling.
+  - 1-tap 90° clockwise rotation on individual page cards (`.btn-card-rotate`) and bulk "Rotate 90°" button in the sticky toolbar for all selected pages.
+  - Instant client-side visual feedback via CSS rotation transforms combined with background persistence via `/api/documents/{vaultId}/rotate-pages` rewriting the physical PDF orientation.
+  - Automatic cache-busting reload ensuring both the page editor grid and document viewer panel reflect the updated pages immediately.
 - **Keyboard Shortcuts**:
   - `⌘B` / `Ctrl+B`: Toggle navigation sidebar collapse/expand.
   - `⌘K` / `Ctrl+K`: Open Global Spotlight Search.

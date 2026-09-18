@@ -1703,6 +1703,80 @@ public class RepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task ReorderPagesAsync_WithRotations_Succeeds()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaReorderRot", "ORDR");
+        await _repo.AddHouseAsync("H-ORDR", "AreaReorderRot");
+        var tenant = await _repo.AddTenantAsync("H-ORDR", "Reorder Rot Tenant", "2024-01-01");
+
+        var sourceVaultId = Guid.NewGuid().ToString("N");
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "AreaReorderRot",
+            HouseId = "H-ORDR",
+            TenantId = tenant.Id,
+            Category = "05 - عقود",
+            ArabicTitle = "عقد مع تدوير",
+            VaultId = sourceVaultId,
+            PageCount = 2
+        });
+
+        // Act
+        var reorderReq = new ReorderPagesRequestDto
+        {
+            PageOrder = new List<int> { 2, 1 },
+            Rotations = new Dictionary<string, int> { { "1", 90 }, { "2", 180 } }
+        };
+
+        var res = await _repo.ReorderPagesAsync("AreaReorderRot", "H-ORDR", sourceVaultId, reorderReq);
+
+        // Assert
+        Assert.Equal("success", res.Status);
+        Assert.Equal(new List<int> { 2, 1 }, res.PageOrder);
+    }
+
+    [Fact]
+    public async Task RotatePagesAsync_UpdatesPageRotations()
+    {
+        // Arrange
+        await _repo.AddAreaAsync("AreaRotate", "ROT");
+        await _repo.AddHouseAsync("H-ROT", "AreaRotate");
+        var tenant = await _repo.AddTenantAsync("H-ROT", "Rotate Tenant", "2024-01-01");
+
+        var sourceVaultId = Guid.NewGuid().ToString("N");
+        await _repo.AddManualDocumentAsync(new IngestRequestDto
+        {
+            AreaId = "AreaRotate",
+            HouseId = "H-ROT",
+            TenantId = tenant.Id,
+            Category = "01 - بيانات أساسية",
+            ArabicTitle = "وثيقة للتدوير",
+            VaultId = sourceVaultId,
+            PageCount = 3
+        });
+
+        // Act: Rotate page 1 by 90 degrees and page 2 by 270 degrees
+        var rotateReq = new RotatePagesRequestDto
+        {
+            Rotations = new Dictionary<string, int>
+            {
+                { "1", 90 },
+                { "2", 270 }
+            }
+        };
+
+        var res = await _repo.RotatePagesAsync("AreaRotate", "H-ROT", sourceVaultId, rotateReq);
+
+        // Assert
+        Assert.Equal("success", res.Status);
+        Assert.Equal(sourceVaultId, res.VaultId);
+        Assert.Equal(3, res.PageCount);
+        Assert.Equal(90, res.Rotations["1"]);
+        Assert.Equal(270, res.Rotations["2"]);
+    }
+
+    [Fact]
     public async Task DeletePagesAsync_AllPagesDeleted_DeletesDocumentAndUnlinksFromDatabase()
     {
         // Arrange

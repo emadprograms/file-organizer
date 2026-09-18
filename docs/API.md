@@ -91,4 +91,47 @@ Performs high-performance unified search across houses, tenants, documents, and 
     - `is_current` (boolean): `true` if the tenant currently resides in the property (`end_date` is `null` or `Present`), otherwise `false`.
     - `duration_category` (string, optional): `"short"` (< 5 years), `"medium"` (5–10 years), or `"long"` (> 10 years) for currently residing tenants; `null` for past tenants.
 
+### Document Page Manipulation APIs
+
+#### 1. Reorder Document Pages (`POST /api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/reorder-pages`)
+Physically reorders the pages of a PDF in the vault based on a sequence of 1-based page numbers. Also available via `/api/documents/{vaultId}/reorder-pages`.
+
+- **Request Body (`application/json`):**
+  ```json
+  {
+    "page_order": [4, 5, 1, 2, 3],
+    "rotations": { "4": 90 }
+  }
+  ```
+- **Response (`200 OK`):**
+  ```json
+  {
+    "status": "success",
+    "message": "Pages reordered successfully",
+    "vault_id": "doc_12345",
+    "page_count": 5
+  }
+  ```
+
+#### 2. Rotate Document Pages (`POST /api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/rotate-pages`)
+Rotates specific pages of a PDF by a given angle (default 90° clockwise) and permanently rewrites the PDF to disk. Also available via `/api/documents/{vaultId}/rotate-pages`.
+
+- **Request Body (`application/json`):**
+  ```json
+  {
+    "pages": [1, 3],
+    "angle": 90
+  }
+  ```
+- **Response (`200 OK`):**
+  ```json
+  {
+    "status": "success",
+    "message": "Rotated 2 pages by 90 degrees",
+    "vault_id": "doc_12345",
+    "page_count": 5
+  }
+  ```
+
+
 

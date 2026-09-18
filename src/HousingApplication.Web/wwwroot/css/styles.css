@@ -1254,14 +1254,47 @@ html.dark .compliance-item {
 /* Page Editor Dynamic Grid */
 #page-editor-grid.editor-grid-dynamic {
     display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--editor-card-min-width, 200px)), 1fr)) !important;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--editor-card-min-width, 230px)), 1fr)) !important;
     gap: 1.25rem !important;
     align-items: stretch;
 }
 
 #page-editor-grid .card-thumbnail-container {
-    min-height: var(--editor-thumb-height, 200px) !important;
-    height: var(--editor-thumb-height, 200px);
+    min-height: var(--editor-thumb-height, 280px) !important;
+    height: var(--editor-thumb-height, 280px);
     transition: height 0.15s ease-out, min-height 0.15s ease-out;
+}
+
+/* Page Editor Drag & Drop & Rotation */
+.page-editor-card {
+    cursor: grab;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, border-color 0.2s ease;
+}
+
+.page-editor-card:active {
+    cursor: grabbing;
+}
+
+.page-editor-card.dragging {
+    opacity: 0.45 !important;
+    transform: scale(0.96);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25) !important;
+}
+
+.page-editor-card.page-drop-before {
+    border-left: 4px solid #3b82f6 !important;
+    box-shadow: -4px 0 14px -2px rgba(59, 130, 246, 0.6) !important;
+    transform: translateX(4px);
+}
+
+.page-editor-card.page-drop-after {
+    border-right: 4px solid #3b82f6 !important;
+    box-shadow: 4px 0 14px -2px rgba(59, 130, 246, 0.6) !important;
+    transform: translateX(-4px);
+}
+
+.card-thumbnail-container canvas,
+.card-thumbnail-container img {
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 

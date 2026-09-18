@@ -870,6 +870,30 @@ public record ReorderPagesRequestDto
 {
     [JsonPropertyName("page_order")]
     public List<int> PageOrder { get; init; } = new();
+
+    [JsonPropertyName("rotations")]
+    public Dictionary<string, int>? Rotations { get; init; }
+}
+
+public record RotatePagesRequestDto
+{
+    [JsonPropertyName("rotations")]
+    public Dictionary<string, int> Rotations { get; init; } = new();
+}
+
+public record RotatePagesResponseDto
+{
+    [JsonPropertyName("status")]
+    public string Status { get; init; } = "success";
+
+    [JsonPropertyName("vault_id")]
+    public string VaultId { get; init; } = string.Empty;
+
+    [JsonPropertyName("page_count")]
+    public int PageCount { get; init; }
+
+    [JsonPropertyName("rotations")]
+    public Dictionary<string, int> Rotations { get; init; } = new();
 }
 
 public record ReorderPagesResponseDto

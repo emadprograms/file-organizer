@@ -116,6 +116,9 @@ staticContentTypeProvider.Mappings[".properties"] = "text/plain";
 staticContentTypeProvider.Mappings[".bcmap"] = "application/octet-stream";
 staticContentTypeProvider.Mappings[".pfb"] = "application/octet-stream";
 staticContentTypeProvider.Mappings[".mjs"] = "text/javascript";
+staticContentTypeProvider.Mappings[".wasm"] = "application/wasm";
+staticContentTypeProvider.Mappings[".gz"] = "application/gzip";
+staticContentTypeProvider.Mappings[".traineddata"] = "application/octet-stream";
 
 Microsoft.Extensions.FileProviders.IFileProvider? webRootFileProvider = null;
 if (!string.IsNullOrEmpty(resolvedWebRoot) && Directory.Exists(resolvedWebRoot))
@@ -1252,6 +1255,37 @@ app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/reorder-pa
     }
 });
 
+app.MapPost("/api/areas/{areaId}/houses/{houseId}/documents/{vaultId}/rotate-pages", async (
+    string areaId,
+    string houseId,
+    string vaultId,
+    RotatePagesRequestDto dto,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    if (dto.Rotations == null || dto.Rotations.Count == 0)
+        return Results.BadRequest(new { error = "rotations must not be empty." });
+
+    var areasRoot = ResolveAreasRoot(config);
+    try
+    {
+        var result = await repo.RotatePagesAsync(areaId, houseId, vaultId, dto, areasRoot);
+        return Results.Ok(result);
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+});
+
 app.MapPost("/api/documents/{vaultId}/extract-pages", async (
     string vaultId,
     ExtractPagesRequestDto dto,
@@ -1327,6 +1361,35 @@ app.MapPost("/api/documents/{vaultId}/reorder-pages", async (
     try
     {
         var result = await repo.ReorderPagesAsync("default", "default", vaultId, dto, areasRoot);
+        return Results.Ok(result);
+    }
+    catch (KeyNotFoundException ex)
+    {
+        return Results.NotFound(new { error = ex.Message });
+    }
+    catch (ArgumentException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(detail: ex.Message, statusCode: 500);
+    }
+});
+
+app.MapPost("/api/documents/{vaultId}/rotate-pages", async (
+    string vaultId,
+    RotatePagesRequestDto dto,
+    IFileOrganizerRepository repo,
+    IConfiguration config) =>
+{
+    if (dto.Rotations == null || dto.Rotations.Count == 0)
+        return Results.BadRequest(new { error = "rotations must not be empty." });
+
+    var areasRoot = ResolveAreasRoot(config);
+    try
+    {
+        var result = await repo.RotatePagesAsync("default", "default", vaultId, dto, areasRoot);
         return Results.Ok(result);
     }
     catch (KeyNotFoundException ex)
