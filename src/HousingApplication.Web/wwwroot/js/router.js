@@ -112,10 +112,27 @@
         }
     }
 
+    function safeDecodeURIComponent(str) {
+        if (!str) return '';
+        try {
+            return decodeURIComponent(str);
+        } catch (e) {
+            return str;
+        }
+    }
+
     function handleHashChange() {
-        const rawHash = decodeURIComponent(window.location.hash.replace('#', ''));
-        const hash = rawHash.startsWith('/') ? rawHash : '/' + rawHash;
-        if (!rawHash || hash === '/') {
+        const rawHash = window.location.hash.replace(/^#\/?/, '');
+        if (!rawHash) {
+            if (globalTreeData && globalTreeData.length > 0 && typeof window.selectAreaGrid === 'function') {
+                window.selectAreaGrid(globalTreeData[0]);
+            }
+            return;
+        }
+
+        const decodedHash = safeDecodeURIComponent(rawHash);
+        const hash = decodedHash.startsWith('/') ? decodedHash : '/' + decodedHash;
+        if (hash === '/' || !hash) {
             if (globalTreeData && globalTreeData.length > 0 && typeof window.selectAreaGrid === 'function') {
                 window.selectAreaGrid(globalTreeData[0]);
             }
@@ -130,20 +147,20 @@
         }
 
         if (hash.startsWith('/grid/area/')) {
-            const areaName = decodeURIComponent(hash.replace('/grid/area/', ''));
-            const areaNode = globalTreeData.find(a => a.name === areaName);
+            const areaName = safeDecodeURIComponent(rawHash.replace(/^grid\/area\//, '').replace(/^\/grid\/area\//, ''));
+            const areaNode = globalTreeData ? globalTreeData.find(a => a.name === areaName) : null;
             if (areaNode && typeof window.selectAreaGrid === 'function') {
                 window.selectAreaGrid(areaNode);
             }
             return;
         }
 
-        const parts = hash.split('/');
+        const parts = rawHash.split('/');
         let areaId = null, houseId = null, tenantId = null;
         for (let i = 0; i < parts.length; i++) {
-            if (parts[i] === 'area' && i + 1 < parts.length) areaId = decodeURIComponent(parts[i+1]).replace(/^area_/, '');
-            if (parts[i] === 'house' && i + 1 < parts.length) houseId = decodeURIComponent(parts[i+1]);
-            if (parts[i] === 'tenant' && i + 1 < parts.length) tenantId = decodeURIComponent(parts[i+1]);
+            if (parts[i] === 'area' && i + 1 < parts.length) areaId = safeDecodeURIComponent(parts[i+1]).replace(/^area_/, '');
+            if (parts[i] === 'house' && i + 1 < parts.length) houseId = safeDecodeURIComponent(parts[i+1]);
+            if (parts[i] === 'tenant' && i + 1 < parts.length) tenantId = safeDecodeURIComponent(parts[i+1]);
         }
 
         if (areaId && !houseId) {
@@ -159,14 +176,9 @@
             tenantName = tenantId.substring(houseId.length + 1);
         }
 
-        const tabCategories = document.getElementById('tab-categories');
-        const tabTimeline = document.getElementById('tab-timeline');
         const isDifferentContext = (areaId !== currentArea || houseId !== currentHouse || tenantName !== currentTenant);
-        if (isDifferentContext && tenantName && currentTab !== 'categories' && tabCategories && tabTimeline) {
-            currentTab = 'categories';
-            if (typeof window !== 'undefined') window.currentTab = 'categories';
-            tabCategories.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
-            tabTimeline.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
+        if (isDifferentContext && tenantName && currentTab !== 'categories') {
+            switchMainTab('categories', { skipRefresh: true });
         }
 
         if (areaId && houseId) {
@@ -307,9 +319,40 @@
         await refreshCurrentTab(areaId, houseId);
     }
 
+    function switchMainTab(tabName, options = {}) {
+        if (tabName !== 'timeline' && tabName !== 'categories') return;
+
+        currentTab = tabName;
+        if (typeof window !== 'undefined') {
+            window.currentTab = tabName;
+        }
+
+        const tabTimeline = document.getElementById('tab-timeline');
+        const tabCategories = document.getElementById('tab-categories');
+        const activeClass = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
+        const inactiveClass = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
+
+        if (tabTimeline) {
+            tabTimeline.className = (tabName === 'timeline') ? activeClass : inactiveClass;
+        }
+        if (tabCategories) {
+            tabCategories.className = (tabName === 'categories') ? activeClass : inactiveClass;
+        }
+
+        if (!options.skipRefresh) {
+            const area = currentArea || (typeof window !== 'undefined' ? window.currentArea : null);
+            const house = currentHouse || (typeof window !== 'undefined' ? window.currentHouse : null);
+            if (area && house && typeof window.refreshCurrentTab === 'function') {
+                window.refreshCurrentTab(area, house);
+            }
+        }
+    }
+
     async function refreshCurrentTab(areaId, houseId) {
         if (typeof window !== 'undefined' && window.currentTab) {
             currentTab = window.currentTab;
+        } else if (typeof currentTab !== 'undefined' && typeof window !== 'undefined') {
+            window.currentTab = currentTab;
         }
         if (currentTab === 'timeline') {
             if (typeof window.loadTimeline === 'function') {
@@ -334,8 +377,21 @@
 
     window.addEventListener('hashchange', handleHashChange);
 
+    window.switchMainTab = switchMainTab;
     window.switchToViewMode = switchToViewMode;
     window.handleHashChange = handleHashChange;
     window.selectHouse = selectHouse;
     window.refreshCurrentTab = refreshCurrentTab;
+    window.safeDecodeURIComponent = safeDecodeURIComponent;
+
+    if (typeof module !== 'undefined' && module.exports) {
+        module.exports = {
+            switchMainTab,
+            switchToViewMode,
+            handleHashChange,
+            selectHouse,
+            refreshCurrentTab,
+            safeDecodeURIComponent
+        };
+    }
 })();

@@ -51,24 +51,34 @@
         // Segmented Tabs
         if (tabTimeline) {
             tabTimeline.addEventListener('click', () => {
-                if (currentTab === 'timeline') return;
-                currentTab = 'timeline';
-                tabTimeline.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
-                if (tabCategories) tabCategories.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
-                if (currentArea && currentHouse && typeof window.refreshCurrentTab === 'function') {
-                    window.refreshCurrentTab(currentArea, currentHouse);
+                if (currentTab === 'timeline' && (typeof window === 'undefined' || window.currentTab === 'timeline')) return;
+                if (typeof window.switchMainTab === 'function') {
+                    window.switchMainTab('timeline');
+                } else {
+                    currentTab = 'timeline';
+                    if (typeof window !== 'undefined') window.currentTab = 'timeline';
+                    tabTimeline.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
+                    if (tabCategories) tabCategories.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
+                    if (currentArea && currentHouse && typeof window.refreshCurrentTab === 'function') {
+                        window.refreshCurrentTab(currentArea, currentHouse);
+                    }
                 }
             });
         }
 
         if (tabCategories) {
             tabCategories.addEventListener('click', () => {
-                if (currentTab === 'categories') return;
-                currentTab = 'categories';
-                tabCategories.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
-                if (tabTimeline) tabTimeline.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
-                if (currentArea && currentHouse && typeof window.refreshCurrentTab === 'function') {
-                    window.refreshCurrentTab(currentArea, currentHouse);
+                if (currentTab === 'categories' && (typeof window === 'undefined' || window.currentTab === 'categories')) return;
+                if (typeof window.switchMainTab === 'function') {
+                    window.switchMainTab('categories');
+                } else {
+                    currentTab = 'categories';
+                    if (typeof window !== 'undefined') window.currentTab = 'categories';
+                    tabCategories.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
+                    if (tabTimeline) tabTimeline.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
+                    if (currentArea && currentHouse && typeof window.refreshCurrentTab === 'function') {
+                        window.refreshCurrentTab(currentArea, currentHouse);
+                    }
                 }
             });
         }

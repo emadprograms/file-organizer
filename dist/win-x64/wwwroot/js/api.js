@@ -8,6 +8,9 @@ let currentArea = null;
 let currentHouse = null;
 let currentTenant = null;
 let currentTab = 'categories';
+if (typeof window !== 'undefined') {
+    window.currentTab = currentTab;
+}
 let currentTimeline = [];
 let currentCategories = [];
 let globalTreeData = [];

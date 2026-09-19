@@ -269,6 +269,101 @@
         { ar: 'التأجير من الباطن', en: 'Subletting' },
         { ar: 'التنازل للغير', en: 'Assignment to Third Party' },
 
+        // ── Formal Administrative Correspondence Formulas ──
+        { ar: 'بالإشارة إلى المرجع المشار إليه أعلاه', en: 'With reference to the above-referenced document' },
+        { ar: 'بالإشارة إلى المرجع أعلاه', en: 'With reference to the above reference' },
+        { ar: 'بالإشارة الى المرجع المشار اليه اعلاه', en: 'With reference to the above-referenced document' },
+        { ar: 'بالإشارة الى المرجع اعلاه', en: 'With reference to the above reference' },
+        { ar: 'يطيب لنا أن نرفق لسعادتكم بطيه', en: 'we are pleased to attach herewith for Your Excellency' },
+        { ar: 'يطب لنا أن نرفق لسمادتكم بطيه', en: 'we are pleased to attach herewith for Your Excellency' },
+        { ar: 'نرفق لسعادتكم بطيه', en: 'we attach herewith for Your Excellency' },
+        { ar: 'نرفق لسغادتكم بطية', en: 'we attach herewith for Your Excellency' },
+        { ar: 'نرفق لسمادتكم بطيه', en: 'we attach herewith for Your Excellency' },
+        { ar: 'نرفق لسعادتكم بطية', en: 'we attach herewith for Your Excellency' },
+        { ar: 'نرفق لسعادتكم', en: 'we attach for Your Excellency' },
+        { ar: 'نفيد سعادتكم علماً بخصوص', en: 'we inform Your Excellency regarding' },
+        { ar: 'نفيد سعادتكم علماً بأن', en: 'we inform Your Excellency that' },
+        { ar: 'نفيد سعادتكم علماً', en: 'we inform Your Excellency' },
+        { ar: 'نفيد سعادتكم', en: 'we inform Your Excellency' },
+        { ar: 'كما نفيد سعادتكم علماً بأن', en: 'we also inform Your Excellency that' },
+        { ar: 'كما نفيد سعادتكم', en: 'we also inform Your Excellency' },
+        { ar: 'كشف يتضمن أسماء المخالفين', en: 'a statement containing the names of violators' },
+        { ar: 'كشفب يتضيمن أسماء المخالفين', en: 'a statement containing the names of violators' },
+        { ar: 'أسماء المخالفين', en: 'names of violators' },
+        { ar: 'لنظام الانتفاع بالوحدات السكنية المؤقتة', en: 'of the usufruct system for temporary housing units' },
+        { ar: 'لنظام الإنتفاع بالوحدات السكنية المؤقتة', en: 'of the usufruct system for temporary housing units' },
+        { ar: 'بإدارة المحاكم العسكرية', en: 'at the Military Courts Directorate' },
+        { ar: 'استدعاء المخالفين وتسليمهم الإشعارات', en: 'to summon the violators and serve them the notices' },
+        { ar: 'إستدرعاء المخالفين وتتليمهم الإشمارات', en: 'to summon the violators and serve them the notices' },
+        { ar: 'ومتابعة المهلة الممنوحة لهم', en: 'and monitor the grace period granted to them' },
+        { ar: 'للتفضل بإجراءاتكم حول ذلك لطفاً', en: 'For your kind action in this regard, please' },
+        { ar: 'للتفضل بالاطلاع والمعلومية لطفاً سيدي', en: 'For your kind review and information, Sir' },
+        { ar: 'للتفضل بالاطلاع ولإجراءاتكم لطفاً سيدي', en: 'For your kind review and action, Sir' },
+        { ar: 'لتفضل سعادتكم بالإطلاع ولإجراءاتكم لطفاً سيدي', en: 'For Your Excellency\'s kind review and action, Sir' },
+        { ar: 'لتفضل سعادتكم بالاطلاع ولاجراءاتكم لطفا سيدي', en: 'For Your Excellency\'s kind review and action, Sir' },
+        { ar: 'للتفضل بالاطلاع والمعلومية لطفاً', en: 'For your kind review and information' },
+        { ar: 'للتفضل بالاطلاع والمعلومية', en: 'For your review and information' },
+        { ar: 'المشار إليه أعلاه', en: 'referred to above' },
+        { ar: 'المذكور أعلاه', en: 'mentioned above' },
+        { ar: 'المقدم من المذكور أعلاه', en: 'submitted by the above-mentioned' },
+
+        // ── Contract Preamble & Party Formulas ──
+        { ar: 'عقد انتفاع بوحدة سكنية', en: 'Usufruct Agreement for a Residential Unit' },
+        { ar: 'عقد انتمّاع بوحدة سكنية', en: 'Usufruct Agreement for a Residential Unit' },
+        { ar: 'ويمثلها في التوقيع على هذا العقد', en: 'and is represented in signing this contract by' },
+        { ar: 'بصفته طرف أول', en: 'in his capacity as First Party' },
+        { ar: 'بصفته طرف ثان', en: 'in his capacity as Second Party' },
+        { ar: 'بصفته طرف ثاني', en: 'in his capacity as Second Party' },
+        { ar: 'لما كان الطرف الأول يمتلك', en: 'Whereas the First Party owns' },
+        { ar: 'لما كان الطرق الأول سمتلك', en: 'Whereas the First Party owns' },
+        { ar: 'وكان الطرف الثاني يرغب في', en: 'and Whereas the Second Party desires to' },
+        { ar: 'أو إحالته إلى التقاعد أيهم أقرب', en: 'or his referral to retirement, whichever is earlier' },
+        { ar: 'أو إحالته إلى التقاعد أيهما أقرب', en: 'or his referral to retirement, whichever is earlier' },
+        { ar: 'أو احالته الى التقاعد ايهم اقرب', en: 'or his referral to retirement, whichever is earlier' },
+        { ar: 'يتضمن اسم المنتفع', en: 'stipulates the beneficiary\'s name' },
+        { ar: 'الرتبة', en: 'Rank' },
+        { ar: 'الرقم العسكري', en: 'Military ID No.' },
+        { ar: 'على تخصيص الوحدة', en: 'to allocate the unit' },
+        { ar: 'للانتفاع المؤقت بها', en: 'for temporary usufruct thereof' },
+        { ar: 'المحددة بهذا العقد', en: 'specified in this contract' },
+        { ar: 'بإحدى الخدمات الإسكانية', en: 'one of the housing services' },
+        { ar: 'التابعة لوزارة الأشغال', en: 'affiliated with the Ministry of Works' },
+
+        // ── Key Handover & Maintenance Phrases ──
+        { ar: 'إستلام مفاتيح الوحدة السكنية', en: 'Receipt of Housing Unit Keys' },
+        { ar: 'استلام مفاتيح الوحدة السكنية', en: 'Receipt of Housing Unit Keys' },
+        { ar: 'خاص بالوحدة السكنية رقم', en: 'specific to Housing Unit No.' },
+        { ar: 'خاص بالوحدة السكنية', en: 'specific to the housing unit' },
+        { ar: 'للبدء في إجراءات الصيانة', en: 'to commence maintenance procedures' },
+        { ar: 'نسخة من فاتورة الكهرباء والماء', en: 'copy of the Electricity & Water Bill' },
+        { ar: 'نسخة من قاتورة الكهرياء والماء', en: 'copy of the Electricity & Water Bill' },
+        { ar: 'صور للوحدة السكنية', en: 'Photos of the Housing Unit' },
+        { ar: 'مفتاح خاص بالوحدة', en: 'key specific to the unit' },
+        { ar: 'رئيس فرع إسكان الشرطة', en: 'Head of the Police Housing Branch' },
+        { ar: 'نسخة من إستمارة', en: 'copy of the form' },
+        { ar: 'نسخة من استمارة', en: 'copy of the form' },
+
+        // ── Allocation & Recommendation Phrases ──
+        { ar: 'شهادة استحقاق بتخصيص وحدة سكنية', en: 'eligibility certificate for housing unit allocation' },
+        { ar: 'شهادة استحقاق', en: 'eligibility certificate' },
+        { ar: 'لم يتم تخصيص وحدة سكنية له', en: 'no housing unit has been allocated to him' },
+        { ar: 'يتم تخصيص الوحدة السكنية', en: 'the housing unit be allocated' },
+        { ar: 'تقع بمحاذاة عدد من الوحدات السكنية', en: 'is located adjacent to a number of housing units' },
+        { ar: 'بمحاذاة عدد من', en: 'adjacent to a number of' },
+        { ar: 'بمحاذاة', en: 'adjacent to' },
+        { ar: 'تخصيصها للسادة الضباط', en: 'allocated to the Officers' },
+        { ar: 'وعليه نوصي بأن', en: 'accordingly, we recommend that' },
+        { ar: 'وعليه نوصي', en: 'accordingly, we recommend' },
+        { ar: 'بعد إخلائها للسادة', en: 'after vacating it for the Officers' },
+        { ar: 'بعد إخلائها من قبل المنتفع الحالي', en: 'after its vacation by the current beneficiary' },
+        { ar: 'بعد إخلائها من', en: 'after vacating it by' },
+        { ar: 'المتقدمين للانتفاع بالوحدات السكنية المؤقتة', en: 'applicants for temporary housing units' },
+        { ar: 'الطلب المقدم من', en: 'the application submitted by' },
+        { ar: 'حتى تاريخه', en: 'to date' },
+        { ar: 'حتىق تاريخة', en: 'to date' },
+        { ar: 'فقد تبين بأن', en: 'it has been determined that' },
+        { ar: 'فقد تبين', en: 'it has been determined' },
+
         // ── Correspondence & Instructions ──
         { ar: 'سري للغاية وعاجل جداً', en: 'Top Secret and Most Urgent' },
         { ar: 'سري للغاية وعاجل', en: 'Top Secret and Urgent' },
@@ -1469,7 +1564,74 @@
         'عرفاء': 'Sergeants', 'العرفاء': 'Sergeants',
         'عرقاء': 'Sergeants',
         'شرطي': 'Policeman', 'الشرطي': 'Policeman',
-        'جندي': 'Private', 'الجندي': 'Private'
+        'جندي': 'Private', 'الجندي': 'Private',
+
+        // Vault Document Vocabulary — Formal Correspondence
+        'بالإشارة': 'with reference', 'الإشارة': 'reference',
+        'نرفق': 'we attach', 'يرفق': 'attached', 'مرفق': 'attached', 'المرفق': 'attached',
+        'مرفقات': 'attachments', 'المرفقات': 'attachments', 'مرقق': 'attached',
+        'بطيه': 'herewith', 'بطية': 'herewith',
+        'سعادتكم': 'Your Excellency', 'سعادة': 'Excellency', 'لسعادتكم': 'for Your Excellency',
+        'لسمادتكم': 'for Your Excellency', 'لسغادتكم': 'for Your Excellency',
+        'نفيد': 'we inform / state', 'يفيد': 'informs / states',
+        'علماً': 'noting that', 'علما': 'noting that',
+        'بخصوص': 'regarding', 'خصوص': 'regard',
+        'المذكور': 'mentioned / above-mentioned', 'مذكور': 'mentioned',
+        'نوصي': 'we recommend', 'يوصي': 'recommends', 'توصي': 'recommends',
+        'تبين': 'determined / evident', 'يتبين': 'becomes evident',
+        'استدعاء': 'summoning', 'إستدرعاء': 'summoning', 'استدراء': 'summoning',
+        'تسليمهم': 'serving them / handing them',
+        'وتسليمهم': 'and serving them', 'وتتليمهم': 'and serving them',
+        'متابعة': 'monitoring / following up', 'ومتابعة': 'and monitoring',
+        'الممنوحة': 'granted', 'ممنوحة': 'granted',
+        'مخالفين': 'violators', 'المخالفين': 'violators',
+        'محاكم': 'courts', 'المحاكم': 'courts',
+        'عسكرية': 'military', 'العسكرية': 'military', 'عسكري': 'military', 'العسكري': 'military',
+        'بتوجيه': 'by directing', 'توجيه': 'directing', 'المعنيين': 'concerned parties',
+        'للتفضل': 'kindly / for your kind action', 'تفضل': 'kindly',
+        'إجراءاتكم': 'your procedures / measures', 'لإجراءاتكم': 'for your procedures',
+        'ولإجراءاتكم': 'and for your procedures',
+        'لطفاً': 'please', 'لطفا': 'please',
+        'سيدي': 'Sir',
+        'بالإطلاع': 'for review', 'الإطلاع': 'review', 'بالاطلاع': 'for review', 'الاطلاع': 'review',
+        'المعلومية': 'information / acknowledgment',
+        'فرفقا': 'enclosed', 'مرفقا': 'enclosed', 'مرفقاً': 'enclosed',
+
+        // Vault Document Vocabulary — Contract Terms
+        'تمهيد': 'Preamble', 'التمهيد': 'Preamble',
+        'ثان': 'Second', 'ثاني': 'Second', 'الثاني': 'Second',
+        'أول': 'First', 'الأول': 'First',
+        'يرغب': 'desires / wishes', 'ترغب': 'desires', 'رغبة': 'desire',
+        'يمتلك': 'owns / possesses', 'تمتلك': 'owns', 'سمتلك': 'owns',
+        'وافق': 'agreed', 'يوافق': 'agrees', 'موافقة': 'approval', 'الموافقة': 'approval',
+        'خلال': 'during', 'لحين': 'until',
+        'أيهم': 'whichever', 'أيهما': 'whichever',
+        'أقرب': 'earlier / nearest', 'اقرب': 'earlier / nearest',
+        'بصفته': 'in his capacity as', 'بصفتها': 'in her/its capacity as',
+        'الموافق': 'corresponding to',
+        'بين': 'between', 'وبين': 'and between',
+        'ويمثلها': 'and is represented by', 'يمثلها': 'represents it',
+        'دحدات': 'units', 'الدحدات': 'units',
+
+        // Vault Document Vocabulary — Allocation/Housing
+        'استحقاق': 'eligibility', 'الاستحقاق': 'eligibility',
+        'محاذاة': 'adjacent to', 'بمحاذاة': 'adjacent to',
+        'حالي': 'current', 'الحالي': 'current', 'حالية': 'current', 'الحالية': 'current',
+        'ضباط': 'officers', 'الضباط': 'officers',
+        'متقدمين': 'applicants', 'المتقدمين': 'applicants',
+
+        // Vault Document Vocabulary — Key Handover / Maintenance
+        'مقتاح': 'Key', 'مقاتيح': 'Keys',
+        'إخلانها': 'vacating it', 'اخلانها': 'vacating it',
+        'ميتدس': 'MITIDS', 'أشغال': 'works / construction', 'الأشغال': 'Works / Construction',
+        'قاتورة': 'bill / invoice', 'كهرياء': 'electricity', 'الكهرياء': 'Electricity',
+        'كهرباء': 'Electricity', 'الكهرباء': 'Electricity',
+        'النهائية': 'Final', 'نهائية': 'final', 'نهائي': 'final', 'النهائي': 'final',
+        'صور': 'photos / images', 'الصور': 'photos / images',
+        'نسبخة': 'copy', 'نسخة': 'Copy', 'النسخة': 'Copy',
+        'المراجع': 'references', 'مراجع': 'references',
+        'كأعلاه': 'as above'
+
     };
 
     // ── Bahraini & Arab Personal / Family Names ──
@@ -1519,7 +1681,18 @@
         'البنكي': 'Al Banki', 'بنكي': 'Al Banki',
         'الخاجة': 'Al Khaja', 'خاجة': 'Al Khaja',
         'حاجي': 'Haji', 'بهمن': 'Bahman', 'شمس': 'Shams',
-        'بن': 'Bin', 'ابن': 'Ibn', 'آل': 'Al-', 'بو': 'Bu'
+        'بن': 'Bin', 'ابن': 'Ibn', 'آل': 'Al-', 'بو': 'Bu',
+        // Additional names from vault documents
+        'بوبشيت': 'Boubshait', 'البوبشيت': 'Boubshait',
+        'بوبقيت': 'Boubshait', 'بوبشت': 'Boubshait',
+        'حيدر': 'Haider', 'الحيدر': 'Haider',
+        'هاشم': 'Hashem', 'الهاشم': 'Hashem',
+        'ماهر': 'Maher', 'ماهير': 'Maher',
+        'سالم': 'Salem', 'السالم': 'Salem',
+        'عبدالله': 'Abdullah', 'عبداللة': 'Abdullah',
+        'سمسان': 'Samsan', 'سامسان': 'Samsan',
+        'راشند': 'Rashid', 'غينئبسة': 'Al Ghanim',
+        'الشعتوب': 'Al Shaatob'
     };
 
     // ── Unicode Normalization & Dual Key Map ──
@@ -2216,30 +2389,53 @@
         const lower = clean.toLowerCase();
 
         // 1. Watermark declarations in English and Arabic
-        if (lower.includes('watermark') || clean.includes('العلامة المائية') || clean.includes('العلامه المائيه') || clean.includes('أغراض أمنية') || clean.includes('لدواعي الأمن')) {
+        if (lower.includes('watermark') || clean.includes('العلامة المائية') || clean.includes('العلامه المائيه') || clean.includes('العلامة المانية') || clean.includes('أغراض أمنية') || clean.includes('لدواعي الأمن') || clean.includes('لدواعى الأمن')) {
             return true;
         }
 
-        // 2. Official confidentiality / reproduction disclaimer
+        // 2. Official confidentiality / reproduction disclaimer (exact + fuzzy OCR variants)
         if (lower.includes('personal to its recipient only') ||
             lower.includes('must not be copied') ||
             lower.includes('reproduced wholly or partially') ||
             lower.includes('transferred to any third party') ||
             clean.includes('هذه الوثيقة رسمية وشخصية') ||
             clean.includes('هذه الوثيقه رسميه وشخصيه') ||
+            clean.includes('هذه الوثيقة خاصة وسرية') ||
+            clean.includes('هذه الوثيقة خاضة') ||
             clean.includes('لمتلقيها فقط') ||
+            clean.includes('لمتلقيها فق') ||
+            clean.includes('نمتلقيها فقط') ||
             clean.includes('وينبغي عدم نسخها') ||
+            clean.includes('ينبي عدم') ||
+            clean.includes('عدم نسخها') ||
+            clean.includes('عدم السخها') ||
+            clean.includes('عدم انستخها') ||
             clean.includes('أو توزيعها أو استنساخها') ||
             clean.includes('او توزيعها او استنساخها') ||
+            clean.includes('أو كوزبعها') ||
+            clean.includes('أو اوزيمها') ||
             clean.includes('استنساخها كلياً') ||
             clean.includes('استنساخها كليا') ||
+            clean.includes('اسنتساجها') ||
             clean.includes('تمريرها إلى أي طرف ثالث') ||
-            clean.includes('تمريرها الى اي طرف ثالث')) {
+            clean.includes('تمريرها الى اي طرف ثالث') ||
+            clean.includes('ولا تمريرها إلى أي طرف') ||
+            clean.includes('لمريرها إلى أي طرف') ||
+            clean.includes('ولا لمريرها')) {
+            return true;
+        }
+
+        // 2b. Fuzzy OCR disclaimer detection: تنويه/لنويه + وثيقة/وااقة + سرية/أسرية/سلربة/شخصية/شخسية
+        if (/[تلب][نث][وؤ]يه/.test(clean) && (/[وؤ]?[أا]?[سش][رلت][يى][ةه]/.test(clean) || /[وؤ]?[شس][خح][صس][يى][ةه]/.test(clean) || /خاصة/.test(clean) || /خاضة/.test(clean))) {
             return true;
         }
 
         // 3. Form model timestamps & barcode OCR strings
         if (/[طت]\s*ال[نث]موذج\s*:/i.test(clean) || /Model\s*:\s*\d/i.test(clean) || /^[طت]\s*ال[نث]موذج/i.test(clean)) {
+            return true;
+        }
+        // Also catch "ط. النمو ذج" (space-fragmented) and "ط.النموذج"
+        if (/[طت][\s.]*ال[نث]مو\s*ذج/.test(clean)) {
             return true;
         }
 
@@ -2250,6 +2446,13 @@
 
         // 5. Mixed symbols with isolated digits (e.g. ".0817 111:0 /(30 10 035580 0012 ,0311 10")
         if (/^\.?[0-9\s:/\(\)]{10,}[A-Za-z0-9\s,]{0,10}$/.test(clean)) {
+            return true;
+        }
+
+        // 6. Dense numeric strings mixed with Arabic fragments from barcode / margin OCR
+        const digitCount = (clean.match(/[0-9]/g) || []).length;
+        const arabicCount = (clean.match(/[\u0600-\u06FF]/g) || []).length;
+        if (digitCount > 20 && arabicCount < digitCount * 0.3 && clean.length > 40) {
             return true;
         }
 

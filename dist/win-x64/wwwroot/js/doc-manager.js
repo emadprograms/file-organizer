@@ -1369,9 +1369,13 @@
         }
 
         // Switch tab to timeline if not currently on timeline
-        const tabTimeline = document.getElementById('tab-timeline');
-        if (tabTimeline && (typeof currentTab === 'undefined' || currentTab !== 'timeline')) {
-            tabTimeline.click();
+        if (typeof window.switchMainTab === 'function') {
+            window.switchMainTab('timeline');
+        } else {
+            const tabTimeline = document.getElementById('tab-timeline');
+            if (tabTimeline && (typeof currentTab === 'undefined' || currentTab !== 'timeline')) {
+                tabTimeline.click();
+            }
         }
 
         const findAndHighlight = (attempts = 0) => {
@@ -1423,26 +1427,30 @@
         }
 
         // Switch tab to categories if not currently on categories
-        if (typeof currentTab !== 'undefined') currentTab = 'categories';
-        if (typeof window !== 'undefined') window.currentTab = 'categories';
+        if (typeof window.switchMainTab === 'function') {
+            window.switchMainTab('categories', { skipRefresh: !!(area && house && docTenant) });
+        } else {
+            if (typeof currentTab !== 'undefined') currentTab = 'categories';
+            if (typeof window !== 'undefined') window.currentTab = 'categories';
+            const tabCategories = document.getElementById('tab-categories');
+            const tabTimeline = document.getElementById('tab-timeline');
+            if (tabCategories) {
+                tabCategories.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
+            }
+            if (tabTimeline) {
+                tabTimeline.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
+            }
+        }
 
         const tabCategories = document.getElementById('tab-categories');
-        const tabTimeline = document.getElementById('tab-timeline');
-        if (tabCategories) {
-            tabCategories.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-semibold rounded-md bg-white text-blue-600 shadow-xs flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
-        }
-        if (tabTimeline) {
-            tabTimeline.className = "flex-1 min-w-0 py-1.5 px-2.5 text-xs font-medium rounded-md text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5 transition-all overflow-hidden whitespace-nowrap";
+        if (tabCategories && typeof tabCategories.click === 'function') {
+            tabCategories.click();
         }
 
         // Navigate to tenant route if tenant is specified, or trigger categories refresh
         if (area && house && docTenant) {
             const targetTenantId = `${house}_${docTenant}`;
             const targetHash = `#/area/${encodeURIComponent(area)}/house/${encodeURIComponent(house)}/tenant/${encodeURIComponent(targetTenantId)}`;
-
-            if (tabCategories) {
-                tabCategories.click();
-            }
 
             if (typeof window !== 'undefined' && window.location && window.location.hash !== targetHash) {
                 window.location.hash = targetHash;
@@ -1454,9 +1462,7 @@
                 refreshCurrentTab(area, house);
             }
         } else {
-            if (tabCategories) {
-                tabCategories.click();
-            } else if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
+            if (typeof window !== 'undefined' && typeof window.refreshCurrentTab === 'function') {
                 window.refreshCurrentTab(area, house);
             } else if (typeof refreshCurrentTab === 'function') {
                 refreshCurrentTab(area, house);

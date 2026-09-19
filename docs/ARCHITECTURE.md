@@ -92,7 +92,11 @@ The web client provides a unified interface across both Desktop PC and Tablet de
     - Mouse wheel zoom: `Ctrl + Scroll` (`WheelEvent.deltaY < 0` zooms in, `deltaY > 0` zooms out) with `e.preventDefault()` to prevent outer browser viewport zooming.
     - Event deduplication and cleanup: Listeners attached to both `window` and `document` ensure responsive event capture in all browser and test environments without redundant double-execution.
     - Persistence: Current zoom scale is automatically persisted to `localStorage` (`merge_card_zoom_level` and `editor_card_zoom_level`).
-- **Asset Mirroring**: Web assets are strictly mirrored across three locations: `src/api/static/js/`, `src/HousingApplication.Web/wwwroot/js/`, and `dist/win-x64/wwwroot/js/`.
+- **Tab State Management & Route Synchronization Architecture**:
+  - **Unified Tab Switcher (`window.switchMainTab(tabName, options)`)**: Centralizes segmented tab transitions between Timeline (`#tab-timeline`) and Categories (`#tab-categories`). Guarantees atomic updates across `currentTab`, `window.currentTab`, and DOM button state (`activeClass` vs `inactiveClass`), preventing desynchronization loops or premature bailouts.
+  - **Safe URI Route Decoding (`safeDecodeURIComponent`)**: Wraps route segment decoding with try/catch fallbacks to safely parse complex Arabic house, area, and tenant names containing percent signs or double-encoded characters without throwing fatal `URIError` exceptions.
+  - **Cross-Tab Deep Linking (`showDocInCategories` & `showDocInTimeline`)**: Deep links between document items and their respective views without re-entrant click recursion. Automatically handles tenant route transitions, category folder expansion (`_pendingOpenCategory`), and card scroll-highlighting.
+- **Asset Mirroring**: Web assets are strictly mirrored across `src/HousingApplication.Web/wwwroot/js/` and `dist/win-x64/wwwroot/js/`.
 
 ### Dark Mode Design System & Tablet Responsive Architecture
 The application features a dedicated, semantic dark mode design system engineered specifically for high-DPI displays (such as iPad Liquid Retina and OLED screens) and desktop environments:

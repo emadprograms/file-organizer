@@ -36,9 +36,10 @@ The frontend JavaScript unit and integration tests are executed using **Vitest**
 npm run test:web
 ```
 
-To run a specific frontend test file:
+To run specific frontend test files:
 
 ```bash
+npx vitest run tests/web/components/timeline_show_in_categories.test.js
 npx vitest run tests/web/components/multi_select_drag_and_drop.test.js
 ```
 
