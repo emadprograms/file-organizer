@@ -1948,6 +1948,16 @@
             docEl.ondragstart = (e) => window.handleDocDragStart(e, doc, catName);
             docEl.ondragend = (e) => window.handleDocDragEnd(e);
         }
+        docEl.ondragover = (e) => {
+            if (card && typeof card.ondragover === 'function') {
+                card.ondragover(e);
+            }
+        };
+        docEl.ondrop = (e) => {
+            if (card && typeof card.ondrop === 'function') {
+                card.ondrop(e);
+            }
+        };
         initTouchDrag(docEl, doc, () => docEl.getAttribute('data-category') || catName);
 
         const title = getCleanDocTitle(doc, catName);
@@ -2118,6 +2128,9 @@
         };
 
         card.ondragleave = (e) => {
+            if (e && e.relatedTarget && card.contains(e.relatedTarget)) {
+                return;
+            }
             card.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50/40');
             if (typeof window !== 'undefined' && typeof window.handleCategoryDragLeave === 'function') {
                 window.handleCategoryDragLeave(e, card);
@@ -2125,9 +2138,9 @@
         };
 
         card.ondrop = (e) => {
+            if (e && typeof e.preventDefault === 'function') e.preventDefault();
             card.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50/40');
             if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes('Files') && !window.draggedDoc) {
-                e.preventDefault();
                 e.stopPropagation();
                 if (typeof window !== 'undefined' && typeof window.resetDragCounter === 'function') {
                     window.resetDragCounter();
@@ -2209,8 +2222,17 @@
             };
         }
         
-        if (cat.documents && cat.documents.length > 0) {
-            const docsContainer = card.querySelector('.category-docs');
+        const docsContainer = card.querySelector('.category-docs');
+        if (docsContainer) {
+            docsContainer.ondragover = (e) => {
+                if (typeof card.ondragover === 'function') card.ondragover(e);
+            };
+            docsContainer.ondrop = (e) => {
+                if (typeof card.ondrop === 'function') card.ondrop(e);
+            };
+        }
+
+        if (cat.documents && cat.documents.length > 0 && docsContainer) {
             cat.documents.forEach(doc => {
                 const docEl = createDocRowElement(doc, cat.name, card);
                 docsContainer.appendChild(docEl);

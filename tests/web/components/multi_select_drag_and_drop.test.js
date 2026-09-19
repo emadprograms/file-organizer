@@ -315,6 +315,75 @@ describe('Multi-Select Drag and Drop for Tabs (Tablets) & Computers (Desktop)', 
             expect(global.showToast).toHaveBeenCalledWith('Assigned 2 documents to علي حسن');
             expect(selectedDocIds.size).toBe(0);
         });
+
+        it('dropping on a child element of a category card (e.g. h4, folder-icon-box, or category-docs) successfully moves document', async () => {
+            renderCategories();
+            const docEl1 = document.querySelector('[data-vault-id="doc001"]');
+            const targetCard = document.querySelector('.category-folder-card[data-category-name="06 - كهرباء وماء"]');
+            const childHeading = targetCard.querySelector('h4');
+            expect(childHeading).not.toBeNull();
+
+            const dragStartEvent = {
+                dataTransfer: { setData: vi.fn(), effectAllowed: '' },
+                target: docEl1
+            };
+            handleDocDragStart(dragStartEvent, { vault_id: 'doc001', category: '01 - بيانات أساسية' }, '01 - بيانات أساسية');
+
+            // Pass the child <h4> instead of the card element
+            await handleCategoryDrop({ preventDefault: vi.fn() }, '06 - كهرباء وماء', childHeading);
+
+            expect(global.fetch).toHaveBeenCalledWith(
+                expect.stringContaining('/documents/doc001'),
+                expect.objectContaining({ method: 'PATCH' })
+            );
+            expect(global.showToast).toHaveBeenCalledWith('Moved to 06 - كهرباء وماء');
+            expect(docEl1.classList.contains('opacity-40')).toBe(false);
+            expect(window.draggedDoc).toBeNull();
+        });
+
+        it('dropping a single doc into the same category resets dimming and does not leave element greyed out', async () => {
+            renderCategories();
+            const docEl1 = document.querySelector('[data-vault-id="doc001"]');
+            const currentCard = document.querySelector('.category-folder-card[data-category-name="01 - بيانات أساسية"]');
+
+            const dragStartEvent = {
+                dataTransfer: { setData: vi.fn(), effectAllowed: '' },
+                target: docEl1
+            };
+            handleDocDragStart(dragStartEvent, { vault_id: 'doc001', category: '01 - بيانات أساسية' }, '01 - بيانات أساسية');
+            expect(docEl1.classList.contains('opacity-40')).toBe(true);
+
+            // Dropped in same category
+            await handleCategoryDrop({ preventDefault: vi.fn() }, '01 - بيانات أساسية', currentCard);
+
+            // Must NOT remain greyed out
+            expect(docEl1.classList.contains('opacity-40')).toBe(false);
+            expect(window.draggedDoc).toBeNull();
+        });
+
+        it('handleCategoryDragLeave preserves drag-over-active if relatedTarget is inside the folder card', () => {
+            renderCategories();
+            const docEl1 = document.querySelector('[data-vault-id="doc001"]');
+            const targetCard = document.querySelector('.category-folder-card[data-category-name="06 - كهرباء وماء"]');
+            const childHeading = targetCard.querySelector('h4');
+
+            const dragStartEvent = {
+                dataTransfer: { setData: vi.fn(), effectAllowed: '' },
+                target: docEl1
+            };
+            handleDocDragStart(dragStartEvent, { vault_id: 'doc001', category: '01 - بيانات أساسية' }, '01 - بيانات أساسية');
+
+            handleCategoryDragOver({ preventDefault: vi.fn(), dataTransfer: {} }, targetCard);
+            expect(targetCard.classList.contains('drag-over-active')).toBe(true);
+
+            // Moving into child element (relatedTarget is inside targetCard)
+            handleCategoryDragLeave({ relatedTarget: childHeading }, targetCard);
+            expect(targetCard.classList.contains('drag-over-active')).toBe(true);
+
+            // Moving completely outside (relatedTarget is document.body)
+            handleCategoryDragLeave({ relatedTarget: document.body }, targetCard);
+            expect(targetCard.classList.contains('drag-over-active')).toBe(false);
+        });
     });
 
     describe('Tabs (Tablet Touchscreen Drag & Drop)', () => {

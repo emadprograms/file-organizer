@@ -1157,6 +1157,129 @@ describe('Document Page Editor (Split, Delete, Extract, Reorder)', () => {
       // Pages 4 and 5 were moved to the very front in a single gesture!
       expect(body.page_order).toEqual([4, 5, 1, 2, 3]);
     });
+
+    it('drags page 1 forward onto page 2 and reliably moves it after page 2 (swapping them)', async () => {
+      const mockDoc = {
+        vault_id: 'doc_adjacent_drag',
+        brief_arabic_title: 'وثيقة سحب صفحة مجاورة',
+        category: '05 - عقود',
+        area_id: 'Safra C',
+        house_id: '101',
+        page_count: 3
+      };
+
+      let reorderCall = null;
+      global.fetch = vi.fn((url, options) => {
+        if (url.includes('/reorder-pages')) {
+          reorderCall = { url, options };
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ status: 'success', page_order: [2, 1, 3] })
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => [] });
+      });
+
+      await window.openPageEditor(mockDoc);
+      const cards = document.querySelectorAll('.page-editor-card');
+
+      // Start drag on card 1 (page 1)
+      const dragEvent = {
+        dataTransfer: { setData: vi.fn(), effectAllowed: '' },
+        preventDefault: vi.fn()
+      };
+      window.handleCardDragStart(dragEvent, 1, cards[0]);
+
+      // Hover on card 2
+      cards[1].getBoundingClientRect = () => ({ left: 210, width: 200, right: 410, top: 0, bottom: 200 });
+      window.handleCardDragOver({ clientX: 250, preventDefault: vi.fn(), dataTransfer: {} }, cards[1]);
+      // Forward adjacent drag must indicate page-drop-after
+      expect(cards[1].classList.contains('page-drop-after')).toBe(true);
+
+      // Drop on card 2
+      const dropEvent = { preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: 250 };
+      await window.handleCardDrop(dropEvent, cards[1]);
+
+      expect(reorderCall).not.toBeNull();
+      const body = JSON.parse(reorderCall.options.body);
+      expect(body.page_order).toEqual([2, 1, 3]);
+    });
+
+    it('drags page 2 backward onto page 1 and reliably moves it before page 1 (swapping them)', async () => {
+      const mockDoc = {
+        vault_id: 'doc_backward_drag',
+        brief_arabic_title: 'وثيقة سحب عكسي',
+        category: '05 - عقود',
+        area_id: 'Safra C',
+        house_id: '101',
+        page_count: 3
+      };
+
+      let reorderCall = null;
+      global.fetch = vi.fn((url, options) => {
+        if (url.includes('/reorder-pages')) {
+          reorderCall = { url, options };
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ status: 'success', page_order: [2, 1, 3] })
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => [] });
+      });
+
+      await window.openPageEditor(mockDoc);
+      const cards = document.querySelectorAll('.page-editor-card');
+
+      // Start drag on card 2 (page 2)
+      const dragEvent = {
+        dataTransfer: { setData: vi.fn(), effectAllowed: '' },
+        preventDefault: vi.fn()
+      };
+      window.handleCardDragStart(dragEvent, 2, cards[1]);
+
+      // Hover on card 1
+      cards[0].getBoundingClientRect = () => ({ left: 0, width: 200, right: 200, top: 0, bottom: 200 });
+      window.handleCardDragOver({ clientX: 150, preventDefault: vi.fn(), dataTransfer: {} }, cards[0]);
+      // Backward adjacent drag must indicate page-drop-before
+      expect(cards[0].classList.contains('page-drop-before')).toBe(true);
+
+      // Drop on card 1
+      const dropEvent = { preventDefault: vi.fn(), stopPropagation: vi.fn(), clientX: 150 };
+      await window.handleCardDrop(dropEvent, cards[0]);
+
+      expect(reorderCall).not.toBeNull();
+      const body = JSON.parse(reorderCall.options.body);
+      expect(body.page_order).toEqual([2, 1, 3]);
+    });
+
+    it('handleCardDragLeave preserves drop indicator when moving into child element', async () => {
+      const mockDoc = {
+        vault_id: 'doc_child_leave',
+        brief_arabic_title: 'وثيقة فحص المؤشرات',
+        category: '05 - عقود',
+        area_id: 'Safra C',
+        house_id: '101',
+        page_count: 3
+      };
+      await window.openPageEditor(mockDoc);
+      const cards = document.querySelectorAll('.page-editor-card');
+
+      window.handleCardDragStart({ dataTransfer: { setData: vi.fn(), effectAllowed: '' } }, 1, cards[0]);
+      cards[1].getBoundingClientRect = () => ({ left: 210, width: 200, right: 410, top: 0, bottom: 200 });
+      window.handleCardDragOver({ clientX: 250, preventDefault: vi.fn(), dataTransfer: {} }, cards[1]);
+      expect(cards[1].classList.contains('page-drop-after')).toBe(true);
+
+      const childThumbnail = cards[1].querySelector('.card-thumbnail-container');
+      expect(childThumbnail).not.toBeNull();
+
+      // Moving cursor into thumbnail container (relatedTarget is inside cards[1])
+      window.handleCardDragLeave({ relatedTarget: childThumbnail }, cards[1]);
+      expect(cards[1].classList.contains('page-drop-after')).toBe(true);
+
+      // Moving completely outside cards[1]
+      window.handleCardDragLeave({ relatedTarget: document.body }, cards[1]);
+      expect(cards[1].classList.contains('page-drop-after')).toBe(false);
+    });
   });
 });
 

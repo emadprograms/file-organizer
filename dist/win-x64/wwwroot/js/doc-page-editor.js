@@ -162,6 +162,24 @@
         if (btnCopySelected) btnCopySelected.onclick = () => openExtractSubmodal('copy');
         if (btnExtractSelected) btnExtractSelected.onclick = () => openExtractSubmodal('move');
 
+        if (editorGrid) {
+            editorGrid.ondragover = (e) => {
+                if (e && e.preventDefault) e.preventDefault();
+                if (e && e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+            };
+            editorGrid.ondrop = (e) => {
+                if (e && e.preventDefault) e.preventDefault();
+                if (!draggedPages || draggedPages.length === 0) return;
+                const elem = (typeof document !== 'undefined' && typeof document.elementFromPoint === 'function' && typeof e.clientX === 'number')
+                    ? document.elementFromPoint(e.clientX, e.clientY)
+                    : null;
+                const card = elem && elem.closest ? elem.closest('.page-editor-card') : null;
+                if (card) {
+                    handleCardDrop(e, card);
+                }
+            };
+        }
+
         if (btnExtractCancel) btnExtractCancel.onclick = closeExtractSubmodal;
         if (btnExtractConfirm) btnExtractConfirm.onclick = executeExtractPages;
 
@@ -638,6 +656,7 @@
         card.ondragleave = (e) => handleCardDragLeave(e, card);
         card.ondrop = (e) => handleCardDrop(e, card);
         card.ondragend = (e) => handleCardDragEnd(e);
+        initPageTouchDrag(card, actualPageNum);
 
         return card;
     }
@@ -884,6 +903,41 @@
         await applyAndPersistPageOrder(newOrder);
     }
 
+    function determineDropBefore(e, card, targetPageNum) {
+        if (!draggedPages || draggedPages.length === 0 || !card) return true;
+        const rect = (card && card.getBoundingClientRect) ? card.getBoundingClientRect() : null;
+        if (!rect || rect.width <= 0) return true;
+
+        const firstDragged = draggedPages[0];
+        const srcIdx = currentPageOrder.indexOf(firstDragged);
+        const tgtIdx = currentPageOrder.indexOf(targetPageNum);
+
+        const clientX = (e && typeof e.clientX === 'number') ? e.clientX : (rect.left + rect.width / 2);
+
+        // If dragging forward (e.g. from index 0 to index 1 or 2):
+        if (srcIdx !== -1 && tgtIdx !== -1 && srcIdx < tgtIdx) {
+            // If adjacent, dropping on the target card moves it after target
+            if (tgtIdx - srcIdx === 1) {
+                return false;
+            }
+            // If further away, only drop before if explicitly in the left 35%
+            return clientX < (rect.left + rect.width * 0.35);
+        }
+
+        // If dragging backward (e.g. from index 3 to index 1 or 0):
+        if (srcIdx !== -1 && tgtIdx !== -1 && srcIdx > tgtIdx) {
+            // If adjacent, dropping on the target card moves it before target
+            if (srcIdx - tgtIdx === 1) {
+                return true;
+            }
+            // If further away, only drop after if explicitly in the right 35%
+            return clientX < (rect.left + rect.width * 0.65);
+        }
+
+        const midX = rect.left + rect.width / 2;
+        return clientX < midX;
+    }
+
     function handleCardDragStart(e, pageNum, cardEl) {
         if (isReordering || isRotating) {
             if (e && e.preventDefault) e.preventDefault();
@@ -918,16 +972,13 @@
         if (e && e.dataTransfer) e.dataTransfer.dropEffect = 'move';
 
         const targetPageNum = parseInt(card.getAttribute('data-page-num'), 10);
-        if (draggedPages.includes(targetPageNum)) {
+        if (!targetPageNum || draggedPages.includes(targetPageNum)) {
             card.classList.remove('page-drop-before', 'page-drop-after');
             return;
         }
 
-        const rect = card.getBoundingClientRect();
-        const midX = (rect && rect.width > 0) ? (rect.left + rect.width / 2) : 0;
-        const isBefore = (rect && rect.width > 0 && e && typeof e.clientX === 'number') ? (e.clientX < midX) : true;
-
-        if (isBefore) {
+        const dropBefore = determineDropBefore(e, card, targetPageNum);
+        if (dropBefore) {
             card.classList.add('page-drop-before');
             card.classList.remove('page-drop-after');
         } else {
@@ -937,6 +988,9 @@
     }
 
     function handleCardDragLeave(e, card) {
+        if (e && e.relatedTarget && card && card.contains && card.contains(e.relatedTarget)) {
+            return;
+        }
         card.classList.remove('page-drop-before', 'page-drop-after');
     }
 
@@ -954,13 +1008,14 @@
 
         if (!draggedPages || draggedPages.length === 0) return;
 
-        const targetPageNum = parseInt(targetCard.getAttribute('data-page-num'), 10);
-        if (!targetPageNum) return;
+        const resolvedCard = (targetCard && targetCard.closest) ? (targetCard.closest('.page-editor-card') || targetCard) : targetCard;
+        const targetPageNum = resolvedCard ? parseInt(resolvedCard.getAttribute('data-page-num'), 10) : 0;
+        if (!targetPageNum) {
+            draggedPages = [];
+            return;
+        }
 
-        const rect = targetCard.getBoundingClientRect();
-        const midX = (rect && rect.width > 0) ? (rect.left + rect.width / 2) : 0;
-        const dropBefore = (rect && rect.width > 0 && e && typeof e.clientX === 'number') ? (e.clientX < midX) : true;
-
+        const dropBefore = determineDropBefore(e, resolvedCard, targetPageNum);
         const pages = [...draggedPages];
         draggedPages = [];
         await movePagesToTarget(pages, targetPageNum, dropBefore);
@@ -973,6 +1028,121 @@
             });
         }
         draggedPages = [];
+    }
+
+    function initPageTouchDrag(card, pageNum) {
+        if (!card) return;
+        let touchTimer = null;
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let isTouchDragging = false;
+        let touchAvatar = null;
+
+        const cleanup = () => {
+            if (touchTimer) {
+                clearTimeout(touchTimer);
+                touchTimer = null;
+            }
+            if (touchAvatar && touchAvatar.parentNode) {
+                touchAvatar.remove();
+                touchAvatar = null;
+            }
+            if (editorGrid) {
+                editorGrid.querySelectorAll('.page-editor-card').forEach(c => {
+                    c.classList.remove('dragging', 'page-drop-before', 'page-drop-after');
+                });
+            }
+            isTouchDragging = false;
+            draggedPages = [];
+        };
+
+        card.addEventListener('touchstart', (e) => {
+            if (e.target.closest('button') || isReordering || isRotating) return;
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+
+            touchTimer = setTimeout(() => {
+                isTouchDragging = true;
+                if (selectedPageNumbers.has(pageNum) && selectedPageNumbers.size > 1) {
+                    draggedPages = currentPageOrder.filter(p => selectedPageNumbers.has(p));
+                } else {
+                    draggedPages = [pageNum];
+                }
+
+                card.classList.add('dragging');
+                if (draggedPages.length > 1 && editorGrid) {
+                    draggedPages.forEach(p => {
+                        const other = editorGrid.querySelector(`div[data-page-num="${p}"]`);
+                        if (other) other.classList.add('dragging');
+                    });
+                }
+
+                touchAvatar = document.createElement('div');
+                touchAvatar.className = 'fixed pointer-events-none z-[10000] px-3 py-1.5 bg-slate-900/90 text-white rounded-xl shadow-2xl text-xs font-semibold flex items-center gap-2 border border-blue-400';
+                touchAvatar.textContent = draggedPages.length > 1 ? `Moving ${draggedPages.length} pages` : `Moving Page #${pageNum}`;
+                document.body.appendChild(touchAvatar);
+                touchAvatar.style.left = `${touch.clientX - 40}px`;
+                touchAvatar.style.top = `${touch.clientY - 40}px`;
+            }, 260);
+        }, { passive: true });
+
+        card.addEventListener('touchmove', (e) => {
+            const touch = e.touches[0];
+            const dist = Math.hypot(touch.clientX - touchStartX, touch.clientY - touchStartY);
+            if (!isTouchDragging && dist > 10 && touchTimer) {
+                clearTimeout(touchTimer);
+                touchTimer = null;
+            }
+            if (isTouchDragging && touchAvatar) {
+                if (e.cancelable) e.preventDefault();
+                touchAvatar.style.left = `${touch.clientX - 40}px`;
+                touchAvatar.style.top = `${touch.clientY - 40}px`;
+
+                const elem = (typeof document !== 'undefined' && typeof document.elementFromPoint === 'function')
+                    ? document.elementFromPoint(touch.clientX, touch.clientY)
+                    : null;
+                const targetCard = elem ? elem.closest('.page-editor-card') : null;
+                if (editorGrid) {
+                    editorGrid.querySelectorAll('.page-editor-card').forEach(c => {
+                        if (c !== targetCard) c.classList.remove('page-drop-before', 'page-drop-after');
+                    });
+                }
+                if (targetCard && !draggedPages.includes(parseInt(targetCard.getAttribute('data-page-num'), 10))) {
+                    const tgtNum = parseInt(targetCard.getAttribute('data-page-num'), 10);
+                    const dropBefore = determineDropBefore({ clientX: touch.clientX }, targetCard, tgtNum);
+                    if (dropBefore) {
+                        targetCard.classList.add('page-drop-before');
+                        targetCard.classList.remove('page-drop-after');
+                    } else {
+                        targetCard.classList.add('page-drop-after');
+                        targetCard.classList.remove('page-drop-before');
+                    }
+                }
+            }
+        }, { passive: false });
+
+        card.addEventListener('touchend', async (e) => {
+            if (touchTimer) {
+                clearTimeout(touchTimer);
+                touchTimer = null;
+            }
+            if (isTouchDragging) {
+                const touch = e.changedTouches[0];
+                const elem = (typeof document !== 'undefined' && typeof document.elementFromPoint === 'function')
+                    ? document.elementFromPoint(touch.clientX, touch.clientY)
+                    : null;
+                const targetCard = elem ? elem.closest('.page-editor-card') : null;
+                const pages = [...draggedPages];
+                cleanup();
+                if (targetCard && !pages.includes(parseInt(targetCard.getAttribute('data-page-num'), 10))) {
+                    draggedPages = pages;
+                    await handleCardDrop({ clientX: touch.clientX, preventDefault: () => {}, stopPropagation: () => {} }, targetCard);
+                }
+            }
+        });
+
+        card.addEventListener('touchcancel', cleanup);
     }
 
     async function rotatePage(pageNum, angle = 90) {
@@ -1477,6 +1647,8 @@
     window.movePagesToTarget = movePagesToTarget;
     window.handleCardDrop = handleCardDrop;
     window.handleCardDragStart = handleCardDragStart;
+    window.handleCardDragOver = handleCardDragOver;
+    window.handleCardDragLeave = handleCardDragLeave;
     window.getCurrentPageOrder = () => [...currentPageOrder];
 
     if (typeof window !== 'undefined') {
@@ -1504,6 +1676,8 @@
             movePagesToTarget,
             handleCardDrop,
             handleCardDragStart,
+            handleCardDragOver,
+            handleCardDragLeave,
             getCurrentPageOrder: () => [...currentPageOrder]
         };
     }

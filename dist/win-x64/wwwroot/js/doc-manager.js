@@ -337,7 +337,13 @@
         if (activeDocModalDoc && activeDocModalDoc.area_id) return activeDocModalDoc.area_id;
         if (typeof currentArea !== 'undefined' && currentArea) return currentArea;
         if (typeof window !== 'undefined' && window.currentArea) return window.currentArea;
-        return getAreaFromHash();
+        const fromHash = getAreaFromHash();
+        if (fromHash) return fromHash;
+        if (typeof document !== 'undefined') {
+            const gridActive = document.querySelector('.area-grid-btn.bg-slate-800');
+            if (gridActive && gridActive.dataset && gridActive.dataset.areaName) return gridActive.dataset.areaName;
+        }
+        return '';
     }
 
     function getResolvedHouse(explicitDoc = null) {
@@ -345,7 +351,16 @@
         if (activeDocModalDoc && activeDocModalDoc.house_id) return activeDocModalDoc.house_id;
         if (typeof currentHouse !== 'undefined' && currentHouse) return currentHouse;
         if (typeof window !== 'undefined' && window.currentHouse) return window.currentHouse;
-        return getHouseFromHash();
+        const fromHash = getHouseFromHash();
+        if (fromHash) return fromHash;
+        if (typeof document !== 'undefined') {
+            const titleEl = document.getElementById('current-house-title');
+            if (titleEl && titleEl.textContent) {
+                const match = titleEl.textContent.match(/House\s*#?\s*([^\s•]+)/i);
+                if (match) return match[1];
+            }
+        }
+        return '';
     }
 
     function getActiveSelectedDocIds() {
@@ -419,8 +434,9 @@
                     const el = (typeof document !== 'undefined') ? document.querySelector(`[data-vault-id="${id}"]`) : null;
                     if (el && el.classList) el.classList.add('opacity-40', 'ring-2', 'ring-blue-400');
                 });
-            } else if (e && e.target && e.target.classList) {
-                e.target.classList.add('opacity-40');
+            } else {
+                const el = (typeof document !== 'undefined') ? (document.querySelector(`[data-vault-id="${doc.vault_id}"]`) || (e && e.target && e.target.closest ? e.target.closest('[data-vault-id]') : (e ? e.target : null))) : (e ? e.target : null);
+                if (el && el.classList) el.classList.add('opacity-40');
             }
         };
         applyDimming();
@@ -445,35 +461,51 @@
     }
 
     function handleCategoryDragOver(e, card) {
-        const activeDragged = draggedDoc || (typeof window !== 'undefined' && window.draggedDoc);
+        const activeDragged = (typeof window !== 'undefined' && window.draggedDoc) ? window.draggedDoc : draggedDoc;
         if (!activeDragged || (!activeDragged.vault_id && (!activeDragged.vault_ids || activeDragged.vault_ids.length === 0))) return;
         if (e && typeof e.preventDefault === 'function') e.preventDefault();
         if (e && e.dataTransfer) e.dataTransfer.dropEffect = 'move';
-        if (card && card.classList) card.classList.add('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400');
+        const targetCard = (card && card.closest) ? (card.closest('.category-folder-card') || card) : card;
+        if (targetCard && targetCard.classList) targetCard.classList.add('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400');
     }
 
     function handleCategoryDragLeave(e, card) {
-        if (card && card.classList) card.classList.remove('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400');
+        if (e && e.relatedTarget && card && card.contains && card.contains(e.relatedTarget)) {
+            return;
+        }
+        const targetCard = (card && card.closest) ? (card.closest('.category-folder-card') || card) : card;
+        if (targetCard && targetCard.classList) targetCard.classList.remove('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400');
     }
 
     async function handleCategoryDrop(e, targetCategory, card) {
         if (e && typeof e.preventDefault === 'function') e.preventDefault();
-        if (card && card.classList) {
-            card.classList.remove('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400');
+        const targetCard = (card && card.closest) ? (card.closest('.category-folder-card') || card) : card;
+        if (targetCard && targetCard.classList) {
+            targetCard.classList.remove('drag-over-active', 'border-blue-500', 'bg-blue-50/60', 'ring-2', 'ring-blue-400');
         }
-        const activeDragged = draggedDoc || (typeof window !== 'undefined' && window.draggedDoc);
-        if (!activeDragged) return;
+        const resolvedCategory = (targetCard && targetCard.getAttribute('data-category-name')) || targetCategory;
+        const activeDragged = (typeof window !== 'undefined' && window.draggedDoc) ? window.draggedDoc : draggedDoc;
+        if (!activeDragged) {
+            handleDocDragEnd(e);
+            return;
+        }
 
         const vaultIds = (activeDragged.vault_ids && activeDragged.vault_ids.length > 0)
             ? activeDragged.vault_ids
             : (activeDragged.vault_id ? [activeDragged.vault_id] : []);
 
-        if (vaultIds.length === 0) return;
+        if (vaultIds.length === 0) {
+            handleDocDragEnd(e);
+            return;
+        }
 
         const isMulti = vaultIds.length > 1;
 
-        // If single doc and it is already in targetCategory, skip
-        if (!isMulti && activeDragged.category === targetCategory) return;
+        // If single doc and it is already in targetCategory, skip and reset dimming
+        if (!isMulti && activeDragged.category === resolvedCategory) {
+            handleDocDragEnd(e);
+            return;
+        }
 
         const area = getResolvedArea(activeDragged);
         const house = getResolvedHouse(activeDragged);
@@ -486,7 +518,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         vault_ids: vaultIds,
-                        target_category: targetCategory
+                        target_category: resolvedCategory
                     })
                 });
                 if (!res.ok) {
@@ -494,7 +526,7 @@
                     throw new Error(errData.detail || errData.error || 'Failed to move documents');
                 }
                 const data = await res.json();
-                const finalCategory = data.target_category || targetCategory;
+                const finalCategory = data.target_category || resolvedCategory;
                 const movedCount = (typeof data.moved_count === 'number') ? data.moved_count : vaultIds.length;
 
                 if (typeof window !== 'undefined' && typeof window.deselectAllDocs === 'function') {
@@ -524,14 +556,14 @@
                 const res = await fetch(`/api/areas/${encodeURIComponent(area)}/houses/${encodeURIComponent(house)}/documents/${encodeURIComponent(activeDragged.vault_id)}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ category: targetCategory, is_manual: 1 })
+                    body: JSON.stringify({ category: resolvedCategory, is_manual: 1 })
                 });
                 if (!res.ok) {
                     const errData = await res.json().catch(() => ({}));
                     throw new Error(errData.detail || 'Failed to move document');
                 }
                 const data = await res.json();
-                const finalCategory = data.category || targetCategory;
+                const finalCategory = data.category || resolvedCategory;
 
                 const activeSelected = getActiveSelectedDocIds();
                 if (activeSelected.has(activeDragged.vault_id)) {
@@ -563,11 +595,12 @@
             if (typeof window !== 'undefined') {
                 window.draggedDoc = null;
             }
+            handleDocDragEnd(e);
         }
     }
 
     function handleTenantTreeDragOver(e, btn, parentPath) {
-        const activeDragged = draggedDoc || (typeof window !== 'undefined' && window.draggedDoc);
+        const activeDragged = (typeof window !== 'undefined' && window.draggedDoc) ? window.draggedDoc : draggedDoc;
         if (!activeDragged || (!activeDragged.vault_id && (!activeDragged.vault_ids || activeDragged.vault_ids.length === 0))) return;
         const house = getResolvedHouse(activeDragged);
         if (parentPath && house && !parentPath.includes(encodeURIComponent(house)) && !parentPath.includes(house)) {
@@ -587,18 +620,25 @@
         if (btn && btn.classList) {
             btn.classList.remove('drag-over-active', 'bg-slate-700/80', 'ring-2', 'ring-blue-400');
         }
-        const activeDragged = draggedDoc || (typeof window !== 'undefined' && window.draggedDoc);
-        if (!activeDragged) return;
+        const activeDragged = (typeof window !== 'undefined' && window.draggedDoc) ? window.draggedDoc : draggedDoc;
+        if (!activeDragged) {
+            handleDocDragEnd(e);
+            return;
+        }
 
         const vaultIds = (activeDragged.vault_ids && activeDragged.vault_ids.length > 0)
             ? activeDragged.vault_ids
             : (activeDragged.vault_id ? [activeDragged.vault_id] : []);
-        if (vaultIds.length === 0) return;
+        if (vaultIds.length === 0) {
+            handleDocDragEnd(e);
+            return;
+        }
 
         const area = getResolvedArea(activeDragged);
         const house = getResolvedHouse(activeDragged);
         if (parentPath && house && !parentPath.includes(encodeURIComponent(house)) && !parentPath.includes(house)) {
             showToast('Cannot move document to another house.', 'error');
+            handleDocDragEnd(e);
             return;
         }
 
@@ -664,6 +704,7 @@
             if (typeof window !== 'undefined') {
                 window.draggedDoc = null;
             }
+            handleDocDragEnd(e);
         }
     }
 
@@ -2735,10 +2776,12 @@
             getResolvedHouse,
             handleCategoryDrop,
             handleCategoryDragOver,
+            handleCategoryDragLeave,
             handleDocDragStart,
             handleDocDragEnd,
             handleTenantTreeDrop,
             handleTenantTreeDragOver,
+            handleTenantTreeDragLeave,
             getActiveSelectedDocIds,
         };
     }
